@@ -31,6 +31,7 @@
 	>
 		<div class="cursor-pointer text-amber-200">Home</div>
 		<div class="hover:text-zinc-50 cursor-pointer">Discover</div>
+		<div class="hover:text-zinc-50 cursor-pointer">Library</div>
 		<div class="hover:text-zinc-50 cursor-pointer">Sources</div>
 		<div class="hover:text-zinc-50 cursor-pointer">Settings</div>
 	</div>

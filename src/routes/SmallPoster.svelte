@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { TmdbApi } from '$lib/tmdb-api';
 	import { onMount } from 'svelte';
-	import { ChevronDown } from 'radix-icons-svelte';
 
 	export let tmdbId;
 
@@ -23,15 +22,15 @@
 	});
 </script>
 
-<div class="group grid grid-cols-[3px_1fr_3px] grid-rows-[3px_1fr_3px]">
+<div class="group grid grid-cols-[2px_1fr_2px] grid-rows-[2px_1fr_2px]">
 	<div
 		style={'width: ' + progress + '%'}
-		class="h-full bg-white opacity-90 group-hover:opacity-100 transition-opacity col-span-3"
+		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity col-span-3"
 	/>
 	<div
 		transition-opacity
 		style={'height: ' + progress + '%'}
-		class="w-full bg-white opacity-90 group-hover:opacity-100"
+		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80"
 	/>
 	<div
 		class="bg-center bg-cover aspect-[2/3] h-72 shadow-2xl m-1.5"
@@ -53,7 +52,7 @@
 						<h2 class="text-xs uppercase text-zinc-300">S1 <b>E2</b></h2>
 					{/if}
 					{#if progress}
-						<h2>30min left</h2>
+						<h2 class="mt-2 text-sm tracking-wide text-zinc-300"><b>30min</b> left</h2>
 					{/if}
 				</div>
 				<div class="flex flex-col gap-2">
@@ -71,10 +70,10 @@
 	</div>
 	<div
 		style={'height: ' + progress + '%'}
-		class="w-full bg-white opacity-90 group-hover:opacity-100 transition-opacity self-end"
+		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity self-end"
 	/>
 	<div
 		style={'width: ' + progress + '%'}
-		class="h-full bg-white opacity-90 group-hover:opacity-100 transition-opacity col-span-3 justify-self-end"
+		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity col-span-3 justify-self-end"
 	/>
 </div>
