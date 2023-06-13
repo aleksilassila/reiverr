@@ -1,0 +1,25 @@
+query search($query: String!) {
+  results: search(query: $query) {
+    movies {
+      id
+      tmdbId
+      title
+      releaseDate
+      posterPath
+      overview
+      runtime
+      voteAverage
+    }
+
+    tvShows {
+      id
+      tmdbId
+      title
+      releaseDate
+      posterPath
+      overview
+      runtime
+      voteAverage
+    }
+  }
+}

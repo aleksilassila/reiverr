@@ -1,0 +1,20 @@
+mutation startScanLibrary {
+  result: startScanLibraryJob {
+    success
+    message
+  }
+}
+
+mutation startFindNewEpisodes {
+  result: startFindNewEpisodesJob {
+    success
+    message
+  }
+}
+
+mutation startDownloadMissing {
+  result: startDownloadMissingJob {
+    success
+    message
+  }
+}

@@ -1,0 +1,12 @@
+query getTVShowSeasons($tvShowTMDBId: Int!) {
+  seasons: getTVShowSeasons(tvShowTMDBId: $tvShowTMDBId) {
+    id
+    name
+    seasonNumber
+    episodeCount
+    overview
+    posterPath
+    airDate
+    inLibrary
+  }
+}

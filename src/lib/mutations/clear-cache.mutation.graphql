@@ -1,0 +1,6 @@
+mutation clearCache {
+  result: clearRedisCache {
+    success
+    message
+  }
+}

@@ -1,0 +1,11 @@
+query getParams {
+  params: getParams {
+    region
+    language
+    tmdb_api_key
+    jackett_api_key
+    max_movie_download_size
+    max_tvshow_episode_download_size
+    organize_library_strategy
+  }
+}

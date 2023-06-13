@@ -1,0 +1,13 @@
+query getGenres {
+  genres: getGenres {
+    movieGenres {
+      id,
+      name
+    }
+    
+    tvShowGenres {
+      id,
+      name
+    }
+  }
+}

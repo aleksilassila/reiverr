@@ -1,0 +1,18 @@
+query searchTorrent($query: String!) {
+  results: searchJackett(query: $query) {
+    id
+    title
+    quality
+    qualityScore
+    seeders
+    peers
+    link
+    downloadLink
+    tag
+    tagScore
+    normalizedTitle
+    normalizedTitleParts
+    size
+    publishDate
+  }
+}

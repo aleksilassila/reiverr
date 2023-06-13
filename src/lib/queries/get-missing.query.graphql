@@ -1,0 +1,26 @@
+fragment MissingTVEpisodes on EnrichedTVEpisode {
+  id
+  seasonNumber
+  episodeNumber
+  releaseDate
+  tvShow {
+    id
+    title
+  }
+}
+
+fragment MissingMovies on EnrichedMovie {
+  id
+  title
+  releaseDate
+}
+
+query getMissing {
+  tvEpisodes: getMissingTVEpisodes {
+    ...MissingTVEpisodes
+  }
+
+  movies: getMissingMovies {
+    ...MissingMovies
+  }
+}

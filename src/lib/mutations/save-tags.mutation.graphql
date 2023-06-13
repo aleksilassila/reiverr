@@ -1,0 +1,6 @@
+mutation saveTags($tags: [TagInput!]!) {
+  result: saveTags(tags: $tags) {
+    success
+    message
+  }
+}

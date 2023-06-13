@@ -1,0 +1,9 @@
+mutation resetLibrary($deleteFiles: Boolean!, $resetSettings: Boolean!) {
+  result: resetLibrary(
+    deleteFiles: $deleteFiles
+    resetSettings: $resetSettings
+  ) {
+    success
+    message
+  }
+}

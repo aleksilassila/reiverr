@@ -1,0 +1,16 @@
+query getLibraryMovies {
+  movies: getMovies {
+    id
+    tmdbId
+    title
+    originalTitle
+    state
+    posterPath
+    overview
+    runtime
+    voteAverage
+    releaseDate
+    createdAt
+    updatedAt
+  }
+}

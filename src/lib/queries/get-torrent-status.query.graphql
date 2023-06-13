@@ -1,0 +1,14 @@
+query getTorrentStatus($torrents: [GetTorrentStatusInput!]!) {
+  torrents: getTorrentStatus(torrents: $torrents) {
+    id
+    resourceId
+    resourceType
+    percentDone
+    rateDownload
+    rateUpload
+    uploadRatio
+    uploadedEver
+    totalSize
+    status
+  }
+}

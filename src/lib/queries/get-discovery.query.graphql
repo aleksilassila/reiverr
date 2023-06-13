@@ -1,0 +1,31 @@
+query getDiscover(
+  $entertainment: Entertainment
+  $originLanguage: String
+  $primaryReleaseYear: String
+  $score: Float
+  $genres: [Float!]
+  $page: Float
+) {
+  TMDBResults: discover(
+    entertainment: $entertainment
+    originLanguage: $originLanguage
+    primaryReleaseYear: $primaryReleaseYear
+    score: $score
+    genres: $genres
+    page: $page
+  ) {
+    page
+    totalResults
+    totalPages
+    results {
+    id
+    tmdbId
+    title
+    posterPath
+    overview
+    runtime
+    voteAverage
+    releaseDate
+    }
+  }
+}

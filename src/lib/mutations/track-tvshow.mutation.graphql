@@ -1,0 +1,5 @@
+mutation trackTVShow($tmdbId: Int!, $seasonNumbers: [Int!]!) {
+  tvShow: trackTVShow(tmdbId: $tmdbId, seasonNumbers: $seasonNumbers) {
+    id
+  }
+}

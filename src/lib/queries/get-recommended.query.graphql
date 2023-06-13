@@ -1,0 +1,23 @@
+query getRecommended {
+  tvShows: getRecommendedTVShows {
+    id
+    tmdbId
+    title
+    releaseDate
+    posterPath
+    overview
+    runtime
+    voteAverage
+  }
+
+  movies: getRecommendedMovies {
+    id
+    tmdbId
+    title
+    releaseDate
+    posterPath
+    overview
+    runtime
+    voteAverage
+  }
+}

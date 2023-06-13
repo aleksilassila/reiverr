@@ -1,0 +1,22 @@
+query getCalendar {
+  calendar: getCalendar {
+    movies {
+      id
+      title
+      state
+      releaseDate
+    }
+
+    tvEpisodes {
+      id
+      tvShow {
+        id
+        title
+      }
+      episodeNumber
+      seasonNumber
+      state
+      releaseDate
+    }
+  }
+}

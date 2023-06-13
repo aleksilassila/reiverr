@@ -1,0 +1,6 @@
+mutation removeTVShow($tmdbId: Int!) {
+  result: removeTVShow(tmdbId: $tmdbId) {
+    success
+    message
+  }
+}

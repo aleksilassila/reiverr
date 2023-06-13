@@ -1,0 +1,8 @@
+query getMovieFileDetails($tmdbId: Int!) {
+  details: getMovieFileDetails(tmdbId: $tmdbId) {
+    id
+    libraryPath
+    libraryFileSize
+    torrentFileName
+  }
+}

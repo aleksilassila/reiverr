@@ -1,0 +1,9 @@
+query getTags {
+  tags: getTags {
+    id
+    name
+    score
+    createdAt
+    updatedAt
+  }
+}

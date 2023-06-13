@@ -1,0 +1,6 @@
+query getLanguages {
+  languages: getLanguages {
+    code,
+    language
+  }
+}

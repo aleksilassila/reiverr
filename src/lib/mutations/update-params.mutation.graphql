@@ -1,0 +1,6 @@
+mutation updateParams($params: [UpdateParamsInput!]!) {
+  result: updateParams(params: $params) {
+    success
+    message
+  }
+}

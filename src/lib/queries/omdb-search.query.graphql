@@ -1,0 +1,13 @@
+query omdbSearch(
+  $title: String!
+) {
+  result: omdbSearch(
+    title: $title
+  ) {
+    ratings {
+    IMDB
+    rottenTomatoes
+    metaCritic
+  }
+}
+}

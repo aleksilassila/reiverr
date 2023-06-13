@@ -1,0 +1,18 @@
+query getDownloading {
+  searching: getSearchingMedias {
+    id
+    title
+    resourceId
+    resourceType
+  }
+
+  downloading: getDownloadingMedias {
+    id
+    title
+    tag
+    quality
+    torrent
+    resourceId
+    resourceType
+  }
+}

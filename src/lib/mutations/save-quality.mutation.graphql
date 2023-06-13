@@ -1,0 +1,6 @@
+mutation saveQuality($qualities: [QualityInput!]!) {
+  result: saveQualityParams(qualities: $qualities) {
+    success
+    message
+  }
+}

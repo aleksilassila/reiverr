@@ -1,0 +1,6 @@
+mutation removeMovie($tmdbId: Int!) {
+  result: removeMovie(tmdbId: $tmdbId) {
+    success
+    message
+  }
+}
