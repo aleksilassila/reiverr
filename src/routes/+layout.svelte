@@ -1,10 +1,7 @@
 <script>
 	import '../app.css';
 	import { setClient } from 'svelte-apollo';
-	import client from '$lib/apollo-client';
 	import Navbar from './Navbar.svelte';
-
-	setClient(client);
 </script>
 
 <div class="app">

@@ -1,5 +1,0 @@
-mutation trackMovie($title: String!, $tmdbId: Int!) {
-  movie: trackMovie(title: $title, tmdbId: $tmdbId) {
-    id
-  }
-}

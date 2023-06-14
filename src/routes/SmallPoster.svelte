@@ -60,9 +60,10 @@
 						class="bg-white border-2 border-white hover:bg-amber-400 hover:border-amber-400 transition-colors text-zinc-900 px-8 py-2.5 uppercase tracking-widest font-extrabold cursor-pointer text-xs"
 						>Stream</button
 					>
-					<button
-						class="border-2 border-white cursor-pointer transition-colors px-8 py-2.5 uppercase tracking-widest font-semibold text-xs hover:bg-amber-400 hover:text-black"
-						>Details</button
+					<a
+						href={'/' + type + '/' + tmdbId}
+						class="border-2 border-white cursor-pointer transition-colors px-8 py-2.5 uppercase tracking-widest font-semibold text-xs hover:bg-amber-400 hover:text-black text-center"
+						>Details</a
 					>
 				</div>
 			</div>

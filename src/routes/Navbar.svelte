@@ -1,10 +1,15 @@
 <script>
 	import { MagnifyingGlass, Person } from 'radix-icons-svelte';
 	import classNames from 'classnames';
+	import { page } from '$app/stores';
 
 	let y = 0;
 	let transparent = true;
 	let baseStyle = '';
+
+	function getLinkStyle(path) {
+		return $page.url.pathname === path ? 'text-amber-200' : 'hover:text-zinc-50 cursor-pointer';
+	}
 
 	$: {
 		transparent = y === 0;
@@ -29,11 +34,11 @@
 	<div
 		class="flex items-center justify-center gap-8 font-normal text-sm tracking-wider text-zinc-200"
 	>
-		<div class="cursor-pointer text-amber-200">Home</div>
-		<div class="hover:text-zinc-50 cursor-pointer">Discover</div>
-		<div class="hover:text-zinc-50 cursor-pointer">Library</div>
-		<div class="hover:text-zinc-50 cursor-pointer">Sources</div>
-		<div class="hover:text-zinc-50 cursor-pointer">Settings</div>
+		<a href="/" class={$page && getLinkStyle('/')}>Home</a>
+		<a href="/discover" class={$page && getLinkStyle('/discover')}>Discover</a>
+		<a href="/library" class={$page && getLinkStyle('/library')}>Library</a>
+		<a href="/sources" class={$page && getLinkStyle('/sources')}>Sources</a>
+		<a href="/settings" class={$page && getLinkStyle('/settings')}>Settings</a>
 	</div>
 	<div class="flex gap-2">
 		<div class="p-2 cursor-pointer text-zinc-200 hover:text-zinc-50">
