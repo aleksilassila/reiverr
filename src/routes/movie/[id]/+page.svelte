@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import ResourceDetails from '../../ResourceDetails/ResourceDetails.svelte';
+	import ResourceDetails from '../../components/ResourceDetails/ResourceDetails.svelte';
 	export let data: PageData;
 </script>
 
-<ResourceDetails trailer={false} resource={data.movie} remoteResource={data.remoteMovie} />
+<ResourceDetails resource={data.movie} remoteResource={data.remoteMovie} />

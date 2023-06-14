@@ -1,7 +1,7 @@
 <script lang="ts">
-	import SmallPoster from './SmallPoster.svelte';
+	import SmallPoster from './components/SmallPoster/SmallPoster.svelte';
 	import type { PageData } from './$types';
-	import ResourceDetails from './ResourceDetails/ResourceDetails.svelte';
+	import ResourceDetails from './components/ResourceDetails/ResourceDetails.svelte';
 	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
 
 	export let data: PageData;

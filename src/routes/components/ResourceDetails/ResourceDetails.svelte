@@ -66,7 +66,7 @@
 		remoteResource.backdrop_path +
 		"')"}
 >
-	<div class="youtube-container absolute h-full scale-[150%]">
+	<div class="youtube-container absolute h-full scale-[150%] hidden sm:block">
 		{#if video.key}
 			<iframe
 				class={classNames('transition-opacity', {
@@ -86,7 +86,7 @@
 	</div>
 	<div
 		class={classNames(
-			'bg-gradient-to-b from-[#070501bf] via-20% via-transparent transition-opacity absolute inset-0 z-[1]',
+			'bg-gradient-to-b from-darken via-20% via-transparent transition-opacity absolute inset-0 z-[1]',
 			{
 				'opacity-100': focusTrailer,
 				'opacity-0': !focusTrailer
@@ -95,12 +95,12 @@
 	/>
 	<div
 		class={classNames(
-			'h-full w-full px-16 pb-12 pt-32',
+			'h-full w-full px-16 pb-8 pt-32',
 			'grid grid-cols-[1fr_max-content] grid-rows-[1fr_min-content] gap-x-16 gap-y-8 relative z-[2]',
 			'transition-colors',
 			{
-				'bg-[#070501bf]': !focusTrailer,
-				'bg-[#00000000]': focusTrailer
+				'bg-darken': !focusTrailer,
+				'bg-transparent': focusTrailer
 			}
 		)}
 	>

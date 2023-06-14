@@ -18,6 +18,6 @@
 		<ChevronRight size="24" />
 	</div>
 </div>
-<div class="absolute inset-x-0 bottom-6 flex justify-center mx-auto opacity-50">
-	<ChevronDown size="20" />
-</div>
+<!--<div class="absolute inset-x-0 bottom-6 flex justify-center mx-auto opacity-50">-->
+<!--	<ChevronDown size="20" />-->
+<!--</div>-->

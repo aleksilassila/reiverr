@@ -8,13 +8,36 @@ export const TmdbApi = axios.create({
 	}
 });
 
-export async function fetchMovieDetails(imdbId: string | number) {
+export async function fetchMovieDetails(imdbId: string | number): Promise<TmdbMovieFull> {
 	return {
 		...(await TmdbApi.get('/movie/' + imdbId).then((res) => res.data)),
-		videos: await TmdbApi.get('/movie/' + imdbId + '/videos').then((res) => res.data.results),
-		credits: await TmdbApi.get('/movie/' + imdbId + '/credits').then((res) => res.data.cast)
+		videos: await TmdbApi.get<VideosResponse>('/movie/' + imdbId + '/videos').then(
+			(res) => res.data.results
+		),
+		images: await TmdbApi.get<ImagesResponse>('/movie/' + imdbId + '/images').then((res) => {
+			return {
+				backdrops: res.data.backdrops,
+				logos: res.data.logos,
+				posters: res.data.posters
+			};
+		}),
+		credits: await TmdbApi.get<CreditsResponse>('/movie/' + imdbId + '/credits').then(
+			(res) => res.data.cast
+		)
 	};
 }
+
+export interface TmdbMovieFull extends TmdbMovie {
+	videos: Video[];
+	images: {
+		backdrops: Backdrop[];
+		logos: Logo[];
+		posters: Poster[];
+	};
+	credits: CastMember[];
+}
+
+export type MovieDetailsResponse = TmdbMovie;
 
 export interface TmdbMovie {
 	adult: boolean;
@@ -118,4 +141,41 @@ export interface Video {
 	official: boolean;
 	published_at: string;
 	id: string;
+}
+
+export interface ImagesResponse {
+	backdrops: Backdrop[];
+	id: number;
+	logos: Logo[];
+	posters: Poster[];
+}
+
+export interface Backdrop {
+	aspect_ratio: number;
+	height: number;
+	iso_639_1?: string;
+	file_path: string;
+	vote_average: number;
+	vote_count: number;
+	width: number;
+}
+
+export interface Logo {
+	aspect_ratio: number;
+	height: number;
+	iso_639_1: string;
+	file_path: string;
+	vote_average: number;
+	vote_count: number;
+	width: number;
+}
+
+export interface Poster {
+	aspect_ratio: number;
+	height: number;
+	iso_639_1?: string;
+	file_path: string;
+	vote_average: number;
+	vote_count: number;
+	width: number;
 }

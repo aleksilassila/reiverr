@@ -6,6 +6,9 @@ export default {
 			fontFamily: {
 				sans: ['Inter', 'sans-serif'],
 				display: ['Inter', 'system', 'sans-serif']
+			},
+			colors: {
+				darken: '#070501bf'
 			}
 		}
 	},

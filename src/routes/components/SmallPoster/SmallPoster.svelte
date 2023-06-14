@@ -3,13 +3,14 @@
 	import { onMount } from 'svelte';
 
 	export let tmdbId;
+	export let progress = 0;
+	export let randomProgress = false;
+	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
 
 	export let type: 'movie' | 'tv' = 'movie';
 
 	let bg = '';
 	let title = 'Loading...';
-
-	const progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
 
 	onMount(() => {
 		TmdbApi.get('/' + type + '/' + tmdbId)
@@ -35,9 +36,7 @@
 		class="bg-center bg-cover aspect-[2/3] h-72 shadow-2xl m-1.5"
 		style={"background-image: url('" + bg + "')"}
 	>
-		<div
-			class="w-full h-full bg-gradient-to-b from-[#00000099] via-20% via-transparent hover:bg-[#00000099] transition-all flex"
-		>
+		<div class="w-full h-full hover:bg-darken transition-all flex">
 			<div
 				class="opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between flex-1 cursor-pointer"
 			>
