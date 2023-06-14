@@ -52,8 +52,10 @@
 
 	onMount(() => {
 		setTimeout(() => {
-			showTrailer = trailer;
-			trailerStartTime = Date.now();
+			if (trailer) {
+				showTrailer = true;
+				trailerStartTime = Date.now();
+			}
 		}, 2500);
 	});
 </script>
@@ -141,7 +143,7 @@
 					</div>
 				</div>
 				<button
-					on:mouseover={() => (focusTrailer = true)}
+					on:mouseover={() => (focusTrailer = trailer)}
 					on:mouseleave={() => (focusTrailer = false)}
 					on:click={openTrailer}
 					class="border-2 border-white cursor-pointer transition-colors px-8 py-3.5 uppercase tracking-widest font-semibold text-xs hover:bg-white hover:text-black opacity-100"

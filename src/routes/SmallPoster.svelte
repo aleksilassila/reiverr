@@ -15,7 +15,6 @@
 		TmdbApi.get('/' + type + '/' + tmdbId)
 			.then((res) => res.data)
 			.then((data: any) => {
-				console.log('data', data);
 				bg = 'https://www.themoviedb.org/t/p/original/' + data.poster_path;
 				title = data.title;
 			});
