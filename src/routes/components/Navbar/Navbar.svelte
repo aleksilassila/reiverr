@@ -2,10 +2,14 @@
 	import { MagnifyingGlass, Person } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { page } from '$app/stores';
+	import TitleSearchModal from './TitleSearchModal.svelte';
+	import IconButton from '../IconButton.svelte';
 
 	let y = 0;
 	let transparent = true;
 	let baseStyle = '';
+
+	let isSearchVisible = false;
 
 	function getLinkStyle(path) {
 		return $page.url.pathname === path ? 'text-amber-200' : 'hover:text-zinc-50 cursor-pointer';
@@ -40,12 +44,14 @@
 		<a href="/sources" class={$page && getLinkStyle('/sources')}>Sources</a>
 		<a href="/settings" class={$page && getLinkStyle('/settings')}>Settings</a>
 	</div>
-	<div class="flex gap-2">
-		<div class="p-2 cursor-pointer text-zinc-200 hover:text-zinc-50">
+	<div class="flex gap-2 items-center">
+		<IconButton on:click={() => (isSearchVisible = true)}>
 			<MagnifyingGlass size="20" />
-		</div>
-		<div class="p-2 cursor-pointer text-zinc-200 hover:text-zinc-50">
+		</IconButton>
+		<IconButton>
 			<Person size="20" />
-		</div>
+		</IconButton>
 	</div>
 </div>
+
+<TitleSearchModal bind:visible={isSearchVisible} />

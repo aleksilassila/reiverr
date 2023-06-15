@@ -8,7 +8,8 @@ export default {
 				display: ['Inter', 'system', 'sans-serif']
 			},
 			colors: {
-				darken: '#070501bf'
+				darken: '#070501bf',
+				'highlight-dim': '#fde68a20'
 			}
 		}
 	},

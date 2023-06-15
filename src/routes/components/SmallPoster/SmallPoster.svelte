@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { TmdbApi } from '$lib/tmdb-api';
 	import { onMount } from 'svelte';
+	import { TMDB_IMAGES } from '$lib/constants';
 
 	export let tmdbId;
 	export let progress = 0;
@@ -16,7 +17,7 @@
 		TmdbApi.get('/' + type + '/' + tmdbId)
 			.then((res) => res.data)
 			.then((data: any) => {
-				bg = 'https://www.themoviedb.org/t/p/original/' + data.poster_path;
+				bg = TMDB_IMAGES + data.poster_path;
 				title = data.title;
 			});
 	});

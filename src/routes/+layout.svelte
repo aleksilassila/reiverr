@@ -1,7 +1,7 @@
 <script>
 	import '../app.css';
 	import { setClient } from 'svelte-apollo';
-	import Navbar from './components/Navbar.svelte';
+	import Navbar from './components/Navbar/Navbar.svelte';
 </script>
 
 <div class="app">

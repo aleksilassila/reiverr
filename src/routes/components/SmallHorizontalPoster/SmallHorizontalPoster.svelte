@@ -2,6 +2,7 @@
 	import type { TmdbMovieFull } from '$lib/tmdb-api';
 	import { formatGenres, getRuntime } from '$lib/utils';
 	import classNames from 'classnames';
+	import { TMDB_IMAGES } from '$lib/constants';
 
 	export let tmdbMovie: TmdbMovieFull;
 
@@ -14,8 +15,7 @@
 	}
 
 	const backdropUrl =
-		'https://www.themoviedb.org/t/p/original' +
-		tmdbMovie.images.backdrops.filter((b) => b.iso_639_1 === 'en')[0].file_path;
+		TMDB_IMAGES + tmdbMovie.images.backdrops.filter((b) => b.iso_639_1 === 'en')[0].file_path;
 </script>
 
 <div

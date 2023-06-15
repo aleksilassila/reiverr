@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import ResourceDetails from './components/ResourceDetails/ResourceDetails.svelte';
 	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
+	import { TMDB_IMAGES } from '$lib/constants';
 
 	export let data: PageData;
 	let movies = data.showcases;
@@ -18,9 +19,7 @@
 {:else}
 	<div
 		class="bg-cover bg-center"
-		style={"background-image: url('https://www.themoviedb.org/t/p/original/" +
-			movie.backdrop_path +
-			"')"}
+		style={"background-image: url('" + TMDB_IMAGES + movie.backdrop_path + "')"}
 	>
 		<div class="p-8 flex flex-col gap-6 backdrop-blur-xl bg-[#000000dd]">
 			<h1 class="uppercase tracking-widest font-bold">Continue Watching</h1>

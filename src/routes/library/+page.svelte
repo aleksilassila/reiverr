@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import SmallHorizontalPoster from '../components/SmallHorizontalPoster/SmallHorizontalPoster.svelte';
 	import type { TmdbMovieFull } from '$lib/tmdb-api';
+	import { TMDB_IMAGES } from '$lib/constants.js';
 	export let data: PageData;
 	console.log(data);
 
@@ -25,9 +26,7 @@
 	const headerStyle = 'uppercase tracking-widest font-bold text-center mt-2';
 </script>
 
-<div
-	style="background-image: url('https://www.themoviedb.org/t/p/original/vvjYv7bSWerbsi0LsMjLnTVOX7c.jpg')"
->
+<div style={"background-image: url('" + TMDB_IMAGES + "/vvjYv7bSWerbsi0LsMjLnTVOX7c.jpg')"}>
 	<div class="py-24 backdrop-blur-2xl bg-darken px-8 flex flex-col gap-4">
 		<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
 		<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->

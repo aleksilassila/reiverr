@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
+	import { TMDB_IMAGES } from '$lib/constants';
 
 	export let resource: MovieResource;
 	export let trailer = true;
@@ -62,9 +63,7 @@
 
 <div
 	class="h-screen w-screen bg-center bg-cover relative overflow-hidden"
-	style={"background-image: url('https://www.themoviedb.org/t/p/original" +
-		remoteResource.backdrop_path +
-		"')"}
+	style={"background-image: url('" + TMDB_IMAGES + remoteResource.backdrop_path + "')"}
 >
 	<div class="youtube-container absolute h-full scale-[150%] hidden sm:block">
 		{#if video.key}
