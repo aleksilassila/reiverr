@@ -1,18 +1,16 @@
 import type { PageLoad } from './$types';
-import { radarrApi } from '$lib/servarr-api';
-import { fetchMovieDetails } from '$lib/tmdb-api';
+import { fetchFullMovieDetails } from '$lib/tmdb-api';
+import { RadarrApi } from '$lib/radarr/radarr';
 
 export const load = (async () => {
-	const radarrMovies = await radarrApi
-		.get('/api/v3/movie', {
-			params: {}
-		})
-		.then((r) => r.data);
+	const radarrMovies = await RadarrApi.get('/api/v3/movie', {
+		params: {}
+	}).then((r) => r.data);
 
 	let tmdbMovies;
 	if (radarrMovies) {
 		tmdbMovies = await Promise.all(
-			radarrMovies.filter((m) => m.tmdbId).map((m) => fetchMovieDetails(m.tmdbId as any))
+			radarrMovies.filter((m) => m.tmdbId).map((m) => fetchFullMovieDetails(String(m.tmdbId)))
 		);
 	}
 
@@ -21,14 +19,12 @@ export const load = (async () => {
 	return {
 		radarrMovies,
 		tmdbMovies,
-		downloading: await radarrApi
-			.get('/api/v3/queue', {
-				params: {
-					query: {
-						includeMovie: true
-					}
+		downloading: await RadarrApi.get('/api/v3/queue', {
+			params: {
+				query: {
+					includeMovie: true
 				}
-			})
-			.then((r) => r.data?.records)
+			}
+		}).then((r) => r.data?.records)
 	};
 }) satisfies PageLoad;

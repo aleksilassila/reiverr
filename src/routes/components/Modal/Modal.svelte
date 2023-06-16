@@ -11,7 +11,7 @@
 <div
 	class={classNames('fixed inset-0 bg-[#00000088] justify-center items-center z-20', {
 		hidden: !visible,
-		flex: visible
+		'flex overflow-hidden': visible
 	})}
 	on:click|self={close}
 >

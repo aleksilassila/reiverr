@@ -8,24 +8,25 @@ export const TmdbApi = axios.create({
 	}
 });
 
-export async function fetchMovieDetails(imdbId: string | number): Promise<TmdbMovieFull> {
+export async function fetchFullMovieDetails(tmdbId: string): Promise<TmdbMovieFull> {
 	return {
-		...(await TmdbApi.get('/movie/' + imdbId).then((res) => res.data)),
-		videos: await TmdbApi.get<VideosResponse>('/movie/' + imdbId + '/videos').then(
-			(res) => res.data.results
-		),
-		images: await TmdbApi.get<ImagesResponse>('/movie/' + imdbId + '/images').then((res) => {
-			return {
-				backdrops: res.data.backdrops,
-				logos: res.data.logos,
-				posters: res.data.posters
-			};
-		}),
-		credits: await TmdbApi.get<CreditsResponse>('/movie/' + imdbId + '/credits').then(
+		...(await fetchTmdbMovie(tmdbId)),
+		videos: await fetchTmdbMovieVideos(tmdbId),
+		images: await fetchTmdbMovieImages(tmdbId),
+		credits: await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then(
 			(res) => res.data.cast
 		)
 	};
 }
+
+export const fetchTmdbMovie = async (tmdbId: string) =>
+	await TmdbApi.get<TmdbMovie>('/movie/' + tmdbId).then((r) => r.data);
+
+export const fetchTmdbMovieVideos = async (tmdbId: string) =>
+	await TmdbApi.get<VideosResponse>('/movie/' + tmdbId + '/videos').then((res) => res.data.results);
+
+export const fetchTmdbMovieImages = async (tmdbId: string) =>
+	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images').then((res) => res.data);
 
 export interface TmdbMovieFull extends TmdbMovie {
 	videos: Video[];

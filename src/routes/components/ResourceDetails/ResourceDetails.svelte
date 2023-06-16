@@ -1,14 +1,18 @@
 <script lang="ts">
-	import type { MovieResource } from '$lib/types';
 	import { ChevronDown, Clock } from 'radix-icons-svelte';
 	import { onMount } from 'svelte';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
 	import { TMDB_IMAGES } from '$lib/constants';
+	import Button from '../Ui/Button.svelte';
+	import type { MovieResource } from '$lib/radarr/radarr';
+	import type { TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
 
 	export let resource: MovieResource;
 	export let trailer = true;
-	export let remoteResource: any;
+	export let remoteResource: TmdbMovieFull;
+	let tmdbPageUrl = '';
+	$: tmdbPageUrl = 'https://www.themoviedb.org/movie/' + remoteResource.id;
 
 	let video: any = remoteResource.videos.filter(
 		(v) => v.site === 'YouTube' && v.type === 'Trailer'
@@ -58,6 +62,7 @@
 				trailerStartTime = Date.now();
 			}
 		}, 2500);
+		console.log(remoteResource);
 	});
 </script>
 
@@ -75,7 +80,7 @@
 				transition:fade
 				src={'https://www.youtube.com/embed/' +
 					video.key +
-					'?autoplay=1&mute=1&loop=1&color=white&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1'}
+					'?autoplay=1&mute=1&loop=1&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1'}
 				title="YouTube video player"
 				frameborder="0"
 				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -131,22 +136,19 @@
 			</div>
 			<div class="flex gap-6 mt-10">
 				<div class="flex gap-1">
-					<button
-						class="bg-white border-2 border-white hover:bg-amber-400 hover:border-amber-400 transition-colors text-zinc-900 px-8 py-3.5 uppercase tracking-widest font-extrabold cursor-pointer text-xs"
-						style={opacityStyle}>Stream</button
-					>
+					<Button size="lg" style={opacityStyle}>Stream</Button>
 					<div
 						class="hidden items-center justify-center border-2 border-white w-10 cursor-pointer hover:bg-white hover:text-zinc-900 transition-colors"
 					>
 						<ChevronDown size="20" />
 					</div>
 				</div>
-				<button
+				<Button
+					size="lg"
+					type="secondary"
 					on:mouseover={() => (focusTrailer = trailer)}
 					on:mouseleave={() => (focusTrailer = false)}
-					on:click={openTrailer}
-					class="border-2 border-white cursor-pointer transition-colors px-8 py-3.5 uppercase tracking-widest font-semibold text-xs hover:bg-white hover:text-black opacity-100"
-					>Watch Trailer</button
+					on:click={openTrailer}>Watch Trailer</Button
 				>
 			</div>
 		</div>
@@ -165,9 +167,13 @@
 					</div>
 				</div>
 				<div class="tracking-widest font-extralight text-sm">Currently <b>Streaming</b></div>
-				<div class="tracking-widest font-extralight text-sm">
-					<b>{remoteResource.vote_average}</b> TMDB
-				</div>
+				<a
+					href={'https://www.themoviedb.org/movie/' + remoteResource.id}
+					target="_blank"
+					class="tracking-widest font-extralight text-sm"
+				>
+					<b>{remoteResource.vote_average.toFixed(1)}</b> TMDB
+				</a>
 				<div class="flex mt-4">
 					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="text-white w-4"
 						><g
@@ -183,8 +189,17 @@
 			<h3 class="text-xs tracking-wide uppercase">Starring</h3>
 			<div class="flex flex-col gap-1">
 				{#each remoteResource.credits.slice(0, 5) as a}
-					<div class="tracking-widest font-extralight text-sm">{a.name}</div>
+					<a
+						href={'https://www.themoviedb.org/person/' + a.id}
+						target="_blank"
+						class="tracking-widest font-extralight text-sm">{a.name}</a
+					>
 				{/each}
+				<a
+					href={'https://www.themoviedb.org/movie/' + remoteResource.id + '/cast'}
+					target="_blank"
+					class="tracking-widest font-extralight text-sm">View all...</a
+				>
 			</div>
 		</div>
 		<slot name="page-controls" />

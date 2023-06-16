@@ -1,18 +1,16 @@
 import type { PageLoad } from './$types';
-import { radarrApi } from '$lib/servarr-api';
-import { fetchMovieDetails, TmdbApi } from '$lib/tmdb-api';
+import { fetchFullMovieDetails, TmdbApi } from '$lib/tmdb-api';
+import { RadarrApi } from '$lib/radarr/radarr';
 
 export const load = (async ({ params }) => {
 	return {
-		movie: await radarrApi
-			.get('/api/v3/movie', {
-				params: {
-					query: {
-						tmdbId: Number(params.id)
-					}
+		movie: await RadarrApi.get('/api/v3/movie', {
+			params: {
+				query: {
+					tmdbId: Number(params.id)
 				}
-			})
-			.then((res) => res.data?.[0]),
-		remoteMovie: fetchMovieDetails(params.id)
+			}
+		}).then((res) => res.data?.[0]),
+		remoteMovie: fetchFullMovieDetails(params.id)
 	};
 }) satisfies PageLoad;

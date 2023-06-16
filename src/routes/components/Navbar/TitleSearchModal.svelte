@@ -6,7 +6,6 @@
 	import { TmdbApi } from '$lib/tmdb-api';
 	import type { MultiSearchResponse } from '$lib/tmdb-api';
 	import { TMDB_IMAGES } from '$lib/constants';
-	import { onMount } from 'svelte';
 	export let visible = false;
 	let searchValue = '';
 
@@ -41,17 +40,10 @@
 			})
 			.finally(() => (fetching = false));
 	};
-
-	onMount(() => {
-		searchValue = 'incepti';
-		searchMovie('incepti');
-	});
-
-	$: console.log(results);
 </script>
 
 <Modal {visible} {close}>
-	<ModalContent {close}>
+	<ModalContent>
 		<div class="flex text-zinc-200 items-center p-3 px-5 gap-4 border-b border-zinc-700">
 			<MagnifyingGlass size="20" class="text-zinc-400" />
 			<input

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { TmdbMovieFull } from '$lib/tmdb-api';
-	import { formatGenres, getRuntime } from '$lib/utils';
+	import { formatGenres, formatMinutes } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TMDB_IMAGES } from '$lib/constants';
 
@@ -38,8 +38,8 @@
 			{#if progressType === 'watched'}
 				<div class="text-xs font-medium text-zinc-200">
 					{progress
-						? getRuntime(tmdbMovie.runtime - tmdbMovie.runtime * (progress / 100)) + ' left'
-						: getRuntime(tmdbMovie.runtime)}
+						? formatMinutes(tmdbMovie.runtime - tmdbMovie.runtime * (progress / 100)) + ' left'
+						: formatMinutes(tmdbMovie.runtime)}
 				</div>
 			{:else if progressType === 'downloading'}
 				<div class="text-xs font-medium text-zinc-200">

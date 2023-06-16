@@ -1,6 +1,3 @@
-import type { components as radarrComponents } from '$lib/radarr';
-import type { components as sonarrComponents } from '$lib/sonarr';
-
-export type MovieResource = radarrComponents['schemas']['MovieResource'];
+import type { components as sonarrComponents } from '$lib/sonarr/sonarr-api';
 
 export type SeriesResource = sonarrComponents['schemas']['SeriesResource'];
