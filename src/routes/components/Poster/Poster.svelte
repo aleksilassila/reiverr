@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { TmdbApi } from '$lib/tmdb-api';
+	import type { TmdbMovie } from '$lib/tmdb-api';
 	import { onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
+	import { formatMinutes } from '$lib/utils';
 
 	export let tmdbId;
 	export let progress = 0;
+	export let length = 0;
 	export let randomProgress = false;
 	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
 
@@ -50,8 +53,10 @@
 					{:else}
 						<h2 class="text-xs uppercase text-zinc-300">S1 <b>E2</b></h2>
 					{/if}
-					{#if progress}
-						<h2 class="mt-2 text-sm tracking-wide text-zinc-300"><b>30min</b> left</h2>
+					{#if progress && length}
+						<h2 class="mt-2 text-sm tracking-wide text-zinc-300">
+							<b>{formatMinutes(length * (1 - progress / 100))}</b> left
+						</h2>
 					{/if}
 				</div>
 				<div class="flex flex-col gap-2">

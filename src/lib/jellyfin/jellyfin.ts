@@ -15,19 +15,23 @@ export const JellyfinApi = createClient<paths>({
 });
 
 export const getJellyfinContinueWatching = () =>
-	request(() =>
-		JellyfinApi.get('/Users/{userId}/Items/Resume', {
-			params: {
-				path: {
-					userId: JELLYFIN_USER_ID
-				},
-				query: {
-					limit: 8,
-					mediaTypes: ['Video']
-				}
+	JellyfinApi.get('/Users/{userId}/Items/Resume', {
+		params: {
+			path: {
+				userId: JELLYFIN_USER_ID
+			},
+			query: {
+				limit: 8,
+				mediaTypes: ['Video'],
+				fields: ['ProviderIds']
 			}
-		}).then((r) => r.data?.Items)
-	);
+		}
+	}).then((r) => {
+		console.log(r.data);
+		return r.data?.Items;
+	});
+
+export const requestJellyfinContinueWatching = () => request(getJellyfinContinueWatching);
 
 export const getJellyfinItemByTmdbId = () =>
 	request((tmdbId: string) =>

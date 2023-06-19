@@ -1,22 +1,31 @@
 <script lang="ts">
 	import { ChevronDown, ChevronLeft, ChevronRight, DotFilled } from 'radix-icons-svelte';
+	import IconButton from './components/IconButton.svelte';
+
+	export let onNext: () => void;
+	export let onPrevious: () => void;
+	export let index = 0;
+	export let length = 0;
 </script>
 
 <div class="relative z-[1] flex gap-8 justify-between items-center col-span-2">
-	<div class="p-4 cursor-pointer text-zinc-200 hover:text-zinc-100">
+	<IconButton on:click={onPrevious}>
 		<ChevronLeft size="24" />
-	</div>
+	</IconButton>
+
 	<div class="flex gap-2">
-		<DotFilled size="15" />
-		<DotFilled size="15" class="opacity-20" />
-		<DotFilled size="15" class="opacity-20" />
-		<DotFilled size="15" class="opacity-20" />
-		<DotFilled size="15" class="opacity-20" />
+		{#each Array.from({ length }, (_, i) => i) as i}
+			{#if i === index}
+				<DotFilled size="15" class="opacity-100" />
+			{:else}
+				<DotFilled size="15" class="opacity-20" />
+			{/if}
+		{/each}
 	</div>
 
-	<div class="p-4 cursor-pointer text-zinc-200 hover:text-zinc-100">
+	<IconButton on:click={onNext}>
 		<ChevronRight size="24" />
-	</div>
+	</IconButton>
 </div>
 <!--<div class="absolute inset-x-0 bottom-6 flex justify-center mx-auto opacity-50">-->
 <!--	<ChevronDown size="20" />-->

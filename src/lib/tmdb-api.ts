@@ -28,6 +28,9 @@ export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
 export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
 	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images').then((res) => res.data);
 
+export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
+	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);
+
 export interface TmdbMovieFull extends TmdbMovie {
 	videos: Video[];
 	images: {
