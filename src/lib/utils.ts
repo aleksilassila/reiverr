@@ -35,7 +35,7 @@ export function request<T, A>(fetcher: (arg: A) => Promise<T>, args: A | undefin
 
 		fetcher(arg)
 			.then((d) => {
-				console.log('got data', d);
+				console.log('request data', d);
 				data.set(d);
 			})
 			.catch((e) => error.set(e))

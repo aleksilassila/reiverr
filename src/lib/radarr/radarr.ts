@@ -1,8 +1,8 @@
 import createClient from 'openapi-fetch';
 import { PUBLIC_RADARR_API_KEY } from '$env/static/public';
 import { request } from '$lib/utils';
-import type { paths } from '$lib/radarr/radarr-api';
-import type { components } from '$lib/radarr/radarr-api';
+import type { paths } from '$lib/radarr/radarr-types';
+import type { components } from '$lib/radarr/radarr-types';
 import type { TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
 import { fetchTmdbMovie, TmdbApi } from '$lib/tmdb-api';
 

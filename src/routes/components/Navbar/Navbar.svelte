@@ -16,7 +16,7 @@
 	}
 
 	$: {
-		transparent = y === 0;
+		transparent = y <= 0;
 		baseStyle = classNames(
 			'fixed px-8 inset-x-0 grid grid-cols-[min-content_1fr_min-content] items-center z-10',
 			'transition-all',

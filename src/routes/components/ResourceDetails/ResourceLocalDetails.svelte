@@ -6,18 +6,25 @@
 	import RequestModal from '../RequestModal/RequestModal.svelte';
 	import { addRadarrMovie, getQueuedById, getRadarrMovie } from '$lib/radarr/radarr';
 	import IconButton from '../IconButton.svelte';
-	import { formatMinutes } from '$lib/utils.js';
 	import classNames from 'classnames';
+	import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
+	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
 
 	let isRequestModalVisible = false;
 	export let tmdbId: string;
 
+	let videoPlayerVisible;
+
 	const { data: localResource, load, didLoad } = getRadarrMovie();
 	const { data: queueResponse, load: loadQueued } = getQueuedById();
 	const { data: addMovieResponse, loading: addMovieLoading, load: addToRadarr } = addRadarrMovie();
+	const { data: jellyfinData, load: loadJellyfinData } = getJellyfinItemByTmdbId();
 
 	function refreshRadarrMovie() {
-		if (tmdbId) load(tmdbId);
+		if (tmdbId) {
+			load(tmdbId);
+			loadJellyfinData(tmdbId);
+		}
 	}
 
 	onMount(() => {
@@ -101,7 +108,7 @@
 							{movieFile.mediaInfo.videoCodec}
 						</h2>
 					</div>
-					<Button size="sm">Stream</Button>
+					<Button size="sm" on:click={() => (videoPlayerVisible = true)}>Stream</Button>
 				</div>
 			{/each}
 		</div>
@@ -121,4 +128,8 @@
 		radarrId={$localResource.id}
 		on:download={() => refreshRadarrMovie()}
 	/>
+{/if}
+{#if $jellyfinData?.Id}
+	player
+	<VideoPlayer bind:visible={videoPlayerVisible} jellyfinVideoId={$jellyfinData.Id} />
 {/if}

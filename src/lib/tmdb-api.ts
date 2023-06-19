@@ -19,13 +19,13 @@ export async function fetchFullMovieDetails(tmdbId: string): Promise<TmdbMovieFu
 	};
 }
 
-export const fetchTmdbMovie = async (tmdbId: string) =>
+export const fetchTmdbMovie = async (tmdbId: string): Promise<TmdbMovie> =>
 	await TmdbApi.get<TmdbMovie>('/movie/' + tmdbId).then((r) => r.data);
 
-export const fetchTmdbMovieVideos = async (tmdbId: string) =>
+export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
 	await TmdbApi.get<VideosResponse>('/movie/' + tmdbId + '/videos').then((res) => res.data.results);
 
-export const fetchTmdbMovieImages = async (tmdbId: string) =>
+export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
 	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images').then((res) => res.data);
 
 export interface TmdbMovieFull extends TmdbMovie {
