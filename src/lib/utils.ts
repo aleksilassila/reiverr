@@ -35,7 +35,7 @@ export function request<R, A>(fetcher: (arg: A) => Promise<R>, args: A | undefin
 
 		fetcher(arg)
 			.then((d) => {
-				console.log('request data', d);
+				// if (typeof window !== undefined) console.log('request data', d);
 				data.set(d);
 			})
 			.catch((e) => error.set(e))

@@ -29,15 +29,14 @@
 <div class="group grid grid-cols-[2px_1fr_2px] grid-rows-[2px_1fr_2px]">
 	<div
 		style={'width: ' + progress + '%'}
-		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity col-span-3"
+		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all col-span-3"
 	/>
 	<div
-		transition-opacity
 		style={'height: ' + progress + '%'}
-		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80"
+		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all"
 	/>
 	<div
-		class="bg-center bg-cover aspect-[2/3] h-72 shadow-2xl m-1.5"
+		class="bg-center bg-cover aspect-[2/3] h-72 m-1.5"
 		style={"background-image: url('" + bg + "')"}
 	>
 		<div class="w-full h-full hover:bg-darken transition-all flex">
@@ -75,10 +74,10 @@
 	</div>
 	<div
 		style={'height: ' + progress + '%'}
-		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity self-end"
+		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all self-end"
 	/>
 	<div
 		style={'width: ' + progress + '%'}
-		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-opacity col-span-3 justify-self-end"
+		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all col-span-3 justify-self-end"
 	/>
 </div>

@@ -21,11 +21,10 @@ export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesRespon
 export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
 	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);
 
-export const requestTmdbPopularMovies = () =>
-	request(
-		() => TmdbApi.get<PopularMoviesResponse>('/movie/popular').then((res) => res.data.results),
-		null
-	);
+export const fetchTmdbPopularMovies = () =>
+	TmdbApi.get<PopularMoviesResponse>('/movie/popular').then((res) => res.data.results);
+
+export const requestTmdbPopularMovies = () => request(fetchTmdbPopularMovies, null);
 
 export interface TmdbMovieFull extends TmdbMovie {
 	videos: Video[];

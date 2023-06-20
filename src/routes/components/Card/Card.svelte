@@ -12,6 +12,7 @@
 	export let available = true;
 	export let progress = 0;
 	export let progressType: 'watched' | 'downloading' = 'watched';
+	export let large = false;
 	export let randomProgress = false;
 	if (randomProgress) {
 		progress = Math.random() > 0.3 ? Math.random() * 100 : 0;
@@ -34,11 +35,13 @@
 </script>
 
 {#if !tmdbMovie || !backdropUrl}
-	<CardPlaceholder />
+	<CardPlaceholder {large} />
 {:else}
 	<div
-		style={"background-image: url('" + backdropUrl + "')"}
-		class="h-40 w-72 rounded overflow-hidden relative drop-shadow-2xl shrink-0"
+		class={classNames('rounded overflow-hidden relative shadow-2xl shrink-0', {
+			'h-40 w-72': !large,
+			'h-60 w-96': large
+		})}
 	>
 		<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
 		<div
@@ -47,20 +50,20 @@
 			style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
 		>
 			<div>
-				<h1 class="font-bold tracking-wider">{tmdbMovie.original_title}</h1>
+				<h1 class="font-bold tracking-wider text-lg">{tmdbMovie.original_title}</h1>
 				<div class="text-xs text-zinc-300 tracking-wider font-medium">
 					{formatGenres(tmdbMovie.genres)}
 				</div>
 			</div>
 			<div class="flex justify-between items-end">
 				{#if progressType === 'watched'}
-					<div class="text-xs font-medium text-zinc-200">
+					<div class="text-sm font-medium text-zinc-200">
 						{progress
 							? formatMinutes(tmdbMovie.runtime - tmdbMovie.runtime * (progress / 100)) + ' left'
 							: formatMinutes(tmdbMovie.runtime)}
 					</div>
 				{:else if progressType === 'downloading'}
-					<div class="text-xs font-medium text-zinc-200">
+					<div class="text-sm font-medium text-zinc-200">
 						{Math.floor(progress) + '% Downloaded'}
 					</div>
 				{/if}
@@ -71,7 +74,7 @@
 			class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
 		/>
 		<div
-			class={classNames('absolute inset-0', {
+			class={classNames('absolute inset-0 transition-opacity', {
 				'bg-darken opacity-0 peer-hover:opacity-100': available,
 				'bg-[#00000055] peer-hover:bg-darken': !available
 			})}

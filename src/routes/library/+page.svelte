@@ -6,32 +6,10 @@
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
 	export let data: PageData;
-	console.log(data);
-	//
-	// const allMovies: Record<string, TmdbMovieFull> = {};
-	// await data.tmdbMovies.forEach((m) => (allMovies[m.id] = m));
-	//
-	// const tmdbIdToDownloading = {};
-	// (data.downloading as any).forEach((d) => (tmdbIdToDownloading[d.movie.tmdbId] = d));
-	//
-	// const tmdbIdToRadarrMovie = {};
-	// (data.radarrMovies as any).forEach((r) => (tmdbIdToRadarrMovie[r.tmdbId] = r));
-	//
-	// const downloading = data.tmdbMovies.filter((m) => tmdbIdToDownloading[m.id] !== undefined);
-	// const available = data.tmdbMovies.filter((m) => tmdbIdToDownloading[m.id] === undefined);
-	// const unavailable = data.tmdbMovies.filter(
-	// 	(m) => !tmdbIdToRadarrMovie[m.id]?.hasFile && !tmdbIdToDownloading[m.id]
-	// );
 	const watched = [];
 
 	const posterGridStyle = 'flex flex-wrap justify-center gap-x-4 gap-y-8';
 	const headerStyle = 'uppercase tracking-widest font-bold text-center mt-2';
-
-	let loading = false;
-	beforeNavigate(() => (loading = true));
-	afterNavigate(() => (loading = false));
-
-	console.log(data);
 </script>
 
 <div
