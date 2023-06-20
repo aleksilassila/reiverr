@@ -5,5 +5,7 @@
 	export let data: PageData;
 </script>
 
-<ResourceDetails resource={data.movie} remoteResource={data.remoteMovie} />
-<ResourceLocalDetails tmdbId={data.remoteMovie.id} />
+{#if data.movie}
+	<ResourceDetails movie={data.movie} />
+	<ResourceLocalDetails tmdbId={data.movie.id} />
+{/if}

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
+import { request } from '$lib/utils';
 
 export const TmdbApi = axios.create({
 	baseURL: 'https://api.themoviedb.org/3',
@@ -7,17 +8,6 @@ export const TmdbApi = axios.create({
 		Authorization: `Bearer ${PUBLIC_TMDB_API_KEY}`
 	}
 });
-
-export async function fetchFullMovieDetails(tmdbId: string): Promise<TmdbMovieFull> {
-	return {
-		...(await fetchTmdbMovie(tmdbId)),
-		videos: await fetchTmdbMovieVideos(tmdbId),
-		images: await fetchTmdbMovieImages(tmdbId),
-		credits: await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then(
-			(res) => res.data.cast
-		)
-	};
-}
 
 export const fetchTmdbMovie = async (tmdbId: string): Promise<TmdbMovie> =>
 	await TmdbApi.get<TmdbMovie>('/movie/' + tmdbId).then((r) => r.data);
@@ -30,6 +20,12 @@ export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesRespon
 
 export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
 	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);
+
+export const requestTmdbPopularMovies = () =>
+	request(
+		() => TmdbApi.get<PopularMoviesResponse>('/movie/popular').then((res) => res.data.results),
+		null
+	);
 
 export interface TmdbMovieFull extends TmdbMovie {
 	videos: Video[];
@@ -204,6 +200,30 @@ export interface MultiSearchResult {
 	genre_ids: number[];
 	popularity: number;
 	release_date: string;
+	video: boolean;
+	vote_average: number;
+	vote_count: number;
+}
+
+export interface PopularMoviesResponse {
+	page: number;
+	results: PopularMovieResult[];
+	total_pages: number;
+	total_results: number;
+}
+
+export interface PopularMovieResult {
+	adult: boolean;
+	backdrop_path: string;
+	genre_ids: number[];
+	id: number;
+	original_language: string;
+	original_title: string;
+	overview: string;
+	popularity: number;
+	poster_path: string;
+	release_date: string;
+	title: string;
 	video: boolean;
 	vote_average: number;
 	vote_count: number;

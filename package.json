@@ -52,6 +52,7 @@
 		"hls.js": "^1.4.6",
 		"openapi-fetch": "^0.2.1",
 		"radix-icons-svelte": "^1.2.1",
-		"svelte-apollo": "^0.5.0"
+		"svelte-apollo": "^0.5.0",
+		"tailwind-scrollbar-hide": "^1.1.7"
 	}
 }

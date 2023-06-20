@@ -179,7 +179,9 @@
 					in:fly={{ x: -20, duration: 200, delay: 600 }}
 				>
 					<div class="flex gap-1">
-						<Button size="lg" style={opacityStyle}>Stream</Button>
+						<div style={opacityStyle}>
+							<Button size="lg">Stream</Button>
+						</div>
 						<div
 							class="hidden items-center justify-center border-2 border-white w-10 cursor-pointer hover:bg-white hover:text-zinc-900 transition-colors"
 						>

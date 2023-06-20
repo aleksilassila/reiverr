@@ -35,6 +35,8 @@
 
 		hls.loadSource(JELLYFIN_BASE_URL + info);
 		hls.attachMedia(video);
+		video.play();
+		video.requestFullscreen();
 	});
 
 	function handleClose() {

@@ -130,6 +130,5 @@
 	/>
 {/if}
 {#if $jellyfinData?.Id}
-	player
 	<VideoPlayer bind:visible={videoPlayerVisible} jellyfinVideoId={$jellyfinData.Id} />
 {/if}

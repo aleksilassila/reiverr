@@ -23,10 +23,10 @@ export function formatSize(size: number) {
 	}
 }
 
-export function request<T, A>(fetcher: (arg: A) => Promise<T>, args: A | undefined = undefined) {
+export function request<R, A>(fetcher: (arg: A) => Promise<R>, args: A | undefined = undefined) {
 	const loading = writable(args !== undefined);
 	const error = writable<Error | null>(null);
-	const data = writable<T | null>(null);
+	const data = writable<R | null>(null);
 	const didLoad = writable(false);
 
 	async function load(arg: A) {
@@ -45,7 +45,7 @@ export function request<T, A>(fetcher: (arg: A) => Promise<T>, args: A | undefin
 			});
 	}
 
-	if (args) {
+	if (args !== undefined) {
 		load(args);
 	}
 

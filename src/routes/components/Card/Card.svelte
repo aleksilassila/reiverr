@@ -38,7 +38,7 @@
 {:else}
 	<div
 		style={"background-image: url('" + backdropUrl + "')"}
-		class="bg-center bg-cover h-40 w-72 rounded overflow-hidden relative drop-shadow-2xl"
+		class="h-40 w-72 rounded overflow-hidden relative drop-shadow-2xl shrink-0"
 	>
 		<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
 		<div
@@ -66,6 +66,10 @@
 				{/if}
 			</div>
 		</div>
+		<div
+			style={"background-image: url('" + backdropUrl + "')"}
+			class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
+		/>
 		<div
 			class={classNames('absolute inset-0', {
 				'bg-darken opacity-0 peer-hover:opacity-100': available,

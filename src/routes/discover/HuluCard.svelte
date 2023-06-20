@@ -1,0 +1,74 @@
+<script>
+	import NetworkCard from './NetworkCard.svelte';
+</script>
+
+<NetworkCard href="/discover/hulu">
+	<svg
+		xmlns:dc="http://purl.org/dc/elements/1.1/"
+		xmlns:cc="http://creativecommons.org/ns#"
+		xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+		xmlns:svg="http://www.w3.org/2000/svg"
+		xmlns="http://www.w3.org/2000/svg"
+		xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+		xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+		width="1000"
+		height="329.81302"
+		viewBox="0 0 999.99997 329.81303"
+		version="1.1"
+		id="svg87"
+		inkscape:version="0.92.3 (2405546, 2018-03-11)"
+		sodipodi:docname="Hulu.svg"
+	>
+		<defs id="defs81">
+			<clipPath id="clipPath20" clipPathUnits="userSpaceOnUse">
+				<path inkscape:connector-curvature="0" id="path18" d="M 0,0 H 1920 V 1080 H 0 Z" />
+			</clipPath>
+		</defs>
+		<sodipodi:namedview
+			id="base"
+			pagecolor="#ffffff"
+			bordercolor="#666666"
+			borderopacity="1.0"
+			inkscape:pageopacity="0.0"
+			inkscape:pageshadow="2"
+			inkscape:zoom="0.7"
+			inkscape:cx="1134.4996"
+			inkscape:cy="-132.61488"
+			inkscape:document-units="px"
+			inkscape:current-layer="layer1"
+			showgrid="false"
+			inkscape:window-width="1366"
+			inkscape:window-height="705"
+			inkscape:window-x="-8"
+			inkscape:window-y="-8"
+			inkscape:window-maximized="1"
+			units="px"
+			fit-margin-top="0"
+			fit-margin-left="0"
+			fit-margin-right="0"
+			fit-margin-bottom="0"
+		/>
+		<metadata id="metadata84">
+			<rdf:RDF>
+				<cc:Work rdf:about="">
+					<dc:format>image/svg+xml</dc:format>
+					<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+					<dc:title />
+				</cc:Work>
+			</rdf:RDF>
+		</metadata>
+		<g
+			inkscape:label="Layer 1"
+			inkscape:groupmode="layer"
+			id="layer1"
+			transform="translate(463.37194,-69.476276)"
+		>
+			<path
+				inkscape:connector-curvature="0"
+				d="m -241.01194,192.76828 c 16.556,13.46 24.846,34.472 24.846,63.043 v 143.478 h -78.882 v -132.919 c 0,-5.794 -2.174,-10.869 -6.521,-15.217 -4.349,-4.349 -9.425,-6.521 -15.218,-6.521 h -45.963 c -5.803,0 -10.772,2.173 -14.906,6.521 -4.144,4.348 -6.212,9.423 -6.212,15.217 v 132.919 h -79.504 V 69.476276 h 79.503 V 176.92928 c 1.243,-0.408 4.134,-1.242 8.697,-2.485 4.551,-1.241 10.557,-1.862 18.012,-1.862 h 50.931 c 26.912,-0.001 48.652,6.734 65.217,20.186 z M 9.2990586,172.58128 H 88.802059 v 139.13 c 0,26.087 -7.144,47.205 -21.428,63.354 -14.286,16.149 -33.648,24.224 -58.0750004,24.224 H -68.961941 c -27.329,0 -49.174999,-7.55 -65.526999,-22.67 -16.364,-15.111 -24.536,-36.743 -24.536,-64.907 v -139.13 h 79.502999 v 132.919 c 0,5.804 2.069,10.772 6.212,14.907 4.134,4.144 9.104,6.211 14.907,6.211 h 45.964 c 5.7929996,0 10.8679996,-2.067 15.2169996,-6.211 4.349,-4.135 6.521,-9.104 6.521,-14.907 z M 149.05006,69.476276 h 79.503 V 399.28928 h -79.503 z M 536.62804,172.58128 v 139.13 c 0,26.087 -7.144,47.205 -21.429,63.354 -14.285,16.149 -33.646,24.224 -58.074,24.224 h -77.64 c -27.746,0 -49.797,-7.55 -66.149,-22.67 -16.363,-15.111 -24.534,-36.743 -24.534,-64.907 v -139.13 h 79.503 v 132.919 c 0,5.804 2.066,10.772 6.211,14.907 4.135,4.144 9.104,6.211 14.906,6.211 h 46.584 c 5.795,0 10.764,-2.067 14.907,-6.211 4.134,-4.135 6.212,-9.104 6.212,-14.907 v -132.92 z"
+				id="path4"
+				style="fill:currentColor;fill-opacity:1"
+			/>
+		</g>
+	</svg>
+</NetworkCard>
