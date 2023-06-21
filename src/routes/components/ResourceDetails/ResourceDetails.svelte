@@ -6,7 +6,7 @@
 	import Button from '../Ui/Button.svelte';
 	import type { CastMember, TmdbMovie, Video } from '$lib/tmdb-api';
 	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/tmdb-api';
-	import PlaybackDetails from './PlaybackDetails.svelte';
+	import LibraryDetails from './LibraryDetails.svelte';
 	import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
 	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
 	import HeightHider from '../HeightHider.svelte';
@@ -279,10 +279,10 @@
 	</div>
 </div>
 
-<HeightHider visible={detailsVisible}>
+<HeightHider duration={1000} visible={detailsVisible}>
 	<div bind:this={localDetailsTop} />
 	{#key movie.id}
-		<PlaybackDetails
+		<LibraryDetails
 			openJellyfinStream={() => (videoPlayerVisible = true)}
 			jellyfinStreamDisabled={streamButtonDisabled}
 			tmdbId={movie.id}

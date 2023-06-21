@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
-	import { formatGenres, formatMinutes } from '$lib/utils';
+	import { formatGenres, formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { onMount } from 'svelte';
@@ -59,8 +59,9 @@
 				{#if progressType === 'watched'}
 					<div class="text-sm font-medium text-zinc-200">
 						{progress
-							? formatMinutes(tmdbMovie.runtime - tmdbMovie.runtime * (progress / 100)) + ' left'
-							: formatMinutes(tmdbMovie.runtime)}
+							? formatMinutesToTime(tmdbMovie.runtime - tmdbMovie.runtime * (progress / 100)) +
+							  ' left'
+							: formatMinutesToTime(tmdbMovie.runtime)}
 					</div>
 				{:else if progressType === 'downloading'}
 					<div class="text-sm font-medium text-zinc-200">

@@ -3,7 +3,7 @@
 	import type { TmdbMovie } from '$lib/tmdb-api';
 	import { onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
-	import { formatMinutes } from '$lib/utils';
+	import { formatMinutesToTime } from '$lib/utils';
 
 	export let tmdbId;
 	export let progress = 0;
@@ -54,7 +54,7 @@
 					{/if}
 					{#if progress && length}
 						<h2 class="mt-2 text-sm tracking-wide text-zinc-300">
-							<b>{formatMinutes(length * (1 - progress / 100))}</b> left
+							<b>{formatMinutesToTime(length * (1 - progress / 100))}</b> left
 						</h2>
 					{/if}
 				</div>

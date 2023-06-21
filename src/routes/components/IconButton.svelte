@@ -1,5 +1,14 @@
+<script>
+	import classNames from 'classnames';
+
+	export let disabled = false;
+</script>
+
 <div
-	class="text-zinc-300 hover:text-zinc-50 cursor-pointer p-1 flex items-center justify-center"
+	class={classNames('text-zinc-300 hover:text-zinc-50 p-1 flex items-center justify-center', {
+		'opacity-30 cursor-not-allowed pointer-events-none': disabled,
+		'cursor-pointer': !disabled
+	})}
 	on:click
 >
 	<slot />

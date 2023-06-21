@@ -1,6 +1,6 @@
 import createClient from 'openapi-fetch';
 import { PUBLIC_RADARR_API_KEY } from '$env/static/public';
-import { request } from '$lib/utils';
+import { log, request } from '$lib/utils';
 import type { paths } from '$lib/radarr/radarr-types';
 import type { components } from '$lib/radarr/radarr-types';
 import type { TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
@@ -72,27 +72,52 @@ export const addRadarrMovie = async (tmdbId: string) => {
 	}).then((r) => r.data);
 };
 
-export const requestRadarrReleases = () =>
-	request((movieId: string) =>
-		RadarrApi.get('/api/v3/release', { params: { query: { movieId: Number(movieId) } } }).then(
-			(r) => r.data
-		)
-	);
-
-export const requestQueueRadarrRelease = () =>
-	request((guid: string) =>
-		RadarrApi.post('/api/v3/release', {
-			params: {},
-			body: {
-				indexerId: 2,
-				guid
+export const cancelDownloadRadarrMovie = async (downloadId: number) => {
+	const deleteResponse = await RadarrApi.del('/api/v3/queue/{id}', {
+		params: {
+			path: {
+				id: downloadId
+			},
+			query: {
+				blocklist: false,
+				removeFromClient: true
 			}
-		})
+		}
+	}).then((r) => log(r));
+
+	return deleteResponse.response.ok;
+};
+
+export const requestRadarrReleases = () => request(fetchRadarrReleases);
+
+export const fetchRadarrReleases = (movieId: string) =>
+	RadarrApi.get('/api/v3/release', { params: { query: { movieId: Number(movieId) } } }).then(
+		(r) => r.data
 	);
 
-export const requestRadarrQueuedById = () => request(getRadarrQueuedById);
+export const requestDownloadRadarrMovie = () => request(downloadRadarrMovie);
 
-export const getRadarrQueuedById = (id: string) =>
+export const downloadRadarrMovie = (guid: string) =>
+	RadarrApi.post('/api/v3/release', {
+		params: {},
+		body: {
+			indexerId: 2,
+			guid
+		}
+	});
+
+export const deleteRadarrMovie = (id: number) =>
+	RadarrApi.del('/api/v3/moviefile/{id}', {
+		params: {
+			path: {
+				id
+			}
+		}
+	}).then((res) => res.response.ok);
+
+export const requestRadarrQueuedById = () => request(getRadarrDownload);
+
+export const getRadarrDownload = (id: string) =>
 	RadarrApi.get('/api/v3/queue', {
 		params: {
 			query: {
@@ -101,7 +126,7 @@ export const getRadarrQueuedById = (id: string) =>
 		}
 	})
 		.then((r) => r.data)
-		.then((queue) => queue?.records?.find((r) => (r?.movie?.id as any) == id));
+		.then((queue) => queue?.records?.filter((r) => (r?.movie?.id as any) == id));
 
 const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {

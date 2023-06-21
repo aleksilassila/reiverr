@@ -6,6 +6,7 @@
 	import { TmdbApi } from '$lib/tmdb-api';
 	import type { MultiSearchResponse } from '$lib/tmdb-api';
 	import { TMDB_IMAGES } from '$lib/constants';
+	import ModalHeader from '../Modal/ModalHeader.svelte';
 	export let visible = false;
 	let searchValue = '';
 
@@ -44,7 +45,7 @@
 
 <Modal {visible} {close}>
 	<ModalContent>
-		<div class="flex text-zinc-200 items-center p-3 px-5 gap-4 border-b border-zinc-700">
+		<ModalHeader {close}>
 			<MagnifyingGlass size="20" class="text-zinc-400" />
 			<input
 				bind:value={searchValue}
@@ -53,10 +54,7 @@
 				class="flex-1 bg-transparent font-light outline-none"
 				placeholder="Search for Movies and Shows..."
 			/>
-			<IconButton on:click={close}>
-				<Cross2 size="20" />
-			</IconButton>
-		</div>
+		</ModalHeader>
 		{#if !results || searchValue === ''}
 			<div class="text-sm text-zinc-200 opacity-50 font-light p-4">No recent searches</div>
 		{:else if results?.length === 0 && !fetching}

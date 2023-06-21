@@ -1,11 +1,14 @@
 import type { Genre } from '$lib/tmdb-api';
 import { writable } from 'svelte/store';
 
-export function formatMinutes(minutes: number) {
-	const hours = Math.floor(minutes / 60);
-	const mins = Math.floor(minutes % 60);
+export function formatMinutesToTime(minutes: number) {
+	const days = Math.floor(minutes / 60 / 24);
+	const hours = Math.floor((minutes / 60) % 24);
+	const minutesLeft = Math.floor(minutes % 60);
 
-	return `${hours > 0 ? hours + 'h ' : ''}${mins}min`;
+	return `${days > 0 ? days + 'd ' : ''}${hours > 0 ? hours + 'h ' : ''}${
+		days > 0 ? '' : minutesLeft + 'min'
+	}`;
 }
 
 export function formatGenres(genres: Genre[]) {
@@ -71,3 +74,8 @@ export const getFadeIndex = () => {
 
 	return obj;
 };
+
+export function log(arg: any) {
+	console.log('LOGGER', arg);
+	return arg;
+}
