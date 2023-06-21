@@ -1,10 +1,9 @@
 import createClient from 'openapi-fetch';
-import { PUBLIC_RADARR_API_KEY } from '$env/static/public';
 import { log, request } from '$lib/utils';
 import type { paths } from '$lib/radarr/radarr-types';
 import type { components } from '$lib/radarr/radarr-types';
-import type { TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
-import { fetchTmdbMovie, TmdbApi } from '$lib/tmdb-api';
+import { fetchTmdbMovie } from '$lib/tmdb-api';
+import { RADARR_API_KEY, RADARR_BASE_URL } from '$env/static/private';
 
 export type MovieResource = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
@@ -24,9 +23,9 @@ export interface RadarrMovieOptions {
 }
 
 export const RadarrApi = createClient<paths>({
-	baseUrl: 'http://radarr.home',
+	baseUrl: RADARR_BASE_URL,
 	headers: {
-		'X-Api-Key': PUBLIC_RADARR_API_KEY
+		'X-Api-Key': RADARR_API_KEY
 	}
 });
 

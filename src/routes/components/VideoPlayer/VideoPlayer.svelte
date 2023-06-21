@@ -2,14 +2,13 @@
 	import { fetchJellyfinPlaybackUrl } from '$lib/jellyfin/jellyfin';
 	import Hls from 'hls.js';
 	import Modal from '../Modal/Modal.svelte';
-	import { JELLYFIN_BASE_URL } from '$lib/jellyfin/jellyfin.js';
 	import IconButton from '../IconButton.svelte';
 	import { Cross2 } from 'radix-icons-svelte';
 	import classNames from 'classnames';
+	import { getContext } from 'svelte';
+	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
 
-	export let visible = false;
-
-	export let jellyfinId: string;
+	const { playerState, close } = getContext('player');
 
 	let video: HTMLVideoElement;
 
@@ -19,13 +18,13 @@
 
 			const hls = new Hls();
 
-			hls.loadSource(JELLYFIN_BASE_URL + uri);
+			hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
 			hls.attachMedia(video);
 			video.play();
 		});
 
 	function handleClose() {
-		visible = false;
+		close();
 		video?.pause();
 	}
 
@@ -39,22 +38,21 @@
 		}, 2000);
 	}
 
+	let state;
+	playerState.subscribe((s) => (state = s));
+
 	$: {
-		if (video) {
+		if (video && state.jellyfinId) {
 			if (!Hls.isSupported()) {
 				throw new Error('HLS is not supported');
 			}
 
-			if (!jellyfinId) {
-				throw new Error('No video id provided');
-			}
-
-			fetchPlaybackInfo(jellyfinId);
+			fetchPlaybackInfo(state.jellyfinId);
 		}
 	}
 </script>
 
-<Modal {visible} close={handleClose}>
+<Modal visible={$playerState.visible} close={handleClose}>
 	<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
 		<video controls bind:this={video} class="w-full h-full inset-0" />
 		<div

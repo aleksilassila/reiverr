@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { TmdbApi } from '$lib/tmdb-api';
 	import type { TmdbMovie } from '$lib/tmdb-api';
-	import { onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
+	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
 
 	export let tmdbId;
 	export let progress = 0;
 	export let length = 0;
 	export let randomProgress = false;
 	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
+
+	const { streamJellyfinId } = getContext('player');
 
 	export let type: 'movie' | 'tv' = 'movie';
 
@@ -24,6 +27,15 @@
 				title = data.title;
 			});
 	});
+
+	let streamFetching = false;
+	function stream() {
+		if (streamFetching || !tmdbId) return;
+		streamFetching = true;
+		getJellyfinItemByTmdbId(tmdbId).then((item: any) => {
+			if (item.Id) streamJellyfinId(item.Id);
+		});
+	}
 </script>
 
 <div class="group grid grid-cols-[2px_1fr_2px] grid-rows-[2px_1fr_2px]">
@@ -61,7 +73,7 @@
 				<div class="flex flex-col gap-2">
 					<button
 						class="bg-white border-2 border-white hover:bg-amber-400 hover:border-amber-400 transition-colors text-zinc-900 px-8 py-2.5 uppercase tracking-widest font-extrabold cursor-pointer text-xs"
-						>Stream</button
+						on:click={stream}>Stream</button
 					>
 					<a
 						href={'/' + type + '/' + tmdbId}

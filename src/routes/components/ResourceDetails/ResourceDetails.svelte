@@ -7,9 +7,9 @@
 	import type { CastMember, TmdbMovie, Video } from '$lib/tmdb-api';
 	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/tmdb-api';
 	import LibraryDetails from './LibraryDetails.svelte';
-	import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
 	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
 	import HeightHider from '../HeightHider.svelte';
+	import { getContext } from 'svelte';
 
 	export let movie: TmdbMovie;
 	export let videos: Video[];
@@ -21,7 +21,6 @@
 	let focusTrailer = false;
 	let trailerStartTime = 0;
 	let detailsVisible = showDetails;
-	let videoPlayerVisible = false;
 	let streamButtonDisabled = true;
 	let jellyfinId;
 
@@ -49,6 +48,7 @@
 		'December'
 	];
 	const releaseDate = new Date(movie.release_date);
+	const { playerState, close, streamJellyfinId } = getContext('player');
 
 	function openTrailer() {
 		window
@@ -190,7 +190,7 @@
 								<Button
 									disabled={streamButtonDisabled}
 									size="lg"
-									on:click={() => (videoPlayerVisible = true)}>Stream</Button
+									on:click={() => jellyfinId && streamJellyfinId(jellyfinId)}>Stream</Button
 								>
 							</div>
 							<div
@@ -283,16 +283,12 @@
 	<div bind:this={localDetailsTop} />
 	{#key movie.id}
 		<LibraryDetails
-			openJellyfinStream={() => (videoPlayerVisible = true)}
+			openJellyfinStream={() => jellyfinId && streamJellyfinId(jellyfinId)}
 			jellyfinStreamDisabled={streamButtonDisabled}
 			tmdbId={movie.id}
 		/>
 	{/key}
 </HeightHider>
-
-{#if jellyfinId}
-	<VideoPlayer bind:visible={videoPlayerVisible} {jellyfinId} />
-{/if}
 
 <style>
 	.youtube-container {

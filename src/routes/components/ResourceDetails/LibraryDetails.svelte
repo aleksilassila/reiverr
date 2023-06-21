@@ -6,7 +6,6 @@
 	import RequestModal from '../RequestModal/RequestModal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import classNames from 'classnames';
-	import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
 	import { log } from '$lib/utils.js';
 
 	let isRequestModalVisible = false;

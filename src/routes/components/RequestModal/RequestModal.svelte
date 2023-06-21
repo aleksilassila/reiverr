@@ -1,11 +1,6 @@
 <script lang="ts">
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
-	import {
-		requestRadarrReleases,
-		requestDownloadRadarrMovie,
-		fetchRadarrReleases
-	} from '$lib/radarr/radarr';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import IconButton from '../IconButton.svelte';
 	import { DotFilled, Download, Plus } from 'radix-icons-svelte';

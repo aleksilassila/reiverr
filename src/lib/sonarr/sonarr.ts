@@ -1,10 +1,10 @@
 import createClient from 'openapi-fetch';
-import type { paths as sonarrPaths } from '$lib/sonarr/sonarr';
-import { PUBLIC_SONARR_API_KEY } from '$env/static/public';
+import type { paths } from '$lib/sonarr/sonarr-types';
+import { SONARR_API_KEY, SONARR_BASE_URL } from '$env/static/private';
 
-export const SonarrApi = createClient<sonarrPaths>({
-	baseUrl: 'http://sonarr.home',
+export const SonarrApi = createClient<paths>({
+	baseUrl: SONARR_BASE_URL,
 	headers: {
-		'X-Api-Key': PUBLIC_SONARR_API_KEY
+		'X-Api-Key': SONARR_API_KEY
 	}
 });

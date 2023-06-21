@@ -1,14 +1,13 @@
 import createClient from 'openapi-fetch';
 import type { paths } from '$lib/jellyfin/jellyfin-types';
-import { PUBLIC_JELLYFIN_API_KEY } from '$env/static/public';
+import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
 import { request } from '$lib/utils';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
-export const JELLYFIN_BASE_URL = 'http://jellyfin.home';
 export const JELLYFIN_USER_ID = '75dcb061c9404115a7acdc893ea6bbbc';
 
 export const JellyfinApi = createClient<paths>({
-	baseUrl: JELLYFIN_BASE_URL,
+	baseUrl: PUBLIC_JELLYFIN_URL,
 	headers: {
 		Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${PUBLIC_JELLYFIN_API_KEY}"`
 	}
