@@ -11,8 +11,9 @@
 	export let href: string | undefined = undefined;
 	export let target: string | undefined = undefined;
 
-	const buttonStyle = classNames(
-		'border-2 border-white transition-colors uppercase tracking-widest text-xs',
+	let buttonStyle;
+	$: buttonStyle = classNames(
+		'border-2 border-white transition-all uppercase tracking-widest text-xs whitespace-nowrap',
 		{
 			'bg-white text-zinc-900 font-extrabold': type === 'primary',
 			'hover:bg-amber-400 hover:border-amber-400': type === 'primary' && !disabled,

@@ -12,8 +12,6 @@ export const load = (async () => {
 		const itemsFiltered = items?.filter((i) => i.ProviderIds?.Tmdb);
 		if (!itemsFiltered?.length) return;
 
-		console.log(itemsFiltered.map((i) => i.RunTimeTicks));
-
 		const firstMovie = await fetchTmdbMovie(String(itemsFiltered[0].ProviderIds?.Tmdb));
 
 		return {

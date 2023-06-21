@@ -27,21 +27,21 @@
 	});
 </script>
 
-<div class="h-screen">
-	{#if movies[index]}
-		{#await Promise.all(movies) then awaitedMovies}
-			<ResourceDetails movie={awaitedMovies[index]}>
-				<ResourceDetailsControls
-					slot="page-controls"
-					{onNext}
-					{onPrevious}
-					{index}
-					length={movies.length}
-				/>
-			</ResourceDetails>
-		{/await}
-	{/if}
-</div>
+{#if movies[index]}
+	{#await Promise.all(movies) then awaitedMovies}
+		<ResourceDetails movie={awaitedMovies[index]}>
+			<ResourceDetailsControls
+				slot="page-controls"
+				{onNext}
+				{onPrevious}
+				{index}
+				length={movies.length}
+			/>
+		</ResourceDetails>
+	{:catch err}
+		Error occurred {JSON.stringify(err)}
+	{/await}
+{/if}
 
 {#await data.streamed.continueWatching then continueWatching}
 	{#if continueWatching?.items?.length}

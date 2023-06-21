@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
-	import { getReleases, queueRelease } from '$lib/radarr/radarr';
+	import { requestRadarrReleases, requestQueueRadarrRelease } from '$lib/radarr/radarr';
 	import { formatSize } from '$lib/utils';
 	import IconButton from '../IconButton.svelte';
 	import { Download } from 'radix-icons-svelte';
@@ -16,8 +16,8 @@
 
 	export let radarrId;
 
-	const { data: releases, load: loadReleases, didLoad: didLoadReleases } = getReleases();
-	const { data, load: downloadRelease } = queueRelease();
+	const { data: releases, load: loadReleases, didLoad: didLoadReleases } = requestRadarrReleases();
+	const { data, load: downloadRelease } = requestQueueRadarrRelease();
 
 	$: if (visible) loadReleases(radarrId);
 

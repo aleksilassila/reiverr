@@ -57,3 +57,17 @@ export function request<R, A>(fetcher: (arg: A) => Promise<R>, args: A | undefin
 		load
 	};
 }
+
+export const getFadeIndex = () => {
+	const obj: any = {
+		index: -1
+	};
+
+	function getNext() {
+		return ++obj.index;
+	}
+
+	obj.getNextFadeIndex = getNext;
+
+	return obj;
+};

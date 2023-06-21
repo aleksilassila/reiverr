@@ -30,55 +30,56 @@ export const RadarrApi = createClient<paths>({
 	}
 });
 
-export const getRadarrMovie = () =>
-	request((tmdbId: string) =>
-		RadarrApi.get('/api/v3/movie', {
-			params: {
-				query: {
-					tmdbId: Number(tmdbId)
-				}
+export const requestRadarrMovie = () => request(getRadarrMovie);
+
+export const getRadarrMovie = (tmdbId: string) =>
+	RadarrApi.get('/api/v3/movie', {
+		params: {
+			query: {
+				tmdbId: Number(tmdbId)
 			}
-		}).then((r) => r.data?.find((m) => (m.tmdbId as any) == tmdbId))
-	);
+		}
+	}).then((r) => r.data?.find((m) => (m.tmdbId as any) == tmdbId));
 
-export const addRadarrMovie = () =>
-	request(async (tmdbId: string) => {
-		const tmdbMovie = await fetchTmdbMovie(tmdbId);
-		const radarrMovie = await getMovieByTmdbIdByTmdbId(tmdbId);
-		console.log('fetched movies', tmdbMovie, radarrMovie);
+export const requestAddRadarrMovie = () => request(addRadarrMovie);
 
-		if (radarrMovie?.id) throw new Error('Movie already exists');
+export const addRadarrMovie = async (tmdbId: string) => {
+	const tmdbMovie = await fetchTmdbMovie(tmdbId);
+	const radarrMovie = await getMovieByTmdbIdByTmdbId(tmdbId);
+	console.log('fetched movies', tmdbMovie, radarrMovie);
 
-		if (!tmdbMovie) throw new Error('Movie not found');
+	if (radarrMovie?.id) throw new Error('Movie already exists');
 
-		const qualityProfile = 4;
-		const options: RadarrMovieOptions = {
-			qualityProfileId: qualityProfile,
-			profileId: qualityProfile,
-			rootFolderPath: '/movies',
-			minimumAvailability: 'announced',
-			title: tmdbMovie.title,
-			tmdbId: tmdbMovie.id,
-			year: Number((await tmdbMovie).release_date.slice(0, 4)),
-			monitored: false,
-			tags: [],
-			searchNow: false
-		};
+	if (!tmdbMovie) throw new Error('Movie not found');
 
-		return RadarrApi.post('/api/v3/movie', {
-			params: {},
-			body: options
-		}).then((r) => r.data);
-	});
+	const qualityProfile = 4;
+	const options: RadarrMovieOptions = {
+		qualityProfileId: qualityProfile,
+		profileId: qualityProfile,
+		rootFolderPath: '/movies',
+		minimumAvailability: 'announced',
+		title: tmdbMovie.title,
+		tmdbId: tmdbMovie.id,
+		year: Number((await tmdbMovie).release_date.slice(0, 4)),
+		monitored: false,
+		tags: [],
+		searchNow: false
+	};
 
-export const getReleases = () =>
+	return RadarrApi.post('/api/v3/movie', {
+		params: {},
+		body: options
+	}).then((r) => r.data);
+};
+
+export const requestRadarrReleases = () =>
 	request((movieId: string) =>
 		RadarrApi.get('/api/v3/release', { params: { query: { movieId: Number(movieId) } } }).then(
 			(r) => r.data
 		)
 	);
 
-export const queueRelease = () =>
+export const requestQueueRadarrRelease = () =>
 	request((guid: string) =>
 		RadarrApi.post('/api/v3/release', {
 			params: {},
@@ -89,19 +90,18 @@ export const queueRelease = () =>
 		})
 	);
 
-export const getQueuedById = () =>
-	request((id: string) =>
-		getQueue().then((queue) => queue?.records?.filter((r) => (r?.movie?.id as any) == id))
-	);
+export const requestRadarrQueuedById = () => request(getRadarrQueuedById);
 
-const getQueue = () =>
+export const getRadarrQueuedById = (id: string) =>
 	RadarrApi.get('/api/v3/queue', {
 		params: {
 			query: {
 				includeMovie: true
 			}
 		}
-	}).then((r) => r.data);
+	})
+		.then((r) => r.data)
+		.then((queue) => queue?.records?.find((r) => (r?.movie?.id as any) == id));
 
 const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {

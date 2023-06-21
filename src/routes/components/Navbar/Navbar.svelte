@@ -31,10 +31,10 @@
 <svelte:window bind:scrollY={y} />
 
 <div class={baseStyle}>
-	<div class="flex gap-2 items-center">
+	<a href="/" class="flex gap-2 items-center hover:text-inherit">
 		<div class="rounded-full bg-amber-300 h-4 w-4" />
 		<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
-	</div>
+	</a>
 	<div
 		class="flex items-center justify-center gap-8 font-normal text-sm tracking-wider text-zinc-200"
 	>

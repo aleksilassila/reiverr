@@ -1,50 +1,71 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { getJellyfinPlaybackInfo } from '$lib/jellyfin/jellyfin';
+	import { fetchJellyfinPlaybackUrl } from '$lib/jellyfin/jellyfin';
 	import Hls from 'hls.js';
 	import Modal from '../Modal/Modal.svelte';
 	import { JELLYFIN_BASE_URL } from '$lib/jellyfin/jellyfin.js';
+	import IconButton from '../IconButton.svelte';
+	import { Cross2 } from 'radix-icons-svelte';
+	import classNames from 'classnames';
 
 	export let visible = false;
 
-	export let jellyfinVideoId: string;
+	export let jellyfinId: string;
 
 	let video: HTMLVideoElement;
 
-	const { data: playbackInfo, load: loadPlaybackInfo } = getJellyfinPlaybackInfo();
+	const fetchPlaybackInfo = (id: string) =>
+		fetchJellyfinPlaybackUrl(id).then((uri) => {
+			if (!uri) return;
 
-	onMount(() => {
-		if (!Hls.isSupported()) {
-			throw new Error('HLS is not supported');
-		}
+			const hls = new Hls();
 
-		if (!jellyfinVideoId) {
-			throw new Error('No video id provided');
-		}
-
-		loadPlaybackInfo(jellyfinVideoId);
-	});
-
-	playbackInfo.subscribe((info) => {
-		console.log('Subscribe info', info);
-		if (!info) return;
-
-		console.log(video.src);
-
-		const hls = new Hls();
-
-		hls.loadSource(JELLYFIN_BASE_URL + info);
-		hls.attachMedia(video);
-		video.play();
-		video.requestFullscreen();
-	});
+			hls.loadSource(JELLYFIN_BASE_URL + uri);
+			hls.attachMedia(video);
+			video.play();
+		});
 
 	function handleClose() {
 		visible = false;
 		video?.pause();
 	}
+
+	let uiVisible = false;
+	let timeout;
+	function handleMouseMove() {
+		uiVisible = true;
+		clearTimeout(timeout);
+		timeout = setTimeout(() => {
+			uiVisible = false;
+		}, 2000);
+	}
+
+	$: {
+		if (video) {
+			if (!Hls.isSupported()) {
+				throw new Error('HLS is not supported');
+			}
+
+			if (!jellyfinId) {
+				throw new Error('No video id provided');
+			}
+
+			fetchPlaybackInfo(jellyfinId);
+		}
+	}
 </script>
 
 <Modal {visible} close={handleClose}>
-	<video controls bind:this={video} />
+	<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
+		<video controls bind:this={video} class="w-full h-full inset-0" />
+		<div
+			class={classNames('absolute top-4 right-8 transition-opacity', {
+				'opacity-0': !uiVisible,
+				'opacity-100': uiVisible
+			})}
+		>
+			<IconButton on:click={handleClose}>
+				<Cross2 />
+			</IconButton>
+		</div>
+	</div>
 </Modal>
