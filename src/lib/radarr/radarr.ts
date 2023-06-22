@@ -5,7 +5,7 @@ import type { components } from '$lib/radarr/radarr-types';
 import { fetchTmdbMovie } from '$lib/tmdb-api';
 import { RADARR_API_KEY, RADARR_BASE_URL } from '$env/static/private';
 
-export type MovieResource = components['schemas']['MovieResource'];
+export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
 export type ReleaseResource = components['schemas']['ReleaseResource'];
 
@@ -134,4 +134,4 @@ const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
 				tmdbId: Number(tmdbId)
 			}
 		}
-	}).then((r) => r.data as any as MovieResource);
+	}).then((r) => r.data as any as RadarrMovie);

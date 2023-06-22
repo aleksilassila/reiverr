@@ -1,10 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import SmallHorizontalPoster from '../components/Card/Card.svelte';
-	import type { TmdbMovieFull } from '$lib/tmdb-api';
+	import Card from '../components/Card/Card.svelte';
 	import { TMDB_IMAGES } from '$lib/constants.js';
-	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
+	import CardProvider from '../components/Card/CardProvider.svelte';
 	export let data: PageData;
 	const watched = [];
 
@@ -33,11 +32,12 @@
 				<h1 class={headerStyle}>Downloading</h1>
 				<div class={posterGridStyle}>
 					{#each downloading as movie (movie.tmdbId)}
-						<SmallHorizontalPoster
-							tmdbId={movie.tmdbId}
-							progress={(movie.sizeleft / movie.size) * 100}
+						<Card
+							{...movie}
+							progress={movie.progress}
 							progressType="downloading"
 							available={false}
+							type="download"
 						/>
 					{/each}
 				</div>
@@ -47,7 +47,7 @@
 				<h1 class={headerStyle}>Available</h1>
 				<div class={posterGridStyle}>
 					{#each available as movie (movie.tmdbId)}
-						<SmallHorizontalPoster randomProgress={true} tmdbId={movie.tmdbId} />
+						<Card {...movie} randomProgress={false} />
 					{/each}
 				</div>
 			{/if}
@@ -56,7 +56,7 @@
 				<h1 class={headerStyle}>Unavailable</h1>
 				<div class={posterGridStyle}>
 					{#each unavailable as movie (movie.tmdbId)}
-						<SmallHorizontalPoster available={false} tmdbId={movie.tmdbId} />
+						<Card {...movie} available={false} />
 					{/each}
 				</div>
 			{/if}

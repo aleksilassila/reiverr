@@ -1,5 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { RadarrApi } from '$lib/radarr/radarr';
+import type { CardProps } from '../components/Card/card';
+import { fetchCardProps } from '../components/Card/card';
 
 export const load = (() => {
 	const radarrMovies = RadarrApi.get('/api/v3/movie', {
@@ -14,42 +16,60 @@ export const load = (() => {
 		}
 	}).then((r) => r.data?.records?.filter((record) => record.movie));
 
-	const downloading = downloadingRadarrMovies.then(async (movies) => {
-		return movies?.map((m) => ({
-			tmdbId: m.movie?.tmdbId,
-			size: m.size,
-			sizeleft: m.sizeleft
-		}));
-	});
-
-	const unavailable = radarrMovies.then(async (movies) => {
-		const downloadingMovies = await downloading;
-		return movies?.filter(
-			(m) =>
-				(!m.movieFile || !m.hasFile || !m.isAvailable) &&
-				!downloadingMovies?.find((d) => d.tmdbId === m.tmdbId)
+	const unavailable: Promise<CardProps[]> = radarrMovies.then(async (movies) => {
+		const downloadingMovies = await downloadingRadarrMovies;
+		return await Promise.all(
+			movies
+				?.filter(
+					(m) =>
+						(!m.movieFile || !m.movieFile || !m.isAvailable) &&
+						!downloadingMovies?.find((d) => d.movie?.tmdbId === m.tmdbId)
+				)
+				.map(async (m) => fetchCardProps(m)) || []
 		);
 	});
 
-	const available = radarrMovies.then(async (movies) => {
+	const available: Promise<CardProps[]> = radarrMovies.then(async (movies) => {
 		const downloadingMovies = await downloading;
 		const unavailableMovies = await unavailable;
 
 		if (!downloadingMovies || !movies) return [];
 
-		return movies
-			.filter((movie) => {
-				return !downloadingMovies.find((downloadingMovie) => downloadingMovie.tmdbId === movie.id);
-			})
-			.filter(
-				(movie) => !unavailableMovies?.find((unavailableMovie) => unavailableMovie.id === movie.id)
-			);
+		return await Promise.all(
+			movies
+				.filter((movie) => {
+					return !downloadingMovies.find(
+						(downloadingMovie) => downloadingMovie.tmdbId === String(movie.tmdbId)
+					);
+				})
+				.filter(
+					(movie) =>
+						!unavailableMovies?.find(
+							(unavailableMovie) => unavailableMovie.tmdbId === String(movie.tmdbId)
+						)
+				)
+				.map(async (m) => fetchCardProps(m)) || []
+		);
 	});
+
+	const downloading: Promise<CardProps[]> = downloadingRadarrMovies.then(async (movies) => {
+		return Promise.all(
+			movies
+				?.filter((m) => m?.movie?.tmdbId)
+				?.map(async (m) => ({
+					...(await fetchCardProps(m.movie as any)),
+					progress: m.sizeleft && m.size ? ((m.size - m.sizeleft) / m.size) * 100 : 0,
+					completionTime: m.estimatedCompletionTime
+				})) || []
+		);
+	});
+
+	// radarrMovies.then((d) => console.log(d.map((m) => m.ratings)));
 
 	return {
 		streamed: {
-			available,
 			downloading,
+			available,
 			unavailable
 		}
 	};

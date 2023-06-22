@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { fetchTmdbPopularMovies, requestTmdbPopularMovies } from '$lib/tmdb-api';
 	import Card from '../components/Card/Card.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
@@ -7,17 +6,13 @@
 	import HboCard from './HboCard.svelte';
 	import DisneyCard from './DisneyCard.svelte';
 	import AmazonCard from './AmazonCard.svelte';
-	import AppleCard from './AppleCard.svelte';
 	import HuluCard from './HuluCard.svelte';
-	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
 	const headerStyle = 'uppercase tracking-widest font-bold';
 
-	let popularMovies;
-
-	onMount(() => {
-		popularMovies = fetchTmdbPopularMovies();
-	});
+	export let data: PageData;
+	$: console.log(data);
 </script>
 
 <div class="pb-24 flex flex-col gap-4">
@@ -25,11 +20,11 @@
 	<div class="pt-24 bg-black">
 		<Carousel>
 			<div slot="title" class={headerStyle}>For You</div>
-			{#await popularMovies}
+			{#await data.streamed.popularMovies}
 				<CarouselPlaceholderItems large={true} />
 			{:then movies}
-				{#each movies ? [...movies].reverse() : [] as movie (movie.id)}
-					<Card large={true} tmdbId={movie.id} />
+				{#each movies ? [...movies].reverse() : [] as movie (movie.tmdbId)}
+					<Card large={true} {...movie} />
 				{/each}
 			{/await}
 		</Carousel>
@@ -37,11 +32,11 @@
 	<div>
 		<Carousel>
 			<div slot="title" class={headerStyle}>Popular Movies</div>
-			{#await popularMovies}
+			{#await data.streamed.popularMovies}
 				<CarouselPlaceholderItems />
 			{:then movies}
-				{#each movies || [] as movie (movie.id)}
-					<Card tmdbId={movie.id} />
+				{#each movies || [] as movie (movie.tmdbId)}
+					<Card {...movie} />
 				{/each}
 			{/await}
 		</Carousel>
