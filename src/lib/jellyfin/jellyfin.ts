@@ -2,6 +2,7 @@ import createClient from 'openapi-fetch';
 import type { paths } from '$lib/jellyfin/jellyfin-types';
 import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
 import { request } from '$lib/utils';
+import type { DeviceProfile } from '$lib/jellyfin/playback-profiles';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 export const JELLYFIN_USER_ID = '75dcb061c9404115a7acdc893ea6bbbc';
@@ -42,16 +43,24 @@ export const getJellyfinItemByTmdbId = (tmdbId: string) =>
 		}
 	}).then((r) => r.data?.Items?.find((i) => i.ProviderIds?.Tmdb == tmdbId));
 
+export const getJellyfinItem = (itemId: string) =>
+	JellyfinApi.get('/Users/{userId}/Items/{itemId}', {
+		params: {
+			path: {
+				itemId,
+				userId: JELLYFIN_USER_ID
+			}
+		}
+	}).then((r) => r.data);
+
 export const requestJellyfinItemByTmdbId = () =>
 	request((tmdbId: string) => getJellyfinItemByTmdbId(tmdbId));
 
-export const getJellyfinPlaybackInfo = () => request(fetchJellyfinPlaybackUrl);
-
-export const fetchJellyfinPlaybackUrl = (id: string) =>
+export const getJellyfinPlaybackInfo = (itemId: string, playbackProfile: DeviceProfile) =>
 	JellyfinApi.post('/Items/{itemId}/PlaybackInfo', {
 		params: {
 			path: {
-				itemId: id
+				itemId: itemId
 			},
 			query: {
 				userId: JELLYFIN_USER_ID,
@@ -61,314 +70,59 @@ export const fetchJellyfinPlaybackUrl = (id: string) =>
 			}
 		},
 		body: {
-			DeviceProfile: {
-				CodecProfiles: [
-					{
-						Codec: 'aac',
-						Conditions: [
-							{
-								Condition: 'Equals',
-								IsRequired: false,
-								Property: 'IsSecondaryAudio',
-								Value: 'false'
-							}
-						],
-						Type: 'VideoAudio'
-					},
-					{
-						Conditions: [
-							{
-								Condition: 'Equals',
-								IsRequired: false,
-								Property: 'IsSecondaryAudio',
-								Value: 'false'
-							}
-						],
-						Type: 'VideoAudio'
-					},
-					{
-						Codec: 'h264',
-						Conditions: [
-							{
-								Condition: 'NotEquals',
-								IsRequired: false,
-								Property: 'IsAnamorphic',
-								Value: 'true'
-							},
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoProfile',
-								Value: 'high|main|baseline|constrained baseline'
-							},
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoRangeType',
-								Value: 'SDR'
-							},
-							{
-								Condition: 'LessThanEqual',
-								IsRequired: false,
-								Property: 'VideoLevel',
-								Value: '52'
-							},
-							{
-								Condition: 'NotEquals',
-								IsRequired: false,
-								Property: 'IsInterlaced',
-								Value: 'true'
-							}
-						],
-						Type: 'Video'
-					},
-					{
-						Codec: 'hevc',
-						Conditions: [
-							{
-								Condition: 'NotEquals',
-								IsRequired: false,
-								Property: 'IsAnamorphic',
-								Value: 'true'
-							},
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoProfile',
-								Value: 'main'
-							},
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoRangeType',
-								Value: 'SDR'
-							},
-							{
-								Condition: 'LessThanEqual',
-								IsRequired: false,
-								Property: 'VideoLevel',
-								Value: '120'
-							},
-							{
-								Condition: 'NotEquals',
-								IsRequired: false,
-								Property: 'IsInterlaced',
-								Value: 'true'
-							}
-						],
-						Type: 'Video'
-					},
-					{
-						Codec: 'vp9',
-						Conditions: [
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoRangeType',
-								Value: 'SDR|HDR10|HLG'
-							}
-						],
-						Type: 'Video'
-					},
-					{
-						Codec: 'av1',
-						Conditions: [
-							{
-								Condition: 'EqualsAny',
-								IsRequired: false,
-								Property: 'VideoRangeType',
-								Value: 'SDR|HDR10|HLG'
-							}
-						],
-						Type: 'Video'
-					}
-				],
-				ContainerProfiles: [],
-				DirectPlayProfiles: [
-					{
-						AudioCodec: 'vorbis,opus',
-						Container: 'webm',
-						Type: 'Video',
-						VideoCodec: 'vp8,vp9,av1'
-					},
-					{
-						AudioCodec: 'aac,mp3,opus,flac,alac,vorbis',
-						Container: 'mp4,m4v',
-						Type: 'Video',
-						VideoCodec: 'h264,vp9,av1'
-					},
-					{
-						Container: 'opus',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'opus',
-						Container: 'webm',
-						Type: 'Audio'
-					},
-					{
-						Container: 'mp3',
-						Type: 'Audio'
-					},
-					{
-						Container: 'aac',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'aac',
-						Container: 'm4a',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'aac',
-						Container: 'm4b',
-						Type: 'Audio'
-					},
-					{
-						Container: 'flac',
-						Type: 'Audio'
-					},
-					{
-						Container: 'alac',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'alac',
-						Container: 'm4a',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'alac',
-						Container: 'm4b',
-						Type: 'Audio'
-					},
-					{
-						Container: 'webma',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'webma',
-						Container: 'webm',
-						Type: 'Audio'
-					},
-					{
-						Container: 'wav',
-						Type: 'Audio'
-					},
-					{
-						Container: 'ogg',
-						Type: 'Audio'
-					}
-				],
-				MaxStaticBitrate: 100000000,
-				MaxStreamingBitrate: 120000000,
-				MusicStreamingTranscodingBitrate: 384000,
-				ResponseProfiles: [
-					{
-						Container: 'm4v',
-						MimeType: 'video/mp4',
-						Type: 'Video'
-					}
-				],
-				SubtitleProfiles: [
-					{
-						Format: 'vtt',
-						Method: 'External'
-					},
-					{
-						Format: 'ass',
-						Method: 'External'
-					},
-					{
-						Format: 'ssa',
-						Method: 'External'
-					}
-				],
-				TranscodingProfiles: [
-					{
-						AudioCodec: 'aac',
-						BreakOnNonKeyFrames: true,
-						Container: 'ts',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'hls',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'aac',
-						Container: 'aac',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'mp3',
-						Container: 'mp3',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'opus',
-						Container: 'opus',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'wav',
-						Container: 'wav',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'opus',
-						Container: 'opus',
-						Context: 'Static',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'mp3',
-						Container: 'mp3',
-						Context: 'Static',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'aac',
-						Container: 'aac',
-						Context: 'Static',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'wav',
-						Container: 'wav',
-						Context: 'Static',
-						MaxAudioChannels: '2',
-						Protocol: 'http',
-						Type: 'Audio'
-					},
-					{
-						AudioCodec: 'aac,mp3',
-						BreakOnNonKeyFrames: true,
-						Container: 'ts',
-						Context: 'Streaming',
-						MaxAudioChannels: '2',
-						Protocol: 'hls',
-						Type: 'Video',
-						VideoCodec: 'h264'
-					}
-				]
-			}
+			DeviceProfile: playbackProfile
 		}
-	}).then((r) => r.data?.MediaSources?.[0]?.TranscodingUrl);
+	}).then((r) => ({
+		playbackUrl: r.data?.MediaSources?.[0]?.TranscodingUrl,
+		mediaSourceId: r.data?.MediaSources?.[0]?.Id,
+		playSessionId: r.data?.PlaySessionId
+	}));
+
+export const reportJellyfinPlaybackStarted = (
+	itemId: string,
+	sessionId: string,
+	mediaSourceId: string,
+	audioStreamIndex?: number,
+	subtitleStreamIndex?: number
+) =>
+	JellyfinApi.post('/Sessions/Playing', {
+		body: {
+			CanSeek: true,
+			ItemId: itemId,
+			PlaySessionId: sessionId,
+			MediaSourceId: mediaSourceId,
+			AudioStreamIndex: 1,
+			SubtitleStreamIndex: -1
+		}
+	});
+
+export const reportJellyfinPlaybackProgress = (
+	itemId: string,
+	sessionId: string,
+	isPaused: boolean,
+	positionTicks: number
+) =>
+	JellyfinApi.post('/Sessions/Playing/Progress', {
+		body: {
+			ItemId: itemId,
+			PlaySessionId: sessionId,
+			IsPaused: isPaused,
+			PositionTicks: Math.round(positionTicks),
+			CanSeek: true,
+			MediaSourceId: itemId
+		}
+	});
+
+export const reportJellyfinPlaybackStopped = (
+	itemId: string,
+	sessionId: string,
+	positionTicks: number
+) =>
+	JellyfinApi.post('/Sessions/Playing/Stopped', {
+		body: {
+			ItemId: itemId,
+			PlaySessionId: sessionId,
+			PositionTicks: Math.round(positionTicks),
+			MediaSourceId: itemId
+		}
+	});

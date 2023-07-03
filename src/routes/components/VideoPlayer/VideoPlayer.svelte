@@ -1,31 +1,68 @@
 <script lang="ts">
-	import { fetchJellyfinPlaybackUrl } from '$lib/jellyfin/jellyfin';
+	import {
+		getJellyfinItem,
+		getJellyfinPlaybackInfo,
+		reportJellyfinPlaybackProgress,
+		reportJellyfinPlaybackStarted,
+		reportJellyfinPlaybackStopped
+	} from '$lib/jellyfin/jellyfin';
 	import Hls from 'hls.js';
 	import Modal from '../Modal/Modal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { Cross2 } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
+	import getDeviceProfile from '$lib/jellyfin/playback-profiles';
 
 	const { playerState, close } = getContext('player');
 
 	let video: HTMLVideoElement;
 
-	const fetchPlaybackInfo = (id: string) =>
-		fetchJellyfinPlaybackUrl(id).then((uri) => {
-			if (!uri) return;
+	let stopCallback;
 
-			const hls = new Hls();
+	let progressInterval;
+	onDestroy(() => clearInterval(progressInterval));
 
-			hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
-			hls.attachMedia(video);
-			video.play();
-		});
+	const fetchPlaybackInfo = (itemId: string) =>
+		getJellyfinPlaybackInfo(itemId, getDeviceProfile()).then(
+			async ({ playbackUrl: uri, playSessionId: sessionId, mediaSourceId }) => {
+				if (!uri || !sessionId) return;
+
+				const item = await getJellyfinItem(itemId);
+
+				const hls = new Hls();
+
+				hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
+				hls.attachMedia(video);
+				video.play().then(() => {
+					console.log(item);
+					if (item?.UserData?.PlaybackPositionTicks) {
+						console.log('Setting time');
+						video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
+					}
+				});
+				await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
+				progressInterval = setInterval(() => {
+					reportJellyfinPlaybackProgress(
+						itemId,
+						sessionId,
+						video?.paused == true,
+						video?.currentTime * 10_000_000
+					);
+				}, 5000);
+				stopCallback = () => {
+					reportJellyfinPlaybackStopped(itemId, sessionId, video?.currentTime * 10_000_000);
+				};
+			}
+		);
 
 	function handleClose() {
 		close();
 		video?.pause();
+		clearInterval(progressInterval);
+		stopCallback?.();
+		playerState.set({ visible: false, jellyfinId: '' });
 	}
 
 	let uiVisible = false;
@@ -47,7 +84,7 @@
 				throw new Error('HLS is not supported');
 			}
 
-			fetchPlaybackInfo(state.jellyfinId);
+			if (video.src === '') fetchPlaybackInfo(state.jellyfinId);
 		}
 	}
 </script>

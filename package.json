@@ -47,6 +47,7 @@
 	"type": "module",
 	"dependencies": {
 		"@apollo/client": "^3.7.15",
+		"@jellyfin/sdk": "^0.7.0",
 		"axios": "^1.4.0",
 		"graphql": "^16.6.0",
 		"hls.js": "^1.4.6",

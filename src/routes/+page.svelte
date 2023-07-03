@@ -28,7 +28,9 @@
 </script>
 
 {#if movies[index]}
-	{#await Promise.all(movies) then awaitedMovies}
+	{#await Promise.all(movies)}
+		<div class="h-screen" />
+	{:then awaitedMovies}
 		<ResourceDetails movie={awaitedMovies[index]}>
 			<ResourceDetailsControls
 				slot="page-controls"
@@ -41,6 +43,8 @@
 	{:catch err}
 		Error occurred {JSON.stringify(err)}
 	{/await}
+{:else}
+	<div class="h-screen" />
 {/if}
 
 {#await data.streamed.continueWatching then continueWatching}

@@ -3,7 +3,6 @@
 	import Card from '../components/Card/Card.svelte';
 	import { TMDB_IMAGES } from '$lib/constants.js';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
-	import CardProvider from '../components/Card/CardProvider.svelte';
 	export let data: PageData;
 	const watched = [];
 

@@ -34,6 +34,7 @@
 		streamFetching = true;
 		getJellyfinItemByTmdbId(tmdbId).then((item: any) => {
 			if (item.Id) streamJellyfinId(item.Id);
+			streamFetching = false;
 		});
 	}
 </script>
@@ -54,6 +55,7 @@
 		<div class="w-full h-full hover:bg-darken transition-all flex">
 			<div
 				class="opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between flex-1 cursor-pointer"
+				on:click={() => (window.location.href = '/' + type + '/' + tmdbId)}
 			>
 				<div>
 					<h1 class="font-bold text-lg tracking-wide">
@@ -73,9 +75,10 @@
 				<div class="flex flex-col gap-2">
 					<button
 						class="bg-white border-2 border-white hover:bg-amber-400 hover:border-amber-400 transition-colors text-zinc-900 px-8 py-2.5 uppercase tracking-widest font-extrabold cursor-pointer text-xs"
-						on:click={stream}>Stream</button
+						on:click|stopPropagation={stream}>Stream</button
 					>
 					<a
+						on:click|stopPropagation
 						href={'/' + type + '/' + tmdbId}
 						class="border-2 border-white cursor-pointer transition-colors px-8 py-2.5 uppercase tracking-widest font-semibold text-xs hover:bg-amber-400 hover:text-black text-center"
 						>Details</a
