@@ -3,6 +3,7 @@
 	import Card from '../components/Card/Card.svelte';
 	import { TMDB_IMAGES } from '$lib/constants.js';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
+	import { formatSize } from '$lib/utils.js';
 	export let data: PageData;
 	const watched = [];
 
@@ -10,15 +11,61 @@
 	const headerStyle = 'uppercase tracking-widest font-bold text-center mt-2';
 </script>
 
-<div
-	style={"background-image: url('" + TMDB_IMAGES + "/vvjYv7bSWerbsi0LsMjLnTVOX7c.jpg')"}
-	class="transition-all"
->
-	<div class="py-24 backdrop-blur-2xl bg-darken px-8 flex flex-col gap-4">
+<div class="bg-black pt-24 pb-8 px-8">
+	<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
+		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-lg overflow-hidden">
+			<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
+			<div class="relative z-[1] flex justify-between items-center">
+				<div class="flex flex-col">
+					<h3 class="text-zinc-400 font-medium text-xs tracking-wider">Mac-Mini</h3>
+					<a href="/" class="text-zinc-200 font-bold text-xl tracking-wide">Radarr</a>
+				</div>
+				<div class="flex gap-8">
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Movies</h3>
+						<div class="font-medium text-sm">30</div>
+					</div>
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Space Taken</h3>
+						<div class="font-medium text-sm">{formatSize(120_000_000_000)}</div>
+					</div>
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Space Left</h3>
+						<div class="font-medium text-sm">{formatSize(50_000_000_000)}</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-lg overflow-hidden">
+			<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
+			<div class="relative z-[1] flex justify-between items-center">
+				<div class="flex flex-col">
+					<h3 class="text-zinc-400 font-medium text-xs tracking-wider">Mac-Mini</h3>
+					<a href="/" class="text-zinc-200 font-bold text-xl tracking-wide">Sonarr</a>
+				</div>
+				<div class="flex gap-8">
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Movies</h3>
+						<div class="font-medium text-sm">30</div>
+					</div>
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Space Taken</h3>
+						<div class="font-medium text-sm">{formatSize(120_000_000_000)}</div>
+					</div>
+					<div class="flex flex-col items-center gap-0.5">
+						<h3 class="uppercase text-zinc-400 font-medium text-xs tracking-wider">Space Left</h3>
+						<div class="font-medium text-sm">{formatSize(50_000_000_000)}</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div>
+	<div class="py-8 backdrop-blur-2xl bg-darken px-8 flex flex-col gap-4">
 		<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
 		<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->
-
-		<!--	<div>Library</div>-->
 
 		{#await Promise.all( [data.streamed.available, data.streamed.unavailable, data.streamed.downloading] )}
 			<div class={posterGridStyle}>

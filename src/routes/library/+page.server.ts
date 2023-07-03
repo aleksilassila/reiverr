@@ -4,6 +4,25 @@ import type { CardProps } from '../components/Card/card';
 import { fetchCardProps } from '../components/Card/card';
 
 export const load = (() => {
+	const [downloading, available, unavailable] = getLibraryItems();
+
+	// radarrMovies.then((d) => console.log(d.map((m) => m.ratings)));
+
+	const libraryInfo = getLibraryInfo();
+
+	return {
+		streamed: {
+			libraryInfo,
+			downloading,
+			available,
+			unavailable
+		}
+	};
+}) satisfies PageServerLoad;
+
+async function getLibraryInfo(): Promise<any> {}
+
+function getLibraryItems() {
 	const radarrMovies = RadarrApi.get('/api/v3/movie', {
 		params: {}
 	}).then((r) => r.data);
@@ -64,13 +83,5 @@ export const load = (() => {
 		);
 	});
 
-	// radarrMovies.then((d) => console.log(d.map((m) => m.ratings)));
-
-	return {
-		streamed: {
-			downloading,
-			available,
-			unavailable
-		}
-	};
-}) satisfies PageServerLoad;
+	return [downloading, available, unavailable];
+}

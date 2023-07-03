@@ -9,7 +9,7 @@
 		'opacity-30 cursor-not-allowed pointer-events-none': disabled,
 		'cursor-pointer': !disabled
 	})}
-	on:click
+	on:click|stopPropagation
 >
 	<slot />
 </div>
