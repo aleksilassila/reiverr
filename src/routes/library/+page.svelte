@@ -13,7 +13,7 @@
 
 <div class="bg-black pt-24 pb-8 px-8">
 	<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
-		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-lg overflow-hidden">
+		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-xl overflow-hidden">
 			<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
 			<div class="relative z-[1] flex justify-between items-center">
 				<div class="flex flex-col">
@@ -36,7 +36,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-lg overflow-hidden">
+		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-xl overflow-hidden">
 			<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
 			<div class="relative z-[1] flex justify-between items-center">
 				<div class="flex flex-col">
