@@ -1,19 +1,15 @@
 <script lang="ts">
-	import type { Genre, TmdbMovie, TmdbMovieFull } from '$lib/tmdb-api';
-	import { formatGenres, formatMinutesToTime } from '$lib/utils';
+	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TMDB_IMAGES } from '$lib/constants';
-	import { onMount } from 'svelte';
-	import { fetchTmdbMovie, fetchTmdbMovieImages, TmdbApi } from '$lib/tmdb-api';
-	import CardPlaceholder from './CardPlaceholder.svelte';
-	import { Clock, Star, StarFilled } from 'radix-icons-svelte';
+	import { Clock, Star } from 'radix-icons-svelte';
 
-	export let tmdbId;
-	export let title;
+	export let tmdbId: string;
+	export let title: string;
 	export let genres: string[];
-	export let runtimeMinutes;
-	export let completionTime;
-	export let backdropUrl;
+	export let runtimeMinutes: number;
+	export let completionTime = '';
+	export let backdropUrl: string;
 	export let rating: number;
 
 	export let available = true;
@@ -33,6 +29,7 @@
 	})}
 >
 	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
 		on:click={() => window.open('/movie/' + tmdbId, '_self')}
 		class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"

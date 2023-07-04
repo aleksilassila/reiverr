@@ -24,6 +24,7 @@
 		"@sveltejs/kit": "^1.5.0",
 		"@types/axios": "^0.14.0",
 		"@types/cookie": "^0.5.1",
+		"@types/node": "^20.3.3",
 		"@typescript-eslint/eslint-plugin": "^5.45.0",
 		"@typescript-eslint/parser": "^5.45.0",
 		"autoprefixer": "^10.4.14",

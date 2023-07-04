@@ -14,14 +14,15 @@
 	import { getContext, onDestroy } from 'svelte';
 	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
 	import getDeviceProfile from '$lib/jellyfin/playback-profiles';
+	import type { PlayerState, PlayerStateValue } from './VideoPlayer';
 
-	const { playerState, close } = getContext('player');
+	const { playerState, close }: PlayerState = getContext('player');
 
 	let video: HTMLVideoElement;
 
-	let stopCallback;
+	let stopCallback: () => void;
 
-	let progressInterval;
+	let progressInterval: ReturnType<typeof setInterval>;
 	onDestroy(() => clearInterval(progressInterval));
 
 	const fetchPlaybackInfo = (itemId: string) =>
@@ -35,13 +36,14 @@
 
 				hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
 				hls.attachMedia(video);
-				video.play().then(() => {
-					console.log(item);
-					if (item?.UserData?.PlaybackPositionTicks) {
-						console.log('Setting time');
-						video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
-					}
-				});
+				video
+					.play()
+					.then(() => video.requestFullscreen())
+					.then(() => {
+						if (item?.UserData?.PlaybackPositionTicks) {
+							video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
+						}
+					});
 				await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
 				progressInterval = setInterval(() => {
 					reportJellyfinPlaybackProgress(
@@ -66,7 +68,7 @@
 	}
 
 	let uiVisible = false;
-	let timeout;
+	let timeout: ReturnType<typeof setTimeout>;
 	function handleMouseMove() {
 		uiVisible = true;
 		clearTimeout(timeout);
@@ -75,7 +77,7 @@
 		}, 2000);
 	}
 
-	let state;
+	let state: PlayerStateValue;
 	playerState.subscribe((s) => (state = s));
 
 	$: {

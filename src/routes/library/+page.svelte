@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import Card from '../components/Card/Card.svelte';
-	import { TMDB_IMAGES } from '$lib/constants.js';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
 	import { formatSize } from '$lib/utils.js';
 	export let data: PageData;
@@ -11,8 +10,8 @@
 	const headerStyle = 'uppercase tracking-widest font-bold text-center mt-2';
 </script>
 
-<div class="bg-black pt-24 pb-8 px-8">
-	<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
+<div class="pt-24 pb-8 px-8">
+	<div class="bg-black grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
 		<div class="bg-highlight-dim relative w-full m-auto p-3 px-4 rounded-xl overflow-hidden">
 			<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
 			<div class="relative z-[1] flex justify-between items-center">
@@ -62,54 +61,46 @@
 	</div>
 </div>
 
-<div>
-	<div class="py-8 backdrop-blur-2xl bg-darken px-8 flex flex-col gap-4">
-		<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
-		<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->
+<div class="py-8 backdrop-blur-2xl bg-stone-900 px-8 flex flex-col gap-4">
+	<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
+	<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->
 
-		{#await Promise.all( [data.streamed.available, data.streamed.unavailable, data.streamed.downloading] )}
+	{#await Promise.all( [data.streamed.available, data.streamed.unavailable, data.streamed.downloading] )}
+		<div class={posterGridStyle}>
+			{#each [...Array(20).keys()] as index (index)}
+				<CardPlaceholder {index} />
+			{/each}
+		</div>
+	{:then [available, unavailable, downloading]}
+		{#if downloading.length > 0}
+			<h1 class={headerStyle}>Downloading</h1>
 			<div class={posterGridStyle}>
-				{#each [...Array(20).keys()] as index (index)}
-					<CardPlaceholder {index} />
+				{#each downloading as movie (movie)}
+					<Card {...movie} progress={movie.progress} progressType="downloading" available={false} />
 				{/each}
 			</div>
-		{:then [available, unavailable, downloading]}
-			{#if downloading.length > 0}
-				<h1 class={headerStyle}>Downloading</h1>
-				<div class={posterGridStyle}>
-					{#each downloading as movie (movie.tmdbId)}
-						<Card
-							{...movie}
-							progress={movie.progress}
-							progressType="downloading"
-							available={false}
-							type="download"
-						/>
-					{/each}
-				</div>
-			{/if}
+		{/if}
 
-			{#if available.length > 0}
-				<h1 class={headerStyle}>Available</h1>
-				<div class={posterGridStyle}>
-					{#each available as movie (movie.tmdbId)}
-						<Card {...movie} randomProgress={false} />
-					{/each}
-				</div>
-			{/if}
+		{#if available.length > 0}
+			<h1 class={headerStyle}>Available</h1>
+			<div class={posterGridStyle}>
+				{#each available as movie (movie.tmdbId)}
+					<Card {...movie} randomProgress={false} />
+				{/each}
+			</div>
+		{/if}
 
-			{#if unavailable.length > 0}
-				<h1 class={headerStyle}>Unavailable</h1>
-				<div class={posterGridStyle}>
-					{#each unavailable as movie (movie.tmdbId)}
-						<Card {...movie} available={false} />
-					{/each}
-				</div>
-			{/if}
+		{#if unavailable.length > 0}
+			<h1 class={headerStyle}>Unavailable</h1>
+			<div class={posterGridStyle}>
+				{#each unavailable as movie (movie.tmdbId)}
+					<Card {...movie} available={false} />
+				{/each}
+			</div>
+		{/if}
 
-			{#if watched.length > 0}
-				<h1 class={headerStyle}>Watched</h1>
-			{/if}
-		{/await}
-	</div>
+		{#if watched.length > 0}
+			<h1 class={headerStyle}>Watched</h1>
+		{/if}
+	{/await}
 </div>

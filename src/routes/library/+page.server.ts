@@ -3,6 +3,11 @@ import { RadarrApi } from '$lib/radarr/radarr';
 import type { CardProps } from '../components/Card/card';
 import { fetchCardProps } from '../components/Card/card';
 
+interface DownloadingCardProps extends CardProps {
+	progress: number;
+	completionTime: string;
+}
+
 export const load = (() => {
 	const [downloading, available, unavailable] = getLibraryItems();
 
@@ -22,7 +27,7 @@ export const load = (() => {
 
 async function getLibraryInfo(): Promise<any> {}
 
-function getLibraryItems() {
+function getLibraryItems(): [Promise<DownloadingCardProps[]>, Promise<CardProps[]>, Promise<CardProps[]>] {
 	const radarrMovies = RadarrApi.get('/api/v3/movie', {
 		params: {}
 	}).then((r) => r.data);
@@ -71,17 +76,22 @@ function getLibraryItems() {
 		);
 	});
 
-	const downloading: Promise<CardProps[]> = downloadingRadarrMovies.then(async (movies) => {
-		return Promise.all(
-			movies
-				?.filter((m) => m?.movie?.tmdbId)
-				?.map(async (m) => ({
-					...(await fetchCardProps(m.movie as any)),
-					progress: m.sizeleft && m.size ? ((m.size - m.sizeleft) / m.size) * 100 : 0,
-					completionTime: m.estimatedCompletionTime
-				})) || []
-		);
-	});
+	const downloading: Promise<DownloadingCardProps[]> = downloadingRadarrMovies.then(
+		async (movies) => {
+			return Promise.all(
+				movies
+					?.filter((m) => m?.movie?.tmdbId)
+					?.map(
+						async (m) =>
+							({
+								...(await fetchCardProps(m.movie as any)),
+								progress: m.sizeleft && m.size ? ((m.size - m.sizeleft) / m.size) * 100 : 0,
+								completionTime: m.estimatedCompletionTime
+							} as DownloadingCardProps)
+					) || []
+			);
+		}
+	);
 
 	return [downloading, available, unavailable];
 }
