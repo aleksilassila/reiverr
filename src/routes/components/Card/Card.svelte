@@ -15,7 +15,7 @@
 	export let available = true;
 	export let progress = 0;
 	export let progressType: 'watched' | 'downloading' = 'watched';
-	export let large = false;
+	export let type: 'dynamic' | 'normal' | 'large' = 'normal';
 	export let randomProgress = false;
 	if (randomProgress) {
 		progress = Math.random() > 0.3 ? Math.random() * 100 : 0;
@@ -23,9 +23,10 @@
 </script>
 
 <div
-	class={classNames('rounded overflow-hidden relative shadow-2xl shrink-0', {
-		'h-40 w-72': !large,
-		'h-60 w-96': large
+	class={classNames('rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video', {
+		'h-40': type === 'normal',
+		'h-60': type === 'large',
+		'w-full': type === 'dynamic'
 	})}
 >
 	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />

@@ -21,10 +21,10 @@
 		<Carousel>
 			<div slot="title" class={headerStyle}>For You</div>
 			{#await data.streamed.popularMovies}
-				<CarouselPlaceholderItems large={true} />
+				<CarouselPlaceholderItems type="large" />
 			{:then movies}
 				{#each movies ? [...movies].reverse() : [] as movie (movie.tmdbId)}
-					<Card large={true} {...movie} />
+					<Card type="large" {...movie} />
 				{/each}
 			{/await}
 		</Carousel>
