@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import { MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import Card from '../components/Card/Card.svelte';
 	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
-	import { formatSize } from '$lib/utils.js';
+	import IconButton from '../components/IconButton.svelte';
 	import RadarrStats from '../components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '../components/SourceStats/SonarrStats.svelte';
+	import type { PageData } from './$types';
 	export let data: PageData;
 	const watched = [];
 
@@ -22,11 +23,49 @@
 	</div>
 </div>
 
-<div class="py-8 px-8">
+<div class="py-4 px-8">
 	<div class="max-w-screen-2xl m-auto backdrop-blur-2xl flex flex-col gap-4">
 		<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
 		<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->
 
+		<div class="flex justify-between gap-2 sm:flex-row flex-col">
+			<div
+				class="flex gap-2 items-center bg-stone-950 rounded-2xl p-3 px-4 shadow-xl focus-within:outline outline-2 outline-stone-400"
+			>
+				<MagnifyingGlass size={24} class="text-zinc-200" />
+				<input
+					type="text"
+					class="bg-transparent outline-none text-zinc-300"
+					placeholder="Search from library"
+				/>
+			</div>
+			<div class="flex items-center gap-2 bg-stone-950 rounded-2xl p-3 px-5 shadow-lg">
+				<IconButton>
+					<TextAlignBottom size={20} />
+				</IconButton>
+				<IconButton>
+					<Trash size={20} />
+				</IconButton>
+			</div>
+		</div>
+
+		<!-- <div class="flex justify-between">
+			<div class="flex gap-2 items-center">
+				<MagnifyingGlass size={28} class="text-zinc-400" />
+				<input
+					type="text"
+					class="bg-transparent outline-none font-light text-zinc-200 border-b border-b-zinc-400 text-sm"
+				/>
+			</div>
+			<div class="flex items-center gap-2 bg-stone-950 rounded-full p-3 px-5 shadow-lg">
+				<IconButton>
+					<TextAlignBottom size={20} />
+				</IconButton>
+				<IconButton>
+					<Trash size={20} />
+				</IconButton>
+			</div>
+		</div> -->
 		{#await Promise.all( [data.streamed.available, data.streamed.unavailable, data.streamed.downloading] )}
 			<div class={posterGridStyle}>
 				{#each [...Array(20).keys()] as index (index)}
