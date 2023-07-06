@@ -3,5 +3,10 @@
 @tailwind utilities;
 
 a {
-    @apply hover:text-amber-200;
+	@apply hover:text-amber-200;
+}
+
+.placeholder {
+	@apply bg-[#ffffff11];
+	@apply animate-pulse;
 }

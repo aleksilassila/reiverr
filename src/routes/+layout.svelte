@@ -5,6 +5,7 @@
 	import { setContext } from 'svelte';
 	import type { LayoutData } from './$types';
 	import { initialPlayerState } from './components/VideoPlayer/VideoPlayer';
+	import SetupRequired from './components/SetupRequired/SetupRequired.svelte';
 
 	setContext('player', initialPlayerState);
 
@@ -24,5 +25,5 @@
 		<!--	</footer>-->
 	</div>
 {:else}
-	<div>Application not set up</div>
+	<SetupRequired missingEnvironmentVariables={data.missingEnvironmentVariables} />
 {/if}

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { RadarrApi } from '$lib/radarr/radarr';
+import { RadarrApi, getRadarrMovies } from '$lib/radarr/radarr';
 import type { CardProps } from '../components/Card/card';
 import { fetchCardProps } from '../components/Card/card';
 
@@ -25,12 +25,10 @@ export const load = (() => {
 	};
 }) satisfies PageServerLoad;
 
-async function getLibraryInfo(): Promise<any> {}
+async function getLibraryInfo(): Promise<any> { }
 
 function getLibraryItems(): [Promise<DownloadingCardProps[]>, Promise<CardProps[]>, Promise<CardProps[]>] {
-	const radarrMovies = RadarrApi.get('/api/v3/movie', {
-		params: {}
-	}).then((r) => r.data);
+	const radarrMovies = getRadarrMovies();
 
 	const downloadingRadarrMovies = RadarrApi.get('/api/v3/queue', {
 		params: {
@@ -83,11 +81,11 @@ function getLibraryItems(): [Promise<DownloadingCardProps[]>, Promise<CardProps[
 					?.filter((m) => m?.movie?.tmdbId)
 					?.map(
 						async (m) =>
-							({
-								...(await fetchCardProps(m.movie as any)),
-								progress: m.sizeleft && m.size ? ((m.size - m.sizeleft) / m.size) * 100 : 0,
-								completionTime: m.estimatedCompletionTime
-							} as DownloadingCardProps)
+						({
+							...(await fetchCardProps(m.movie as any)),
+							progress: m.sizeleft && m.size ? ((m.size - m.sizeleft) / m.size) * 100 : 0,
+							completionTime: m.estimatedCompletionTime
+						} as DownloadingCardProps)
 					) || []
 			);
 		}

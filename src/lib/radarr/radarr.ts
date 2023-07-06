@@ -29,6 +29,11 @@ export const RadarrApi = createClient<paths>({
 	}
 });
 
+export const getRadarrMovies = () =>
+	RadarrApi.get('/api/v3/movie', {
+		params: {}
+	}).then((r) => r.data);
+
 export const requestRadarrMovie = () => request(getRadarrMovie);
 
 export const getRadarrMovie = (tmdbId: string) =>
