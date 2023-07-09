@@ -6,7 +6,7 @@ import {
 	addRadarrMovie,
 	fetchRadarrReleases,
 	downloadRadarrMovie
-} from '$lib/radarr/radarr';
+} from '$lib/apis/radarr/radarrApi';
 
 export const GET = (async ({ params }) => {
 	const radarrId = parseMovieId(params);

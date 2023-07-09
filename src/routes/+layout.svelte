@@ -1,11 +1,13 @@
 <script lang="ts">
 	import '../app.css';
-	import Navbar from './components/Navbar/Navbar.svelte';
-	import VideoPlayer from './components/VideoPlayer/VideoPlayer.svelte';
+	import Navbar from '$lib/components/Navbar/Navbar.svelte';
+	import VideoPlayer from '$lib/components/VideoPlayer/VideoPlayer.svelte';
 	import { setContext } from 'svelte';
 	import type { LayoutData } from './$types';
-	import { initialPlayerState } from './components/VideoPlayer/VideoPlayer';
-	import SetupRequired from './components/SetupRequired/SetupRequired.svelte';
+	import { initialPlayerState } from '$lib/components/VideoPlayer/VideoPlayer';
+	import SetupRequired from '$lib/components/SetupRequired/SetupRequired.svelte';
+	import { library } from '$lib/stores/libraryStore';
+	library;
 
 	setContext('player', initialPlayerState);
 

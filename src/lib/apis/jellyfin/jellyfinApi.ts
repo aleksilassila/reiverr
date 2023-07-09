@@ -1,8 +1,8 @@
 import createClient from 'openapi-fetch';
-import type { paths } from '$lib/jellyfin/jellyfin-types';
+import type { paths } from '$lib/apis/jellyfin/jellyfin.generated';
 import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
 import { request } from '$lib/utils';
-import type { DeviceProfile } from '$lib/jellyfin/playback-profiles';
+import type { DeviceProfile } from '$lib/apis/jellyfin/playback-profiles';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 export const JELLYFIN_USER_ID = '75dcb061c9404115a7acdc893ea6bbbc';

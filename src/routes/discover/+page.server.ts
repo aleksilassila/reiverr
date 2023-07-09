@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { fetchTmdbMovie, fetchTmdbPopularMovies } from '$lib/tmdb-api';
-import { fetchCardPropsTmdb } from '../components/Card/card';
+import { fetchTmdbMovie, fetchTmdbPopularMovies } from '$lib/apis/tmdbApi';
+import { fetchCardPropsTmdb } from '$lib/components/Card/card';
 
 export const load = (() => {
 	const popularMoviesPromise = fetchTmdbPopularMovies();

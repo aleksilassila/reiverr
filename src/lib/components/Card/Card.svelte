@@ -14,7 +14,6 @@
 
 	export let available = true;
 	export let progress = 0;
-	export let progressType: 'watched' | 'downloading' = 'watched';
 	export let type: 'dynamic' | 'normal' | 'large' = 'normal';
 	export let randomProgress = false;
 	if (randomProgress) {

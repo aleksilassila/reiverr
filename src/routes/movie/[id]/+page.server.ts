@@ -1,4 +1,4 @@
-import { fetchTmdbMovie } from '$lib/tmdb-api';
+import { fetchTmdbMovie } from '$lib/apis/tmdbApi';
 import type { PageServerLoad } from './$types';
 
 export const load = (async ({ params }) => {

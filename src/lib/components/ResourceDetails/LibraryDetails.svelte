@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
-	import Button from '../Ui/Button.svelte';
-	import { DotFilled, Plus, Update } from 'radix-icons-svelte';
+	import Button from '$lib/components/Button.svelte';
+	import { DotFilled, Minus, Plus, Trash, Update } from 'radix-icons-svelte';
 	import RequestModal from '../RequestModal/RequestModal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import classNames from 'classnames';
@@ -110,10 +110,13 @@
 					<div class="flex items-center gap-2">
 						<div class={headerStyle}>Local Library</div>
 						<IconButton on:click={openRequestModal}>
-							<Plus size="20" />
+							<Plus size={20} />
+						</IconButton>
+						<IconButton>
+							<Trash size={20} />
 						</IconButton>
 						<IconButton disabled={isRefetching} on:click={refetch}>
-							<Update size="15" />
+							<Update size={15} />
 						</IconButton>
 					</div>
 					{#each data.radarrDownloads || [] as downloadingFile}

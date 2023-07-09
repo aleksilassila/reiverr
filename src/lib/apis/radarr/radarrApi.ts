@@ -1,13 +1,14 @@
 import createClient from 'openapi-fetch';
 import { log, request } from '$lib/utils';
-import type { paths } from '$lib/radarr/radarr-types';
-import type { components } from '$lib/radarr/radarr-types';
-import { fetchTmdbMovie } from '$lib/tmdb-api';
-import { RADARR_API_KEY, RADARR_BASE_URL } from '$env/static/private';
+import type { paths } from '$lib/apis/radarr/radarr.generated';
+import type { components } from '$lib/apis/radarr/radarr.generated';
+import { fetchTmdbMovie } from '$lib/apis/tmdbApi';
+import { PUBLIC_RADARR_API_KEY, PUBLIC_RADARR_BASE_URL } from '$env/static/public';
 
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
 export type ReleaseResource = components['schemas']['ReleaseResource'];
+export type RadarrDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
 
 export interface RadarrMovieOptions {
 	title: string;
@@ -23,20 +24,20 @@ export interface RadarrMovieOptions {
 }
 
 export const RadarrApi = createClient<paths>({
-	baseUrl: RADARR_BASE_URL,
+	baseUrl: PUBLIC_RADARR_BASE_URL,
 	headers: {
-		'X-Api-Key': RADARR_API_KEY
+		'X-Api-Key': PUBLIC_RADARR_API_KEY
 	}
 });
 
-export const getRadarrMovies = () =>
+export const getRadarrMovies = (): Promise<RadarrMovie[]> =>
 	RadarrApi.get('/api/v3/movie', {
 		params: {}
-	}).then((r) => r.data);
+	}).then((r) => r.data || []);
 
 export const requestRadarrMovie = () => request(getRadarrMovie);
 
-export const getRadarrMovie = (tmdbId: string) =>
+export const getRadarrMovie = (tmdbId: string): Promise<RadarrMovie | undefined> =>
 	RadarrApi.get('/api/v3/movie', {
 		params: {
 			query: {
@@ -121,16 +122,17 @@ export const deleteRadarrMovie = (id: number) =>
 
 export const requestRadarrQueuedById = () => request(getRadarrDownload);
 
-export const getRadarrDownload = (id: string) =>
+export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 	RadarrApi.get('/api/v3/queue', {
 		params: {
 			query: {
 				includeMovie: true
 			}
 		}
-	})
-		.then((r) => r.data)
-		.then((queue) => queue?.records?.filter((r) => (r?.movie?.id as any) == id));
+	}).then((r) => (r.data?.records?.filter((record) => record.movie) as RadarrDownload[]) || []);
+
+export const getRadarrDownload = (id: string) =>
+	getRadarrDownloads().then((downloads) => downloads.find((d) => d.movie.id === Number(id)));
 
 const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {

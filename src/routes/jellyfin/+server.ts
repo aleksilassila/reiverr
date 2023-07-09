@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { error, json } from '@sveltejs/kit';
-import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
+import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 
 export const GET = (async ({ params, request }) => {
 	const body = await request.json();

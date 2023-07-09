@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Card from '../components/Card/Card.svelte';
-	import Carousel from '../components/Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
+	import Card from '$lib/components/Card/Card.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import NetflixCard from './NetflixCard.svelte';
 	import HboCard from './HboCard.svelte';
 	import DisneyCard from './DisneyCard.svelte';

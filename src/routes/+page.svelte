@@ -1,14 +1,13 @@
 <script lang="ts">
-	import SmallPoster from './components/Poster/Poster.svelte';
-	import type { PageData } from './$types';
-	import ResourceDetails from './components/ResourceDetails/ResourceDetails.svelte';
-	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
-	import { TMDB_IMAGES } from '$lib/constants';
-	import { fetchTmdbMovie } from '$lib/tmdb-api';
+	import { fetchTmdbMovie } from '$lib/apis/tmdbApi';
+	import SmallPoster from '$lib/components/Poster/Poster.svelte';
+	import ResourceDetails from '$lib/components/ResourceDetails/ResourceDetails.svelte';
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
+	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
 
 	export let data: PageData;
-	let movies = [];
+	let movies: ReturnType<typeof fetchTmdbMovie>[] = [];
 
 	let index = 0;
 

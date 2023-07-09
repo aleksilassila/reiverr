@@ -1,9 +1,9 @@
 <script lang="ts">
-	import RadarrIcon from '../components/svgs/RadarrIcon.svelte';
-	import SonarrIcon from '../components/svgs/SonarrIcon.svelte';
+	import RadarrIcon from '$lib/components/svgs/RadarrIcon.svelte';
+	import SonarrIcon from '$lib/components/svgs/SonarrIcon.svelte';
 	import { formatSize } from '$lib/utils.js';
-	import RadarrStats from '../components/SourceStats/RadarrStats.svelte';
-	import SonarrStats from '../components/SourceStats/SonarrStats.svelte';
+	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
+	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 </script>
 
 <div class="pt-24 px-8 min-h-screen flex justify-center">
@@ -15,7 +15,7 @@
 		>
 			<h2 class="font-medium">Sonarr is not set up</h2>
 			<p class="text-sm">
-				To set up Sonarr, define the <code>SONARR_API_KEY</code> and <code>SONARR_URL</code> environment
+				To set up Sonarr, define the <code>PUBLIC_SONARR_API_KEY</code> and <code>SONARR_URL</code> environment
 				variables.
 			</p>
 		</div>

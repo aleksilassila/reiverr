@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { TmdbApi } from '$lib/tmdb-api';
-	import type { TmdbMovie } from '$lib/tmdb-api';
+	import { TmdbApi } from '$lib/apis/tmdbApi';
+	import type { TmdbMovie } from '$lib/apis/tmdbApi';
 	import { getContext, onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
-	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
+	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 
 	export let tmdbId;
 	export let progress = 0;

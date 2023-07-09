@@ -34,7 +34,7 @@
 	>
 		<div class="flex flex-col">
 			<h3 class="text-zinc-400 font-medium text-xs tracking-wider">{subtitle}</h3>
-			<a href="/" class="text-zinc-200 font-bold text-xl tracking-wide">{title}</a>
+			<a href="/static" class="text-zinc-200 font-bold text-xl tracking-wide">{title}</a>
 		</div>
 		<div class="flex gap-8">
 			{#each stats as { title, value }}

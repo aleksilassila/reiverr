@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { MagnifyingGlass, Person } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { page } from '$app/stores';
@@ -11,7 +11,7 @@
 
 	let isSearchVisible = false;
 
-	function getLinkStyle(path) {
+	function getLinkStyle(path: string) {
 		return $page.url.pathname === path ? 'text-amber-200' : 'hover:text-zinc-50 cursor-pointer';
 	}
 
@@ -46,10 +46,10 @@
 	</div>
 	<div class="flex gap-2 items-center">
 		<IconButton on:click={() => (isSearchVisible = true)}>
-			<MagnifyingGlass size="20" />
+			<MagnifyingGlass size={20} />
 		</IconButton>
 		<IconButton>
-			<Person size="20" />
+			<Person size={20} />
 		</IconButton>
 	</div>
 </div>

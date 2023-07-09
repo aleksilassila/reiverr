@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { TmdbMovie } from '$lib/tmdb-api';
+	import type { TmdbMovie } from '$lib/apis/tmdbApi';
 	import { onMount } from 'svelte';
-	import { fetchTmdbMovie, fetchTmdbMovieImages } from '$lib/tmdb-api';
+	import { fetchTmdbMovie, fetchTmdbMovieImages } from '$lib/apis/tmdbApi';
 	import { TMDB_IMAGES } from '$lib/constants';
-	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
+	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 	import CardPlaceholder from './CardPlaceholder.svelte';
 	import Card from './Card.svelte';
 

@@ -5,7 +5,7 @@
 		reportJellyfinPlaybackProgress,
 		reportJellyfinPlaybackStarted,
 		reportJellyfinPlaybackStopped
-	} from '$lib/jellyfin/jellyfin';
+	} from '$lib/apis/jellyfin/jellyfinApi';
 	import Hls from 'hls.js';
 	import Modal from '../Modal/Modal.svelte';
 	import IconButton from '../IconButton.svelte';
@@ -13,10 +13,10 @@
 	import classNames from 'classnames';
 	import { getContext, onDestroy } from 'svelte';
 	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
-	import getDeviceProfile from '$lib/jellyfin/playback-profiles';
+	import getDeviceProfile from '$lib/apis/jellyfin/playback-profiles';
 	import type { PlayerState, PlayerStateValue } from './VideoPlayer';
 
-	const { playerState, close }: PlayerState = getContext('player');
+	const { playerState, close } = getContext<PlayerState>('player');
 
 	let video: HTMLVideoElement;
 
@@ -44,7 +44,7 @@
 							video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
 						}
 					});
-				await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
+				if (mediaSourceId) await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
 				progressInterval = setInterval(() => {
 					reportJellyfinPlaybackProgress(
 						itemId,

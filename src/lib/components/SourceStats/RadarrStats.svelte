@@ -1,24 +1,22 @@
 <script lang="ts">
-	import { formatSize } from '$lib/utils.js';
-	import { onMount } from 'svelte';
+	import { formatSize, log } from '$lib/utils.js';
 	import StatsPlaceholder from './StatsPlaceholder.svelte';
 	import StatsContainer from './StatsContainer.svelte';
 	import RadarrIcon from '../svgs/RadarrIcon.svelte';
 
 	export let large = false;
 
-	let statsRequest: Promise<{ moviesAmount: number }> = new Promise((_) => {}) as any;
-
-	onMount(() => {
-		statsRequest = fetch('/radarr/stats')
+	async function fetchStats() {
+		return fetch('/radarr/stats')
 			.then((res) => res.json())
+			.then(log)
 			.then((data) => ({
 				moviesAmount: data?.movies?.length
 			}));
-	});
+	}
 </script>
 
-{#await statsRequest}
+{#await fetchStats()}
 	<StatsPlaceholder {large} />
 {:then { moviesAmount }}
 	<StatsContainer

@@ -1,17 +1,26 @@
 <script lang="ts">
-	import { MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
-	import Card from '../components/Card/Card.svelte';
-	import CardPlaceholder from '../components/Card/CardPlaceholder.svelte';
-	import IconButton from '../components/IconButton.svelte';
-	import RadarrStats from '../components/SourceStats/RadarrStats.svelte';
-	import SonarrStats from '../components/SourceStats/SonarrStats.svelte';
+	import {
+		ChevronDown,
+		ChevronUp,
+		Download,
+		MagnifyingGlass,
+		TextAlignBottom,
+		Trash
+	} from 'radix-icons-svelte';
+	import Card from '$lib/components/Card/Card.svelte';
+	import CardPlaceholder from '$lib/components/Card/CardPlaceholder.svelte';
+	import IconButton from '$lib/components/IconButton.svelte';
+	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
+	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 	import type { PageData } from './$types';
-	export let data: PageData;
+	import { library } from '$lib/stores/libraryStore';
+
 	const watched = [];
 
 	const posterGridStyle =
-		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6';
-	const headerStyle = 'uppercase tracking-widest font-bold mt-2';
+		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+	const headerStyle = 'uppercase tracking-widest font-bold';
+	const headerContaienr = 'flex items-center justify-between mt-2';
 </script>
 
 <div class="pt-24 pb-8 px-8 bg-black">
@@ -66,48 +75,90 @@
 				</IconButton>
 			</div>
 		</div> -->
-		{#await Promise.all( [data.streamed.available, data.streamed.unavailable, data.streamed.downloading] )}
+
+		{#await $library}
 			<div class={posterGridStyle}>
 				{#each [...Array(20).keys()] as index (index)}
 					<CardPlaceholder type="dynamic" {index} />
 				{/each}
 			</div>
-		{:then [available, unavailable, downloading]}
+		{:then libraryData}
+			{@const downloading = libraryData.movies.filter((m) => !!m.download)}
+			{@const available = libraryData.movies.filter(
+				(m) => !m.download && m.movieFile && m.isAvailable
+			)}
+			{@const unavailable = libraryData.movies.filter(
+				(m) => !m.download && (!m.movieFile || !m.isAvailable)
+			)}
+
 			{#if downloading.length > 0}
-				<h1 class={headerStyle}>Downloading</h1>
+				<div class={headerContaienr}>
+					<h1 class={headerStyle}>Downloading</h1>
+					<IconButton>
+						<ChevronDown size={24} />
+					</IconButton>
+				</div>
 				<div class={posterGridStyle}>
 					{#each downloading as movie (movie)}
 						<Card
 							type="dynamic"
-							{...movie}
-							progress={movie.progress}
-							progressType="downloading"
+							progress={movie.download?.progress || 0}
+							completionTime={movie.download?.completionTime}
 							available={false}
+							tmdbId={String(movie.tmdbId)}
+							title={movie.title || ''}
+							genres={movie.genres || []}
+							runtimeMinutes={movie.runtime || 0}
+							backdropUrl={movie.cardBackdropUrl}
+							rating={movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0}
 						/>
 					{/each}
 				</div>
 			{/if}
 
 			{#if available.length > 0}
-				<h1 class={headerStyle}>Available</h1>
+				<div class={headerContaienr}>
+					<h1 class={headerStyle}>Available</h1>
+					<IconButton>
+						<ChevronDown size={24} />
+					</IconButton>
+				</div>
 				<div class={posterGridStyle}>
 					{#each available as movie (movie.tmdbId)}
-						<Card type="dynamic" {...movie} randomProgress={false} />
+						<Card
+							type="dynamic"
+							tmdbId={String(movie.tmdbId)}
+							title={movie.title || ''}
+							genres={movie.genres || []}
+							runtimeMinutes={movie.runtime || 0}
+							backdropUrl={movie.cardBackdropUrl}
+							rating={movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0}
+						/>
 					{/each}
 				</div>
 			{/if}
 
 			{#if unavailable.length > 0}
-				<h1 class={headerStyle}>Unavailable</h1>
+				<div class={headerContaienr}>
+					<h1 class={headerStyle}>Unavailable</h1>
+					<IconButton>
+						<ChevronDown size={24} />
+					</IconButton>
+				</div>
 				<div class={posterGridStyle}>
 					{#each unavailable as movie (movie.tmdbId)}
-						<Card type="dynamic" {...movie} available={false} />
+						<Card
+							type="dynamic"
+							available={false}
+							tmdbId={String(movie.tmdbId)}
+							title={movie.title || ''}
+							genres={movie.genres || []}
+							runtimeMinutes={movie.runtime || 0}
+							backdropUrl={movie.cardBackdropUrl}
+							rating={movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0}
+						/>
 					{/each}
 				</div>
-			{/if}
-
-			{#if watched.length > 0}
-				<h1 class={headerStyle}>Watched</h1>
 			{/if}
 		{/await}
 	</div>

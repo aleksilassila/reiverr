@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
-import { getRadarrMovie, getRadarrDownload } from '$lib/radarr/radarr';
+import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
+import { getRadarrMovie, getRadarrDownload } from '$lib/apis/radarr/radarrApi';
 
 export const parseMovieId = (params: any) => {
 	const { id: tmdbId } = params;

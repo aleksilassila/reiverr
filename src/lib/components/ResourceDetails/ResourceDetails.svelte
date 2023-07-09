@@ -3,13 +3,14 @@
 	import classNames from 'classnames';
 	import { fade, fly } from 'svelte/transition';
 	import { TMDB_IMAGES } from '$lib/constants';
-	import Button from '../Ui/Button.svelte';
-	import type { CastMember, TmdbMovie, Video } from '$lib/tmdb-api';
-	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/tmdb-api';
+	import Button from '$lib/components/Button.svelte';
+	import type { CastMember, TmdbMovie, Video } from '$lib/apis/tmdbApi';
+	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/apis/tmdbApi';
 	import LibraryDetails from './LibraryDetails.svelte';
-	import { getJellyfinItemByTmdbId } from '$lib/jellyfin/jellyfin';
+	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 	import HeightHider from '../HeightHider.svelte';
 	import { getContext } from 'svelte';
+	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
 
 	export let movie: TmdbMovie;
 	export let videos: Video[];
@@ -22,12 +23,12 @@
 	let trailerStartTime = 0;
 	let detailsVisible = showDetails;
 	let streamButtonDisabled = true;
-	let jellyfinId;
+	let jellyfinId: string;
 
-	let video;
+	let video: Video;
 	$: video = videos?.filter((v) => v.site === 'YouTube' && v.type === 'Trailer')?.[0];
 
-	let opacityStyle;
+	let opacityStyle: string;
 	$: opacityStyle =
 		(focusTrailer ? 'opacity: 0;' : 'opacity: 100;') + 'transition: opacity 0.3s ease-in-out;';
 
@@ -48,18 +49,18 @@
 		'December'
 	];
 	const releaseDate = new Date(movie.release_date);
-	const { playerState, close, streamJellyfinId } = getContext('player');
+	const { playerState, close, streamJellyfinId } = getContext<PlayerState>('player');
 
 	function openTrailer() {
 		window
-			.open(
+			?.open(
 				'https://www.youtube.com/watch?v=' +
 					video.key +
 					'&autoplay=1&t=' +
 					(trailerStartTime === 0 ? 0 : Math.floor((Date.now() - trailerStartTime) / 1000)),
 				'_blank'
 			)
-			.focus();
+			?.focus();
 	}
 
 	let fadeIndex = -1;
@@ -70,7 +71,7 @@
 
 	// onMount(() => {});
 
-	let timeout;
+	let timeout: NodeJS.Timeout;
 	$: {
 		fadeIndex = 0;
 		streamButtonDisabled = true;
@@ -101,7 +102,7 @@
 		}
 	}
 
-	let localDetailsTop;
+	let localDetailsTop: HTMLElement;
 </script>
 
 <div class="grid">
@@ -196,7 +197,7 @@
 							<div
 								class="hidden items-center justify-center border-2 border-white w-10 cursor-pointer hover:bg-white hover:text-zinc-900 transition-colors"
 							>
-								<ChevronDown size="20" />
+								<ChevronDown size={20} />
 							</div>
 						</div>
 						<div style={opacityStyle} class:hidden={showDetails}>
@@ -219,29 +220,29 @@
 					</div>
 				</div>
 				<div class="flex flex-col gap-6 max-w-[14rem] row-span-full" style={opacityStyle}>
-					<h3 class="text-xs tracking-wide uppercase" in:fade={getFade(0)}>Details</h3>
+					<h3 class="text-xs tracking-wide uppercase" in:fade={getFade()}>Details</h3>
 					<div class="flex flex-col gap-1">
-						<div class="tracking-widest font-extralight text-sm" in:fade={getFade(1)}>
+						<div class="tracking-widest font-extralight text-sm" in:fade={getFade()}>
 							{movie.genres.map((g) => g.name.charAt(0).toUpperCase() + g.name.slice(1)).join(', ')}
 						</div>
-						<div class="flex gap-1.5 items-center" in:fade={getFade(2)}>
-							<Clock size="14" />
+						<div class="flex gap-1.5 items-center" in:fade={getFade()}>
+							<Clock size={14} />
 							<div class="tracking-widest font-extralight text-sm">
 								{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
 							</div>
 						</div>
-						<div class="tracking-widest font-extralight text-sm" in:fade={getFade(3)}>
+						<div class="tracking-widest font-extralight text-sm" in:fade={getFade()}>
 							Currently <b>Streaming</b>
 						</div>
 						<a
 							href={'https://www.themoviedb.org/movie/' + movie.id}
 							target="_blank"
 							class="tracking-widest font-extralight text-sm"
-							in:fade={getFade(4)}
+							in:fade={getFade()}
 						>
 							<b>{movie.vote_average.toFixed(1)}</b> TMDB
 						</a>
-						<div class="flex mt-4" in:fade={getFade(5)}>
+						<div class="flex mt-4" in:fade={getFade()}>
 							<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="text-white w-4"
 								><g
 									><path d="M0 0h24v24H0z" fill="none" /><path
@@ -254,21 +255,21 @@
 						</div>
 					</div>
 					{#if castMembers?.length > 0}
-						<h3 class="text-xs tracking-wide uppercase" in:fade={getFade(6)}>Starring</h3>
+						<h3 class="text-xs tracking-wide uppercase" in:fade={getFade()}>Starring</h3>
 						<div class="flex flex-col gap-1">
 							{#each castMembers.slice(0, 5) as a}
 								<a
 									href={'https://www.themoviedb.org/person/' + a.id}
 									target="_blank"
 									class="tracking-widest font-extralight text-sm"
-									in:fade={getFade(7)}>{a.name}</a
+									in:fade={getFade()}>{a.name}</a
 								>
 							{/each}
 							<a
 								href={'https://www.themoviedb.org/movie/' + movie.id + '/cast'}
 								target="_blank"
 								class="tracking-widest font-extralight text-sm"
-								in:fade={getFade(8)}>View all...</a
+								in:fade={getFade()}>View all...</a
 							>
 						</div>
 					{/if}
@@ -285,7 +286,7 @@
 		<LibraryDetails
 			openJellyfinStream={() => jellyfinId && streamJellyfinId(jellyfinId)}
 			jellyfinStreamDisabled={streamButtonDisabled}
-			tmdbId={movie.id}
+			tmdbId={String(movie.id)}
 		/>
 	{/key}
 </HeightHider>
