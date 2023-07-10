@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fetchTmdbMovie, fetchTmdbPopularMovies } from '$lib/apis/tmdbApi';
+	import { getTmdbMovie, fetchTmdbPopularMovies, fetchTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardPropsTmdb } from '$lib/components/Card/card';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -15,13 +15,15 @@
 		const popularMoviesPromise = fetchTmdbPopularMovies();
 
 		const popularMovies = await popularMoviesPromise
-			.then(async (movies) => {
+			.then(async (tmdbMovies) => {
 				const libraryData = await $library;
-				return movies.filter((m) => !libraryData.getItem(m.id));
+				return tmdbMovies.filter((m) => !libraryData.getMovie(m.id));
 			})
-			.then((movies) => {
+			.then((tmdbMovies) => {
 				return Promise.all(
-					movies.map(async (movie) => fetchCardPropsTmdb(await fetchTmdbMovie(String(movie.id))))
+					tmdbMovies.map(async (tmdbMovie) =>
+						fetchCardPropsTmdb(await fetchTmdbMovie(String(tmdbMovie.id)))
+					)
 				);
 			});
 

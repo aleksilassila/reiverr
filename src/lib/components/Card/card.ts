@@ -1,6 +1,6 @@
 import type { RadarrMovie } from '$lib/apis/radarr/radarrApi';
-import { fetchTmdbMovieImages } from '$lib/apis/tmdbApi';
-import type { TmdbMovie } from '$lib/apis/tmdbApi';
+import { fetchTmdbMovieImages } from '$lib/apis/tmdb/tmdbApi';
+import type { TmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 
 export interface CardProps {
 	tmdbId: string;

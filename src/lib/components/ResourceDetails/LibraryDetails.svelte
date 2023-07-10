@@ -10,14 +10,14 @@
 
 	let isRequestModalVisible = false;
 	export let tmdbId: string;
-	export let jellyfinStreamDisabled;
-	export let openJellyfinStream;
+	export let jellyfinStreamDisabled: boolean;
+	export let openJellyfinStream: () => void;
 
-	let response;
+	let response: Promise<any>;
 
 	const headerStyle = 'uppercase tracking-widest font-bold';
 
-	let refetchTimeout;
+	let refetchTimeout: NodeJS.Timeout;
 	let isRefetching = false;
 	async function refetch() {
 		console.log('refetching...');

@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch';
 import { log, request } from '$lib/utils';
 import type { paths } from '$lib/apis/radarr/radarr.generated';
 import type { components } from '$lib/apis/radarr/radarr.generated';
-import { fetchTmdbMovie } from '$lib/apis/tmdbApi';
+import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 import { PUBLIC_RADARR_API_KEY, PUBLIC_RADARR_BASE_URL } from '$env/static/public';
 
 export type RadarrMovie = components['schemas']['MovieResource'];
@@ -36,9 +36,9 @@ export const getRadarrMovies = (): Promise<RadarrMovie[]> =>
 		params: {}
 	}).then((r) => r.data || []);
 
-export const requestRadarrMovie = () => request(getRadarrMovie);
+export const requestRadarrMovie = () => request(getRadarrMovieByTmdbId);
 
-export const getRadarrMovie = (tmdbId: string): Promise<RadarrMovie | undefined> =>
+export const getRadarrMovieByTmdbId = (tmdbId: string): Promise<RadarrMovie | undefined> =>
 	RadarrApi.get('/api/v3/movie', {
 		params: {
 			query: {
@@ -47,11 +47,9 @@ export const getRadarrMovie = (tmdbId: string): Promise<RadarrMovie | undefined>
 		}
 	}).then((r) => r.data?.find((m) => (m.tmdbId as any) == tmdbId));
 
-export const requestAddRadarrMovie = () => request(addRadarrMovie);
-
 export const addRadarrMovie = async (tmdbId: string) => {
-	const tmdbMovie = await fetchTmdbMovie(tmdbId);
-	const radarrMovie = await getMovieByTmdbIdByTmdbId(tmdbId);
+	const tmdbMovie = await getTmdbMovie(tmdbId);
+	const radarrMovie = await lookupRadarrMovieByTmdbId(tmdbId);
 	console.log('fetched movies', tmdbMovie, radarrMovie);
 
 	if (radarrMovie?.id) throw new Error('Movie already exists');
@@ -94,14 +92,10 @@ export const cancelDownloadRadarrMovie = async (downloadId: number) => {
 	return deleteResponse.response.ok;
 };
 
-export const requestRadarrReleases = () => request(fetchRadarrReleases);
-
 export const fetchRadarrReleases = (movieId: string) =>
 	RadarrApi.get('/api/v3/release', { params: { query: { movieId: Number(movieId) } } }).then(
 		(r) => r.data
 	);
-
-export const requestDownloadRadarrMovie = () => request(downloadRadarrMovie);
 
 export const downloadRadarrMovie = (guid: string) =>
 	RadarrApi.post('/api/v3/release', {
@@ -121,8 +115,6 @@ export const deleteRadarrMovie = (id: number) =>
 		}
 	}).then((res) => res.response.ok);
 
-export const requestRadarrQueuedById = () => request(getRadarrDownload);
-
 export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 	RadarrApi.get('/api/v3/queue', {
 		params: {
@@ -132,10 +124,10 @@ export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 		}
 	}).then((r) => (r.data?.records?.filter((record) => record.movie) as RadarrDownload[]) || []);
 
-export const getRadarrDownload = (id: string) =>
-	getRadarrDownloads().then((downloads) => downloads.find((d) => d.movie.id === Number(id)));
+export const getRadarrDownloadById = (radarrId: number) =>
+	getRadarrDownloads().then((downloads) => downloads.find((d) => d.movie.id === radarrId));
 
-const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
+const lookupRadarrMovieByTmdbId = (tmdbId: string) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {
 		params: {
 			query: {

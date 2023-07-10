@@ -1,6 +1,54 @@
 import axios from 'axios';
 import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
 import { request } from '$lib/utils';
+import type { paths } from './tmdb.generated';
+import createClient from 'openapi-fetch';
+
+export const TmdbApiOpen = createClient<paths>({
+	baseUrl: 'https://api.themoviedb.org',
+	headers: {
+		Authorization: `Bearer ${PUBLIC_TMDB_API_KEY}`
+	}
+});
+
+export const getTmdbMovie = async (tmdbId: number) =>
+	await TmdbApiOpen.get('/3/movie/{movie_id}', {
+		params: {
+			path: {
+				movie_id: tmdbId
+			}
+		}
+	}).then((res) => res.data);
+
+export const getTmdbPopularMovies = () =>
+	TmdbApiOpen.get('/3/movie/popular', {
+		params: {}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
+	TmdbApiOpen.get('/3/find/{external_id}', {
+		params: {
+			path: {
+				external_id: String(tvdbId)
+			},
+			query: {
+				external_source: 'tvdb_id'
+			}
+		}
+	})
+		.then((res) => res.data?.tv_results?.[0])
+		.then((res: any) => res?.id as number | undefined);
+
+export const getTmdbSeriesImages = async (tmdbId: number) =>
+	TmdbApiOpen.get('/3/tv/{series_id}/images', {
+		params: {
+			path: {
+				series_id: tmdbId
+			}
+		}
+	}).then((res) => res.data);
+
+// Deprecated hereon forward
 
 export const TmdbApi = axios.create({
 	baseURL: 'https://api.themoviedb.org/3',

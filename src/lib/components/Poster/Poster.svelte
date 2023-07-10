@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { TmdbApi } from '$lib/apis/tmdbApi';
-	import type { TmdbMovie } from '$lib/apis/tmdbApi';
+	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
+	import type { TmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 	import { getContext, onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';

@@ -1,5 +1,5 @@
 import { parseMovieId } from '../+server';
-import { addRadarrMovie, getRadarrMovie } from '$lib/apis/radarr/radarrApi';
+import { addRadarrMovie, getRadarrMovieByTmdbId } from '$lib/apis/radarr/radarrApi';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 
@@ -15,7 +15,7 @@ export const POST = (async ({ params }) => {
 export const GET = (async ({ params }) => {
 	const tmdbId = parseMovieId(params);
 
-	const response = await getRadarrMovie(tmdbId);
+	const response = await getRadarrMovieByTmdbId(tmdbId);
 
 	return json(response);
 }) satisfies RequestHandler;

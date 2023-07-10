@@ -4,6 +4,7 @@
 	import StatsPlaceholder from './StatsPlaceholder.svelte';
 	import StatsContainer from './StatsContainer.svelte';
 	import SonarrIcon from '../svgs/SonarrIcon.svelte';
+	import { PUBLIC_SONARR_BASE_URL } from '$env/static/public';
 
 	export let large = false;
 
@@ -25,6 +26,7 @@
 		{large}
 		title="Sonarr"
 		subtitle="Shows Provider"
+		href={PUBLIC_SONARR_BASE_URL}
 		stats={[
 			{ title: 'Movies', value: String(moviesAmount) },
 			{ title: 'Space Taken', value: formatSize(120_000_000_000) },

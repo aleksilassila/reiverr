@@ -4,8 +4,8 @@
 	import { fade, fly } from 'svelte/transition';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import Button from '$lib/components/Button.svelte';
-	import type { CastMember, TmdbMovie, Video } from '$lib/apis/tmdbApi';
-	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/apis/tmdbApi';
+	import type { CastMember, TmdbMovie, Video } from '$lib/apis/tmdb/tmdbApi';
+	import { fetchTmdbMovieCredits, fetchTmdbMovieVideos } from '$lib/apis/tmdb/tmdbApi';
 	import LibraryDetails from './LibraryDetails.svelte';
 	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 	import HeightHider from '../HeightHider.svelte';

@@ -13,6 +13,12 @@
 		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
 	const headerStyle = 'uppercase tracking-widest font-bold';
 	const headerContaienr = 'flex items-center justify-between mt-2';
+
+	function sortByAdded(arr: any[]) {
+		return arr.sort((a, b) => ((a.added || '') > (b.added || '') ? -1 : 1));
+	}
+
+	console.log($library);
 </script>
 
 <div class="pt-24 pb-8 px-8 bg-black">
@@ -75,13 +81,22 @@
 				{/each}
 			</div>
 		{:then libraryData}
-			{@const downloading = libraryData.movies.filter((m) => !!m.download)}
-			{@const available = libraryData.movies.filter(
-				(m) => !m.download && m.movieFile && m.isAvailable
-			)}
-			{@const unavailable = libraryData.movies.filter(
-				(m) => !m.download && (!m.movieFile || !m.isAvailable)
-			)}
+			{@const downloading = sortByAdded([
+				...libraryData.movies.filter((m) => !!m.download),
+				...libraryData.series.filter((s) => !!s.download)
+			])}
+			{@const available = sortByAdded([
+				...libraryData.movies.filter((m) => !m.download && m.movieFile && m.isAvailable),
+				...libraryData.series.filter(
+					(s) => !s.download && s.seasons?.find((season) => !!season?.statistics?.episodeFileCount)
+				)
+			])}
+			{@const unavailable = sortByAdded([
+				...libraryData.movies.filter((m) => !m.download && (!m.movieFile || !m.isAvailable)),
+				...libraryData.series.filter(
+					(s) => !s.download && !s.seasons?.find((season) => !!season?.statistics?.episodeFileCount)
+				)
+			])}
 
 			{#if downloading.length > 0}
 				<div class={headerContaienr}>

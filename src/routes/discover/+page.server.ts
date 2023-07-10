@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { fetchTmdbMovie, fetchTmdbPopularMovies } from '$lib/apis/tmdbApi';
+import { fetchTmdbMovie, fetchTmdbPopularMovies } from '$lib/apis/tmdb/tmdbApi';
 import { fetchCardPropsTmdb } from '$lib/components/Card/card';
 
 export const load = (() => {

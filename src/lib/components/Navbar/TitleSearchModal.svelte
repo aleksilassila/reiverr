@@ -3,8 +3,8 @@
 	import ModalContent from '../Modal/ModalContent.svelte';
 	import { Cross1, Cross2, MagnifyingGlass } from 'radix-icons-svelte';
 	import IconButton from '../IconButton.svelte';
-	import { TmdbApi } from '$lib/apis/tmdbApi';
-	import type { MultiSearchResponse } from '$lib/apis/tmdbApi';
+	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
+	import type { MultiSearchResponse } from '$lib/apis/tmdb/tmdbApi';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import { onMount } from 'svelte';

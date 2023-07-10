@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
-import { getRadarrMovie, getRadarrDownload } from '$lib/apis/radarr/radarrApi';
+import { getRadarrMovieByTmdbId, getRadarrDownloadById } from '$lib/apis/radarr/radarrApi';
 
 export const parseMovieId = (params: any) => {
 	const { id: tmdbId } = params;
@@ -15,9 +15,9 @@ export const GET = (async ({ params }) => {
 	const tmdbId = parseMovieId(params);
 
 	const jellyfinMoviePromise = getJellyfinItemByTmdbId(tmdbId);
-	const radarrMoviePromise = getRadarrMovie(tmdbId);
+	const radarrMoviePromise = getRadarrMovieByTmdbId(tmdbId);
 	const radarrMovieQueuedPromise = radarrMoviePromise.then((movie) =>
-		movie ? getRadarrDownload(String(movie.id)) : undefined
+		movie?.id ? getRadarrDownloadById(movie.id) : undefined
 	);
 
 	const [jellyfinItem, radarrMovie, radarrDownloads] = await Promise.all([

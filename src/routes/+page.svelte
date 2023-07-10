@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fetchTmdbMovie } from '$lib/apis/tmdbApi';
+	import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 	import SmallPoster from '$lib/components/Poster/Poster.svelte';
 	import ResourceDetails from '$lib/components/ResourceDetails/ResourceDetails.svelte';
 	import { onMount } from 'svelte';
@@ -8,7 +8,7 @@
 	import { library } from '$lib/stores/library.store';
 
 	export let data: PageData;
-	let movies: ReturnType<typeof fetchTmdbMovie>[] = [];
+	let movies: ReturnType<typeof getTmdbMovie>[] = [];
 
 	let index = 0;
 
@@ -22,7 +22,7 @@
 
 	onMount(() => {
 		for (const showcase of data.showcases) {
-			movies = [...movies, fetchTmdbMovie(String(showcase.id))];
+			if (showcase.id) movies = [...movies, getTmdbMovie(showcase.id)];
 		}
 
 		library.subscribe((l) => console.log(l));

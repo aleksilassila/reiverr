@@ -1,4 +1,4 @@
-import type { Genre } from '$lib/apis/tmdbApi';
+import type { Genre } from '$lib/apis/tmdb/tmdbApi';
 import { writable } from 'svelte/store';
 
 export function formatMinutesToTime(minutes: number) {
