@@ -1,19 +1,11 @@
 <script lang="ts">
-	import {
-		ChevronDown,
-		ChevronUp,
-		Download,
-		MagnifyingGlass,
-		TextAlignBottom,
-		Trash
-	} from 'radix-icons-svelte';
 	import Card from '$lib/components/Card/Card.svelte';
 	import CardPlaceholder from '$lib/components/Card/CardPlaceholder.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
-	import type { PageData } from './$types';
-	import { library } from '$lib/stores/libraryStore';
+	import { library } from '$lib/stores/library.store';
+	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 
 	const watched = [];
 
@@ -93,7 +85,9 @@
 
 			{#if downloading.length > 0}
 				<div class={headerContaienr}>
-					<h1 class={headerStyle}>Downloading</h1>
+					<h1 class={headerStyle}>
+						Downloading <span class="text-zinc-500">{downloading.length}</span>
+					</h1>
 					<IconButton>
 						<ChevronDown size={24} />
 					</IconButton>
@@ -118,7 +112,9 @@
 
 			{#if available.length > 0}
 				<div class={headerContaienr}>
-					<h1 class={headerStyle}>Available</h1>
+					<h1 class={headerStyle}>
+						Available <span class="text-zinc-500">{available.length}</span>
+					</h1>
 					<IconButton>
 						<ChevronDown size={24} />
 					</IconButton>
@@ -140,7 +136,9 @@
 
 			{#if unavailable.length > 0}
 				<div class={headerContaienr}>
-					<h1 class={headerStyle}>Unavailable</h1>
+					<h1 class={headerStyle}>
+						Unavailable <span class="text-zinc-500">{unavailable.length}</span>
+					</h1>
 					<IconButton>
 						<ChevronDown size={24} />
 					</IconButton>

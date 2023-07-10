@@ -15,6 +15,7 @@
 		return $page.url.pathname === path ? 'text-amber-200' : 'hover:text-zinc-50 cursor-pointer';
 	}
 
+	// TODO: on mobile don't act sticky
 	$: {
 		transparent = y <= 0;
 		baseStyle = classNames(

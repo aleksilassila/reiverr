@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
+	import { library } from '$lib/stores/library.store';
 
 	export let data: PageData;
 	let movies: ReturnType<typeof fetchTmdbMovie>[] = [];
@@ -23,6 +24,8 @@
 		for (const showcase of data.showcases) {
 			movies = [...movies, fetchTmdbMovie(String(showcase.id))];
 		}
+
+		library.subscribe((l) => console.log(l));
 	});
 </script>
 
@@ -46,16 +49,19 @@
 	<div class="h-screen" />
 {/if}
 
-{#await data.streamed.continueWatching then continueWatching}
-	{#if continueWatching?.items?.length}
-		<div class="bg-stone-800">
-			<div class="p-8 flex flex-col gap-6 backdrop-blur-xl bg-[#000000dd]">
-				<h1 class="uppercase tracking-widest font-bold">Continue Watching</h1>
-				<div class="flex gap-4 overflow-x-scroll">
-					{#each continueWatching.items.slice(0, 5) as item (item.tmdbId)}
-						<SmallPoster tmdbId={item.tmdbId} progress={item.progress || 0} length={item.length} />
-					{/each}
-				</div>
+{#await $library then libraryData}
+	{#if libraryData.movies.filter((movie) => movie.continueWatching).length}
+		{@const continueWatching = libraryData.movies.filter((movie) => movie.continueWatching)}
+		<div class="p-8 flex flex-col gap-6 backdrop-blur-xl bg-stone-900">
+			<h1 class="uppercase tracking-widest font-bold">Continue Watching</h1>
+			<div class="flex gap-4 overflow-x-scroll">
+				{#each continueWatching.slice(0, 5) as item (item.tmdbId)}
+					<SmallPoster
+						tmdbId={String(item.tmdbId)}
+						progress={item.continueWatching?.progress || 0}
+						length={item.continueWatching?.length}
+					/>
+				{/each}
 			</div>
 		</div>
 	{/if}

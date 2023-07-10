@@ -6,7 +6,7 @@
 	import type { LayoutData } from './$types';
 	import { initialPlayerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import SetupRequired from '$lib/components/SetupRequired/SetupRequired.svelte';
-	import { library } from '$lib/stores/libraryStore';
+	import { library } from '$lib/stores/library.store';
 	library;
 
 	setContext('player', initialPlayerState);

@@ -1,7 +1,8 @@
 # Reiverr
 
 TODO:
-- [ ] Jellyfin video sync
+
+- [x] Jellyfin video sync
 - [ ] Mass edit local files & show space left
 - [ ] Finish discover page
 - [ ] Onboarding setup & sources
@@ -11,10 +12,12 @@ TODO:
 - [ ] Plex video sync
 
 FIX:
+
 - [ ] YouTube trailer, hide on finish
 - [ ] Finalize animations
 - [ ] Improve continue watching
 
 Further ideas
+
 - [ ] Similar movies & shows, actor pages and recommendations
 - [ ] Watchlist management

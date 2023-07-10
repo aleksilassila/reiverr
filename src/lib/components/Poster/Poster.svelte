@@ -5,14 +5,15 @@
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
 	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
+	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
 
-	export let tmdbId;
+	export let tmdbId: string;
 	export let progress = 0;
 	export let length = 0;
 	export let randomProgress = false;
 	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
 
-	const { streamJellyfinId } = getContext('player');
+	const { streamJellyfinId } = getContext<PlayerState>('player');
 
 	export let type: 'movie' | 'tv' = 'movie';
 

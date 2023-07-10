@@ -42,7 +42,6 @@
 		if (!tmdbId || addToRadarrLoading) return;
 
 		addToRadarrLoading = true;
-		console.log('here');
 
 		fetch(`/movie/${tmdbId}/radarr`, {
 			method: 'POST'

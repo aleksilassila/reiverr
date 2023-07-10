@@ -1,6 +1,5 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import RadarrIcon from '../svgs/RadarrIcon.svelte';
 
 	type Stat = {
 		title: string;
@@ -10,6 +9,8 @@
 	export let title: string;
 	export let subtitle: string;
 	export let stats: Stat[] = [];
+	export let href = '#';
+	export let fillPercentage = 0;
 
 	export let color: string = '#fde68a20';
 	export let large = false;
@@ -22,7 +23,7 @@
 	})}
 	style={'background-color: ' + color + ';'}
 >
-	<div class="absolute left-0 inset-y-0 w-[70%] bg-[#ffffff22]" />
+	<div class="absolute left-0 inset-y-0 bg-[#ffffff22]" style={'width: ' + fillPercentage + '%;'} />
 	{#if large}
 		<slot name="icon" />
 	{/if}
@@ -34,7 +35,7 @@
 	>
 		<div class="flex flex-col">
 			<h3 class="text-zinc-400 font-medium text-xs tracking-wider">{subtitle}</h3>
-			<a href="/static" class="text-zinc-200 font-bold text-xl tracking-wide">{title}</a>
+			<a target="_blank" {href} class="text-zinc-200 font-bold text-xl tracking-wide">{title}</a>
 		</div>
 		<div class="flex gap-8">
 			{#each stats as { title, value }}

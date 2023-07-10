@@ -7,23 +7,26 @@
 	import type { MultiSearchResponse } from '$lib/apis/tmdbApi';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
+	import { onMount } from 'svelte';
+
 	export let visible = false;
+	let searchInput: HTMLInputElement;
 	let searchValue = '';
+
+	let timeout: NodeJS.Timeout;
+	let fetching = false;
+	let results: MultiSearchResponse['results'] | null = null;
 
 	export let close = () => {
 		visible = false;
 		searchValue = '';
 		fetching = false;
 		results = null;
-		if (timeout) clearTimeout(timeout);
-		timeout = undefined;
+		clearTimeout(timeout);
 	};
 
-	let timeout;
-	let fetching = false;
-	let results: MultiSearchResponse['results'] | null = null;
 	const searchTimeout = () => {
-		if (timeout) clearTimeout(timeout);
+		clearTimeout(timeout);
 		timeout = setTimeout(() => {
 			searchMovie(searchValue);
 		}, 700);
@@ -41,14 +44,17 @@
 			})
 			.finally(() => (fetching = false));
 	};
+
+	$: if (visible && searchInput) searchInput.focus();
 </script>
 
 <Modal {visible} {close}>
 	<ModalContent>
 		<ModalHeader {close}>
-			<MagnifyingGlass size="20" class="text-zinc-400" />
+			<MagnifyingGlass size={20} class="text-zinc-400" />
 			<input
 				bind:value={searchValue}
+				bind:this={searchInput}
 				on:input={searchTimeout}
 				type="text"
 				class="flex-1 bg-transparent font-light outline-none"
@@ -62,9 +68,10 @@
 		{:else}
 			<div class="py-2">
 				{#each results.filter((m) => m).slice(0, 5) as result}
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
 					<div
 						class="flex px-4 py-2 gap-4 hover:bg-highlight-dim cursor-pointer"
-						on:click={() => window.open('/movie/' + result.id)}
+						on:click={() => (window.location.href = '/movie/' + result.id)}
 					>
 						<div
 							style={"background-image: url('" + TMDB_IMAGES + result.poster_path + "');"}

@@ -9,6 +9,7 @@ export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
 export type ReleaseResource = components['schemas']['ReleaseResource'];
 export type RadarrDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
+export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 
 export interface RadarrMovieOptions {
 	title: string;
@@ -142,3 +143,6 @@ const getMovieByTmdbIdByTmdbId = (tmdbId: string) =>
 			}
 		}
 	}).then((r) => r.data as any as RadarrMovie);
+
+export const getDiskSpace = (): Promise<DiskSpaceInfo[]> =>
+	RadarrApi.get('/api/v3/diskspace', {}).then((d) => d.data || []);
