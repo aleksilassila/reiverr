@@ -70,7 +70,7 @@
 				{#each results.filter((m) => m).slice(0, 5) as result}
 					<!-- svelte-ignore a11y-click-events-have-key-events -->
 					<div
-						class="flex px-4 py-2 gap-4 hover:bg-highlight-dim cursor-pointer"
+						class="flex px-4 py-2 gap-4 hover:bg-lighten cursor-pointer"
 						on:click={() => (window.location.href = '/movie/' + result.id)}
 					>
 						<div

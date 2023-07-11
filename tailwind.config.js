@@ -9,7 +9,7 @@ export default {
 			},
 			colors: {
 				darken: '#07050199',
-				'highlight-dim': '#fde68a20'
+				lighten: '#fde68a20'
 			}
 		}
 	},

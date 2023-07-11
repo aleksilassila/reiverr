@@ -67,7 +67,7 @@
 					{#each showAllReleases ? data.allReleases : data.filtered as release}
 						<div>
 							<div
-								class="flex px-4 py-2 gap-4 hover:bg-highlight-dim items-center justify-between cursor-pointer text-sm"
+								class="flex px-4 py-2 gap-4 hover:bg-lighten items-center justify-between cursor-pointer text-sm"
 								on:click={() => toggleShowDetails(release.guid)}
 							>
 								<div class="flex gap-4">

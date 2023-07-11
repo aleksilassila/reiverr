@@ -29,7 +29,8 @@
 		lastEpisode={lastEpisode?.still_path && lastEpisode?.name
 			? {
 					backdropPath: lastEpisode.still_path,
-					name: lastEpisode.name,
+					title: lastEpisode.name,
+					subtitle: 'Latest Episode',
 					runtime: lastEpisode.runtime || 0,
 					episodeTag:
 						(lastEpisode.season_number ? `S${lastEpisode.season_number}` : '') +

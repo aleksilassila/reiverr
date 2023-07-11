@@ -65,6 +65,16 @@ export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull |
 		}
 	}).then((res) => res.data as SeriesDetailsFull | undefined);
 
+export const getTmdbSeriesSeason = async (tmdbId: number, season: number) =>
+	TmdbApiOpen.get('/3/tv/{series_id}/season/{season_number}', {
+		params: {
+			path: {
+				series_id: tmdbId,
+				season_number: season
+			}
+		}
+	}).then((res) => res.data);
+
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {
 		params: {

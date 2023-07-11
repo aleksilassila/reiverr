@@ -10,7 +10,7 @@
 	</p>
 	<ul class="flex flex-col gap-1">
 		{#each Object.keys(missingEnvironmentVariables).filter((k) => missingEnvironmentVariables[k]) as variableName}
-			<code class="bg-highlight-dim p-0.5 px-2 rounded self-start">{variableName}</code>
+			<code class="bg-lighten p-0.5 px-2 rounded self-start">{variableName}</code>
 		{/each}
 	</ul>
 </div>

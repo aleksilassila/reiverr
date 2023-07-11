@@ -6,12 +6,14 @@
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronDown, Clock, Play, TriangleRight } from 'radix-icons-svelte';
-	import { getContext } from 'svelte';
+	import { getContext, type ComponentProps } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import HeightHider from '../HeightHider.svelte';
 	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
 	import LibraryDetails from './LibraryDetails.svelte';
 	import IconButton from '../IconButton.svelte';
+	import SeasonsDetails from './SeasonsDetails.svelte';
+	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -30,9 +32,7 @@
 	export let tmdbRating: number;
 	export let starring: CastMember[];
 
-	export let lastEpisode:
-		| { backdropPath: string; name: string; episodeTag: string; runtime: number }
-		| undefined = undefined;
+	export let lastEpisode: ComponentProps<EpisodeCard> | undefined = undefined;
 
 	export let videos: Video[];
 	export let showDetails = false;
@@ -54,20 +54,6 @@
 
 	// Transitions
 	const duration = 200;
-	const monthNames = [
-		'January',
-		'February',
-		'March',
-		'April',
-		'May',
-		'June',
-		'July',
-		'August',
-		'September',
-		'October',
-		'November',
-		'December'
-	];
 	const { playerState, close, streamJellyfinId } = getContext<PlayerState>('player');
 
 	function openTrailer() {
@@ -157,7 +143,7 @@
 			/>
 			<div
 				class={classNames(
-					'h-full w-full px-8 xl:px-16 pb-8 pt-32',
+					'h-full w-full px-8 lg:px-16 pb-8 pt-32',
 					'grid grid-cols-[1fr_max-content] grid-rows-[1fr_min-content] gap-x-16 gap-y-8 relative z-[2]',
 					'transition-colors',
 					{
@@ -179,7 +165,7 @@
 								{/if}
 							{:else if releaseDate}
 								<span class="font-bold uppercase tracking-wider"
-									>{monthNames[releaseDate.getMonth()]}</span
+									>{releaseDate.toLocaleString('en', { month: 'long' })}</span
 								>
 								{releaseDate.getFullYear()}
 							{/if}
@@ -243,7 +229,7 @@
 					class="flex flex-col gap-6 justify-between 2xl:w-96 xl:w-80 lg:w-64 w-52 row-span-full"
 					style={opacityStyle}
 				>
-					<div class="flex flex-col gap-6">
+					<div class="flex flex-col gap-6 self-end">
 						<h3 class="text-xs tracking-wide uppercase" in:fade={getFade()}>Details</h3>
 						<div class="flex flex-col gap-1 text-sm tracking-widest font-extralight">
 							<div in:fade={getFade()}>
@@ -303,39 +289,8 @@
 						{/if}
 					</div>
 					{#if lastEpisode}
-						<div
-							class="aspect-video bg-center bg-cover bg-no-repeat rounded overflow-hidden transition-all cursor-pointer group shadow-lg relative"
-							style={"background-image: url('" + TMDB_IMAGES + lastEpisode.backdropPath + "');"}
-						>
-							<div
-								class="opacity-100 group-hover:opacity-0 flex flex-col justify-between p-2 xl:p-3 xl:px-3 bg-darken h-full transition-opacity"
-							>
-								<div class="flex justify-between items-center">
-									<div class="text-xs xl:text-sm font-medium text-zinc-300 uppercase">
-										{lastEpisode.episodeTag}
-									</div>
-									<div class="text-xs xl:text-sm font-medium text-zinc-300">
-										{lastEpisode.runtime} min
-									</div>
-								</div>
-								<div>
-									<div class="text-xs xl:text-sm text-zinc-300 font-medium tracking-wide">
-										Next Episode
-									</div>
-									<div class="font-semibold xl:text-lg">
-										{lastEpisode.name}
-									</div>
-								</div>
-							</div>
-							<div class="absolute inset-0 flex items-center justify-center">
-								<div
-									class="backdrop-blur-lg rounded-full p-1 bg-[#00000044] opacity-0 group-hover:opacity-100 transition-opacity"
-								>
-									<IconButton>
-										<TriangleRight size={30} />
-									</IconButton>
-								</div>
-							</div>
+						<div class="w-full aspect-video">
+							<EpisodeCard size="dynamic" {...lastEpisode} />
 						</div>
 					{/if}
 				</div>
@@ -346,6 +301,11 @@
 </div>
 
 <HeightHider duration={1000} visible={detailsVisible}>
+	{#key tmdbId}
+		{#if type === 'tv' && seasons > 0}
+			<SeasonsDetails {tmdbId} totalSeasons={seasons} />
+		{/if}
+	{/key}
 	<div bind:this={localDetailsTop} />
 	{#key tmdbId}
 		<LibraryDetails
