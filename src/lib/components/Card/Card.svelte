@@ -5,16 +5,18 @@
 	import { Clock, Star } from 'radix-icons-svelte';
 
 	export let tmdbId: string;
+	export let type: 'movie' | 'series' = 'movie';
 	export let title: string;
 	export let genres: string[];
-	export let runtimeMinutes: number;
+	export let runtimeMinutes = 0;
+	export let seasons = 0;
 	export let completionTime = '';
 	export let backdropUrl: string;
 	export let rating: number;
 
 	export let available = true;
 	export let progress = 0;
-	export let type: 'dynamic' | 'normal' | 'large' = 'normal';
+	export let size: 'dynamic' | 'normal' | 'large' = 'normal';
 	export let randomProgress = false;
 	if (randomProgress) {
 		progress = Math.random() > 0.3 ? Math.random() * 100 : 0;
@@ -23,15 +25,15 @@
 
 <div
 	class={classNames('rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video', {
-		'h-40': type === 'normal',
-		'h-60': type === 'large',
-		'w-full': type === 'dynamic'
+		'h-40': size === 'normal',
+		'h-60': size === 'large',
+		'w-full': size === 'dynamic'
 	})}
 >
 	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
-		on:click={() => window.open('/movie/' + tmdbId, '_self')}
+		on:click={() => window.open(`/${type}/${tmdbId}`, '_self')}
 		class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"
 		style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
 	>
@@ -57,6 +59,11 @@
 								? formatMinutesToTime(runtimeMinutes - runtimeMinutes * (progress / 100)) + ' left'
 								: formatMinutesToTime(runtimeMinutes)}
 						</div>
+					</div>
+				{/if}
+				{#if seasons}
+					<div class="text-sm text-zinc-200">
+						{seasons} seasons
 					</div>
 				{/if}
 

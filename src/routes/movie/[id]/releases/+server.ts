@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import { parseMovieId } from '../+server';
+import { _parseMovieId } from '../+server';
 import {
 	cancelDownloadRadarrMovie,
 	addRadarrMovie,
@@ -9,7 +9,7 @@ import {
 } from '$lib/apis/radarr/radarrApi';
 
 export const GET = (async ({ params }) => {
-	const radarrId = parseMovieId(params);
+	const radarrId = _parseMovieId(params);
 
 	const releases: any[] = (await fetchRadarrReleases(radarrId)) || [];
 
@@ -42,7 +42,7 @@ export const POST = (async ({ params, request }) => {
 }) satisfies RequestHandler;
 
 export const DELETE = (async ({ params }) => {
-	const downloadId = parseMovieId(params);
+	const downloadId = _parseMovieId(params);
 
 	const success = await cancelDownloadRadarrMovie(downloadId);
 

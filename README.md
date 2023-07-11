@@ -21,3 +21,4 @@ Further ideas
 
 - [ ] Similar movies & shows, actor pages and recommendations
 - [ ] Watchlist management
+- [ ] Download a movie file

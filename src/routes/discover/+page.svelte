@@ -47,7 +47,7 @@
 				<CarouselPlaceholderItems type="large" />
 			{:then { popularMovies: movies }}
 				{#each movies ? [...movies].reverse() : [] as movie (movie.tmdbId)}
-					<Card type="large" {...movie} />
+					<Card size="large" {...movie} />
 				{/each}
 			{/await}
 		</Carousel>

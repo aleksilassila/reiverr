@@ -47,7 +47,7 @@ export const getRadarrMovieByTmdbId = (tmdbId: string): Promise<RadarrMovie | un
 		}
 	}).then((r) => r.data?.find((m) => (m.tmdbId as any) == tmdbId));
 
-export const addRadarrMovie = async (tmdbId: string) => {
+export const addRadarrMovie = async (tmdbId: number) => {
 	const tmdbMovie = await getTmdbMovie(tmdbId);
 	const radarrMovie = await lookupRadarrMovieByTmdbId(tmdbId);
 	console.log('fetched movies', tmdbMovie, radarrMovie);
@@ -62,9 +62,9 @@ export const addRadarrMovie = async (tmdbId: string) => {
 		profileId: qualityProfile,
 		rootFolderPath: '/movies',
 		minimumAvailability: 'announced',
-		title: tmdbMovie.title,
-		tmdbId: tmdbMovie.id,
-		year: Number((await tmdbMovie).release_date.slice(0, 4)),
+		title: tmdbMovie.title || tmdbMovie.original_title || '',
+		tmdbId: tmdbMovie.id || 0,
+		year: Number(tmdbMovie.release_date?.slice(0, 4)),
 		monitored: false,
 		tags: [],
 		searchNow: false
@@ -124,14 +124,14 @@ export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 		}
 	}).then((r) => (r.data?.records?.filter((record) => record.movie) as RadarrDownload[]) || []);
 
-export const getRadarrDownloadById = (radarrId: number) =>
-	getRadarrDownloads().then((downloads) => downloads.find((d) => d.movie.id === radarrId));
+export const getRadarrDownloadsById = (radarrId: number) =>
+	getRadarrDownloads().then((downloads) => downloads.filter((d) => d.movie.id === radarrId));
 
-const lookupRadarrMovieByTmdbId = (tmdbId: string) =>
+const lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {
 		params: {
 			query: {
-				tmdbId: Number(tmdbId)
+				tmdbId
 			}
 		}
 	}).then((r) => r.data as any as RadarrMovie);
