@@ -9,7 +9,7 @@
 	import { log } from '$lib/utils.js';
 
 	let isRequestModalVisible = false;
-	export let tmdbId: string;
+	export let tmdbId: number;
 	export let jellyfinStreamDisabled: boolean;
 	export let openJellyfinStream: () => void;
 

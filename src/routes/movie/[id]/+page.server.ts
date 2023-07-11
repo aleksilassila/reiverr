@@ -3,6 +3,6 @@ import type { PageServerLoad } from './$types';
 
 export const load = (async ({ params }) => {
 	return {
-		movie: await getTmdbMovie(params.id)
+		movie: await getTmdbMovie(Number(params.id))
 	};
 }) satisfies PageServerLoad;

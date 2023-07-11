@@ -11,7 +11,7 @@
 	export let href: string | undefined = undefined;
 	export let target: string | undefined = undefined;
 
-	let buttonStyle;
+	let buttonStyle: string;
 	$: buttonStyle = classNames(
 		'border-2 border-white transition-all uppercase tracking-widest text-xs whitespace-nowrap',
 		{
@@ -27,9 +27,9 @@
 		}
 	);
 
-	const handleClick = (event) => {
+	const handleClick = (event: MouseEvent) => {
 		if (href) {
-			if (target === '_blank') window.open(href, target).focus();
+			if (target === '_blank') window.open(href, target)?.focus();
 			else window.open(href, target as string);
 		} else {
 			dispatch('click', event);
@@ -37,6 +37,7 @@
 	};
 </script>
 
+<!-- svelte-ignore a11y-mouse-events-have-key-events -->
 <button class={buttonStyle} on:click={handleClick} on:mouseover on:mouseleave {disabled}>
 	<slot />
 </button>

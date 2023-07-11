@@ -1,53 +1,58 @@
 <script lang="ts">
-	import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
+	import { getTmdbMovie, type TmdbMovieFull } from '$lib/apis/tmdb/tmdbApi';
 	import SmallPoster from '$lib/components/Poster/Poster.svelte';
 	import ResourceDetails from '$lib/components/ResourceDetails/ResourceDetails.svelte';
-	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
 	import { library } from '$lib/stores/library.store';
 
 	export let data: PageData;
-	let movies: ReturnType<typeof getTmdbMovie>[] = [];
+	const moviesPromise = Promise.all(
+		data.showcases.map((showcase) => showcase.id && getTmdbMovie(showcase.id))
+	).then((movies) => movies.filter((m): m is TmdbMovieFull => !!m));
 
 	let index = 0;
 
-	function onNext() {
-		index = (index + 1) % movies.length;
+	$: console.log(moviesPromise);
+
+	async function onNext() {
+		index = (index + 1) % (await moviesPromise).length;
 	}
 
-	function onPrevious() {
-		index = (index - 1 + movies.length) % movies.length;
+	async function onPrevious() {
+		index = (index - 1 + (await moviesPromise).length) % (await moviesPromise).length;
 	}
-
-	onMount(() => {
-		for (const showcase of data.showcases) {
-			if (showcase.id) movies = [...movies, getTmdbMovie(showcase.id)];
-		}
-
-		library.subscribe((l) => console.log(l));
-	});
 </script>
 
-{#if movies[index]}
-	{#await Promise.all(movies)}
-		<div class="h-screen" />
-	{:then awaitedMovies}
-		<ResourceDetails movie={awaitedMovies[index]}>
-			<ResourceDetailsControls
-				slot="page-controls"
-				{onNext}
-				{onPrevious}
-				{index}
-				length={movies.length}
-			/>
-		</ResourceDetails>
-	{:catch err}
-		Error occurred {JSON.stringify(err)}
-	{/await}
-{:else}
+{#await moviesPromise}
 	<div class="h-screen" />
-{/if}
+{:then movies}
+	{@const movie = movies[index]}
+	<ResourceDetails
+		type="movie"
+		tmdbId={movie?.id || 0}
+		title={movie?.title || ''}
+		releaseDate={new Date(movie?.release_date || Date.now())}
+		tagline={movie?.tagline || ''}
+		overview={movie?.overview || ''}
+		genres={movie?.genres?.map((g) => g.name || '') || []}
+		runtime={movie?.runtime || 0}
+		tmdbRating={movie?.vote_average || 0}
+		starring={movie?.credits?.cast?.slice(0, 5)}
+		videos={movie.videos?.results || []}
+		backdropPath={movie?.backdrop_path || ''}
+	>
+		<ResourceDetailsControls
+			slot="page-controls"
+			{onNext}
+			{onPrevious}
+			{index}
+			length={movies.length}
+		/>
+	</ResourceDetails>
+{:catch err}
+	Error occurred {JSON.stringify(err)}
+{/await}
 
 {#await $library then libraryData}
 	{#if libraryData.movies.filter((movie) => movie.continueWatching).length}

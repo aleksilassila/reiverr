@@ -17,7 +17,7 @@ const config = {
 	vitePlugin: {
 		experimental: {
 			inspector: {
-				toggleKeyCombo: 'meta',
+				// toggleKeyCombo: 'meta',
 				holdMode: true
 			}
 		}

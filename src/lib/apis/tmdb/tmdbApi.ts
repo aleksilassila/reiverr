@@ -1,8 +1,19 @@
 import axios from 'axios';
 import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
 import { request } from '$lib/utils';
-import type { paths } from './tmdb.generated';
+import type { operations, paths } from './tmdb.generated';
 import createClient from 'openapi-fetch';
+
+export type SeriesDetails =
+	operations['tv-series-details']['responses']['200']['content']['application/json'];
+export interface SeriesDetailsFull extends SeriesDetails {
+	videos: {
+		results: Video[];
+	};
+	credits: {
+		cast: CastMember[];
+	};
+}
 
 export const TmdbApiOpen = createClient<paths>({
 	baseUrl: 'https://api.themoviedb.org',
@@ -16,9 +27,12 @@ export const getTmdbMovie = async (tmdbId: number) =>
 		params: {
 			path: {
 				movie_id: tmdbId
+			},
+			query: {
+				append_to_response: 'videos,credits'
 			}
 		}
-	}).then((res) => res.data);
+	}).then((res) => res.data as TmdbMovieFull | undefined);
 
 export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {
@@ -38,6 +52,18 @@ export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
 	})
 		.then((res) => res.data?.tv_results?.[0])
 		.then((res: any) => res?.id as number | undefined);
+
+export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull | undefined> =>
+	await TmdbApiOpen.get('/3/tv/{series_id}', {
+		params: {
+			path: {
+				series_id: tmdbId
+			},
+			query: {
+				append_to_response: 'videos,credits'
+			}
+		}
+	}).then((res) => res.data as SeriesDetailsFull | undefined);
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {
@@ -75,13 +101,17 @@ export const fetchTmdbPopularMovies = () =>
 export const requestTmdbPopularMovies = () => request(fetchTmdbPopularMovies, null);
 
 export interface TmdbMovieFull extends TmdbMovie {
-	videos: Video[];
-	images: {
-		backdrops: Backdrop[];
-		logos: Logo[];
-		posters: Poster[];
+	videos: {
+		results: Video[];
 	};
-	credits: CastMember[];
+	// images: {
+	// 	backdrops: Backdrop[];
+	// 	logos: Logo[];
+	// 	posters: Poster[];
+	// };
+	credits: {
+		cast: CastMember[];
+	};
 }
 
 export type MovieDetailsResponse = TmdbMovie;
