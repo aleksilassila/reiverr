@@ -16,21 +16,21 @@ export const JellyfinApi = createClient<paths>({
 	}
 });
 
-export const getJellyfinContinueWatching = (): Promise<JellyfinItem[]> =>
+export const getJellyfinContinueWatching = (limit = 8): Promise<JellyfinItem[]> =>
 	JellyfinApi.get('/Users/{userId}/Items/Resume', {
 		params: {
 			path: {
 				userId: JELLYFIN_USER_ID
 			},
 			query: {
-				limit: 8,
+				limit,
 				mediaTypes: ['Video'],
 				fields: ['ProviderIds']
 			}
 		}
 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinItemByTmdbId = (tmdbId: string) =>
+export const getJellyfinItems = () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
@@ -39,11 +39,41 @@ export const getJellyfinItemByTmdbId = (tmdbId: string) =>
 			query: {
 				hasTmdbId: true,
 				recursive: true,
-				isMovie: true,
+				includeItemTypes: ['Movie', 'Series'],
 				fields: ['ProviderIds']
 			}
 		}
-	}).then((r) => r.data?.Items?.find((i) => i.ProviderIds?.Tmdb == tmdbId));
+	}).then((r) => r.data?.Items || []);
+
+// export const getJellyfinSeries = () =>
+// 	JellyfinApi.get('/Users/{userId}/Items', {
+// 		params: {
+// 			path: {
+// 				userId: JELLYFIN_USER_ID
+// 			},
+// 			query: {
+// 				hasTmdbId: true,
+// 				recursive: true,
+// 				includeItemTypes: ['Series'],
+// 			}
+// 		}
+// 	}).then((r) => r.data?.Items || []);
+
+export const getJellyfinEpisodes = (seriesId: string) =>
+	JellyfinApi.get('/Users/{userId}/Items', {
+		params: {
+			path: {
+				userId: JELLYFIN_USER_ID
+			},
+			query: {
+				recursive: true,
+				includeItemTypes: ['Episode']
+			}
+		}
+	}).then((r) => r.data?.Items?.filter((i) => i.SeriesId === seriesId) || []);
+
+export const getJellyfinItemByTmdbId = (tmdbId: string) =>
+	getJellyfinItems().then((items) => items.find((i) => i.ProviderIds?.Tmdb == tmdbId));
 
 export const getJellyfinItem = (itemId: string) =>
 	JellyfinApi.get('/Users/{userId}/Items/{itemId}', {

@@ -16,7 +16,7 @@
 		endDate={series.last_air_date && !series.in_production
 			? new Date(series.last_air_date)
 			: undefined}
-		seasons={series.seasons?.length || 0}
+		seasons={series.number_of_seasons || 0}
 		tagline={series.tagline || ''}
 		overview={series.overview || ''}
 		backdropPath={series.backdrop_path || ''}
@@ -32,7 +32,7 @@
 					title: lastEpisode.name,
 					subtitle: 'Latest Episode',
 					runtime: lastEpisode.runtime || 0,
-					episodeTag:
+					episodeNumber:
 						(lastEpisode.season_number ? `S${lastEpisode.season_number}` : '') +
 						(lastEpisode.episode_number ? `E${lastEpisode.episode_number}` : '')
 			  }

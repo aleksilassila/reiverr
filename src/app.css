@@ -10,3 +10,7 @@ a {
 	@apply bg-[#ffffff11];
 	@apply animate-pulse;
 }
+
+.selectable {
+	@apply focus-within:outline outline-2 outline-lighten outline-offset-2;
+}

@@ -7,7 +7,7 @@
 	let scrollX: number;
 </script>
 
-<div class="flex justify-between items-center mx-8">
+<div class="flex justify-between items-center mx-8 gap-4">
 	<slot name="title" />
 	<div class="flex gap-2">
 		<IconButton>

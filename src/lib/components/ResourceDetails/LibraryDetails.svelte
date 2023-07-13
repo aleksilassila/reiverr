@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import Button from '$lib/components/Button.svelte';
-	import { DotFilled, Minus, Plus, Trash, Update } from 'radix-icons-svelte';
-	import RequestModal from '../RequestModal/RequestModal.svelte';
-	import IconButton from '../IconButton.svelte';
-	import classNames from 'classnames';
+	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import { log } from '$lib/utils.js';
+	import classNames from 'classnames';
+	import { DotFilled, Plus, Trash, Update } from 'radix-icons-svelte';
+	import { onMount } from 'svelte';
+	import IconButton from '../IconButton.svelte';
+	import RequestModal from '../RequestModal/RequestModal.svelte';
 
 	let isRequestModalVisible = false;
 	export let tmdbId: number;

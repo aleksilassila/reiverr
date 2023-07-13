@@ -12,18 +12,18 @@
 	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
-	const watched = [];
-
 	const posterGridStyle =
-		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
 	const headerStyle = 'uppercase tracking-widest font-bold';
 	const headerContaienr = 'flex items-center justify-between mt-2';
 
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
 	let sortBy: 'added' | 'rating' | 'year' | 'size' | 'name' = 'added';
 
+	let loading = true;
 	let downloadingProps: ComponentProps<Card>[] = [];
 	let availableProps: ComponentProps<Card>[] = [];
+	let watchedProps: ComponentProps<Card>[] = [];
 	let unavailableProps: ComponentProps<Card>[] = [];
 
 	function itemIsSeries(
@@ -46,6 +46,7 @@
 		for (let item of items) {
 			let props: ComponentProps<Card>;
 			if (itemIsSeries(item)) {
+				console.log(item);
 				props = {
 					size: 'dynamic',
 					type: 'series',
@@ -53,7 +54,7 @@
 					title: item.title || '',
 					genres: item.genres || [],
 					backdropUrl: item.cardBackdropUrl,
-					rating: item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 7.5,
+					rating: item.ratings?.value || item.ratings?.value || item.tmdbRating || 0,
 					seasons: item.seasons?.length || 0
 				};
 			} else if (itemIsMovie(item)) {
@@ -64,12 +65,11 @@
 					title: item.title || '',
 					genres: item.genres || [],
 					backdropUrl: item.cardBackdropUrl,
-					rating: item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 7.5,
+					rating: item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 0,
 					runtimeMinutes: item.runtime || 0
 				};
 			} else {
-				console.log('RETURNING');
-				return;
+				continue;
 			}
 
 			if (item.download) {
@@ -78,13 +78,14 @@
 					progress: item.download.progress,
 					completionTime: item.download.completionTime
 				});
+			} else if (item.isPlayed) {
+				watchedProps.push({ ...props, available: false });
 			} else if (
 				((item as PlayableRadarrMovie)?.isAvailable && (item as PlayableRadarrMovie)?.movieFile) ||
 				(item as PlayableSonarrSeries)?.seasons?.find(
 					(season) => !!season?.statistics?.episodeFileCount
 				)
 			) {
-				console.log(item);
 				availableProps.push(props);
 			} else {
 				unavailableProps.push({ ...props, available: false });
@@ -93,7 +94,10 @@
 
 		downloadingProps = downloadingProps;
 		availableProps = availableProps;
+		watchedProps = watchedProps;
 		unavailableProps = unavailableProps;
+
+		loading = false;
 	});
 
 	function sortItems(arr: any[]) {
@@ -116,9 +120,6 @@
 
 <div class="py-4 px-8">
 	<div class="max-w-screen-2xl m-auto backdrop-blur-2xl flex flex-col gap-4">
-		<!--	Contains all the titles available locally, the ones already watched previously (greyed out at the-->
-		<!--	bottom), and the ones that are in some sort of watchlist and not available via any source.-->
-
 		<div class="flex justify-between gap-2 sm:flex-row flex-col">
 			<div
 				class="flex gap-2 items-center bg-stone-950 rounded-2xl p-3 px-4 shadow-xl focus-within:outline outline-2 outline-stone-400"
@@ -158,30 +159,13 @@
 			</div>
 		</div> -->
 
-		{#await $library}
+		{#if loading}
 			<div class={posterGridStyle}>
 				{#each [...Array(20).keys()] as index (index)}
-					<CardPlaceholder type="dynamic" {index} />
+					<CardPlaceholder size="dynamic" {index} />
 				{/each}
 			</div>
-		{:then libraryData}
-			<!-- {@const downloading = sortItems([
-				...libraryData.movies.filter((m) => !!m.download),
-				...libraryData.series.filter((s) => !!s.download)
-			])}
-			{@const available = sortItems([
-				...libraryData.movies.filter((m) => !m.download && m.movieFile && m.isAvailable),
-				...libraryData.series.filter(
-					(s) => !s.download && s.seasons?.find((season) => !!season?.statistics?.episodeFileCount)
-				)
-			])}
-			{@const unavailable = sortItems([
-				...libraryData.movies.filter((m) => !m.download && (!m.movieFile || !m.isAvailable)),
-				...libraryData.series.filter(
-					(s) => !s.download && !s.seasons?.find((season) => !!season?.statistics?.episodeFileCount)
-				)
-			])} -->
-
+		{:else}
 			{#if downloadingProps.length > 0}
 				<div class={headerContaienr}>
 					<h1 class={headerStyle}>
@@ -195,23 +179,6 @@
 					{#each downloadingProps as props}
 						<Card {...props} />
 					{/each}
-					<!-- {#each downloading as item (item)}
-						{@const series = 'seasons' in item}
-						<Card
-							size="dynamic"
-							type={series ? 'series' : 'movie'}
-							progress={item.download?.progress || 0}
-							completionTime={item.download?.completionTime}
-							available={false}
-							tmdbId={String(item.tmdbId)}
-							title={item.title || ''}
-							genres={item.genres || []}
-							backdropUrl={item.cardBackdropUrl}
-							rating={item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 0}
-							runtimeMinutes={series ? 0 : item.runtime || 0}
-							seasons={series ? item.seasons?.length : 0}
-						/>
-					{/each} -->
 				</div>
 			{/if}
 
@@ -228,20 +195,22 @@
 					{#each availableProps as props}
 						<Card {...props} />
 					{/each}
-					<!-- {#each available as item (item)}
-						{@const series = 'seasons' in item}
-						<Card
-							size="dynamic"
-							type={series ? 'series' : 'movie'}
-							tmdbId={String(item.tmdbId)}
-							title={item.title || ''}
-							genres={item.genres || []}
-							backdropUrl={item.cardBackdropUrl}
-							rating={item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 7.5}
-							runtimeMinutes={'seasons' in item ? 0 : item.runtime || 0}
-							seasons={'seasons' in item ? item.seasons?.length : 0}
-						/>
-					{/each} -->
+				</div>
+			{/if}
+
+			{#if watchedProps.length > 0}
+				<div class={headerContaienr}>
+					<h1 class={headerStyle}>
+						Watched <span class="text-zinc-500">{watchedProps.length}</span>
+					</h1>
+					<IconButton>
+						<ChevronDown size={24} />
+					</IconButton>
+				</div>
+				<div class={posterGridStyle}>
+					{#each watchedProps as props}
+						<Card {...props} />
+					{/each}
 				</div>
 			{/if}
 
@@ -258,20 +227,8 @@
 					{#each unavailableProps as props}
 						<Card {...props} />
 					{/each}
-					<!-- {#each unavailable as movie (movie.tmdbId)}
-						<Card
-							size="dynamic"
-							available={false}
-							tmdbId={String(movie.tmdbId)}
-							title={movie.title || ''}
-							genres={movie.genres || []}
-							runtimeMinutes={movie.runtime || 0}
-							backdropUrl={movie.cardBackdropUrl}
-							rating={movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0}
-						/>
-					{/each} -->
 				</div>
 			{/if}
-		{/await}
+		{/if}
 	</div>
 </div>

@@ -34,6 +34,8 @@
 
 				const hls = new Hls();
 
+				console.log(item);
+
 				hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
 				hls.attachMedia(video);
 				video

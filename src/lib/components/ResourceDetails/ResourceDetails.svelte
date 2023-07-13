@@ -14,6 +14,7 @@
 	import IconButton from '../IconButton.svelte';
 	import SeasonsDetails from './SeasonsDetails.svelte';
 	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
+	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -44,6 +45,8 @@
 	let detailsVisible = showDetails;
 	let streamButtonDisabled = true;
 	let jellyfinId: string;
+
+	let nextEpisodeCardPropsPromise: Promise<ComponentProps<EpisodeCard> | undefined>;
 
 	let video: Video | undefined;
 	$: video = videos?.find((v) => v.site === 'YouTube' && v.type === 'Trailer');
@@ -288,11 +291,17 @@
 							</div>
 						{/if}
 					</div>
-					{#if lastEpisode}
-						<div class="w-full aspect-video">
-							<EpisodeCard size="dynamic" {...lastEpisode} />
-						</div>
-					{/if}
+					<div class="w-full aspect-video">
+						{#await nextEpisodeCardPropsPromise}
+							<!-- <CardPlaceholder size="dynamic" /> -->
+						{:then nextEpisodeCardProps}
+							{#if nextEpisodeCardProps}
+								<div in:fly={{ y: 10, duration: duration * 2 }}>
+									<EpisodeCard size="dynamic" {...nextEpisodeCardProps} />
+								</div>
+							{/if}
+						{/await}
+					</div>
 				</div>
 				<slot name="page-controls" />
 			</div>
@@ -303,7 +312,7 @@
 <HeightHider duration={1000} visible={detailsVisible}>
 	{#key tmdbId}
 		{#if type === 'tv' && seasons > 0}
-			<SeasonsDetails {tmdbId} totalSeasons={seasons} />
+			<SeasonsDetails {tmdbId} totalSeasons={seasons} bind:nextEpisodeCardPropsPromise />
 		{/if}
 	{/key}
 	<div bind:this={localDetailsTop} />

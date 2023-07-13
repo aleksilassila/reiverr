@@ -39,7 +39,7 @@ export const getTmdbPopularMovies = () =>
 		params: {}
 	}).then((res) => res.data?.results || []);
 
-export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
+export const getTmdbSeriesFromTvdbId = async (tvdbId: number): Promise<any> =>
 	TmdbApiOpen.get('/3/find/{external_id}', {
 		params: {
 			path: {
@@ -49,9 +49,10 @@ export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
 				external_source: 'tvdb_id'
 			}
 		}
-	})
-		.then((res) => res.data?.tv_results?.[0])
-		.then((res: any) => res?.id as number | undefined);
+	}).then((res) => res.data?.tv_results?.[0]);
+
+export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
+	getTmdbSeriesFromTvdbId(tvdbId).then((res: any) => res?.id as number | undefined);
 
 export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {
@@ -74,6 +75,9 @@ export const getTmdbSeriesSeason = async (tmdbId: number, season: number) =>
 			}
 		}
 	}).then((res) => res.data);
+
+export const getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
+	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1)));
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {

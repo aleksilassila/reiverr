@@ -63,18 +63,16 @@
 				{/if}
 				{#if seasons}
 					<div class="text-sm text-zinc-200">
-						{seasons} seasons
+						{seasons} Season{seasons > 1 ? 's' : ''}
 					</div>
 				{/if}
 
-				{#if rating}
-					<div class="flex gap-1.5 items-center">
-						<Star />
-						<div class="text-sm text-zinc-200">
-							{rating.toFixed(1)}
-						</div>
+				<div class="flex gap-1.5 items-center">
+					<Star />
+					<div class="text-sm text-zinc-200">
+						{rating ? rating.toFixed(1) : 'N/A'}
 					</div>
-				{/if}
+				</div>
 			{/if}
 		</div>
 	</div>
