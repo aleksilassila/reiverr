@@ -1,13 +1,11 @@
 <script lang="ts">
+	import type { MultiSearchResponse } from '$lib/apis/tmdb/tmdbApi';
+	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
+	import { TMDB_IMAGES } from '$lib/constants';
+	import { MagnifyingGlass } from 'radix-icons-svelte';
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
-	import { Cross1, Cross2, MagnifyingGlass } from 'radix-icons-svelte';
-	import IconButton from '../IconButton.svelte';
-	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
-	import type { MultiSearchResponse } from '$lib/apis/tmdb/tmdbApi';
-	import { TMDB_IMAGES } from '$lib/constants';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
-	import { onMount } from 'svelte';
 
 	export let visible = false;
 	let searchInput: HTMLInputElement;
@@ -17,12 +15,14 @@
 	let fetching = false;
 	let results: MultiSearchResponse['results'] | null = null;
 
-	export let close = () => {
+	export let close = (clear = true) => {
 		visible = false;
-		searchValue = '';
-		fetching = false;
-		results = null;
-		clearTimeout(timeout);
+		if (clear) {
+			searchValue = '';
+			fetching = false;
+			results = null;
+			clearTimeout(timeout);
+		}
 	};
 
 	const searchTimeout = () => {
@@ -46,7 +46,18 @@
 	};
 
 	$: if (visible && searchInput) searchInput.focus();
+
+	function handleShortcuts(event: KeyboardEvent) {
+		if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+			event.preventDefault();
+			visible = true;
+		} else if (event.key === 'Escape' && visible) {
+			close(false);
+		}
+	}
 </script>
+
+<svelte:window on:keydown={handleShortcuts} />
 
 <Modal {visible} {close}>
 	<ModalContent>

@@ -7,9 +7,12 @@
 	import { initialPlayerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import SetupRequired from '$lib/components/SetupRequired/SetupRequired.svelte';
 	import { library } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	library;
 
 	setContext('player', initialPlayerState);
+
+	settings.set({ autoplayTrailers: false });
 
 	export let data: LayoutData;
 </script>

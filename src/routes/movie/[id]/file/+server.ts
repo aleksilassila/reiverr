@@ -1,7 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { _parseMovieId } from '../+server';
-import { addRadarrMovie, deleteRadarrMovie } from '$lib/apis/radarr/radarrApi';
+import { addMovieToRadarr, deleteRadarrMovie } from '$lib/apis/radarr/radarrApi';
 
 // Delete download
 export const DELETE = (async ({ params }) => {

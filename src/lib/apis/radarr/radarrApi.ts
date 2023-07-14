@@ -47,7 +47,7 @@ export const getRadarrMovieByTmdbId = (tmdbId: string): Promise<RadarrMovie | un
 		}
 	}).then((r) => r.data?.find((m) => (m.tmdbId as any) == tmdbId));
 
-export const addRadarrMovie = async (tmdbId: number) => {
+export const addMovieToRadarr = async (tmdbId: number) => {
 	const tmdbMovie = await getTmdbMovie(tmdbId);
 	const radarrMovie = await lookupRadarrMovieByTmdbId(tmdbId);
 	console.log('fetched movies', tmdbMovie, radarrMovie);
@@ -138,3 +138,12 @@ const lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 
 export const getDiskSpace = (): Promise<DiskSpaceInfo[]> =>
 	RadarrApi.get('/api/v3/diskspace', {}).then((d) => d.data || []);
+
+export const removeFromRadarr = (id: number) =>
+	RadarrApi.del('/api/v3/movie/{id}', {
+		params: {
+			path: {
+				id
+			}
+		}
+	}).then((res) => res.response.ok);

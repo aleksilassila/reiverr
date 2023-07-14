@@ -8,7 +8,7 @@
 <div
 	class={classNames('transition-[max-height] duration-1000 overflow-hidden', {
 		'max-h-0': !visible,
-		'max-h-screen': visible
+		'max-h-max': visible
 	})}
 	style="transition-duration: {duration}ms;"
 >

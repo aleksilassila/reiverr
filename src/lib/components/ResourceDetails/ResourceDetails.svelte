@@ -3,18 +3,17 @@
 	import type { CastMember, Video } from '$lib/apis/tmdb/tmdbApi';
 	import Button from '$lib/components/Button.svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
+	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
-	import { ChevronDown, Clock, Play, TriangleRight } from 'radix-icons-svelte';
+	import { ChevronDown, Clock } from 'radix-icons-svelte';
 	import { getContext, type ComponentProps } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
 	import HeightHider from '../HeightHider.svelte';
 	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
 	import LibraryDetails from './LibraryDetails.svelte';
-	import IconButton from '../IconButton.svelte';
 	import SeasonsDetails from './SeasonsDetails.svelte';
-	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
-	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -37,7 +36,8 @@
 
 	export let videos: Video[];
 	export let showDetails = false;
-	export let trailer = true;
+
+	let autoplayTrailer = $settings.autoplayTrailers;
 
 	let showTrailer = false;
 	let focusTrailer = false;
@@ -57,7 +57,7 @@
 
 	// Transitions
 	const duration = 200;
-	const { playerState, close, streamJellyfinId } = getContext<PlayerState>('player');
+	const { streamJellyfinId } = getContext<PlayerState>('player');
 
 	function openTrailer() {
 		if (!video) return;
@@ -87,7 +87,7 @@
 			if (timeout) clearTimeout(timeout);
 
 			timeout = setTimeout(() => {
-				if (trailer) {
+				if (autoplayTrailer) {
 					showTrailer = true;
 					trailerStartTime = Date.now();
 				}
@@ -101,7 +101,7 @@
 		}
 	}
 
-	let localDetailsTop: HTMLElement;
+	let localDetails: HTMLDivElement;
 </script>
 
 <div class="grid">
@@ -215,14 +215,14 @@
 								type="secondary"
 								on:click={() => {
 									detailsVisible = true;
-									localDetailsTop?.scrollIntoView({ behavior: 'smooth' });
+									localDetails?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 								}}>Details</Button
 							>
 						</div>
 						<Button
 							size="lg"
 							type="secondary"
-							on:mouseover={() => (focusTrailer = trailer)}
+							on:mouseover={() => (focusTrailer = autoplayTrailer)}
 							on:mouseleave={() => (focusTrailer = false)}
 							on:click={openTrailer}>Watch Trailer</Button
 						>
@@ -315,13 +315,10 @@
 			<SeasonsDetails {tmdbId} totalSeasons={seasons} bind:nextEpisodeCardPropsPromise />
 		{/if}
 	{/key}
-	<div bind:this={localDetailsTop} />
 	{#key tmdbId}
-		<LibraryDetails
-			openJellyfinStream={() => jellyfinId && streamJellyfinId(jellyfinId)}
-			jellyfinStreamDisabled={streamButtonDisabled}
-			{tmdbId}
-		/>
+		<div bind:this={localDetails}>
+			<LibraryDetails {tmdbId} {type} />
+		</div>
 	{/key}
 </HeightHider>
 

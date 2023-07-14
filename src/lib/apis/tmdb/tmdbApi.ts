@@ -13,6 +13,10 @@ export interface SeriesDetailsFull extends SeriesDetails {
 	credits: {
 		cast: CastMember[];
 	};
+	external_ids: {
+		imdb_id?: string;
+		tvdb_id?: number;
+	};
 }
 
 export const TmdbApiOpen = createClient<paths>({
@@ -61,7 +65,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull |
 				series_id: tmdbId
 			},
 			query: {
-				append_to_response: 'videos,credits'
+				append_to_response: 'videos,credits,external_ids'
 			}
 		}
 	}).then((res) => res.data as SeriesDetailsFull | undefined);

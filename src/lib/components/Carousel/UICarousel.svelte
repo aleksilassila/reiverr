@@ -24,7 +24,7 @@
 </script>
 
 <div
-	class={classNames($$restProps.class, 'overflow-x-scroll scrollbar-hide')}
+	class={classNames($$restProps.class, 'overflow-x-scroll scrollbar-hide relative')}
 	style={`mask-image: linear-gradient(to right, transparent 0%, ${
 		fadeLeft ? '' : 'black 0%, '
 	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}

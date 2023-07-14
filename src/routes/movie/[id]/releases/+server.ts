@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 import { _parseMovieId } from '../+server';
 import {
 	cancelDownloadRadarrMovie,
-	addRadarrMovie,
+	addMovieToRadarr,
 	fetchRadarrReleases,
 	downloadRadarrMovie
 } from '$lib/apis/radarr/radarrApi';

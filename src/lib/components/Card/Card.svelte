@@ -23,12 +23,17 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
-	class={classNames('rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video', {
-		'h-40': size === 'md',
-		'h-60': size === 'large',
-		'w-full': size === 'dynamic'
-	})}
+	tabindex={0}
+	class={classNames(
+		'rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video selectable',
+		{
+			'h-40': size === 'md',
+			'h-60': size === 'large',
+			'w-full': size === 'dynamic'
+		}
+	)}
 >
 	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
