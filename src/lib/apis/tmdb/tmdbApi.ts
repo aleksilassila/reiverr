@@ -6,6 +6,8 @@ import createClient from 'openapi-fetch';
 
 export type SeriesDetails =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
+export type SeasonDetails =
+	operations['tv-season-details']['responses']['200']['content']['application/json'];
 export interface SeriesDetailsFull extends SeriesDetails {
 	videos: {
 		results: Video[];
@@ -52,6 +54,9 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: number): Promise<any> =>
 			query: {
 				external_source: 'tvdb_id'
 			}
+		},
+		headers: {
+			'Cache-Control': 'max-age=86400'
 		}
 	}).then((res) => res.data?.tv_results?.[0]);
 
@@ -70,7 +75,10 @@ export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull |
 		}
 	}).then((res) => res.data as SeriesDetailsFull | undefined);
 
-export const getTmdbSeriesSeason = async (tmdbId: number, season: number) =>
+export const getTmdbSeriesSeason = async (
+	tmdbId: number,
+	season: number
+): Promise<SeasonDetails | undefined> =>
 	TmdbApiOpen.get('/3/tv/{series_id}/season/{season_number}', {
 		params: {
 			path: {
@@ -81,7 +89,9 @@ export const getTmdbSeriesSeason = async (tmdbId: number, season: number) =>
 	}).then((res) => res.data);
 
 export const getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
-	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1)));
+	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1))).then(
+		(r) => r.filter((s) => s) as SeasonDetails[]
+	);
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {
@@ -89,6 +99,9 @@ export const getTmdbSeriesImages = async (tmdbId: number) =>
 			path: {
 				series_id: tmdbId
 			}
+		},
+		headers: {
+			'Cache-Control': 'max-age=86400'
 		}
 	}).then((res) => res.data);
 
@@ -108,7 +121,11 @@ export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
 	await TmdbApi.get<VideosResponse>('/movie/' + tmdbId + '/videos').then((res) => res.data.results);
 
 export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
-	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images').then((res) => res.data);
+	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images', {
+		headers: {
+			'Cache-Control': 'max-age=86400'
+		}
+	}).then((res) => res.data);
 
 export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
 	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);

@@ -92,9 +92,9 @@ export const cancelDownloadRadarrMovie = async (downloadId: number) => {
 	return deleteResponse.response.ok;
 };
 
-export const fetchRadarrReleases = (movieId: string) =>
-	RadarrApi.get('/api/v3/release', { params: { query: { movieId: Number(movieId) } } }).then(
-		(r) => r.data
+export const fetchRadarrReleases = (movieId: number) =>
+	RadarrApi.get('/api/v3/release', { params: { query: { movieId: movieId } } }).then(
+		(r) => r.data || []
 	);
 
 export const downloadRadarrMovie = (guid: string) =>
@@ -126,6 +126,9 @@ export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 
 export const getRadarrDownloadsById = (radarrId: number) =>
 	getRadarrDownloads().then((downloads) => downloads.filter((d) => d.movie.id === radarrId));
+
+export const getRadarrDownloadsByTmdbId = (tmdbId: number) =>
+	getRadarrDownloads().then((downloads) => downloads.filter((d) => d.movie.tmdbId === tmdbId));
 
 const lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 	RadarrApi.get('/api/v3/movie/lookup/tmdb', {

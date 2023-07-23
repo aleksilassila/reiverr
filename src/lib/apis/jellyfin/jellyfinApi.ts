@@ -69,6 +69,9 @@ export const getJellyfinEpisodes = (seriesId: string) =>
 				recursive: true,
 				includeItemTypes: ['Episode']
 			}
+		},
+		headers: {
+			'cache-control': 'max-age=10'
 		}
 	}).then((r) => r.data?.Items?.filter((i) => i.SeriesId === seriesId) || []);
 

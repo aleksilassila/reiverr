@@ -4,11 +4,7 @@
 	import IconButton from '$lib/components/IconButton.svelte';
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
-	import {
-		library,
-		type PlayableRadarrMovie,
-		type PlayableSonarrSeries
-	} from '$lib/stores/library.store';
+	import { library, type PlayableItem } from '$lib/stores/library.store';
 	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
@@ -26,47 +22,38 @@
 	let watchedProps: ComponentProps<Card>[] = [];
 	let unavailableProps: ComponentProps<Card>[] = [];
 
-	function itemIsSeries(
-		item: PlayableRadarrMovie | PlayableSonarrSeries
-	): item is PlayableSonarrSeries {
-		return (item as PlayableSonarrSeries).seasons !== undefined;
-	}
-
-	function itemIsMovie(
-		item: PlayableRadarrMovie | PlayableSonarrSeries
-	): item is PlayableRadarrMovie {
-		return (item as PlayableRadarrMovie).isAvailable !== undefined;
-	}
-
 	library.subscribe(async (libraryPromise) => {
 		const libraryData = await libraryPromise;
 
-		const items = filterItems(sortItems([...libraryData.movies, ...libraryData.series]));
+		const items: PlayableItem[] = filterItems(sortItems(libraryData.itemsArray));
 
 		for (let item of items) {
 			let props: ComponentProps<Card>;
-			if (itemIsSeries(item)) {
-				console.log(item);
+
+			const series = item.sonarrSeries;
+			const movie = item.radarrMovie;
+
+			if (series) {
 				props = {
 					size: 'dynamic',
 					type: 'series',
 					tmdbId: String(item.tmdbId),
-					title: item.title || '',
-					genres: item.genres || [],
+					title: series.title || '',
+					genres: series.genres || [],
 					backdropUrl: item.cardBackdropUrl,
-					rating: item.ratings?.value || item.ratings?.value || item.tmdbRating || 0,
-					seasons: item.seasons?.length || 0
+					rating: series.ratings?.value || series.ratings?.value || item.tmdbRating || 0,
+					seasons: series.seasons?.length || 0
 				};
-			} else if (itemIsMovie(item)) {
+			} else if (movie) {
 				props = {
 					size: 'dynamic',
 					type: 'movie',
 					tmdbId: String(item.tmdbId),
-					title: item.title || '',
-					genres: item.genres || [],
+					title: movie.title || '',
+					genres: movie.genres || [],
 					backdropUrl: item.cardBackdropUrl,
-					rating: item.ratings?.tmdb?.value || item.ratings?.imdb?.value || 0,
-					runtimeMinutes: item.runtime || 0
+					rating: movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0,
+					runtimeMinutes: movie.runtime || 0
 				};
 			} else {
 				continue;
@@ -81,10 +68,8 @@
 			} else if (item.isPlayed) {
 				watchedProps.push({ ...props, available: false });
 			} else if (
-				((item as PlayableRadarrMovie)?.isAvailable && (item as PlayableRadarrMovie)?.movieFile) ||
-				(item as PlayableSonarrSeries)?.seasons?.find(
-					(season) => !!season?.statistics?.episodeFileCount
-				)
+				(movie?.isAvailable && movie?.movieFile) ||
+				series?.seasons?.find((season) => !!season?.statistics?.episodeFileCount)
 			) {
 				availableProps.push(props);
 			} else {
@@ -118,7 +103,7 @@
 	</div>
 </div>
 
-<div class="py-4 px-8">
+<div class="py-4 px-2 md:px-8">
 	<div class="max-w-screen-2xl m-auto backdrop-blur-2xl flex flex-col gap-4">
 		<div class="flex justify-between gap-2 sm:flex-row flex-col">
 			<div

@@ -10,6 +10,7 @@ export type SonarrSeries = components['schemas']['SeriesResource'];
 export type SonarrReleaseResource = components['schemas']['ReleaseResource'];
 export type SonarrDownload = components['schemas']['QueueResource'] & { series: SonarrSeries };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
+export type SonarrEpisode = components['schemas']['EpisodeResource'];
 
 export interface SonarrSeriesOptions {
 	title: string;
@@ -175,4 +176,24 @@ export const getSonarrEpisodes = async (seriesId: number) => {
 		episode,
 		episodeFile: episodeFiles.find((file) => file.id === episode.episodeFileId)
 	}));
+};
+
+export const fetchSonarrReleases = async (episodeId: number) => {
+	return SonarrApi.get('/api/v3/release', {
+		params: {
+			query: {
+				episodeId
+			}
+		}
+	}).then((r) => r.data || []);
+};
+
+export const fetchSonarrEpisodes = async (seriesId: number): Promise<SonarrEpisode[]> => {
+	return SonarrApi.get('/api/v3/episode', {
+		params: {
+			query: {
+				seriesId
+			}
+		}
+	}).then((r) => r.data || []);
 };

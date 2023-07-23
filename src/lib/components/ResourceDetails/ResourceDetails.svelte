@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
-	import type { CastMember, Video } from '$lib/apis/tmdb/tmdbApi';
+	import { getJellyfinEpisodes, getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getTmdbSeriesSeasons, type CastMember, type Video } from '$lib/apis/tmdb/tmdbApi';
 	import Button from '$lib/components/Button.svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { settings } from '$lib/stores/settings.store';
@@ -12,8 +12,9 @@
 	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
 	import HeightHider from '../HeightHider.svelte';
 	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
-	import LibraryDetails from './LibraryDetails.svelte';
 	import SeasonsDetails from './SeasonsDetails.svelte';
+	import { library } from '$lib/stores/library.store';
+	import LibraryDetails from './LibraryDetails.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -32,21 +33,19 @@
 	export let tmdbRating: number;
 	export let starring: CastMember[];
 
-	export let lastEpisode: ComponentProps<EpisodeCard> | undefined = undefined;
-
 	export let videos: Video[];
 	export let showDetails = false;
 
 	let autoplayTrailer = $settings.autoplayTrailers;
 
+	let jellyfinId: string | undefined | null = null;
 	let showTrailer = false;
 	let focusTrailer = false;
 	let trailerStartTime = 0;
 	let detailsVisible = showDetails;
 	let streamButtonDisabled = true;
-	let jellyfinId: string;
 
-	let nextEpisodeCardPropsPromise: Promise<ComponentProps<EpisodeCard> | undefined>;
+	let nextEpisodeCardProps: ComponentProps<EpisodeCard> | undefined;
 
 	let video: Video | undefined;
 	$: video = videos?.find((v) => v.site === 'YouTube' && v.type === 'Trailer');
@@ -58,6 +57,12 @@
 	// Transitions
 	const duration = 200;
 	const { streamJellyfinId } = getContext<PlayerState>('player');
+
+	library.subscribe(async (libraryPromise) => {
+		const libraryData = await libraryPromise;
+		jellyfinId = libraryData.items[tmdbId]?.jellyfinId;
+		streamButtonDisabled = !jellyfinId;
+	});
 
 	function openTrailer() {
 		if (!video) return;
@@ -92,13 +97,230 @@
 					trailerStartTime = Date.now();
 				}
 			}, 2500);
-
-			getJellyfinItemByTmdbId(String(tmdbId)).then((r) => {
-				if (!r) return;
-				streamButtonDisabled = !r;
-				if (r.Id) jellyfinId = r.Id;
-			});
 		}
+	}
+
+	// async function fetchPlayDetails(tmdbId: number, numberOfSeasons?: number) {
+	// 	const libraryData = await $library;
+	// 	const jellyfinItem = libraryData.items[tmdbId]?.jellyfinItem;
+
+	// 	const movieData = type === 'movie' ? await fetchMovieData() : undefined;
+	// 	const showData =
+	// 		type === 'tv' && numberOfSeasons ? await fetchShowData(tmdbId, numberOfSeasons) : undefined;
+
+	// 	return {
+	// 		jellyfinItem,
+	// 		...movieData,
+	// 		...showData
+	// 	};
+	// }
+
+	// async function fetchMovieData() {
+	// 	const radarrMoviePromise = getRadarrMovieByTmdbId(String(tmdbId));
+	// 	const radarrMovieQueuedPromise = radarrMoviePromise.then((movie) =>
+	// 		movie?.id ? getRadarrDownloadsById(movie.id) : undefined
+	// 	);
+
+	// 	const libraryData = await $library;
+
+	// 	return {
+	// 		playableMovie: libraryData.getMovie(tmdbId),
+	// 		radarrMovie: await radarrMoviePromise,
+	// 		radarrDownloads: await radarrMovieQueuedPromise
+	// 	};
+	// }
+
+	// async function fetchShowData(tmdbId: number, numberOfSeasons: number) {
+	// 	const tmdbSeasonsPromises = getTmdbSeriesSeasons(tmdbId, numberOfSeasons);
+
+	// 	const libraryData = await $library;
+	// 	const librarySeries = libraryData.getSeries(tmdbId);
+
+	// 	const sonarrSeriesPromise = librarySeries?.tmdbId
+	// 		? getSonarrSeriesByTvdbId(librarySeries.tmdbId)
+	// 		: undefined;
+	// 	const sonarrDownloadsPromise = sonarrSeriesPromise?.then((series) =>
+	// 		series?.id ? getSonarrDownloadsById(series.id) : undefined
+	// 	);
+	// 	const sonarrEpisodePromises = sonarrSeriesPromise?.then((series) =>
+	// 		series ? getSonarrEpisodes(series.id) : undefined
+	// 	);
+
+	// 	const jellyfinEpisodesPromise = librarySeries?.jellyfinId
+	// 		? getJellyfinEpisodes(librarySeries.jellyfinId)
+	// 		: undefined;
+
+	// 	return {
+	// 		playableSeries: librarySeries,
+	// 		tmdbSeasons: await tmdbSeasonsPromises,
+	// 		sonarrSeries: await sonarrSeriesPromise,
+	// 		sonarrDownloads: await sonarrDownloadsPromise,
+	// 		sonarrEpisodes: await sonarrEpisodePromises,
+	// 		jellyfinEpisodes: await jellyfinEpisodesPromise
+	// 	};
+	// }
+
+	// async function fetchLibraryData(): Promise<{ isAdded: boolean }> {
+	// 	if (type === 'movie') {
+	// 		const jellyfinItemPromise = getJellyfinItemByTmdbId(String(tmdbId));
+	// 		const radarrMoviePromise = getRadarrMovieByTmdbId(String(tmdbId));
+	// 		const radarrMovieQueuedPromise = radarrMoviePromise.then((movie) =>
+	// 			movie?.id ? getRadarrDownloadsById(movie.id) : undefined
+	// 		);
+
+	// 		const radarrMovie = await radarrMoviePromise;
+	// 		const radarrDownloads = await radarrMovieQueuedPromise;
+	// 		const jellyfinItem = await jellyfinItemPromise;
+
+	// 		servarrId = radarrMovie?.id;
+
+	// 		if (radarrDownloads) {
+	// 			downloadProps = radarrDownloads.map((download) => ({
+	// 				status: 'downloading',
+	// 				resolution: download.quality?.quality?.resolution || 0,
+	// 				sizeOnDisk: download.size || 0,
+	// 				qualityType: download.quality?.quality?.source || 'Unknown',
+	// 				videoCodec: 'Unknown',
+	// 				downloadEta: new Date(download.estimatedCompletionTime || Date.now()),
+	// 				cancelDownload: () => {
+	// 					if (download.id && !cancelDownloadFetching) cancelDownload(download.id);
+	// 				}
+	// 			}));
+	// 		}
+
+	// 		if (radarrMovie?.movieFile) {
+	// 			movieFileProps = [
+	// 				{
+	// 					status: 'ready',
+	// 					resolution: radarrMovie.movieFile.quality?.quality?.resolution || 0,
+	// 					sizeOnDisk: radarrMovie.movieFile.size || 0,
+	// 					qualityType: radarrMovie.movieFile.quality?.quality?.source || 'Unknown',
+	// 					videoCodec: radarrMovie.movieFile.mediaInfo?.videoCodec || 'Unknown',
+	// 					downloadEta: undefined,
+	// 					deleteFile: () => {
+	// 						if (radarrMovie?.movieFile?.id && !deleteMovieFetching)
+	// 							deleteFile(radarrMovie.movieFile.id);
+	// 					},
+	// 					jellyfinStreamDisabled: !jellyfinItem,
+	// 					openJellyfinStream: () => {
+	// 						if (jellyfinItem?.Id) streamJellyfinId(jellyfinItem.Id);
+	// 					}
+	// 				}
+	// 			];
+	// 		}
+
+	// 		return {
+	// 			isAdded: !!radarrMovie
+	// 		};
+	// 	} else {
+	// 		const tvdbId = await getTmdbSeries(tmdbId).then((series) => series?.external_ids?.tvdb_id);
+	// 		if (!tvdbId) throw new Error("Couldn't find tvdb id");
+
+	// 		const jellyfinItemPromise = getJellyfinItemByTmdbId(String(tmdbId));
+	// 		const sonarrSeriesPromise = getSonarrSeriesByTvdbId(tvdbId);
+	// 		const sonarrDownloadsPromise = sonarrSeriesPromise.then((series) =>
+	// 			series?.id ? getSonarrDownloadsById(series.id) : undefined
+	// 		);
+	// 		const sonarrEpisodePromises = sonarrSeriesPromise.then((series) =>
+	// 			series ? getSonarrEpisodes(series.id) : undefined
+	// 		);
+
+	// 		const sonarrSeries = await sonarrSeriesPromise;
+	// 		const sonarrDownloads = await sonarrDownloadsPromise;
+	// 		const jellyfinItem = await jellyfinItemPromise;
+	// 		const sonarrEpisodes = await sonarrEpisodePromises.then((episodes) =>
+	// 			episodes?.filter((episode) => episode.episode.absoluteEpisodeNumber !== undefined)
+	// 		);
+
+	// 		sonarrEpisodes?.sort((a, b) => {
+	// 			if (!a.episode.absoluteEpisodeNumber || !b.episode.absoluteEpisodeNumber) return -1;
+	// 			return a.episode.absoluteEpisodeNumber - b.episode.absoluteEpisodeNumber;
+	// 		});
+
+	// 		if (sonarrDownloads) {
+	// 		}
+
+	// 		if (sonarrEpisodes) {
+	// 			seasonFileProps = [];
+	// 			for (const episode of sonarrEpisodes) {
+	// 				if (episode.episodeFile) {
+	// 					seasonFileProps[(episode.episode.seasonNumber || 1) - 1] = [
+	// 						...(seasonFileProps[(episode.episode.seasonNumber || 1) - 1] || []),
+	// 						{
+	// 							episodeNumber: episode.episode.episodeNumber,
+	// 							status: 'ready',
+	// 							resolution: episode.episodeFile.quality?.quality?.resolution || 0,
+	// 							sizeOnDisk: episode.episodeFile.size || 0,
+	// 							qualityType: episode.episodeFile.quality?.quality?.source || 'Unknown',
+	// 							videoCodec: episode.episodeFile.mediaInfo?.videoCodec || 'Unknown',
+	// 							downloadEta: undefined,
+	// 							deleteFile: () => {
+	// 								if (episode?.episodeFile?.id && !deleteMovieFetching)
+	// 									deleteFile(episode.episodeFile.id);
+	// 							},
+	// 							jellyfinStreamDisabled: !jellyfinItem,
+	// 							openJellyfinStream: () => {
+	// 								if (jellyfinItem?.Id) streamJellyfinId(jellyfinItem.Id);
+	// 							}
+	// 						}
+	// 					];
+	// 				}
+	// 			}
+	// 		}
+
+	// 		servarrId = sonarrSeries?.id;
+
+	// 		return {
+	// 			isAdded: !!sonarrSeries
+	// 		};
+	// 	}
+
+	// 	async function fetchSeasonDetails() {
+	// 		if (seasons > 0 && type === 'tv') {
+	// 			const tmdbSeasonsPromises = getTmdbSeriesSeasons(tmdbId, seasons);
+
+	// 			const libraryData = await $library;
+	// 			const jellyfinSeriesId = libraryData.getSeries(tmdbId)?.jellyfinId;
+	// 			const jellyfinEpisodesPromise = jellyfinSeriesId
+	// 				? getJellyfinEpisodes(jellyfinSeriesId)
+	// 				: undefined;
+
+	// 			const tmdbSeasons = await tmdbSeasonsPromises;
+	// 			const jellyfinEpisodes = await jellyfinEpisodesPromise;
+
+	// 			jellyfinEpisodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99));
+	// 			const nextJellyfinEpisode = jellyfinEpisodes?.find((e) => e?.UserData?.Played === false);
+
+	// 			const nextEpisode = {
+	// 				jellyfinEpisode: nextJellyfinEpisode,
+	// 				tmdbEpisode: nextJellyfinEpisode
+	// 					? tmdbSeasons
+	// 							.flatMap((s) => s?.episodes)
+	// 							.find(
+	// 								(e) =>
+	// 									e?.episode_number === nextJellyfinEpisode.IndexNumber &&
+	// 									e?.season_number === nextJellyfinEpisode.ParentIndexNumber
+	// 							)
+	// 					: undefined
+	// 			};
+
+	// 			return {
+	// 				currentSeason: nextEpisode?.tmdbEpisode?.season_number || 1,
+	// 				nextEpisode,
+	// 				tmdbSeasons,
+	// 				jellyfinEpisodes
+	// 			};
+	// 		}
+	// 	}
+
+	async function fetchSeriesData() {
+		const tmdbSeasonsPromise = getTmdbSeriesSeasons(tmdbId, seasons);
+		const jellyfinEpisodesPromise = jellyfinId ? getJellyfinEpisodes(jellyfinId) : undefined;
+
+		return {
+			tmdbSeasons: await tmdbSeasonsPromise,
+			jellyfinEpisodes: await jellyfinEpisodesPromise
+		};
 	}
 
 	let localDetails: HTMLDivElement;
@@ -292,15 +514,11 @@
 						{/if}
 					</div>
 					<div class="w-full aspect-video">
-						{#await nextEpisodeCardPropsPromise}
-							<!-- <CardPlaceholder size="dynamic" /> -->
-						{:then nextEpisodeCardProps}
-							{#if nextEpisodeCardProps}
-								<div in:fly={{ y: 10, duration: duration * 2 }}>
-									<EpisodeCard size="dynamic" {...nextEpisodeCardProps} />
-								</div>
-							{/if}
-						{/await}
+						{#if nextEpisodeCardProps}
+							<div in:fly={{ y: 10, duration: duration * 2 }}>
+								<EpisodeCard size="dynamic" {...nextEpisodeCardProps} />
+							</div>
+						{/if}
 					</div>
 				</div>
 				<slot name="page-controls" />
@@ -310,11 +528,43 @@
 </div>
 
 <HeightHider duration={1000} visible={detailsVisible}>
-	{#key tmdbId}
+	{#if jellyfinId !== null && type === 'tv'}
+		<SeasonsDetails {tmdbId} totalSeasons={seasons} {jellyfinId} />
+	{/if}
+
+	<!-- {#await fetchPlayDetails(tmdbId, seasons)}
 		{#if type === 'tv' && seasons > 0}
-			<SeasonsDetails {tmdbId} totalSeasons={seasons} bind:nextEpisodeCardPropsPromise />
+			<div class="py-4">
+				<Carousel>
+					<div slot="title" class="flex gap-4 my-1">
+						{#each [...Array(3).keys()] as _}
+							<div class={'rounded-full p-2 px-6 font-medium placeholder text-transparent'}>
+								Season 1
+							</div>
+						{/each}
+					</div>
+
+					{#each Array(10) as _, i (i)}
+						<div class="aspect-video h-40 lg:h-48">
+							<CardPlaceholder size="dynamic" />
+						</div>
+					{/each}
+				</Carousel>
+			</div>
 		{/if}
-	{/key}
+	{:then details}
+		{#key tmdbId}
+			{#if type === 'tv' && seasons > 0}
+				<SeasonsDetails
+					jellyfinEpisodes={details.jellyfinEpisodes || []}
+					tmdbSeasons={details.tmdbSeasons || []}
+					bind:nextEpisodeCardProps
+				/>
+			{/if}
+		{/key}
+
+	{/await} -->
+
 	{#key tmdbId}
 		<div bind:this={localDetails}>
 			<LibraryDetails {tmdbId} {type} />

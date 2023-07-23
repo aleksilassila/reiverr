@@ -16,7 +16,7 @@
 
 	export let available = true;
 	export let progress = 0;
-	export let size: 'dynamic' | 'md' | 'large' = 'md';
+	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 	export let randomProgress = false;
 	if (randomProgress) {
 		progress = Math.random() > 0.3 ? Math.random() * 100 : 0;
@@ -30,7 +30,7 @@
 		'rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video selectable',
 		{
 			'h-40': size === 'md',
-			'h-60': size === 'large',
+			'h-60': size === 'lg',
 			'w-full': size === 'dynamic'
 		}
 	)}

@@ -17,7 +17,7 @@
 		const popularMovies = await popularMoviesPromise
 			.then(async (tmdbMovies) => {
 				const libraryData = await $library;
-				return tmdbMovies.filter((m) => !libraryData.getMovie(m.id));
+				return tmdbMovies.filter((m) => !libraryData.items[m.id]);
 			})
 			.then((tmdbMovies) => {
 				return Promise.all(
@@ -44,10 +44,10 @@
 		<Carousel>
 			<div slot="title" class={headerStyle}>For You</div>
 			{#await discoverPromise}
-				<CarouselPlaceholderItems type="large" />
+				<CarouselPlaceholderItems size="lg" />
 			{:then { popularMovies: movies }}
 				{#each movies ? [...movies].reverse() : [] as movie (movie.tmdbId)}
-					<Card size="large" {...movie} />
+					<Card size="lg" {...movie} />
 				{/each}
 			{/await}
 		</Carousel>

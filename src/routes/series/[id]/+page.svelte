@@ -2,7 +2,6 @@
 	import ResourceDetails from '$lib/components/ResourceDetails/ResourceDetails.svelte';
 	import type { PageData } from './$types';
 	export let data: PageData;
-	console.log(data.series);
 </script>
 
 {#if data.series}

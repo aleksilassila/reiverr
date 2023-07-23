@@ -55,8 +55,8 @@
 {/await}
 
 {#await $library then libraryData}
-	{#if libraryData.movies.filter((movie) => movie.continueWatching).length}
-		{@const continueWatching = libraryData.movies.filter((movie) => movie.continueWatching)}
+	{#if libraryData.itemsArray.filter((item) => item.continueWatching).length}
+		{@const continueWatching = libraryData.continueWatching}
 		<div class="p-8 flex flex-col gap-6 backdrop-blur-xl bg-stone-900">
 			<h1 class="uppercase tracking-widest font-bold">Continue Watching</h1>
 			<div class="flex gap-4 overflow-x-scroll">

@@ -22,7 +22,7 @@
 			'fixed px-8 inset-x-0 grid grid-cols-[min-content_1fr_min-content] items-center z-10',
 			'transition-all',
 			{
-				'bg-zinc-900 bg-opacity-50 backdrop-blur-2xl h-16': !transparent,
+				'bg-stone-900 bg-opacity-50 backdrop-blur-2xl h-16': !transparent,
 				'h-24': transparent
 			}
 		);

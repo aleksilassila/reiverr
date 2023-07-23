@@ -1,6 +1,5 @@
 import {
 	getJellyfinContinueWatching,
-	getJellyfinItem,
 	getJellyfinItems,
 	type JellyfinItem
 } from '$lib/apis/jellyfin/jellyfinApi';
@@ -18,13 +17,15 @@ import {
 } from '$lib/apis/sonarr/sonarrApi';
 import {
 	fetchTmdbMovieImages,
-	getTmdbIdFromTvdbId,
 	getTmdbSeriesFromTvdbId,
 	getTmdbSeriesImages
 } from '$lib/apis/tmdb/tmdbApi';
 import { writable } from 'svelte/store';
 
-interface PlayableItem {
+export interface PlayableItem {
+	type: 'movie' | 'series';
+	tmdbId: number;
+	tmdbRating: number;
 	cardBackdropUrl: string;
 	download?: {
 		progress: number;
@@ -36,21 +37,17 @@ interface PlayableItem {
 	};
 	isPlayed: boolean;
 	jellyfinId?: string;
-}
-
-export interface PlayableRadarrMovie extends RadarrMovie, PlayableItem {}
-export interface PlayableSonarrSeries extends SonarrSeries, PlayableItem {
-	tmdbId?: number;
-	tmdbRating: number;
+	jellyfinItem?: JellyfinItem;
+	radarrMovie?: RadarrMovie;
+	radarrDownloads?: RadarrDownload[];
+	sonarrSeries?: SonarrSeries;
+	sonarrDownloads?: SonarrDownload[];
 }
 
 export interface Library {
-	movies: PlayableRadarrMovie[];
-	totalMovies: number;
-	series: PlayableSonarrSeries[];
-	totalSeries: number;
-	getMovie: (tmdbId: number) => PlayableRadarrMovie | undefined;
-	getSeries: (tmdbId: number) => PlayableSonarrSeries | undefined;
+	items: Record<string, PlayableItem>;
+	itemsArray: PlayableItem[];
+	continueWatching: PlayableItem[];
 }
 
 async function getLibrary(): Promise<Library> {
@@ -63,43 +60,25 @@ async function getLibrary(): Promise<Library> {
 	const continueWatchingPromise = getJellyfinContinueWatching();
 	const jellyfinLibraryItemsPromise = getJellyfinItems();
 
-	const movies: PlayableRadarrMovie[] = await radarrMoviesPromise.then(async (radarrMovies) => {
-		const radarrDownloads = await radarrDownloadsPromise;
-		const continueWatching = await continueWatchingPromise;
-		const jellyfinItems = await jellyfinLibraryItemsPromise;
+	const radarrMovies = await radarrMoviesPromise;
+	const radarrDownloads = await radarrDownloadsPromise;
 
-		return getLibraryMovies(radarrMovies, radarrDownloads, continueWatching, jellyfinItems);
-	});
+	const sonarrSeries = await sonarrSeriesPromise;
+	const sonarrDownloads = await sonarrDownloadsPromise;
 
-	const series: PlayableSonarrSeries[] = await sonarrSeriesPromise.then(async (sonarrSeries) => {
-		const sonarrDownloads = await sonarrDownloadsPromise;
-		const continueWatching = await continueWatchingPromise;
-		const jellyfinItems = await jellyfinLibraryItemsPromise;
+	const jellyfinContinueWatching = await continueWatchingPromise;
+	const jellyfinLibraryItems = await jellyfinLibraryItemsPromise;
 
-		return getLibrarySeries(sonarrSeries, sonarrDownloads, continueWatching, jellyfinItems);
-	});
+	const items: Record<string, PlayableItem> = {};
 
-	return {
-		movies,
-		totalMovies: movies?.length || 0,
-		series,
-		totalSeries: series?.length || 0,
-		getMovie: (tmdbId: number) => movies.find((m) => m.tmdbId === tmdbId),
-		getSeries: (tmdbId: number) => series.find((s) => s.tmdbId === tmdbId)
-	};
-}
-
-export const library = writable<Promise<Library>>(getLibrary());
-
-async function getLibraryMovies(
-	radarrMovies: RadarrMovie[],
-	radarrDownloads: RadarrDownload[],
-	jellyfinContinueWatching: JellyfinItem[],
-	jellyfinItems: JellyfinItem[]
-): Promise<PlayableRadarrMovie[]> {
-	const playableMoviesPromises = radarrMovies.map(async (m) => {
-		const radarrDownload = radarrDownloads.find((d) => d.movie.tmdbId === m.tmdbId);
-		const jellyfinItem = jellyfinItems.find((i) => i.ProviderIds?.Tmdb === String(m.tmdbId));
+	const moviesPromise: Promise<PlayableItem>[] = radarrMovies.map(async (radarrMovie) => {
+		const itemRadarrDownloads = radarrDownloads.filter(
+			(d) => d.movie.tmdbId === radarrMovie.tmdbId
+		);
+		const radarrDownload = itemRadarrDownloads[0];
+		const jellyfinItem = jellyfinLibraryItems.find(
+			(i) => i.ProviderIds?.Tmdb === String(radarrMovie.tmdbId)
+		);
 
 		const downloadProgress =
 			radarrDownload?.sizeleft && radarrDownload?.size
@@ -122,32 +101,33 @@ async function getLibraryMovies(
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const backdropUrl = await fetchTmdbMovieImages(String(m.tmdbId)).then(
+		const backdropUrl = await fetchTmdbMovieImages(String(radarrMovie.tmdbId)).then(
 			(r) => r.backdrops.find((b) => b.iso_639_1 === 'en')?.file_path
 		);
 
 		return {
-			...m,
+			type: 'movie' as const,
+			tmdbId: radarrMovie.tmdbId || 0,
+			tmdbRating: radarrMovie.ratings?.tmdb?.value || 0,
 			cardBackdropUrl: backdropUrl || '',
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
-			jellyfinId: jellyfinItem?.Id
+			jellyfinId: jellyfinItem?.Id,
+			jellyfinItem,
+			radarrMovie,
+			radarrDownloads: itemRadarrDownloads
 		};
 	});
 
-	return await Promise.all(playableMoviesPromises);
-}
-
-async function getLibrarySeries(
-	sonarrSeries: SonarrSeries[],
-	sonarrDownloads: SonarrDownload[],
-	jellyfinContinueWatching: JellyfinItem[],
-	jellyfinItems: JellyfinItem[]
-): Promise<PlayableSonarrSeries[]> {
-	const playableSeriesPromises = sonarrSeries.map(async (s) => {
-		const sonarrDownload = sonarrDownloads.find((d) => d.series.tvdbId === s.tvdbId);
-		const jellyfinItem = jellyfinItems.find((i) => i.ProviderIds?.Tvdb === String(s.tvdbId));
+	const seriesPromise: Promise<PlayableItem>[] = sonarrSeries.map(async (sonarrSeries) => {
+		const itemSonarrDownloads = sonarrDownloads.filter(
+			(d) => d.series.tvdbId === sonarrSeries.tvdbId
+		);
+		const sonarrDownload = itemSonarrDownloads[0];
+		const jellyfinItem = jellyfinLibraryItems.find(
+			(i) => i.ProviderIds?.Tvdb === String(sonarrSeries.tvdbId)
+		);
 
 		const downloadProgress =
 			sonarrDownload?.sizeleft && sonarrDownload?.size
@@ -170,7 +150,9 @@ async function getLibrarySeries(
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const tmdbItem = s.tvdbId ? await getTmdbSeriesFromTvdbId(s.tvdbId) : undefined;
+		const tmdbItem = sonarrSeries.tvdbId
+			? await getTmdbSeriesFromTvdbId(sonarrSeries.tvdbId)
+			: undefined;
 		const tmdbId = tmdbItem?.id || undefined;
 
 		const backdropUrl = tmdbId
@@ -180,16 +162,40 @@ async function getLibrarySeries(
 			: undefined;
 
 		return {
-			...s,
+			type: 'series' as const,
 			tmdbId,
+			tmdbRating: tmdbItem.vote_average || 0,
 			cardBackdropUrl: backdropUrl || '',
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
-			tmdbRating: tmdbItem.vote_average || 0,
-			jellyfinId: jellyfinItem?.Id
+			jellyfinId: jellyfinItem?.Id,
+			jellyfinItem,
+			sonarrSeries,
+			sonarrDownloads: itemSonarrDownloads
 		};
 	});
 
-	return await Promise.all(playableSeriesPromises);
+	await Promise.all([...moviesPromise, ...seriesPromise]).then((r) =>
+		r.forEach((item) => {
+			items[item.tmdbId] = item;
+		})
+	);
+
+	return {
+		items,
+		itemsArray: Object.values(items),
+		continueWatching: Object.values(items).filter((i) => i.continueWatching)
+	};
 }
+
+function createLibraryStore() {
+	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
+
+	return {
+		...library,
+		refresh: async () => getLibrary().then((r) => set(Promise.resolve(r)))
+	};
+}
+
+export const library = createLibraryStore();
