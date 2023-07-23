@@ -7,13 +7,15 @@
 	import HeightHider from '../HeightHider.svelte';
 	import IconButton from '../IconButton.svelte';
 	import Modal from '../Modal/Modal.svelte';
-	import ModalContent from '../Modal/ModalContent.svelte';
+	import ModalContent from '../Modal/ModalContainer.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
+	import type { ModalProps } from '../Modal/Modal';
 
 	const dispatch = createEventDispatcher();
 
 	// TODO: Switch to grid
-	export let visible = true; // FIXME
+	export let title = 'Releases';
+	export let modalProps: ModalProps;
 	export let radarrId: number | undefined = undefined;
 	export let sonarrEpisodeId: number | undefined = undefined;
 
@@ -21,12 +23,6 @@
 	let showDetailsId: string | null = null;
 	let downloadFetchingGuid: string | undefined;
 	let downloadingGuid: string | undefined;
-
-	let releasesResponse: ReturnType<typeof fetchReleases>;
-
-	$: if (visible && !releasesResponse) {
-		releasesResponse = fetchReleases();
-	}
 
 	async function fetchReleases() {
 		if (!radarrId && !sonarrEpisodeId) {
@@ -85,18 +81,12 @@
 			showDetailsId = id;
 		}
 	}
-
-	function close() {
-		visible = false;
-		downloadFetchingGuid = undefined;
-		downloadingGuid = undefined;
-	}
 </script>
 
-<Modal {visible} {close}>
+<Modal {...modalProps}>
 	<ModalContent>
-		<ModalHeader {close} text="Releases" />
-		{#await releasesResponse}
+		<ModalHeader {...modalProps} text={title} />
+		{#await fetchReleases()}
 			<div class="text-sm text-zinc-200 opacity-50 font-light p-4">Loading...</div>
 		{:then { releases, filtered, releasesSkipped }}
 			{#if showAllReleases ? releases?.length : filtered?.length}
@@ -150,7 +140,9 @@
 						</div>
 					{/each}
 				</div>
+				<!-- svelte-ignore a11y-no-static-element-interactions -->
 				{#if releasesSkipped > 0}
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
 					<div
 						class="text-sm text-zinc-200 opacity-50 font-light px-4 py-2 hover:underline cursor-pointer"
 						on:click={toggleShowAll}

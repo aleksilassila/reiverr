@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { getJellyfinEpisodes, getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getJellyfinEpisodes } from '$lib/apis/jellyfin/jellyfinApi';
 	import { getTmdbSeriesSeasons, type CastMember, type Video } from '$lib/apis/tmdb/tmdbApi';
 	import Button from '$lib/components/Button.svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
+	import { library } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronDown, Clock } from 'radix-icons-svelte';
-	import { getContext, type ComponentProps } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
 	import HeightHider from '../HeightHider.svelte';
-	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
-	import SeasonsDetails from './SeasonsDetails.svelte';
-	import { library } from '$lib/stores/library.store';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import LibraryDetails from './LibraryDetails.svelte';
+	import SeasonsDetails from './SeasonsDetails.svelte';
+	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -56,7 +56,6 @@
 
 	// Transitions
 	const duration = 200;
-	const { streamJellyfinId } = getContext<PlayerState>('player');
 
 	library.subscribe(async (libraryPromise) => {
 		const libraryData = await libraryPromise;
@@ -422,7 +421,8 @@
 								<Button
 									disabled={streamButtonDisabled}
 									size="lg"
-									on:click={() => jellyfinId && streamJellyfinId(jellyfinId)}>Stream</Button
+									on:click={() => jellyfinId && playerState.streamJellyfinId(jellyfinId)}
+									>Stream</Button
 								>
 							</div>
 							<div
@@ -529,41 +529,8 @@
 
 <HeightHider duration={1000} visible={detailsVisible}>
 	{#if jellyfinId !== null && type === 'tv'}
-		<SeasonsDetails {tmdbId} totalSeasons={seasons} {jellyfinId} />
+		<SeasonsDetails {tmdbId} totalSeasons={seasons} {jellyfinId} bind:nextEpisodeCardProps />
 	{/if}
-
-	<!-- {#await fetchPlayDetails(tmdbId, seasons)}
-		{#if type === 'tv' && seasons > 0}
-			<div class="py-4">
-				<Carousel>
-					<div slot="title" class="flex gap-4 my-1">
-						{#each [...Array(3).keys()] as _}
-							<div class={'rounded-full p-2 px-6 font-medium placeholder text-transparent'}>
-								Season 1
-							</div>
-						{/each}
-					</div>
-
-					{#each Array(10) as _, i (i)}
-						<div class="aspect-video h-40 lg:h-48">
-							<CardPlaceholder size="dynamic" />
-						</div>
-					{/each}
-				</Carousel>
-			</div>
-		{/if}
-	{:then details}
-		{#key tmdbId}
-			{#if type === 'tv' && seasons > 0}
-				<SeasonsDetails
-					jellyfinEpisodes={details.jellyfinEpisodes || []}
-					tmdbSeasons={details.tmdbSeasons || []}
-					bind:nextEpisodeCardProps
-				/>
-			{/if}
-		{/key}
-
-	{/await} -->
 
 	{#key tmdbId}
 		<div bind:this={localDetails}>

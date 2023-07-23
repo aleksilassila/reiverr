@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { getJellyfinEpisodes } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getTmdbSeriesSeasons } from '$lib/apis/tmdb/tmdbApi';
 	import classNames from 'classnames';
 	import { Check, StarFilled } from 'radix-icons-svelte';
-	import { getContext, onMount, type ComponentProps } from 'svelte';
+	import { onMount, type ComponentProps } from 'svelte';
+	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import UiCarousel from '../Carousel/UICarousel.svelte';
 	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
-	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
-	import { getTmdbSeriesSeasons, type SeasonDetails } from '$lib/apis/tmdb/tmdbApi';
-	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
 
 	export let tmdbId: number;
 	export let totalSeasons: number;
@@ -51,7 +51,7 @@
 					progress: nextEpisode?.jellyfinEpisode?.UserData?.PlayedPercentage || 0,
 					episodeNumber: `S${tmdbEpisode.season_number}E${tmdbEpisode.episode_number}`,
 					handlePlay: nextEpisode?.jellyfinEpisode?.Id
-						? () => streamJellyfinId(nextEpisode?.jellyfinEpisode?.Id || '')
+						? () => playerState.streamJellyfinId(nextEpisode?.jellyfinEpisode?.Id || '')
 						: undefined
 			  }
 			: undefined;
@@ -64,97 +64,6 @@
 			nextEpisodeCardProps
 		};
 	}
-
-	// export let tmdbSeasons: SeasonDetails[];
-	// export let jellyfinEpisodes: Awaited<ReturnType<typeof getJellyfinEpisodes>>;
-
-	const { streamJellyfinId } = getContext<PlayerState>('player');
-
-	// async function fetchSeasons(seasons: number) {
-	// 	const tmdbSeasonsPromises = getTmdbSeriesSeasons(tmdbId, seasons);
-
-	// 	const libraryData = await $library;
-	// 	const jellyfinSeriesId = libraryData.getSeries(tmdbId)?.jellyfinId;
-	// 	const jellyfinEpisodesPromise = jellyfinSeriesId
-	// 		? getJellyfinEpisodes(jellyfinSeriesId)
-	// 		: undefined;
-
-	// 	const tmdbSeasons = await tmdbSeasonsPromises;
-	// 	const jellyfinEpisodes = await jellyfinEpisodesPromise;
-
-	// 	jellyfinEpisodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99));
-	// 	const nextJellyfinEpisode = jellyfinEpisodes?.find((e) => e?.UserData?.Played === false);
-
-	// 	const nextEpisode = {
-	// 		jellyfinEpisode: nextJellyfinEpisode,
-	// 		tmdbEpisode: nextJellyfinEpisode
-	// 			? tmdbSeasons
-	// 					.flatMap((s) => s?.episodes)
-	// 					.find(
-	// 						(e) =>
-	// 							e?.episode_number === nextJellyfinEpisode.IndexNumber &&
-	// 							e?.season_number === nextJellyfinEpisode.ParentIndexNumber
-	// 					)
-	// 			: undefined
-	// 	};
-
-	// 	return {
-	// 		currentSeason: nextEpisode?.tmdbEpisode?.season_number || 1,
-	// 		nextEpisode,
-	// 		tmdbSeasons,
-	// 		jellyfinEpisodes
-	// 	};
-	// }
-
-	// const seasonsPromise = fetchSeasons(totalSeasons);
-	// seasonsPromise.then(({ currentSeason }) => (visibleSeason = currentSeason));
-
-	// nextEpisodeCardPropsPromise = seasonsPromise.then(({ nextEpisode }) => {
-	// 	const tmdbEpisode = nextEpisode?.tmdbEpisode;
-	// 	if (!tmdbEpisode) return undefined;
-
-	// 	return {
-	// 		title: tmdbEpisode.name || '',
-	// 		subtitle: 'Next Episode',
-	// 		backdropPath: tmdbEpisode.still_path || '',
-	// 		runtime: tmdbEpisode.runtime || 0,
-	// 		progress: nextEpisode?.jellyfinEpisode?.UserData?.PlayedPercentage || 0,
-	// 		episodeNumber: `S${tmdbEpisode.season_number}E${tmdbEpisode.episode_number}`,
-	// 		handlePlay: nextEpisode?.jellyfinEpisode?.Id
-	// 			? () => streamJellyfinId(nextEpisode?.jellyfinEpisode?.Id || '')
-	// 			: undefined
-	// 	};
-	// });
-
-	// async function fetchShowData(tmdbId: number, numberOfSeasons: number) {
-	// 	const tmdbSeasonsPromises = getTmdbSeriesSeasons(tmdbId, numberOfSeasons);
-
-	// 	const libraryData = await $library;
-	// 	const librarySeries = libraryData.getSeries(tmdbId);
-
-	// 	const sonarrSeriesPromise = librarySeries?.tmdbId
-	// 		? getSonarrSeriesByTvdbId(librarySeries.tmdbId)
-	// 		: undefined;
-	// 	const sonarrDownloadsPromise = sonarrSeriesPromise?.then((series) =>
-	// 		series?.id ? getSonarrDownloadsById(series.id) : undefined
-	// 	);
-	// 	const sonarrEpisodePromises = sonarrSeriesPromise?.then((series) =>
-	// 		series ? getSonarrEpisodes(series.id) : undefined
-	// 	);
-
-	// 	const jellyfinEpisodesPromise = librarySeries?.jellyfinId
-	// 		? getJellyfinEpisodes(librarySeries.jellyfinId)
-	// 		: undefined;
-
-	// 	return {
-	// 		playableSeries: librarySeries,
-	// 		tmdbSeasons: await tmdbSeasonsPromises,
-	// 		sonarrSeries: await sonarrSeriesPromise,
-	// 		sonarrDownloads: await sonarrDownloadsPromise,
-	// 		sonarrEpisodes: await sonarrEpisodePromises,
-	// 		jellyfinEpisodes: await jellyfinEpisodesPromise
-	// 	};
-	// }
 
 	const seriesPromise = fetchSeriesData();
 
@@ -234,7 +143,7 @@
 										size="dynamic"
 										progress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
 										handlePlay={jellyfinEpisode?.Id
-											? () => streamJellyfinId(jellyfinEpisode?.Id || '')
+											? () => playerState.streamJellyfinId(jellyfinEpisode?.Id || '')
 											: undefined}
 									>
 										<div slot="left-info" class="flex gap-1 items-center">

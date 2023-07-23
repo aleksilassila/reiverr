@@ -16,21 +16,21 @@
 	import Button from '$lib/components/Button.svelte';
 	import { library } from '$lib/stores/library.store';
 	import { ChevronDown, Plus, Trash, Update } from 'radix-icons-svelte';
-	import { getContext, onMount, type ComponentProps } from 'svelte';
+	import { onMount, type ComponentProps } from 'svelte';
 	import IconButton from '../IconButton.svelte';
+	import { createModalProps } from '../Modal/Modal';
 	import RequestModal from '../RequestModal/RequestModal.svelte';
-	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
-	import LibraryDetailsFile from './LibraryDetailsFile.svelte';
 	import SeriesRequestModal from '../RequestModal/SeriesRequestModal.svelte';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import LibraryDetailsFile from './LibraryDetailsFile.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
 
-	let { streamJellyfinId } = getContext<PlayerState>('player');
-
 	let servarrId: number | undefined = undefined;
 	let isAdded = false;
 	let isRequestModalVisible = false;
+	const requestModalProps = createModalProps(() => (isRequestModalVisible = false));
 
 	let downloadProps: ComponentProps<LibraryDetailsFile>[] = [];
 	let movieFileProps: ComponentProps<LibraryDetailsFile>[] = [];
@@ -109,7 +109,7 @@
 					},
 					jellyfinStreamDisabled: !jellyfinItem,
 					openJellyfinStream: () => {
-						if (jellyfinItem?.Id) streamJellyfinId(jellyfinItem.Id);
+						if (jellyfinItem?.Id) playerState.streamJellyfinId(jellyfinItem.Id);
 					}
 				}
 			];
@@ -138,7 +138,7 @@
 							},
 							jellyfinStreamDisabled: !jellyfinEpisode,
 							openJellyfinStream: () => {
-								if (jellyfinEpisode?.Id) streamJellyfinId(jellyfinEpisode.Id);
+								if (jellyfinEpisode?.Id) playerState.streamJellyfinId(jellyfinEpisode.Id);
 							}
 						}
 					];
@@ -326,15 +326,17 @@
 	{/if}
 </div>
 
-{#if isAdded && servarrId && type === 'movie'}
-	<RequestModal
-		bind:visible={isRequestModalVisible}
-		radarrId={servarrId}
-		on:download={() => setTimeout(refetch, 5000)}
-	/>
-{:else if isAdded && servarrId && type === 'tv'}
-	<SeriesRequestModal bind:visible={isRequestModalVisible} sonarrId={servarrId} />
-{:else}
-	<div>NO CONTENT</div>
-	{console.log('NO CONTENT')}
+{#if isRequestModalVisible}
+	{#if isAdded && servarrId && type === 'movie'}
+		<RequestModal
+			modalProps={requestModalProps}
+			radarrId={servarrId}
+			on:download={() => setTimeout(refetch, 5000)}
+		/>
+	{:else if isAdded && servarrId && type === 'tv'}
+		<SeriesRequestModal modalProps={requestModalProps} sonarrId={servarrId} />
+	{:else}
+		<div>NO CONTENT</div>
+		{console.log('NO CONTENT')}
+	{/if}
 {/if}

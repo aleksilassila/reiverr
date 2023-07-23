@@ -1,19 +1,16 @@
 <script lang="ts">
+	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
-	import type { TmdbMovie } from '$lib/apis/tmdb/tmdbApi';
-	import { getContext, onMount } from 'svelte';
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
-	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
-	import type { PlayerState } from '../VideoPlayer/VideoPlayer';
+	import { onMount } from 'svelte';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
 
 	export let tmdbId: string;
 	export let progress = 0;
 	export let length = 0;
 	export let randomProgress = false;
 	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
-
-	const { streamJellyfinId } = getContext<PlayerState>('player');
 
 	export let type: 'movie' | 'tv' = 'movie';
 
@@ -34,7 +31,7 @@
 		if (streamFetching || !tmdbId) return;
 		streamFetching = true;
 		getJellyfinItemByTmdbId(tmdbId).then((item: any) => {
-			if (item.Id) streamJellyfinId(item.Id);
+			if (item.Id) playerState.streamJellyfinId(item.Id);
 			streamFetching = false;
 		});
 	}
@@ -53,7 +50,9 @@
 		class="bg-center bg-cover aspect-[2/3] h-72 m-1.5"
 		style={"background-image: url('" + bg + "')"}
 	>
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<div class="w-full h-full hover:bg-darken transition-all flex">
+			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
 				class="opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between flex-1 cursor-pointer"
 				on:click={() => (window.location.href = '/' + type + '/' + tmdbId)}

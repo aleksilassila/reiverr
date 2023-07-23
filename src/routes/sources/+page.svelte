@@ -10,7 +10,8 @@
 	<div class="flex flex-col gap-4 max-w-3xl flex-1">
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<RadarrStats large />
-		<div
+		<SonarrStats large />
+		<!-- <div
 			class="border-zinc-800 border-2 border-dashed relative w-full p-3 px-4 rounded-xl overflow-hidden text-zinc-500 text-center flex flex-col gap-1"
 		>
 			<h2 class="font-medium">Sonarr is not set up</h2>
@@ -18,8 +19,7 @@
 				To set up Sonarr, define the <code>PUBLIC_SONARR_API_KEY</code> and <code>SONARR_URL</code> environment
 				variables.
 			</p>
-		</div>
-		<SonarrStats large />
+		</div> -->
 	</div>
 	<!--	<div>Sources</div>-->
 	<!--	<div>Streaming services</div>-->

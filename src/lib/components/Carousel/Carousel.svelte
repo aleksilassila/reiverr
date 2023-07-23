@@ -3,17 +3,27 @@
 	import IconButton from '../IconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 
+	export let gradientFromColor = 'from-stone-900';
+
 	let carousel: HTMLDivElement | undefined;
-	let scrollX: number;
+	let scrollX = 0;
 </script>
 
 <div class="flex justify-between items-center mx-8 gap-4">
 	<slot name="title" />
 	<div class="flex gap-2">
-		<IconButton>
+		<IconButton
+			on:click={() => {
+				carousel?.scrollTo({ left: scrollX - carousel?.clientWidth, behavior: 'smooth' });
+			}}
+		>
 			<ChevronLeft size={20} />
 		</IconButton>
-		<IconButton>
+		<IconButton
+			on:click={() => {
+				carousel?.scrollTo({ left: scrollX + carousel?.clientWidth, behavior: 'smooth' });
+			}}
+		>
 			<ChevronRight size={20} />
 		</IconButton>
 	</div>
@@ -30,13 +40,13 @@
 	{#if scrollX > 50}
 		<div
 			transition:fade={{ duration: 200 }}
-			class="absolute inset-y-4 left-0 w-24 bg-gradient-to-r from-darken"
+			class={'absolute inset-y-4 left-0 w-24 bg-gradient-to-r ' + gradientFromColor}
 		/>
 	{/if}
 	{#if carousel && scrollX < carousel?.scrollWidth - carousel?.clientWidth - 50}
 		<div
 			transition:fade={{ duration: 200 }}
-			class="absolute inset-y-4 right-0 w-24 bg-gradient-to-l from-darken"
+			class={'absolute inset-y-4 right-0 w-24 bg-gradient-to-l ' + gradientFromColor}
 		/>
 	{/if}
 </div>

@@ -41,7 +41,7 @@
 	<!--	Does not contain any of the titles in library.-->
 
 	<div class="pt-24 bg-black">
-		<Carousel>
+		<Carousel gradientFromColor="from-black">
 			<div slot="title" class={headerStyle}>For You</div>
 			{#await discoverPromise}
 				<CarouselPlaceholderItems size="lg" />

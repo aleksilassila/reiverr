@@ -1,17 +1,20 @@
 import { writable } from 'svelte/store';
 
 const initialValue = { visible: false, jellyfinId: '' };
-export const playerState = writable(initialValue);
-
-export const initialPlayerState = {
-	playerState,
-	close: () => {
-		playerState.set({ visible: false, jellyfinId: '' });
-	},
-	streamJellyfinId: (id: string) => {
-		playerState.set({ visible: true, jellyfinId: id });
-	}
-};
-
-export type PlayerState = typeof initialPlayerState;
 export type PlayerStateValue = typeof initialValue;
+
+function createPlayerState() {
+	const store = writable<PlayerStateValue>(initialValue);
+
+	return {
+		...store,
+		streamJellyfinId: (id: string) => {
+			store.set({ visible: true, jellyfinId: id });
+		},
+		close: () => {
+			store.set({ visible: false, jellyfinId: '' });
+		}
+	};
+}
+
+export const playerState = createPlayerState();

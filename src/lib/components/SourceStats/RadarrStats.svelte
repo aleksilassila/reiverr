@@ -11,18 +11,25 @@
 
 	async function fetchStats() {
 		const discSpacePromise = getDiskSpace();
-		const { movies } = await $library;
-		const availableMovies = movies.filter(
-			(movie) => !movie.download && movie.isAvailable && movie.hasFile
+		const { itemsArray } = await $library;
+		const availableMovies = itemsArray.filter(
+			(item) =>
+				!item.download &&
+				item.radarrMovie &&
+				item.radarrMovie.isAvailable &&
+				item.radarrMovie.movieFile
 		);
 
 		const diskSpaceInfo =
 			(await discSpacePromise).find((disk) => disk.path === '/') || (await discSpacePromise)[0];
 
-		const spaceOccupied = availableMovies.reduce((acc, movie) => acc + (movie.sizeOnDisk || 0), 0);
+		const spaceOccupied = availableMovies.reduce(
+			(acc, movie) => acc + (movie.radarrMovie?.sizeOnDisk || 0),
+			0
+		);
 
 		return {
-			moviesAmount: availableMovies.length,
+			moviesCount: availableMovies.length,
 			spaceLeft: diskSpaceInfo.freeSpace || 0,
 			spaceOccupied,
 			spaceTotal: diskSpaceInfo.totalSpace || 0
@@ -32,14 +39,14 @@
 
 {#await fetchStats()}
 	<StatsPlaceholder {large} />
-{:then { moviesAmount, spaceLeft, spaceOccupied, spaceTotal }}
+{:then { moviesCount, spaceLeft, spaceOccupied, spaceTotal }}
 	<StatsContainer
 		{large}
 		title="Radarr"
 		subtitle="Movies Provider"
 		href={PUBLIC_RADARR_BASE_URL}
 		stats={[
-			{ title: 'Movies', value: String(moviesAmount) },
+			{ title: 'Movies', value: String(moviesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },
 			{ title: 'Space Left', value: formatSize(spaceLeft) }
 		]}

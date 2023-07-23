@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
 	import {
 		getJellyfinItem,
 		getJellyfinPlaybackInfo,
@@ -6,17 +7,22 @@
 		reportJellyfinPlaybackStarted,
 		reportJellyfinPlaybackStopped
 	} from '$lib/apis/jellyfin/jellyfinApi';
-	import Hls from 'hls.js';
-	import Modal from '../Modal/Modal.svelte';
-	import IconButton from '../IconButton.svelte';
-	import { Cross2 } from 'radix-icons-svelte';
-	import classNames from 'classnames';
-	import { getContext, onDestroy } from 'svelte';
-	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
 	import getDeviceProfile from '$lib/apis/jellyfin/playback-profiles';
-	import type { PlayerState, PlayerStateValue } from './VideoPlayer';
+	import classNames from 'classnames';
+	import Hls from 'hls.js';
+	import { Cross2 } from 'radix-icons-svelte';
+	import { onDestroy } from 'svelte';
+	import IconButton from '../IconButton.svelte';
+	import Modal from '../Modal/Modal.svelte';
+	import { playerState, type PlayerStateValue } from './VideoPlayer';
+	import { createModalProps } from '../Modal/Modal';
 
-	const { playerState, close } = getContext<PlayerState>('player');
+	let modalProps = createModalProps(() => {
+		playerState.close();
+		video?.pause();
+		clearInterval(progressInterval);
+		stopCallback?.();
+	});
 
 	let video: HTMLVideoElement;
 
@@ -61,14 +67,6 @@
 			}
 		);
 
-	function handleClose() {
-		close();
-		video?.pause();
-		clearInterval(progressInterval);
-		stopCallback?.();
-		playerState.set({ visible: false, jellyfinId: '' });
-	}
-
 	let uiVisible = false;
 	let timeout: ReturnType<typeof setTimeout>;
 	function handleMouseMove() {
@@ -93,18 +91,22 @@
 	}
 </script>
 
-<Modal visible={$playerState.visible} close={handleClose}>
-	<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
-		<video controls bind:this={video} class="w-full h-full inset-0" />
-		<div
-			class={classNames('absolute top-4 right-8 transition-opacity', {
-				'opacity-0': !uiVisible,
-				'opacity-100': uiVisible
-			})}
-		>
-			<IconButton on:click={handleClose}>
-				<Cross2 />
-			</IconButton>
+{#if $playerState.visible}
+	<Modal {...modalProps}>
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
+			<!-- svelte-ignore a11y-media-has-caption -->
+			<video controls bind:this={video} class="w-full h-full inset-0" />
+			<div
+				class={classNames('absolute top-4 right-8 transition-opacity', {
+					'opacity-0': !uiVisible,
+					'opacity-100': uiVisible
+				})}
+			>
+				<IconButton on:click={modalProps.close}>
+					<Cross2 />
+				</IconButton>
+			</div>
 		</div>
-	</div>
-</Modal>
+	</Modal>
+{/if}
