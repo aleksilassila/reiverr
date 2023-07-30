@@ -4,14 +4,14 @@
 	import { TMDB_IMAGES } from '$lib/constants';
 	import { Clock, Star } from 'radix-icons-svelte';
 
-	export let tmdbId: string;
+	export let tmdbId: number;
 	export let type: 'movie' | 'series' = 'movie';
 	export let title: string;
-	export let genres: string[];
+	export let genres: string[] = [];
 	export let runtimeMinutes = 0;
 	export let seasons = 0;
 	export let completionTime = '';
-	export let backdropUrl: string;
+	export let backdropUri: string;
 	export let rating: number;
 
 	export let available = true;
@@ -23,22 +23,19 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-<div
-	tabindex={0}
+<a
 	class={classNames(
-		'rounded overflow-hidden relative shadow-2xl shrink-0 aspect-video selectable',
+		'rounded overflow-hidden relative shadow-lg shrink-0 aspect-video selectable block hover:text-inherit',
 		{
 			'h-40': size === 'md',
 			'h-60': size === 'lg',
 			'w-full': size === 'dynamic'
 		}
 	)}
+	href={`/${type}/${tmdbId}`}
 >
 	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
-		on:click={() => window.open(`/${type}/${tmdbId}`, '_self')}
 		class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"
 		style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
 	>
@@ -82,7 +79,7 @@
 		</div>
 	</div>
 	<div
-		style={"background-image: url('" + TMDB_IMAGES + backdropUrl + "')"}
+		style={"background-image: url('" + TMDB_IMAGES + backdropUri + "')"}
 		class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
 	/>
 	<div
@@ -91,4 +88,4 @@
 			'bg-[#00000055] peer-hover:bg-darken': !available
 		})}
 	/>
-</div>
+</a>

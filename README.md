@@ -2,14 +2,14 @@
 
 TODO:
 
-- [x] Jellyfin video sync
+- [ ] Season Group Downloads
 - [ ] Mass edit local files & show space left
 - [ ] Finish discover page
 - [ ] Onboarding setup & sources
 - [ ] Settings page
-- [ ] Sonarr support
 - [ ] Event notifications & show indexer status
-- [ ] Plex video sync
+- [ ] Library filters
+- [ ] People Pages
 
 FIX:
 
@@ -22,3 +22,8 @@ Further ideas
 - [ ] Similar movies & shows, actor pages and recommendations
 - [ ] Watchlist management
 - [ ] Download a movie file
+- [ ] Show & write reviews
+- [ ] TMDB Watched list
+- [ ] People & Actors page
+- [ ] Similar movies & shows recommendations
+- [ ] Plex video sync

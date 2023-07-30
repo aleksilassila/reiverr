@@ -1,24 +1,30 @@
 import axios from 'axios';
 import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
-import { request } from '$lib/utils';
+import { formatDateToYearMonthDay, request } from '$lib/utils';
 import type { operations, paths } from './tmdb.generated';
 import createClient from 'openapi-fetch';
+import { get } from 'svelte/store';
+import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
+import type { ComponentProps } from 'svelte';
+import type PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 
-export type SeriesDetails =
+export type TmdbMovie2 =
+	operations['movie-details']['responses']['200']['content']['application/json'];
+export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
-export type SeasonDetails =
+export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
-export interface SeriesDetailsFull extends SeriesDetails {
-	videos: {
-		results: Video[];
-	};
-	credits: {
-		cast: CastMember[];
-	};
-	external_ids: {
-		imdb_id?: string;
-		tvdb_id?: number;
-	};
+
+export interface TmdbMovieFull2 extends TmdbMovie2 {
+	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
+	credits: operations['movie-credits']['responses']['200']['content']['application/json'];
+	external_ids: operations['movie-external-ids']['responses']['200']['content']['application/json'];
+}
+
+export interface TmdbSeriesFull2 extends TmdbSeries2 {
+	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
+	credits: operations['tv-series-credits']['responses']['200']['content']['application/json'];
+	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
 }
 
 export const TmdbApiOpen = createClient<paths>({
@@ -35,17 +41,12 @@ export const getTmdbMovie = async (tmdbId: number) =>
 				movie_id: tmdbId
 			},
 			query: {
-				append_to_response: 'videos,credits'
+				append_to_response: 'videos,credits,external_ids'
 			}
 		}
-	}).then((res) => res.data as TmdbMovieFull | undefined);
+	}).then((res) => res.data as TmdbMovieFull2 | undefined);
 
-export const getTmdbPopularMovies = () =>
-	TmdbApiOpen.get('/3/movie/popular', {
-		params: {}
-	}).then((res) => res.data?.results || []);
-
-export const getTmdbSeriesFromTvdbId = async (tvdbId: number): Promise<any> =>
+export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
 	TmdbApiOpen.get('/3/find/{external_id}', {
 		params: {
 			path: {
@@ -58,12 +59,12 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: number): Promise<any> =>
 		headers: {
 			'Cache-Control': 'max-age=86400'
 		}
-	}).then((res) => res.data?.tv_results?.[0]);
+	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
 	getTmdbSeriesFromTvdbId(tvdbId).then((res: any) => res?.id as number | undefined);
 
-export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull | undefined> =>
+export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {
 		params: {
 			path: {
@@ -73,12 +74,12 @@ export const getTmdbSeries = async (tmdbId: number): Promise<SeriesDetailsFull |
 				append_to_response: 'videos,credits,external_ids'
 			}
 		}
-	}).then((res) => res.data as SeriesDetailsFull | undefined);
+	}).then((res) => res.data as TmdbSeriesFull2 | undefined);
 
 export const getTmdbSeriesSeason = async (
 	tmdbId: number,
 	season: number
-): Promise<SeasonDetails | undefined> =>
+): Promise<TmdbSeason | undefined> =>
 	TmdbApiOpen.get('/3/tv/{series_id}/season/{season_number}', {
 		params: {
 			path: {
@@ -90,7 +91,7 @@ export const getTmdbSeriesSeason = async (
 
 export const getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
 	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1))).then(
-		(r) => r.filter((s) => s) as SeasonDetails[]
+		(r) => r.filter((s) => s) as TmdbSeason[]
 	);
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
@@ -101,12 +102,128 @@ export const getTmdbSeriesImages = async (tmdbId: number) =>
 			}
 		},
 		headers: {
-			'Cache-Control': 'max-age=86400'
+			'Cache-Control': 'max-age=345600' // 4 days
 		}
 	}).then((res) => res.data);
 
+export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
+	getTmdbSeriesImages(tmdbId).then(
+		(r) =>
+			(
+				r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+				r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+				r?.backdrops?.find((b) => b.iso_639_1) ||
+				r?.backdrops?.[0]
+			)?.file_path
+	);
+
+export const getTmdbMovieImages = async (tmdbId: number) =>
+	await TmdbApiOpen.get('/3/movie/{movie_id}/images', {
+		params: {
+			path: {
+				movie_id: tmdbId
+			}
+		},
+		headers: {
+			'Cache-Control': 'max-age=345600' // 4 days
+		}
+	}).then((res) => res.data);
+
+export const getTmdbMovieBackdrop = async (tmdbId: number) =>
+	getTmdbMovieImages(tmdbId).then(
+		(r) =>
+			(
+				r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+				r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+				r?.backdrops?.find((b) => b.iso_639_1) ||
+				r?.backdrops?.[0]
+			)?.file_path
+	);
+
+export const getTmdbPopularMovies = () =>
+	TmdbApiOpen.get('/3/movie/popular', {
+		params: {
+			query: {
+				language: get(settings).language,
+				region: get(settings).region
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbPopularSeries = () =>
+	TmdbApiOpen.get('/3/tv/popular', {
+		params: {
+			query: {
+				language: get(settings).language
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbTrendingAll = () =>
+	TmdbApiOpen.get('/3/trending/all/{time_window}', {
+		params: {
+			path: {
+				time_window: 'day'
+			},
+			query: {
+				language: get(settings).language
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbNetworkSeries = (networkId: number) =>
+	TmdbApiOpen.get('/3/discover/tv', {
+		params: {
+			query: {
+				with_networks: networkId
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbDigitalReleases = () =>
+	TmdbApiOpen.get('/3/discover/movie', {
+		params: {
+			query: {
+				with_release_type: 4,
+				sort_by: 'popularity.desc',
+				...getIncludedLanguagesQuery()
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbUpcomingMovies = () =>
+	TmdbApiOpen.get('/3/discover/movie', {
+		params: {
+			query: {
+				'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
+				sort_by: 'popularity.desc',
+				...getIncludedLanguagesQuery()
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTrendingActors = () =>
+	TmdbApiOpen.get('/3/trending/person/{time_window}', {
+		params: {
+			path: {
+				time_window: 'week'
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbGenreMovies = (genreId: number) =>
+	TmdbApiOpen.get('/3/discover/movie', {
+		params: {
+			query: {
+				with_genres: String(genreId),
+				...getIncludedLanguagesQuery()
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
 // Deprecated hereon forward
 
+/** @deprecated */
 export const TmdbApi = axios.create({
 	baseURL: 'https://api.themoviedb.org/3',
 	headers: {
@@ -114,26 +231,25 @@ export const TmdbApi = axios.create({
 	}
 });
 
+/** @deprecated */
 export const fetchTmdbMovie = async (tmdbId: string): Promise<TmdbMovie> =>
 	await TmdbApi.get<TmdbMovie>('/movie/' + tmdbId).then((r) => r.data);
 
+/** @deprecated */
 export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
 	await TmdbApi.get<VideosResponse>('/movie/' + tmdbId + '/videos').then((res) => res.data.results);
 
+/** @deprecated */
 export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
 	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images', {
 		headers: {
-			'Cache-Control': 'max-age=86400'
+			'Cache-Control': 'max-age=345600' // 4 days
 		}
 	}).then((res) => res.data);
 
+/** @deprecated */
 export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
 	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);
-
-export const fetchTmdbPopularMovies = () =>
-	TmdbApi.get<PopularMoviesResponse>('/movie/popular').then((res) => res.data.results);
-
-export const requestTmdbPopularMovies = () => request(fetchTmdbPopularMovies, null);
 
 export interface TmdbMovieFull extends TmdbMovie {
 	videos: {

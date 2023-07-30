@@ -79,3 +79,16 @@ export function log(arg: any) {
 	console.log('LOGGER', arg);
 	return arg;
 }
+
+export function formatDateToYearMonthDay(date: Date) {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+
+	return `${year}-${month}-${day}`;
+}
+
+export function capitalize(str: string) {
+	const strings = str.split(' ');
+	return strings.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+}

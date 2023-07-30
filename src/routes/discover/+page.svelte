@@ -1,80 +1,166 @@
 <script lang="ts">
-	import { getTmdbMovie, fetchTmdbPopularMovies, fetchTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
+	import {
+		TmdbApiOpen,
+		getTmdbDigitalReleases,
+		getTmdbTrendingAll,
+		getTmdbUpcomingMovies,
+		getTrendingActors,
+		type TmdbMovie2,
+		type TmdbSeries2
+	} from '$lib/apis/tmdb/tmdbApi';
 	import Card from '$lib/components/Card/Card.svelte';
-	import { fetchCardPropsTmdb } from '$lib/components/Card/card';
+	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
+	import GenreCard from '$lib/components/GenreCard.svelte';
+	import NetworkCard from '$lib/components/NetworkCard.svelte';
+	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import { genres, networks } from '$lib/discover';
 	import { library } from '$lib/stores/library.store';
-	import AmazonCard from './AmazonCard.svelte';
-	import DisneyCard from './DisneyCard.svelte';
-	import HboCard from './HboCard.svelte';
-	import HuluCard from './HuluCard.svelte';
-	import NetflixCard from './NetflixCard.svelte';
+	import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
+	import { formatDateToYearMonthDay } from '$lib/utils';
 
-	async function getDiscoverData() {
-		const popularMoviesPromise = fetchTmdbPopularMovies();
+	const fetchCardProps = async (items: TmdbMovie2[] | TmdbSeries2[]) =>
+		Promise.all(
+			(
+				await ($settings.excludeLibraryItemsFromDiscovery
+					? library.filterNotInLibrary(items, (t) => t.id)
+					: items)
+			).map(fetchCardTmdbProps)
+		).then((props) => props.filter((p) => p.backdropUri));
 
-		const popularMovies = await popularMoviesPromise
-			.then(async (tmdbMovies) => {
-				const libraryData = await $library;
-				return tmdbMovies.filter((m) => !libraryData.items[m.id]);
-			})
-			.then((tmdbMovies) => {
-				return Promise.all(
-					tmdbMovies.map(async (tmdbMovie) =>
-						fetchCardPropsTmdb(await fetchTmdbMovie(String(tmdbMovie.id)))
-					)
-				);
-			});
+	const fetchTrendingProps = () => getTmdbTrendingAll().then(fetchCardProps);
+	const fetchDigitalReleases = () => getTmdbDigitalReleases().then(fetchCardProps);
+	const fetchNowStreaming = () =>
+		TmdbApiOpen.get('/3/discover/tv', {
+			params: {
+				query: {
+					'air_date.gte': formatDateToYearMonthDay(new Date()),
+					'first_air_date.lte': formatDateToYearMonthDay(new Date()),
+					sort_by: 'popularity.desc',
+					...getIncludedLanguagesQuery()
+				}
+			}
+		})
+			.then((res) => res.data?.results || [])
+			.then(fetchCardProps);
+	const fetchUpcomingMovies = () => getTmdbUpcomingMovies().then(fetchCardProps);
+	const fetchUpcomingSeries = () =>
+		TmdbApiOpen.get('/3/discover/tv', {
+			params: {
+				query: {
+					'first_air_date.gte': formatDateToYearMonthDay(new Date()),
+					sort_by: 'popularity.desc',
+					...getIncludedLanguagesQuery()
+				}
+			}
+		})
+			.then((res) => res.data?.results || [])
+			.then(fetchCardProps);
 
-		return {
-			popularMovies
-		};
-	}
-
-	const discoverPromise = getDiscoverData();
+	const fetchTrendingActors = () =>
+		getTrendingActors().then((actors) =>
+			actors
+				.filter((a) => a.profile_path)
+				.map((actor) => ({
+					tmdbId: actor.id || 0,
+					name: actor.name || '',
+					backdropUri: actor.profile_path || '',
+					knownFor: actor.known_for?.map((movie) => movie.title || '') || [],
+					department: actor.known_for_department || ''
+				}))
+		);
 
 	const headerStyle = 'uppercase tracking-widest font-bold';
 </script>
 
 <div class="pb-24 flex flex-col gap-4">
-	<!--	Does not contain any of the titles in library.-->
-
 	<div class="pt-24 bg-black">
 		<Carousel gradientFromColor="from-black">
-			<div slot="title" class={headerStyle}>For You</div>
-			{#await discoverPromise}
+			<div slot="title" class={headerStyle}>Trending</div>
+			{#await fetchTrendingProps()}
 				<CarouselPlaceholderItems size="lg" />
-			{:then { popularMovies: movies }}
-				{#each movies ? [...movies].reverse() : [] as movie (movie.tmdbId)}
-					<Card size="lg" {...movie} />
+			{:then props}
+				{#each props as prop}
+					<Card size="lg" {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
 		<Carousel>
-			<div slot="title" class={headerStyle}>Popular Movies</div>
-			{#await discoverPromise}
+			<div slot="title" class={headerStyle}>Popular People</div>
+			{#await fetchTrendingActors()}
 				<CarouselPlaceholderItems />
-			{:then { popularMovies: movies }}
-				{#each movies || [] as movie (movie.tmdbId)}
-					<Card {...movie} />
+			{:then props}
+				{#each props as prop}
+					<PeopleCard {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
-	<!--	<div class={headerStyle}>Popular TV Shows</div>-->
 	<div>
 		<Carousel>
-			<div slot="title" class={headerStyle}>Networks</div>
-			<NetflixCard />
-			<HboCard />
-			<DisneyCard />
-			<AmazonCard />
-			<!--			<AppleCard />-->
-			<HuluCard />
+			<div slot="title" class={headerStyle}>Upcoming Movies</div>
+			{#await fetchUpcomingMovies()}
+				<CarouselPlaceholderItems />
+			{:then props}
+				{#each props as prop}
+					<Card {...prop} />
+				{/each}
+			{/await}
 		</Carousel>
 	</div>
-	<!--	<div class={headerStyle}>Categories</div>-->
+	<div>
+		<Carousel>
+			<div slot="title" class={headerStyle}>Upcoming Series</div>
+			{#await fetchUpcomingSeries()}
+				<CarouselPlaceholderItems />
+			{:then props}
+				{#each props as prop}
+					<Card {...prop} />
+				{/each}
+			{/await}
+		</Carousel>
+	</div>
+	<div>
+		<Carousel>
+			<div slot="title" class={headerStyle}>Genres</div>
+			{#each Object.values(genres) as genre}
+				<GenreCard {genre} />
+			{/each}
+		</Carousel>
+	</div>
+	<div>
+		<Carousel>
+			<div slot="title" class={headerStyle}>New Digital Releeases</div>
+			{#await fetchDigitalReleases()}
+				<CarouselPlaceholderItems />
+			{:then props}
+				{#each props as prop}
+					<Card {...prop} />
+				{/each}
+			{/await}
+		</Carousel>
+	</div>
+	<div>
+		<Carousel>
+			<div slot="title" class={headerStyle}>Streaming Now</div>
+			{#await fetchNowStreaming()}
+				<CarouselPlaceholderItems />
+			{:then props}
+				{#each props as prop}
+					<Card {...prop} />
+				{/each}
+			{/await}
+		</Carousel>
+	</div>
+	<div>
+		<Carousel>
+			<div slot="title" class={headerStyle}>TV Networks</div>
+			{#each Object.values(networks) as network}
+				<NetworkCard {network} />
+			{/each}
+		</Carousel>
+	</div>
 </div>

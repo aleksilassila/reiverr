@@ -1,9 +1,4 @@
-<script>
-	import NetworkCard from './NetworkCard.svelte';
-</script>
-
-<NetworkCard href="/discover/disney">
-	<svg
+<svg
 		width="1041px"
 		height="565px"
 		viewBox="0 0 1041 565"
@@ -73,4 +68,3 @@
 			</g>
 		</g>
 	</svg>
-</NetworkCard>

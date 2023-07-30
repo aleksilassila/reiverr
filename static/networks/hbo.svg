@@ -1,9 +1,4 @@
-<script>
-	import NetworkCard from './NetworkCard.svelte';
-</script>
-
-<NetworkCard href="/discover/hbo">
-	<svg
+<svg
 		width="512"
 		height="211"
 		viewBox="0 0 512 211"
@@ -60,10 +55,4 @@
 				style="stroke-width:1.01668"
 			/>
 		</g>
-		<metadata id="metadata439">
-			<rdf:RDF>
-				<cc:Work rdf:about="" />
-			</rdf:RDF>
-		</metadata>
 	</svg>
-</NetworkCard>

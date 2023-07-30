@@ -178,15 +178,24 @@ export const getSonarrEpisodes = async (seriesId: number) => {
 	}));
 };
 
-export const fetchSonarrReleases = async (episodeId: number) => {
-	return SonarrApi.get('/api/v3/release', {
+export const fetchSonarrReleases = async (episodeId: number) =>
+	SonarrApi.get('/api/v3/release', {
 		params: {
 			query: {
 				episodeId
 			}
 		}
 	}).then((r) => r.data || []);
-};
+
+export const fetchSonarrSeasonReleases = async (seriesId: number, seasonNumber: number) =>
+	SonarrApi.get('/api/v3/release', {
+		params: {
+			query: {
+				seriesId,
+				seasonNumber
+			}
+		}
+	}).then((r) => r.data || []);
 
 export const fetchSonarrEpisodes = async (seriesId: number): Promise<SonarrEpisode[]> => {
 	return SonarrApi.get('/api/v3/episode', {

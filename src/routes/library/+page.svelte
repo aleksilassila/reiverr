@@ -8,26 +8,79 @@
 	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
-	const posterGridStyle =
-		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
-	const headerStyle = 'uppercase tracking-widest font-bold';
-	const headerContaienr = 'flex items-center justify-between mt-2';
-
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
-	let sortBy: 'added' | 'rating' | 'year' | 'size' | 'name' = 'added';
+	let sortBy: 'added' | 'rating' | 'release' | 'size' | 'name' = 'added';
 
 	let loading = true;
+	let searchInput: HTMLInputElement | undefined;
+	let searchInputValue = '';
+
+	let items: PlayableItem[] = [];
+
 	let downloadingProps: ComponentProps<Card>[] = [];
 	let availableProps: ComponentProps<Card>[] = [];
 	let watchedProps: ComponentProps<Card>[] = [];
 	let unavailableProps: ComponentProps<Card>[] = [];
 
+	$: {
+		if (items.length) updateComponentProps(searchInputValue);
+	}
+
 	library.subscribe(async (libraryPromise) => {
 		const libraryData = await libraryPromise;
+		items = libraryData.itemsArray;
+		loading = false;
+	});
 
-		const items: PlayableItem[] = filterItems(sortItems(libraryData.itemsArray));
+	function updateComponentProps(searchInputValue: string) {
+		const filteredItems = items
+			.sort((a, b) => {
+				switch (sortBy) {
+					case 'added':
+						return (b.radarrMovie?.added || b.sonarrSeries?.added || '') <
+							(a.radarrMovie?.added || a.sonarrSeries?.added || '')
+							? -1
+							: 1;
+					case 'rating':
+						return (b.tmdbRating || 0) - (a.tmdbRating || 0);
+					case 'release':
+						return (b.radarrMovie?.inCinemas || b.sonarrSeries?.firstAired || '') <
+							(a.radarrMovie?.inCinemas || a.sonarrSeries?.firstAired || '')
+							? -1
+							: 1;
+					case 'size':
+						return (
+							(b.radarrMovie?.sizeOnDisk || b.sonarrSeries?.statistics?.sizeOnDisk || 0) -
+							(a.radarrMovie?.sizeOnDisk || a.sonarrSeries?.statistics?.sizeOnDisk || 0)
+						);
+					case 'name':
+						return (b.radarrMovie?.title?.toLowerCase() ||
+							b.sonarrSeries?.title?.toLowerCase() ||
+							'') >
+							(a.radarrMovie?.title?.toLowerCase() || a.sonarrSeries?.title?.toLowerCase() || '')
+							? -1
+							: 1;
+				}
 
-		for (let item of items) {
+				return 0;
+			})
+			.filter((item) => {
+				if (searchInputValue) {
+					return (
+						item.radarrMovie?.title?.toLowerCase().includes(searchInputValue.toLowerCase()) ||
+						item.sonarrSeries?.title?.toLowerCase().includes(searchInputValue.toLowerCase())
+					);
+				} else {
+					return true;
+				}
+			});
+
+		downloadingProps = [];
+		availableProps = [];
+		watchedProps = [];
+		unavailableProps = [];
+
+		for (let item of filteredItems) {
 			let props: ComponentProps<Card>;
 
 			const series = item.sonarrSeries;
@@ -40,7 +93,7 @@
 					tmdbId: String(item.tmdbId),
 					title: series.title || '',
 					genres: series.genres || [],
-					backdropUrl: item.cardBackdropUrl,
+					backdropUri: item.cardBackdropUrl,
 					rating: series.ratings?.value || series.ratings?.value || item.tmdbRating || 0,
 					seasons: series.seasons?.length || 0
 				};
@@ -51,7 +104,7 @@
 					tmdbId: String(item.tmdbId),
 					title: movie.title || '',
 					genres: movie.genres || [],
-					backdropUrl: item.cardBackdropUrl,
+					backdropUri: item.cardBackdropUrl,
 					rating: movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0,
 					runtimeMinutes: movie.runtime || 0
 				};
@@ -81,18 +134,22 @@
 		availableProps = availableProps;
 		watchedProps = watchedProps;
 		unavailableProps = unavailableProps;
-
-		loading = false;
-	});
-
-	function sortItems(arr: any[]) {
-		return arr.sort((a, b) => ((a.added || '') > (b.added || '') ? -1 : 1));
 	}
 
-	function filterItems(arr: any[]) {
-		return arr;
+	function handleShortcuts(event: KeyboardEvent) {
+		if (event.key === 'f' && (event.metaKey || event.ctrlKey)) {
+			event.preventDefault();
+			searchInput?.focus();
+		}
 	}
+
+	const posterGridStyle =
+		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
+	const headerStyle = 'uppercase tracking-widest font-bold';
+	const headerContaienr = 'flex items-center justify-between mt-2';
 </script>
+
+<svelte:window on:keydown={handleShortcuts} />
 
 <div class="pt-24 pb-8 px-8 bg-black">
 	<div class="max-w-screen-2xl mx-auto">
@@ -114,6 +171,8 @@
 					type="text"
 					class="bg-transparent outline-none text-zinc-300"
 					placeholder="Search from library"
+					bind:this={searchInput}
+					bind:value={searchInputValue}
 				/>
 			</div>
 			<div class="flex items-center gap-2 bg-stone-950 rounded-2xl p-3 px-5 shadow-lg">

@@ -1,42 +1,47 @@
 import type { RadarrMovie } from '$lib/apis/radarr/radarrApi';
-import { fetchTmdbMovieImages } from '$lib/apis/tmdb/tmdbApi';
-import type { TmdbMovie } from '$lib/apis/tmdb/tmdbApi';
+import {
+	fetchTmdbMovieImages,
+	getTmdbMovieBackdrop,
+	getTmdbMovieImages,
+	getTmdbSeriesBackdrop,
+	getTmdbSeriesImages
+} from '$lib/apis/tmdb/tmdbApi';
+import type { TmdbMovie, TmdbMovie2, TmdbSeries2 } from '$lib/apis/tmdb/tmdbApi';
+import type { ComponentProps } from 'svelte';
+import type Card from './Card.svelte';
 
-export interface CardProps {
-	tmdbId: string;
-	title: string;
-	genres: string[];
-	runtimeMinutes: number;
-	backdropUrl: string;
-	rating: number;
-}
-
-export const fetchCardProps = async (movie: RadarrMovie): Promise<CardProps> => {
-	const backdropUrl = fetchTmdbMovieImages(String(movie.tmdbId)).then(
-		(r) => r.backdrops.filter((b) => b.iso_639_1 === 'en')[0].file_path
-	);
+export const fetchCardTmdbMovieProps = async (movie: TmdbMovie2): Promise<ComponentProps<Card>> => {
+	const backdropUri = getTmdbMovieBackdrop(movie.id || 0);
 
 	return {
-		tmdbId: String(movie.tmdbId),
-		title: String(movie.title),
-		genres: movie.genres as string[],
-		runtimeMinutes: movie.runtime as any,
-		backdropUrl: await backdropUrl,
-		rating: movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0
+		tmdbId: movie.id || 0,
+		title: movie.title || '',
+		genres: movie.genres?.map((g) => g.name || '') || [],
+		runtimeMinutes: movie.runtime,
+		backdropUri: (await backdropUri) || '',
+		rating: movie.vote_average || 0
 	};
 };
 
-export const fetchCardPropsTmdb = async (movie: TmdbMovie): Promise<CardProps> => {
-	const backdropUrl = fetchTmdbMovieImages(String(movie.id))
-		.then((r) => r.backdrops.filter((b) => b.iso_639_1 === 'en')[0]?.file_path)
-		.catch(console.error);
+export const fetchCardTmdbSeriesProps = async (
+	series: TmdbSeries2
+): Promise<ComponentProps<Card>> => {
+	const backdropUri = getTmdbSeriesBackdrop(series.id || 0);
 
 	return {
-		tmdbId: String(movie.id),
-		title: String(movie.original_title),
-		genres: movie.genres.map((g) => g.name),
-		runtimeMinutes: movie.runtime,
-		backdropUrl: (await backdropUrl) || '',
-		rating: movie.vote_average || 0
+		tmdbId: series.id || 0,
+		title: series.name || '',
+		genres: series.genres?.map((g) => g.name || '') || [],
+		runtimeMinutes: series.episode_run_time?.[0],
+		backdropUri: (await backdropUri) || '',
+		rating: series.vote_average || 0,
+		type: 'series'
 	};
+};
+
+export const fetchCardTmdbProps = async (
+	item: TmdbSeries2 | TmdbMovie2
+): Promise<ComponentProps<Card>> => {
+	if ('name' in item) return fetchCardTmdbSeriesProps(item);
+	return fetchCardTmdbMovieProps(item);
 };

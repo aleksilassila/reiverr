@@ -17,10 +17,12 @@ import {
 } from '$lib/apis/sonarr/sonarrApi';
 import {
 	fetchTmdbMovieImages,
+	getTmdbMovieBackdrop,
+	getTmdbSeriesBackdrop,
 	getTmdbSeriesFromTvdbId,
 	getTmdbSeriesImages
 } from '$lib/apis/tmdb/tmdbApi';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 export interface PlayableItem {
 	type: 'movie' | 'series';
@@ -101,9 +103,7 @@ async function getLibrary(): Promise<Library> {
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const backdropUrl = await fetchTmdbMovieImages(String(radarrMovie.tmdbId)).then(
-			(r) => r.backdrops.find((b) => b.iso_639_1 === 'en')?.file_path
-		);
+		const backdropUrl = await getTmdbMovieBackdrop(radarrMovie.tmdbId || 0);
 
 		return {
 			type: 'movie' as const,
@@ -155,16 +155,12 @@ async function getLibrary(): Promise<Library> {
 			: undefined;
 		const tmdbId = tmdbItem?.id || undefined;
 
-		const backdropUrl = tmdbId
-			? await getTmdbSeriesImages(tmdbId).then(
-					(r) => r?.backdrops?.find((b) => b.iso_639_1 === 'en')?.file_path
-			  )
-			: undefined;
+		const backdropUrl = tmdbId ? await getTmdbSeriesBackdrop(tmdbId) : undefined;
 
 		return {
 			type: 'series' as const,
 			tmdbId,
-			tmdbRating: tmdbItem.vote_average || 0,
+			tmdbRating: tmdbItem?.vote_average || 0,
 			cardBackdropUrl: backdropUrl || '',
 			download,
 			continueWatching,
@@ -192,9 +188,16 @@ async function getLibrary(): Promise<Library> {
 function createLibraryStore() {
 	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
 
+	async function filterNotInLibrary<T extends any>(toFilter: T[], getTmdbId: (item: T) => any) {
+		const libraryData = await get(library);
+
+		return toFilter.filter((item) => !(getTmdbId(item) in libraryData.items));
+	}
+
 	return {
 		...library,
-		refresh: async () => getLibrary().then((r) => set(Promise.resolve(r)))
+		refresh: async () => getLibrary().then((r) => set(Promise.resolve(r))),
+		filterNotInLibrary
 	};
 }
 

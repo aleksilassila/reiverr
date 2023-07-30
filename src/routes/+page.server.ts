@@ -1,6 +1,5 @@
-import { getTmdbMovie, getTmdbPopularMovies, TmdbApi } from '$lib/apis/tmdb/tmdbApi';
-import type { TmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 import { getJellyfinContinueWatching } from '$lib/apis/jellyfin/jellyfinApi';
+import { getTmdbPopularMovies } from '$lib/apis/tmdb/tmdbApi';
 import type { PageServerLoad } from './$types';
 
 export const load = (async () => {
