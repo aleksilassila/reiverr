@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/kit/vite';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -15,11 +15,9 @@ const config = {
 	},
 
 	vitePlugin: {
-		experimental: {
-			inspector: {
-				// toggleKeyCombo: 'meta',
-				holdMode: true
-			}
+		inspector: {
+			// toggleKeyCombo: 'meta',
+			holdMode: true
 		}
 	}
 };

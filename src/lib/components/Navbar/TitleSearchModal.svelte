@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { MultiSearchResponse } from '$lib/apis/tmdb/tmdbApi';
 	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
-	import { TMDB_IMAGES } from '$lib/constants';
+	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
+	import { createModalProps } from '../Modal/Modal';
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContent from '../Modal/ModalContainer.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
-	import { createModalProps } from '../Modal/Modal';
 
 	export let visible = false;
 	let searchInput: HTMLInputElement;
@@ -89,7 +89,7 @@
 							on:click={() => (window.location.href = '/movie/' + result.id)}
 						>
 							<div
-								style={"background-image: url('" + TMDB_IMAGES + result.poster_path + "');"}
+								style={"background-image: url('" + TMDB_POSTER_SMALL + result.poster_path + "');"}
 								class="bg-center bg-cover w-16 h-24 rounded-sm"
 							/>
 							<div class="flex-1 flex flex-col gap-1">

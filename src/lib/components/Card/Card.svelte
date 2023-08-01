@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
-	import { TMDB_IMAGES } from '$lib/constants';
 	import { Clock, Star } from 'radix-icons-svelte';
 
 	export let tmdbId: number;
@@ -79,7 +79,7 @@
 		</div>
 	</div>
 	<div
-		style={"background-image: url('" + TMDB_IMAGES + backdropUri + "')"}
+		style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropUri + "')"}
 		class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
 	/>
 	<div

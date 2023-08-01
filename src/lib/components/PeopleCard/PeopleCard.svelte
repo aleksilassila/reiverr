@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TMDB_IMAGES } from '$lib/constants';
+	import { TMDB_PROFILE_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
 
 	export let tmdbId: number;
@@ -39,7 +39,7 @@
 		</div>
 	</div>
 	<div
-		style={"background-image: url('" + TMDB_IMAGES + backdropUri + "')"}
+		style={"background-image: url('" + TMDB_PROFILE_SMALL + backdropUri + "')"}
 		class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
 	/>
 </a>

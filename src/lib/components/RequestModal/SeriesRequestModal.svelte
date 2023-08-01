@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { fetchSonarrEpisodes, type SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
 	import { ChevronUp } from 'radix-icons-svelte';
-	import IconButton from '../IconButton.svelte';
 	import { createModalProps, type ModalProps } from '../Modal/Modal';
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContainer from '../Modal/ModalContainer.svelte';
+	import ModalContent from '../Modal/ModalContent.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import RequestModal from './RequestModal.svelte';
-	import ModalContent from '../Modal/ModalContent.svelte';
 
 	export let modalProps: ModalProps;
 	export let sonarrId: number;

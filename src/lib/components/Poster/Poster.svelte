@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
 	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
-	import { TMDB_IMAGES } from '$lib/constants';
+	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { formatMinutesToTime } from '$lib/utils';
 	import { onMount } from 'svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
@@ -21,7 +21,7 @@
 		TmdbApi.get('/' + type + '/' + tmdbId)
 			.then((res) => res.data)
 			.then((data: any) => {
-				bg = TMDB_IMAGES + data.poster_path;
+				bg = TMDB_POSTER_SMALL + data.poster_path;
 				title = data.title;
 			});
 	});

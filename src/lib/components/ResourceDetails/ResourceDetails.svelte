@@ -2,7 +2,7 @@
 	import { getJellyfinEpisodes } from '$lib/apis/jellyfin/jellyfinApi';
 	import { getTmdbSeriesSeasons, type CastMember, type Video } from '$lib/apis/tmdb/tmdbApi';
 	import Button from '$lib/components/Button.svelte';
-	import { TMDB_IMAGES } from '$lib/constants';
+	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { library } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime } from '$lib/utils';
@@ -334,7 +334,7 @@
 		{#key (video?.key || '') + tmdbId}
 			<div
 				class="absolute inset-0 bg-center bg-cover transition-[background-image] duration-500 delay-500"
-				style={"background-image: url('" + TMDB_IMAGES + backdropPath + "');"}
+				style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropPath + "');"}
 				transition:fade
 			/>
 			<div class="youtube-container absolute h-full scale-[150%] hidden sm:block" transition:fade>

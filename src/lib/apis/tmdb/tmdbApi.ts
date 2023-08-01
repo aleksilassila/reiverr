@@ -1,12 +1,10 @@
+import { TMDB_API_KEY } from '$lib/constants';
+import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
+import { formatDateToYearMonthDay } from '$lib/utils';
 import axios from 'axios';
-import { PUBLIC_TMDB_API_KEY } from '$env/static/public';
-import { formatDateToYearMonthDay, request } from '$lib/utils';
-import type { operations, paths } from './tmdb.generated';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
-import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
-import type { ComponentProps } from 'svelte';
-import type PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+import type { operations, paths } from './tmdb.generated';
 
 export type TmdbMovie2 =
 	operations['movie-details']['responses']['200']['content']['application/json'];
@@ -30,7 +28,7 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 export const TmdbApiOpen = createClient<paths>({
 	baseUrl: 'https://api.themoviedb.org',
 	headers: {
-		Authorization: `Bearer ${PUBLIC_TMDB_API_KEY}`
+		Authorization: `Bearer ${TMDB_API_KEY}`
 	}
 });
 
@@ -227,7 +225,7 @@ export const getTmdbGenreMovies = (genreId: number) =>
 export const TmdbApi = axios.create({
 	baseURL: 'https://api.themoviedb.org/3',
 	headers: {
-		Authorization: `Bearer ${PUBLIC_TMDB_API_KEY}`
+		Authorization: `Bearer ${TMDB_API_KEY}`
 	}
 });
 

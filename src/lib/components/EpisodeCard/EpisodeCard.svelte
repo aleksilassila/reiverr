@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TMDB_IMAGES } from '$lib/constants';
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
 	import { TriangleRight } from 'radix-icons-svelte';
 	import IconButton from '../IconButton.svelte';
@@ -26,7 +26,7 @@
 		}
 	)}
 	tabindex="0"
-	style={"background-image: url('" + TMDB_IMAGES + backdropPath + "');"}
+	style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropPath + "');"}
 >
 	<div
 		class="opacity-100 group-hover:opacity-0 flex flex-col justify-between p-2 lg:p-3 lg:px-3 bg-darken h-full transition-opacity"
