@@ -11,7 +11,8 @@
 		cancelDownloadSonarrEpisode,
 		deleteSonarrEpisode,
 		getSonarrEpisodes,
-		removeFromSonarr
+		removeFromSonarr,
+		type SonarrSeries
 	} from '$lib/apis/sonarr/sonarrApi';
 	import Button from '$lib/components/Button.svelte';
 	import { library } from '$lib/stores/library.store';
@@ -23,6 +24,7 @@
 	import SeriesRequestModal from '../RequestModal/SeriesRequestModal.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import LibraryDetailsFile from './LibraryDetailsFile.svelte';
+	import SeasonSelectModal from '../RequestModal/SeasonSelectModal.svelte';
 
 	export let tmdbId: number;
 	export let type: 'movie' | 'tv';
@@ -31,6 +33,7 @@
 	let isAdded = false;
 	let isRequestModalVisible = false;
 	const requestModalProps = createModalProps(() => (isRequestModalVisible = false));
+	let series: SonarrSeries | undefined = undefined;
 
 	let downloadProps: ComponentProps<LibraryDetailsFile>[] = [];
 	let movieFileProps: ComponentProps<LibraryDetailsFile>[] = [];
@@ -148,6 +151,7 @@
 
 		isAdded = !!radarrMovie || !!sonarrSeries;
 		servarrId = radarrMovie?.id || sonarrSeries?.id;
+		series = sonarrSeries;
 	});
 
 	let addToServarrLoading = false;
@@ -333,8 +337,14 @@
 			radarrId={servarrId}
 			on:download={() => setTimeout(refetch, 5000)}
 		/>
-	{:else if isAdded && servarrId && type === 'tv'}
-		<SeriesRequestModal modalProps={requestModalProps} sonarrId={servarrId} />
+	{:else if isAdded && servarrId && type === 'tv' && series?.statistics?.seasonCount}
+		{console.log(series)}
+		<SeriesRequestModal
+			modalProps={requestModalProps}
+			sonarrId={servarrId}
+			seasons={series?.statistics.seasonCount}
+		/>
+		<!-- <SeasonSelectModal modalProps={requestModalProps} sonarrId={servarrId} sonarrSeries={series} /> -->
 	{:else}
 		<div>NO CONTENT</div>
 		{console.log('NO CONTENT')}

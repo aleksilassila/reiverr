@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fetchRadarrReleases } from '$lib/apis/radarr/radarrApi';
-	import { fetchSonarrReleases } from '$lib/apis/sonarr/sonarrApi';
+	import { fetchSonarrReleases, fetchSonarrSeasonReleases } from '$lib/apis/sonarr/sonarrApi';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import { DotFilled, Download, Plus } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -18,6 +18,7 @@
 	export let modalProps: ModalProps;
 	export let radarrId: number | undefined = undefined;
 	export let sonarrEpisodeId: number | undefined = undefined;
+	export let seasonPack: { sonarrId: number; seasonNumber: number } | undefined = undefined;
 
 	let showAllReleases = false;
 	let showDetailsId: string | null = null;
@@ -25,7 +26,7 @@
 	let downloadingGuid: string | undefined;
 
 	async function fetchReleases() {
-		if (!radarrId && !sonarrEpisodeId) {
+		if (!radarrId && !sonarrEpisodeId && !seasonPack) {
 			return {
 				releases: [],
 				filtered: [],
@@ -35,7 +36,12 @@
 
 		const releases = radarrId
 			? await fetchRadarrReleases(radarrId)
-			: await fetchSonarrReleases(sonarrEpisodeId as number);
+			: sonarrEpisodeId
+			? await fetchSonarrReleases(sonarrEpisodeId as number)
+			: await fetchSonarrSeasonReleases(
+					seasonPack?.sonarrId as number,
+					seasonPack?.seasonNumber as number
+			  );
 
 		let filtered = releases.slice();
 

@@ -33,7 +33,7 @@ export const modalStack = createModalStack();
 
 export type ModalProps = ReturnType<typeof createModalProps>;
 
-export function createModalProps(onClose: () => void) {
+export function createModalProps(onClose: () => void, onBack?: () => void) {
 	const id = Symbol();
 
 	function close() {
@@ -41,8 +41,14 @@ export function createModalProps(onClose: () => void) {
 		modalStack.remove(id);
 	}
 
+	function back() {
+		onBack?.();
+		modalStack.remove(id);
+	}
+
 	return {
 		close,
+		back,
 		id
 	};
 }

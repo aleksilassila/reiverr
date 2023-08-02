@@ -1,100 +1,96 @@
 <script lang="ts">
-	import { fetchSonarrEpisodes, type SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
-	import { ChevronUp } from 'radix-icons-svelte';
+	import type { ComponentProps } from 'svelte';
 	import { createModalProps, type ModalProps } from '../Modal/Modal';
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContainer from '../Modal/ModalContainer.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
+	import RoundedButton from '../RoundedButton.svelte';
+	import EpisodeSelectModal from './EpisodeSelectModal.svelte';
 	import RequestModal from './RequestModal.svelte';
+	import type { SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
 
 	export let modalProps: ModalProps;
 	export let sonarrId: number;
+	export let seasons: number;
 
-	let selectedEpisode: SonarrEpisode | undefined;
-	let requestModalProps = createModalProps(() => {
-		modalProps.close();
-		selectedEpisode = undefined;
-	});
+	let episodeSelectProps: Omit<ComponentProps<EpisodeSelectModal>, 'modalProps'> | undefined =
+		undefined;
+	let episodeSelectModalProps = createModalProps(
+		() => {
+			episodeSelectProps = undefined;
+			modalProps.close();
+		},
+		() => {
+			episodeSelectProps = undefined;
+		}
+	);
 
-	async function fetchEpisodes(sonarrId: number) {
-		return fetchSonarrEpisodes(sonarrId).then((episodes) => {
-			// Group episodes by season
-			const seasons: SonarrEpisode[][] = [];
-			episodes.forEach((episode) => {
-				if (!episode.seasonNumber) {
-					return;
-				}
+	let requestProps: Omit<ComponentProps<RequestModal>, 'modalProps'> | undefined = undefined;
+	let requestModalProps = createModalProps(
+		() => {
+			requestProps = undefined;
+			episodeSelectModalProps.close();
+		},
+		() => {
+			requestProps = undefined;
+		}
+	);
 
-				if (!seasons[episode.seasonNumber - 1]) {
-					seasons[episode.seasonNumber - 1] = [];
-				}
-				seasons[episode.seasonNumber - 1].push(episode);
-			});
+	function selectSeasonPack(seasonNumber: number) {
+		requestProps = {
+			seasonPack: {
+				sonarrId,
+				seasonNumber
+			}
+		};
+	}
 
-			return seasons;
-		});
+	function selectSeason(seasonNumber: number) {
+		episodeSelectProps = {
+			seasonNumber,
+			selectEpisode,
+			sonarrId
+		};
+	}
+
+	function selectEpisode(episode: SonarrEpisode) {
+		requestProps = {
+			sonarrEpisodeId: episode.id,
+			title: episode.title || 'Episode'
+		};
 	}
 </script>
 
 <Modal {...modalProps}>
 	<ModalContainer>
-		<ModalHeader {...modalProps} text="Seasons" />
+		<ModalHeader {...modalProps} back={undefined} text="Seasons" />
 		<ModalContent>
 			<div class="flex flex-col divide-y divide-zinc-700">
-				{#await fetchEpisodes(sonarrId)}
-					Loading...
-				{:then seasons}
-					{#each seasons as episodes, i}
-						<div class="pb-2">
-							<div
-								class="px-4 py-3 flex justify-between items-center cursor-pointer text-zinc-300 group-hover:text-zinc-300"
-							>
-								<div class="uppercase font-bold text-sm">
-									Season {i + 1}
-								</div>
-								<ChevronUp size={20} />
-							</div>
-							<div class="flex flex-col gap-1">
-								{#if episodes.length === 0}
-									<div class="px-4 py-1 text-xs text-gray-400">No episodes</div>
-								{:else}
-									{#each episodes as episode}
-										<!-- svelte-ignore a11y-click-events-have-key-events -->
-										<!-- svelte-ignore a11y-no-static-element-interactions -->
-										<div
-											class="px-4 py-1 flex flex-row items-center justify-between cursor-pointer hover:bg-lighten"
-											on:click={() => (selectedEpisode = episode)}
-										>
-											<div class="flex flex-col gap-1">
-												<div class="text-sm font-medium">{episode.title}</div>
-												<div class="text-xs text-gray-400">
-													{episode.episodeNumber ? `Episode ${episode.episodeNumber}` : 'Special'}
-												</div>
-											</div>
-											<div class="text-xs text-gray-400">
-												{new Date(episode.airDate || Date.now()).toLocaleDateString('en', {
-													year: 'numeric',
-													month: 'short',
-													day: 'numeric'
-												})}
-											</div>
-										</div>
-									{/each}
-								{/if}
-							</div>
+				{#each [...Array(seasons).keys()].map((i) => i + 1) as seasonNumber}
+					<div
+						class="px-4 py-3 flex justify-between items-center text-zinc-300 group-hover:text-zinc-300"
+					>
+						<div class="uppercase font-bold text-sm">
+							Season {seasonNumber}
 						</div>
-					{/each}
-				{/await}
+						<div class="flex gap-2">
+							<RoundedButton on:click={() => selectSeasonPack(seasonNumber)}
+								>Season Packs</RoundedButton
+							>
+							<RoundedButton on:click={() => selectSeason(seasonNumber)}>Episodes</RoundedButton>
+						</div>
+					</div>
+				{/each}
 			</div>
 		</ModalContent>
 	</ModalContainer>
 </Modal>
 
-{#if selectedEpisode?.id}
-	<RequestModal
-		modalProps={requestModalProps}
-		sonarrEpisodeId={selectedEpisode.id}
-		title={selectedEpisode.title || undefined}
-	/>
+{#if episodeSelectProps}
+	<EpisodeSelectModal modalProps={episodeSelectModalProps} {...episodeSelectProps} />
+{/if}
+
+{#if requestProps}
+	<RequestModal modalProps={requestModalProps} {...requestProps} />
 {/if}
