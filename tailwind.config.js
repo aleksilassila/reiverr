@@ -4,8 +4,8 @@ export default {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'sans-serif'],
-				display: ['Inter', 'system', 'sans-serif']
+				sans: ['Montserrat', 'sans-serif'],
+				display: ['Montserrat', 'system', 'sans-serif']
 			},
 			colors: {
 				darken: '#07050199',

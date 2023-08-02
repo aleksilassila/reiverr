@@ -5,6 +5,7 @@
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
+	import classNames from 'classnames';
 	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
@@ -90,7 +91,7 @@
 				props = {
 					size: 'dynamic',
 					type: 'series',
-					tmdbId: String(item.tmdbId),
+					tmdbId: item.tmdbId,
 					title: series.title || '',
 					genres: series.genres || [],
 					backdropUri: item.cardBackdropUrl,
@@ -101,7 +102,7 @@
 				props = {
 					size: 'dynamic',
 					type: 'movie',
-					tmdbId: String(item.tmdbId),
+					tmdbId: item.tmdbId,
 					title: movie.title || '',
 					genres: movie.genres || [],
 					backdropUri: item.cardBackdropUrl,
@@ -163,19 +164,27 @@
 <div class="py-4 px-2 md:px-8">
 	<div class="max-w-screen-2xl m-auto backdrop-blur-2xl flex flex-col gap-4">
 		<div class="flex justify-between gap-2 sm:flex-row flex-col">
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
+			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
-				class="flex gap-2 items-center bg-stone-950 rounded-2xl p-3 px-4 shadow-xl focus-within:outline outline-2 outline-stone-400"
+				class={classNames(
+					'flex gap-2 items-center p-3 px-4 shadow-xl selectable rounded-xl',
+					'text-zinc-200 bg-zinc-700 bg-opacity-40 cursor-text focus-within:bg-opacity-60'
+				)}
+				on:click={() => document.activeElement !== searchInput && searchInput?.focus()}
 			>
-				<MagnifyingGlass size={24} class="text-zinc-200" />
+				<MagnifyingGlass size={24} />
 				<input
 					type="text"
-					class="bg-transparent outline-none text-zinc-300"
+					class="bg-transparent outline-none placeholder:text-zinc-400 font-medium"
 					placeholder="Search from library"
 					bind:this={searchInput}
 					bind:value={searchInputValue}
 				/>
 			</div>
-			<div class="flex items-center gap-2 bg-stone-950 rounded-2xl p-3 px-5 shadow-lg">
+			<div
+				class="flex items-center gap-2 p-3 px-5 shadow-xl rounded-xl text-zinc-200 bg-zinc-700 bg-opacity-40"
+			>
 				<IconButton>
 					<TextAlignBottom size={20} />
 				</IconButton>

@@ -12,5 +12,5 @@ a {
 }
 
 .selectable {
-	@apply focus-within:outline outline-2 outline-lighten outline-offset-2;
+	@apply focus-within:outline outline-2 outline-[#FDEA8A88] outline-offset-2;
 }
