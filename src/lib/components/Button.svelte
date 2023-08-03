@@ -9,7 +9,7 @@
 	export let disabled = false;
 
 	export let href: string | undefined = undefined;
-	export let target: string | undefined = undefined;
+	export let target: string | undefined = '_self';
 
 	let buttonStyle: string;
 	// $: buttonStyle = classNames(
@@ -44,8 +44,7 @@
 
 	const handleClick = (event: MouseEvent) => {
 		if (href) {
-			if (target === '_blank') window.open(href, target)?.focus();
-			else window.open(href, target as string);
+			window.open(href, target)?.focus();
 		} else {
 			dispatch('click', event);
 		}

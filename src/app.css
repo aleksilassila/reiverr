@@ -7,8 +7,7 @@ a {
 }
 
 .placeholder {
-	@apply bg-[#ffffff11];
-	@apply animate-pulse;
+	@apply bg-zinc-700 bg-opacity-40 animate-pulse;
 }
 
 .selectable {

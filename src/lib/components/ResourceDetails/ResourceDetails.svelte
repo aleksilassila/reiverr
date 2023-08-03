@@ -283,14 +283,7 @@
 								</Button>
 							</div> -->
 						<div style={opacityStyle} class:hidden={showDetails}>
-							<Button
-								size="lg"
-								type="secondary"
-								on:click={() => {
-									detailsVisible = true;
-									localDetails?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-								}}
-							>
+							<Button href={`/${type}/${tmdbId}`}>
 								<span>Details</span>
 								<ChevronRight size={20} />
 							</Button>

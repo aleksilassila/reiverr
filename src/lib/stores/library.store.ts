@@ -16,11 +16,9 @@ import {
 	type SonarrSeries
 } from '$lib/apis/sonarr/sonarrApi';
 import {
-	fetchTmdbMovieImages,
 	getTmdbMovieBackdrop,
 	getTmdbSeriesBackdrop,
-	getTmdbSeriesFromTvdbId,
-	getTmdbSeriesImages
+	getTmdbSeriesFromTvdbId
 } from '$lib/apis/tmdb/tmdbApi';
 import { get, writable } from 'svelte/store';
 
@@ -159,7 +157,7 @@ async function getLibrary(): Promise<Library> {
 
 		return {
 			type: 'series' as const,
-			tmdbId,
+			tmdbId: tmdbId || 0,
 			tmdbRating: tmdbItem?.vote_average || 0,
 			cardBackdropUrl: backdropUrl || '',
 			download,

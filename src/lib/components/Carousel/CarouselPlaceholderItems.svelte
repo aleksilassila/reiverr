@@ -4,5 +4,5 @@
 </script>
 
 {#each Array(10) as _, i (i)}
-	<CardPlaceholder {size} />
+	<CardPlaceholder {size} index={i} />
 {/each}

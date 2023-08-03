@@ -75,7 +75,7 @@ export const getFadeIndex = () => {
 	return obj;
 };
 
-export function log(arg: any) {
+export function log<T>(arg: T): T {
 	console.log('LOGGER', arg);
 	return arg;
 }

@@ -6,6 +6,9 @@ import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
 
+const CACHE_ONE_DAY = 'max-age=86400';
+const CACHE_FOUR_DAYS = 'max-age=345600';
+
 export type TmdbMovie2 =
 	operations['movie-details']['responses']['200']['content']['application/json'];
 export type TmdbSeries2 =
@@ -23,6 +26,7 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
 	credits: operations['tv-series-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
+	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
 }
 
 export const TmdbApiOpen = createClient<paths>({
@@ -55,7 +59,7 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
 			}
 		},
 		headers: {
-			'Cache-Control': 'max-age=86400'
+			'Cache-Control': CACHE_ONE_DAY
 		}
 	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
@@ -69,8 +73,12 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 				series_id: tmdbId
 			},
 			query: {
-				append_to_response: 'videos,credits,external_ids'
+				append_to_response: 'videos,credits,external_ids,images',
+				...({ include_image_language: get(settings).language + ',en,null' } as any)
 			}
+		},
+		headers: {
+			'Cache-Control': CACHE_ONE_DAY
 		}
 	}).then((res) => res.data as TmdbSeriesFull2 | undefined);
 
@@ -100,7 +108,7 @@ export const getTmdbSeriesImages = async (tmdbId: number) =>
 			}
 		},
 		headers: {
-			'Cache-Control': 'max-age=345600' // 4 days
+			'Cache-Control': CACHE_FOUR_DAYS // 4 days
 		}
 	}).then((res) => res.data);
 
@@ -123,7 +131,7 @@ export const getTmdbMovieImages = async (tmdbId: number) =>
 			}
 		},
 		headers: {
-			'Cache-Control': 'max-age=345600' // 4 days
+			'Cache-Control': CACHE_FOUR_DAYS // 4 days
 		}
 	}).then((res) => res.data);
 
@@ -241,7 +249,7 @@ export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
 export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
 	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images', {
 		headers: {
-			'Cache-Control': 'max-age=345600' // 4 days
+			'Cache-Control': CACHE_FOUR_DAYS // 4 days
 		}
 	}).then((res) => res.data);
 
