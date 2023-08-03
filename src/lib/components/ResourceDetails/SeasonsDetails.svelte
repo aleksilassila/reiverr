@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getJellyfinEpisodes } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getJellyfinEpisodesBySeries } from '$lib/apis/jellyfin/jellyfinApi';
 	import { getTmdbSeriesSeasons } from '$lib/apis/tmdb/tmdbApi';
 	import classNames from 'classnames';
 	import { Check, StarFilled } from 'radix-icons-svelte';
@@ -20,7 +20,9 @@
 
 	async function fetchSeriesData() {
 		const tmdbSeasonsPromise = getTmdbSeriesSeasons(tmdbId, totalSeasons);
-		const jellyfinEpisodesPromise = jellyfinId ? getJellyfinEpisodes(jellyfinId) : undefined;
+		const jellyfinEpisodesPromise = jellyfinId
+			? getJellyfinEpisodesBySeries(jellyfinId)
+			: undefined;
 
 		const tmdbSeasons = await tmdbSeasonsPromise;
 		const jellyfinEpisodes = await jellyfinEpisodesPromise;

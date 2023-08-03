@@ -6,11 +6,13 @@
 	import { fade } from 'svelte/transition';
 
 	export let backdropPath: string;
-	export let title: string;
-	export let subtitle: string;
+
+	export let title = '';
+	export let subtitle = '';
 	export let episodeNumber: string | undefined = undefined;
-	export let runtime: number;
+	export let runtime = 0;
 	export let progress = 0;
+
 	export let handlePlay: (() => void) | undefined = undefined;
 
 	export let size: 'md' | 'dynamic' = 'md';
@@ -31,36 +33,49 @@
 	transition:fade|global
 >
 	<div
-		class="opacity-100 group-hover:opacity-0 flex flex-col justify-between p-2 lg:p-3 lg:px-3 bg-darken h-full transition-opacity"
+		class={classNames(
+			'flex flex-col justify-between h-full group-hover:opacity-0 transition-opacity',
+			{
+				'px-2 lg:px-3 pt-2': true,
+				' pb-4 lg:pb-6': progress,
+				'pb-2': !progress,
+				'bg-gradient-to-t from-darken': !!handlePlay,
+				'bg-darken': !handlePlay
+			}
+		)}
 	>
-		<div
-			class={classNames(
-				'flex justify-between items-center text-xs lg:text-sm font-medium text-zinc-300',
-				{
-					'opacity-60': !handlePlay
-				}
-			)}
-		>
+		<div class="flex justify-between items-center">
 			<div>
-				<slot name="left-info">
-					{episodeNumber}
+				<slot name="left-top">
+					{#if episodeNumber}
+						<p class="text-xs lg:text-sm font-medium text-zinc-300">{episodeNumber}</p>
+					{/if}
 				</slot>
 			</div>
 			<div>
-				<slot name="right-info">
-					{runtime} min
+				<slot name="right-top">
+					{#if runtime}
+						<p class="text-xs lg:text-sm font-medium text-zinc-300">
+							{runtime} min
+						</p>
+					{/if}
 				</slot>
 			</div>
 		</div>
-		<div
-			class={classNames({
-				'opacity-60': !handlePlay
-			})}
-		>
-			<div class="text-xs lg:text-sm text-zinc-300 font-medium tracking-wide">{subtitle}</div>
-			<div class="font-semibold lg:text-lg">
-				{title}
-			</div>
+		<div class="flex items-bottom justify-between">
+			<slot name="left-bottom">
+				<div class="flex flex-col">
+					{#if subtitle}
+						<div class="text-zinc-300 text-sm font-medium">{subtitle}</div>
+					{/if}
+					{#if title}
+						<div class="font-medium">
+							{title}
+						</div>
+					{/if}
+				</div>
+			</slot>
+			<slot name="right-bottom" />
 		</div>
 	</div>
 	<div class="absolute inset-0 flex items-center justify-center">
@@ -72,5 +87,11 @@
 			</IconButton>
 		</div>
 	</div>
-	<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
+	{#if progress}
+		<div
+			class="absolute h-1 bg-zinc-300 bg-opacity-50 bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 rounded-full overflow-hidden group-hover:opacity-0 transition-opacity"
+		>
+			<div style={'width: ' + progress + '%'} class="h-full bg-zinc-200" />
+		</div>
+	{/if}
 </div>

@@ -5,14 +5,19 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
-	import { library } from '$lib/stores/library.store';
+	import { createLibraryItemStore, library } from '$lib/stores/library.store';
 	import classNames from 'classnames';
 	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import type { PageData } from './$types';
+	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
+	import { capitalize } from '$lib/utils';
 
 	export let data: PageData;
+	let tmdbId = Number(data.tmdbId);
+
+	const itemStore = createLibraryItemStore(tmdbId);
 
 	let visibleSeason = 1;
 
@@ -30,26 +35,31 @@
 		};
 	})();
 
-	tmdbSeriesPromise.seasons.then((seasons) => {
-		seasons.forEach((season) => {
+	itemStore.subscribe(async (libraryItem) => {
+		const tmdbSeasons = await tmdbSeriesPromise.seasons;
+
+		tmdbSeasons.forEach((season) => {
 			const episodes: ComponentProps<EpisodeCard>[] = [];
-			season?.episodes?.forEach((episode) => {
+			season?.episodes?.forEach((tmdbEpisode) => {
+				const jellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.find(
+					(e) =>
+						e?.IndexNumber === tmdbEpisode?.episode_number &&
+						e?.ParentIndexNumber === tmdbEpisode?.season_number
+				);
+
 				episodes.push({
-					title: episode?.name || '',
-					backdropPath: episode?.still_path || '',
-					subtitle: `S${episode?.season_number}E${episode?.episode_number}`,
-					runtime: episode?.runtime || 0
+					title: tmdbEpisode?.name || '',
+					subtitle: `Episode ${tmdbEpisode?.episode_number}`,
+					backdropPath: tmdbEpisode?.still_path || '',
+					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
+					handlePlay: jellyfinEpisode?.Id
+						? () => playerState.streamJellyfinId(jellyfinEpisode?.Id || '')
+						: undefined
 				});
 			});
 			episodeProps[season?.season_number || 0] = episodes;
 		});
 	});
-
-	async function updateEpisodeProps(tmdbSeasons: TmdbSeason[]) {
-		const libraryItem = await $library.then((l) => l.items[Number(data.tmdbId)]);
-	}
-
-	tmdbSeriesPromise.seasons.then((seasons) => updateEpisodeProps(seasons));
 </script>
 
 <div class="fixed inset-0 bg-black -z-20" />
@@ -69,8 +79,10 @@
 				/>
 				<div class="flex-1 flex gap-4 justify-between flex-col lg:flex-row lg:items-end">
 					<div>
-						<div class="text-zinc-300 text-sm uppercase font-medium flex items-center gap-1">
-							<p class="">2014</p>
+						<div class="text-zinc-300 text-sm uppercase font-semibold flex items-center gap-1">
+							<p>{new Date(series?.first_air_date || Date.now()).getFullYear()}</p>
+							<DotFilled />
+							<p>{series?.status}</p>
 							<DotFilled />
 							<p>{series?.genres?.map((g) => g.name).join(', ')}</p>
 							<DotFilled />
@@ -87,10 +99,11 @@
 		<div>
 			<Carousel gradientFromColor="from-black">
 				<div slot="title" class="flex gap-6">
-					{#each series?.seasons || [] as season, i}
+					{#each [...Array(series?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
+						{@const season = series?.seasons?.find((s) => s.season_number === seasonNumber)}
 						{@const isSelected = season?.season_number === visibleSeason}
 						<button
-							class={classNames('text-lg font-medium', {
+							class={classNames('text-lg font-semibold tracking-wide', {
 								'text-zinc-200 cursor-default': isSelected,
 								'text-zinc-500 hover:text-zinc-200 cursor-pointer': !isSelected
 							})}
@@ -101,7 +114,17 @@
 					{/each}
 				</div>
 				{#each episodeProps[visibleSeason] || [] as props}
-					<EpisodeCard {...props} />
+					<div class="flex flex-col gap-3">
+						<EpisodeCard {...props} />
+						<!-- <EpisodeCard backdropPath={props.backdropPath} />
+						<div class="flex items-end justify-between">
+							<div>
+								<div class="text-zinc-400 text-xs font-medium">{props.episodeNumber}</div>
+								<h1 class="font-medium text-lg line-clamp-1">{props.title}</h1>
+							</div>
+							<div class="flex-shrink-0 text-zinc-300 font-medium">{props.runtime} min</div>
+						</div> -->
+					</div>
 				{:else}
 					<CarouselPlaceholderItems />
 				{/each}
@@ -109,17 +132,66 @@
 		</div>
 	</div>
 
-	<div class="flex gap-4 p-8 flex-col md:flex-row">
+	<div class="flex gap-8 p-8 flex-col xl:flex-row">
 		<div class="flex-1">
 			<div class="flex flex-col gap-3 max-w-5xl">
 				<h1 class="font-semibold text-2xl">{series?.tagline || series?.name}</h1>
 				<p class="pl-4 border-l-2">{series?.overview}</p>
 			</div>
 		</div>
-		<div class="flex-1 grid grid-cols-3">
+		<div class="flex-1 grid grid-cols-3 gap-4">
 			<div>
-				<p class="text-zinc-400 text-sm">Directed By</p>
+				<p class="text-zinc-400 text-sm">Created By</p>
 				<h2 class="font-medium">{series?.created_by?.map((c) => c.name).join(', ')}</h2>
+			</div>
+			{#if series?.first_air_date}
+				<div>
+					<p class="text-zinc-400 text-sm">First Air Date</p>
+					<h2 class="font-medium">
+						{new Date(series?.first_air_date).toLocaleDateString('en', {
+							year: 'numeric',
+							month: 'short',
+							day: 'numeric'
+						})}
+					</h2>
+				</div>
+			{/if}
+			{#if series?.next_episode_to_air}
+				<div>
+					<p class="text-zinc-400 text-sm">Next Air Date</p>
+					<h2 class="font-medium">
+						{new Date(series.next_episode_to_air?.air_date).toLocaleDateString('en', {
+							year: 'numeric',
+							month: 'short',
+							day: 'numeric'
+						})}
+					</h2>
+				</div>
+			{:else if series?.last_air_date}
+				<div>
+					<p class="text-zinc-400 text-sm">Last Air Date</p>
+					<h2 class="font-medium">
+						{new Date(series.last_air_date).toLocaleDateString('en', {
+							year: 'numeric',
+							month: 'short',
+							day: 'numeric'
+						})}
+					</h2>
+				</div>
+			{/if}
+			<div>
+				<p class="text-zinc-400 text-sm">Networks</p>
+				<h2 class="font-medium">{series?.networks?.map((n) => n.name).join(', ')}</h2>
+			</div>
+			<div>
+				<p class="text-zinc-400 text-sm">Episode Run Time</p>
+				<h2 class="font-medium">{series?.episode_run_time} Minutes</h2>
+			</div>
+			<div>
+				<p class="text-zinc-400 text-sm">Spoken Languages</p>
+				<h2 class="font-medium">
+					{series?.spoken_languages?.map((l) => capitalize(l.name || '')).join(', ')}
+				</h2>
 			</div>
 		</div>
 	</div>

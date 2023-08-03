@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getJellyfinEpisodes } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getJellyfinEpisodesBySeries } from '$lib/apis/jellyfin/jellyfinApi';
 	import {
 		addMovieToRadarr,
 		cancelDownloadRadarrMovie,
@@ -50,7 +50,7 @@
 			: undefined;
 		const jellyfinEpisodesPromise =
 			item.jellyfinItem?.Id && item.sonarrSeries?.id
-				? getJellyfinEpisodes(item.jellyfinItem?.Id)
+				? getJellyfinEpisodesBySeries(item.jellyfinItem?.Id)
 				: undefined;
 
 		const sonarrEpisodes = await sonarrEpisodesPromise;

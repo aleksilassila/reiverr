@@ -20,6 +20,7 @@ export interface TmdbMovieFull2 extends TmdbMovie2 {
 	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
 	credits: operations['movie-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['movie-external-ids']['responses']['200']['content']['application/json'];
+	images: operations['movie-images']['responses']['200']['content']['application/json'];
 }
 
 export interface TmdbSeriesFull2 extends TmdbSeries2 {
@@ -43,7 +44,8 @@ export const getTmdbMovie = async (tmdbId: number) =>
 				movie_id: tmdbId
 			},
 			query: {
-				append_to_response: 'videos,credits,external_ids'
+				append_to_response: 'videos,credits,external_ids,images',
+				...({ include_image_language: get(settings).language + ',en,null' } as any)
 			}
 		}
 	}).then((res) => res.data as TmdbMovieFull2 | undefined);

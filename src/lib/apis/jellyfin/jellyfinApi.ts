@@ -59,7 +59,7 @@ export const getJellyfinItems = () =>
 // 		}
 // 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinEpisodes = (seriesId: string) =>
+export const getJellyfinEpisodes = () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
@@ -73,7 +73,10 @@ export const getJellyfinEpisodes = (seriesId: string) =>
 		headers: {
 			'cache-control': 'max-age=10'
 		}
-	}).then((r) => r.data?.Items?.filter((i) => i.SeriesId === seriesId) || []);
+	}).then((r) => r.data?.Items || []);
+
+export const getJellyfinEpisodesBySeries = (seriesId: string) =>
+	getJellyfinEpisodes().then((items) => items.filter((i) => i.SeriesId === seriesId) || []);
 
 export const getJellyfinItemByTmdbId = (tmdbId: string) =>
 	getJellyfinItems().then((items) => items.find((i) => i.ProviderIds?.Tmdb == tmdbId));
