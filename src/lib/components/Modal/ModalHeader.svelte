@@ -24,7 +24,7 @@
 				{#if !!back}
 					<ChevronLeft size={20} />
 				{/if}
-				<h1>{text}</h1>
+				<h1 class="font-medium">{text}</h1>
 			</button>
 		{/if}
 	</slot>

@@ -25,7 +25,7 @@ export interface TmdbMovieFull2 extends TmdbMovie2 {
 
 export interface TmdbSeriesFull2 extends TmdbSeries2 {
 	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
-	credits: operations['tv-series-credits']['responses']['200']['content']['application/json'];
+	aggregate_credits: operations['tv-series-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
 	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
 }
@@ -75,7 +75,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 				series_id: tmdbId
 			},
 			query: {
-				append_to_response: 'videos,credits,external_ids,images',
+				append_to_response: 'videos,aggregate_credits,external_ids,images',
 				...({ include_image_language: get(settings).language + ',en,null' } as any)
 			}
 		},
@@ -115,15 +115,17 @@ export const getTmdbSeriesImages = async (tmdbId: number) =>
 	}).then((res) => res.data);
 
 export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
-	getTmdbSeriesImages(tmdbId).then(
-		(r) =>
-			(
-				r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-				r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-				r?.backdrops?.find((b) => b.iso_639_1) ||
-				r?.backdrops?.[0]
-			)?.file_path
-	);
+	getTmdbSeries(tmdbId)
+		.then((s) => s?.images)
+		.then(
+			(r) =>
+				(
+					r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+					r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+					r?.backdrops?.find((b) => b.iso_639_1) ||
+					r?.backdrops?.[0]
+				)?.file_path
+		);
 
 export const getTmdbMovieImages = async (tmdbId: number) =>
 	await TmdbApiOpen.get('/3/movie/{movie_id}/images', {
@@ -138,15 +140,17 @@ export const getTmdbMovieImages = async (tmdbId: number) =>
 	}).then((res) => res.data);
 
 export const getTmdbMovieBackdrop = async (tmdbId: number) =>
-	getTmdbMovieImages(tmdbId).then(
-		(r) =>
-			(
-				r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-				r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-				r?.backdrops?.find((b) => b.iso_639_1) ||
-				r?.backdrops?.[0]
-			)?.file_path
-	);
+	getTmdbMovie(tmdbId)
+		.then((m) => m?.images)
+		.then(
+			(r) =>
+				(
+					r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+					r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+					r?.backdrops?.find((b) => b.iso_639_1) ||
+					r?.backdrops?.[0]
+				)?.file_path
+		);
 
 export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {
@@ -228,6 +232,33 @@ export const getTmdbGenreMovies = (genreId: number) =>
 			}
 		}
 	}).then((res) => res.data?.results || []);
+
+export const getTmdbSeriesRecommendations = (tmdbId: number) =>
+	TmdbApiOpen.get('/3/tv/{series_id}/recommendations', {
+		params: {
+			path: {
+				series_id: tmdbId
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbSeriesSimilar = (tmdbId: number) =>
+	TmdbApiOpen.get('/3/tv/{series_id}/similar', {
+		params: {
+			path: {
+				series_id: String(tmdbId)
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbSeriesCredits = (tmdbId: number) =>
+	TmdbApiOpen.get('/3/tv/{series_id}/credits', {
+		params: {
+			path: {
+				series_id: tmdbId
+			}
+		}
+	}).then((res) => res.data?.cast || []);
 
 // Deprecated hereon forward
 

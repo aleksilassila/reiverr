@@ -3,11 +3,11 @@
 	import classNames from 'classnames';
 
 	export let tmdbId: number;
-	export let knownFor: string[];
+	export let knownFor: string[] = [];
 	export let name: string;
 	export let backdropUri: string;
 	export let department: string;
-	export let size: 'dynamic' | 'md' | 'lg' = 'lg';
+	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 </script>
 
 <a
@@ -29,13 +29,19 @@
 				{knownFor.join(', ')}
 			</h2> -->
 		</div>
-		<div class="bg-gradient-to-t from-darken from-20% to-transparent p-2 px-3 pt-8">
+		<div class="bg-gradient-to-t from-darken from-40% p-2 px-3 pt-8">
 			<h2
 				class="text-xs text-zinc-300 tracking-wider font-medium opacity-0 group-hover:opacity-100"
 			>
 				{department}
 			</h2>
-			<h1 class="font-bold tracking-wider text-lg">{name}</h1>
+			<h1
+				class={classNames('font-semibold tracking-wider', {
+					'text-lg': size === 'lg'
+				})}
+			>
+				{name}
+			</h1>
 		</div>
 	</div>
 	<div

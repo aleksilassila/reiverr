@@ -283,7 +283,7 @@
 								</Button>
 							</div> -->
 						<div style={opacityStyle} class:hidden={showDetails}>
-							<Button href={`/${type}/${tmdbId}`}>
+							<Button size="lg" href={`/${type}/${tmdbId}`}>
 								<span>Details</span>
 								<ChevronRight size={20} />
 							</Button>

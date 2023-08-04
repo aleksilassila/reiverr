@@ -67,7 +67,8 @@
 					name: actor.name || '',
 					backdropUri: actor.profile_path || '',
 					knownFor: actor.known_for?.map((movie) => movie.title || '') || [],
-					department: actor.known_for_department || ''
+					department: actor.known_for_department || '',
+					size: 'lg'
 				}))
 		);
 

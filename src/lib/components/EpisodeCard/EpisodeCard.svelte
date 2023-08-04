@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
-	import { TriangleRight } from 'radix-icons-svelte';
-	import IconButton from '../IconButton.svelte';
+	import { DotsHorizontal, TriangleRight } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
+	import IconButton from '../IconButton.svelte';
 
 	export let backdropPath: string;
 
@@ -19,7 +19,8 @@
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-<div
+<button
+	on:click
 	class={classNames(
 		'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative cursor-pointer selectable flex-shrink-0',
 		{
@@ -28,21 +29,18 @@
 			group: !!handlePlay
 		}
 	)}
-	tabindex="0"
 	style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropPath + "');"}
-	transition:fade|global
+	in:fade|global={{ duration: 100, delay: 100 }}
+	out:fade|global={{ duration: 100 }}
 >
 	<div
-		class={classNames(
-			'flex flex-col justify-between h-full group-hover:opacity-0 transition-opacity',
-			{
-				'px-2 lg:px-3 pt-2': true,
-				' pb-4 lg:pb-6': progress,
-				'pb-2': !progress,
-				'bg-gradient-to-t from-darken': !!handlePlay,
-				'bg-darken': !handlePlay
-			}
-		)}
+		class={classNames('flex flex-col justify-between h-full group-hover:opacity-0 transition-all', {
+			'px-2 lg:px-3 pt-2': true,
+			' pb-4 lg:pb-6': progress,
+			'pb-2': !progress,
+			'bg-gradient-to-t from-darken': !!handlePlay,
+			'bg-darken': !handlePlay
+		})}
 	>
 		<div class="flex justify-between items-center">
 			<div>
@@ -62,14 +60,14 @@
 				</slot>
 			</div>
 		</div>
-		<div class="flex items-bottom justify-between">
+		<div class="flex items-end justify-between">
 			<slot name="left-bottom">
-				<div class="flex flex-col">
+				<div class="flex flex-col items-start">
 					{#if subtitle}
 						<div class="text-zinc-300 text-sm font-medium">{subtitle}</div>
 					{/if}
 					{#if title}
-						<div class="font-medium">
+						<div class="font-medium text-left">
 							{title}
 						</div>
 					{/if}
@@ -94,4 +92,4 @@
 			<div style={'width: ' + progress + '%'} class="h-full bg-zinc-200" />
 		</div>
 	{/if}
-</div>
+</button>

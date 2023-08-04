@@ -9,10 +9,13 @@
 	import EpisodeSelectModal from './EpisodeSelectModal.svelte';
 	import RequestModal from './RequestModal.svelte';
 	import type { SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
+	import Button from '../Button.svelte';
+	import { ChevronRight } from 'radix-icons-svelte';
 
 	export let modalProps: ModalProps;
 	export let sonarrId: number;
 	export let seasons: number;
+	export let heading = 'Seasons';
 
 	let episodeSelectProps: Omit<ComponentProps<EpisodeSelectModal>, 'modalProps'> | undefined =
 		undefined;
@@ -64,21 +67,23 @@
 
 <Modal {...modalProps}>
 	<ModalContainer>
-		<ModalHeader {...modalProps} back={undefined} text="Seasons" />
+		<ModalHeader {...modalProps} back={undefined} text={heading} />
 		<ModalContent>
 			<div class="flex flex-col divide-y divide-zinc-700">
 				{#each [...Array(seasons).keys()].map((i) => i + 1) as seasonNumber}
 					<div
 						class="px-4 py-3 flex justify-between items-center text-zinc-300 group-hover:text-zinc-300"
 					>
-						<div class="uppercase font-bold text-sm">
+						<div class="font-medium">
 							Season {seasonNumber}
 						</div>
 						<div class="flex gap-2">
-							<RoundedButton on:click={() => selectSeasonPack(seasonNumber)}
-								>Season Packs</RoundedButton
-							>
-							<RoundedButton on:click={() => selectSeason(seasonNumber)}>Episodes</RoundedButton>
+							<Button size="sm" type="tertiary" on:click={() => selectSeasonPack(seasonNumber)}>
+								<span>Season Packs</span><ChevronRight size={20} />
+							</Button>
+							<Button size="sm" type="tertiary" on:click={() => selectSeason(seasonNumber)}>
+								<span>Episodes</span><ChevronRight size={20} />
+							</Button>
 						</div>
 					</div>
 				{/each}

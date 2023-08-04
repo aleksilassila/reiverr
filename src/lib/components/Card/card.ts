@@ -1,12 +1,5 @@
-import type { RadarrMovie } from '$lib/apis/radarr/radarrApi';
-import {
-	fetchTmdbMovieImages,
-	getTmdbMovieBackdrop,
-	getTmdbMovieImages,
-	getTmdbSeriesBackdrop,
-	getTmdbSeriesImages
-} from '$lib/apis/tmdb/tmdbApi';
-import type { TmdbMovie, TmdbMovie2, TmdbSeries2 } from '$lib/apis/tmdb/tmdbApi';
+import type { TmdbMovie2, TmdbSeries2 } from '$lib/apis/tmdb/tmdbApi';
+import { getTmdbMovieBackdrop, getTmdbSeriesBackdrop } from '$lib/apis/tmdb/tmdbApi';
 import type { ComponentProps } from 'svelte';
 import type Card from './Card.svelte';
 
