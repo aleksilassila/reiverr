@@ -1,6 +1,10 @@
 <script lang="ts">
-	import { fetchRadarrReleases } from '$lib/apis/radarr/radarrApi';
-	import { fetchSonarrReleases, fetchSonarrSeasonReleases } from '$lib/apis/sonarr/sonarrApi';
+	import { downloadRadarrMovie, fetchRadarrReleases } from '$lib/apis/radarr/radarrApi';
+	import {
+		downloadSonarrEpisode,
+		fetchSonarrReleases,
+		fetchSonarrSeasonReleases
+	} from '$lib/apis/sonarr/sonarrApi';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import { DotFilled, Download, Plus } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -64,16 +68,23 @@
 
 	function handleDownload(guid: string) {
 		downloadFetchingGuid = guid;
-		fetch('/movie/0/releases', {
-			method: 'POST',
-			body: JSON.stringify({ guid })
-		}).then((res) => {
-			dispatch('download');
-			downloadFetchingGuid = undefined;
-			if (res.ok) {
-				downloadingGuid = guid;
-			}
-		});
+		if (radarrId) {
+			downloadRadarrMovie(guid).then((res) => {
+				dispatch('download');
+				downloadFetchingGuid = undefined;
+				if (res.response?.ok) {
+					downloadingGuid = guid;
+				}
+			});
+		} else {
+			downloadSonarrEpisode(guid).then((res) => {
+				dispatch('download');
+				downloadFetchingGuid = undefined;
+				if (res.response?.ok) {
+					downloadingGuid = guid;
+				}
+			});
+		}
 	}
 
 	function toggleShowAll() {
