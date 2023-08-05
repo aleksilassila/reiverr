@@ -1,3 +1,4 @@
+import { library } from '$lib/stores/library.store';
 import { writable } from 'svelte/store';
 
 const initialValue = { visible: false, jellyfinId: '' };
@@ -13,6 +14,7 @@ function createPlayerState() {
 		},
 		close: () => {
 			store.set({ visible: false, jellyfinId: '' });
+			library.refresh();
 		}
 	};
 }

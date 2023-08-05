@@ -23,7 +23,7 @@
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
-	import type { ComponentProps } from 'svelte';
+	import { tick, type ComponentProps, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	export let tmdbId: number;
@@ -32,12 +32,13 @@
 
 	let seasonSelectVisible = false;
 	let visibleSeasonNumber: number | undefined = undefined;
-	let visibleEpisodeNumber: number | undefined = undefined;
+	let visibleEpisodeIndex: number | undefined = undefined;
 
 	let requestModalVisible = false;
 	const requestModalProps = createModalProps(() => (requestModalVisible = false));
 
 	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
+	let episodeComponents: HTMLDivElement[] = [];
 	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
 
 	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
@@ -74,14 +75,16 @@
 						e?.ParentIndexNumber === tmdbEpisode?.season_number
 				);
 
-				if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false)
+				if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
 					nextJellyfinEpisode = jellyfinEpisode;
+				}
 
 				episodes.push({
 					title: tmdbEpisode?.name || '',
 					subtitle: `Episode ${tmdbEpisode?.episode_number}`,
 					backdropPath: tmdbEpisode?.still_path || '',
 					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
+					watched: jellyfinEpisode?.UserData?.Played || false,
 					handlePlay: jellyfinEpisode?.Id
 						? () => playerState.streamJellyfinId(jellyfinEpisode?.Id || '')
 						: undefined
@@ -108,13 +111,39 @@
 			.then(refresh)
 			.finally(() => (addToRadarrLoading = false));
 	}
+
+	let didFocusNextEpisode = false;
+	$: {
+		if (episodeComponents && !didFocusNextEpisode) {
+			const episodeComponent = nextJellyfinEpisode?.IndexNumber
+				? episodeComponents[nextJellyfinEpisode?.IndexNumber - 1]
+				: undefined;
+
+			if (episodeComponent && nextJellyfinEpisode?.ParentIndexNumber === visibleSeasonNumber) {
+				const parent = episodeComponent.offsetParent;
+
+				if (parent) {
+					console.log('Scrolling', episodeComponent.offsetLeft);
+					parent.scrollTo({
+						left:
+							episodeComponent.offsetLeft -
+							document.body.clientWidth / 2 +
+							episodeComponent.clientWidth / 2,
+						behavior: 'smooth'
+					});
+
+					didFocusNextEpisode = true;
+				}
+			}
+		}
+	}
 </script>
 
 {#await tmdbSeriesPromise then series}
 	<div class="flex flex-col max-h-screen bg-black pb-2" transition:fade>
 		<div
 			style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + series?.backdrop_path + "')"}
-			class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] p-8 bg-center bg-cover w-screen sm:bg-fixed"
+			class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] p-4 sm:p-8 bg-center bg-cover w-screen sm:bg-fixed"
 		>
 			<div class="absolute inset-0 bg-gradient-to-t from-black to-50% to-darken" />
 			<div class="z-[1] flex-1 flex justify-end gap-8 items-end">
@@ -197,8 +226,8 @@
 				</UiCarousel>
 				{#key visibleSeasonNumber}
 					{#each episodeProps[visibleSeasonNumber || 1] || [] as props, i}
-						<div class="flex flex-col gap-3" id={'episode-card-' + (i + 1)}>
-							<EpisodeCard {...props} on:click={() => (visibleEpisodeNumber = i)} />
+						<div class="flex flex-col gap-3" bind:this={episodeComponents[i]}>
+							<EpisodeCard {...props} on:click={() => (visibleEpisodeIndex = i)} />
 						</div>
 					{:else}
 						<CarouselPlaceholderItems />
@@ -210,15 +239,17 @@
 
 	<div class="flex flex-col py-4 gap-8 bg-black">
 		<div
-			class="mx-8 p-6 px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-zinc-900 rounded-xl"
+			class="mx-4 sm:mx-8 py-4 sm:py-6 px-6 sm:px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-zinc-900 rounded-xl"
 		>
-			{#if visibleEpisodeNumber !== undefined}
-				{#await tmdbSeasonsPromise.then((season) => season?.[visibleSeasonNumber ? visibleSeasonNumber - 1 : 0]?.episodes?.[visibleEpisodeNumber || 0]) then episode}
+			{#if visibleEpisodeIndex !== undefined}
+				{#await tmdbSeasonsPromise.then((season) => season?.[visibleSeasonNumber ? visibleSeasonNumber - 1 : 0]?.episodes?.[visibleEpisodeIndex || 0]) then episode}
 					<div class="flex flex-col gap-3 max-w-5xl items-start">
 						<button
 							class="flex items-center text-zinc-400 text-sm"
-							on:click={() => (visibleEpisodeNumber = undefined)}><ChevronLeft />Back</button
+							on:click={() => (visibleEpisodeIndex = undefined)}
 						>
+							<ChevronLeft />Back
+						</button>
 						<h1 class="font-semibold text-2xl">
 							{episode?.name || 'Episode ' + episode?.episode_number}
 						</h1>
@@ -230,7 +261,7 @@
 					class="flex flex-col gap-3 max-w-5xl row-span-3 col-span-4 sm:col-span-6 lg:col-span-3 mb-4 lg:mr-8"
 				>
 					<div class="flex gap-4 justify-between">
-						<h1 class="font-semibold text-2xl">{series?.tagline || series?.name}</h1>
+						<h1 class="font-semibold text-xl sm:text-2xl">{series?.tagline || series?.name}</h1>
 						<!-- <div class="flex items-center gap-4">
 						<a
 							target="_blank"
@@ -260,7 +291,7 @@
 							</a>
 						{/if} -->
 					</div>
-					<p class="pl-4 border-l-2">{series?.overview}</p>
+					<p class="pl-4 border-l-2 text-sm sm:text-base">{series?.overview}</p>
 				</div>
 
 				<div class="col-span-2 lg:col-span-1">

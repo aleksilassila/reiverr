@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
-	import { DotsHorizontal, TriangleRight } from 'radix-icons-svelte';
+	import { Check, CheckCircled, DotsHorizontal, TriangleRight } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
 	import IconButton from '../IconButton.svelte';
+	import { onMount } from 'svelte';
 
 	export let backdropPath: string;
 
@@ -12,6 +13,7 @@
 	export let episodeNumber: string | undefined = undefined;
 	export let runtime = 0;
 	export let progress = 0;
+	export let watched = false;
 
 	export let handlePlay: (() => void) | undefined = undefined;
 
@@ -36,10 +38,10 @@
 	<div
 		class={classNames('flex flex-col justify-between h-full group-hover:opacity-0 transition-all', {
 			'px-2 lg:px-3 pt-2': true,
-			' pb-4 lg:pb-6': progress,
+			'pb-4 lg:pb-6': progress,
 			'pb-2': !progress,
 			'bg-gradient-to-t from-darken': !!handlePlay,
-			'bg-darken': !handlePlay
+			'bg-darken': !handlePlay || watched
 		})}
 	>
 		<div class="flex justify-between items-center">
@@ -73,7 +75,11 @@
 					{/if}
 				</div>
 			</slot>
-			<slot name="right-bottom" />
+			<slot name="right-bottom">
+				{#if watched}
+					<Check size={20} class="opacity-80" />
+				{/if}
+			</slot>
 		</div>
 	</div>
 	<div class="absolute inset-0 flex items-center justify-center">
