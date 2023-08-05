@@ -33,6 +33,7 @@
 	<div
 		class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative px-8 scrollbar-hide py-4"
 		bind:this={carousel}
+		tabindex="-1"
 		on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
 	>
 		<slot />

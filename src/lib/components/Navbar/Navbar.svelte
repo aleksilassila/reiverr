@@ -12,7 +12,10 @@
 	let isSearchVisible = false;
 
 	function getLinkStyle(path: string) {
-		return $page.url.pathname === path ? 'text-amber-200' : 'hover:text-zinc-50 cursor-pointer';
+		return classNames('selectable-tab rounded-sm px-2 -mx-2', {
+			'text-amber-200': $page.url.pathname === path,
+			'hover:text-zinc-50 cursor-pointer': $page.url.pathname !== path
+		});
 	}
 
 	// TODO: on mobile don't act sticky
@@ -32,7 +35,10 @@
 <svelte:window bind:scrollY={y} />
 
 <div class={baseStyle}>
-	<a href="/" class="flex gap-2 items-center hover:text-inherit">
+	<a
+		href="/"
+		class="flex gap-2 items-center hover:text-inherit selectable-tab rounded-sm px-2 -mx-2"
+	>
 		<div class="rounded-full bg-amber-300 h-4 w-4" />
 		<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
 	</a>
