@@ -48,7 +48,7 @@ export function createModalProps(onClose: () => void, onBack?: () => void) {
 
 	return {
 		close,
-		back,
+		back: onBack ? back : undefined,
 		id
 	};
 }

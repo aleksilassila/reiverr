@@ -23,7 +23,7 @@
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
-	import { tick, type ComponentProps, onMount } from 'svelte';
+	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	export let tmdbId: number;
@@ -35,7 +35,10 @@
 	let visibleEpisodeIndex: number | undefined = undefined;
 
 	let requestModalVisible = false;
-	const requestModalProps = createModalProps(() => (requestModalVisible = false));
+	const requestModalProps = createModalProps(
+		() => (requestModalVisible = false),
+		() => {}
+	);
 
 	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
 	let episodeComponents: HTMLDivElement[] = [];
@@ -104,12 +107,12 @@
 		await library.refresh();
 	}
 
-	let addToRadarrLoading = false;
+	let addToSonarrLoading = false;
 	function addToSonarr() {
-		addToRadarrLoading = true;
+		addToSonarrLoading = true;
 		addSeriesToSonarr(tmdbId)
 			.then(refresh)
-			.finally(() => (addToRadarrLoading = false));
+			.finally(() => (addToSonarrLoading = false));
 	}
 
 	let didFocusNextEpisode = false;
@@ -174,7 +177,7 @@
 								<span>Next Episode</span><ChevronRight size={20} />
 							</Button>
 						{:else if !$itemStore.item?.sonarrSeries}
-							<Button type="primary" disabled={addToRadarrLoading} on:click={addToSonarr}>
+							<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 								<span>Add to Sonarr</span><Plus size={20} />
 							</Button>
 						{:else}
@@ -344,7 +347,7 @@
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">Spoken Languages</p>
 					<h2 class="font-medium">
-						{series?.spoken_languages?.map((l) => capitalize(l.name || '')).join(', ')}
+						{series?.spoken_languages?.map((l) => capitalize(l.english_name || '')).join(', ')}
 					</h2>
 				</div>
 

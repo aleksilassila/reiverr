@@ -260,6 +260,24 @@ export const getTmdbSeriesCredits = (tmdbId: number) =>
 		}
 	}).then((res) => res.data?.cast || []);
 
+export const getTmdbMovieRecommendations = (tmdbId: number) =>
+	TmdbApiOpen.get('/3/movie/{movie_id}/recommendations', {
+		params: {
+			path: {
+				movie_id: tmdbId
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
+export const getTmdbMovieSimilar = (tmdbId: number) =>
+	TmdbApiOpen.get('/3/movie/{movie_id}/similar', {
+		params: {
+			path: {
+				movie_id: tmdbId
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
 // Deprecated hereon forward
 
 /** @deprecated */
