@@ -16,7 +16,7 @@
 <div class="flex flex-col max-h-screen bg-black pb-4 gap-4" transition:fade>
 	<div
 		style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropPath + "')"}
-		class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] px-4 sm:px-8 bg-center bg-cover w-screen sm:bg-fixed"
+		class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] px-4 sm:px-8 bg-center bg-cover sm:bg-fixed"
 	>
 		<div class="absolute inset-0 bg-gradient-to-t from-black to-50% to-darken" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end">

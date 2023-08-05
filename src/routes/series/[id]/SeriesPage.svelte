@@ -126,7 +126,6 @@
 				const parent = episodeComponent.offsetParent;
 
 				if (parent) {
-					console.log('Scrolling', episodeComponent.offsetLeft);
 					parent.scrollTo({
 						left:
 							episodeComponent.offsetLeft -

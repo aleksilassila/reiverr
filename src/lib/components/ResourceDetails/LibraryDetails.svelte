@@ -338,7 +338,6 @@
 			on:download={() => setTimeout(refetch, 5000)}
 		/>
 	{:else if isAdded && servarrId && type === 'tv' && series?.statistics?.seasonCount}
-		{console.log(series)}
 		<SeriesRequestModal
 			modalProps={requestModalProps}
 			sonarrId={servarrId}

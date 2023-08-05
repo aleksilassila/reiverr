@@ -50,7 +50,6 @@ export const getRadarrMovieByTmdbId = (tmdbId: string): Promise<RadarrMovie | un
 export const addMovieToRadarr = async (tmdbId: number) => {
 	const tmdbMovie = await getTmdbMovie(tmdbId);
 	const radarrMovie = await lookupRadarrMovieByTmdbId(tmdbId);
-	console.log('fetched movies', tmdbMovie, radarrMovie);
 
 	if (radarrMovie?.id) throw new Error('Movie already exists');
 

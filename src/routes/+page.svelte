@@ -7,7 +7,6 @@
 	import { library } from '$lib/stores/library.store';
 	import type { ComponentProps } from 'svelte';
 	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
-	import { log } from '$lib/utils';
 
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
@@ -15,7 +14,6 @@
 
 	let continueWatchingProps: Promise<(ComponentProps<Poster> & { runtime: number })[]> = $library
 		.then((libraryData) => libraryData.continueWatching)
-		.then(log)
 		.then((items) =>
 			items.map((item) =>
 				item.tmdbMovie

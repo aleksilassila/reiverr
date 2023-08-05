@@ -103,7 +103,7 @@
 
 <div class="grid">
 	<div
-		class="min-h-max h-screen w-screen overflow-hidden row-start-1 col-start-1 relative"
+		class="min-h-max h-screen relative overflow-hidden"
 		out:fade={{ duration }}
 		in:fade={{ delay: duration, duration }}
 	>
