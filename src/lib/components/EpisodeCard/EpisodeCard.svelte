@@ -24,7 +24,7 @@
 <button
 	on:click
 	class={classNames(
-		'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative cursor-pointer selectable flex-shrink-0',
+		'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative cursor-pointer selectable flex-shrink-0 placeholder-image',
 		{
 			'h-40': size === 'md',
 			'h-full': size === 'dynamic',

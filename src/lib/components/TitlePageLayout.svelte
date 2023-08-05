@@ -2,8 +2,8 @@
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
 	import { DotFilled } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
-	import Carousel from '../Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
+	import Carousel from './Carousel/Carousel.svelte';
+	import CarouselPlaceholderItems from './Carousel/CarouselPlaceholderItems.svelte';
 
 	export let backdropPath: string;
 	export let posterPath: string;

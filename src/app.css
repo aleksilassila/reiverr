@@ -10,6 +10,10 @@ a {
 	@apply bg-zinc-700 bg-opacity-40 animate-pulse;
 }
 
+.placeholder-image {
+	@apply bg-zinc-700 bg-opacity-75;
+}
+
 .selectable {
 	@apply focus-within:outline outline-2 outline-[#FDEA8A88] outline-offset-2;
 }

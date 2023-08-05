@@ -9,7 +9,7 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import DetailsPage from '$lib/components/DetailsPage/DetailsPage.svelte';
+	import TitlePageLayout from '$lib/components/TitlePageLayout.svelte';
 	import { createModalProps } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
@@ -20,6 +20,7 @@
 	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
+	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
 
 	const itemStore = createLibraryItemStore(tmdbId);
 
@@ -63,7 +64,7 @@
 </script>
 
 {#await tmdbMoviePromise then movie}
-	<DetailsPage
+	<TitlePageLayout
 		title={movie?.title || 'Movie'}
 		backdropPath={movie?.backdrop_path || ''}
 		posterPath={movie?.poster_path || ''}
@@ -74,7 +75,9 @@
 			>{new Date(movie?.release_date || Date.now()).getFullYear()}</svelte:fragment
 		>
 		<svelte:fragment slot="title-info-2">{movie?.runtime} min</svelte:fragment>
-		<svelte:fragment slot="title-info-3">{movie?.vote_average?.toFixed(1)} TMDB</svelte:fragment>
+		<svelte:fragment slot="title-info-3">
+			<a href={tmdbUrl} target="_blank">{movie?.vote_average?.toFixed(1)} TMDB</a>
+		</svelte:fragment>
 		<svelte:fragment slot="episodes-carousel">
 			{@const progress = $itemStore.item?.continueWatching?.progress}
 			{#if progress}
@@ -295,7 +298,7 @@
 				{/each}
 			{/await}
 		</svelte:fragment>
-	</DetailsPage>
+	</TitlePageLayout>
 {/await}
 
 {#if requestModalVisible}
