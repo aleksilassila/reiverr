@@ -4,13 +4,16 @@
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 
 	export let gradientFromColor = 'from-stone-900';
+	export let heading = '';
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
 </script>
 
 <div class="flex justify-between items-center mx-8 gap-4">
-	<slot name="title" />
+	<slot name="title">
+		<div class="font-medium text-lg">{heading}</div>
+	</slot>
 	<div class="flex gap-2">
 		<IconButton
 			on:click={() => {

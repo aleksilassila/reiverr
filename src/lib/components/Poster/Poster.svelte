@@ -5,94 +5,73 @@
 	import { formatMinutesToTime } from '$lib/utils';
 	import { onMount } from 'svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import classNames from 'classnames';
+	import PlayButton from '../PlayButton.svelte';
+	import ProgressBar from '../ProgressBar.svelte';
 
-	export let tmdbId: string;
+	export let tmdbId: number;
+	export let jellyfinId: string = '';
+	export let type: 'movie' | 'series' = 'movie';
+	export let backdropUri: string;
+
+	export let title = '';
+	export let subtitle = '';
+
 	export let progress = 0;
-	export let length = 0;
-	export let randomProgress = false;
-	if (randomProgress) progress = Math.random() > 0.5 ? Math.round(Math.random() * 100) : 100;
-
-	export let type: 'movie' | 'tv' = 'movie';
-
-	let bg = '';
-	let title = 'Loading...';
-
-	onMount(() => {
-		TmdbApi.get('/' + type + '/' + tmdbId)
-			.then((res) => res.data)
-			.then((data: any) => {
-				bg = TMDB_POSTER_SMALL + data.poster_path;
-				title = data.title;
-			});
-	});
-
-	let streamFetching = false;
-	function stream() {
-		if (streamFetching || !tmdbId) return;
-		streamFetching = true;
-		getJellyfinItemByTmdbId(tmdbId).then((item: any) => {
-			if (item.Id) playerState.streamJellyfinId(item.Id);
-			streamFetching = false;
-		});
-	}
 </script>
 
-<div class="group grid grid-cols-[2px_1fr_2px] grid-rows-[2px_1fr_2px]">
+<a
+	href={`/${type}/${tmdbId}`}
+	style={"background-image: url('" + TMDB_POSTER_SMALL + backdropUri + "');"}
+	class="relative flex shadow-lg rounded-lg aspect-[2/3] bg-center bg-cover w-44 selectable group hover:text-inherit flex-shrink-0"
+>
 	<div
-		style={'width: ' + progress + '%'}
-		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all col-span-3"
-	/>
-	<div
-		style={'height: ' + progress + '%'}
-		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all"
-	/>
-	<div
-		class="bg-center bg-cover aspect-[2/3] h-72 m-1.5"
-		style={"background-image: url('" + bg + "')"}
+		class={classNames(
+			'flex-1 flex flex-col justify-between bg-darken opacity-0 group-hover:opacity-100 transition-opacity',
+			{
+				'py-2 px-3': true
+				// 'pb-4': progress,
+				// 'pb-2': !progress
+			}
+		)}
 	>
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<div class="w-full h-full hover:bg-darken transition-all flex">
-			<!-- svelte-ignore a11y-no-static-element-interactions -->
-			<div
-				class="opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between flex-1 cursor-pointer"
-				on:click={() => (window.location.href = '/' + type + '/' + tmdbId)}
-			>
+		<div class="flex justify-self-start justify-between">
+			<slot name="top-left">
 				<div>
-					<h1 class="font-bold text-lg tracking-wide">
-						{title}
-					</h1>
-					{#if type === 'movie'}
-						<h2 class="text-xs uppercase text-zinc-300"><b>December</b> 2022</h2>
-					{:else}
-						<h2 class="text-xs uppercase text-zinc-300">S1 <b>E2</b></h2>
-					{/if}
-					{#if progress && length}
-						<h2 class="mt-2 text-sm tracking-wide text-zinc-300">
-							<b>{formatMinutesToTime(length * (1 - progress / 100))}</b> left
-						</h2>
-					{/if}
+					<h1 class="font-semibold line-clamp-2">{title}</h1>
+					<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>
 				</div>
-				<div class="flex flex-col gap-2">
-					<button
-						class="bg-white border-2 border-white hover:bg-amber-400 hover:border-amber-400 transition-colors text-zinc-900 px-8 py-2.5 uppercase tracking-widest font-extrabold cursor-pointer text-xs"
-						on:click|stopPropagation={stream}>Stream</button
-					>
-					<a
-						on:click|stopPropagation
-						href={'/' + type + '/' + tmdbId}
-						class="border-2 border-white cursor-pointer transition-colors px-8 py-2.5 uppercase tracking-widest font-semibold text-xs hover:bg-amber-400 hover:text-black text-center"
-						>Details</a
-					>
-				</div>
-			</div>
+			</slot>
+			<slot name="top-right">
+				<div />
+			</slot>
+		</div>
+		<div class="flex justify-self-end justify-between">
+			<slot name="bottom-left">
+				<div />
+			</slot>
+			<slot name="bottom-right">
+				<div />
+			</slot>
 		</div>
 	</div>
 	<div
-		style={'height: ' + progress + '%'}
-		class="w-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all self-end"
+		class="absolute inset-0 bg-gradient-to-t from-darken group-hover:opacity-0 transition-opacity"
 	/>
-	<div
-		style={'width: ' + progress + '%'}
-		class="h-full bg-zinc-200 opacity-100 group-hover:opacity-80 transition-all col-span-3 justify-self-end"
-	/>
-</div>
+	<div class="absolute inset-0 flex items-center justify-center">
+		<PlayButton
+			on:click={(e) => {
+				e.preventDefault();
+				jellyfinId && playerState.streamJellyfinId(jellyfinId);
+			}}
+			class="opacity-0 group-hover:opacity-100 transition-opacity"
+		/>
+	</div>
+	{#if progress}
+		<div
+			class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity bg-gradient-to-t ease-in-out"
+		>
+			<ProgressBar {progress} />
+		</div>
+	{/if}
+</a>

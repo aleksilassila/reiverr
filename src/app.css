@@ -15,9 +15,9 @@ a {
 }
 
 .selectable {
-	@apply focus-within:outline outline-2 outline-[#FDEA8A88] outline-offset-2;
+	@apply focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }
 
-.selectable-tab {
-	@apply focus-visible:outline outline-2 outline-[#FDEA8A88] outline-offset-2;
+.selectable-explicit {
+	@apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }

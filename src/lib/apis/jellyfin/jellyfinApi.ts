@@ -16,15 +16,24 @@ export const JellyfinApi = createClient<paths>({
 	}
 });
 
-export const getJellyfinContinueWatching = (limit = 8): Promise<JellyfinItem[]> =>
+export const getJellyfinContinueWatching = (): Promise<JellyfinItem[]> =>
 	JellyfinApi.get('/Users/{userId}/Items/Resume', {
 		params: {
 			path: {
 				userId: JELLYFIN_USER_ID
 			},
 			query: {
-				limit,
 				mediaTypes: ['Video'],
+				fields: ['ProviderIds']
+			}
+		}
+	}).then((r) => r.data?.Items || []);
+
+export const getJellyfinNextUp = () =>
+	JellyfinApi.get('/Shows/NextUp', {
+		params: {
+			query: {
+				userId: JELLYFIN_USER_ID,
 				fields: ['ProviderIds']
 			}
 		}

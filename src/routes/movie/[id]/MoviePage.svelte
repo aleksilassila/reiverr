@@ -18,6 +18,7 @@
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import ProgressBar from '$lib/components/ProgressBar.svelte';
 
 	export let tmdbId: number;
 	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
@@ -81,10 +82,8 @@
 		<svelte:fragment slot="episodes-carousel">
 			{@const progress = $itemStore.item?.continueWatching?.progress}
 			{#if progress}
-				<div
-					class="h-1 bg-zinc-800 rounded-full overflow-hidden group-hover:opacity-0 transition-opacity mx-4 sm:mx-8"
-				>
-					<div style={'width: ' + progress + '%'} class="h-full bg-zinc-400" />
+				<div class="mx-4 sm:mx-8">
+					<ProgressBar {progress} />
 				</div>
 			{/if}
 		</svelte:fragment>

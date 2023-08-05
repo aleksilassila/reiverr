@@ -1,8 +1,8 @@
 import {
 	getJellyfinContinueWatching,
 	getJellyfinEpisodes,
-	getJellyfinEpisodesBySeries,
 	getJellyfinItems,
+	getJellyfinNextUp,
 	type JellyfinItem
 } from '$lib/apis/jellyfin/jellyfinApi';
 import {
@@ -19,10 +19,10 @@ import {
 } from '$lib/apis/sonarr/sonarrApi';
 import {
 	getTmdbMovie,
-	getTmdbMovieBackdrop,
 	getTmdbSeries,
-	getTmdbSeriesBackdrop,
-	getTmdbSeriesFromTvdbId
+	getTmdbSeriesFromTvdbId,
+	type TmdbMovieFull2,
+	type TmdbSeriesFull2
 } from '$lib/apis/tmdb/tmdbApi';
 import { get, writable } from 'svelte/store';
 import { settings } from './settings.store';
@@ -45,10 +45,13 @@ export interface PlayableItem {
 	tmdbId: number;
 	jellyfinItem?: JellyfinItem;
 	jellyfinEpisodes?: JellyfinItem[];
+	nextJellyfinEpisode?: JellyfinItem;
 	radarrMovie?: RadarrMovie;
 	radarrDownloads?: RadarrDownload[];
 	sonarrSeries?: SonarrSeries;
 	sonarrDownloads?: SonarrDownload[];
+	tmdbMovie?: TmdbMovieFull2;
+	tmdbSeries?: TmdbSeriesFull2;
 }
 
 export interface Library {
@@ -64,7 +67,8 @@ async function getLibrary(): Promise<Library> {
 	const sonarrSeriesPromise = getSonarrSeries();
 	const sonarrDownloadsPromise = getSonarrDownloads();
 
-	const continueWatchingPromise = getJellyfinContinueWatching();
+	const jellyfinContinueWatchingPromise = getJellyfinContinueWatching();
+	const jellyfinNextUpPromise = getJellyfinNextUp();
 	const jellyfinLibraryItemsPromise = getJellyfinItems();
 	const jellyfinEpisodesPromise = getJellyfinEpisodes();
 
@@ -74,11 +78,12 @@ async function getLibrary(): Promise<Library> {
 	const sonarrSeries = await sonarrSeriesPromise;
 	const sonarrDownloads = await sonarrDownloadsPromise;
 
-	const jellyfinContinueWatching = await continueWatchingPromise;
+	const jellyfinContinueWatching = await jellyfinContinueWatchingPromise;
 	const jellyfinLibraryItems = await jellyfinLibraryItemsPromise;
 	const jellyfinEpisodes = await jellyfinEpisodesPromise.then((episodes) =>
 		episodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99))
 	);
+	const jellyfinNextUp = await jellyfinNextUpPromise;
 
 	const items: Record<string, PlayableItem> = {};
 
@@ -112,15 +117,13 @@ async function getLibrary(): Promise<Library> {
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const backdropUrl = await getTmdbMovie(radarrMovie.tmdbId || 0).then(
-			(r) =>
-				(
-					r?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-					r?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-					r?.images?.backdrops?.find((b) => b.iso_639_1) ||
-					r?.images?.backdrops?.[0]
-				)?.file_path
-		);
+		const tmdbMovie = await getTmdbMovie(radarrMovie.tmdbId || 0);
+		const backdropUrl = (
+			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1) ||
+			tmdbMovie?.images?.backdrops?.[0]
+		)?.file_path;
 
 		return {
 			type: 'movie' as const,
@@ -133,7 +136,8 @@ async function getLibrary(): Promise<Library> {
 			jellyfinId: jellyfinItem?.Id,
 			jellyfinItem,
 			radarrMovie,
-			radarrDownloads: itemRadarrDownloads
+			radarrDownloads: itemRadarrDownloads,
+			tmdbMovie
 		};
 	});
 
@@ -156,14 +160,17 @@ async function getLibrary(): Promise<Library> {
 				? { progress: downloadProgress, completionTime }
 				: undefined;
 
-		const length = jellyfinItem?.RunTimeTicks
-			? jellyfinItem.RunTimeTicks / 10_000_000 / 60
+		const nextJellyfinEpisode = jellyfinItem
+			? jellyfinContinueWatching.find((i) => i.SeriesId === jellyfinItem?.Id) ||
+			  jellyfinNextUp.find((i) => i.SeriesId === jellyfinItem?.Id)
 			: undefined;
-		const watchingProgress = jellyfinItem?.UserData?.PlayedPercentage;
+
+		const length = nextJellyfinEpisode?.RunTimeTicks
+			? nextJellyfinEpisode.RunTimeTicks / 10_000_000 / 60
+			: undefined;
+		const watchingProgress = nextJellyfinEpisode?.UserData?.PlayedPercentage;
 		const continueWatching =
-			length &&
-			watchingProgress &&
-			!!jellyfinContinueWatching.find((i) => i.Id === jellyfinItem?.Id)
+			length && watchingProgress && !!nextJellyfinEpisode
 				? { length, progress: watchingProgress }
 				: undefined;
 
@@ -172,15 +179,13 @@ async function getLibrary(): Promise<Library> {
 			: undefined;
 		const tmdbId = tmdbItem?.id || undefined;
 
-		const backdropUrl = await getTmdbSeries(tmdbId || 0).then(
-			(r) =>
-				(
-					r?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-					r?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-					r?.images?.backdrops?.find((b) => b.iso_639_1) ||
-					r?.images?.backdrops?.[0]
-				)?.file_path
-		);
+		const tmdbSeries = await getTmdbSeries(tmdbId || 0);
+		const backdropUrl = (
+			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1) ||
+			tmdbSeries?.images?.backdrops?.[0]
+		)?.file_path;
 
 		return {
 			type: 'series' as const,
@@ -194,7 +199,9 @@ async function getLibrary(): Promise<Library> {
 			jellyfinItem,
 			sonarrSeries,
 			sonarrDownloads: itemSonarrDownloads,
-			jellyfinEpisodes: jellyfinEpisodes.filter((i) => i.SeriesId === jellyfinItem?.Id)
+			jellyfinEpisodes: jellyfinEpisodes.filter((i) => i.SeriesId === jellyfinItem?.Id),
+			nextJellyfinEpisode,
+			tmdbSeries
 		};
 	});
 
@@ -207,7 +214,9 @@ async function getLibrary(): Promise<Library> {
 	return {
 		items,
 		itemsArray: Object.values(items),
-		continueWatching: Object.values(items).filter((i) => i.continueWatching)
+		continueWatching: Object.values(items).filter(
+			(i) => i.continueWatching || i.nextJellyfinEpisode
+		)
 	};
 }
 

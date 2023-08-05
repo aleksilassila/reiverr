@@ -172,11 +172,13 @@
 							{/if}
 						</h2>
 						<h2
-							class="tracking-wider font-display font-bold text-amber-300 absolute opacity-10 text-8xl -ml-6 mt-16"
+							class="tracking-wider font-display font-bold text-amber-300 absolute opacity-10 text-6xl sm:text-7xl lg:text-8xl -ml-6 mt-16"
 						>
 							<slot name="reason">{reason}</slot>
 						</h2>
-						<h1 class="uppercase text-9xl font-semibold font-display z-[1] relative">
+						<h1
+							class="uppercase text-7xl sm:text-8xl lg:text-9xl font-semibold font-display z-[1] relative"
+						>
 							{title}
 						</h1>
 					</div>

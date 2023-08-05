@@ -5,6 +5,8 @@
 	import { fade } from 'svelte/transition';
 	import IconButton from '../IconButton.svelte';
 	import { onMount } from 'svelte';
+	import PlayButton from '../PlayButton.svelte';
+	import ProgressBar from '../ProgressBar.svelte';
 
 	export let backdropPath: string;
 
@@ -66,12 +68,12 @@
 			<slot name="left-bottom">
 				<div class="flex flex-col items-start">
 					{#if subtitle}
-						<div class="text-zinc-300 text-sm font-medium">{subtitle}</div>
+						<h2 class="text-zinc-300 text-sm font-medium">{subtitle}</h2>
 					{/if}
 					{#if title}
-						<div class="font-medium text-left">
+						<h1 class="font-medium text-left">
 							{title}
-						</div>
+						</h1>
 					{/if}
 				</div>
 			</slot>
@@ -83,19 +85,16 @@
 		</div>
 	</div>
 	<div class="absolute inset-0 flex items-center justify-center">
-		<div
-			class="backdrop-blur-lg rounded-full p-1 bg-[#00000044] opacity-0 group-hover:opacity-100 transition-opacity"
-		>
-			<IconButton on:click={handlePlay}>
-				<TriangleRight size={30} />
-			</IconButton>
-		</div>
+		<PlayButton
+			on:click={handlePlay}
+			class="opacity-0 group-hover:opacity-100 transition-opacity"
+		/>
 	</div>
 	{#if progress}
 		<div
-			class="absolute h-1 bg-zinc-300 bg-opacity-50 bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 rounded-full overflow-hidden group-hover:opacity-0 transition-opacity"
+			class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity"
 		>
-			<div style={'width: ' + progress + '%'} class="h-full bg-zinc-200" />
+			<ProgressBar {progress} />
 		</div>
 	{/if}
 </button>

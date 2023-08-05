@@ -168,7 +168,7 @@
 			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
 				class={classNames(
-					'flex gap-2 items-center p-3 px-4 shadow-xl selectable rounded-xl',
+					'flex gap-2 items-center p-3 px-4 shadow-xl selectable-explicit rounded-xl',
 					'text-zinc-200 bg-zinc-700 bg-opacity-40 cursor-text focus-within:bg-opacity-60'
 				)}
 				on:click={() => document.activeElement !== searchInput && searchInput?.focus()}
