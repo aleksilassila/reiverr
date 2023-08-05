@@ -25,7 +25,7 @@ export interface TmdbMovieFull2 extends TmdbMovie2 {
 
 export interface TmdbSeriesFull2 extends TmdbSeries2 {
 	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
-	aggregate_credits: operations['tv-series-credits']['responses']['200']['content']['application/json'];
+	aggregate_credits: operations['tv-series-aggregate-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
 	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
 }

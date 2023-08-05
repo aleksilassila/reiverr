@@ -59,9 +59,9 @@
 		Promise.all(
 			s?.aggregate_credits?.cast?.map((m) => ({
 				tmdbId: m.id || 0,
-				name: m.name || '',
 				backdropUri: m.profile_path || '',
-				department: m.known_for_department || ''
+				name: m.name || '',
+				subtitle: m.roles?.[0]?.character || m.known_for_department || ''
 			})) || []
 		)
 	);

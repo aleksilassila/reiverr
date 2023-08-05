@@ -58,17 +58,15 @@
 			.then((res) => res.data?.results || [])
 			.then(fetchCardProps);
 
-	const fetchTrendingActors = () =>
+	const fetchTrendingActorProps = () =>
 		getTrendingActors().then((actors) =>
 			actors
 				.filter((a) => a.profile_path)
 				.map((actor) => ({
 					tmdbId: actor.id || 0,
-					name: actor.name || '',
 					backdropUri: actor.profile_path || '',
-					knownFor: actor.known_for?.map((movie) => movie.title || '') || [],
-					department: actor.known_for_department || '',
-					size: 'lg'
+					name: actor.name || '',
+					subtitle: actor.known_for_department || ''
 				}))
 		);
 
@@ -91,7 +89,7 @@
 	<div>
 		<Carousel>
 			<div slot="title" class={headerStyle}>Popular People</div>
-			{#await fetchTrendingActors()}
+			{#await fetchTrendingActorProps()}
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}

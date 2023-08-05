@@ -52,7 +52,7 @@
 
 <div class="flex flex-col py-4 gap-8 bg-black">
 	<div
-		class="mx-4 sm:mx-8 py-4 sm:py-6 px-6 sm:px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-zinc-900 rounded-xl"
+		class="mx-4 sm:mx-8 py-4 sm:py-6 px-6 sm:px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-stone-900 rounded-xl"
 	>
 		<slot name="info-description">
 			<div
