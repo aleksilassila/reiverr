@@ -11,14 +11,30 @@
 
 	export let tagline: string;
 	export let overview: string;
+
+	let bottomHeight: number;
+	let windowHeight: number;
+	let imageHeight: number;
+	$: imageHeight = windowHeight - bottomHeight * 0.3;
 </script>
 
-<div class="flex flex-col max-h-screen bg-black gap-4 pb-4" transition:fade>
-	<div
-		style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropPath + "')"}
-		class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] px-4 sm:px-8 bg-center bg-cover sm:bg-fixed"
-	>
-		<div class="absolute inset-0 bg-gradient-to-t from-black to-30% to-darken" />
+<svelte:window bind:innerHeight={windowHeight} />
+
+<div
+	style={"background-image: url('" +
+		TMDB_IMAGES_ORIGINAL +
+		backdropPath +
+		"'); height: " +
+		imageHeight.toFixed() +
+		'px'}
+	class="fixed inset-x-0 bg-center bg-cover z-[-10]"
+>
+	<div class="absolute inset-0 bg-darken" />
+</div>
+
+<div class="flex flex-col h-screen" transition:fade>
+	<div class="flex-1 relative flex pt-24 px-4 sm:px-8">
+		<div class="absolute inset-0 bg-gradient-to-t from-black to-30%" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end">
 			<div
 				class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block"
@@ -47,7 +63,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="py-2">
+	<div class="py-6 bg-black" bind:clientHeight={bottomHeight}>
 		<slot name="episodes-carousel" />
 	</div>
 </div>
