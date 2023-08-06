@@ -3,10 +3,9 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import Poster from '$lib/components/Poster/Poster.svelte';
-	import ResourceDetails from '$lib/components/ResourceDetails/ResourceDetails.svelte';
+	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcase.svelte';
 	import { library } from '$lib/stores/library.store';
 	import type { ComponentProps } from 'svelte';
-	import ResourceDetailsControls from './ResourceDetailsControls.svelte';
 
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
@@ -62,30 +61,26 @@
 	<div class="h-screen" />
 {:then movies}
 	{@const movie = movies[showcaseIndex]}
-	<ResourceDetails
-		type="movie"
-		tmdbId={movie?.id || 0}
-		title={movie?.title || ''}
-		releaseDate={new Date(movie?.release_date || Date.now())}
-		tagline={movie?.tagline || ''}
-		overview={movie?.overview || ''}
-		genres={movie?.genres?.map((g) => g.name || '') || []}
-		runtime={movie?.runtime || 0}
-		tmdbRating={movie?.vote_average || 0}
-		starring={movie?.credits?.cast?.slice(0, 5) || []}
-		videos={movie.videos?.results || []}
-		backdropPath={movie?.backdrop_path || ''}
-	>
-		<ResourceDetailsControls
-			slot="page-controls"
-			{onNext}
+	{#key movie?.id}
+		<TitleShowcase
+			tmdbId={movie?.id || 0}
+			type="movie"
+			title={movie?.title || ''}
+			genres={movie?.genres?.map((g) => g.name || '') || []}
+			runtime={movie?.runtime || 0}
+			releaseDate={new Date(movie?.release_date || Date.now())}
+			tmdbRating={movie?.vote_average || 0}
+			trailerId={movie?.videos?.results?.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
+				?.key}
+			director={movie?.credits?.crew?.find((c) => c.job === 'Director')?.name}
+			backdropUri={movie?.backdrop_path || ''}
+			posterUri={movie?.poster_path || ''}
 			{onPrevious}
-			index={showcaseIndex}
-			length={movies.length}
+			{onNext}
+			{showcaseIndex}
+			showcaseLength={movies.length}
 		/>
-	</ResourceDetails>
-{:catch err}
-	Error occurred {JSON.stringify(err)}
+	{/key}
 {/await}
 
 <div class="py-8">

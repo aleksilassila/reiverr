@@ -18,7 +18,7 @@
 		style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropPath + "')"}
 		class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] px-4 sm:px-8 bg-center bg-cover sm:bg-fixed"
 	>
-		<div class="absolute inset-0 bg-gradient-to-t from-black to-50% to-darken" />
+		<div class="absolute inset-0 bg-gradient-to-t from-black to-30% to-darken" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end">
 			<div
 				class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block"
