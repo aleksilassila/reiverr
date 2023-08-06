@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
-	import { Check, CheckCircled, DotsHorizontal, TriangleRight } from 'radix-icons-svelte';
+	import { Check } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
-	import IconButton from '../IconButton.svelte';
-	import { onMount } from 'svelte';
+	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
+	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
+	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import { library } from '$lib/stores/library.store';
 
 	export let backdropPath: string;
 
@@ -17,84 +20,125 @@
 	export let progress = 0;
 	export let watched = false;
 
-	export let handlePlay: (() => void) | undefined = undefined;
+	export let jellyfinId: string | undefined = undefined;
 
 	export let size: 'md' | 'dynamic' = 'md';
+
+	function handleSetWatched() {
+		if (!jellyfinId) return;
+
+		watched = true;
+		setJellyfinItemWatched(jellyfinId).finally(() => library.refreshIn(5000));
+	}
+
+	function handleSetUnwatched() {
+		if (!jellyfinId) return;
+
+		watched = false;
+		setJellyfinItemUnwatched(jellyfinId).finally(() => library.refreshIn(5000));
+	}
+
+	function handlePlay() {
+		if (!jellyfinId) return;
+
+		playerState.streamJellyfinId(jellyfinId);
+	}
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-<button
-	on:click
-	class={classNames(
-		'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative cursor-pointer selectable flex-shrink-0 placeholder-image',
-		{
-			'h-40': size === 'md',
-			'h-full': size === 'dynamic',
-			group: !!handlePlay
-		}
-	)}
-	style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropPath + "');"}
-	in:fade|global={{ duration: 100, delay: 100 }}
-	out:fade|global={{ duration: 100 }}
->
-	<div
-		class={classNames('flex flex-col justify-between h-full group-hover:opacity-0 transition-all', {
-			'px-2 lg:px-3 pt-2': true,
-			'pb-4 lg:pb-6': progress,
-			'pb-2': !progress,
-			'bg-gradient-to-t from-darken': !!handlePlay,
-			'bg-darken': !handlePlay || watched
-		})}
-	>
-		<div class="flex justify-between items-center">
-			<div>
-				<slot name="left-top">
-					{#if episodeNumber}
-						<p class="text-xs lg:text-sm font-medium text-zinc-300">{episodeNumber}</p>
-					{/if}
-				</slot>
-			</div>
-			<div>
-				<slot name="right-top">
-					{#if runtime}
-						<p class="text-xs lg:text-sm font-medium text-zinc-300">
-							{runtime} min
-						</p>
-					{/if}
-				</slot>
-			</div>
-		</div>
-		<div class="flex items-end justify-between">
-			<slot name="left-bottom">
-				<div class="flex flex-col items-start">
-					{#if subtitle}
-						<h2 class="text-zinc-300 text-sm font-medium">{subtitle}</h2>
-					{/if}
-					{#if title}
-						<h1 class="font-medium text-left">
-							{title}
-						</h1>
-					{/if}
-				</div>
-			</slot>
-			<slot name="right-bottom">
-				{#if watched}
-					<Check size={20} class="opacity-80" />
-				{/if}
-			</slot>
-		</div>
-	</div>
-	<div class="absolute inset-0 flex items-center justify-center">
-		<PlayButton
-			on:click={handlePlay}
-			class="opacity-0 group-hover:opacity-100 transition-opacity"
-		/>
-	</div>
-	{#if progress}
-		<div
-			class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity"
+<ContextMenu heading={subtitle}>
+	<svelte:fragment slot="menu">
+		<ContextMenuItem
+			on:click={handleSetWatched}
+			disabled={!handleSetWatched || watched || !jellyfinId}
 		>
-			<ProgressBar {progress} />
+			Mark as watched
+		</ContextMenuItem>
+		<ContextMenuItem
+			on:click={handleSetUnwatched}
+			disabled={!handleSetUnwatched || !watched || !jellyfinId}
+		>
+			Mark as unwatched
+		</ContextMenuItem>
+	</svelte:fragment>
+	<button
+		on:click
+		class={classNames(
+			'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative selectable flex-shrink-0 placeholder-image',
+			{
+				'h-40': size === 'md',
+				'h-full': size === 'dynamic',
+				group: !!jellyfinId,
+				'cursor-default': !jellyfinId
+			}
+		)}
+		style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropPath + "');"}
+		in:fade|global={{ duration: 100, delay: 100 }}
+		out:fade|global={{ duration: 100 }}
+	>
+		<div
+			class={classNames(
+				'flex flex-col justify-between h-full group-hover:opacity-0 transition-all',
+				{
+					'px-2 lg:px-3 pt-2': true,
+					'pb-4 lg:pb-6': progress,
+					'pb-2': !progress,
+					'bg-gradient-to-t from-darken': !!jellyfinId,
+					'bg-darken': !jellyfinId || watched
+				}
+			)}
+		>
+			<div class="flex justify-between items-center">
+				<div>
+					<slot name="left-top">
+						{#if episodeNumber}
+							<p class="text-xs lg:text-sm font-medium text-zinc-300">{episodeNumber}</p>
+						{/if}
+					</slot>
+				</div>
+				<div>
+					<slot name="right-top">
+						{#if runtime}
+							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+								{runtime} min
+							</p>
+						{/if}
+					</slot>
+				</div>
+			</div>
+			<div class="flex items-end justify-between">
+				<slot name="left-bottom">
+					<div class="flex flex-col items-start">
+						{#if subtitle}
+							<h2 class="text-zinc-300 text-sm font-medium">{subtitle}</h2>
+						{/if}
+						{#if title}
+							<h1 class="font-medium text-left line-clamp-2">
+								{title}
+							</h1>
+						{/if}
+					</div>
+				</slot>
+				<slot name="right-bottom">
+					{#if watched}
+						<div class="flex-shrink-0">
+							<Check size={20} class="opacity-80" />
+						</div>
+					{/if}
+				</slot>
+			</div>
 		</div>
-	{/if}
-</button>
+		<div class="absolute inset-0 flex items-center justify-center">
+			<PlayButton
+				on:click={handlePlay}
+				class="opacity-0 group-hover:opacity-100 transition-opacity"
+			/>
+		</div>
+		{#if progress}
+			<div
+				class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity"
+			>
+				<ProgressBar {progress} />
+			</div>
+		{/if}
+	</button>
+</ContextMenu>

@@ -13,7 +13,7 @@
 	export let overview: string;
 </script>
 
-<div class="flex flex-col max-h-screen bg-black pb-4 gap-4" transition:fade>
+<div class="flex flex-col max-h-screen bg-black gap-4 pb-4" transition:fade>
 	<div
 		style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropPath + "')"}
 		class="flex-shrink relative flex pt-24 aspect-video min-h-[70vh] px-4 sm:px-8 bg-center bg-cover sm:bg-fixed"
@@ -47,10 +47,12 @@
 			</div>
 		</div>
 	</div>
-	<slot name="episodes-carousel" />
+	<div class="py-2">
+		<slot name="episodes-carousel" />
+	</div>
 </div>
 
-<div class="flex flex-col py-4 gap-8 bg-black">
+<div class="flex flex-col gap-8 bg-black">
 	<div
 		class="mx-4 sm:mx-8 py-4 sm:py-6 px-6 sm:px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-stone-900 rounded-xl"
 	>

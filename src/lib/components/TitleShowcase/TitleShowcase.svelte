@@ -176,13 +176,13 @@
 	{/if}
 	{#if UIVisible}
 		<div
-			class="absolute inset-0 bg-gradient-to-t from-stone-950 via-darken via-[30%] to-darken"
+			class="absolute inset-0 bg-gradient-to-t from-stone-950 via-darken via-[30%] to-darken opacity-50"
 			in:fade={{ duration: ANIMATION_DURATION }}
 			out:fade={{ duration: ANIMATION_DURATION }}
 		/>
 	{:else if !UIVisible}
 		<div
-			class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-darken"
+			class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-darken opacity-50"
 			in:fade={{ duration: ANIMATION_DURATION }}
 			out:fade={{ duration: ANIMATION_DURATION }}
 		/>

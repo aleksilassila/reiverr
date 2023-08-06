@@ -173,3 +173,26 @@ export const reportJellyfinPlaybackStopped = (
 			MediaSourceId: itemId
 		}
 	});
+
+export const setJellyfinItemWatched = (jellyfinId: string) =>
+	JellyfinApi.post('/Users/{userId}/PlayedItems/{itemId}', {
+		params: {
+			path: {
+				userId: JELLYFIN_USER_ID,
+				itemId: jellyfinId
+			},
+			query: {
+				datePlayed: new Date().toISOString()
+			}
+		}
+	});
+
+export const setJellyfinItemUnwatched = (jellyfinId: string) =>
+	JellyfinApi.del('/Users/{userId}/PlayedItems/{itemId}', {
+		params: {
+			path: {
+				userId: JELLYFIN_USER_ID,
+				itemId: jellyfinId
+			}
+		}
+	});

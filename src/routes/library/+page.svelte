@@ -96,7 +96,8 @@
 					genres: series.genres || [],
 					backdropUri: item.cardBackdropUrl,
 					rating: series.ratings?.value || series.ratings?.value || item.tmdbRating || 0,
-					seasons: series.seasons?.length || 0
+					seasons: series.seasons?.length || 0,
+					jellyfinId: item.sonarrSeries?.statistics?.sizeOnDisk ? item.jellyfinId : undefined
 				};
 			} else if (movie) {
 				props = {
@@ -107,7 +108,8 @@
 					genres: movie.genres || [],
 					backdropUri: item.cardBackdropUrl,
 					rating: movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0,
-					runtimeMinutes: movie.runtime || 0
+					runtimeMinutes: movie.runtime || 0,
+					jellyfinId: item.radarrMovie?.movieFile ? item.jellyfinId : undefined
 				};
 			} else {
 				continue;
@@ -162,7 +164,7 @@
 </div>
 
 <div class="py-4 px-2 md:px-8">
-	<div class="max-w-screen-2xl m-auto backdrop-blur-2xl flex flex-col gap-4">
+	<div class="max-w-screen-2xl m-auto flex flex-col gap-4">
 		<div class="flex justify-between gap-2 sm:flex-row flex-col">
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<!-- svelte-ignore a11y-no-static-element-interactions -->

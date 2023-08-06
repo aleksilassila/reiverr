@@ -220,6 +220,7 @@ async function getLibrary(): Promise<Library> {
 	};
 }
 
+let delayedRefreshTimeout: NodeJS.Timeout;
 function createLibraryStore() {
 	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
 
@@ -232,6 +233,12 @@ function createLibraryStore() {
 	return {
 		...library,
 		refresh: async () => getLibrary().then((r) => set(Promise.resolve(r))),
+		refreshIn: async (ms: number) => {
+			clearTimeout(delayedRefreshTimeout);
+			delayedRefreshTimeout = setTimeout(() => {
+				getLibrary().then((r) => set(Promise.resolve(r)));
+			}, ms);
+		},
 		filterNotInLibrary
 	};
 }

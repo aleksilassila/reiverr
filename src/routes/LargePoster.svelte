@@ -1,1 +1,0 @@
-<div>Large poster</div>

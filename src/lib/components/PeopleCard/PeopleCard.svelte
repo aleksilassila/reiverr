@@ -21,7 +21,9 @@
 	)}
 	href={`/person/${tmdbId}`}
 >
-	<div class="mx-auto rounded-full overflow-hidden flex-shrink-0 aspect-square w-full">
+	<div
+		class="mx-auto rounded-full overflow-hidden flex-shrink-0 aspect-square w-full bg-zinc-200 bg-opacity-20"
+	>
 		<div
 			style={"background-image: url('" + TMDB_PROFILE_SMALL + backdropUri + "')"}
 			class="bg-center bg-cover group-hover:scale-105 transition-transform w-full h-full"

@@ -84,7 +84,8 @@
 {/await}
 
 <div class="py-8">
-	<Carousel heading="Continue Watching" gradientFromColor="from-stone-950">
+	<Carousel gradientFromColor="from-stone-950">
+		<div slot="title" class="text-xl font-medium text-zinc-200">Continue Watching</div>
 		{#await continueWatchingProps}
 			<CarouselPlaceholderItems />
 		{:then props}

@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
+	import {
+		setJellyfinItemUnwatched,
+		type JellyfinItem,
+		setJellyfinItemWatched
+	} from '$lib/apis/jellyfin/jellyfinApi';
 	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
@@ -13,6 +17,8 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
+	import ContextMenu from '$lib/components/ContextMenu/ContextMenu.svelte';
+	import ContextMenuItem from '$lib/components/ContextMenu/ContextMenuItem.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { createModalProps } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
@@ -77,6 +83,7 @@
 						e?.IndexNumber === tmdbEpisode?.episode_number &&
 						e?.ParentIndexNumber === tmdbEpisode?.season_number
 				);
+				const jellyfinEpisodeId = jellyfinEpisode?.Id;
 
 				if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
 					nextJellyfinEpisode = jellyfinEpisode;
@@ -88,9 +95,7 @@
 					backdropPath: tmdbEpisode?.still_path || '',
 					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
 					watched: jellyfinEpisode?.UserData?.Played || false,
-					handlePlay: jellyfinEpisode?.Id
-						? () => playerState.streamJellyfinId(jellyfinEpisode?.Id || '')
-						: undefined
+					jellyfinId: jellyfinEpisodeId
 				});
 			});
 			episodeProps[season?.season_number || 0] = episodes;
@@ -113,6 +118,10 @@
 		addSeriesToSonarr(tmdbId)
 			.then(refresh)
 			.finally(() => (addToSonarrLoading = false));
+	}
+
+	function setAsWatched(seasonNumber: number, episodeIndex: number) {
+		console.log('Clicked', seasonNumber, episodeIndex);
 	}
 
 	let didFocusNextEpisode = false;
