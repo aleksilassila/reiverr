@@ -23,7 +23,7 @@
 	}
 
 	function handleClickOutside(event: MouseEvent) {
-		if (!menu?.contains(event.target as Node)) {
+		if (!menu?.contains(event.target as Node) && $contextMenu === id) {
 			event.preventDefault();
 			event.stopPropagation();
 			close();

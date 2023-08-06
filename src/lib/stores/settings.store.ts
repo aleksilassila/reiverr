@@ -9,6 +9,7 @@ interface Settings {
 		includedLanguages: string[];
 		filterBasedOnLanguage: boolean;
 	};
+	animationDuration: number;
 }
 
 const defaultSettings: Settings = {
@@ -19,7 +20,8 @@ const defaultSettings: Settings = {
 	discover: {
 		filterBasedOnLanguage: true,
 		includedLanguages: ['en']
-	}
+	},
+	animationDuration: 150
 };
 
 export const settings = writable<Settings>(defaultSettings);

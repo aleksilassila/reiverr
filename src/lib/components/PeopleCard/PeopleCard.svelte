@@ -19,7 +19,7 @@
 			'w-full': size === 'dynamic'
 		}
 	)}
-	href={`/person/${tmdbId}`}
+	href={`https://www.themoviedb.org/person/${tmdbId}`}
 >
 	<div
 		class="mx-auto rounded-full overflow-hidden flex-shrink-0 aspect-square w-full bg-zinc-200 bg-opacity-20"

@@ -12,7 +12,7 @@
 
 <div class="flex justify-between items-center mx-8 gap-4">
 	<slot name="title">
-		<div class="font-medium text-lg">{heading}</div>
+		<div class="font-semibold text-xl">{heading}</div>
 	</slot>
 	<div class="flex gap-2">
 		<IconButton

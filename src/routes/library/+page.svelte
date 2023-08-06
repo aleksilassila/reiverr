@@ -5,9 +5,11 @@
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
 	import { ChevronDown, MagnifyingGlass, TextAlignBottom, Trash } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import { fade, fly } from 'svelte/transition';
 
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
 	let sortBy: 'added' | 'rating' | 'release' | 'size' | 'name' = 'added';
@@ -154,7 +156,14 @@
 
 <svelte:window on:keydown={handleShortcuts} />
 
-<div class="pt-24 pb-8 px-8 bg-black">
+<div
+	class="pt-24 pb-8 px-8 bg-black"
+	in:fade|global={{
+		duration: $settings.animationDuration,
+		delay: $settings.animationDuration
+	}}
+	out:fade|global={{ duration: $settings.animationDuration }}
+>
 	<div class="max-w-screen-2xl mx-auto">
 		<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
 			<RadarrStats />
@@ -163,7 +172,14 @@
 	</div>
 </div>
 
-<div class="py-4 px-2 md:px-8">
+<div
+	class="py-4 px-2 md:px-8"
+	in:fade|global={{
+		duration: $settings.animationDuration,
+		delay: $settings.animationDuration
+	}}
+	out:fade|global={{ duration: $settings.animationDuration }}
+>
 	<div class="max-w-screen-2xl m-auto flex flex-col gap-4">
 		<div class="flex justify-between gap-2 sm:flex-row flex-col">
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -231,7 +247,7 @@
 					</IconButton>
 				</div>
 				<div class={posterGridStyle}>
-					{#each downloadingProps as props}
+					{#each downloadingProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
 				</div>
@@ -247,7 +263,7 @@
 					</IconButton>
 				</div>
 				<div class={posterGridStyle}>
-					{#each availableProps as props}
+					{#each availableProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
 				</div>
@@ -263,7 +279,7 @@
 					</IconButton>
 				</div>
 				<div class={posterGridStyle}>
-					{#each watchedProps as props}
+					{#each watchedProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
 				</div>
@@ -279,7 +295,7 @@
 					</IconButton>
 				</div>
 				<div class={posterGridStyle}>
-					{#each unavailableProps as props}
+					{#each unavailableProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
 				</div>

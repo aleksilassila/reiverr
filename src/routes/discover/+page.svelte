@@ -19,6 +19,7 @@
 	import { library } from '$lib/stores/library.store';
 	import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
+	import { fade, fly } from 'svelte/transition';
 
 	const fetchCardProps = async (items: TmdbMovie2[] | TmdbSeries2[]) =>
 		Promise.all(
@@ -73,91 +74,90 @@
 	const headerStyle = 'uppercase tracking-widest font-bold';
 </script>
 
-<div class="pb-24 flex flex-col gap-4">
+<div
+	class="flex flex-col gap-4"
+	in:fade|global={{
+		duration: $settings.animationDuration,
+		delay: $settings.animationDuration
+	}}
+	out:fade|global={{ duration: $settings.animationDuration }}
+>
 	<div class="pt-24 bg-black">
-		<Carousel gradientFromColor="from-black">
-			<div slot="title" class={headerStyle}>Trending</div>
+		<Carousel gradientFromColor="from-black" heading="Trending">
 			{#await fetchTrendingProps()}
 				<CarouselPlaceholderItems size="lg" />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<Card size="lg" {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>Popular People</div>
+		<Carousel heading="Popular People">
 			{#await fetchTrendingActorProps()}
 				<CarouselPlaceholderItems />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<PeopleCard {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>Upcoming Movies</div>
+		<Carousel heading="Upcoming Movies">
 			{#await fetchUpcomingMovies()}
 				<CarouselPlaceholderItems />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<Card {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>Upcoming Series</div>
+		<Carousel heading="Upcoming Series">
 			{#await fetchUpcomingSeries()}
 				<CarouselPlaceholderItems />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<Card {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>Genres</div>
-			{#each Object.values(genres) as genre}
+		<Carousel heading="Genres">
+			{#each Object.values(genres) as genre (genre.tmdbGenreId)}
 				<GenreCard {genre} />
 			{/each}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>New Digital Releeases</div>
+		<Carousel heading="New Digital Releeases">
 			{#await fetchDigitalReleases()}
 				<CarouselPlaceholderItems />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<Card {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>Streaming Now</div>
+		<Carousel heading="Streaming Now">
 			{#await fetchNowStreaming()}
 				<CarouselPlaceholderItems />
 			{:then props}
-				{#each props as prop}
+				{#each props as prop (prop.tmdbId)}
 					<Card {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
 	</div>
 	<div>
-		<Carousel>
-			<div slot="title" class={headerStyle}>TV Networks</div>
-			{#each Object.values(networks) as network}
+		<Carousel heading="TV Networks">
+			{#each Object.values(networks) as network (network.tmdbNetworkId)}
 				<NetworkCard {network} />
 			{/each}
 		</Carousel>
