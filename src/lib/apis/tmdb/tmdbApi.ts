@@ -278,6 +278,15 @@ export const getTmdbMovieSimilar = (tmdbId: number) =>
 		}
 	}).then((res) => res.data?.results || []);
 
+export const searchTmdbTitles = (query: string) =>
+	TmdbApiOpen.get('/3/search/multi', {
+		params: {
+			query: {
+				query
+			}
+		}
+	}).then((res) => res.data?.results || []);
+
 // Deprecated hereon forward
 
 /** @deprecated */

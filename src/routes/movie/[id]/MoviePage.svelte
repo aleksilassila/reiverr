@@ -110,7 +110,10 @@
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Directed By</p>
 				<h2 class="font-medium">
-					{movie?.credits.crew?.filter((c) => c.job == 'Director').map((p) => p.name)}
+					{movie?.credits.crew
+						?.filter((c) => c.job == 'Director')
+						.map((p) => p.name)
+						.join(', ')}
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
