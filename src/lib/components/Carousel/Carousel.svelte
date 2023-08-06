@@ -10,7 +10,7 @@
 	let scrollX = 0;
 </script>
 
-<div class="flex justify-between items-center mx-8 gap-4">
+<div class="flex justify-between items-center mx-2 sm:mx-8 gap-4">
 	<slot name="title">
 		<div class="font-semibold text-xl">{heading}</div>
 	</slot>
@@ -34,7 +34,7 @@
 
 <div class="relative">
 	<div
-		class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative px-8 scrollbar-hide py-4"
+		class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative px-2 sm:px-8 scrollbar-hide py-4"
 		bind:this={carousel}
 		tabindex="-1"
 		on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}

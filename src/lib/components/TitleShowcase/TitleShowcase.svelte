@@ -188,7 +188,7 @@
 		/>
 	{/if}
 	<div class="absolute inset-y-0 left-0 px-3 flex justify-start w-[10vw]">
-		<div class="peer relaitve z-10 flex justify-start">
+		<div class="peer relaitve z-[1] flex justify-start">
 			<IconButton on:click={onPrevious}>
 				<ChevronLeft size={20} />
 			</IconButton>
@@ -198,7 +198,7 @@
 		/>
 	</div>
 	<div class="absolute inset-y-0 right-0 px-3 flex justify-end w-[10vw]">
-		<div class="peer relaitve z-10 flex justify-end">
+		<div class="peer relaitve z-[1] flex justify-end">
 			<IconButton on:click={onNext}>
 				<ChevronRight size={20} />
 			</IconButton>
