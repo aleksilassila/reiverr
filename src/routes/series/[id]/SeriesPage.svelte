@@ -20,7 +20,7 @@
 	import TitlePageLayout from '$lib/components/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
-	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
+	import { capitalize, formatMinutesToTime, formatSize, log } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
@@ -57,7 +57,7 @@
 		.then((r) => r.filter((p) => p.backdropUri));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
 		Promise.all(
-			s?.aggregate_credits?.cast?.map((m) => ({
+			s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
 				tmdbId: m.id || 0,
 				backdropUri: m.profile_path || '',
 				name: m.name || '',
@@ -146,7 +146,7 @@
 
 {#await tmdbSeriesPromise then series}
 	<TitlePageLayout
-		backdropPath={series?.backdrop_path || ''}
+		backdropUriCandidates={series?.images?.backdrops?.map((b) => b.file_path || '') || []}
 		posterPath={series?.poster_path || ''}
 		title={series?.name || ''}
 		tagline={series?.tagline || series?.name || ''}
@@ -179,14 +179,14 @@
 		</svelte:fragment>
 
 		<div slot="episodes-carousel">
-			<Carousel gradientFromColor="from-black">
+			<Carousel gradientFromColor="from-stone-950">
 				<UiCarousel slot="title" class="flex gap-6">
 					{#each [...Array(series?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
 						{@const season = series?.seasons?.find((s) => s.season_number === seasonNumber)}
 						{@const isSelected = season?.season_number === (visibleSeasonNumber || 1)}
 						<button
 							class={classNames(
-								'text-lg font-medium tracking-wide transition-colors flex-shrink-0 flex items-center gap-1',
+								'font-medium tracking-wide transition-colors flex-shrink-0 flex items-center gap-1',
 								{
 									'text-zinc-200': isSelected && seasonSelectVisible,
 									'text-zinc-500 hover:text-zinc-200 cursor-pointer':
@@ -209,7 +209,7 @@
 							}}
 						>
 							<ChevronLeft
-								size={22}
+								size={20}
 								class={(seasonSelectVisible || series?.number_of_seasons === 1) && 'hidden'}
 							/>
 							Season {season?.season_number}
@@ -218,7 +218,7 @@
 				</UiCarousel>
 				{#key visibleSeasonNumber}
 					{#each episodeProps[visibleSeasonNumber || 1] || [] as props, i}
-						<div class="flex flex-col gap-3" bind:this={episodeComponents[i]}>
+						<div bind:this={episodeComponents[i]}>
 							<EpisodeCard {...props} on:click={() => (visibleEpisodeIndex = i)} />
 						</div>
 					{:else}

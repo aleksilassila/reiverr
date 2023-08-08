@@ -67,7 +67,7 @@
 {#await tmdbMoviePromise then movie}
 	<TitlePageLayout
 		title={movie?.title || 'Movie'}
-		backdropPath={movie?.backdrop_path || ''}
+		backdropUriCandidates={movie?.images?.backdrops?.map((b) => b.file_path || '') || []}
 		posterPath={movie?.poster_path || ''}
 		tagline={movie?.tagline || movie?.title || ''}
 		overview={movie?.overview || ''}

@@ -5,7 +5,7 @@
 	import Carousel from './Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from './Carousel/CarouselPlaceholderItems.svelte';
 
-	export let backdropPath: string;
+	export let backdropUriCandidates: string[];
 	export let posterPath: string;
 	export let title: string;
 
@@ -16,6 +16,10 @@
 	let windowHeight: number;
 	let imageHeight: number;
 	$: imageHeight = windowHeight - bottomHeight * 0.3;
+
+	function getBackdropUri(uris: string[]) {
+		return uris[Math.max(2, Math.floor(uris.length / 8))] || uris[uris.length - 1] || '';
+	}
 </script>
 
 <svelte:window bind:innerHeight={windowHeight} />
@@ -23,7 +27,7 @@
 <div
 	style={"background-image: url('" +
 		TMDB_IMAGES_ORIGINAL +
-		backdropPath +
+		getBackdropUri(backdropUriCandidates) +
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
@@ -34,8 +38,8 @@
 
 <div class="flex flex-col h-screen" transition:fade>
 	<div class="flex-1 relative flex pt-24 px-4 sm:px-8">
-		<div class="absolute inset-0 bg-gradient-to-t from-black to-30%" />
-		<div class="z-[1] flex-1 flex justify-end gap-8 items-end">
+		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30%" />
+		<div class="z-[1] flex-1 flex justify-end gap-8 items-end max-w-screen-2xl mx-auto">
 			<div
 				class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block"
 				style={"background-image: url('" + TMDB_POSTER_SMALL + posterPath + "')"}
@@ -63,14 +67,18 @@
 			</div>
 		</div>
 	</div>
-	<div class="py-6 bg-black" bind:clientHeight={bottomHeight}>
-		<slot name="episodes-carousel" />
+	<div bind:clientHeight={bottomHeight} class="py-6 bg-stone-950">
+		<div class="max-w-screen-2xl mx-auto">
+			<div class="2xl:-mx-8">
+				<slot name="episodes-carousel" />
+			</div>
+		</div>
 	</div>
 </div>
 
-<div class="flex flex-col gap-8 bg-black">
+<div class="flex flex-col gap-6 bg-stone-950">
 	<div
-		class="mx-4 sm:mx-8 py-4 sm:py-6 px-6 sm:px-10 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 bg-stone-900 rounded-xl"
+		class="mx-4 sm:mx-8 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl py-6 max-w-screen-2xl 2xl:mx-auto"
 	>
 		<slot name="info-description">
 			<div
@@ -118,28 +126,34 @@
 			</div>
 		</slot>
 	</div>
-	<div>
-		<Carousel gradientFromColor="from-black">
-			<slot name="cast-crew-carousel-title" slot="title" />
-			<slot name="cast-crew-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
+	<div class="max-w-screen-2xl 2xl:mx-auto">
+		<div class="2xl:-mx-8">
+			<Carousel gradientFromColor="from-stone-950">
+				<slot name="cast-crew-carousel-title" slot="title" />
+				<slot name="cast-crew-carousel">
+					<CarouselPlaceholderItems />
+				</slot>
+			</Carousel>
+		</div>
 	</div>
-	<div>
-		<Carousel gradientFromColor="from-black">
-			<slot name="recommendations-carousel-title" slot="title" />
-			<slot name="recommendations-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
+	<div class="max-w-screen-2xl 2xl:mx-auto">
+		<div class="2xl:-mx-8">
+			<Carousel gradientFromColor="from-stone-950">
+				<slot name="recommendations-carousel-title" slot="title" />
+				<slot name="recommendations-carousel">
+					<CarouselPlaceholderItems />
+				</slot>
+			</Carousel>
+		</div>
 	</div>
-	<div>
-		<Carousel gradientFromColor="from-black">
-			<slot name="similar-carousel-title" slot="title" />
-			<slot name="similar-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
+	<div class="max-w-screen-2xl 2xl:mx-auto">
+		<div class="2xl:-mx-8">
+			<Carousel gradientFromColor="from-stone-950">
+				<slot name="similar-carousel-title" slot="title" />
+				<slot name="similar-carousel">
+					<CarouselPlaceholderItems />
+				</slot>
+			</Carousel>
+		</div>
 	</div>
 </div>
