@@ -15,31 +15,31 @@
 		.then((libraryData) => libraryData.continueWatching)
 		.then((items) =>
 			items.map((item) =>
-				item.tmdbMovie
+				item.radarrMovie
 					? {
-							tmdbId: item.tmdbMovie.id || 0,
+							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.jellyfinId,
-							backdropUri: item.tmdbMovie.poster_path || '',
-							title: item.tmdbMovie.title,
-							subtitle: item.tmdbMovie.genres?.map((g) => g.name).join(', ') || '',
+							backdropUri: item.posterUri || '',
+							title: item.radarrMovie.title || '',
+							subtitle: item.radarrMovie.genres?.join(', ') || '',
 							progress: item.continueWatching?.progress,
-							runtime: item.tmdbMovie.runtime || 0
+							runtime: item.radarrMovie.runtime || 0
 					  }
 					: {
-							tmdbId: item.tmdbSeries?.id || 0,
+							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.nextJellyfinEpisode?.Id,
 							type: 'series',
-							backdropUri: item.tmdbSeries?.poster_path || '',
-							title: item.nextJellyfinEpisode?.Name || item.tmdbSeries?.name || '',
+							backdropUri: item.posterUri || '',
+							title: item.nextJellyfinEpisode?.Name || item.sonarrSeries?.title || '',
 							subtitle:
 								(item.nextJellyfinEpisode?.IndexNumber &&
 									'Episode ' + item.nextJellyfinEpisode?.IndexNumber) ||
-								item.tmdbSeries?.genres?.map((g) => g.name).join(', ') ||
+								item.sonarrSeries?.genres?.join(', ') ||
 								'',
 							progress: item.continueWatching?.progress,
 							runtime: item.nextJellyfinEpisode?.RunTimeTicks
 								? item.nextJellyfinEpisode?.RunTimeTicks / 10_000_000 / 60
-								: item.tmdbSeries?.episode_run_time?.[0] || 0
+								: item.sonarrSeries?.runtime || 0
 					  }
 			)
 		);
@@ -84,7 +84,7 @@
 {/await}
 
 <div class="py-8">
-	<Carousel gradientFromColor="from-stone-950">
+	<Carousel gradientFromColor="from-stone-950" class="px-4 lg:px-16 2xl:px-32">
 		<div slot="title" class="text-xl font-medium text-zinc-200">Continue Watching</div>
 		{#await continueWatchingProps}
 			<CarouselPlaceholderItems />

@@ -74,15 +74,8 @@
 	const headerStyle = 'uppercase tracking-widest font-bold';
 </script>
 
-<div
-	class="flex flex-col gap-4"
-	in:fade|global={{
-		duration: $settings.animationDuration,
-		delay: $settings.animationDuration
-	}}
-	out:fade|global={{ duration: $settings.animationDuration }}
->
-	<div class="pt-24 bg-black">
+<div class="pt-24 bg-black pb-8">
+	<div class="max-w-screen-2xl mx-auto">
 		<Carousel gradientFromColor="from-black" heading="Trending">
 			{#await fetchTrendingProps()}
 				<CarouselPlaceholderItems size="lg" />
@@ -93,73 +86,69 @@
 			{/await}
 		</Carousel>
 	</div>
-	<div>
-		<Carousel heading="Popular People">
-			{#await fetchTrendingActorProps()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<PeopleCard {...prop} />
-				{/each}
-			{/await}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="Upcoming Movies">
-			{#await fetchUpcomingMovies()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<Card {...prop} />
-				{/each}
-			{/await}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="Upcoming Series">
-			{#await fetchUpcomingSeries()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<Card {...prop} />
-				{/each}
-			{/await}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="Genres">
-			{#each Object.values(genres) as genre (genre.tmdbGenreId)}
-				<GenreCard {genre} />
+</div>
+
+<div
+	class="flex flex-col gap-8 max-w-screen-2xl mx-auto py-4"
+	in:fade|global={{
+		duration: $settings.animationDuration,
+		delay: $settings.animationDuration
+	}}
+	out:fade|global={{ duration: $settings.animationDuration }}
+>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="Popular People">
+		{#await fetchTrendingActorProps()}
+			<CarouselPlaceholderItems />
+		{:then props}
+			{#each props as prop (prop.tmdbId)}
+				<PeopleCard {...prop} />
 			{/each}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="New Digital Releeases">
-			{#await fetchDigitalReleases()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<Card {...prop} />
-				{/each}
-			{/await}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="Streaming Now">
-			{#await fetchNowStreaming()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<Card {...prop} />
-				{/each}
-			{/await}
-		</Carousel>
-	</div>
-	<div>
-		<Carousel heading="TV Networks">
-			{#each Object.values(networks) as network (network.tmdbNetworkId)}
-				<NetworkCard {network} />
+		{/await}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="Upcoming Movies">
+		{#await fetchUpcomingMovies()}
+			<CarouselPlaceholderItems />
+		{:then props}
+			{#each props as prop (prop.tmdbId)}
+				<Card {...prop} />
 			{/each}
-		</Carousel>
-	</div>
+		{/await}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="Upcoming Series">
+		{#await fetchUpcomingSeries()}
+			<CarouselPlaceholderItems />
+		{:then props}
+			{#each props as prop (prop.tmdbId)}
+				<Card {...prop} />
+			{/each}
+		{/await}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="Genres">
+		{#each Object.values(genres) as genre (genre.tmdbGenreId)}
+			<GenreCard {genre} />
+		{/each}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="New Digital Releeases">
+		{#await fetchDigitalReleases()}
+			<CarouselPlaceholderItems />
+		{:then props}
+			{#each props as prop (prop.tmdbId)}
+				<Card {...prop} />
+			{/each}
+		{/await}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="Streaming Now">
+		{#await fetchNowStreaming()}
+			<CarouselPlaceholderItems />
+		{:then props}
+			{#each props as prop (prop.tmdbId)}
+				<Card {...prop} />
+			{/each}
+		{/await}
+	</Carousel>
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="TV Networks">
+		{#each Object.values(networks) as network (network.tmdbNetworkId)}
+			<NetworkCard {network} />
+		{/each}
+	</Carousel>
 </div>

@@ -21,7 +21,7 @@
 			'focus-visible:bg-zinc-200 focus-visible:text-zinc-800 hover:bg-zinc-200 hover:text-zinc-800':
 				(type === 'secondary' || type === 'tertiary') && !disabled,
 			'rounded-full': type === 'tertiary',
-			'py-3 px-6': size === 'lg',
+			'py-2 px-6 sm:py-3 sm:px-6': size === 'lg',
 			'py-2 px-6': size === 'md',
 			'py-1 px-3': size === 'sm',
 			'opacity-50': disabled,

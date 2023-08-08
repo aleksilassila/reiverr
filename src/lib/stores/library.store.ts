@@ -18,18 +18,19 @@ import {
 	type SonarrSeries
 } from '$lib/apis/sonarr/sonarrApi';
 import {
-	getTmdbMovie,
-	getTmdbSeries,
+	getTmdbMovieBackdrop,
+	getTmdbMoviePoster,
+	getTmdbSeriesBackdrop,
 	getTmdbSeriesFromTvdbId,
 	type TmdbMovieFull2,
 	type TmdbSeriesFull2
 } from '$lib/apis/tmdb/tmdbApi';
 import { get, writable } from 'svelte/store';
-import { settings } from './settings.store';
 
 export interface PlayableItem {
 	tmdbRating: number;
 	cardBackdropUrl: string;
+	posterUri: string;
 	download?: {
 		progress: number;
 		completionTime: string;
@@ -50,8 +51,8 @@ export interface PlayableItem {
 	radarrDownloads?: RadarrDownload[];
 	sonarrSeries?: SonarrSeries;
 	sonarrDownloads?: SonarrDownload[];
-	tmdbMovie?: TmdbMovieFull2;
-	tmdbSeries?: TmdbSeriesFull2;
+	// tmdbMovie?: TmdbMovieFull2;
+	// tmdbSeries?: TmdbSeriesFull2;
 }
 
 export interface Library {
@@ -117,27 +118,31 @@ async function getLibrary(): Promise<Library> {
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const tmdbMovie = await getTmdbMovie(radarrMovie.tmdbId || 0);
-		const backdropUrl = (
-			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-			tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1) ||
-			tmdbMovie?.images?.backdrops?.[0]
-		)?.file_path;
+		// const tmdbMovie = await getTmdbMovie(radarrMovie.tmdbId || 0);
+		// const backdropUrl = (
+		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1) ||
+		// 	tmdbMovie?.images?.backdrops?.[0]
+		// )?.file_path;
+
+		const backdropUrl = await getTmdbMovieBackdrop(radarrMovie.tmdbId || 0);
+		const posterUri = await getTmdbMoviePoster(radarrMovie.tmdbId || 0);
 
 		return {
 			type: 'movie' as const,
 			tmdbId: radarrMovie.tmdbId || 0,
 			tmdbRating: radarrMovie.ratings?.tmdb?.value || 0,
 			cardBackdropUrl: backdropUrl || '',
+			posterUri: posterUri || '',
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
 			jellyfinId: jellyfinItem?.Id,
 			jellyfinItem,
 			radarrMovie,
-			radarrDownloads: itemRadarrDownloads,
-			tmdbMovie
+			radarrDownloads: itemRadarrDownloads
+			// tmdbMovie
 		};
 	});
 
@@ -179,19 +184,23 @@ async function getLibrary(): Promise<Library> {
 			: undefined;
 		const tmdbId = tmdbItem?.id || undefined;
 
-		const tmdbSeries = await getTmdbSeries(tmdbId || 0);
-		const backdropUrl = (
-			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-			tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1) ||
-			tmdbSeries?.images?.backdrops?.[0]
-		)?.file_path;
+		// const tmdbSeries = await getTmdbSeries(tmdbId || 0);
+		// const backdropUrl = (
+		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1) ||
+		// 	tmdbSeries?.images?.backdrops?.[0]
+		// )?.file_path;
+
+		const backdropUrl = await getTmdbSeriesBackdrop(tmdbId || 0);
+		const posterUri = tmdbItem?.poster_path || '';
 
 		return {
 			type: 'series' as const,
 			tmdbId: tmdbId || 0,
 			tmdbRating: tmdbItem?.vote_average || 0,
 			cardBackdropUrl: backdropUrl || '',
+			posterUri,
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
@@ -200,8 +209,8 @@ async function getLibrary(): Promise<Library> {
 			sonarrSeries,
 			sonarrDownloads: itemSonarrDownloads,
 			jellyfinEpisodes: jellyfinEpisodes.filter((i) => i.SeriesId === jellyfinItem?.Id),
-			nextJellyfinEpisode,
-			tmdbSeries
+			nextJellyfinEpisode
+			// tmdbSeries
 		};
 	});
 

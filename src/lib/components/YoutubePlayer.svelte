@@ -5,7 +5,7 @@
 </script>
 
 <div class="overflow-hidden w-full h-full">
-	<div class="youtube-container scale-[150%] hidden sm:block h-full w-full">
+	<div class="youtube-container scale-[150%] h-full w-full">
 		<iframe
 			src={'https://www.youtube.com/embed/' +
 				videoId +

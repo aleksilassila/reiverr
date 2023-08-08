@@ -179,7 +179,7 @@
 		</svelte:fragment>
 
 		<div slot="episodes-carousel">
-			<Carousel gradientFromColor="from-stone-950">
+			<Carousel gradientFromColor="from-stone-950" class="px-2 sm:px-4 lg:px-8 2xl:px-0">
 				<UiCarousel slot="title" class="flex gap-6">
 					{#each [...Array(series?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
 						{@const season = series?.seasons?.find((s) => s.season_number === seasonNumber)}

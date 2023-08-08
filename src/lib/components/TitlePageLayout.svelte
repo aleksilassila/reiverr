@@ -22,7 +22,7 @@
 	}
 </script>
 
-<svelte:window bind:innerHeight={windowHeight} />
+<svelte:window bind:outerHeight={windowHeight} />
 
 <div
 	style={"background-image: url('" +
@@ -31,13 +31,25 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class="fixed inset-x-0 bg-center bg-cover z-[-10]"
+	class="hidden sm:block fixed inset-x-0 bg-center bg-cover z-[-10]"
 >
 	<div class="absolute inset-0 bg-darken" />
 </div>
 
-<div class="flex flex-col h-screen" transition:fade>
-	<div class="flex-1 relative flex pt-24 px-4 sm:px-8">
+<div
+	style={"background-image: url('" +
+		TMDB_IMAGES_ORIGINAL +
+		posterPath +
+		"'); height: " +
+		imageHeight.toFixed() +
+		'px'}
+	class="sm:hidden fixed inset-x-0 bg-center bg-cover z-[-10]"
+>
+	<div class="absolute inset-0 bg-darken" />
+</div>
+
+<div class="flex flex-col h-[85vh] sm:h-screen" transition:fade>
+	<div class="flex-1 relative flex pt-24 px-4 sm:px-8 pb-6">
 		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30%" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end max-w-screen-2xl mx-auto">
 			<div
@@ -67,18 +79,16 @@
 			</div>
 		</div>
 	</div>
-	<div bind:clientHeight={bottomHeight} class="py-6 bg-stone-950">
+	<div bind:clientHeight={bottomHeight} class="pb-6 bg-stone-950">
 		<div class="max-w-screen-2xl mx-auto">
-			<div class="2xl:-mx-8">
-				<slot name="episodes-carousel" />
-			</div>
+			<slot name="episodes-carousel" />
 		</div>
 	</div>
 </div>
 
-<div class="flex flex-col gap-6 bg-stone-950">
+<div class="flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 2xl:px-0 pb-6">
 	<div
-		class="mx-4 sm:mx-8 grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl py-6 max-w-screen-2xl 2xl:mx-auto"
+		class="grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl max-w-screen-2xl 2xl:mx-auto py-4"
 	>
 		<slot name="info-description">
 			<div
@@ -126,34 +136,28 @@
 			</div>
 		</slot>
 	</div>
-	<div class="max-w-screen-2xl 2xl:mx-auto">
-		<div class="2xl:-mx-8">
-			<Carousel gradientFromColor="from-stone-950">
-				<slot name="cast-crew-carousel-title" slot="title" />
-				<slot name="cast-crew-carousel">
-					<CarouselPlaceholderItems />
-				</slot>
-			</Carousel>
-		</div>
+	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
+		<Carousel gradientFromColor="from-stone-950">
+			<slot name="cast-crew-carousel-title" slot="title" />
+			<slot name="cast-crew-carousel">
+				<CarouselPlaceholderItems />
+			</slot>
+		</Carousel>
 	</div>
-	<div class="max-w-screen-2xl 2xl:mx-auto">
-		<div class="2xl:-mx-8">
-			<Carousel gradientFromColor="from-stone-950">
-				<slot name="recommendations-carousel-title" slot="title" />
-				<slot name="recommendations-carousel">
-					<CarouselPlaceholderItems />
-				</slot>
-			</Carousel>
-		</div>
+	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
+		<Carousel gradientFromColor="from-stone-950">
+			<slot name="recommendations-carousel-title" slot="title" />
+			<slot name="recommendations-carousel">
+				<CarouselPlaceholderItems />
+			</slot>
+		</Carousel>
 	</div>
-	<div class="max-w-screen-2xl 2xl:mx-auto">
-		<div class="2xl:-mx-8">
-			<Carousel gradientFromColor="from-stone-950">
-				<slot name="similar-carousel-title" slot="title" />
-				<slot name="similar-carousel">
-					<CarouselPlaceholderItems />
-				</slot>
-			</Carousel>
-		</div>
+	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
+		<Carousel gradientFromColor="from-stone-950">
+			<slot name="similar-carousel-title" slot="title" />
+			<slot name="similar-carousel">
+				<CarouselPlaceholderItems />
+			</slot>
+		</Carousel>
 	</div>
 </div>

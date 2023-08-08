@@ -8,7 +8,7 @@ export default {
 				display: ['Montserrat', 'system', 'sans-serif']
 			},
 			colors: {
-				darken: '#07050199',
+				darken: '#07050166',
 				lighten: '#fde68a20'
 			}
 		}

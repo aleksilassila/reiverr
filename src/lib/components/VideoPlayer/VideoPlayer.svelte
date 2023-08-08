@@ -102,7 +102,7 @@
 				})}
 			>
 				<IconButton on:click={modalProps.close}>
-					<Cross2 />
+					<Cross2 size={25} />
 				</IconButton>
 			</div>
 		</div>

@@ -63,7 +63,7 @@
 	<button
 		on:click
 		class={classNames(
-			'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative selectable flex-shrink-0 placeholder-image flex',
+			'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative selectable flex-shrink-0 placeholder-image flex flex-col',
 			{
 				'h-40': size === 'md',
 				'h-full': size === 'dynamic',
@@ -77,7 +77,7 @@
 	>
 		<div
 			class={classNames(
-				'flex-1 flex flex-col justify-between group-hover:opacity-0 transition-all',
+				'w-full flex-1 flex flex-col justify-between group-hover:opacity-0 transition-all',
 				{
 					'px-2 lg:px-3 pt-2': true,
 					'pb-4 lg:pb-6': progress,

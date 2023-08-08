@@ -75,16 +75,21 @@
 		<svelte:fragment slot="title-info-1"
 			>{new Date(movie?.release_date || Date.now()).getFullYear()}</svelte:fragment
 		>
-		<svelte:fragment slot="title-info-2">{movie?.runtime} min</svelte:fragment>
+		<svelte:fragment slot="title-info-2">
+			{@const progress = $itemStore.item?.continueWatching?.progress}
+			{#if progress}
+				{progress.toFixed()} min left
+			{:else}
+				{movie?.runtime} min
+			{/if}
+		</svelte:fragment>
 		<svelte:fragment slot="title-info-3">
 			<a href={tmdbUrl} target="_blank">{movie?.vote_average?.toFixed(1)} TMDB</a>
 		</svelte:fragment>
 		<svelte:fragment slot="episodes-carousel">
 			{@const progress = $itemStore.item?.continueWatching?.progress}
 			{#if progress}
-				<div class="mx-4 sm:mx-8">
-					<ProgressBar {progress} />
-				</div>
+				<ProgressBar {progress} />
 			{/if}
 		</svelte:fragment>
 

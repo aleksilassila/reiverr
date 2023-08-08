@@ -4,24 +4,12 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
-	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
-	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
-	import classNames from 'classnames';
-	import {
-		CaretDown,
-		ChevronDown,
-		Gear,
-		ListBullet,
-		MagnifyingGlass,
-		TextAlignBottom,
-		TextAlignRight,
-		Trash
-	} from 'radix-icons-svelte';
+	import { CaretDown, ChevronDown, Gear } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
 	let sortBy: 'added' | 'rating' | 'release' | 'size' | 'name' = 'name';
@@ -220,9 +208,7 @@
 		</div>
 	</div> -->
 	<div class="relative grid grid-cols-3 grid-rows-3 z-[1] max-w-screen-2xl mx-auto">
-		<div
-			class="col-start-1 row-start-2 row-span-2 col-span-3 flex justify-end flex-col -mx-2 sm:-mx-8"
-		>
+		<div class="col-start-1 row-start-2 row-span-2 col-span-3 flex justify-end flex-col">
 			<!-- <div class="flex flex-col gap-2">
 				<div class="text-lg font-semibold">Downloading Now</div>
 				<Card {...downloadingProps[0] || unavailableProps[0]} size="md" />

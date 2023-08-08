@@ -5,6 +5,7 @@ import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
+import { browser } from '$app/environment';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -29,6 +30,31 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
 	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
 }
+
+const backdropCache = browser ? window?.caches?.open('backdrops') : undefined;
+const posterCache = browser ? window?.caches?.open('posters') : undefined;
+
+const getTmdbCache = async (
+	cachePromise: typeof backdropCache,
+	tmdbId: number,
+	fn: () => Promise<string | undefined>
+) => {
+	const cache = await cachePromise;
+
+	if (cache) {
+		const cacheRes = await cache.match(String(tmdbId));
+		if (cacheRes) return cacheRes.text();
+		else {
+			const backdropUri = await fn();
+			if (backdropUri) {
+				cache.put(String(tmdbId), new Response(backdropUri));
+			}
+			return backdropUri;
+		}
+	} else {
+		return fn();
+	}
+};
 
 export const TmdbApiOpen = createClient<paths>({
 	baseUrl: 'https://api.themoviedb.org',
@@ -114,19 +140,6 @@ export const getTmdbSeriesImages = async (tmdbId: number) =>
 		}
 	}).then((res) => res.data);
 
-export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
-	getTmdbSeries(tmdbId)
-		.then((s) => s?.images)
-		.then(
-			(r) =>
-				(
-					r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-					r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-					r?.backdrops?.find((b) => b.iso_639_1) ||
-					r?.backdrops?.[0]
-				)?.file_path
-		);
-
 export const getTmdbMovieImages = async (tmdbId: number) =>
 	await TmdbApiOpen.get('/3/movie/{movie_id}/images', {
 		params: {
@@ -139,18 +152,41 @@ export const getTmdbMovieImages = async (tmdbId: number) =>
 		}
 	}).then((res) => res.data);
 
+export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
+	getTmdbCache(backdropCache, tmdbId, () =>
+		getTmdbSeries(tmdbId)
+			.then((s) => s?.images)
+			.then(
+				(r) =>
+					(
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+						r?.backdrops?.find((b) => b.iso_639_1) ||
+						r?.backdrops?.[0]
+					)?.file_path
+			)
+	);
+
 export const getTmdbMovieBackdrop = async (tmdbId: number) =>
-	getTmdbMovie(tmdbId)
-		.then((m) => m?.images)
-		.then(
-			(r) =>
-				(
-					r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-					r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-					r?.backdrops?.find((b) => b.iso_639_1) ||
-					r?.backdrops?.[0]
-				)?.file_path
-		);
+	getTmdbCache(backdropCache, tmdbId, () =>
+		getTmdbMovie(tmdbId)
+			.then((m) => m?.images)
+			.then(
+				(r) =>
+					(
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+						r?.backdrops?.find((b) => b.iso_639_1) ||
+						r?.backdrops?.[0]
+					)?.file_path
+			)
+	);
+
+export const getTmdbSeriesPoster = async (tmdbId: number) =>
+	getTmdbCache(posterCache, tmdbId, () => getTmdbSeries(tmdbId).then((s) => s?.poster_path));
+
+export const getTmdbMoviePoster = async (tmdbId: number) =>
+	getTmdbCache(posterCache, tmdbId, () => getTmdbMovie(tmdbId).then((m) => m?.poster_path));
 
 export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {

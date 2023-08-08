@@ -67,10 +67,15 @@
 	});
 </script>
 
-<div class="h-screen relative pt-24 flex">
-	<div class="relative z-[1] px-16 py-8 flex-1 grid grid-cols-6">
+<div class="h-[80vh] sm:h-screen relative pt-24 flex">
+	<div
+		class={classNames(
+			'relative z-[1] px-4 lg:px-16 2xl:px-32 py-4 lg:py-8 2xl:py-16 flex-1 sm:grid grid-cols-6 grid-rows-3',
+			'flex flex-col justify-end gap-8'
+		)}
+	>
 		{#if UIVisible}
-			<div class="flex flex-col justify-center col-span-3 gap-6 max-w-screen-md -mt-20">
+			<div class="flex flex-col col-span-3 gap-6 max-w-screen-md">
 				<div class="flex flex-col gap-1">
 					<div
 						class="flex items-center gap-1 uppercase text-sm text-zinc-300 font-semibold tracking-wider"
@@ -85,8 +90,8 @@
 					</div>
 					<h1
 						class={classNames('font-medium tracking-wider text-stone-200', {
-							'text-6xl': title.length < 15,
-							'text-5xl': title.length >= 15
+							'text-5xl sm:text-6xl 2xl:text-7xl': title.length < 15,
+							'text-4xl sm:text-5xl 2xl:text-6xl': title.length >= 15
 						})}
 						in:fly|global={{ y: -10, delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
 						out:fly|global={{ y: 10, duration: ANIMATION_DURATION }}
@@ -128,7 +133,7 @@
 				</div> -->
 			</div>
 			<div
-				class="flex-1 flex flex-col gap-6 justify-end col-span-2 col-start-1"
+				class="sm:flex-1 flex flex-col gap-6 justify-end col-span-2 col-start-1 row-start-3"
 				in:fade|global={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
 				out:fade|global={{ duration: ANIMATION_DURATION }}
 			>
@@ -215,7 +220,7 @@
 				</div> -->
 			</div>
 		{/if}
-		<div class="row-start-2 col-start-4 col-span-3 flex items-end justify-end">
+		<div class="hidden lg:flex items-end justify-end col-start-4 row-start-3 col-span-3">
 			<div class="flex gap-6 items-center">
 				<div>
 					<p class="text-zinc-400 text-sm font-medium">Release Date</p>
@@ -239,6 +244,21 @@
 				/>
 			</div>
 		</div>
+		{#if UIVisible}
+			<div
+				class="hidden lg:flex absolute inset-x-4 lg:inset-x-16 2xl:inset-x-32 bottom-4 lg:bottom-8 2xl:bottom-16 opacity-70 gap-3 justify-end lg:justify-center"
+				in:fade={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
+				out:fade={{ duration: ANIMATION_DURATION }}
+			>
+				{#each Array.from({ length: showcaseLength }, (_, i) => i) as i}
+					{#if i === showcaseIndex}
+						<DotFilled size={15} class="opacity-100" />
+					{:else}
+						<DotFilled size={15} class="opacity-20" />
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	</div>
 	{#if !trailerVisible}
 		<div
@@ -261,13 +281,13 @@
 	{/if}
 	{#if UIVisible}
 		<div
-			class="absolute inset-0 bg-gradient-to-t from-stone-950 via-darken via-[30%] to-darken opacity-50"
+			class="absolute inset-0 bg-gradient-to-t from-stone-950 via-darken via-[20%] to-darken"
 			in:fade={{ duration: ANIMATION_DURATION }}
 			out:fade={{ duration: ANIMATION_DURATION }}
 		/>
 	{:else if !UIVisible}
 		<div
-			class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-darken opacity-50"
+			class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-darken"
 			in:fade={{ duration: ANIMATION_DURATION }}
 			out:fade={{ duration: ANIMATION_DURATION }}
 		/>
@@ -292,19 +312,4 @@
 			class="opacity-0 peer-hover:opacity-20 transition-opacity bg-gradient-to-l from-darken absolute inset-0"
 		/>
 	</div>
-	{#if UIVisible}
-		<div
-			class="absolute inset-x-0 bottom-8 flex justify-center opacity-70 gap-3"
-			in:fade={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
-			out:fade={{ duration: ANIMATION_DURATION }}
-		>
-			{#each Array.from({ length: showcaseLength }, (_, i) => i) as i}
-				{#if i === showcaseIndex}
-					<DotFilled size={15} class="opacity-100" />
-				{:else}
-					<DotFilled size={15} class="opacity-20" />
-				{/if}
-			{/each}
-		</div>
-	{/if}
 </div>
