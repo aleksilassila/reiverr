@@ -59,7 +59,10 @@
 		)}
 		href={`/${type}/${tmdbId}`}
 	>
-		<div style={'width: ' + progress + '%'} class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]" />
+		<div
+			style={'width: ' + (progress ? Math.max(progress, 2) : progress) + '%'}
+			class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]"
+		/>
 		<div
 			class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"
 			style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}

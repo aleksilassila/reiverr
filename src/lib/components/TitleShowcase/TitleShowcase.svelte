@@ -70,7 +70,7 @@
 <div class="h-screen relative pt-24 flex">
 	<div class="relative z-[1] px-16 py-8 flex-1 grid grid-cols-6">
 		{#if UIVisible}
-			<div class="flex flex-col justify-center col-span-3 gap-6 max-w-screen-md">
+			<div class="flex flex-col justify-center col-span-3 gap-6 max-w-screen-md -mt-20">
 				<div class="flex flex-col gap-1">
 					<div
 						class="flex items-center gap-1 uppercase text-sm text-zinc-300 font-semibold tracking-wider"
@@ -107,18 +107,51 @@
 						</span>
 					{/each}
 				</div>
+				<!-- <div
+					class="flex gap-4"
+					in:fly|global={{ y: -5, delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
+					out:fly|global={{ y: 5, duration: ANIMATION_DURATION }}
+				>
+					<Button type="primary" href={`/${type}/${tmdbId}`}>
+						<span>Details</span><ChevronRight size={20} />
+					</Button>
+					{#if trailerId}
+						<Button
+							type="secondary"
+							href={youtubeUrl}
+							on:mouseover={() => (focusTrailer = true)}
+							on:mouseleave={() => (focusTrailer = false)}
+						>
+							<span>Watch Trailer</span><ChevronRight size={20} />
+						</Button>
+					{/if}
+				</div> -->
 			</div>
 			<div
-				class="flex-1 flex gap-4 items-end col-span-2 col-start-1"
+				class="flex-1 flex flex-col gap-6 justify-end col-span-2 col-start-1"
 				in:fade|global={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
 				out:fade|global={{ duration: ANIMATION_DURATION }}
 			>
-				<div class="flex gap-6 items-center">
-					<div
+				<div class="flex gap-4 items-center">
+					<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
+						<span>Details</span><ChevronRight size={20} />
+					</Button>
+					{#if trailerId}
+						<Button
+							size="lg"
+							type="secondary"
+							href={youtubeUrl}
+							on:mouseover={() => (focusTrailer = true)}
+							on:mouseleave={() => (focusTrailer = false)}
+						>
+							<span>Watch Trailer</span><ChevronRight size={20} />
+						</Button>
+					{/if}
+					<!-- <div
 						style={"background-image: url('" + TMDB_POSTER_SMALL + posterUri + "');"}
-						class="w-20 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
+						class="w-24 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
 					/>
-					<div class="flex gap-6 flex-wrap py-2">
+					<div class="flex-1 flex gap-8 flex-wrap py-2 items-end">
 						<div>
 							<p class="text-zinc-400 text-sm font-medium">Release Date</p>
 							<h2 class="font-semibold">
@@ -135,24 +168,76 @@
 								<h2 class="font-semibold">{director}</h2>
 							</div>
 						{/if}
-					</div>
+					</div> -->
 				</div>
+				<!-- <div class="flex gap-8">
+					<div
+						style={"background-image: url('" + TMDB_POSTER_SMALL + posterUri + "');"}
+						class="w-32 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
+					/>
+					<div class="flex flex-col gap-6">
+						<div class="flex-1 flex gap-6 flex-wrap items-end">
+							<div>
+								<p class="text-zinc-400 text-sm font-medium">Release Date</p>
+								<h2 class="font-semibold">
+									{releaseDate.toLocaleDateString('en-US', {
+										year: 'numeric',
+										month: 'long',
+										day: 'numeric'
+									})}
+								</h2>
+							</div>
+							{#if director}
+								<div>
+									<p class="text-zinc-400 text-sm font-medium">Directed By</p>
+									<h2 class="font-semibold">{director}</h2>
+								</div>
+							{/if}
+						</div>
+
+						<div class="flex gap-4">
+							<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
+								<span>Details</span><ChevronRight size={20} />
+							</Button>
+							{#if trailerId}
+								<Button
+									size="lg"
+									type="secondary"
+									href={youtubeUrl}
+									on:mouseover={() => (focusTrailer = true)}
+									on:mouseleave={() => (focusTrailer = false)}
+								>
+									<span>Watch Trailer</span><ChevronRight size={20} />
+								</Button>
+							{/if}
+						</div>
+					</div>
+				</div> -->
 			</div>
 		{/if}
-		<div class="row-start-2 col-start-5 col-span-2 flex gap-4 items-end justify-end">
-			{#if trailerId}
-				<Button
-					type="secondary"
-					href={youtubeUrl}
-					on:mouseover={() => (focusTrailer = true)}
-					on:mouseleave={() => (focusTrailer = false)}
-				>
-					<span>Watch Trailer</span><ChevronRight size={20} />
-				</Button>
-			{/if}
-			<Button type="primary" href={`/${type}/${tmdbId}`}>
-				<span>Details</span><ChevronRight size={20} />
-			</Button>
+		<div class="row-start-2 col-start-4 col-span-3 flex items-end justify-end">
+			<div class="flex gap-6 items-center">
+				<div>
+					<p class="text-zinc-400 text-sm font-medium">Release Date</p>
+					<h2 class="font-semibold">
+						{releaseDate.toLocaleDateString('en-US', {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric'
+						})}
+					</h2>
+				</div>
+				{#if director}
+					<div>
+						<p class="text-zinc-400 text-sm font-medium">Directed By</p>
+						<h2 class="font-semibold">{director}</h2>
+					</div>
+				{/if}
+				<div
+					style={"background-image: url('" + TMDB_POSTER_SMALL + posterUri + "');"}
+					class="w-20 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
+				/>
+			</div>
 		</div>
 	</div>
 	{#if !trailerVisible}

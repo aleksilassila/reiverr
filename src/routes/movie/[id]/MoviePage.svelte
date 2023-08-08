@@ -305,7 +305,7 @@
 
 {#if requestModalVisible}
 	{@const radarrMovie = $itemStore.item?.radarrMovie}
-	{#if radarrMovie && radarrMovie.id && radarrMovie?.movieFile}
+	{#if radarrMovie && radarrMovie.id}
 		<RequestModal modalProps={requestModalProps} radarrId={radarrMovie.id} />
 	{/if}
 {/if}

@@ -1,9 +1,5 @@
 <script lang="ts">
-	import {
-		setJellyfinItemUnwatched,
-		type JellyfinItem,
-		setJellyfinItemWatched
-	} from '$lib/apis/jellyfin/jellyfinApi';
+	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
 	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
@@ -17,8 +13,6 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
-	import ContextMenu from '$lib/components/ContextMenu/ContextMenu.svelte';
-	import ContextMenuItem from '$lib/components/ContextMenu/ContextMenuItem.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { createModalProps } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';

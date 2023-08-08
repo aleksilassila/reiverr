@@ -2,6 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import IconButton from '../IconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
+	import classNames from 'classnames';
 
 	export let gradientFromColor = 'from-stone-900';
 	export let heading = '';
@@ -14,7 +15,11 @@
 	<slot name="title">
 		<div class="font-semibold text-xl">{heading}</div>
 	</slot>
-	<div class="flex gap-2">
+	<div
+		class={classNames('flex gap-2', {
+			hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0)
+		})}
+	>
 		<IconButton
 			on:click={() => {
 				carousel?.scrollTo({ left: scrollX - carousel?.clientWidth * 0.8, behavior: 'smooth' });
