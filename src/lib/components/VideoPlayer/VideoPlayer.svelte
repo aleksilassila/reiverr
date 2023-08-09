@@ -13,23 +13,17 @@
 	import { Cross2 } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import IconButton from '../IconButton.svelte';
-	import Modal from '../Modal/Modal.svelte';
-	import { playerState, type PlayerStateValue } from './VideoPlayer';
-	import { createModalProps } from '../Modal/Modal';
+	import { playerState } from './VideoPlayer';
+	import { modalStack } from '../Modal/Modal';
 
-	let modalProps = createModalProps(() => {
-		playerState.close();
-		video?.pause();
-		clearInterval(progressInterval);
-		stopCallback?.();
-	});
+	export let modalId: Symbol;
+
+	let uiVisible = false;
 
 	let video: HTMLVideoElement;
-
+	let mouseMovementTimeout: NodeJS.Timeout;
 	let stopCallback: () => void;
-
-	let progressInterval: ReturnType<typeof setInterval>;
-	onDestroy(() => clearInterval(progressInterval));
+	let progressInterval: NodeJS.Timeout;
 
 	const fetchPlaybackInfo = (itemId: string) =>
 		getJellyfinPlaybackInfo(itemId, getDeviceProfile()).then(
@@ -65,46 +59,47 @@
 			}
 		);
 
-	let uiVisible = false;
-	let timeout: ReturnType<typeof setTimeout>;
+	function handleClose() {
+		playerState.close();
+		video?.pause();
+		clearInterval(progressInterval);
+		stopCallback?.();
+		modalStack.close(modalId);
+	}
+
 	function handleMouseMove() {
 		uiVisible = true;
-		clearTimeout(timeout);
-		timeout = setTimeout(() => {
+		clearTimeout(mouseMovementTimeout);
+		mouseMovementTimeout = setTimeout(() => {
 			uiVisible = false;
 		}, 2000);
 	}
 
-	let state: PlayerStateValue;
-	playerState.subscribe((s) => (state = s));
+	onDestroy(() => clearInterval(progressInterval));
 
 	$: {
-		if (video && state.jellyfinId) {
+		if (video && $playerState.jellyfinId) {
 			if (!Hls.isSupported()) {
 				throw new Error('HLS is not supported');
 			}
 
-			if (video.src === '') fetchPlaybackInfo(state.jellyfinId);
+			if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
 		}
 	}
 </script>
 
-{#if $playerState.visible}
-	<Modal {...modalProps}>
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
-			<!-- svelte-ignore a11y-media-has-caption -->
-			<video controls bind:this={video} class="w-full h-full inset-0" />
-			<div
-				class={classNames('absolute top-4 right-8 transition-opacity', {
-					'opacity-0': !uiVisible,
-					'opacity-100': uiVisible
-				})}
-			>
-				<IconButton on:click={modalProps.close}>
-					<Cross2 size={25} />
-				</IconButton>
-			</div>
-		</div>
-	</Modal>
-{/if}
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
+	<!-- svelte-ignore a11y-media-has-caption -->
+	<video controls bind:this={video} class="w-full h-full inset-0" />
+	<div
+		class={classNames('absolute top-4 right-8 transition-opacity', {
+			'opacity-0': !uiVisible,
+			'opacity-100': uiVisible
+		})}
+	>
+		<IconButton on:click={handleClose}>
+			<Cross2 size={25} />
+		</IconButton>
+	</div>
+</div>

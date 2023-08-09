@@ -1,44 +1,38 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
 	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
-	import { createModalProps } from '../Modal/Modal';
-	import Modal from '../Modal/Modal.svelte';
-	import { titlePageModal } from './TitlePageModal';
-	import { onMount } from 'svelte';
+	import { modalStack } from '../Modal/Modal';
+	import type { TitleType } from '$lib/types';
 
-	const modalProps = createModalProps(() => {
-		titlePageModal.close();
-	});
+	export let tmdbId: number;
+	export let type: TitleType;
+	export let modalId: Symbol;
 
 	function handleCloseModal() {
-		modalProps.close();
+		modalStack.close(modalId);
 	}
 
 	onMount(() => {
-		console.log('modal mounted');
+		console.log('TitlePageModal mounted');
 
-		return () => modalProps.close();
+		return () => console.log('TitlePageModal unmounted');
 	});
 </script>
 
-{#if $titlePageModal.tmdbId}
-	{@const tmdbId = $titlePageModal.tmdbId}
-	<Modal {...modalProps}>
-		<div
-			class="max-w-screen-2xl overflow-x-hidden overflow-y-scroll h-screen sm:mx-4 lg:mx-12 xl:mx-16 scrollbar-hide"
-		>
-			<div
-				class="relative overflow-hidden"
-				in:fly|global={{ y: 20, duration: 200, delay: 200 }}
-				out:fly|global={{ y: 20, duration: 200 }}
-			>
-				{#if $titlePageModal.type === 'movie'}
-					<MoviePage {tmdbId} isModal={true} {handleCloseModal} />
-				{:else}
-					<SeriesPage {tmdbId} isModal={true} {handleCloseModal} />
-				{/if}
-			</div>
-		</div>
-	</Modal>
-{/if}
+<div
+	class="max-w-screen-2xl overflow-x-hidden overflow-y-scroll h-screen sm:mx-4 lg:mx-12 xl:mx-16 scrollbar-hide"
+>
+	<div
+		class="relative overflow-hidden"
+		in:fly|global={{ y: 20, duration: 200, delay: 200 }}
+		out:fly|global={{ y: 20, duration: 200 }}
+	>
+		{#if type === 'movie'}
+			<MoviePage {tmdbId} isModal={true} {handleCloseModal} />
+		{:else}
+			<SeriesPage {tmdbId} isModal={true} {handleCloseModal} />
+		{/if}
+	</div>
+</div>

@@ -7,11 +7,14 @@
 	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
 	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { library } from '$lib/stores/library.store';
-	import { titlePageModal } from '../TitlePageLayout/TitlePageModal';
+
+	import { modalStack, openTitleModal } from '../Modal/Modal';
+	import TitlePageModal from '../TitlePageLayout/TitlePageModal.svelte';
+	import type { TitleType } from '$lib/types';
 
 	export let tmdbId: number;
 	export let jellyfinId: string | undefined = undefined;
-	export let type: 'movie' | 'series' = 'movie';
+	export let type: TitleType = 'movie';
 	export let title: string;
 	export let genres: string[] = [];
 	export let runtimeMinutes = 0;
@@ -23,6 +26,7 @@
 	export let available = true;
 	export let progress = 0;
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
+	export let openInModal = true;
 
 	let watched = false;
 	$: watched = !available && !!jellyfinId;
@@ -58,7 +62,13 @@
 				'w-full': size === 'dynamic'
 			}
 		)}
-		on:click={() => titlePageModal.set(tmdbId, type)}
+		on:click={() => {
+			if (openInModal) {
+				openTitleModal(tmdbId, type);
+			} else {
+				window.location.href = `/${type}/${tmdbId}`;
+			}
+		}}
 	>
 		<div
 			style={'width: ' + (progress ? Math.max(progress, 2) : progress) + '%'}

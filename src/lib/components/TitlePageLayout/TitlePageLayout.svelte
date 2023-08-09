@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
 	import classNames from 'classnames';
-	import { ChevronLeft, DotFilled, ExternalLink } from 'radix-icons-svelte';
+	import { ChevronLeft, Cross2, DotFilled, ExternalLink } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
 	import IconButton from '../IconButton.svelte';
+	import type { TitleType } from '$lib/types';
 
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 
 	export let tmdbId: number;
-	export let type: 'movie' | 'series';
+	export let type: TitleType;
 
 	export let backdropUriCandidates: string[];
 	export let posterPath: string;
@@ -79,11 +80,16 @@
 					<ExternalLink size={20} />
 				</IconButton>
 			</a>
-			<div class="sm:hidden absolute top-8 left-4 sm:left-8 z-10">
-				<button class="flex items-center" on:click={handleCloseModal}>
+			<div class="absolute top-8 left-4 sm:left-8 z-10">
+				<button class="flex items-center sm:hidden" on:click={handleCloseModal}>
 					<ChevronLeft size={20} />
 					Back
 				</button>
+				<div class="hidden sm:block">
+					<IconButton on:click={handleCloseModal}>
+						<Cross2 size={20} />
+					</IconButton>
+				</div>
 			</div>
 		{/if}
 		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30%" />

@@ -1,9 +1,8 @@
-import createClient from 'openapi-fetch';
-import type { components, paths } from '$lib/apis/sonarr/sonarr.generated';
 import { PUBLIC_SONARR_API_KEY, PUBLIC_SONARR_BASE_URL } from '$env/static/public';
-import type { SeriesResource } from '$lib/types';
-import { getTmdbMovie, getTmdbSeries } from '../tmdb/tmdbApi';
+import type { components, paths } from '$lib/apis/sonarr/sonarr.generated';
 import { log } from '$lib/utils';
+import createClient from 'openapi-fetch';
+import { getTmdbSeries } from '../tmdb/tmdbApi';
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
 // export type MovieFileResource = components['schemas']['MovieFileResource'];
@@ -45,12 +44,12 @@ export const SonarrApi = createClient<paths>({
 	}
 });
 
-export const getSonarrSeries = (): Promise<SeriesResource[]> =>
+export const getSonarrSeries = (): Promise<SonarrSeries[]> =>
 	SonarrApi.get('/api/v3/series', {
 		params: {}
 	}).then((r) => r.data || []);
 
-export const getSonarrSeriesByTvdbId = (tvdbId: number): Promise<SeriesResource | undefined> =>
+export const getSonarrSeriesByTvdbId = (tvdbId: number): Promise<SonarrSeries | undefined> =>
 	SonarrApi.get('/api/v3/series', {
 		params: {
 			query: {

@@ -1,6 +1,7 @@
+import type { TitleType } from '$lib/types';
 import { writable } from 'svelte/store';
 
-type Type = 'movie' | 'series' | undefined;
+type Type = TitleType | undefined;
 
 function createTitlePageModalStore() {
 	const store = writable<{ tmdbId: number | undefined; type: Type }>({

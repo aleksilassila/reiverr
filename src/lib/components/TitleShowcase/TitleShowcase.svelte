@@ -9,13 +9,14 @@
 	import { settings } from '$lib/stores/settings.store';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import type { TitleType } from '$lib/types';
 
 	const TRAILER_TIMEOUT = 3000;
 	const TRAILER_LOAD_TIME = 1000;
 	const ANIMATION_DURATION = 150;
 
 	export let tmdbId: number;
-	export let type: 'movie' | 'series';
+	export let type: TitleType;
 
 	export let title: string;
 	export let genres: string[];

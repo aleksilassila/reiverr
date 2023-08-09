@@ -5,12 +5,12 @@
 	import TitleSearchModal from './TitleSearchModal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { fade } from 'svelte/transition';
+	import { modalStack } from '../Modal/Modal';
 
 	let y = 0;
 	let transparent = true;
 	let baseStyle = '';
 
-	let isSearchVisible = false;
 	let isMobileMenuVisible = false;
 
 	function getLinkStyle(path: string) {
@@ -20,7 +20,17 @@
 		});
 	}
 
-	// TODO: on mobile don't act sticky
+	function openSearchModal() {
+		modalStack.create(TitleSearchModal, {});
+	}
+
+	function handleShortcuts(event: KeyboardEvent) {
+		if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+			event.preventDefault();
+			openSearchModal();
+		}
+	}
+
 	$: {
 		transparent = y <= 0;
 		baseStyle = classNames(
@@ -35,7 +45,7 @@
 	}
 </script>
 
-<svelte:window bind:scrollY={y} />
+<svelte:window bind:scrollY={y} on:keydown={handleShortcuts} />
 
 <div class={classNames(baseStyle, 'hidden sm:grid')}>
 	<a
@@ -55,7 +65,7 @@
 		<a href="/settings" class={$page && getLinkStyle('/settings')}>Settings</a>
 	</div>
 	<div class="flex gap-2 items-center">
-		<IconButton on:click={() => (isSearchVisible = true)}>
+		<IconButton on:click={openSearchModal}>
 			<MagnifyingGlass size={20} />
 		</IconButton>
 		<IconButton>
@@ -71,7 +81,7 @@
 	</a>
 	<div />
 	<div class="flex items-center gap-2">
-		<IconButton on:click={() => (isSearchVisible = true)}>
+		<IconButton on:click={openSearchModal}>
 			<MagnifyingGlass size={20} />
 		</IconButton>
 
@@ -119,5 +129,3 @@
 		</div>
 	</div>
 {/if}
-
-<TitleSearchModal bind:visible={isSearchVisible} />

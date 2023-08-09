@@ -14,13 +14,13 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
-	import { createModalProps } from '$lib/components/Modal/Modal';
+	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
-	import { capitalize, formatMinutesToTime, formatSize, log } from '$lib/utils';
+	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
@@ -36,11 +36,25 @@
 	let visibleSeasonNumber: number | undefined = undefined;
 	let visibleEpisodeIndex: number | undefined = undefined;
 
-	let requestModalVisible = false;
-	const requestModalProps = createModalProps(
-		() => (requestModalVisible = false),
-		() => {}
-	);
+	// let requestModalVisible = false;
+	// const requestModalProps = createModalProps(
+	// 	() => (requestModalVisible = false),
+	// 	() => {}
+	// );
+
+	function openRequestModal() {
+		if (
+			!$itemStore.item?.sonarrSeries?.id ||
+			!$itemStore.item?.sonarrSeries?.statistics?.seasonCount
+		)
+			return;
+
+		modalStack.create(SeriesRequestModal, {
+			sonarrId: $itemStore.item?.sonarrSeries?.id || 0,
+			seasons: $itemStore.item?.sonarrSeries?.statistics?.seasonCount || 0,
+			heading: $itemStore.item?.sonarrSeries?.title || 'Series'
+		});
+	}
 
 	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
 	let episodeComponents: HTMLDivElement[] = [];
@@ -178,7 +192,7 @@
 					<span>Add to Sonarr</span><Plus size={20} />
 				</Button>
 			{:else}
-				<Button type="primary" on:click={() => (requestModalVisible = true)}>
+				<Button type="primary" on:click={openRequestModal}>
 					<span class="mr-2">Request Series</span><Plus size={20} />
 				</Button>
 			{/if}
@@ -328,7 +342,7 @@
 				{/if}
 
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
-					<Button on:click={() => (requestModalVisible = true)}>
+					<Button on:click={openRequestModal}>
 						<span class="mr-2">Request Series</span><Plus size={20} />
 					</Button>
 					<Button>
@@ -378,7 +392,7 @@
 	</TitlePageLayout>
 {/await}
 
-{#if requestModalVisible}
+<!-- {#if requestModalVisible}
 	{@const sonarrSeries = $itemStore.item?.sonarrSeries}
 	{#if sonarrSeries && sonarrSeries.id && sonarrSeries?.statistics?.seasonCount}
 		<SeriesRequestModal
@@ -388,4 +402,4 @@
 			heading={sonarrSeries.title || 'Series'}
 		/>
 	{/if}
-{/if}
+{/if} -->

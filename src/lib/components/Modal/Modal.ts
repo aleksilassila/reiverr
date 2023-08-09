@@ -1,56 +1,71 @@
+import type { TitleType } from '$lib/types';
 import { writable } from 'svelte/store';
+import TitlePageModal from '../TitlePageLayout/TitlePageModal.svelte';
 
-function createModalStack() {
-	const store = writable<{ stack: Symbol[]; top: Symbol | undefined }>({
+type ModalItem = {
+	id: Symbol;
+	group: Symbol;
+	component: ConstructorOfATypedSvelteComponent;
+	props: Record<string, any>;
+};
+function createDynamicModalStack() {
+	const store = writable<{ stack: ModalItem[]; top: ModalItem | undefined }>({
 		stack: [],
 		top: undefined
 	});
 
 	store.subscribe(console.log);
 
+	function close(symbol: Symbol) {
+		store.update((s) => {
+			s.stack = s.stack.filter((i) => i.id !== symbol);
+			s.top = s.stack[s.stack.length - 1];
+			return s;
+		});
+	}
+
+	function closeGroup(group: Symbol) {
+		store.update((s) => {
+			s.stack = s.stack.filter((i) => i.group !== group);
+			s.top = s.stack[s.stack.length - 1];
+			return s;
+		});
+	}
+
+	function create(
+		component: ConstructorOfATypedSvelteComponent,
+		props: Record<string, any>,
+		group: Symbol | undefined = undefined
+	) {
+		const id = Symbol();
+		const item = { id, component, props, group: group || id };
+		store.update((s) => {
+			s.stack.push(item);
+			s.top = item;
+			return s;
+		});
+		return id;
+	}
+
+	function reset() {
+		store.set({ stack: [], top: undefined });
+	}
+
 	return {
 		...store,
-		push: (symbol: Symbol) => {
-			store.update((s) => {
-				if (s.stack.includes(symbol)) {
-					return s;
-				}
-
-				s.stack.push(symbol);
-				s.top = symbol;
-				return s;
-			});
-		},
-		remove: (symbol: Symbol) => {
-			store.update((s) => {
-				s.stack = s.stack.filter((x) => x !== symbol);
-				s.top = s.stack[s.stack.length - 1];
-				return s;
-			});
-		}
+		create,
+		close,
+		closeGroup,
+		reset
 	};
 }
 
-export const modalStack = createModalStack();
+export const modalStack = createDynamicModalStack();
 
-export type ModalProps = ReturnType<typeof createModalProps>;
-
-export function createModalProps(onClose: () => void, onBack?: () => void) {
-	const id = Symbol();
-
-	function close() {
-		onClose(); // ORDER MATTERS HERE
-		modalStack.remove(id);
+let lastTitleModal: Symbol | undefined = undefined;
+export function openTitleModal(tmdbId: number, type: TitleType) {
+	if (lastTitleModal) {
+		modalStack.close(lastTitleModal);
 	}
-
-	function back() {
-		onBack?.();
-		modalStack.remove(id);
-	}
-
-	return {
-		close,
-		back: onBack ? back : undefined,
-		id
-	};
+	lastTitleModal = modalStack.create(TitlePageModal, { tmdbId, type });
 }

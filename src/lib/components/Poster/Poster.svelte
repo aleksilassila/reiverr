@@ -8,10 +8,11 @@
 	import classNames from 'classnames';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
+	import type { TitleType } from '$lib/types';
 
 	export let tmdbId: number;
 	export let jellyfinId: string = '';
-	export let type: 'movie' | 'series' = 'movie';
+	export let type: TitleType = 'movie';
 	export let backdropUri: string;
 
 	export let title = '';

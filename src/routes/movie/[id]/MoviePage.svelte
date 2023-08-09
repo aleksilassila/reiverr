@@ -9,7 +9,7 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import { createModalProps } from '$lib/components/Modal/Modal';
+	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
@@ -26,9 +26,6 @@
 	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
 
 	const itemStore = createLibraryItemStore(tmdbId);
-
-	let requestModalVisible = false;
-	const requestModalProps = createModalProps(() => (requestModalVisible = false));
 
 	const tmdbMoviePromise = getTmdbMovie(tmdbId);
 	const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
@@ -63,6 +60,14 @@
 		addMovieToRadarr(tmdbId)
 			.then(refresh)
 			.finally(() => (addToRadarrLoading = false));
+	}
+
+	function openRequestModal() {
+		if (!$itemStore.item?.radarrMovie?.id) return;
+
+		modalStack.create(RequestModal, {
+			radarrId: $itemStore.item?.radarrMovie?.id
+		});
 	}
 </script>
 
@@ -111,7 +116,7 @@
 					<span>Add to Radarr</span><Plus size={20} />
 				</Button>
 			{:else}
-				<Button type="primary" on:click={() => (requestModalVisible = true)}>
+				<Button type="primary" on:click={openRequestModal}>
 					<span class="mr-2">Request Movie</span><Plus size={20} />
 				</Button>
 			{/if}
@@ -255,7 +260,7 @@
 				{/if}
 
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
-					<Button on:click={() => (requestModalVisible = true)}>
+					<Button on:click={openRequestModal}>
 						<span class="mr-2">Request Movie</span><Plus size={20} />
 					</Button>
 					<Button>
@@ -314,9 +319,10 @@
 	</TitlePageLayout>
 {/await}
 
-{#if requestModalVisible}
-	{@const radarrMovie = $itemStore.item?.radarrMovie}
-	{#if radarrMovie && radarrMovie.id}
-		<RequestModal modalProps={requestModalProps} radarrId={radarrMovie.id} />
-	{/if}
-{/if}
+<!-- {#if requestModalVisible} -->
+<!-- {@const radarrMovie = $itemStore.item?.radarrMovie} -->
+<!-- {#if radarrMovie && radarrMovie.id} -->
+<!-- <RequestModal modalProps={requestModalProps} radarrId={radarrMovie.id} /> -->
+<!-- {/if} -->
+<!-- {/if} -->
+<!--  -->

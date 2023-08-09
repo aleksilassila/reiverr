@@ -21,10 +21,9 @@ import {
 	getTmdbMovieBackdrop,
 	getTmdbMoviePoster,
 	getTmdbSeriesBackdrop,
-	getTmdbSeriesFromTvdbId,
-	type TmdbMovieFull2,
-	type TmdbSeriesFull2
+	getTmdbSeriesFromTvdbId
 } from '$lib/apis/tmdb/tmdbApi';
+import type { TitleType } from '$lib/types';
 import { get, writable } from 'svelte/store';
 
 export interface PlayableItem {
@@ -42,7 +41,7 @@ export interface PlayableItem {
 	isPlayed: boolean;
 	jellyfinId?: string;
 
-	type: 'movie' | 'series';
+	type: TitleType;
 	tmdbId: number;
 	jellyfinItem?: JellyfinItem;
 	jellyfinEpisodes?: JellyfinItem[];
