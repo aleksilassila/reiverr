@@ -9,18 +9,20 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout.svelte';
 	import { createModalProps } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
+	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
-	import ProgressBar from '$lib/components/ProgressBar.svelte';
 
 	export let tmdbId: number;
+	export let isModal = false;
+	export let handleCloseModal: () => void = () => {};
 	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
 
 	const itemStore = createLibraryItemStore(tmdbId);
@@ -66,6 +68,10 @@
 
 {#await tmdbMoviePromise then movie}
 	<TitlePageLayout
+		{isModal}
+		{tmdbId}
+		{handleCloseModal}
+		type="movie"
 		title={movie?.title || 'Movie'}
 		backdropUriCandidates={movie?.images?.backdrops?.map((b) => b.file_path || '') || []}
 		posterPath={movie?.poster_path || ''}

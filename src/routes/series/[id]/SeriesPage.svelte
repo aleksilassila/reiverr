@@ -17,7 +17,7 @@
 	import { createModalProps } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout.svelte';
+	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
 	import { capitalize, formatMinutesToTime, formatSize, log } from '$lib/utils';
@@ -26,6 +26,8 @@
 	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
+	export let isModal = false;
+	export let handleCloseModal: () => void = () => {};
 	const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
 
 	const itemStore = createLibraryItemStore(tmdbId);
@@ -146,6 +148,10 @@
 
 {#await tmdbSeriesPromise then series}
 	<TitlePageLayout
+		{tmdbId}
+		type="series"
+		{isModal}
+		{handleCloseModal}
 		backdropUriCandidates={series?.images?.backdrops?.map((b) => b.file_path || '') || []}
 		posterPath={series?.poster_path || ''}
 		title={series?.name || ''}
@@ -179,7 +185,12 @@
 		</svelte:fragment>
 
 		<div slot="episodes-carousel">
-			<Carousel gradientFromColor="from-stone-950" class="px-2 sm:px-4 lg:px-8 2xl:px-0">
+			<Carousel
+				gradientFromColor="from-stone-950"
+				class={classNames('px-2 sm:px-4 lg:px-8', {
+					'2xl:px-0': !isModal
+				})}
+			>
 				<UiCarousel slot="title" class="flex gap-6">
 					{#each [...Array(series?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
 						{@const season = series?.seasons?.find((s) => s.season_number === seasonNumber)}

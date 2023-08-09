@@ -3,6 +3,7 @@
 	import CardPlaceholder from '$lib/components/Card/CardPlaceholder.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
+	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
@@ -188,19 +189,23 @@
 <svelte:window on:keydown={handleShortcuts} />
 
 <div
-	class="pt-24 pb-4 px-2 md:px-8 bg-black relative bg-center bg-cover"
 	style={"background-image: url('" +
 		TMDB_IMAGES_ORIGINAL +
 		(downloadingProps[0]?.backdropUri || nextUpProps[0]?.backdropUri) +
-		// '/4ke48uabb0K6uDcLlSED2ZvvYEb.jpg' +
 		"');"}
+	class="absolute inset-0 h-[50vh] bg-center bg-cover"
+>
+	<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
+</div>
+
+<div
+	class="pt-24 pb-4 px-2 md:px-8 relative bg-center bg-cover"
 	in:fade|global={{
 		duration: $settings.animationDuration,
 		delay: $settings.animationDuration
 	}}
 	out:fade|global={{ duration: $settings.animationDuration }}
 >
-	<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30% to-darken" />
 	<!-- <div class="max-w-screen-2xl mx-auto">
 		<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
 			<RadarrStats />
@@ -269,13 +274,15 @@
 	out:fade|global={{ duration: $settings.animationDuration }}
 >
 	<div class="max-w-screen-2xl m-auto flex flex-col gap-4">
-		<div class="flex items-center justify-between">
-			<div class="flex gap-6 text-lg font-medium text-zinc-400">
-				<div class="text-zinc-200">Available</div>
-				<div>Watched</div>
-				<div>Unavailable</div>
-			</div>
-			<div class="flex items-center gap-3">
+		<div class="flex items-center justify-between gap-2">
+			<UiCarousel>
+				<div class="flex gap-6 text-lg font-medium text-zinc-400">
+					<div class="text-zinc-200">Available</div>
+					<div>Watched</div>
+					<div>Unavailable</div>
+				</div>
+			</UiCarousel>
+			<div class="flex items-center gap-3 justify-end flex-shrink-0 flex-initial relative">
 				<IconButton>
 					<div class="flex gap-0.5 items-center text-sm">
 						<span>By Title</span>

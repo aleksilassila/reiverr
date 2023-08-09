@@ -6,6 +6,8 @@ function createModalStack() {
 		top: undefined
 	});
 
+	store.subscribe(console.log);
+
 	return {
 		...store,
 		push: (symbol: Symbol) => {

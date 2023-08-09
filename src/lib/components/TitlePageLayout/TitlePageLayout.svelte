@@ -1,9 +1,17 @@
 <script lang="ts">
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
-	import { DotFilled } from 'radix-icons-svelte';
+	import classNames from 'classnames';
+	import { ChevronLeft, DotFilled, ExternalLink } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
-	import Carousel from './Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from './Carousel/CarouselPlaceholderItems.svelte';
+	import Carousel from '../Carousel/Carousel.svelte';
+	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
+	import IconButton from '../IconButton.svelte';
+
+	export let isModal = false;
+	export let handleCloseModal: () => void = () => {};
+
+	export let tmdbId: number;
+	export let type: 'movie' | 'series';
 
 	export let backdropUriCandidates: string[];
 	export let posterPath: string;
@@ -12,10 +20,11 @@
 	export let tagline: string;
 	export let overview: string;
 
+	let topHeight: number;
 	let bottomHeight: number;
 	let windowHeight: number;
 	let imageHeight: number;
-	$: imageHeight = windowHeight - bottomHeight * 0.3;
+	$: imageHeight = isModal && topHeight ? topHeight : windowHeight - bottomHeight * 0.3;
 
 	function getBackdropUri(uris: string[]) {
 		return uris[Math.max(2, Math.floor(uris.length / 8))] || uris[uris.length - 1] || '';
@@ -31,7 +40,10 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class="hidden sm:block fixed inset-x-0 bg-center bg-cover z-[-10]"
+	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover z-[-10]', {
+		absolute: isModal,
+		fixed: !isModal
+	})}
 >
 	<div class="absolute inset-0 bg-darken" />
 </div>
@@ -48,8 +60,32 @@
 	<div class="absolute inset-0 bg-darken" />
 </div>
 
-<div class="flex flex-col h-[85vh] sm:h-screen" transition:fade>
-	<div class="flex-1 relative flex pt-24 px-4 sm:px-8 pb-6">
+<div
+	class={classNames('flex flex-col', {
+		'h-[85vh] sm:h-screen': !isModal,
+		'': isModal
+	})}
+	transition:fade
+>
+	<div
+		class={classNames('flex-1 relative flex pt-24 px-4 sm:px-8 pb-6', {
+			'min-h-[60vh]': isModal
+		})}
+		bind:clientHeight={topHeight}
+	>
+		{#if isModal}
+			<a href={`/${type}/${tmdbId}`} class="absolute top-8 right-4 sm:right-8 z-10">
+				<IconButton>
+					<ExternalLink size={20} />
+				</IconButton>
+			</a>
+			<div class="sm:hidden absolute top-8 left-4 sm:left-8 z-10">
+				<button class="flex items-center" on:click={handleCloseModal}>
+					<ChevronLeft size={20} />
+					Back
+				</button>
+			</div>
+		{/if}
 		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30%" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end max-w-screen-2xl mx-auto">
 			<div
@@ -86,7 +122,11 @@
 	</div>
 </div>
 
-<div class="flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 2xl:px-0 pb-6">
+<div
+	class={classNames('flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 pb-6', {
+		'2xl:px-0': !isModal
+	})}
+>
 	<div
 		class="grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl max-w-screen-2xl 2xl:mx-auto py-4"
 	>

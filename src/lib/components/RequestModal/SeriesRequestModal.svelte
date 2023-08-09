@@ -1,16 +1,15 @@
 <script lang="ts">
+	import type { SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
+	import { ChevronRight } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import Button from '../Button.svelte';
 	import { createModalProps, type ModalProps } from '../Modal/Modal';
 	import Modal from '../Modal/Modal.svelte';
 	import ModalContainer from '../Modal/ModalContainer.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
-	import RoundedButton from '../RoundedButton.svelte';
 	import EpisodeSelectModal from './EpisodeSelectModal.svelte';
 	import RequestModal from './RequestModal.svelte';
-	import type { SonarrEpisode } from '$lib/apis/sonarr/sonarrApi';
-	import Button from '../Button.svelte';
-	import { ChevronRight } from 'radix-icons-svelte';
 
 	export let modalProps: ModalProps;
 	export let sonarrId: number;

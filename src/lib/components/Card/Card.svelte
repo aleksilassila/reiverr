@@ -7,6 +7,7 @@
 	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
 	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { library } from '$lib/stores/library.store';
+	import { titlePageModal } from '../TitlePageLayout/TitlePageModal';
 
 	export let tmdbId: number;
 	export let jellyfinId: string | undefined = undefined;
@@ -48,7 +49,7 @@
 			Mark as unwatched
 		</ContextMenuItem>
 	</svelte:fragment>
-	<a
+	<button
 		class={classNames(
 			'rounded overflow-hidden relative shadow-lg shrink-0 aspect-video selectable block hover:text-inherit',
 			{
@@ -57,7 +58,7 @@
 				'w-full': size === 'dynamic'
 			}
 		)}
-		href={`/${type}/${tmdbId}`}
+		on:click={() => titlePageModal.set(tmdbId, type)}
 	>
 		<div
 			style={'width: ' + (progress ? Math.max(progress, 2) : progress) + '%'}
@@ -67,7 +68,7 @@
 			class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"
 			style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
 		>
-			<div>
+			<div class="text-left">
 				<h1 class="font-bold tracking-wider text-lg">{title}</h1>
 				<div class="text-xs text-zinc-300 tracking-wider font-medium">
 					{genres.map((genre) => genre.charAt(0).toUpperCase() + genre.slice(1)).join(', ')}
@@ -119,5 +120,5 @@
 				'bg-[#00000055] peer-hover:bg-darken': !available
 			})}
 		/>
-	</a>
+	</button>
 </ContextMenu>
