@@ -17,6 +17,7 @@
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
+	import classNames from 'classnames';
 	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
@@ -36,7 +37,7 @@
 		.then((r) => r.filter((p) => p.backdropUri));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
 		Promise.all(
-			m?.credits?.cast?.map((m) => ({
+			m?.credits?.cast?.slice(0, 20).map((m) => ({
 				tmdbId: m.id || 0,
 				backdropUri: m.profile_path || '',
 				name: m.name || '',
@@ -100,7 +101,13 @@
 		<svelte:fragment slot="episodes-carousel">
 			{@const progress = $itemStore.item?.continueWatching?.progress}
 			{#if progress}
-				<ProgressBar {progress} />
+				<div
+					class={classNames('px-2 sm:px-4 lg:px-8', {
+						'2xl:px-0': !isModal
+					})}
+				>
+					<ProgressBar {progress} />
+				</div>
 			{/if}
 		</svelte:fragment>
 
@@ -301,7 +308,7 @@
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
-					<Card {...prop} />
+					<Card {...prop} openInModal={isModal} />
 				{/each}
 			{/await}
 		</svelte:fragment>
@@ -312,7 +319,7 @@
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
-					<Card {...prop} />
+					<Card {...prop} openInModal={isModal} />
 				{/each}
 			{/await}
 		</svelte:fragment>

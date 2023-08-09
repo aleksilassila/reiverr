@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import type { TitleType } from '$lib/types';
 	import { fly } from 'svelte/transition';
 	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
 	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
 	import { modalStack } from '../Modal/Modal';
-	import type { TitleType } from '$lib/types';
 
 	export let tmdbId: number;
 	export let type: TitleType;
@@ -13,12 +12,6 @@
 	function handleCloseModal() {
 		modalStack.close(modalId);
 	}
-
-	onMount(() => {
-		console.log('TitlePageModal mounted');
-
-		return () => console.log('TitlePageModal unmounted');
-	});
 </script>
 
 <div

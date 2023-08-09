@@ -4,6 +4,8 @@ import type { paths } from '$lib/apis/radarr/radarr.generated';
 import type { components } from '$lib/apis/radarr/radarr.generated';
 import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
 import { PUBLIC_RADARR_API_KEY, PUBLIC_RADARR_BASE_URL } from '$env/static/public';
+import { settings } from '$lib/stores/settings.store';
+import { get } from 'svelte/store';
 
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
@@ -55,11 +57,10 @@ export const addMovieToRadarr = async (tmdbId: number) => {
 
 	if (!tmdbMovie) throw new Error('Movie not found');
 
-	const qualityProfile = 4;
 	const options: RadarrMovieOptions = {
-		qualityProfileId: qualityProfile,
-		profileId: qualityProfile,
-		rootFolderPath: '/movies',
+		qualityProfileId: get(settings).radarr.qualityProfileId,
+		profileId: get(settings).radarr.profileId,
+		rootFolderPath: get(settings).radarr.rootFolderPath,
 		minimumAvailability: 'announced',
 		title: tmdbMovie.title || tmdbMovie.original_title || '',
 		tmdbId: tmdbMovie.id || 0,

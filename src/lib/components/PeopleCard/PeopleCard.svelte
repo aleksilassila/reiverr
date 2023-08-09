@@ -19,6 +19,7 @@
 			'w-full': size === 'dynamic'
 		}
 	)}
+	target="_blank"
 	href={`https://www.themoviedb.org/person/${tmdbId}`}
 >
 	<div

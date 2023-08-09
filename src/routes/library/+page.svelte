@@ -8,6 +8,7 @@
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
+	import classNames from 'classnames';
 	import { CaretDown, ChevronDown, Gear } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
@@ -18,6 +19,8 @@
 	let loading = true;
 	let searchInput: HTMLInputElement | undefined;
 	let searchInputValue = '';
+
+	let openTab: 'available' | 'watched' | 'unavailable' = 'available';
 
 	let items: PlayableItem[] = [];
 
@@ -179,11 +182,6 @@
 			searchInput?.focus();
 		}
 	}
-
-	const posterGridStyle =
-		'grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
-	const headerStyle = 'uppercase tracking-widest font-bold';
-	const headerContaienr = 'flex items-center justify-between mt-2';
 </script>
 
 <svelte:window on:keydown={handleShortcuts} />
@@ -194,6 +192,11 @@
 		(downloadingProps[0]?.backdropUri || nextUpProps[0]?.backdropUri) +
 		"');"}
 	class="absolute inset-0 h-[50vh] bg-center bg-cover"
+	in:fade|global={{
+		duration: $settings.animationDuration,
+		delay: $settings.animationDuration
+	}}
+	out:fade|global={{ duration: $settings.animationDuration }}
 >
 	<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
 </div>
@@ -206,18 +209,8 @@
 	}}
 	out:fade|global={{ duration: $settings.animationDuration }}
 >
-	<!-- <div class="max-w-screen-2xl mx-auto">
-		<div class="grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-4">
-			<RadarrStats />
-			<SonarrStats />
-		</div>
-	</div> -->
 	<div class="relative grid grid-cols-3 grid-rows-3 z-[1] max-w-screen-2xl mx-auto">
 		<div class="col-start-1 row-start-2 row-span-2 col-span-3 flex justify-end flex-col">
-			<!-- <div class="flex flex-col gap-2">
-				<div class="text-lg font-semibold">Downloading Now</div>
-				<Card {...downloadingProps[0] || unavailableProps[0]} size="md" />
-			</div> -->
 			{#if downloadingProps.length}
 				<Carousel heading="Downloading Queue">
 					{#each downloadingProps as props (props.tmdbId)}
@@ -234,34 +227,6 @@
 				</Carousel>
 			{/if}
 		</div>
-		<!-- <div class="col-start-3 row-span-3 flex justify-end items-end">
-			<div class="flex flex-col px-4 py-2 gap-2">
-				<div class="font-medium text-lg">Library Stats</div>
-				<div class="grid grid-cols-[1fr_max-content] gap-x-16">
-					<h1 class="text-zinc-400">Movies</h1>
-					<div class="text-right">23</div>
-					<h1 class="text-zinc-400">Shows</h1>
-					<div class="text-right">10</div>
-					<h1 class="text-zinc-400">Disk Space Used</h1>
-					<div class="text-right">252.34 GB</div>
-					<h1 class="text-zinc-400">Disk Space Left</h1>
-					<div class="text-right">84.52 GB</div>
-				</div>
-				<div class="font-medium border-b border-zinc-500 py-1 text-lg">Stats</div>
-				<div class="px-1 py-2 grid grid-cols-[1fr_max-content] gap-x-16">
-					<h1 class="text-zinc-300">Movies</h1>
-					<div class="text-right">23</div>
-					<h1 class="text-zinc-300">Shows</h1>
-					<div class="text-right">10</div>
-					<h1 class="text-zinc-300">Disk Space Used</h1>
-					<div class="text-right">252.34 GB</div>
-					<h1 class="text-zinc-300">Disk Space Left</h1>
-					<div class="text-right">84.52 GB</div>
-				</div>
-				<div class="font-medium border-b border-zinc-500 py-0.5">Events</div>
-				<div class="text-zinc-400 text-sm pl-1 pt-2 pb-12 pr-40">No recent events</div>
-			</div>
-		</div> -->
 	</div>
 </div>
 
@@ -277,9 +242,20 @@
 		<div class="flex items-center justify-between gap-2">
 			<UiCarousel>
 				<div class="flex gap-6 text-lg font-medium text-zinc-400">
-					<div class="text-zinc-200">Available</div>
-					<div>Watched</div>
-					<div>Unavailable</div>
+					<button
+						class={classNames('hover:text-zinc-300', { 'text-zinc-200': openTab === 'available' })}
+						on:click={() => (openTab = 'available')}>Available</button
+					>
+					<button
+						class={classNames('hover:text-zinc-300', { 'text-zinc-200': openTab === 'watched' })}
+						on:click={() => (openTab = 'watched')}>Watched</button
+					>
+					<button
+						class={classNames('hover:text-zinc-300', {
+							'text-zinc-200': openTab === 'unavailable'
+						})}
+						on:click={() => (openTab = 'unavailable')}>Unavailable</button
+					>
 				</div>
 			</UiCarousel>
 			<div class="flex items-center gap-3 justify-end flex-shrink-0 flex-initial relative">
@@ -295,96 +271,28 @@
 			</div>
 		</div>
 
-		<!-- <div class="flex justify-between gap-2 sm:flex-row flex-col">
-			<div
-				class={classNames(
-					'relative items-center shadow-xl selectable rounded-xl',
-					'text-zinc-200 bg-zinc-400 bg-opacity-20 cursor-text focus-within:bg-opacity-30'
-				)}
-			>
-				<div class="absolute inset-y-0 left-4 flex items-center justify-center">
-					<MagnifyingGlass size={24} />
-				</div>
-				<input
-					type="text"
-					class="bg-transparent outline-none placeholder:text-zinc-400 py-3 pl-12 pr-4 relative z-[1]"
-					placeholder="Search from library"
-					bind:this={searchInput}
-					bind:value={searchInputValue}
-				/>
-			</div>
-		</div> -->
-
 		{#if loading}
-			<div class={posterGridStyle}>
+			<div class="grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
 				{#each [...Array(20).keys()] as index (index)}
 					<CardPlaceholder size="dynamic" {index} />
 				{/each}
 			</div>
 		{:else}
-			<!-- {#if downloadingProps.length > 0}
-				<div class={headerContaienr}>
-					<h1 class={headerStyle}>
-						Downloading <span class="text-zinc-500">{downloadingProps.length}</span>
-					</h1>
-					<IconButton>
-						<ChevronDown size={24} />
-					</IconButton>
-				</div>
-				<div class={posterGridStyle}>
-					{#each downloadingProps as props (props.tmdbId)}
-						<Card {...props} />
-					{/each}
-				</div>
-			{/if} -->
-
-			{#if availableProps.length > 0}
-				<!-- <div class={headerContaienr}>
-					<h1 class={headerStyle}>
-						Available <span class="text-zinc-500">{availableProps.length}</span>
-					</h1>
-					<IconButton>
-						<ChevronDown size={24} />
-					</IconButton>
-				</div> -->
-				<div class={posterGridStyle}>
+			<div class="grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+				{#if openTab === 'available'}
 					{#each availableProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
-				</div>
-			{/if}
-
-			{#if watchedProps.length > 0}
-				<div class={headerContaienr}>
-					<h1 class={headerStyle}>
-						Watched <span class="text-zinc-500">{watchedProps.length}</span>
-					</h1>
-					<IconButton>
-						<ChevronDown size={24} />
-					</IconButton>
-				</div>
-				<div class={posterGridStyle}>
+				{:else if openTab === 'watched'}
 					{#each watchedProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
-				</div>
-			{/if}
-
-			{#if unavailableProps.length > 0}
-				<div class={headerContaienr}>
-					<h1 class={headerStyle}>
-						Unavailable <span class="text-zinc-500">{unavailableProps.length}</span>
-					</h1>
-					<IconButton>
-						<ChevronDown size={24} />
-					</IconButton>
-				</div>
-				<div class={posterGridStyle}>
+				{:else if openTab === 'unavailable'}
 					{#each unavailableProps as props (props.tmdbId)}
 						<Card {...props} />
 					{/each}
-				</div>
-			{/if}
+				{/if}
+			</div>
 		{/if}
 	</div>
 </div>

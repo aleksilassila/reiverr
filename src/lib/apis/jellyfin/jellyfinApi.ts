@@ -3,11 +3,12 @@ import type { components, paths } from '$lib/apis/jellyfin/jellyfin.generated';
 import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
 import { request } from '$lib/utils';
 import type { DeviceProfile } from '$lib/apis/jellyfin/playback-profiles';
+import { settings } from '$lib/stores/settings.store';
+import { get } from 'svelte/store';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
-export const JELLYFIN_USER_ID = '75dcb061c9404115a7acdc893ea6bbbc';
 
 export const JellyfinApi = createClient<paths>({
 	baseUrl: PUBLIC_JELLYFIN_URL,
@@ -20,7 +21,7 @@ export const getJellyfinContinueWatching = (): Promise<JellyfinItem[]> =>
 	JellyfinApi.get('/Users/{userId}/Items/Resume', {
 		params: {
 			path: {
-				userId: JELLYFIN_USER_ID
+				userId: get(settings).jellyfin.userId
 			},
 			query: {
 				mediaTypes: ['Video'],
@@ -33,7 +34,7 @@ export const getJellyfinNextUp = () =>
 	JellyfinApi.get('/Shows/NextUp', {
 		params: {
 			query: {
-				userId: JELLYFIN_USER_ID,
+				userId: get(settings).jellyfin.userId,
 				fields: ['ProviderIds']
 			}
 		}
@@ -43,7 +44,7 @@ export const getJellyfinItems = () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
-				userId: JELLYFIN_USER_ID
+				userId: get(settings).jellyfin.userId
 			},
 			query: {
 				hasTmdbId: true,
@@ -58,7 +59,7 @@ export const getJellyfinItems = () =>
 // 	JellyfinApi.get('/Users/{userId}/Items', {
 // 		params: {
 // 			path: {
-// 				userId: JELLYFIN_USER_ID
+// 				userId: get(settings).jellyfin.userId
 // 			},
 // 			query: {
 // 				hasTmdbId: true,
@@ -72,7 +73,7 @@ export const getJellyfinEpisodes = () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
-				userId: JELLYFIN_USER_ID
+				userId: get(settings).jellyfin.userId
 			},
 			query: {
 				recursive: true,
@@ -95,7 +96,7 @@ export const getJellyfinItem = (itemId: string) =>
 		params: {
 			path: {
 				itemId,
-				userId: JELLYFIN_USER_ID
+				userId: get(settings).jellyfin.userId
 			}
 		}
 	}).then((r) => r.data);
@@ -110,7 +111,7 @@ export const getJellyfinPlaybackInfo = (itemId: string, playbackProfile: DeviceP
 				itemId: itemId
 			},
 			query: {
-				userId: JELLYFIN_USER_ID,
+				userId: get(settings).jellyfin.userId,
 				startTimeTicks: 0,
 				autoOpenLiveStream: true,
 				maxStreamingBitrate: 140000000
@@ -178,7 +179,7 @@ export const setJellyfinItemWatched = (jellyfinId: string) =>
 	JellyfinApi.post('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
-				userId: JELLYFIN_USER_ID,
+				userId: get(settings).jellyfin.userId,
 				itemId: jellyfinId
 			},
 			query: {
@@ -191,7 +192,7 @@ export const setJellyfinItemUnwatched = (jellyfinId: string) =>
 	JellyfinApi.del('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
-				userId: JELLYFIN_USER_ID,
+				userId: get(settings).jellyfin.userId,
 				itemId: jellyfinId
 			}
 		}

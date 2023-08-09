@@ -41,7 +41,7 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover z-[-10]', {
+	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover', {
 		absolute: isModal,
 		fixed: !isModal
 	})}
@@ -56,13 +56,13 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class="sm:hidden fixed inset-x-0 bg-center bg-cover z-[-10]"
+	class="sm:hidden fixed inset-x-0 bg-center bg-cover"
 >
 	<div class="absolute inset-0 bg-darken" />
 </div>
 
 <div
-	class={classNames('flex flex-col', {
+	class={classNames('flex flex-col relative z-[1]', {
 		'h-[85vh] sm:h-screen': !isModal,
 		'': isModal
 	})}
@@ -129,7 +129,7 @@
 </div>
 
 <div
-	class={classNames('flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 pb-6', {
+	class={classNames('flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 pb-6 relative z-[1]', {
 		'2xl:px-0': !isModal
 	})}
 >

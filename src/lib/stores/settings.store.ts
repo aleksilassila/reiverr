@@ -10,6 +10,19 @@ interface Settings {
 		filterBasedOnLanguage: boolean;
 	};
 	animationDuration: number;
+	sonarr: {
+		qualityProfileId: number;
+		rootFolderPath: string;
+		languageProfileId: number;
+	};
+	radarr: {
+		qualityProfileId: number;
+		profileId: number;
+		rootFolderPath: string;
+	};
+	jellyfin: {
+		userId: string;
+	};
 }
 
 const defaultSettings: Settings = {
@@ -21,7 +34,20 @@ const defaultSettings: Settings = {
 		filterBasedOnLanguage: true,
 		includedLanguages: ['en']
 	},
-	animationDuration: 150
+	animationDuration: 150,
+	sonarr: {
+		qualityProfileId: 4,
+		rootFolderPath: '/tv',
+		languageProfileId: 1
+	},
+	radarr: {
+		qualityProfileId: 4,
+		profileId: 4,
+		rootFolderPath: '/movies'
+	},
+	jellyfin: {
+		userId: '75dcb061c9404115a7acdc893ea6bbbc'
+	}
 };
 
 export const settings = writable<Settings>(defaultSettings);

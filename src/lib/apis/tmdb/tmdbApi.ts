@@ -234,6 +234,7 @@ export const getTmdbDigitalReleases = () =>
 			query: {
 				with_release_type: 4,
 				sort_by: 'popularity.desc',
+				'release_date.lte': formatDateToYearMonthDay(new Date()),
 				...getIncludedLanguagesQuery()
 			}
 		}
@@ -244,8 +245,8 @@ export const getTmdbUpcomingMovies = () =>
 		params: {
 			query: {
 				'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc',
-				...getIncludedLanguagesQuery()
+				sort_by: 'popularity.desc'
+				// ...getIncludedLanguagesQuery()
 			}
 		}
 	}).then((res) => res.data?.results || []);

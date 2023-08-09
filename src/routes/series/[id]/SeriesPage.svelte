@@ -124,10 +124,6 @@
 			.finally(() => (addToSonarrLoading = false));
 	}
 
-	function setAsWatched(seasonNumber: number, episodeIndex: number) {
-		console.log('Clicked', seasonNumber, episodeIndex);
-	}
-
 	let didFocusNextEpisode = false;
 	$: {
 		if (episodeComponents && !didFocusNextEpisode) {
@@ -368,7 +364,7 @@
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
-					<Card {...prop} />
+					<Card {...prop} openInModal={isModal} />
 				{/each}
 			{/await}
 		</svelte:fragment>
@@ -379,7 +375,7 @@
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
-					<Card {...prop} />
+					<Card {...prop} openInModal={isModal} />
 				{/each}
 			{/await}
 		</svelte:fragment>

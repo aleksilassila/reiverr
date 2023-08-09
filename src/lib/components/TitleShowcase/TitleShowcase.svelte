@@ -36,7 +36,6 @@
 	export let onNext: () => void;
 
 	let trailerMounted = false;
-	let trailerMountedTime = 0;
 	let trailerVisible = false;
 	let focusTrailer = false;
 	let UIVisible = true;
@@ -49,13 +48,11 @@
 	$: {
 		tmdbId;
 		trailerMounted = false;
-		trailerMountedTime = 0;
 		trailerVisible = false;
 		UIVisible = true;
 
 		timeout = setTimeout(() => {
 			trailerMounted = true;
-			trailerMountedTime = Date.now();
 
 			timeout = setTimeout(() => {
 				trailerVisible = true;

@@ -3,6 +3,8 @@ import type { components, paths } from '$lib/apis/sonarr/sonarr.generated';
 import { log } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { getTmdbSeries } from '../tmdb/tmdbApi';
+import { get } from 'svelte/store';
+import { settings } from '$lib/stores/settings.store';
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
 // export type MovieFileResource = components['schemas']['MovieFileResource'];
@@ -70,19 +72,18 @@ export const addSeriesToSonarr = async (tmdbId: number) => {
 	if (!tmdbSeries || !tmdbSeries.external_ids.tvdb_id || !tmdbSeries.name)
 		throw new Error('Movie not found');
 
-	const qualityProfile = 4;
 	const options: SonarrSeriesOptions = {
 		title: tmdbSeries.name,
 		tvdbId: tmdbSeries.external_ids.tvdb_id,
-		qualityProfileId: qualityProfile,
+		qualityProfileId: get(settings).sonarr.qualityProfileId,
 		monitored: false,
 		addOptions: {
 			monitor: 'none',
 			searchForMissingEpisodes: false,
 			searchForCutoffUnmetEpisodes: false
 		},
-		rootFolderPath: '/app',
-		languageProfileId: 1,
+		rootFolderPath: get(settings).sonarr.rootFolderPath,
+		languageProfileId: get(settings).sonarr.languageProfileId,
 		seasonFolder: true
 	};
 

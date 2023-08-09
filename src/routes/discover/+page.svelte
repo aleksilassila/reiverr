@@ -128,7 +128,7 @@
 			<GenreCard {genre} />
 		{/each}
 	</Carousel>
-	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="New Digital Releeases">
+	<Carousel class="mx-2 sm:mx-8 2xl:mx-0" heading="New Digital Releases">
 		{#await fetchDigitalReleases()}
 			<CarouselPlaceholderItems />
 		{:then props}

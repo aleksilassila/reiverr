@@ -1,16 +1,14 @@
 <script lang="ts">
+	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
+	import { library } from '$lib/stores/library.store';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
-	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
-	import { library } from '$lib/stores/library.store';
-
-	import { modalStack, openTitleModal } from '../Modal/Modal';
-	import TitlePageModal from '../TitlePageLayout/TitlePageModal.svelte';
 	import type { TitleType } from '$lib/types';
+	import { openTitleModal } from '../Modal/Modal';
 
 	export let tmdbId: number;
 	export let jellyfinId: string | undefined = undefined;
@@ -75,7 +73,7 @@
 			class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]"
 		/>
 		<div
-			class="h-full w-full opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-between cursor-pointer p-2 px-3 relative z-[1] peer"
+			class="hidden sm:flex flex-col justify-between h-full w-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer p-2 px-3 relative z-[1] peer"
 			style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
 		>
 			<div class="text-left">
