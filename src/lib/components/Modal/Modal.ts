@@ -14,8 +14,6 @@ function createDynamicModalStack() {
 		top: undefined
 	});
 
-	store.subscribe(console.log);
-
 	function close(symbol: Symbol) {
 		store.update((s) => {
 			s.stack = s.stack.filter((i) => i.id !== symbol);

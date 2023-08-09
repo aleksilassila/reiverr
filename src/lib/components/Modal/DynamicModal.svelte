@@ -10,9 +10,9 @@
 		}
 	}
 
-	onDestroy(() => {
-		modalStack.reset();
-	});
+	// onDestroy(() => {
+	// modalStack.reset();
+	// });
 </script>
 
 <svelte:window on:keydown={handleShortcuts} />

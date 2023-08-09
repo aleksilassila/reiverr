@@ -36,12 +36,6 @@
 	let visibleSeasonNumber: number | undefined = undefined;
 	let visibleEpisodeIndex: number | undefined = undefined;
 
-	// let requestModalVisible = false;
-	// const requestModalProps = createModalProps(
-	// 	() => (requestModalVisible = false),
-	// 	() => {}
-	// );
-
 	function openRequestModal() {
 		if (
 			!$itemStore.item?.sonarrSeries?.id ||
@@ -391,15 +385,3 @@
 		</svelte:fragment>
 	</TitlePageLayout>
 {/await}
-
-<!-- {#if requestModalVisible}
-	{@const sonarrSeries = $itemStore.item?.sonarrSeries}
-	{#if sonarrSeries && sonarrSeries.id && sonarrSeries?.statistics?.seasonCount}
-		<SeriesRequestModal
-			modalProps={requestModalProps}
-			sonarrId={sonarrSeries.id}
-			seasons={sonarrSeries?.statistics.seasonCount}
-			heading={sonarrSeries.title || 'Series'}
-		/>
-	{/if}
-{/if} -->

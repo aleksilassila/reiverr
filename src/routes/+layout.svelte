@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import DynamicModal from '$lib/components/Modal/DynamicModal.svelte';
 	import Navbar from '$lib/components/Navbar/Navbar.svelte';
 	import SetupRequired from '$lib/components/SetupRequired/SetupRequired.svelte';
@@ -15,9 +14,9 @@
 		<main>
 			<slot />
 		</main>
-		{#key $page.url.pathname}
-			<DynamicModal />
-		{/key}
+		<!-- {#key $page.url.pathname} -->
+		<DynamicModal />
+		<!-- {/key} -->
 
 		<!--	<footer>-->
 		<!--		<p>visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to learn SvelteKit</p>-->

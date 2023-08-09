@@ -1,4 +1,4 @@
-import type { LayoutServerLoad } from './$types';
+import type { LayoutLoad } from './$types';
 import {
 	PUBLIC_RADARR_API_KEY,
 	PUBLIC_RADARR_BASE_URL,
@@ -6,6 +6,12 @@ import {
 	PUBLIC_SONARR_BASE_URL
 } from '$env/static/public';
 import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
+import { dev } from '$app/environment';
+
+// Disable SSR when running the dev server
+// This is a fix to vite dev server freezing on mac :(
+// https://github.com/vitejs/vite/issues/11468
+export const ssr = !dev;
 
 export type MissingEnvironmentVariables = {
 	PUBLIC_RADARR_API_KEY: boolean;
@@ -36,4 +42,4 @@ export const load = (async () => {
 			PUBLIC_JELLYFIN_URL: !PUBLIC_JELLYFIN_URL
 		}
 	};
-}) satisfies LayoutServerLoad;
+}) satisfies LayoutLoad;
