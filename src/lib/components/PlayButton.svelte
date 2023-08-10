@@ -4,8 +4,14 @@
 	import classNames from 'classnames';
 </script>
 
-<div class={classNames($$restProps.class, 'backdrop-blur-lg rounded-full p-1 bg-[#00000044]')}>
-	<IconButton on:click>
-		<TriangleRight size={30} />
-	</IconButton>
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<div
+	class={classNames(
+		$$restProps.class,
+		'backdrop-blur-lg rounded-full bg-[#00000044] text-zinc-300 hover:text-zinc-200 p-2'
+	)}
+	on:click
+>
+	<TriangleRight size={30} />
 </div>

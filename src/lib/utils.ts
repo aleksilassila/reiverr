@@ -1,4 +1,3 @@
-import type { Genre } from '$lib/apis/tmdb/tmdbApi';
 import { writable } from 'svelte/store';
 
 export function formatMinutesToTime(minutes: number) {
@@ -9,10 +8,6 @@ export function formatMinutesToTime(minutes: number) {
 	return `${days > 0 ? days + 'd ' : ''}${hours > 0 ? hours + 'h ' : ''}${
 		days > 0 ? '' : minutesLeft + 'min'
 	}`;
-}
-
-export function formatGenres(genres: Genre[]) {
-	return genres.map((genre) => genre.name.charAt(0).toUpperCase() + genre.name.slice(1)).join(', ');
 }
 
 export function formatSize(size: number) {

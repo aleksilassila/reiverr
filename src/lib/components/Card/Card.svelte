@@ -9,6 +9,7 @@
 	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
 	import type { TitleType } from '$lib/types';
 	import { openTitleModal } from '../Modal/Modal';
+	import ProgressBar from '../ProgressBar.svelte';
 
 	export let tmdbId: number;
 	export let jellyfinId: string | undefined = undefined;
@@ -53,7 +54,8 @@
 	</svelte:fragment>
 	<button
 		class={classNames(
-			'rounded overflow-hidden relative shadow-lg shrink-0 aspect-video selectable block hover:text-inherit',
+			'rounded overflow-hidden relative shadow-lg shrink-0 aspect-video selectable hover:text-inherit flex flex-col justify-between group placeholder-image',
+			'p-2 px-3 gap-2',
 			{
 				'h-40': size === 'md',
 				'h-60': size === 'lg',
@@ -69,12 +71,19 @@
 		}}
 	>
 		<div
-			style={'width: ' + (progress ? Math.max(progress, 2) : progress) + '%'}
-			class="h-[2px] bg-zinc-200 bottom-0 absolute z-[1]"
+			style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropUri + "')"}
+			class="absolute inset-0 bg-center bg-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform"
 		/>
 		<div
-			class="hidden sm:flex flex-col justify-between h-full w-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer p-2 px-3 relative z-[1] peer"
-			style={progress > 0 ? 'padding-bottom: 0.6rem;' : ''}
+			class={classNames(
+				'absolute inset-0 transition-opacity bg-darken sm:bg-opacity-100 bg-opacity-50',
+				{
+					'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100': available
+				}
+			)}
+		/>
+		<div
+			class="flex flex-col justify-between flex-1 transition-opacity cursor-pointer relative opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
 		>
 			<div class="text-left">
 				<h1 class="font-bold tracking-wider text-lg">{title}</h1>
@@ -109,24 +118,21 @@
 						</div>
 					{/if}
 
-					<div class="flex gap-1.5 items-center">
-						<Star />
-						<div class="text-sm text-zinc-200">
-							{rating ? rating.toFixed(1) : 'N/A'}
+					{#if rating}
+						<div class="flex gap-1.5 items-center">
+							<Star />
+							<div class="text-sm text-zinc-200">
+								{rating.toFixed(1)}
+							</div>
 						</div>
-					</div>
+					{/if}
 				{/if}
 			</div>
 		</div>
-		<div
-			style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropUri + "')"}
-			class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
-		/>
-		<div
-			class={classNames('absolute inset-0 transition-opacity', {
-				'bg-darken opacity-0 peer-hover:opacity-100': available,
-				'bg-[#00000055] peer-hover:bg-darken': !available
-			})}
-		/>
+		{#if progress}
+			<div class="relative">
+				<ProgressBar {progress} />
+			</div>
+		{/if}
 	</button>
 </ContextMenu>

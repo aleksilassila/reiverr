@@ -2,14 +2,13 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import CardPlaceholder from '$lib/components/Card/CardPlaceholder.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { library, type PlayableItem } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
-	import { CaretDown, ChevronDown, Gear } from 'radix-icons-svelte';
+	import { CaretDown, Gear } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
 
@@ -58,7 +57,8 @@
 				backdropUri: item.cardBackdropUrl,
 				rating: series.ratings?.value || series.ratings?.value || item.tmdbRating || 0,
 				seasons: series.seasons?.length || 0,
-				jellyfinId: item.sonarrSeries?.statistics?.sizeOnDisk ? item.jellyfinId : undefined
+				jellyfinId: item.sonarrSeries?.statistics?.sizeOnDisk ? item.jellyfinId : undefined,
+				progress: item.nextJellyfinEpisode?.UserData?.PlayedPercentage || undefined
 			};
 		} else if (movie) {
 			props = {
@@ -70,7 +70,8 @@
 				backdropUri: item.cardBackdropUrl,
 				rating: movie.ratings?.tmdb?.value || movie.ratings?.imdb?.value || 0,
 				runtimeMinutes: movie.runtime || 0,
-				jellyfinId: item.radarrMovie?.movieFile ? item.jellyfinId : undefined
+				jellyfinId: item.radarrMovie?.movieFile ? item.jellyfinId : undefined,
+				progress: item.jellyfinItem?.UserData?.PlayedPercentage || undefined
 			};
 		} else props = undefined;
 

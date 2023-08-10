@@ -16,4 +16,4 @@ function createTitlePageModalStore() {
 	};
 }
 
-export let titlePageModal = createTitlePageModalStore();
+export const titlePageModal = createTitlePageModalStore();

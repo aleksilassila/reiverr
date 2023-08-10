@@ -10,9 +10,9 @@
 		}
 	}
 
-	// onDestroy(() => {
-	// modalStack.reset();
-	// });
+	onDestroy(() => {
+		modalStack.reset();
+	});
 </script>
 
 <svelte:window on:keydown={handleShortcuts} />
@@ -33,7 +33,7 @@
 	{#if modal.group === modal.id}
 		<div
 			class="fixed inset-0 bg-stone-950 bg-opacity-80 z-20"
-			transition:fade={{ duration: 150 }}
+			transition:fade|global={{ duration: 150 }}
 		/>
 	{/if}
 
@@ -47,7 +47,6 @@
 			}
 		)}
 		on:click|self={() => modalStack.close(modal.id)}
-		transition:fade|global={{ duration: 100 }}
 	>
 		<svelte:component this={modal.component} {...modal.props} modalId={modal.id} />
 	</div>

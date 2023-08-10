@@ -12,7 +12,7 @@
 
 <a
 	class={classNames(
-		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit bg-stone-900 hover:bg-stone-800 group',
+		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-stone-900 group',
 		{
 			'w-36 h-56': size === 'md',
 			'h-52': size === 'lg',
@@ -27,7 +27,7 @@
 	>
 		<div
 			style={"background-image: url('" + TMDB_PROFILE_SMALL + backdropUri + "')"}
-			class="bg-center bg-cover group-hover:scale-105 transition-transform w-full h-full"
+			class="bg-center bg-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform w-full h-full"
 		/>
 	</div>
 	<div>
@@ -36,60 +36,4 @@
 			{name}
 		</h1>
 	</div>
-	<!-- <div
-		class="h-full w-full transition-opacity flex flex-col justify-between cursor-pointer relative z-[1] peer group"
-	>
-		<div class="opacity-0 group-hover:opacity-100" />
-		<div class="bg-gradient-to-t from-darken from-40% p-2 px-3 pt-8">
-			<h2
-				class="text-xs text-zinc-300 tracking-wider font-medium opacity-0 group-hover:opacity-100"
-			>
-				{department}
-			</h2>
-			<h1
-				class={classNames('font-semibold tracking-wider', {
-					'text-lg': size === 'lg'
-				})}
-			>
-				{name}
-			</h1>
-		</div>
-	</div> -->
 </a>
-
-<!-- <a
-	class={classNames(
-		'rounded-xl overflow-hidden relative shadow-lg shrink-0 aspect-[4/5] selectable block hover:text-inherit',
-		{
-			'h-40': size === 'md',
-			'h-52': size === 'lg',
-			'w-full': size === 'dynamic'
-		}
-	)}
-	href={`/person/${tmdbId}`}
->
-	<div
-		class="h-full w-full transition-opacity flex flex-col justify-between cursor-pointer relative z-[1] peer group"
-	>
-		<div class="opacity-0 group-hover:opacity-100">
-		</div>
-		<div class="bg-gradient-to-t from-darken from-40% p-2 px-3 pt-8">
-			<h2
-				class="text-xs text-zinc-300 tracking-wider font-medium opacity-0 group-hover:opacity-100"
-			>
-				{department}
-			</h2>
-			<h1
-				class={classNames('font-semibold tracking-wider', {
-					'text-lg': size === 'lg'
-				})}
-			>
-				{name}
-			</h1>
-		</div>
-	</div>
-	<div
-		style={"background-image: url('" + TMDB_PROFILE_SMALL + backdropUri + "')"}
-		class="absolute inset-0 bg-center bg-cover peer-hover:scale-105 transition-transform"
-	/>
-</a> -->

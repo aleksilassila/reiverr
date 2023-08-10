@@ -1,14 +1,10 @@
 <script lang="ts">
-	import { getJellyfinItemByTmdbId } from '$lib/apis/jellyfin/jellyfinApi';
-	import { TmdbApi } from '$lib/apis/tmdb/tmdbApi';
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
-	import { formatMinutesToTime } from '$lib/utils';
-	import { onMount } from 'svelte';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import type { TitleType } from '$lib/types';
 	import classNames from 'classnames';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
-	import type { TitleType } from '$lib/types';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
 
 	export let tmdbId: number;
 	export let jellyfinId: string = '';
@@ -65,7 +61,7 @@
 				e.preventDefault();
 				jellyfinId && playerState.streamJellyfinId(jellyfinId);
 			}}
-			class="opacity-0 group-hover:opacity-100 transition-opacity"
+			class="sm:opacity-0 group-hover:opacity-100 transition-opacity"
 		/>
 	</div>
 	{#if progress}

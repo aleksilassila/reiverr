@@ -63,7 +63,8 @@
 	<button
 		on:click
 		class={classNames(
-			'aspect-video bg-center bg-cover bg-no-repeat rounded-lg overflow-hidden transition-all shadow-lg relative selectable flex-shrink-0 placeholder-image flex flex-col',
+			'aspect-video bg-center bg-cover rounded-lg overflow-hidden transition-opacity shadow-lg selectable flex-shrink-0 placeholder-image relative',
+			'flex flex-col px-2 lg:px-3 py-2 gap-2',
 			{
 				'h-40': size === 'md',
 				'h-full': size === 'dynamic',
@@ -77,14 +78,16 @@
 	>
 		<div
 			class={classNames(
-				'w-full flex-1 flex flex-col justify-between group-hover:opacity-0 transition-all',
+				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0',
 				{
-					'px-2 lg:px-3 pt-2': true,
-					'pb-4 lg:pb-6': progress,
-					'pb-2': !progress,
-					'bg-gradient-to-t from-darken': !!jellyfinId,
-					'bg-darken': !jellyfinId || watched
+					'bg-darken': !jellyfinId || watched,
+					'bg-gradient-to-t from-darken': !!jellyfinId
 				}
+			)}
+		/>
+		<div
+			class={classNames(
+				'flex-1 flex flex-col justify-between relative group-hover:opacity-0 group-focus-visible:opacity-0 transition-all'
 			)}
 		>
 			<div class="flex justify-between items-center">
@@ -127,18 +130,18 @@
 				</slot>
 			</div>
 		</div>
-		<div class="absolute inset-0 flex items-center justify-center">
-			<PlayButton
-				on:click={handlePlay}
-				class="opacity-0 group-hover:opacity-100 transition-opacity"
-			/>
-		</div>
 		{#if progress}
-			<div
-				class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity"
-			>
+			<div class="relative group-hover:opacity-0 transition-opacity">
 				<ProgressBar {progress} />
 			</div>
 		{/if}
+		<div class="absolute inset-0 flex items-center justify-center">
+			{#if jellyfinId}
+				<PlayButton
+					on:click={handlePlay}
+					class="sm:opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+				/>
+			{/if}
+		</div>
 	</button>
 </ContextMenu>

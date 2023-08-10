@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
+	import type { TitleType } from '$lib/types';
 	import classNames from 'classnames';
 	import { ChevronLeft, Cross2, DotFilled, ExternalLink } from 'radix-icons-svelte';
-	import { fade } from 'svelte/transition';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
 	import IconButton from '../IconButton.svelte';
-	import type { TitleType } from '$lib/types';
 
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
@@ -41,7 +40,7 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover', {
+	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover bg-stone-950', {
 		absolute: isModal,
 		fixed: !isModal
 	})}
@@ -56,7 +55,7 @@
 		"'); height: " +
 		imageHeight.toFixed() +
 		'px'}
-	class="sm:hidden fixed inset-x-0 bg-center bg-cover"
+	class="sm:hidden fixed inset-x-0 bg-center bg-cover bg-stone-950"
 >
 	<div class="absolute inset-0 bg-darken" />
 </div>
@@ -66,7 +65,6 @@
 		'h-[85vh] sm:h-screen': !isModal,
 		'': isModal
 	})}
-	transition:fade
 >
 	<div
 		class={classNames('flex-1 relative flex pt-24 px-4 sm:px-8 pb-6', {

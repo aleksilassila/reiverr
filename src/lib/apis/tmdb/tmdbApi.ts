@@ -1,11 +1,10 @@
+import { browser } from '$app/environment';
 import { TMDB_API_KEY } from '$lib/constants';
 import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
 import { formatDateToYearMonthDay } from '$lib/utils';
-import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
-import { browser } from '$app/environment';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -188,6 +187,8 @@ export const getTmdbSeriesPoster = async (tmdbId: number) =>
 export const getTmdbMoviePoster = async (tmdbId: number) =>
 	getTmdbCache(posterCache, tmdbId, () => getTmdbMovie(tmdbId).then((m) => m?.poster_path));
 
+/** Discover */
+
 export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {
 		params: {
@@ -324,238 +325,148 @@ export const searchTmdbTitles = (query: string) =>
 		}
 	}).then((res) => res.data?.results || []);
 
-// Deprecated hereon forward
-
-/** @deprecated */
-export const TmdbApi = axios.create({
-	baseURL: 'https://api.themoviedb.org/3',
-	headers: {
-		Authorization: `Bearer ${TMDB_API_KEY}`
+export const TMDB_MOVIE_GENRES = [
+	{
+		id: 28,
+		name: 'Action'
+	},
+	{
+		id: 12,
+		name: 'Adventure'
+	},
+	{
+		id: 16,
+		name: 'Animation'
+	},
+	{
+		id: 35,
+		name: 'Comedy'
+	},
+	{
+		id: 80,
+		name: 'Crime'
+	},
+	{
+		id: 99,
+		name: 'Documentary'
+	},
+	{
+		id: 18,
+		name: 'Drama'
+	},
+	{
+		id: 10751,
+		name: 'Family'
+	},
+	{
+		id: 14,
+		name: 'Fantasy'
+	},
+	{
+		id: 36,
+		name: 'History'
+	},
+	{
+		id: 27,
+		name: 'Horror'
+	},
+	{
+		id: 10402,
+		name: 'Music'
+	},
+	{
+		id: 9648,
+		name: 'Mystery'
+	},
+	{
+		id: 10749,
+		name: 'Romance'
+	},
+	{
+		id: 878,
+		name: 'Science Fiction'
+	},
+	{
+		id: 10770,
+		name: 'TV Movie'
+	},
+	{
+		id: 53,
+		name: 'Thriller'
+	},
+	{
+		id: 10752,
+		name: 'War'
+	},
+	{
+		id: 37,
+		name: 'Western'
 	}
-});
+];
 
-/** @deprecated */
-export const fetchTmdbMovie = async (tmdbId: string): Promise<TmdbMovie> =>
-	await TmdbApi.get<TmdbMovie>('/movie/' + tmdbId).then((r) => r.data);
-
-/** @deprecated */
-export const fetchTmdbMovieVideos = async (tmdbId: string): Promise<Video[]> =>
-	await TmdbApi.get<VideosResponse>('/movie/' + tmdbId + '/videos').then((res) => res.data.results);
-
-/** @deprecated */
-export const fetchTmdbMovieImages = async (tmdbId: string): Promise<ImagesResponse> =>
-	await TmdbApi.get<ImagesResponse>('/movie/' + tmdbId + '/images', {
-		headers: {
-			'Cache-Control': CACHE_FOUR_DAYS // 4 days
-		}
-	}).then((res) => res.data);
-
-/** @deprecated */
-export const fetchTmdbMovieCredits = async (tmdbId: string): Promise<CastMember[]> =>
-	await TmdbApi.get<CreditsResponse>('/movie/' + tmdbId + '/credits').then((res) => res.data.cast);
-
-export interface TmdbMovieFull extends TmdbMovie {
-	videos: {
-		results: Video[];
-	};
-	// images: {
-	// 	backdrops: Backdrop[];
-	// 	logos: Logo[];
-	// 	posters: Poster[];
-	// };
-	credits: {
-		cast: CastMember[];
-	};
-}
-
-export type MovieDetailsResponse = TmdbMovie;
-
-export interface TmdbMovie {
-	adult: boolean;
-	backdrop_path: string;
-	belongs_to_collection: any;
-	budget: number;
-	genres: Genre[];
-	homepage: string;
-	id: number;
-	imdb_id: string;
-	original_language: string;
-	original_title: string;
-	overview: string;
-	popularity: number;
-	poster_path: string;
-	production_companies: ProductionCompany[];
-	production_countries: ProductionCountry[];
-	release_date: string;
-	revenue: number;
-	runtime: number;
-	spoken_languages: SpokenLanguage[];
-	status: string;
-	tagline: string;
-	title: string;
-	video: boolean;
-	vote_average: number;
-	vote_count: number;
-}
-
-export interface Genre {
-	id: number;
-	name: string;
-}
-
-export interface ProductionCompany {
-	id: number;
-	logo_path?: string;
-	name: string;
-	origin_country: string;
-}
-
-export interface ProductionCountry {
-	iso_3166_1: string;
-	name: string;
-}
-
-export interface SpokenLanguage {
-	english_name: string;
-	iso_639_1: string;
-	name: string;
-}
-
-export interface CreditsResponse {
-	id: number;
-	cast: CastMember[];
-	crew: CrewMember[];
-}
-
-export interface CastMember {
-	adult: boolean;
-	gender: number;
-	id: number;
-	known_for_department: string;
-	name: string;
-	original_name: string;
-	popularity: number;
-	profile_path?: string;
-	cast_id: number;
-	character: string;
-	credit_id: string;
-	order: number;
-}
-
-export interface CrewMember {
-	adult: boolean;
-	gender: number;
-	id: number;
-	known_for_department: string;
-	name: string;
-	original_name: string;
-	popularity: number;
-	profile_path?: string;
-	credit_id: string;
-	department: string;
-	job: string;
-}
-
-export interface VideosResponse {
-	id: number;
-	results: Video[];
-}
-
-export interface Video {
-	iso_639_1: string;
-	iso_3166_1: string;
-	name: string;
-	key: string;
-	site: string;
-	size: number;
-	type: string;
-	official: boolean;
-	published_at: string;
-	id: string;
-}
-
-export interface ImagesResponse {
-	backdrops: Backdrop[];
-	id: number;
-	logos: Logo[];
-	posters: Poster[];
-}
-
-export interface Backdrop {
-	aspect_ratio: number;
-	height: number;
-	iso_639_1?: string;
-	file_path: string;
-	vote_average: number;
-	vote_count: number;
-	width: number;
-}
-
-export interface Logo {
-	aspect_ratio: number;
-	height: number;
-	iso_639_1: string;
-	file_path: string;
-	vote_average: number;
-	vote_count: number;
-	width: number;
-}
-
-export interface Poster {
-	aspect_ratio: number;
-	height: number;
-	iso_639_1?: string;
-	file_path: string;
-	vote_average: number;
-	vote_count: number;
-	width: number;
-}
-
-export interface MultiSearchResponse {
-	page: number;
-	results: MultiSearchResult[];
-	total_pages: number;
-	total_results: number;
-}
-
-export interface MultiSearchResult {
-	adult: boolean;
-	backdrop_path?: string;
-	id: number;
-	title: string;
-	original_language: string;
-	original_title: string;
-	overview: string;
-	poster_path?: string;
-	media_type: string;
-	genre_ids: number[];
-	popularity: number;
-	release_date: string;
-	video: boolean;
-	vote_average: number;
-	vote_count: number;
-}
-
-export interface PopularMoviesResponse {
-	page: number;
-	results: PopularMovieResult[];
-	total_pages: number;
-	total_results: number;
-}
-
-export interface PopularMovieResult {
-	adult: boolean;
-	backdrop_path: string;
-	genre_ids: number[];
-	id: number;
-	original_language: string;
-	original_title: string;
-	overview: string;
-	popularity: number;
-	poster_path: string;
-	release_date: string;
-	title: string;
-	video: boolean;
-	vote_average: number;
-	vote_count: number;
-}
+export const TMDB_SERIES_GENRES = [
+	{
+		id: 10759,
+		name: 'Action & Adventure'
+	},
+	{
+		id: 16,
+		name: 'Animation'
+	},
+	{
+		id: 35,
+		name: 'Comedy'
+	},
+	{
+		id: 80,
+		name: 'Crime'
+	},
+	{
+		id: 99,
+		name: 'Documentary'
+	},
+	{
+		id: 18,
+		name: 'Drama'
+	},
+	{
+		id: 10751,
+		name: 'Family'
+	},
+	{
+		id: 10762,
+		name: 'Kids'
+	},
+	{
+		id: 9648,
+		name: 'Mystery'
+	},
+	{
+		id: 10763,
+		name: 'News'
+	},
+	{
+		id: 10764,
+		name: 'Reality'
+	},
+	{
+		id: 10765,
+		name: 'Sci-Fi & Fantasy'
+	},
+	{
+		id: 10766,
+		name: 'Soap'
+	},
+	{
+		id: 10767,
+		name: 'Talk'
+	},
+	{
+		id: 10768,
+		name: 'War & Politics'
+	},
+	{
+		id: 37,
+		name: 'Western'
+	}
+];

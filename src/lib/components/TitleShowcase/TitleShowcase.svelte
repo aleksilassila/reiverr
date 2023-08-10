@@ -130,94 +130,31 @@
 					{/if}
 				</div> -->
 			</div>
-			<div
-				class="sm:flex-1 flex flex-col gap-6 justify-end col-span-2 col-start-1 row-start-3"
-				in:fade|global={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
-				out:fade|global={{ duration: ANIMATION_DURATION }}
-			>
-				<div class="flex gap-4 items-center">
-					<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
-						<span>Details</span><ChevronRight size={20} />
-					</Button>
-					{#if trailerId}
-						<Button
-							size="lg"
-							type="secondary"
-							href={youtubeUrl}
-							on:mouseover={() => (focusTrailer = true)}
-							on:mouseleave={() => (focusTrailer = false)}
-						>
-							<span>Watch Trailer</span><ChevronRight size={20} />
-						</Button>
-					{/if}
-					<!-- <div
-						style={"background-image: url('" + TMDB_POSTER_SMALL + posterUri + "');"}
-						class="w-24 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
-					/>
-					<div class="flex-1 flex gap-8 flex-wrap py-2 items-end">
-						<div>
-							<p class="text-zinc-400 text-sm font-medium">Release Date</p>
-							<h2 class="font-semibold">
-								{releaseDate.toLocaleDateString('en-US', {
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric'
-								})}
-							</h2>
-						</div>
-						{#if director}
-							<div>
-								<p class="text-zinc-400 text-sm font-medium">Directed By</p>
-								<h2 class="font-semibold">{director}</h2>
-							</div>
-						{/if}
-					</div> -->
-				</div>
-				<!-- <div class="flex gap-8">
-					<div
-						style={"background-image: url('" + TMDB_POSTER_SMALL + posterUri + "');"}
-						class="w-32 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
-					/>
-					<div class="flex flex-col gap-6">
-						<div class="flex-1 flex gap-6 flex-wrap items-end">
-							<div>
-								<p class="text-zinc-400 text-sm font-medium">Release Date</p>
-								<h2 class="font-semibold">
-									{releaseDate.toLocaleDateString('en-US', {
-										year: 'numeric',
-										month: 'long',
-										day: 'numeric'
-									})}
-								</h2>
-							</div>
-							{#if director}
-								<div>
-									<p class="text-zinc-400 text-sm font-medium">Directed By</p>
-									<h2 class="font-semibold">{director}</h2>
-								</div>
-							{/if}
-						</div>
-
-						<div class="flex gap-4">
-							<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
-								<span>Details</span><ChevronRight size={20} />
-							</Button>
-							{#if trailerId}
-								<Button
-									size="lg"
-									type="secondary"
-									href={youtubeUrl}
-									on:mouseover={() => (focusTrailer = true)}
-									on:mouseleave={() => (focusTrailer = false)}
-								>
-									<span>Watch Trailer</span><ChevronRight size={20} />
-								</Button>
-							{/if}
-						</div>
-					</div>
-				</div> -->
-			</div>
 		{/if}
+
+		<div
+			class="sm:flex-1 flex flex-col gap-6 justify-end col-span-2 col-start-1 row-start-3"
+			in:fade|global={{ delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
+			out:fade|global={{ duration: ANIMATION_DURATION }}
+		>
+			<div class="flex gap-4 items-center">
+				<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
+					<span>Details</span><ChevronRight size={20} />
+				</Button>
+				{#if trailerId}
+					<Button
+						size="lg"
+						type="secondary"
+						href={youtubeUrl}
+						target="_blank"
+						on:mouseover={() => (focusTrailer = true)}
+						on:mouseleave={() => (focusTrailer = false)}
+					>
+						<span>Watch Trailer</span><ChevronRight size={20} />
+					</Button>
+				{/if}
+			</div>
+		</div>
 		<div class="hidden lg:flex items-end justify-end col-start-4 row-start-3 col-span-3">
 			<div class="flex gap-6 items-center">
 				<div>
@@ -290,24 +227,34 @@
 			out:fade={{ duration: ANIMATION_DURATION }}
 		/>
 	{/if}
-	<div class="absolute inset-y-0 left-0 px-3 flex justify-start w-[10vw]">
-		<div class="peer relaitve z-[1] flex justify-start">
-			<IconButton on:click={onPrevious}>
-				<ChevronLeft size={20} />
-			</IconButton>
+	{#if UIVisible}
+		<div
+			class="absolute inset-y-0 left-0 px-3 flex justify-start w-[10vw]"
+			in:fade={{ duration: ANIMATION_DURATION }}
+			out:fade={{ duration: ANIMATION_DURATION }}
+		>
+			<div class="peer relaitve z-[1] flex justify-start">
+				<IconButton on:click={onPrevious}>
+					<ChevronLeft size={20} />
+				</IconButton>
+			</div>
+			<div
+				class="opacity-0 peer-hover:opacity-20 transition-opacity bg-gradient-to-r from-darken absolute inset-0"
+			/>
 		</div>
 		<div
-			class="opacity-0 peer-hover:opacity-20 transition-opacity bg-gradient-to-r from-darken absolute inset-0"
-		/>
-	</div>
-	<div class="absolute inset-y-0 right-0 px-3 flex justify-end w-[10vw]">
-		<div class="peer relaitve z-[1] flex justify-end">
-			<IconButton on:click={onNext}>
-				<ChevronRight size={20} />
-			</IconButton>
+			class="absolute inset-y-0 right-0 px-3 flex justify-end w-[10vw]"
+			in:fade={{ duration: ANIMATION_DURATION }}
+			out:fade={{ duration: ANIMATION_DURATION }}
+		>
+			<div class="peer relaitve z-[1] flex justify-end">
+				<IconButton on:click={onNext}>
+					<ChevronRight size={20} />
+				</IconButton>
+			</div>
+			<div
+				class="opacity-0 peer-hover:opacity-20 transition-opacity bg-gradient-to-l from-darken absolute inset-0"
+			/>
 		</div>
-		<div
-			class="opacity-0 peer-hover:opacity-20 transition-opacity bg-gradient-to-l from-darken absolute inset-0"
-		/>
-	</div>
+	{/if}
 </div>

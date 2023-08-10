@@ -2,11 +2,9 @@
 
 Reiverr is a project that aims to create a single UI for interacting with TMDB, Jellyfin, Radarr and Sonarr, as well as be an alternative to Overseerr.
 
-This project is still in alpha, and many features are still missing. Contributions are welcome and necessary for the project to achieve it's full potential! If you would like to contribute, see [contributing](#Contributing).
+This project is still in alpha, and many features are still missing. Contributions are welcome! See [contributing](#Contributing) for more information.
 
-![Landing Page](images/screenshot-1.png)
-
-![Discover Page](images/screenshot-2.png)
+![Demo Videi](images/reiverr-demo.gif)
 
 # List of major featuers
 
@@ -40,7 +38,7 @@ Before you contribute:
 - If the ticket is vague or missing information, please ask for clarification in the comments.
 - UI style must match the rest of the project and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with "design")
 
-I'm not a designer, so if you have any ideas for improving the UI, I'd love to implement them. If you are a designer and would like to help, contributions are much appreciated!
+I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated!
 
 # Development
 
@@ -68,3 +66,11 @@ PUBLIC_SONARR_BASE_URL=http://192.168.0.129:8989
 PUBLIC_JELLYFIN_API_KEY=
 PUBLIC_JELLYFIN_URL=http://192.168.0.129:8096
 ```
+
+# Additional Screenshots
+
+![Landing Page](images/screenshot-1.png)
+
+![Series Page](images/screenshot-2.png)
+
+![Library Page](images/screenshot-3.png)

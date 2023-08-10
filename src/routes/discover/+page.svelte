@@ -19,13 +19,13 @@
 	import { library } from '$lib/stores/library.store';
 	import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
-	import { fade, fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	const fetchCardProps = async (items: TmdbMovie2[] | TmdbSeries2[]) =>
 		Promise.all(
 			(
 				await ($settings.excludeLibraryItemsFromDiscovery
-					? library.filterNotInLibrary(items, (t) => t.id)
+					? library.filterNotInLibrary(items, (t) => t.id || 0)
 					: items)
 			).map(fetchCardTmdbProps)
 		).then((props) => props.filter((p) => p.backdropUri));
@@ -74,7 +74,7 @@
 
 <div class="pt-24 bg-stone-950 pb-8">
 	<div class="max-w-screen-2xl mx-auto">
-		<Carousel gradientFromColor="from-black" heading="Trending" class="mx-2 sm:mx-8 2xl:mx-0">
+		<Carousel gradientFromColor="from-stone-950" heading="Trending" class="mx-2 sm:mx-8 2xl:mx-0">
 			{#await fetchTrendingProps()}
 				<CarouselPlaceholderItems size="lg" />
 			{:then props}
