@@ -1,4 +1,4 @@
-import { PUBLIC_SONARR_API_KEY, PUBLIC_SONARR_BASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type { components, paths } from '$lib/apis/sonarr/sonarr.generated';
 import { log } from '$lib/utils';
 import createClient from 'openapi-fetch';
@@ -40,9 +40,9 @@ export interface SonarrSeriesOptions {
 }
 
 export const SonarrApi = createClient<paths>({
-	baseUrl: PUBLIC_SONARR_BASE_URL,
+	baseUrl: env.PUBLIC_SONARR_BASE_URL,
 	headers: {
-		'X-Api-Key': PUBLIC_SONARR_API_KEY
+		'X-Api-Key': env.PUBLIC_SONARR_API_KEY
 	}
 });
 

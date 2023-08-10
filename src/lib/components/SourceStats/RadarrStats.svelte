@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PUBLIC_RADARR_BASE_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { getDiskSpace } from '$lib/apis/radarr/radarrApi';
 	import { library } from '$lib/stores/library.store';
 	import { formatSize } from '$lib/utils.js';
@@ -44,7 +44,7 @@
 		{large}
 		title="Radarr"
 		subtitle="Movies Provider"
-		href={PUBLIC_RADARR_BASE_URL}
+		href={env.PUBLIC_RADARR_BASE_URL}
 		stats={[
 			{ title: 'Movies', value: String(moviesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },

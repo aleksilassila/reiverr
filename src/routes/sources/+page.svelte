@@ -1,7 +1,4 @@
 <script lang="ts">
-	import RadarrIcon from '$lib/components/svgs/RadarrIcon.svelte';
-	import SonarrIcon from '$lib/components/svgs/SonarrIcon.svelte';
-	import { formatSize } from '$lib/utils.js';
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
 </script>

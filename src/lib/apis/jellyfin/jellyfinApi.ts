@@ -1,6 +1,6 @@
 import createClient from 'openapi-fetch';
 import type { components, paths } from '$lib/apis/jellyfin/jellyfin.generated';
-import { PUBLIC_JELLYFIN_API_KEY, PUBLIC_JELLYFIN_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { request } from '$lib/utils';
 import type { DeviceProfile } from '$lib/apis/jellyfin/playback-profiles';
 import { settings } from '$lib/stores/settings.store';
@@ -11,9 +11,9 @@ export type JellyfinItem = components['schemas']['BaseItemDto'];
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
 export const JellyfinApi = createClient<paths>({
-	baseUrl: PUBLIC_JELLYFIN_URL,
+	baseUrl: env.PUBLIC_JELLYFIN_URL,
 	headers: {
-		Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${PUBLIC_JELLYFIN_API_KEY}"`
+		Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${env.PUBLIC_JELLYFIN_API_KEY}"`
 	}
 });
 

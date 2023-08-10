@@ -24,7 +24,34 @@ Local Library & Playback
 
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
-# Getting started
+# Installation
+
+The easiest and the recommended way to insstall Reiverr is via docker-compose. Make sure to update the api keys and base URLs to match your setup.
+
+Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+
+```yaml
+version: '3.8'
+
+name: reiverr
+
+services:
+  reiverr-frontend:
+    container_name: reiverr
+    image: ghcr.io/aleksilassila/reiverr:latest
+    restart: unless-stopped
+    ports:
+      - 9494:9494
+    environment:
+      PUBLIC_RADARR_API_KEY: yourapikeyhere
+      PUBLIC_RADARR_BASE_URL: http://127.0.0.1:7878
+      PUBLIC_SONARR_API_KEY: yourapikeyhere
+      PUBLIC_SONARR_BASE_URL: http://127.0.0.1:8989
+      PUBLIC_JELLYFIN_API_KEY: yourapikeyhere
+      PUBLIC_JELLYFIN_URL: http://127.0.0.1:8096
+```
+
+### Reiverr will be accessible via port 9494 by default.
 
 # Contributing
 
@@ -49,22 +76,24 @@ To get started with development:
 3. Run `npm install`
 4. Run `npm run dev`
 
+Alternatively, you can run `docker-compose up`.
+
 Example .env file:
 
 ```env
-# The PUBLIC_ prefix is required for SvelteKit to expose the variable to the client.
+# The PUBLIC_ prefix is required for SvelteKit to expose the variable to the web browser.
 # If you are exposing the server to the internet (not recommended), you should use HTTPS.
 
 # Fill in the blanks and change the base URLs to match your setup.
 
 PUBLIC_RADARR_API_KEY=
-PUBLIC_RADARR_BASE_URL=http://192.168.0.129:7878
+PUBLIC_RADARR_BASE_URL=http://127.0.0.1:7878
 
 PUBLIC_SONARR_API_KEY=
-PUBLIC_SONARR_BASE_URL=http://192.168.0.129:8989
+PUBLIC_SONARR_BASE_URL=http://127.0.0.1:8989
 
 PUBLIC_JELLYFIN_API_KEY=
-PUBLIC_JELLYFIN_URL=http://192.168.0.129:8096
+PUBLIC_JELLYFIN_URL=http://127.0.0.1:8096
 ```
 
 # Additional Screenshots

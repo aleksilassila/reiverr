@@ -4,7 +4,7 @@
 	import StatsPlaceholder from './StatsPlaceholder.svelte';
 	import StatsContainer from './StatsContainer.svelte';
 	import SonarrIcon from '../svgs/SonarrIcon.svelte';
-	import { PUBLIC_SONARR_BASE_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { getDiskSpace } from '$lib/apis/sonarr/sonarrApi';
 	import { library } from '$lib/stores/library.store';
 
@@ -46,7 +46,7 @@
 		{large}
 		title="Sonarr"
 		subtitle="Shows Provider"
-		href={PUBLIC_SONARR_BASE_URL}
+		href={env.PUBLIC_SONARR_BASE_URL}
 		stats={[
 			{ title: 'Episodes', value: String(episodesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },

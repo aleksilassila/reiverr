@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PUBLIC_JELLYFIN_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import {
 		getJellyfinItem,
 		getJellyfinPlaybackInfo,
@@ -48,10 +48,10 @@
 
 					const hls = new Hls();
 
-					hls.loadSource(PUBLIC_JELLYFIN_URL + playbackUri);
+					hls.loadSource(env.PUBLIC_JELLYFIN_URL + playbackUri);
 					hls.attachMedia(video);
 				} else {
-					video.src = PUBLIC_JELLYFIN_URL + playbackUri;
+					video.src = env.PUBLIC_JELLYFIN_URL + playbackUri;
 				}
 
 				if (item?.UserData?.PlaybackPositionTicks) {

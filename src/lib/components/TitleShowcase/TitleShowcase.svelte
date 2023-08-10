@@ -10,6 +10,7 @@
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import type { TitleType } from '$lib/types';
+	import { openTitleModal } from '../Modal/Modal';
 
 	const TRAILER_TIMEOUT = 3000;
 	const TRAILER_LOAD_TIME = 1000;
@@ -110,25 +111,6 @@
 						</span>
 					{/each}
 				</div>
-				<!-- <div
-					class="flex gap-4"
-					in:fly|global={{ y: -5, delay: ANIMATION_DURATION, duration: ANIMATION_DURATION }}
-					out:fly|global={{ y: 5, duration: ANIMATION_DURATION }}
-				>
-					<Button type="primary" href={`/${type}/${tmdbId}`}>
-						<span>Details</span><ChevronRight size={20} />
-					</Button>
-					{#if trailerId}
-						<Button
-							type="secondary"
-							href={youtubeUrl}
-							on:mouseover={() => (focusTrailer = true)}
-							on:mouseleave={() => (focusTrailer = false)}
-						>
-							<span>Watch Trailer</span><ChevronRight size={20} />
-						</Button>
-					{/if}
-				</div> -->
 			</div>
 		{/if}
 
@@ -138,7 +120,7 @@
 			out:fade|global={{ duration: ANIMATION_DURATION }}
 		>
 			<div class="flex gap-4 items-center">
-				<Button size="lg" type="primary" href={`/${type}/${tmdbId}`}>
+				<Button size="lg" type="primary" on:click={() => openTitleModal(tmdbId, type)}>
 					<span>Details</span><ChevronRight size={20} />
 				</Button>
 				{#if trailerId}

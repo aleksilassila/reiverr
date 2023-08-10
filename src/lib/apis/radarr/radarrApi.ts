@@ -3,7 +3,7 @@ import { log, request } from '$lib/utils';
 import type { paths } from '$lib/apis/radarr/radarr.generated';
 import type { components } from '$lib/apis/radarr/radarr.generated';
 import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
-import { PUBLIC_RADARR_API_KEY, PUBLIC_RADARR_BASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { settings } from '$lib/stores/settings.store';
 import { get } from 'svelte/store';
 
@@ -27,9 +27,9 @@ export interface RadarrMovieOptions {
 }
 
 export const RadarrApi = createClient<paths>({
-	baseUrl: PUBLIC_RADARR_BASE_URL,
+	baseUrl: env.PUBLIC_RADARR_BASE_URL,
 	headers: {
-		'X-Api-Key': PUBLIC_RADARR_API_KEY
+		'X-Api-Key': env.PUBLIC_RADARR_API_KEY
 	}
 });
 
