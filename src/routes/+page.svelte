@@ -57,31 +57,31 @@
 	}
 </script>
 
-{#await tmdbPopularMoviesPromise}
-	<div class="h-screen" />
-{:then movies}
-	{@const movie = movies[showcaseIndex]}
-	{#key movie?.id}
-		<TitleShowcase
-			tmdbId={movie?.id || 0}
-			type="movie"
-			title={movie?.title || ''}
-			genres={movie?.genres?.map((g) => g.name || '') || []}
-			runtime={movie?.runtime || 0}
-			releaseDate={new Date(movie?.release_date || Date.now())}
-			tmdbRating={movie?.vote_average || 0}
-			trailerId={movie?.videos?.results?.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
-				?.key}
-			director={movie?.credits?.crew?.find((c) => c.job === 'Director')?.name}
-			backdropUri={movie?.backdrop_path || ''}
-			posterUri={movie?.poster_path || ''}
-			{onPrevious}
-			{onNext}
-			{showcaseIndex}
-			showcaseLength={movies.length}
-		/>
-	{/key}
-{/await}
+<div class="h-[80vh] sm:h-screen">
+	{#await tmdbPopularMoviesPromise then movies}
+		{@const movie = movies[showcaseIndex]}
+		{#key movie?.id}
+			<TitleShowcase
+				tmdbId={movie?.id || 0}
+				type="movie"
+				title={movie?.title || ''}
+				genres={movie?.genres?.map((g) => g.name || '') || []}
+				runtime={movie?.runtime || 0}
+				releaseDate={new Date(movie?.release_date || Date.now())}
+				tmdbRating={movie?.vote_average || 0}
+				trailerId={movie?.videos?.results?.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
+					?.key}
+				director={movie?.credits?.crew?.find((c) => c.job === 'Director')?.name}
+				backdropUri={movie?.backdrop_path || ''}
+				posterUri={movie?.poster_path || ''}
+				{onPrevious}
+				{onNext}
+				{showcaseIndex}
+				showcaseLength={movies.length}
+			/>
+		{/key}
+	{/await}
+</div>
 
 <div class="py-8">
 	<Carousel gradientFromColor="from-stone-950" class="px-4 lg:px-16 2xl:px-32">

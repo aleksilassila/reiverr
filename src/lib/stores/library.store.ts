@@ -32,7 +32,7 @@ export interface PlayableItem {
 	posterUri: string;
 	download?: {
 		progress: number;
-		completionTime: string;
+		completionTime: string | undefined;
 	};
 	continueWatching?: {
 		progress: number;
@@ -50,8 +50,6 @@ export interface PlayableItem {
 	radarrDownloads?: RadarrDownload[];
 	sonarrSeries?: SonarrSeries;
 	sonarrDownloads?: SonarrDownload[];
-	// tmdbMovie?: TmdbMovieFull2;
-	// tmdbSeries?: TmdbSeriesFull2;
 }
 
 export interface Library {
@@ -101,10 +99,7 @@ async function getLibrary(): Promise<Library> {
 				? ((radarrDownload.size - radarrDownload.sizeleft) / radarrDownload.size) * 100
 				: undefined;
 		const completionTime = radarrDownload?.estimatedCompletionTime || undefined;
-		const download =
-			downloadProgress && completionTime
-				? { progress: downloadProgress, completionTime }
-				: undefined;
+		const download = downloadProgress ? { progress: downloadProgress, completionTime } : undefined;
 
 		const length = jellyfinItem?.RunTimeTicks
 			? jellyfinItem.RunTimeTicks / 10_000_000 / 60
@@ -116,14 +111,6 @@ async function getLibrary(): Promise<Library> {
 			!!jellyfinContinueWatching.find((i) => i.Id === jellyfinItem?.Id)
 				? { length, progress: watchingProgress }
 				: undefined;
-
-		// const tmdbMovie = await getTmdbMovie(radarrMovie.tmdbId || 0);
-		// const backdropUrl = (
-		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-		// 	tmdbMovie?.images?.backdrops?.find((b) => b.iso_639_1) ||
-		// 	tmdbMovie?.images?.backdrops?.[0]
-		// )?.file_path;
 
 		const backdropUrl = await getTmdbMovieBackdrop(radarrMovie.tmdbId || 0);
 		const posterUri = await getTmdbMoviePoster(radarrMovie.tmdbId || 0);
@@ -141,7 +128,6 @@ async function getLibrary(): Promise<Library> {
 			jellyfinItem,
 			radarrMovie,
 			radarrDownloads: itemRadarrDownloads
-			// tmdbMovie
 		};
 	});
 
@@ -159,10 +145,7 @@ async function getLibrary(): Promise<Library> {
 				? ((sonarrDownload.size - sonarrDownload.sizeleft) / sonarrDownload.size) * 100
 				: undefined;
 		const completionTime = sonarrDownload?.estimatedCompletionTime || undefined;
-		const download =
-			downloadProgress && completionTime
-				? { progress: downloadProgress, completionTime }
-				: undefined;
+		const download = downloadProgress ? { progress: downloadProgress, completionTime } : undefined;
 
 		const nextJellyfinEpisode = jellyfinItem
 			? jellyfinContinueWatching.find((i) => i.SeriesId === jellyfinItem?.Id) ||
@@ -183,14 +166,6 @@ async function getLibrary(): Promise<Library> {
 			: undefined;
 		const tmdbId = tmdbItem?.id || undefined;
 
-		// const tmdbSeries = await getTmdbSeries(tmdbId || 0);
-		// const backdropUrl = (
-		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
-		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
-		// 	tmdbSeries?.images?.backdrops?.find((b) => b.iso_639_1) ||
-		// 	tmdbSeries?.images?.backdrops?.[0]
-		// )?.file_path;
-
 		const backdropUrl = await getTmdbSeriesBackdrop(tmdbId || 0);
 		const posterUri = tmdbItem?.poster_path || '';
 
@@ -209,7 +184,6 @@ async function getLibrary(): Promise<Library> {
 			sonarrDownloads: itemSonarrDownloads,
 			jellyfinEpisodes: jellyfinEpisodes.filter((i) => i.SeriesId === jellyfinItem?.Id),
 			nextJellyfinEpisode
-			// tmdbSeries
 		};
 	});
 
@@ -232,7 +206,7 @@ let delayedRefreshTimeout: NodeJS.Timeout;
 function createLibraryStore() {
 	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
 
-	async function filterNotInLibrary<T extends any>(toFilter: T[], getTmdbId: (item: T) => any) {
+	async function filterNotInLibrary<T>(toFilter: T[], getTmdbId: (item: T) => number) {
 		const libraryData = await get(library);
 
 		return toFilter.filter((item) => !(getTmdbId(item) in libraryData.items));

@@ -10,7 +10,8 @@
 		{
 			'opacity-30 cursor-not-allowed pointer-events-none': disabled,
 			'cursor-pointer': !disabled
-		}
+		},
+		$$restProps.class
 	)}
 	on:click|stopPropagation
 >

@@ -20,6 +20,7 @@
 	let searchInput: HTMLInputElement | undefined;
 	let searchInputValue = '';
 
+	let openNextUpTab: 'downloading' | 'nextUp' = 'downloading';
 	let openTab: 'available' | 'watched' | 'unavailable' = 'available';
 
 	let items: PlayableItem[] = [];
@@ -211,19 +212,35 @@
 >
 	<div class="relative grid grid-cols-3 grid-rows-3 z-[1] max-w-screen-2xl mx-auto">
 		<div class="col-start-1 row-start-2 row-span-2 col-span-3 flex justify-end flex-col">
-			{#if downloadingProps.length}
-				<Carousel heading="Downloading Queue">
-					{#each downloadingProps as props (props.tmdbId)}
-						<Card {...props} size="md" />
-					{/each}
-				</Carousel>
-			{:else}
-				<Carousel heading="Next Up">
-					{#each nextUpProps as props (props.tmdbId)}
-						<Card {...props} size="md" />
-					{:else}
-						<CarouselPlaceholderItems />
-					{/each}
+			{#if downloadingProps.length || nextUpProps.length}
+				<Carousel>
+					<div slot="title" class="flex items-center gap-6 font-medium text-xl text-zinc-400">
+						<button
+							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+								'text-zinc-200': openNextUpTab === 'downloading'
+							})}
+							on:click={() => (openNextUpTab = 'downloading')}
+						>
+							Download Queue
+						</button>
+						<button
+							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+								'text-zinc-200': openNextUpTab === 'nextUp'
+							})}
+							on:click={() => (openNextUpTab = 'nextUp')}
+						>
+							Next Up
+						</button>
+					</div>
+					{#if downloadingProps.length && openNextUpTab === 'downloading'}
+						{#each downloadingProps as props (props.tmdbId)}
+							<Card {...props} size="md" />
+						{/each}
+					{:else if openNextUpTab === 'nextUp'}
+						{#each nextUpProps as props (props.tmdbId)}
+							<Card {...props} size="md" />
+						{/each}
+					{/if}
 				</Carousel>
 			{/if}
 		</div>
@@ -243,19 +260,29 @@
 			<UiCarousel>
 				<div class="flex gap-6 text-lg font-medium text-zinc-400">
 					<button
-						class={classNames('hover:text-zinc-300', { 'text-zinc-200': openTab === 'available' })}
-						on:click={() => (openTab = 'available')}>Available</button
+						class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+							'text-zinc-200': openTab === 'available'
+						})}
+						on:click={() => (openTab = 'available')}
 					>
+						Available
+					</button>
 					<button
-						class={classNames('hover:text-zinc-300', { 'text-zinc-200': openTab === 'watched' })}
-						on:click={() => (openTab = 'watched')}>Watched</button
+						class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+							'text-zinc-200': openTab === 'watched'
+						})}
+						on:click={() => (openTab = 'watched')}
 					>
+						Watched
+					</button>
 					<button
-						class={classNames('hover:text-zinc-300', {
+						class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
 							'text-zinc-200': openTab === 'unavailable'
 						})}
-						on:click={() => (openTab = 'unavailable')}>Unavailable</button
+						on:click={() => (openTab = 'unavailable')}
 					>
+						Unavailable
+					</button>
 				</div>
 			</UiCarousel>
 			<div class="flex items-center gap-3 justify-end flex-shrink-0 flex-initial relative">
@@ -272,13 +299,17 @@
 		</div>
 
 		{#if loading}
-			<div class="grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+			<div
+				class="grid gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+			>
 				{#each [...Array(20).keys()] as index (index)}
 					<CardPlaceholder size="dynamic" {index} />
 				{/each}
 			</div>
 		{:else}
-			<div class="grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+			<div
+				class="grid gap-x-2 sm:gap-x-4 gap-y-4 sm:gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+			>
 				{#if openTab === 'available'}
 					{#each availableProps as props (props.tmdbId)}
 						<Card {...props} />

@@ -322,11 +322,13 @@
 					<div class="col-span-2 lg:col-span-1">
 						<p class="text-zinc-400 text-sm">Download Completed In</p>
 						<h2 class="font-medium">
-							{formatMinutesToTime(
-								(new Date($itemStore.item?.download.completionTime).getTime() - Date.now()) /
-									1000 /
-									60
-							)}
+							{$itemStore.item?.download.completionTime
+								? formatMinutesToTime(
+										(new Date($itemStore.item?.download.completionTime).getTime() - Date.now()) /
+											1000 /
+											60
+								  )
+								: 'Stalled'}
 						</h2>
 					</div>
 				{/if}

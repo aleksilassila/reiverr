@@ -20,7 +20,8 @@
 				seasonPack: {
 					sonarrId,
 					seasonNumber
-				}
+				},
+				groupId: modalId
 			},
 			modalId
 		);

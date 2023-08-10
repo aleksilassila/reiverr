@@ -18,7 +18,7 @@
 
 	export let modalId: Symbol;
 
-	let uiVisible = false;
+	let uiVisible = true;
 
 	let video: HTMLVideoElement;
 	let mouseMovementTimeout: NodeJS.Timeout;
@@ -37,7 +37,15 @@
 					return;
 				}
 
+				video.poster = item?.BackdropImageTags?.length
+					? `http://jellyfin.home/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+					: '';
+
 				if (!directPlay) {
+					if (!Hls.isSupported()) {
+						throw new Error('HLS is not supported');
+					}
+
 					const hls = new Hls();
 
 					hls.loadSource(PUBLIC_JELLYFIN_URL + playbackUri);
@@ -76,32 +84,31 @@
 	}
 
 	function handleMouseMove() {
-		uiVisible = true;
-		clearTimeout(mouseMovementTimeout);
-		mouseMovementTimeout = setTimeout(() => {
-			uiVisible = false;
-		}, 2000);
+		// uiVisible = true;
+		// clearTimeout(mouseMovementTimeout);
+		// mouseMovementTimeout = setTimeout(() => {
+		// 	uiVisible = false;
+		// }, 2000);
 	}
 
 	onDestroy(() => clearInterval(progressInterval));
 
 	$: {
 		if (video && $playerState.jellyfinId) {
-			if (!Hls.isSupported()) {
-				throw new Error('HLS is not supported');
-			}
-
 			if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
 		}
 	}
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="bg-black w-screen h-screen relative" on:mousemove={handleMouseMove}>
+<div
+	class="bg-black w-screen h-screen relative flex items-center justify-center"
+	on:mousemove={handleMouseMove}
+>
 	<!-- svelte-ignore a11y-media-has-caption -->
-	<video controls bind:this={video} class="w-full h-full inset-0" />
+	<video controls bind:this={video} class="sm:w-full sm:h-full" />
 	<div
-		class={classNames('absolute top-4 right-8 transition-opacity', {
+		class={classNames('absolute top-4 right-8 transition-opacity z-50', {
 			'opacity-0': !uiVisible,
 			'opacity-100': uiVisible
 		})}

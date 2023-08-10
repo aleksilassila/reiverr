@@ -110,7 +110,9 @@
 		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">Loading...</div>
 	{:then { releases, filtered, releasesSkipped }}
 		{#if showAllReleases ? releases?.length : filtered?.length}
-			<div class="flex flex-col divide-y divide-zinc-700 max-h-[60vh] overflow-y-scroll">
+			<div
+				class="flex flex-col divide-y divide-zinc-700 max-h-[60vh] overflow-y-scroll scrollbar-hide"
+			>
 				{#each showAllReleases ? releases : filtered as release}
 					<div>
 						<!-- svelte-ignore a11y-click-events-have-key-events -->

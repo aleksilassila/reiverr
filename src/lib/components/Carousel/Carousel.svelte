@@ -40,7 +40,7 @@
 
 	<div class="relative">
 		<div
-			class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative scrollbar-hide"
+			class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative scrollbar-hide p-1"
 			bind:this={carousel}
 			tabindex="-1"
 			on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}

@@ -70,11 +70,9 @@
 					subtitle: actor.known_for_department || ''
 				}))
 		);
-
-	const headerStyle = 'uppercase tracking-widest font-bold';
 </script>
 
-<div class="pt-24 bg-black pb-8">
+<div class="pt-24 bg-stone-950 pb-8">
 	<div class="max-w-screen-2xl mx-auto">
 		<Carousel gradientFromColor="from-black" heading="Trending" class="mx-2 sm:mx-8 2xl:mx-0">
 			{#await fetchTrendingProps()}
