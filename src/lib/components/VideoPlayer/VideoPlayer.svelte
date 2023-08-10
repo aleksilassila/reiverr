@@ -26,26 +26,34 @@
 	let progressInterval: NodeJS.Timeout;
 
 	const fetchPlaybackInfo = (itemId: string) =>
-		getJellyfinPlaybackInfo(itemId, getDeviceProfile()).then(
-			async ({ playbackUrl: uri, playSessionId: sessionId, mediaSourceId }) => {
-				if (!uri || !sessionId) return;
+		getJellyfinItem(itemId).then((item) =>
+			getJellyfinPlaybackInfo(
+				itemId,
+				getDeviceProfile(),
+				item?.UserData?.PlaybackPositionTicks || 0
+			).then(async ({ playbackUri, playSessionId: sessionId, mediaSourceId, directPlay }) => {
+				if (!playbackUri || !sessionId) {
+					console.log('No playback URL or session ID', playbackUri, sessionId);
+					return;
+				}
 
-				const item = await getJellyfinItem(itemId);
+				if (!directPlay) {
+					const hls = new Hls();
 
-				const hls = new Hls();
+					hls.loadSource(PUBLIC_JELLYFIN_URL + playbackUri);
+					hls.attachMedia(video);
+				} else {
+					video.src = PUBLIC_JELLYFIN_URL + playbackUri;
+				}
 
-				hls.loadSource(PUBLIC_JELLYFIN_URL + uri);
-				hls.attachMedia(video);
-				video
-					.play()
-					.then(() => video.requestFullscreen())
-					.then(() => {
-						if (item?.UserData?.PlaybackPositionTicks) {
-							video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
-						}
-					});
+				if (item?.UserData?.PlaybackPositionTicks) {
+					video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
+				}
+
+				video.play().then(() => video.requestFullscreen());
 				if (mediaSourceId) await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
 				progressInterval = setInterval(() => {
+					video && video.readyState === 4 && video?.currentTime > 0 && sessionId && itemId;
 					reportJellyfinPlaybackProgress(
 						itemId,
 						sessionId,
@@ -56,7 +64,7 @@
 				stopCallback = () => {
 					reportJellyfinPlaybackStopped(itemId, sessionId, video?.currentTime * 10_000_000);
 				};
-			}
+			})
 		);
 
 	function handleClose() {

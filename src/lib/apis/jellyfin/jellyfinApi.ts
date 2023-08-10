@@ -104,7 +104,11 @@ export const getJellyfinItem = (itemId: string) =>
 export const requestJellyfinItemByTmdbId = () =>
 	request((tmdbId: string) => getJellyfinItemByTmdbId(tmdbId));
 
-export const getJellyfinPlaybackInfo = (itemId: string, playbackProfile: DeviceProfile) =>
+export const getJellyfinPlaybackInfo = (
+	itemId: string,
+	playbackProfile: DeviceProfile,
+	startTimeTicks = 0
+) =>
 	JellyfinApi.post('/Items/{itemId}/PlaybackInfo', {
 		params: {
 			path: {
@@ -112,7 +116,7 @@ export const getJellyfinPlaybackInfo = (itemId: string, playbackProfile: DeviceP
 			},
 			query: {
 				userId: get(settings).jellyfin.userId,
-				startTimeTicks: 0,
+				startTimeTicks,
 				autoOpenLiveStream: true,
 				maxStreamingBitrate: 140000000
 			}
@@ -121,9 +125,14 @@ export const getJellyfinPlaybackInfo = (itemId: string, playbackProfile: DeviceP
 			DeviceProfile: playbackProfile
 		}
 	}).then((r) => ({
-		playbackUrl: r.data?.MediaSources?.[0]?.TranscodingUrl,
+		playbackUri:
+			r.data?.MediaSources?.[0]?.TranscodingUrl ||
+			`/Videos/${r.data?.MediaSources?.[0].Id}/stream.mp4?Static=true&mediaSourceId=${r.data?.MediaSources?.[0].Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${PUBLIC_JELLYFIN_API_KEY}&Tag=${r.data?.MediaSources?.[0].ETag}`,
 		mediaSourceId: r.data?.MediaSources?.[0]?.Id,
-		playSessionId: r.data?.PlaySessionId
+		playSessionId: r.data?.PlaySessionId,
+		directPlay:
+			!!r.data?.MediaSources?.[0]?.SupportsDirectPlay ||
+			!!r.data?.MediaSources?.[0]?.SupportsDirectStream
 	}));
 
 export const reportJellyfinPlaybackStarted = (
