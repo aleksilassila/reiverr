@@ -1,0 +1,64 @@
+name: Build & Deploy
+
+on:
+  push:
+    tags:
+      - v*
+    # branches:
+    #   - master
+    #   - dev
+
+  # pull_request:
+  #   branches:
+  #     - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TAG: ${{ github.ref_name }}
+
+jobs:
+  # test:
+  #   timeout-minutes: 10
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v1
+
+  #     #      - name: Build containers
+  #     #        run: docker compose build
+
+  #     - name: Test backend
+  #       run: docker compose run --build backend sh -c 'npx prisma migrate reset --force && export NODE_ENV=test && npx jest'
+
+  push:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    # needs: test
+    # if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Build containers
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+
+      - name: Add tag
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+
+      # - name: Tag with Git SHA
+      #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
+
+      - name: Push to Docker Hub
+        run: |
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest

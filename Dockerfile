@@ -26,7 +26,7 @@ COPY package-lock.json .
 
 RUN npm ci --omit dev
 
-CMD [ "PORT", "9494", "node", "build" ]
+CMD [ "npm", "run", "deply" ]
 
 FROM node:18 as development
 

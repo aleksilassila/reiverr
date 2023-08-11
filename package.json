@@ -1,10 +1,15 @@
 {
 	"name": "reiverr",
 	"version": "0.1.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/aleksilassila/reiverr"
+	},
 	"scripts": {
 		"dev": "vite dev --host",
 		"build": "vite build",
 		"preview": "vite preview",
+		"deploy": "PORT=9494 node build/",
 		"test": "playwright test",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
