@@ -36,10 +36,9 @@ version: '3.8'
 name: reiverr
 
 services:
-  reiverr-frontend:
-    container_name: reiverr
+  reiverr:
     image: ghcr.io/aleksilassila/reiverr:latest
-    restart: unless-stopped
+    container_name: reiverr
     ports:
       - 9494:9494
     environment:
@@ -49,6 +48,7 @@ services:
       PUBLIC_SONARR_BASE_URL: http://127.0.0.1:8989
       PUBLIC_JELLYFIN_API_KEY: yourapikeyhere
       PUBLIC_JELLYFIN_URL: http://127.0.0.1:8096
+    restart: unless-stopped
 ```
 
 ### Reiverr will be accessible via port 9494 by default.
