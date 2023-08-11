@@ -3,3 +3,4 @@ node_modules
 build
 .idea
 .env
+.DS_Store

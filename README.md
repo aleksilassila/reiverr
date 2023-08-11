@@ -86,13 +86,13 @@ Example .env file:
 
 # Fill in the blanks and change the base URLs to match your setup.
 
-PUBLIC_RADARR_API_KEY=
+PUBLIC_RADARR_API_KEY=yourapikeyhere
 PUBLIC_RADARR_BASE_URL=http://127.0.0.1:7878
 
-PUBLIC_SONARR_API_KEY=
+PUBLIC_SONARR_API_KEY=yourapikeyhere
 PUBLIC_SONARR_BASE_URL=http://127.0.0.1:8989
 
-PUBLIC_JELLYFIN_API_KEY=
+PUBLIC_JELLYFIN_API_KEY=yourapikeyhere
 PUBLIC_JELLYFIN_URL=http://127.0.0.1:8096
 ```
 
