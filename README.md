@@ -17,7 +17,7 @@ TMDB Discovery:
 
 Local Library & Playback
 
-- Steam Movies & TV shows (from Jellyfin library)
+- Stream Movies & TV shows (from Jellyfin library)
 - Create requests for movies & TV shows in Radarr & Sonarr
 - Manage local library files
 - View Radarr & Sonarr stats (disk space, items, etc.)

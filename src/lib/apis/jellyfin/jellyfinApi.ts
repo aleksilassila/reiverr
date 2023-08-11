@@ -17,11 +17,26 @@ export const JellyfinApi = createClient<paths>({
 	}
 });
 
-export const getJellyfinContinueWatching = (): Promise<JellyfinItem[]> =>
+let userId: string | undefined = undefined;
+const getUserId = async () => {
+	if (userId) return userId;
+
+	const user = JellyfinApi.get('/Users', {
+		params: {},
+		headers: {
+			'cache-control': 'max-age=3600'
+		}
+	}).then((r) => r.data?.[0]?.Id || '');
+
+	userId = await user;
+	return user;
+};
+
+export const getJellyfinContinueWatching = async (): Promise<JellyfinItem[]> =>
 	JellyfinApi.get('/Users/{userId}/Items/Resume', {
 		params: {
 			path: {
-				userId: get(settings).jellyfin.userId
+				userId: await getUserId()
 			},
 			query: {
 				mediaTypes: ['Video'],
@@ -30,21 +45,21 @@ export const getJellyfinContinueWatching = (): Promise<JellyfinItem[]> =>
 		}
 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinNextUp = () =>
+export const getJellyfinNextUp = async () =>
 	JellyfinApi.get('/Shows/NextUp', {
 		params: {
 			query: {
-				userId: get(settings).jellyfin.userId,
+				userId: await getUserId(),
 				fields: ['ProviderIds']
 			}
 		}
 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinItems = () =>
+export const getJellyfinItems = async () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
-				userId: get(settings).jellyfin.userId
+				userId: await getUserId()
 			},
 			query: {
 				hasTmdbId: true,
@@ -59,7 +74,7 @@ export const getJellyfinItems = () =>
 // 	JellyfinApi.get('/Users/{userId}/Items', {
 // 		params: {
 // 			path: {
-// 				userId: get(settings).jellyfin.userId
+// 				userId: env.PUBLIC_JELLYFIN_USER_ID || ""
 // 			},
 // 			query: {
 // 				hasTmdbId: true,
@@ -69,11 +84,11 @@ export const getJellyfinItems = () =>
 // 		}
 // 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinEpisodes = () =>
+export const getJellyfinEpisodes = async () =>
 	JellyfinApi.get('/Users/{userId}/Items', {
 		params: {
 			path: {
-				userId: get(settings).jellyfin.userId
+				userId: await getUserId()
 			},
 			query: {
 				recursive: true,
@@ -91,12 +106,12 @@ export const getJellyfinEpisodesBySeries = (seriesId: string) =>
 export const getJellyfinItemByTmdbId = (tmdbId: string) =>
 	getJellyfinItems().then((items) => items.find((i) => i.ProviderIds?.Tmdb == tmdbId));
 
-export const getJellyfinItem = (itemId: string) =>
+export const getJellyfinItem = async (itemId: string) =>
 	JellyfinApi.get('/Users/{userId}/Items/{itemId}', {
 		params: {
 			path: {
 				itemId,
-				userId: get(settings).jellyfin.userId
+				userId: await getUserId()
 			}
 		}
 	}).then((r) => r.data);
@@ -104,7 +119,7 @@ export const getJellyfinItem = (itemId: string) =>
 export const requestJellyfinItemByTmdbId = () =>
 	request((tmdbId: string) => getJellyfinItemByTmdbId(tmdbId));
 
-export const getJellyfinPlaybackInfo = (
+export const getJellyfinPlaybackInfo = async (
 	itemId: string,
 	playbackProfile: DeviceProfile,
 	startTimeTicks = 0
@@ -115,7 +130,7 @@ export const getJellyfinPlaybackInfo = (
 				itemId: itemId
 			},
 			query: {
-				userId: get(settings).jellyfin.userId,
+				userId: await getUserId(),
 				startTimeTicks,
 				autoOpenLiveStream: true,
 				maxStreamingBitrate: 140000000
@@ -184,11 +199,11 @@ export const reportJellyfinPlaybackStopped = (
 		}
 	});
 
-export const setJellyfinItemWatched = (jellyfinId: string) =>
+export const setJellyfinItemWatched = async (jellyfinId: string) =>
 	JellyfinApi.post('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
-				userId: get(settings).jellyfin.userId,
+				userId: await getUserId(),
 				itemId: jellyfinId
 			},
 			query: {
@@ -197,11 +212,11 @@ export const setJellyfinItemWatched = (jellyfinId: string) =>
 		}
 	});
 
-export const setJellyfinItemUnwatched = (jellyfinId: string) =>
+export const setJellyfinItemUnwatched = async (jellyfinId: string) =>
 	JellyfinApi.del('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
-				userId: get(settings).jellyfin.userId,
+				userId: await getUserId(),
 				itemId: jellyfinId
 			}
 		}

@@ -44,9 +44,6 @@ const defaultSettings: Settings = {
 		qualityProfileId: 4,
 		profileId: 4,
 		rootFolderPath: '/movies'
-	},
-	jellyfin: {
-		userId: '75dcb061c9404115a7acdc893ea6bbbc'
 	}
 };
 
