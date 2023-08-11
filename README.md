@@ -17,7 +17,7 @@ TMDB Discovery:
 
 Local Library & Playback
 
-- Steam Movies & TV shows (from Jellyfin library)
+- Stream Movies & TV shows (from Jellyfin library)
 - Create requests for movies & TV shows in Radarr & Sonarr
 - Manage local library files
 - View Radarr & Sonarr stats (disk space, items, etc.)
@@ -54,6 +54,8 @@ services:
 ### Reiverr will be accessible via port 9494 by default.
 
 If you have any questions or run into issues, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
+
+## Early Adopters: jellyfin login is currently broken and will be fixed later today
 
 ### Other Upcoming Platforms
 
