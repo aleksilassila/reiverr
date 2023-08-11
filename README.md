@@ -55,6 +55,8 @@ services:
 
 If you have any questions or run into issues, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
 
+## Early Adopters: jellyfin login is currently broken and will be fixed later today
+
 ### Other Upcoming Platforms
 
 Platforms that are planned to be supported in the future:
