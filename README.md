@@ -53,6 +53,8 @@ services:
 
 ### Reiverr will be accessible via port 9494 by default.
 
+If you have any questions or run into issues, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
+
 # Contributing
 
 Unlike the most Servarr projects, this one is built with Svelte and SvelteKit. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
