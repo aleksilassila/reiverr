@@ -1,6 +1,6 @@
 {
 	"name": "reiverr",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"scripts": {
 		"dev": "vite dev --host",
 		"build": "vite build",
