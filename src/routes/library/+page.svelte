@@ -11,6 +11,7 @@
 	import { CaretDown, Gear } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import { _ } from 'svelte-i18n';
 
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
 	let sortBy: 'added' | 'rating' | 'release' | 'size' | 'name' = 'name';
@@ -266,7 +267,7 @@
 						})}
 						on:click={() => (openTab = 'available')}
 					>
-						Available
+						{$_('libraryAvailable')}
 					</button>
 					<button
 						class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
@@ -274,7 +275,7 @@
 						})}
 						on:click={() => (openTab = 'watched')}
 					>
-						Watched
+						{$_('libraryWatched')}
 					</button>
 					<button
 						class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
@@ -282,7 +283,7 @@
 						})}
 						on:click={() => (openTab = 'unavailable')}
 					>
-						Unavailable
+						{$_('libraryUnavailable')}
 					</button>
 				</div>
 			</UiCarousel>

@@ -8,6 +8,7 @@
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import { onMount } from 'svelte';
 	import type { TitleType } from '$lib/types';
+	import { _ } from 'svelte-i18n';
 
 	export let modalId: Symbol;
 
@@ -75,13 +76,15 @@
 			on:input={handleInput}
 			type="text"
 			class="flex-1 bg-transparent font-light outline-none"
-			placeholder="Search for Movies and Shows..."
+			placeholder={$_('searchModalPlaceholder')}
 		/>
 	</ModalHeader>
 	{#if resultProps === undefined || inputValue === ''}
-		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">No recent searches</div>
+		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">
+			{$_('searchNoRecentSearches')}
+		</div>
 	{:else if resultProps?.length === 0 && !fetching}
-		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">No search results</div>
+		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">{$_('searchNoResults')}</div>
 	{:else}
 		<div class="py-2">
 			{#each resultProps.slice(0, 5) as result}

@@ -6,6 +6,7 @@
 	import IconButton from '../IconButton.svelte';
 	import { fade } from 'svelte/transition';
 	import { modalStack } from '../Modal/Modal';
+	import { _ } from 'svelte-i18n';
 
 	let y = 0;
 	let transparent = true;
@@ -58,11 +59,11 @@
 	<div
 		class="flex items-center justify-center gap-4 md:gap-8 font-normal text-sm tracking-wider text-zinc-200"
 	>
-		<a href="/" class={$page && getLinkStyle('/')}>Home</a>
-		<a href="/discover" class={$page && getLinkStyle('/discover')}>Discover</a>
-		<a href="/library" class={$page && getLinkStyle('/library')}>Library</a>
-		<a href="/sources" class={$page && getLinkStyle('/sources')}>Sources</a>
-		<a href="/settings" class={$page && getLinkStyle('/settings')}>Settings</a>
+		<a href="/" class={$page && getLinkStyle('/')}>{$_('navbarHome')}</a>
+		<a href="/discover" class={$page && getLinkStyle('/discover')}>{$_('navbarDiscover')}</a>
+		<a href="/library" class={$page && getLinkStyle('/library')}>{$_('navbarLibrary')}</a>
+		<a href="/sources" class={$page && getLinkStyle('/sources')}>{$_('navbarSources')}</a>
+		<a href="/settings" class={$page && getLinkStyle('/settings')}>{$_('navbarSettings')}</a>
 	</div>
 	<div class="flex gap-2 items-center">
 		<IconButton on:click={openSearchModal}>
