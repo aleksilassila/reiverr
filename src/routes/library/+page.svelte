@@ -31,9 +31,8 @@
 
 	let nextUpProps: ComponentProps<Card>[] = [];
 
-	$: {
-		if (items.length) updateComponentProps(searchInputValue);
-	}
+	$: if (items.length) updateComponentProps(searchInputValue);
+	$: if (!downloadingProps.length && nextUpProps.length) openNextUpTab = 'nextUp';
 
 	library.subscribe(async (libraryPromise) => {
 		const libraryData = await libraryPromise;
@@ -216,22 +215,26 @@
 			{#if downloadingProps.length || nextUpProps.length}
 				<Carousel>
 					<div slot="title" class="flex items-center gap-6 font-medium text-xl text-zinc-400">
-						<button
-							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
-								'text-zinc-200': openNextUpTab === 'downloading'
-							})}
-							on:click={() => (openNextUpTab = 'downloading')}
-						>
-							Download Queue
-						</button>
-						<button
-							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
-								'text-zinc-200': openNextUpTab === 'nextUp'
-							})}
-							on:click={() => (openNextUpTab = 'nextUp')}
-						>
-							Next Up
-						</button>
+						{#if downloadingProps.length}
+							<button
+								class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+									'text-zinc-200': openNextUpTab === 'downloading'
+								})}
+								on:click={() => (openNextUpTab = 'downloading')}
+							>
+								Download Queue
+							</button>
+						{/if}
+						{#if nextUpProps.length}
+							<button
+								class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
+									'text-zinc-200': openNextUpTab === 'nextUp'
+								})}
+								on:click={() => (openNextUpTab = 'nextUp')}
+							>
+								Next Up
+							</button>
+						{/if}
 					</div>
 					{#if downloadingProps.length && openNextUpTab === 'downloading'}
 						{#each downloadingProps as props (props.tmdbId)}
