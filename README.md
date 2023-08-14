@@ -106,6 +106,8 @@ PUBLIC_JELLYFIN_API_KEY=yourapikeyhere
 PUBLIC_JELLYFIN_URL=http://127.0.0.1:8096
 ```
 
+For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.
+
 # Additional Screenshots
 
 ![Landing Page](images/screenshot-1.png)

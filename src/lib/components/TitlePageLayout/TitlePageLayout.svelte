@@ -67,7 +67,7 @@
 	})}
 >
 	<div
-		class={classNames('flex-1 relative flex pt-24 px-4 sm:px-8 pb-6', {
+		class={classNames('flex-1 relative flex pt-24 px-2 sm:px-4 lg:px-8 pb-6', {
 			'min-h-[60vh]': isModal
 		})}
 		bind:clientHeight={topHeight}
@@ -127,7 +127,7 @@
 </div>
 
 <div
-	class={classNames('flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 pb-6 relative z-[1]', {
+	class={classNames('flex flex-col gap-6 bg-stone-950 px-2 sm:px-4 lg:px-8 pb-6 relative', {
 		'2xl:px-0': !isModal
 	})}
 >

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
-	import { library } from '$lib/stores/library.store';
+	import { createLibraryItemStore, library } from '$lib/stores/library.store';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
@@ -10,9 +10,9 @@
 	import type { TitleType } from '$lib/types';
 	import { openTitleModal } from '../Modal/Modal';
 	import ProgressBar from '../ProgressBar.svelte';
+	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
 
 	export let tmdbId: number;
-	export let jellyfinId: string | undefined = undefined;
 	export let type: TitleType = 'movie';
 	export let title: string;
 	export let genres: string[] = [];
@@ -27,30 +27,12 @@
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 	export let openInModal = true;
 
-	let watched = false;
-	$: watched = !available && !!jellyfinId;
-
-	function handleSetWatched() {
-		if (jellyfinId) {
-			setJellyfinItemWatched(jellyfinId).finally(() => library.refreshIn(3000));
-		}
-	}
-
-	function handleSetUnwatched() {
-		if (jellyfinId) {
-			setJellyfinItemUnwatched(jellyfinId).finally(() => library.refreshIn(3000));
-		}
-	}
+	let itemStore = createLibraryItemStore(tmdbId);
 </script>
 
-<ContextMenu heading={title} disabled={!jellyfinId}>
+<ContextMenu heading={title}>
 	<svelte:fragment slot="menu">
-		<ContextMenuItem on:click={handleSetWatched} disabled={!jellyfinId || watched}>
-			Mark as watched
-		</ContextMenuItem>
-		<ContextMenuItem on:click={handleSetUnwatched} disabled={!jellyfinId || !watched}>
-			Mark as unwatched
-		</ContextMenuItem>
+		<LibraryItemContextItems {itemStore} {type} {tmdbId} />
 	</svelte:fragment>
 	<button
 		class={classNames(

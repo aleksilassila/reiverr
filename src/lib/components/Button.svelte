@@ -6,6 +6,7 @@
 
 	export let size: 'md' | 'sm' | 'lg' | 'xs' = 'md';
 	export let type: 'primary' | 'secondary' | 'tertiary' = 'secondary';
+	export let slim = false;
 	export let disabled = false;
 
 	export let href: string | undefined = undefined;
@@ -22,10 +23,17 @@
 			'focus-visible:bg-zinc-200 focus-visible:text-zinc-800 hover:bg-zinc-200 hover:text-zinc-800':
 				(type === 'secondary' || type === 'tertiary') && !disabled,
 			'rounded-full': type === 'tertiary',
-			'py-2 px-6 sm:py-3 sm:px-6': size === 'lg',
-			'py-2 px-6': size === 'md',
-			'py-1 px-4': size === 'sm',
-			'py-1 px-4 text-sm': size === 'xs',
+
+			'py-2 px-6 sm:py-3 sm:px-6': size === 'lg' && !slim,
+			'py-2 px-6': size === 'md' && !slim,
+			'py-1 px-4': size === 'sm' && !slim,
+			'py-1 px-4 text-sm': size === 'xs' && !slim,
+
+			'p-2 sm:p-3': size === 'lg' && slim,
+			'p-2': size === 'md' && slim,
+			'p-1': size === 'sm' && slim,
+			'p-1 text-sm': size === 'xs' && slim,
+
 			'opacity-50': disabled,
 			'cursor-pointer': !disabled
 		}
