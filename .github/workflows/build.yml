@@ -65,11 +65,11 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
-            tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+#            tags: |
+#            type=ref,event=branch
+#            type=ref,event=pr
+#            type=semver,pattern={{version}}
+#            type=semver,pattern={{major}}.{{minor}}
 
       - name: Go Build Cache for Docker
         uses: actions/cache@v3
