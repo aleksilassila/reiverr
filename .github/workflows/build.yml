@@ -61,10 +61,26 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
+        uses: docker/metadata-action@v4
         with:
           images: |
             ghcr.io/${{ github.repository }}
+            tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Go Build Cache for Docker
+        uses: actions/cache@v3
+        with:
+          path: go-build-cache
+          key: ${{ runner.os }}-go-build-cache-${{ hashFiles('**/go.sum') }}
+
+      - name: inject go-build-cache into docker
+        uses: overmindtech/buildkit-cache-dance/inject@main
+        with:
+          cache-source: go-build-cache
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v4
@@ -73,6 +89,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: extract go-build-cache from docker
+        uses: overmindtech/buildkit-cache-dance/extract@main
+        with:
+          cache-source: go-build-cache
 
 #      - name: Add tag
 #        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
