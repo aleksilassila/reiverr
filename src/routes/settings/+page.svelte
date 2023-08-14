@@ -8,8 +8,9 @@
 		other part of the project, head over to the project GitHub page.
 	</div>
 	<div class="flex items-center p-8 gap-8">
-		<a href="https://github.com/aleksilassila/reiverr">GitHub</a>
 		<div>v{version}</div>
+		<a target="_blank" href="https://github.com/aleksilassila/reiverr/releases">Changelog</a>
+		<a target="_blank" href="https://github.com/aleksilassila/reiverr">GitHub</a>
 	</div>
 </div>
 

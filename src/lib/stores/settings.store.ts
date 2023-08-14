@@ -23,6 +23,9 @@ interface Settings {
 	jellyfin: {
 		userId: string;
 	};
+	playback: {
+		preferredPlaybackSource: 'reiverr' | 'jellyfin';
+	};
 }
 
 const defaultSettings: Settings = {
@@ -44,6 +47,12 @@ const defaultSettings: Settings = {
 		qualityProfileId: 4,
 		profileId: 4,
 		rootFolderPath: '/movies'
+	},
+	jellyfin: {
+		userId: ''
+	},
+	playback: {
+		preferredPlaybackSource: 'reiverr'
 	}
 };
 

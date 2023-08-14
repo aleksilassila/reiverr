@@ -53,9 +53,7 @@ services:
 
 ### Reiverr will be accessible via port 9494 by default.
 
-If you have any questions or run into issues, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
-
-## Early Adopters: jellyfin login is currently broken and will be fixed later today
+If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
 
 ### Other Upcoming Platforms
 
