@@ -4,22 +4,26 @@
 
 	export let heading = '';
 	export let disabled = false;
+	export let position: 'absolute' | 'fixed' = 'fixed';
+	let anchored = position === 'absolute';
 
-	const id = Symbol();
+	export let id = Symbol();
 
 	let menu: HTMLDivElement;
 
-	let position = { x: 0, y: 0 };
+	let fixedPosition = { x: 0, y: 0 };
 
 	function close() {
 		contextMenu.hide();
 	}
 
-	function handleOpen(event: MouseEvent) {
-		if (disabled) return;
+	export function handleOpen(event: MouseEvent) {
+		if (disabled || (anchored && $contextMenu === id)) return; // Clicking button will close menu
 
-		position = { x: event.clientX, y: event.clientY };
+		fixedPosition = { x: event.clientX, y: event.clientY };
 		contextMenu.show(id);
+		event.preventDefault();
+		event.stopPropagation();
 	}
 
 	function handleClickOutside(event: MouseEvent) {
@@ -50,23 +54,25 @@
 <!-- <svelte:body bind:this={body} /> -->
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div on:contextmenu|preventDefault={handleOpen}>
+<div on:contextmenu|preventDefault={handleOpen} on:click={(e) => anchored && e.stopPropagation()}>
 	<slot />
 </div>
 
 {#if $contextMenu === id}
-	{#key position}
+	{#key fixedPosition}
 		<div
-			class="fixed z-50 px-1 py-1 bg-zinc-800 bg-opacity-50 rounded-lg backdrop-blur-xl flex flex-col"
-			style="left: {position.x}px; top: {position.y}px;"
+			class={`${position} z-50 my-2 px-1 py-1 bg-zinc-800 bg-opacity-50 rounded-lg backdrop-blur-xl flex flex-col w-max`}
+			style={position === 'fixed'
+				? `left: ${fixedPosition.x}px; top: ${fixedPosition.y}px;`
+				: 'left: 0px;'}
 			bind:this={menu}
-			in:fly|global={{ y: 5, duration: 100, delay: 100 }}
+			in:fly|global={{ y: 5, duration: 100, delay: anchored ? 0 : 100 }}
 			out:fly|global={{ y: 5, duration: 100 }}
 		>
 			<slot name="title">
 				{#if heading}
 					<h2
-						class="text-xs text-zinc-200 opacity-60 tracking-wide font-semibold px-3 py-1 line-clamp-1"
+						class="text-xs text-zinc-200 opacity-60 tracking-wide font-semibold px-3 py-1 line-clamp-1 text-left"
 					>
 						{heading}
 					</h2>

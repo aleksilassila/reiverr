@@ -245,6 +245,7 @@ function _createLibraryItemStore(tmdbId: number) {
 
 const itemStores: Record<string, ReturnType<typeof _createLibraryItemStore>> = {};
 
+export type LibraryItemStore = ReturnType<typeof _createLibraryItemStore>;
 export function createLibraryItemStore(tmdbId: number) {
 	if (!itemStores[tmdbId]) {
 		itemStores[tmdbId] = _createLibraryItemStore(tmdbId);

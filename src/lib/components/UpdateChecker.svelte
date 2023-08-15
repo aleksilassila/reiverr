@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { version } from '$app/environment';
-	import { createLocalStorageStore } from '$lib/localstorage';
+	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { Cross2 } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import axios from 'axios';
@@ -12,11 +12,7 @@
 
 	async function fetchLatestVersion() {
 		return axios
-			.get('https://api.github.com/repos/aleksilassila/reiverr/tags', {
-				headers: {
-					'Cache-Control': 'max-age=3600'
-				}
-			})
+			.get('https://api.github.com/repos/aleksilassila/reiverr/tags')
 			.then((res) => res.data?.[0]?.name);
 	}
 </script>

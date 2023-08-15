@@ -13,10 +13,12 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
+	import ContextMenu from '$lib/components/ContextMenu/ContextMenu.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
+	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
@@ -171,21 +173,28 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="title-right">
-			{#if $itemStore.loading}
-				<div class="placeholder h-10 w-48 rounded-xl" />
-			{:else if $itemStore.item?.sonarrSeries?.statistics?.sizeOnDisk}
-				<Button type="primary" on:click={playNextEpisode}>
-					<span>Next Episode</span><ChevronRight size={20} />
-				</Button>
-			{:else if !$itemStore.item?.sonarrSeries}
-				<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
-					<span>Add to Sonarr</span><Plus size={20} />
-				</Button>
-			{:else}
-				<Button type="primary" on:click={openRequestModal}>
-					<span class="mr-2">Request Series</span><Plus size={20} />
-				</Button>
-			{/if}
+			<div
+				class="flex gap-2 items-center flex-row-reverse justify-end lg:flex-row lg:justify-start"
+			>
+				{#if $itemStore.loading}
+					<div class="placeholder h-10 w-48 rounded-xl" />
+				{:else}
+					<OpenInButton title={series?.name} {itemStore} type="series" {tmdbId} />
+					{#if $itemStore.item?.sonarrSeries?.statistics?.sizeOnDisk}
+						<Button type="primary" on:click={playNextEpisode}>
+							<span>Next Episode</span><ChevronRight size={20} />
+						</Button>
+					{:else if !$itemStore.item?.sonarrSeries}
+						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
+							<span>Add to Sonarr</span><Plus size={20} />
+						</Button>
+					{:else}
+						<Button type="primary" on:click={openRequestModal}>
+							<span class="mr-2">Request Series</span><Plus size={20} />
+						</Button>
+					{/if}
+				{/if}
+			</div>
 		</svelte:fragment>
 
 		<div slot="episodes-carousel">

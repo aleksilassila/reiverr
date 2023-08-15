@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import classNames from 'classnames';
 
 	export let disabled = false;
