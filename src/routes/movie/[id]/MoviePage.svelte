@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addMovieToRadarr } from '$lib/apis/radarr/radarrApi';
+	import { addMovieToRadarr, radarrAvailable } from '$lib/apis/radarr/radarrApi';
 	import {
 		getTmdbMovie,
 		getTmdbMovieRecommendations,
@@ -33,10 +33,10 @@
 	const tmdbMoviePromise = getTmdbMovie(tmdbId);
 	const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const tmdbSimilarProps = getTmdbMovieSimilar(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
 		Promise.all(
 			m?.credits?.cast?.slice(0, 20).map((m) => ({
@@ -123,13 +123,13 @@
 					<OpenInButton title={movie?.title} {itemStore} type="movie" {tmdbId} />
 					{#if $itemStore.item?.jellyfinItem}
 						<Button type="primary" on:click={play}>
-							<span>Play</span><ChevronRight size={20} />
+							<span>Watch</span><ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.radarrMovie}
+					{:else if !$itemStore.item?.radarrMovie && radarrAvailable}
 						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
 							<span>Add to Radarr</span><Plus size={20} />
 						</Button>
-					{:else}
+					{:else if $itemStore.item?.radarrMovie}
 						<Button type="primary" on:click={openRequestModal}>
 							<span class="mr-2">Request Movie</span><Plus size={20} />
 						</Button>

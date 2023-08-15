@@ -69,18 +69,18 @@
 	function handleDownload(guid: string) {
 		downloadFetchingGuid = guid;
 		if (radarrId) {
-			downloadRadarrMovie(guid).then((res) => {
+			downloadRadarrMovie(guid).then((ok) => {
 				dispatch('download');
 				downloadFetchingGuid = undefined;
-				if (res.response?.ok) {
+				if (ok) {
 					downloadingGuid = guid;
 				}
 			});
 		} else {
-			downloadSonarrEpisode(guid).then((res) => {
+			downloadSonarrEpisode(guid).then((ok) => {
 				dispatch('download');
 				downloadFetchingGuid = undefined;
-				if (res.response?.ok) {
+				if (ok) {
 					downloadingGuid = guid;
 				}
 			});
