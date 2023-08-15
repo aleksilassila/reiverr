@@ -1,10 +1,10 @@
-import { env } from '$env/dynamic/public';
 import type { components, paths } from '$lib/apis/sonarr/sonarr.generated';
 import { log } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { getTmdbSeries } from '../tmdb/tmdbApi';
 import { get } from 'svelte/store';
 import { settings } from '$lib/stores/settings.store';
+import { SONARR_API_KEY, SONARR_BASE_URL } from '$lib/constants';
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
 export type SonarrReleaseResource = components['schemas']['ReleaseResource'];
@@ -38,14 +38,14 @@ export interface SonarrSeriesOptions {
 	};
 }
 
-export const sonarrAvailable = !!env.PUBLIC_SONARR_BASE_URL && !!env.PUBLIC_SONARR_API_KEY;
+export const sonarrAvailable = !!SONARR_BASE_URL && !!SONARR_API_KEY;
 
 export const SonarrApi =
-	env.PUBLIC_SONARR_BASE_URL && env.PUBLIC_SONARR_API_KEY
+	SONARR_BASE_URL && SONARR_API_KEY
 		? createClient<paths>({
-				baseUrl: env.PUBLIC_SONARR_BASE_URL,
+				baseUrl: SONARR_BASE_URL,
 				headers: {
-					'X-Api-Key': env.PUBLIC_SONARR_API_KEY
+					'X-Api-Key': SONARR_API_KEY
 				}
 		  })
 		: undefined;

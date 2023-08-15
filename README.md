@@ -47,7 +47,7 @@ services:
       PUBLIC_SONARR_API_KEY: yourapikeyhere
       PUBLIC_SONARR_BASE_URL: http://127.0.0.1:8989
       PUBLIC_JELLYFIN_API_KEY: yourapikeyhere
-      PUBLIC_JELLYFIN_URL: http://127.0.0.1:8096
+      PUBLIC_JELLYFIN_BASE_URL: http://127.0.0.1:8096
     restart: unless-stopped
 ```
 
@@ -103,7 +103,7 @@ PUBLIC_SONARR_API_KEY=yourapikeyhere
 PUBLIC_SONARR_BASE_URL=http://127.0.0.1:8989
 
 PUBLIC_JELLYFIN_API_KEY=yourapikeyhere
-PUBLIC_JELLYFIN_URL=http://127.0.0.1:8096
+PUBLIC_JELLYFIN_BASE_URL=http://127.0.0.1:8096
 ```
 
 For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.

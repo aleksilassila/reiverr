@@ -1,5 +1,12 @@
+import {
+	JELLYFIN_API_KEY,
+	JELLYFIN_BASE_URL,
+	RADARR_API_KEY,
+	RADARR_BASE_URL,
+	SONARR_API_KEY,
+	SONARR_BASE_URL
+} from '$lib/constants';
 import type { LayoutLoad } from './$types';
-import { env } from '$env/dynamic/public';
 // import { dev } from '$app/environment';
 
 // Disable SSR when running the dev server
@@ -19,22 +26,22 @@ export type MissingEnvironmentVariables = {
 
 export const load = (async () => {
 	const isApplicationSetUp =
-		!!env.PUBLIC_RADARR_API_KEY &&
-		!!env.PUBLIC_RADARR_BASE_URL &&
-		!!env.PUBLIC_SONARR_API_KEY &&
-		!!env.PUBLIC_SONARR_BASE_URL &&
-		!!env.PUBLIC_JELLYFIN_API_KEY &&
-		!!env.PUBLIC_JELLYFIN_URL;
+		!!RADARR_API_KEY &&
+		!!RADARR_BASE_URL &&
+		!!SONARR_API_KEY &&
+		!!SONARR_BASE_URL &&
+		!!JELLYFIN_API_KEY &&
+		!!JELLYFIN_BASE_URL;
 
 	return {
 		isApplicationSetUp,
 		missingEnvironmentVariables: {
-			PUBLIC_RADARR_API_KEY: !env.PUBLIC_RADARR_API_KEY,
-			PUBLIC_RADARR_BASE_URL: !env.PUBLIC_RADARR_BASE_URL,
-			PUBLIC_SONARR_API_KEY: !env.PUBLIC_SONARR_API_KEY,
-			PUBLIC_SONARR_BASE_URL: !env.PUBLIC_SONARR_BASE_URL,
-			PUBLIC_JELLYFIN_API_KEY: !env.PUBLIC_JELLYFIN_API_KEY,
-			PUBLIC_JELLYFIN_URL: !env.PUBLIC_JELLYFIN_URL
+			PUBLIC_RADARR_API_KEY: !RADARR_API_KEY,
+			PUBLIC_RADARR_BASE_URL: !RADARR_BASE_URL,
+			PUBLIC_SONARR_API_KEY: !SONARR_API_KEY,
+			PUBLIC_SONARR_BASE_URL: !SONARR_BASE_URL,
+			PUBLIC_JELLYFIN_API_KEY: !JELLYFIN_API_KEY,
+			PUBLIC_JELLYFIN_URL: !JELLYFIN_BASE_URL
 		}
 	};
 }) satisfies LayoutLoad;

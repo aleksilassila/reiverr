@@ -1,6 +1,6 @@
-import { env } from '$env/dynamic/public';
 import type { components, paths } from '$lib/apis/radarr/radarr.generated';
 import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
+import { RADARR_API_KEY, RADARR_BASE_URL } from '$lib/constants';
 import { settings } from '$lib/stores/settings.store';
 import { log } from '$lib/utils';
 import createClient from 'openapi-fetch';
@@ -25,14 +25,14 @@ export interface RadarrMovieOptions {
 	searchNow?: boolean;
 }
 
-export const radarrAvailable = !!env.PUBLIC_RADARR_BASE_URL && !!env.PUBLIC_RADARR_API_KEY;
+export const radarrAvailable = !!RADARR_BASE_URL && !!RADARR_API_KEY;
 
 export const RadarrApi =
-	env.PUBLIC_RADARR_BASE_URL && env.PUBLIC_RADARR_API_KEY
+	RADARR_BASE_URL && RADARR_API_KEY
 		? createClient<paths>({
-				baseUrl: env.PUBLIC_RADARR_BASE_URL,
+				baseUrl: RADARR_BASE_URL,
 				headers: {
-					'X-Api-Key': env.PUBLIC_RADARR_API_KEY
+					'X-Api-Key': RADARR_API_KEY
 				}
 		  })
 		: undefined;

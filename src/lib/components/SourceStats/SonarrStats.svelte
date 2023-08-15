@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
 	import { getDiskSpace } from '$lib/apis/sonarr/sonarrApi';
+	import { SONARR_BASE_URL } from '$lib/constants';
 	import { library } from '$lib/stores/library.store';
 	import { formatSize } from '$lib/utils.js';
 	import SonarrIcon from '../svgs/SonarrIcon.svelte';
@@ -47,7 +47,7 @@
 		{large}
 		title="Sonarr"
 		subtitle="Shows Provider"
-		href={env.PUBLIC_SONARR_BASE_URL}
+		href={SONARR_BASE_URL}
 		stats={[
 			{ title: 'Episodes', value: String(episodesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },
