@@ -77,10 +77,10 @@
 				}
 			});
 		} else {
-			downloadSonarrEpisode(guid).then((res) => {
+			downloadSonarrEpisode(guid).then((ok) => {
 				dispatch('download');
 				downloadFetchingGuid = undefined;
-				if (res.response?.ok) {
+				if (ok) {
 					downloadingGuid = guid;
 				}
 			});

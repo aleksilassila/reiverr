@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
+	import { type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
+	import { addSeriesToSonarr, sonarrAvailable } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
@@ -187,11 +187,11 @@
 							</span>
 							<ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.sonarrSeries}
+					{:else if !$itemStore.item?.sonarrSeries && sonarrAvailable}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 							<span>Add to Sonarr</span><Plus size={20} />
 						</Button>
-					{:else}
+					{:else if $itemStore.item?.sonarrSeries}
 						<Button type="primary" on:click={openRequestModal}>
 							<span class="mr-2">Request Series</span><Plus size={20} />
 						</Button>
