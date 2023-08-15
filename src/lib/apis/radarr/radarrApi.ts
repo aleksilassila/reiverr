@@ -101,11 +101,11 @@ export const fetchRadarrReleases = (movieId: number) =>
 		(r) => r.data || []
 	) || Promise.resolve([]);
 
-export const downloadRadarrMovie = (guid: string) =>
+export const downloadRadarrMovie = (guid: string, indexerId: number) =>
 	RadarrApi?.post('/api/v3/release', {
 		params: {},
 		body: {
-			indexerId: 2,
+			indexerId,
 			guid
 		}
 	}).then((res) => res.response.ok) || Promise.resolve(false);

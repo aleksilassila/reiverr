@@ -7,7 +7,7 @@
 
 	export let tmdbId: number;
 	export let type: TitleType;
-	export let modalId: Symbol;
+	export let modalId: symbol;
 
 	function handleCloseModal() {
 		modalStack.close(modalId);

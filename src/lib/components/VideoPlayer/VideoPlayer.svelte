@@ -16,7 +16,7 @@
 	import { playerState } from './VideoPlayer';
 	import { modalStack } from '../Modal/Modal';
 
-	export let modalId: Symbol;
+	export let modalId: symbol;
 
 	let uiVisible = true;
 

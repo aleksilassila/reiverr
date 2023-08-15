@@ -114,11 +114,11 @@ export const cancelDownloadSonarrEpisode = async (downloadId: number) => {
 	return !!deleteResponse?.response.ok;
 };
 
-export const downloadSonarrEpisode = (guid: string) =>
+export const downloadSonarrEpisode = (guid: string, indexerId: number) =>
 	SonarrApi?.post('/api/v3/release', {
 		params: {},
 		body: {
-			indexerId: 2,
+			indexerId,
 			guid
 		}
 	}).then((res) => res.response.ok) || Promise.resolve(false);
