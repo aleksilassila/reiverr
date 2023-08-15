@@ -10,6 +10,7 @@
 	export let id = Symbol();
 
 	let menu: HTMLDivElement;
+	let windowWidth: number;
 
 	let fixedPosition = { x: 0, y: 0 };
 
@@ -41,7 +42,11 @@
 	}
 </script>
 
-<svelte:window on:keydown={handleShortcuts} on:click={handleClickOutside} />
+<svelte:window
+	on:keydown={handleShortcuts}
+	on:click={handleClickOutside}
+	bind:innerWidth={windowWidth}
+/>
 <svelte:head>
 	{#if $contextMenu === id}
 		<style>
@@ -63,8 +68,12 @@
 		<div
 			class={`${position} z-50 my-2 px-1 py-1 bg-zinc-800 bg-opacity-50 rounded-lg backdrop-blur-xl flex flex-col w-max`}
 			style={position === 'fixed'
-				? `left: ${fixedPosition.x}px; top: ${fixedPosition.y}px;`
-				: 'left: 0px;'}
+				? `left: ${
+						fixedPosition.x - (fixedPosition.x > windowWidth / 2 ? menu?.clientWidth : 0)
+				  }px; top: ${fixedPosition.y}px;`
+				: menu?.getBoundingClientRect()?.left > windowWidth / 2
+				? 'right: 0;'
+				: 'left: 0;'}
 			bind:this={menu}
 			in:fly|global={{ y: 5, duration: 100, delay: anchored ? 0 : 100 }}
 			out:fly|global={{ y: 5, duration: 100 }}

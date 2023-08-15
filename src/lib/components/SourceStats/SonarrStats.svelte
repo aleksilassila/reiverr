@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { formatSize } from '$lib/utils.js';
-	import { onMount } from 'svelte';
-	import StatsPlaceholder from './StatsPlaceholder.svelte';
-	import StatsContainer from './StatsContainer.svelte';
-	import SonarrIcon from '../svgs/SonarrIcon.svelte';
-	import { env } from '$env/dynamic/public';
 	import { getDiskSpace } from '$lib/apis/sonarr/sonarrApi';
+	import { SONARR_BASE_URL } from '$lib/constants';
 	import { library } from '$lib/stores/library.store';
+	import { formatSize } from '$lib/utils.js';
+	import SonarrIcon from '../svgs/SonarrIcon.svelte';
+	import StatsContainer from './StatsContainer.svelte';
+	import StatsPlaceholder from './StatsPlaceholder.svelte';
 
 	export let large = false;
 
@@ -18,7 +17,9 @@
 		);
 
 		const diskSpaceInfo =
-			(await discSpacePromise).find((disk) => disk.path === '/') || (await discSpacePromise)[0];
+			(await discSpacePromise).find((disk) => disk.path === '/') ||
+			(await discSpacePromise)[0] ||
+			undefined;
 
 		const spaceOccupied = availableSeries.reduce(
 			(acc, series) => acc + (series.sonarrSeries?.statistics?.sizeOnDisk || 0),
@@ -32,9 +33,9 @@
 
 		return {
 			episodesCount,
-			spaceLeft: diskSpaceInfo.freeSpace || 0,
+			spaceLeft: diskSpaceInfo?.freeSpace || 0,
 			spaceOccupied,
-			spaceTotal: diskSpaceInfo.totalSpace || 0
+			spaceTotal: diskSpaceInfo?.totalSpace || 0
 		};
 	}
 </script>
@@ -46,7 +47,7 @@
 		{large}
 		title="Sonarr"
 		subtitle="Shows Provider"
-		href={env.PUBLIC_SONARR_BASE_URL}
+		href={SONARR_BASE_URL}
 		stats={[
 			{ title: 'Episodes', value: String(episodesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },

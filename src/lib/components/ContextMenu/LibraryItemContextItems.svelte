@@ -1,10 +1,6 @@
 <script lang="ts">
-	import {
-		PUBLIC_JELLYFIN_URL,
-		PUBLIC_RADARR_BASE_URL,
-		PUBLIC_SONARR_BASE_URL
-	} from '$env/static/public';
 	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
+	import { JELLYFIN_BASE_URL, RADARR_BASE_URL, SONARR_BASE_URL } from '$lib/constants';
 	import { library, type LibraryItemStore } from '$lib/stores/library.store';
 	import type { TitleType } from '$lib/types';
 	import ContextMenuDivider from './ContextMenuDivider.svelte';
@@ -40,7 +36,7 @@
 
 	function handleOpenInJellyfin() {
 		window.open(
-			PUBLIC_JELLYFIN_URL + '/web/index.html#!/details?id=' + $itemStore.item?.jellyfinItem?.Id
+			JELLYFIN_BASE_URL + '/web/index.html#!/details?id=' + $itemStore.item?.jellyfinItem?.Id
 		);
 	}
 </script>
@@ -63,7 +59,7 @@
 		<ContextMenuItem
 			disabled={!$itemStore.item.radarrMovie}
 			on:click={() =>
-				window.open(PUBLIC_RADARR_BASE_URL + '/movie/' + $itemStore.item?.radarrMovie?.tmdbId)}
+				window.open(RADARR_BASE_URL + '/movie/' + $itemStore.item?.radarrMovie?.tmdbId)}
 		>
 			Open in Radarr
 		</ContextMenuItem>
@@ -71,7 +67,7 @@
 		<ContextMenuItem
 			disabled={!$itemStore.item.sonarrSeries}
 			on:click={() =>
-				window.open(PUBLIC_SONARR_BASE_URL + '/series/' + $itemStore.item?.sonarrSeries?.titleSlug)}
+				window.open(SONARR_BASE_URL + '/series/' + $itemStore.item?.sonarrSeries?.titleSlug)}
 		>
 			Open in Sonarr
 		</ContextMenuItem>

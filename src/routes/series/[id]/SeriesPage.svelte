@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
+	import { addSeriesToSonarr, sonarrAvailable } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
@@ -13,7 +13,6 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
-	import ContextMenu from '$lib/components/ContextMenu/ContextMenu.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
@@ -66,7 +65,7 @@
 	);
 	const tmdbSimilarProps = getTmdbSeriesSimilar(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
 		Promise.all(
 			s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
@@ -107,6 +106,7 @@
 			episodeProps[season?.season_number || 0] = episodes;
 		});
 
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.[0];
 		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
 	});
 
@@ -180,15 +180,18 @@
 					<div class="placeholder h-10 w-48 rounded-xl" />
 				{:else}
 					<OpenInButton title={series?.name} {itemStore} type="series" {tmdbId} />
-					{#if $itemStore.item?.sonarrSeries?.statistics?.sizeOnDisk}
+					{#if $itemStore.item?.jellyfinEpisodes?.length && !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
-							<span>Next Episode</span><ChevronRight size={20} />
+							<span>
+								Watch {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+							</span>
+							<ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.sonarrSeries}
+					{:else if !$itemStore.item?.sonarrSeries && sonarrAvailable}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 							<span>Add to Sonarr</span><Plus size={20} />
 						</Button>
-					{:else}
+					{:else if $itemStore.item?.sonarrSeries}
 						<Button type="primary" on:click={openRequestModal}>
 							<span class="mr-2">Request Series</span><Plus size={20} />
 						</Button>

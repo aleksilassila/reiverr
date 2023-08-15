@@ -9,7 +9,7 @@
 	import { onMount } from 'svelte';
 	import type { TitleType } from '$lib/types';
 
-	export let modalId: Symbol;
+	export let modalId: symbol;
 
 	let inputValue = '';
 	let inputElement: HTMLInputElement;

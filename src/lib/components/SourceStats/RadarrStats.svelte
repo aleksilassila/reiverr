@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
 	import { getDiskSpace } from '$lib/apis/radarr/radarrApi';
+	import { RADARR_BASE_URL } from '$lib/constants';
 	import { library } from '$lib/stores/library.store';
 	import { formatSize } from '$lib/utils.js';
 	import RadarrIcon from '../svgs/RadarrIcon.svelte';
@@ -21,7 +21,9 @@
 		);
 
 		const diskSpaceInfo =
-			(await discSpacePromise).find((disk) => disk.path === '/') || (await discSpacePromise)[0];
+			(await discSpacePromise).find((disk) => disk.path === '/') ||
+			(await discSpacePromise)[0] ||
+			undefined;
 
 		const spaceOccupied = availableMovies.reduce(
 			(acc, movie) => acc + (movie.radarrMovie?.sizeOnDisk || 0),
@@ -30,9 +32,9 @@
 
 		return {
 			moviesCount: availableMovies.length,
-			spaceLeft: diskSpaceInfo.freeSpace || 0,
+			spaceLeft: diskSpaceInfo?.freeSpace || 0,
 			spaceOccupied,
-			spaceTotal: diskSpaceInfo.totalSpace || 0
+			spaceTotal: diskSpaceInfo?.totalSpace || 0
 		};
 	}
 </script>
@@ -44,7 +46,7 @@
 		{large}
 		title="Radarr"
 		subtitle="Movies Provider"
-		href={env.PUBLIC_RADARR_BASE_URL}
+		href={RADARR_BASE_URL}
 		stats={[
 			{ title: 'Movies', value: String(moviesCount) },
 			{ title: 'Space Taken', value: formatSize(spaceOccupied) },

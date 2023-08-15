@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
 	import {
 		getJellyfinItem,
 		getJellyfinPlaybackInfo,
@@ -15,8 +14,9 @@
 	import IconButton from '../IconButton.svelte';
 	import { playerState } from './VideoPlayer';
 	import { modalStack } from '../Modal/Modal';
+	import { JELLYFIN_BASE_URL } from '$lib/constants';
 
-	export let modalId: Symbol;
+	export let modalId: symbol;
 
 	let uiVisible = true;
 
@@ -31,14 +31,17 @@
 				itemId,
 				getDeviceProfile(),
 				item?.UserData?.PlaybackPositionTicks || 0
-			).then(async ({ playbackUri, playSessionId: sessionId, mediaSourceId, directPlay }) => {
+			).then(async (playbackInfo) => {
+				if (!playbackInfo) return;
+				const { playbackUri, playSessionId: sessionId, mediaSourceId, directPlay } = playbackInfo;
+
 				if (!playbackUri || !sessionId) {
 					console.log('No playback URL or session ID', playbackUri, sessionId);
 					return;
 				}
 
 				video.poster = item?.BackdropImageTags?.length
-					? `http://jellyfin.home/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+					? `${JELLYFIN_BASE_URL}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 					: '';
 
 				if (!directPlay) {
@@ -48,10 +51,10 @@
 
 					const hls = new Hls();
 
-					hls.loadSource(env.PUBLIC_JELLYFIN_URL + playbackUri);
+					hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
 					hls.attachMedia(video);
 				} else {
-					video.src = env.PUBLIC_JELLYFIN_URL + playbackUri;
+					video.src = JELLYFIN_BASE_URL + playbackUri;
 				}
 
 				if (item?.UserData?.PlaybackPositionTicks) {

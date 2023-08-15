@@ -7,6 +7,8 @@
 	import { library } from '$lib/stores/library.store';
 	import type { ComponentProps } from 'svelte';
 
+	let continueWatchingVisible = true;
+
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
 		.then((movies) => movies.filter((m) => !!m).slice(0, 10));
@@ -15,21 +17,22 @@
 		.then((libraryData) => libraryData.continueWatching)
 		.then((items) =>
 			items.map((item) =>
-				item.radarrMovie
+				item.type === 'movie'
 					? {
+							type: 'movie',
 							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.jellyfinId,
-							backdropUri: item.posterUri || '',
-							title: item.radarrMovie.title || '',
-							subtitle: item.radarrMovie.genres?.join(', ') || '',
+							backdropUrl: item.posterUrl || '',
+							title: item.radarrMovie?.title || item.jellyfinItem?.Name || '',
+							subtitle: item.radarrMovie?.genres?.join(', ') || '',
 							progress: item.continueWatching?.progress,
-							runtime: item.radarrMovie.runtime || 0
+							runtime: item.radarrMovie?.runtime || 0
 					  }
 					: {
 							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.nextJellyfinEpisode?.Id,
 							type: 'series',
-							backdropUri: item.posterUri || '',
+							backdropUrl: item.posterUrl || '',
 							title: item.nextJellyfinEpisode?.Name || item.sonarrSeries?.title || '',
 							subtitle:
 								(item.nextJellyfinEpisode?.IndexNumber &&
@@ -43,6 +46,12 @@
 					  }
 			)
 		);
+
+	continueWatchingProps.then((props) => {
+		if (props.length === 0) {
+			continueWatchingVisible = false;
+		}
+	});
 
 	let showcaseIndex = 0;
 
@@ -83,7 +92,7 @@
 	{/await}
 </div>
 
-<div class="py-8">
+<div class="py-8" hidden={!continueWatchingVisible}>
 	<Carousel gradientFromColor="from-stone-950" class="px-4 lg:px-16 2xl:px-32">
 		<div slot="title" class="text-xl font-medium text-zinc-200">Continue Watching</div>
 		{#await continueWatchingProps}

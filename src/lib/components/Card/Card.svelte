@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
-	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { createLibraryItemStore } from '$lib/stores/library.store';
+	import type { TitleType } from '$lib/types';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
-	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
-	import type { TitleType } from '$lib/types';
+	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
 	import { openTitleModal } from '../Modal/Modal';
 	import ProgressBar from '../ProgressBar.svelte';
-	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
 
 	export let tmdbId: number;
 	export let type: TitleType = 'movie';
@@ -19,7 +17,7 @@
 	export let runtimeMinutes = 0;
 	export let seasons = 0;
 	export let completionTime = '';
-	export let backdropUri: string;
+	export let backdropUrl: string;
 	export let rating: number;
 
 	export let available = true;
@@ -53,7 +51,7 @@
 		}}
 	>
 		<div
-			style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropUri + "')"}
+			style={"background-image: url('" + backdropUrl + "')"}
 			class="absolute inset-0 bg-center bg-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform"
 		/>
 		<div
