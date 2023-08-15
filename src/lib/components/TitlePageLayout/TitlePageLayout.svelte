@@ -79,7 +79,7 @@
 				</IconButton>
 			</a>
 			<div class="absolute top-8 left-4 sm:left-8 z-10">
-				<button class="flex items-center sm:hidden" on:click={handleCloseModal}>
+				<button class="flex items-center sm:hidden font-medium" on:click={handleCloseModal}>
 					<ChevronLeft size={20} />
 					Back
 				</button>
