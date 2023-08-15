@@ -21,7 +21,9 @@
 		);
 
 		const diskSpaceInfo =
-			(await discSpacePromise).find((disk) => disk.path === '/') || (await discSpacePromise)[0];
+			(await discSpacePromise).find((disk) => disk.path === '/') ||
+			(await discSpacePromise)[0] ||
+			undefined;
 
 		const spaceOccupied = availableMovies.reduce(
 			(acc, movie) => acc + (movie.radarrMovie?.sizeOnDisk || 0),
@@ -30,9 +32,9 @@
 
 		return {
 			moviesCount: availableMovies.length,
-			spaceLeft: diskSpaceInfo.freeSpace || 0,
+			spaceLeft: diskSpaceInfo?.freeSpace || 0,
 			spaceOccupied,
-			spaceTotal: diskSpaceInfo.totalSpace || 0
+			spaceTotal: diskSpaceInfo?.totalSpace || 0
 		};
 	}
 </script>

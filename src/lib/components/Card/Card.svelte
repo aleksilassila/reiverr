@@ -17,7 +17,7 @@
 	export let runtimeMinutes = 0;
 	export let seasons = 0;
 	export let completionTime = '';
-	export let backdropUri: string;
+	export let backdropUrl: string;
 	export let rating: number;
 
 	export let available = true;
@@ -51,7 +51,7 @@
 		}}
 	>
 		<div
-			style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropUri + "')"}
+			style={"background-image: url('" + backdropUrl + "')"}
 			class="absolute inset-0 bg-center bg-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform"
 		/>
 		<div

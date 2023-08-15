@@ -166,7 +166,7 @@ export const getJellyfinPlaybackInfo = async (
 			  }).then((r) => ({
 					playbackUri:
 						r.data?.MediaSources?.[0]?.TranscodingUrl ||
-						`/Videos/${r.data?.MediaSources?.[0].Id}/stream.mp4?Static=true&mediaSourceId=${r.data?.MediaSources?.[0].Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${PUBLIC_JELLYFIN_API_KEY}&Tag=${r.data?.MediaSources?.[0].ETag}`,
+						`/Videos/${r.data?.MediaSources?.[0].Id}/stream.mp4?Static=true&mediaSourceId=${r.data?.MediaSources?.[0].Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${env.PUBLIC_JELLYFIN_API_KEY}&Tag=${r.data?.MediaSources?.[0].ETag}`,
 					mediaSourceId: r.data?.MediaSources?.[0]?.Id,
 					playSessionId: r.data?.PlaySessionId,
 					directPlay:

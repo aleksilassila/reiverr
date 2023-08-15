@@ -65,7 +65,7 @@
 	);
 	const tmdbSimilarProps = getTmdbSeriesSimilar(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
 		Promise.all(
 			s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({

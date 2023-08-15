@@ -17,21 +17,22 @@
 		.then((libraryData) => libraryData.continueWatching)
 		.then((items) =>
 			items.map((item) =>
-				item.radarrMovie
+				item.type === 'movie'
 					? {
+							type: 'movie',
 							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.jellyfinId,
-							backdropUri: item.posterUri || '',
-							title: item.radarrMovie.title || '',
-							subtitle: item.radarrMovie.genres?.join(', ') || '',
+							backdropUrl: item.posterUrl || '',
+							title: item.radarrMovie?.title || item.jellyfinItem?.Name || '',
+							subtitle: item.radarrMovie?.genres?.join(', ') || '',
 							progress: item.continueWatching?.progress,
-							runtime: item.radarrMovie.runtime || 0
+							runtime: item.radarrMovie?.runtime || 0
 					  }
 					: {
 							tmdbId: item.tmdbId || 0,
 							jellyfinId: item.nextJellyfinEpisode?.Id,
 							type: 'series',
-							backdropUri: item.posterUri || '',
+							backdropUrl: item.posterUrl || '',
 							title: item.nextJellyfinEpisode?.Name || item.sonarrSeries?.title || '',
 							subtitle:
 								(item.nextJellyfinEpisode?.IndexNumber &&

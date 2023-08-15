@@ -28,7 +28,7 @@
 					? library.filterNotInLibrary(items, (t) => t.id || 0)
 					: items)
 			).map(fetchCardTmdbProps)
-		).then((props) => props.filter((p) => p.backdropUri));
+		).then((props) => props.filter((p) => p.backdropUrl));
 
 	const fetchTrendingProps = () => getTmdbTrendingAll().then(fetchCardProps);
 	const fetchDigitalReleases = () => getTmdbDigitalReleases().then(fetchCardProps);

@@ -55,18 +55,18 @@ export const getSonarrSeries = (): Promise<SonarrSeries[]> =>
 		params: {}
 	}).then((r) => r.data || []) || Promise.resolve([]);
 
-// export const getSonarrSeriesByTvdbId = (tvdbId: number): Promise<SonarrSeries | undefined> =>
-// 	SonarrApi?.get('/api/v3/series', {
-// 		params: {
-// 			query: {
-// 				tvdbId: tvdbId
-// 			}
-// 		}
-// 	}).then((r) => r.data?.find((m) => m.tvdbId === tvdbId)) || Promise.resolve(undefined);
+export const getSonarrSeriesByTvdbId = (tvdbId: number): Promise<SonarrSeries | undefined> =>
+	SonarrApi?.get('/api/v3/series', {
+		params: {
+			query: {
+				tvdbId: tvdbId
+			}
+		}
+	}).then((r) => r.data?.find((m) => m.tvdbId === tvdbId)) || Promise.resolve(undefined);
 
-// export const getRadarrDownloadById = (sonarrId: number) =>
-// 	getSonarrDownloads().then((downloads) => downloads.find((d) => d.series.id === sonarrId)) ||
-// 	Promise.resolve(undefined);
+export const getRadarrDownloadById = (sonarrId: number) =>
+	getSonarrDownloads().then((downloads) => downloads.find((d) => d.series.id === sonarrId)) ||
+	Promise.resolve(undefined);
 
 export const getDiskSpace = (): Promise<DiskSpaceInfo[]> =>
 	SonarrApi?.get('/api/v3/diskspace', {}).then((d) => d.data || []) || Promise.resolve([]);
@@ -98,21 +98,21 @@ export const addSeriesToSonarr = async (tmdbId: number) => {
 	}).then((r) => r.data);
 };
 
-// export const cancelDownloadSonarrEpisode = async (downloadId: number) => {
-// 	const deleteResponse = await SonarrApi?.del('/api/v3/queue/{id}', {
-// 		params: {
-// 			path: {
-// 				id: downloadId
-// 			},
-// 			query: {
-// 				blocklist: false,
-// 				removeFromClient: true
-// 			}
-// 		}
-// 	}).then((r) => log(r));
+export const cancelDownloadSonarrEpisode = async (downloadId: number) => {
+	const deleteResponse = await SonarrApi?.del('/api/v3/queue/{id}', {
+		params: {
+			path: {
+				id: downloadId
+			},
+			query: {
+				blocklist: false,
+				removeFromClient: true
+			}
+		}
+	}).then((r) => log(r));
 
-// 	return !!deleteResponse?.response.ok;
-// };
+	return !!deleteResponse?.response.ok;
+};
 
 export const downloadSonarrEpisode = (guid: string) =>
 	SonarrApi?.post('/api/v3/release', {
@@ -123,14 +123,14 @@ export const downloadSonarrEpisode = (guid: string) =>
 		}
 	}).then((res) => res.response.ok) || Promise.resolve(false);
 
-// export const deleteSonarrEpisode = (id: number) =>
-// 	SonarrApi?.del('/api/v3/episodefile/{id}', {
-// 		params: {
-// 			path: {
-// 				id
-// 			}
-// 		}
-// 	}).then((res) => res.response.ok) || Promise.resolve(false);
+export const deleteSonarrEpisode = (id: number) =>
+	SonarrApi?.del('/api/v3/episodefile/{id}', {
+		params: {
+			path: {
+				id
+			}
+		}
+	}).then((res) => res.response.ok) || Promise.resolve(false);
 
 export const getSonarrDownloads = (): Promise<SonarrDownload[]> =>
 	SonarrApi?.get('/api/v3/queue', {
@@ -146,46 +146,46 @@ export const getSonarrDownloads = (): Promise<SonarrDownload[]> =>
 			[]
 	) || Promise.resolve([]);
 
-// export const getSonarrDownloadsById = (sonarrId: number) =>
-// 	getSonarrDownloads().then((downloads) => downloads.filter((d) => d.seriesId === sonarrId)) ||
-// 	Promise.resolve([]);
+export const getSonarrDownloadsById = (sonarrId: number) =>
+	getSonarrDownloads().then((downloads) => downloads.filter((d) => d.seriesId === sonarrId)) ||
+	Promise.resolve([]);
 
-// export const removeFromSonarr = (id: number): Promise<boolean> =>
-// 	SonarrApi?.del('/api/v3/series/{id}', {
-// 		params: {
-// 			path: {
-// 				id
-// 			}
-// 		}
-// 	}).then((res) => res.response.ok) || Promise.resolve(false);
+export const removeFromSonarr = (id: number): Promise<boolean> =>
+	SonarrApi?.del('/api/v3/series/{id}', {
+		params: {
+			path: {
+				id
+			}
+		}
+	}).then((res) => res.response.ok) || Promise.resolve(false);
 
-// export const getSonarrEpisodes = async (seriesId: number) => {
-// 	const episodesPromise =
-// 		SonarrApi?.get('/api/v3/episode', {
-// 			params: {
-// 				query: {
-// 					seriesId
-// 				}
-// 			}
-// 		}).then((r) => r.data || []) || Promise.resolve([]);
+export const getSonarrEpisodes = async (seriesId: number) => {
+	const episodesPromise =
+		SonarrApi?.get('/api/v3/episode', {
+			params: {
+				query: {
+					seriesId
+				}
+			}
+		}).then((r) => r.data || []) || Promise.resolve([]);
 
-// 	const episodeFilesPromise =
-// 		SonarrApi?.get('/api/v3/episodefile', {
-// 			params: {
-// 				query: {
-// 					seriesId
-// 				}
-// 			}
-// 		}).then((r) => r.data || []) || Promise.resolve([]);
+	const episodeFilesPromise =
+		SonarrApi?.get('/api/v3/episodefile', {
+			params: {
+				query: {
+					seriesId
+				}
+			}
+		}).then((r) => r.data || []) || Promise.resolve([]);
 
-// 	const episodes = await episodesPromise;
-// 	const episodeFiles = await episodeFilesPromise;
+	const episodes = await episodesPromise;
+	const episodeFiles = await episodeFilesPromise;
 
-// 	return episodes.map((episode) => ({
-// 		episode,
-// 		episodeFile: episodeFiles.find((file) => file.id === episode.episodeFileId)
-// 	}));
-// };
+	return episodes.map((episode) => ({
+		episode,
+		episodeFile: episodeFiles.find((file) => file.id === episode.episodeFileId)
+	}));
+};
 
 export const fetchSonarrReleases = async (episodeId: number) =>
 	SonarrApi?.get('/api/v3/release', {
