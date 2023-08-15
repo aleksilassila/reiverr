@@ -76,11 +76,12 @@ async function getLibrary(): Promise<Library> {
 	const sonarrSeries = await sonarrSeriesPromise;
 	const sonarrDownloads = await sonarrDownloadsPromise;
 
-	const jellyfinContinueWatching = await jellyfinContinueWatchingPromise;
-	const jellyfinLibraryItems = await jellyfinLibraryItemsPromise;
-	const jellyfinEpisodes = await jellyfinEpisodesPromise.then((episodes) =>
-		episodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99))
-	);
+	const jellyfinContinueWatching = (await jellyfinContinueWatchingPromise) || [];
+	const jellyfinLibraryItems = (await jellyfinLibraryItemsPromise) || [];
+	const jellyfinEpisodes =
+		(await jellyfinEpisodesPromise.then((episodes) =>
+			episodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99))
+		)) || [];
 	const jellyfinNextUp = await jellyfinNextUpPromise;
 
 	const items: Record<string, PlayableItem> = {};

@@ -31,7 +31,10 @@
 				itemId,
 				getDeviceProfile(),
 				item?.UserData?.PlaybackPositionTicks || 0
-			).then(async ({ playbackUri, playSessionId: sessionId, mediaSourceId, directPlay }) => {
+			).then(async (playbackInfo) => {
+				if (!playbackInfo) return;
+				const { playbackUri, playSessionId: sessionId, mediaSourceId, directPlay } = playbackInfo;
+
 				if (!playbackUri || !sessionId) {
 					console.log('No playback URL or session ID', playbackUri, sessionId);
 					return;

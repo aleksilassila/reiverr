@@ -13,7 +13,6 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
-	import ContextMenu from '$lib/components/ContextMenu/ContextMenu.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
@@ -107,6 +106,7 @@
 			episodeProps[season?.season_number || 0] = episodes;
 		});
 
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.[0];
 		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
 	});
 
@@ -180,9 +180,12 @@
 					<div class="placeholder h-10 w-48 rounded-xl" />
 				{:else}
 					<OpenInButton title={series?.name} {itemStore} type="series" {tmdbId} />
-					{#if $itemStore.item?.sonarrSeries?.statistics?.sizeOnDisk}
+					{#if $itemStore.item?.jellyfinEpisodes?.length && !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
-							<span>Next Episode</span><ChevronRight size={20} />
+							<span>
+								Watch {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+							</span>
+							<ChevronRight size={20} />
 						</Button>
 					{:else if !$itemStore.item?.sonarrSeries}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>

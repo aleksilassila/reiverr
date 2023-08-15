@@ -7,6 +7,8 @@
 	import { library } from '$lib/stores/library.store';
 	import type { ComponentProps } from 'svelte';
 
+	let continueWatchingVisible = true;
+
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
 		.then((movies) => movies.filter((m) => !!m).slice(0, 10));
@@ -43,6 +45,12 @@
 					  }
 			)
 		);
+
+	continueWatchingProps.then((props) => {
+		if (props.length === 0) {
+			continueWatchingVisible = false;
+		}
+	});
 
 	let showcaseIndex = 0;
 
@@ -83,7 +91,7 @@
 	{/await}
 </div>
 
-<div class="py-8">
+<div class="py-8" hidden={!continueWatchingVisible}>
 	<Carousel gradientFromColor="from-stone-950" class="px-4 lg:px-16 2xl:px-32">
 		<div slot="title" class="text-xl font-medium text-zinc-200">Continue Watching</div>
 		{#await continueWatchingProps}

@@ -123,7 +123,7 @@
 					<OpenInButton title={movie?.title} {itemStore} type="movie" {tmdbId} />
 					{#if $itemStore.item?.jellyfinItem}
 						<Button type="primary" on:click={play}>
-							<span>Play</span><ChevronRight size={20} />
+							<span>Watch</span><ChevronRight size={20} />
 						</Button>
 					{:else if !$itemStore.item?.radarrMovie}
 						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
