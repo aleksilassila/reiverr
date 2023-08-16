@@ -1,15 +1,15 @@
 import { get, writable } from 'svelte/store';
 
-interface Settings {
+export interface SettingsValues {
 	autoplayTrailers: boolean;
 	excludeLibraryItemsFromDiscovery: boolean;
 	language: string;
 	region: string;
+	animationDuration: number;
 	discover: {
 		includedLanguages: string[];
 		filterBasedOnLanguage: boolean;
 	};
-	animationDuration: number;
 	sonarr: {
 		qualityProfileId: number;
 		rootFolderPath: string;
@@ -28,16 +28,16 @@ interface Settings {
 	};
 }
 
-const defaultSettings: Settings = {
+export const defaultSettings: SettingsValues = {
 	autoplayTrailers: true,
 	excludeLibraryItemsFromDiscovery: true,
 	language: 'en',
 	region: 'US',
+	animationDuration: 150,
 	discover: {
 		filterBasedOnLanguage: true,
 		includedLanguages: ['en']
 	},
-	animationDuration: 150,
 	sonarr: {
 		qualityProfileId: 4,
 		rootFolderPath: '/tv',
@@ -56,7 +56,7 @@ const defaultSettings: Settings = {
 	}
 };
 
-export const settings = writable<Settings>(defaultSettings);
+export const settings = writable<SettingsValues>();
 
 export const getIncludedLanguagesQuery = () => {
 	const settingsValue = get(settings);

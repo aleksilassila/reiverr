@@ -5,7 +5,17 @@
 	import Poster from '$lib/components/Poster/Poster.svelte';
 	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcase.svelte';
 	import { library } from '$lib/stores/library.store';
+	import { defaultSettings, settings } from '$lib/stores/settings.store';
 	import type { ComponentProps } from 'svelte';
+	import type { LayoutServerData } from './$types';
+
+	export let data: LayoutServerData;
+	const settingsData = data.settings;
+
+	settings.set({
+		...defaultSettings,
+		autoplayTrailers: settingsData.autoplayTrailers
+	});
 
 	let continueWatchingVisible = true;
 

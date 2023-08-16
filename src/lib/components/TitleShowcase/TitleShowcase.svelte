@@ -52,13 +52,15 @@
 		trailerVisible = false;
 		UIVisible = true;
 
-		timeout = setTimeout(() => {
-			trailerMounted = true;
-
+		if ($settings.autoplayTrailers) {
 			timeout = setTimeout(() => {
-				trailerVisible = true;
-			}, TRAILER_LOAD_TIME);
-		}, TRAILER_TIMEOUT - TRAILER_LOAD_TIME);
+				trailerMounted = true; // Mount the trailer
+
+				timeout = setTimeout(() => {
+					trailerVisible = true;
+				}, TRAILER_LOAD_TIME);
+			}, TRAILER_TIMEOUT - TRAILER_LOAD_TIME);
+		}
 	}
 
 	onMount(() => {
