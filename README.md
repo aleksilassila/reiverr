@@ -55,9 +55,9 @@ services:
 
 If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
 
-### Other Upcoming Platforms
+## Other Platforms
 
-Platforms that are planned to be supported in the future:
+The roadmap includes plans to support the following platforms in the future:
 
 - Windows Desktop App
 - MacOS Desktop App
