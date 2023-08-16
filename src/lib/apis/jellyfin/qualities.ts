@@ -8,7 +8,7 @@
 export function getQualities(resolution : number) {
     // We add one to the minimum resolution since some movies
     // have a resolution of 1080p, but the format isn't 16:9,
-    // so the high is less than 1080, so we detect as 1080p
+    // so the height is less than 1080, so we detect as 1080p
     // anything higher than 720p, and so on for the other.
     let data = [
         {

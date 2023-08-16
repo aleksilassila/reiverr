@@ -84,6 +84,7 @@
 	let displayedTime : number = 0;
 	let bufferedTime : number = 0;
 
+	let videoLoaded : boolean = false;
 	let seeking : boolean = false;
 	let playerStateBeforeSeek : boolean;
 
@@ -118,15 +119,23 @@
 					? `${JELLYFIN_BASE_URL}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 					: '';
 
+				videoLoaded = false;
 				if (!directPlay) {
-					if (!Hls.isSupported()) {
+					if (Hls.isSupported()) {
+						const hls = new Hls();
+
+						hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
+						hls.attachMedia(video);	
+					} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+						/*
+						* HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
+						* This is not a problem, since HLS is natively supported on iOS. But any other browser
+						* that does not support MSE will not be able to play the video.
+						*/
+						video.src = JELLYFIN_BASE_URL + playbackUri;
+					} else {
 						throw new Error('HLS is not supported');
 					}
-
-					const hls = new Hls();
-
-					hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
-					hls.attachMedia(video);
 				} else {
 					video.src = JELLYFIN_BASE_URL + playbackUri;
 				}
@@ -135,7 +144,7 @@
 				currentBitrate = maxBitrate || getQualities(resolution)[0].maxBitrate;
 
 				if (item?.UserData?.PlaybackPositionTicks) {
-					video.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
+					displayedTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
 				}
 
 				// We should not requestFullscreen automatically, as it's not what
@@ -215,8 +224,8 @@
 		if (touch) shouldCloseUi = !shouldCloseUi;
 		else shouldCloseUi = false;
 
-		if (uiVisible) {
-			clearTimeout(mouseMovementTimeout);
+		if (!shouldCloseUi) {
+			if (mouseMovementTimeout) clearTimeout(mouseMovementTimeout);
 			mouseMovementTimeout = setTimeout(() => {
 				shouldCloseUi = true;
 			}, 3000);
@@ -225,7 +234,7 @@
 		}
 	}
 
-	function handleQualityTogglVisibility() {
+	function handleQualityToggleVisibility() {
 		if ($contextMenu === qualityContextMenuId) contextMenu.hide();
 		else contextMenu.show(qualityContextMenuId);
 	}
@@ -241,7 +250,7 @@
 		await reportProgress?.();
 		await deleteEncoding?.();
 		await fetchPlaybackInfo?.($playerState.jellyfinId, bitrate, false);
-		video.currentTime = timeBeforeLoad;
+		displayedTime = timeBeforeLoad;
 		paused = stateBeforeLoad;
 	}
 
@@ -268,18 +277,16 @@
 		// Workaround because the paused state does not sync
 		// with the video element until a change is made
 		paused = false;
+
+		if (video && $playerState.jellyfinId) {
+			if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
+		}
 	});
 
 	onDestroy(() => {
 		clearInterval(progressInterval);
 		if (fullscreen) exitFullscreen?.();
 	});
-
-	$: {
-		if (video && $playerState.jellyfinId) {
-			if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
-		}
-	}
 
 	$: {
 		if (fullscreen && !getFullscreenElement?.()) {
@@ -307,11 +314,15 @@
 	<div class="bg-black w-screen h-screen flex items-center justify-center" bind:this={videoWrapper}
 	on:mousemove={() => handleUserInteraction(false)} on:touchend|preventDefault={() => handleUserInteraction(true)}>
 		<!-- svelte-ignore a11y-media-has-caption -->
-		<video bind:this={video} bind:paused bind:duration on:timeupdate={() => displayedTime = (!seeking) ? video.currentTime : displayedTime}
-			   on:loadeddata={() => handleBuffer()} on:progress={() => handleBuffer()} on:play={() => {
+		<video bind:this={video} bind:paused bind:duration on:timeupdate={() => displayedTime = (!seeking && videoLoaded) ? video.currentTime : displayedTime}
+			   on:progress={() => handleBuffer()} on:play={() => {
 				if (seeking) video?.pause();
 			   }}
-			   bind:volume bind:muted={mute} class="sm:w-full sm:h-full" />
+			   on:loadeddata={() => {
+				video.currentTime = displayedTime;
+			    videoLoaded = true;
+			   }}
+			   bind:volume bind:muted={mute} class="sm:w-full sm:h-full" playsinline={true} />
 
 		{#if uiVisible}
 			<!-- Video controls -->
@@ -353,7 +364,7 @@
 											</SelectableMenuItem>
 										{/each}
 									</svelte:fragment>
-									<IconButton on:click={handleQualityTogglVisibility}>
+									<IconButton on:click={handleQualityToggleVisibility}>
 										<Gear size={25} />
 									</IconButton>
 								</ContextMenu>
@@ -372,7 +383,7 @@
 							</IconButton>
 
 							<div class="w-32">
-								<Slider bind:primaryValue={volume} secondaryValue={0} max={1} step={0.01} />
+								<Slider bind:primaryValue={volume} secondaryValue={0} max={1} />
 							</div>
 
 							{#if reqFullscreenFunc}
@@ -382,6 +393,11 @@
 									{:else if !fullscreen && exitFullscreen}
 										<EnterFullScreen size={25} />
 									{/if}
+								</IconButton>
+							<!-- Edge case to allow fullscreen on iPhone -->
+							{:else if video?.webkitEnterFullScreen}
+								<IconButton on:click={() => video.webkitEnterFullScreen()}>
+									<EnterFullScreen size={25} />
 								</IconButton>
 							{/if}
 						</div>

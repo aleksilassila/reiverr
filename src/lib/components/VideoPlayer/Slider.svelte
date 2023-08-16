@@ -1,7 +1,7 @@
 <script lang="ts">
     export let min = 0;
     export let max = 100;
-    export let step = 1;
+    export let step = 0.01;
     export let primaryValue = 0;
     export let secondaryValue = 0;
 
