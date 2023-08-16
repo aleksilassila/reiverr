@@ -33,7 +33,7 @@ Radarr & Sonarr API keys can be found under Settings > General in their respecti
 ### Docker CLI
 
 ```sh
-docker run \
+docker run -it --init \
   --name reiverr \
   --restart unless-stopped \
   -p 9494:9494 \
