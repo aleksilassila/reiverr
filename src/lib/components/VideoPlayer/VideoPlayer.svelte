@@ -6,26 +6,36 @@
 		reportJellyfinPlaybackProgress,
 		reportJellyfinPlaybackStarted,
 		reportJellyfinPlaybackStopped,
-		delteActiveEncoding
+		delteActiveEncoding as deleteActiveEncoding
 	} from '$lib/apis/jellyfin/jellyfinApi';
 	import { getQualities } from '$lib/apis/jellyfin/qualities';
 	import getDeviceProfile from '$lib/apis/jellyfin/playback-profiles';
 	import classNames from 'classnames';
 	import Hls from 'hls.js';
-	import { Cross2, Play, Pause, EnterFullScreen, ExitFullScreen, 
-		SpeakerLoud, SpeakerModerate, SpeakerQuiet, SpeakerOff, Gear } from 'radix-icons-svelte';
+	import {
+		Cross2,
+		Play,
+		Pause,
+		EnterFullScreen,
+		ExitFullScreen,
+		SpeakerLoud,
+		SpeakerModerate,
+		SpeakerQuiet,
+		SpeakerOff,
+		Gear
+	} from 'radix-icons-svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import IconButton from '../IconButton.svelte';
 	import { playerState } from './VideoPlayer';
 	import { modalStack } from '../Modal/Modal';
 	import { JELLYFIN_BASE_URL } from '$lib/constants';
 	import { contextMenu } from '../ContextMenu/ContextMenu';
-	import Slider from './Slider.svelte'
+	import Slider from './Slider.svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
-	import SelectableMenuItem from '../ContextMenu/SelectableMenuItem.svelte';
+	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
 
 	export let modalId: symbol;
-	
+
 	let qualityContextMenuId = Symbol();
 
 	let video: HTMLVideoElement;
@@ -37,7 +47,7 @@
 	let progressInterval: NodeJS.Timeout;
 
 	// These functions are different in every browser
-	let reqFullscreenFunc: ((elem : HTMLElement) => void) | undefined = undefined;
+	let reqFullscreenFunc: ((elem: HTMLElement) => void) | undefined = undefined;
 	let exitFullscreen: (() => void) | undefined = undefined;
 	let fullscreenChangeEvent: string | undefined = undefined;
 	let getFullscreenElement: (() => HTMLElement) | undefined = undefined;
@@ -46,60 +56,72 @@
 	let elem = document.createElement('div');
 	// @ts-ignore
 	if (elem.requestFullscreen) {
-		reqFullscreenFunc = (elem) => { elem.requestFullscreen(); };
+		reqFullscreenFunc = (elem) => {
+			elem.requestFullscreen();
+		};
 		fullscreenChangeEvent = 'fullscreenchange';
-		getFullscreenElement = () => <HTMLElement> document.fullscreenElement;
+		getFullscreenElement = () => <HTMLElement>document.fullscreenElement;
 		if (document.exitFullscreen) exitFullscreen = () => document.exitFullscreen();
-	// @ts-ignore
-	} else if (elem.webkitRequestFullscreen) {
 		// @ts-ignore
-		reqFullscreenFunc = (elem) => { elem.webkitRequestFullscreen(); };
+	} else if (elem.webkitRequestFullscreen) {
+		reqFullscreenFunc = (elem) => {
+			// @ts-ignore
+			elem.webkitRequestFullscreen();
+		};
 		fullscreenChangeEvent = 'webkitfullscreenchange';
 		// @ts-ignore
-		getFullscreenElement = () => <HTMLElement> document.webkitFullscreenElement;
-			// @ts-ignore
-		if (document.webkitExitFullscreen) exitFullscreen = () => document.webkitExitFullscreen();
-	// @ts-ignore
-	} else if (elem.msRequestFullscreen) {
+		getFullscreenElement = () => <HTMLElement>document.webkitFullscreenElement;
 		// @ts-ignore
-		reqFullscreenFunc = (elem) => { elem.msRequestFullscreen(); }
+		if (document.webkitExitFullscreen) exitFullscreen = () => document.webkitExitFullscreen();
+		// @ts-ignore
+	} else if (elem.msRequestFullscreen) {
+		reqFullscreenFunc = (elem) => {
+			// @ts-ignore
+			elem.msRequestFullscreen();
+		};
 		fullscreenChangeEvent = 'MSFullscreenChange';
 		// @ts-ignore
-		getFullscreenElement = () => <HTMLElement> document.msFullscreenElement;
+		getFullscreenElement = () => <HTMLElement>document.msFullscreenElement;
 		// @ts-ignore
 		if (document.msExitFullscreen) exitFullscreen = () => document.msExitFullscreen();
-	// @ts-ignore
-	} else if (elem.mozRequestFullScreen) {
 		// @ts-ignore
-		reqFullscreenFunc = (elem) => { elem.mozRequestFullScreen(); };
+	} else if (elem.mozRequestFullScreen) {
+		reqFullscreenFunc = (elem) => {
+			// @ts-ignore
+			elem.mozRequestFullScreen();
+		};
 		fullscreenChangeEvent = 'mozfullscreenchange';
 		// @ts-ignore
-		getFullscreenElement = () => <HTMLElement> document.mozFullScreenElement;
+		getFullscreenElement = () => <HTMLElement>document.mozFullScreenElement;
 		// @ts-ignore
 		if (document.mozCancelFullScreen) exitFullscreen = () => document.mozCancelFullScreen();
 	}
 
-	let paused : boolean;
-	let duration : number = 0;
-	let displayedTime : number = 0;
-	let bufferedTime : number = 0;
+	let paused: boolean;
+	let duration: number = 0;
+	let displayedTime: number = 0;
+	let bufferedTime: number = 0;
 
-	let videoLoaded : boolean = false;
-	let seeking : boolean = false;
-	let playerStateBeforeSeek : boolean;
+	let videoLoaded: boolean = false;
+	let seeking: boolean = false;
+	let playerStateBeforeSeek: boolean;
 
-	let fullscreen : boolean = false;
-	let volume : number = 1;
-	let mute : boolean = false;
+	let fullscreen: boolean = false;
+	let volume: number = 1;
+	let mute: boolean = false;
 
-	let resolution : number = 1080;
-	let currentBitrate : number = 0;
+	let resolution: number = 1080;
+	let currentBitrate: number = 0;
 
 	let shouldCloseUi = false;
 	let uiVisible = true;
-	$: uiVisible = !shouldCloseUi || seeking || paused || $contextMenu === qualityContextMenuId
+	$: uiVisible = !shouldCloseUi || seeking || paused || $contextMenu === qualityContextMenuId;
 
-	const fetchPlaybackInfo = (itemId: string, maxBitrate: number | undefined = undefined, starting : boolean = true) =>
+	const fetchPlaybackInfo = (
+		itemId: string,
+		maxBitrate: number | undefined = undefined,
+		starting: boolean = true
+	) =>
 		getJellyfinItem(itemId).then((item) =>
 			getJellyfinPlaybackInfo(
 				itemId,
@@ -125,13 +147,13 @@
 						const hls = new Hls();
 
 						hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
-						hls.attachMedia(video);	
+						hls.attachMedia(video);
 					} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
 						/*
-						* HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
-						* This is not a problem, since HLS is natively supported on iOS. But any other browser
-						* that does not support MSE will not be able to play the video.
-						*/
+						 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
+						 * This is not a problem, since HLS is natively supported on iOS. But any other browser
+						 * that does not support MSE will not be able to play the video.
+						 */
 						video.src = JELLYFIN_BASE_URL + playbackUri;
 					} else {
 						throw new Error('HLS is not supported');
@@ -154,7 +176,8 @@
 
 				// A start report should only be sent when the video starts playing,
 				// not every time a playback info request is made
-				if (mediaSourceId && starting) await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
+				if (mediaSourceId && starting)
+					await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
 
 				reportProgress = async () => {
 					await reportJellyfinPlaybackProgress(
@@ -163,7 +186,7 @@
 						video?.paused == true,
 						video?.currentTime * 10_000_000
 					);
-				}
+				};
 
 				if (progressInterval) clearInterval(progressInterval);
 				progressInterval = setInterval(() => {
@@ -172,8 +195,8 @@
 				}, 5000);
 
 				deleteEncoding = () => {
-					delteActiveEncoding(sessionId);
-				}
+					deleteActiveEncoding(sessionId);
+				};
 
 				stopCallback = () => {
 					reportJellyfinPlaybackStopped(itemId, sessionId, video?.currentTime * 10_000_000);
@@ -184,7 +207,7 @@
 
 	function onSeekStart() {
 		if (seeking) return;
-	
+
 		playerStateBeforeSeek = paused;
 		seeking = true;
 		paused = true;
@@ -201,7 +224,7 @@
 
 	function handleBuffer() {
 		let timeRanges = video.buffered;
-		// Find the first one whose end time is after the current time 
+		// Find the first one whose end time is after the current time
 		// (the time ranges given by the browser are normalized, which means
 		// that they are sorted and non-overlapping)
 		for (let i = 0; i < timeRanges.length; i++) {
@@ -220,7 +243,7 @@
 		modalStack.close(modalId);
 	}
 
-	function handleUserInteraction(touch : boolean = false) {
+	function handleUserInteraction(touch: boolean = false) {
 		if (touch) shouldCloseUi = !shouldCloseUi;
 		else shouldCloseUi = false;
 
@@ -239,7 +262,7 @@
 		else contextMenu.show(qualityContextMenuId);
 	}
 
-	async function handleSelectQuality(bitrate : number) {
+	async function handleSelectQuality(bitrate: number) {
 		if (!$playerState.jellyfinId || !video || seeking) return;
 		if (bitrate === currentBitrate) return;
 
@@ -254,13 +277,13 @@
 		paused = stateBeforeLoad;
 	}
 
-	function secondsToTime(seconds : number, forceHours = false) {
+	function secondsToTime(seconds: number, forceHours = false) {
 		if (isNaN(seconds)) return '00:00';
 
 		const hours = Math.floor(seconds / 3600);
 		const minutes = Math.floor((seconds - hours * 3600) / 60);
 		const secondsLeft = Math.floor(seconds - hours * 3600 - minutes * 60);
-		
+
 		let str = '';
 		if (hours > 0 || forceHours) str += `${hours}:`;
 
@@ -307,78 +330,115 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-	class={classNames("bg-black w-screen h-screen relative flex items-center justify-center", {
-		'cursor-none': !uiVisible
-	})}
+	class={classNames(
+		'bg-black w-screen h-[100dvh] sm:h-screen relative flex items-center justify-center',
+		{
+			'cursor-none': !uiVisible
+		}
+	)}
 >
-	<div class="bg-black w-screen h-screen flex items-center justify-center" bind:this={videoWrapper}
-	on:mousemove={() => handleUserInteraction(false)} on:touchend|preventDefault={() => handleUserInteraction(true)}>
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div
+		class="bg-black w-screen h-screen flex items-center justify-center"
+		bind:this={videoWrapper}
+		on:mousemove={() => handleUserInteraction(false)}
+		on:touchend|preventDefault={() => handleUserInteraction(true)}
+		on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
+		on:click={() => (paused = !paused)}
+	>
 		<!-- svelte-ignore a11y-media-has-caption -->
-		<video bind:this={video} bind:paused bind:duration on:timeupdate={() => displayedTime = (!seeking && videoLoaded) ? video.currentTime : displayedTime}
-			   on:progress={() => handleBuffer()} on:play={() => {
+		<video
+			bind:this={video}
+			bind:paused
+			bind:duration
+			on:timeupdate={() =>
+				(displayedTime = !seeking && videoLoaded ? video.currentTime : displayedTime)}
+			on:progress={() => handleBuffer()}
+			on:play={() => {
 				if (seeking) video?.pause();
-			   }}
-			   on:loadeddata={() => {
+			}}
+			on:loadeddata={() => {
 				video.currentTime = displayedTime;
-			    videoLoaded = true;
-			   }}
-			   bind:volume bind:muted={mute} class="sm:w-full sm:h-full" playsinline={true} />
+				videoLoaded = true;
+			}}
+			bind:volume
+			bind:muted={mute}
+			class="sm:w-full sm:h-full"
+			playsinline={true}
+		/>
 
 		{#if uiVisible}
 			<!-- Video controls -->
-			<div class="absolute bottom-0 w-screen bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent" 
-			on:touchend|stopPropagation transition:fade={{duration: 100}}>
-				<div class="flex flex-col items-center space-y-4 p-5 w-full">
-					<div class = "flex items-center space-x-4 w-full">
-						<span class="whitespace-nowrap tabular-nums">{secondsToTime(displayedTime, duration > 3600)}</span>
+			<div
+				class="absolute bottom-0 w-screen bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent"
+				on:touchend|stopPropagation
+				transition:fade={{ duration: 100 }}
+			>
+				<div class="flex flex-col items-center p-4 gap-2 w-full">
+					<div class="flex items-center text-sm w-full">
+						<span class="whitespace-nowrap tabular-nums"
+							>{secondsToTime(displayedTime, duration > 3600)}</span
+						>
 						<div class="flex-grow">
-							<Slider bind:primaryValue={displayedTime}
-									secondaryValue={bufferedTime}
-									max={duration}
-									on:mousedown={onSeekStart}
-									on:mouseup={onSeekEnd}
-									on:touchstart={onSeekStart}
-									on:touchend={onSeekEnd}/>
+							<Slider
+								bind:primaryValue={displayedTime}
+								secondaryValue={bufferedTime}
+								max={duration}
+								on:mousedown={onSeekStart}
+								on:mouseup={onSeekEnd}
+								on:touchstart={onSeekStart}
+								on:touchend={onSeekEnd}
+							/>
 						</div>
 						<span class="whitespace-nowrap tabular-nums">{secondsToTime(duration)}</span>
 					</div>
 
 					<div class="flex items-center justify-between mb-2 w-full">
-						<IconButton on:click={() => paused = !paused}>
+						<IconButton on:click={() => (paused = !paused)}>
 							{#if (!seeking && paused) || (seeking && playerStateBeforeSeek)}
-								<Play size={25} />
+								<Play size={20} />
 							{:else}
-								<Pause size={25} />
+								<Pause size={20} />
 							{/if}
 						</IconButton>
 
 						<div class="flex items-center space-x-3">
 							<div class="relative">
-								<ContextMenu heading="Quality" position="absolute" bottom={true} id={qualityContextMenuId}>
+								<ContextMenu
+									heading="Quality"
+									position="absolute"
+									bottom={true}
+									id={qualityContextMenuId}
+								>
 									<svelte:fragment slot="menu">
 										{#each getQualities(resolution) as quality}
-											<SelectableMenuItem 
+											<SelectableContextMenuItem
 												selected={quality.maxBitrate === currentBitrate}
-												on:click={() => handleSelectQuality(quality.maxBitrate)}>
+												on:click={() => handleSelectQuality(quality.maxBitrate)}
+											>
 												{quality.name}
-											</SelectableMenuItem>
+											</SelectableContextMenuItem>
 										{/each}
 									</svelte:fragment>
 									<IconButton on:click={handleQualityToggleVisibility}>
-										<Gear size={25} />
+										<Gear size={20} />
 									</IconButton>
 								</ContextMenu>
 							</div>
 
-							<IconButton on:click={() => {mute = !mute;}}>
+							<IconButton
+								on:click={() => {
+									mute = !mute;
+								}}
+							>
 								{#if volume == 0 || mute}
-									<SpeakerOff size={25} />
+									<SpeakerOff size={20} />
 								{:else if volume < 0.25}
-									<SpeakerQuiet size={25} />
-								{:else if volume < 0.90}
-									<SpeakerModerate size={25} />
+									<SpeakerQuiet size={20} />
+								{:else if volume < 0.9}
+									<SpeakerModerate size={20} />
 								{:else}
-									<SpeakerLoud size={25} />
+									<SpeakerLoud size={20} />
 								{/if}
 							</IconButton>
 
@@ -387,17 +447,17 @@
 							</div>
 
 							{#if reqFullscreenFunc}
-								<IconButton on:click={() => fullscreen = !fullscreen}>
+								<IconButton on:click={() => (fullscreen = !fullscreen)}>
 									{#if fullscreen}
-										<ExitFullScreen size={25} />
+										<ExitFullScreen size={20} />
 									{:else if !fullscreen && exitFullscreen}
-										<EnterFullScreen size={25} />
+										<EnterFullScreen size={20} />
 									{/if}
 								</IconButton>
-							<!-- Edge case to allow fullscreen on iPhone -->
+								<!-- Edge case to allow fullscreen on iPhone -->
 							{:else if video?.webkitEnterFullScreen}
 								<IconButton on:click={() => video.webkitEnterFullScreen()}>
-									<EnterFullScreen size={25} />
+									<EnterFullScreen size={20} />
 								</IconButton>
 							{/if}
 						</div>
@@ -408,7 +468,7 @@
 	</div>
 
 	{#if uiVisible}
-		<div class='absolute top-4 right-8 z-50' transition:fade={{duration: 100}}>
+		<div class="absolute top-4 right-8 z-50" transition:fade={{ duration: 100 }}>
 			<IconButton on:click={handleClose}>
 				<Cross2 size={25} />
 			</IconButton>

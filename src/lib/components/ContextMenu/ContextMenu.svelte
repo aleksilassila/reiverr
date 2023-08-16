@@ -74,7 +74,10 @@
 			style={position === 'fixed'
 				? `left: ${
 						fixedPosition.x - (fixedPosition.x > windowWidth / 2 ? menu?.clientWidth : 0)
-				  }px; top: ${fixedPosition.y - (bottom ? (fixedPosition.y > windowHeight / 2 ? menu?.clientHeight : 0) : 0)}px;`
+				  }px; top: ${
+						fixedPosition.y -
+						(bottom ? (fixedPosition.y > windowHeight / 2 ? menu?.clientHeight : 0) : 0)
+				  }px;`
 				: menu?.getBoundingClientRect()?.left > windowWidth / 2
 				? `right: 0;${bottom ? 'bottom: 40px;' : ''}`
 				: `left: 0;${bottom ? 'bottom: 40px;' : ''}`}

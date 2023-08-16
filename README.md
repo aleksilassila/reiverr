@@ -108,6 +108,15 @@ PUBLIC_JELLYFIN_BASE_URL=http://127.0.0.1:8096
 
 For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.
 
+Useful resources:
+
+- https://developer.themoviedb.org/reference
+- https://api.jellyfin.org/
+- https://sonarr.tv/docs/api/
+- https://radarr.video/docs/api/
+- https://github.com/jellyfin/jellyfin-web
+- Network tab in the browser in Jellyfin, Radarr & Sonarr web UIs
+
 # Additional Screenshots
 
 ![Landing Page](images/screenshot-1.png)

@@ -158,7 +158,7 @@ export const getJellyfinPlaybackInfo = async (
 							userId,
 							startTimeTicks,
 							autoOpenLiveStream: true,
-							maxStreamingBitrate: maxStreamingBitrate
+							maxStreamingBitrate
 						}
 					},
 					body: {
@@ -230,9 +230,7 @@ export const reportJellyfinPlaybackStopped = (
 		}
 	});
 
-export const delteActiveEncoding = (
-	playSessionId: string
-) =>
+export const delteActiveEncoding = (playSessionId: string) =>
 	JellyfinApi?.del('/Videos/ActiveEncodings', {
 		params: {
 			query: {
