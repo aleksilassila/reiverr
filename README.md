@@ -26,9 +26,27 @@ For a list of planned features & known bugs, see [Reiverr Taskboard](https://git
 
 # Installation
 
-The easiest and the recommended way to insstall Reiverr is via docker-compose. Make sure to update the api keys and base URLs to match your setup.
+The easiest and the recommended way to install Reiverr is via Docker. Make sure to update the api keys and base URLs to match your setup.
 
 Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+
+### Docker CLI
+
+```sh
+docker run \
+  --name reiverr \
+  --restart unless-stopped \
+  -p 9494:9494 \
+  -e PUBLIC_RADARR_API_KEY=yourapikeyhere \
+  -e PUBLIC_RADARR_BASE_URL=http://127.0.0.1:7878 \
+  -e PUBLIC_SONARR_API_KEY=yourapikeyhere \
+  -e PUBLIC_SONARR_BASE_URL=http://127.0.0.1:8989 \
+  -e PUBLIC_JELLYFIN_API_KEY=yourapikeyhere \
+  -e PUBLIC_JELLYFIN_BASE_URL=http://127.0.0.1:8096 \
+  ghcr.io/aleksilassila/reiverr:latest
+```
+
+### Docker compose
 
 ```yaml
 version: '3.8'
@@ -50,6 +68,24 @@ services:
       PUBLIC_JELLYFIN_BASE_URL: http://127.0.0.1:8096
     restart: unless-stopped
 ```
+
+### Manual
+
+1. Requirements:
+    - Node v18.14.0 or high
+    - NPM v9.3.1 or high
+1. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
+1. Copy the `.env.example` to `.env` and replace the values
+1. Build the app:
+    ```sh
+    npm ci --ignore-scripts
+    npm run build
+    npm ci --ignore-scripts --omit=dev # optional
+    ```
+1. Start the app:
+    ```sh
+    npm run deploy
+    ```
 
 ### Reiverr will be accessible via port 9494 by default.
 
