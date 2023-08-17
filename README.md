@@ -55,9 +55,9 @@ services:
 
 If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
 
-### Other Upcoming Platforms
+## Other Platforms
 
-Platforms that are planned to be supported in the future:
+The roadmap includes plans to support the following platforms in the future:
 
 - Windows Desktop App
 - MacOS Desktop App
@@ -107,6 +107,15 @@ PUBLIC_JELLYFIN_BASE_URL=http://127.0.0.1:8096
 ```
 
 For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.
+
+Useful resources:
+
+- https://developer.themoviedb.org/reference
+- https://api.jellyfin.org/
+- https://sonarr.tv/docs/api/
+- https://radarr.video/docs/api/
+- https://github.com/jellyfin/jellyfin-web
+- Network tab in the browser in Jellyfin, Radarr & Sonarr web UIs
 
 # Additional Screenshots
 

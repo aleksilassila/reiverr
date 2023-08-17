@@ -6,11 +6,13 @@
 	export let disabled = false;
 	export let position: 'absolute' | 'fixed' = 'fixed';
 	let anchored = position === 'absolute';
+	export let bottom = false;
 
 	export let id = Symbol();
 
 	let menu: HTMLDivElement;
 	let windowWidth: number;
+	let windowHeight: number;
 
 	let fixedPosition = { x: 0, y: 0 };
 
@@ -46,6 +48,7 @@
 	on:keydown={handleShortcuts}
 	on:click={handleClickOutside}
 	bind:innerWidth={windowWidth}
+	bind:innerHeight={windowHeight}
 />
 <svelte:head>
 	{#if $contextMenu === id}
@@ -58,6 +61,7 @@
 </svelte:head>
 <!-- <svelte:body bind:this={body} /> -->
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div on:contextmenu|preventDefault={handleOpen} on:click={(e) => anchored && e.stopPropagation()}>
 	<slot />
@@ -70,10 +74,13 @@
 			style={position === 'fixed'
 				? `left: ${
 						fixedPosition.x - (fixedPosition.x > windowWidth / 2 ? menu?.clientWidth : 0)
-				  }px; top: ${fixedPosition.y}px;`
+				  }px; top: ${
+						fixedPosition.y -
+						(bottom ? (fixedPosition.y > windowHeight / 2 ? menu?.clientHeight : 0) : 0)
+				  }px;`
 				: menu?.getBoundingClientRect()?.left > windowWidth / 2
-				? 'right: 0;'
-				: 'left: 0;'}
+				? `right: 0;${bottom ? 'bottom: 40px;' : ''}`
+				: `left: 0;${bottom ? 'bottom: 40px;' : ''}`}
 			bind:this={menu}
 			in:fly|global={{ y: 5, duration: 100, delay: anchored ? 0 : 100 }}
 			out:fly|global={{ y: 5, duration: 100 }}
