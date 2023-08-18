@@ -1,38 +1,38 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import {
+		delteActiveEncoding as deleteActiveEncoding,
 		getJellyfinItem,
 		getJellyfinPlaybackInfo,
 		reportJellyfinPlaybackProgress,
 		reportJellyfinPlaybackStarted,
-		reportJellyfinPlaybackStopped,
-		delteActiveEncoding as deleteActiveEncoding
+		reportJellyfinPlaybackStopped
 	} from '$lib/apis/jellyfin/jellyfinApi';
-	import { getQualities } from '$lib/apis/jellyfin/qualities';
 	import getDeviceProfile from '$lib/apis/jellyfin/playback-profiles';
+	import { getQualities } from '$lib/apis/jellyfin/qualities';
+	import { settings } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
 	import Hls from 'hls.js';
 	import {
 		Cross2,
-		Play,
-		Pause,
 		EnterFullScreen,
 		ExitFullScreen,
+		Gear,
+		Pause,
+		Play,
 		SpeakerLoud,
 		SpeakerModerate,
-		SpeakerQuiet,
 		SpeakerOff,
-		Gear
+		SpeakerQuiet
 	} from 'radix-icons-svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import IconButton from '../IconButton.svelte';
-	import { playerState } from './VideoPlayer';
-	import { modalStack } from '../Modal/Modal';
-	import { JELLYFIN_BASE_URL } from '$lib/constants';
+	import { fade } from 'svelte/transition';
 	import { contextMenu } from '../ContextMenu/ContextMenu';
-	import Slider from './Slider.svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
+	import IconButton from '../IconButton.svelte';
+	import { modalStack } from '../Modal/Modal';
+	import Slider from './Slider.svelte';
+	import { playerState } from './VideoPlayer';
 
 	export let modalId: symbol;
 
@@ -138,7 +138,7 @@
 				}
 
 				video.poster = item?.BackdropImageTags?.length
-					? `${JELLYFIN_BASE_URL}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+					? `${$settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 					: '';
 
 				videoLoaded = false;
@@ -146,7 +146,7 @@
 					if (Hls.isSupported()) {
 						const hls = new Hls();
 
-						hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
+						hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
 						hls.attachMedia(video);
 					} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
 						/*
@@ -154,12 +154,12 @@
 						 * This is not a problem, since HLS is natively supported on iOS. But any other browser
 						 * that does not support MSE will not be able to play the video.
 						 */
-						video.src = JELLYFIN_BASE_URL + playbackUri;
+						video.src = $settings.jellyfin.baseUrl + playbackUri;
 					} else {
 						throw new Error('HLS is not supported');
 					}
 				} else {
-					video.src = JELLYFIN_BASE_URL + playbackUri;
+					video.src = $settings.jellyfin.baseUrl + playbackUri;
 				}
 
 				resolution = item?.Height || 1080;

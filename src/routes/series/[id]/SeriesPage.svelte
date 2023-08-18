@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr, sonarrAvailable } from '$lib/apis/sonarr/sonarrApi';
+	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
@@ -21,6 +21,7 @@
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
@@ -187,7 +188,7 @@
 							</span>
 							<ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.sonarrSeries && sonarrAvailable}
+					{:else if !$itemStore.item?.sonarrSeries && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 							<span>Add to Sonarr</span><Plus size={20} />
 						</Button>

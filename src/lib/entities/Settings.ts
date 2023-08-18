@@ -1,3 +1,4 @@
+import type { SettingsValues } from '$lib/stores/settings.store';
 import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'settings' })
@@ -33,6 +34,12 @@ export class Settings extends BaseEntity {
 
 	// Sonarr
 
+	@Column('text', { nullable: true, default: null })
+	sonarrBaseUrl: string | null;
+
+	@Column('text', { nullable: true, default: null })
+	sonarrApiKey: string | null;
+
 	@Column('integer', { default: 0 })
 	sonarrQualityProfileId: number;
 
@@ -43,6 +50,12 @@ export class Settings extends BaseEntity {
 	sonarrRootFolderPath: string;
 
 	// Radarr
+
+	@Column('text', { nullable: true, default: null })
+	radarrBaseUrl: string | null;
+
+	@Column('text', { nullable: true, default: null })
+	radarrApiKey: string | null;
 
 	@Column('integer', { default: 0 })
 	radarrQualityProfileId: number;
@@ -55,8 +68,14 @@ export class Settings extends BaseEntity {
 
 	// Jellyfin
 
-	@Column('text', { default: '' })
-	jellyfinUserId: string;
+	@Column('text', { nullable: true, default: null })
+	jellyfinBaseUrl: string | null;
+
+	@Column('text', { nullable: true, default: null })
+	jellyfinApiKey: string | null;
+
+	@Column('text', { nullable: true, default: null })
+	jellyfinUserId: string | null;
 
 	// Playback
 
@@ -72,6 +91,27 @@ export class Settings extends BaseEntity {
 			await defaultSettings.save();
 			return defaultSettings;
 		}
+
+		return settings;
+	}
+
+	public static async set(name: string, values: SettingsValues): Promise<Settings | null> {
+		const settings = await this.findOne({ where: { name } });
+
+		if (!settings) return null;
+
+		settings.autoplayTrailers = values.autoplayTrailers;
+
+		settings.radarrApiKey = values.radarr.apiKey;
+		settings.radarrBaseUrl = values.radarr.baseUrl;
+
+		settings.sonarrApiKey = values.sonarr.apiKey;
+		settings.sonarrBaseUrl = values.sonarr.baseUrl;
+
+		settings.jellyfinApiKey = values.jellyfin.apiKey;
+		settings.jellyfinBaseUrl = values.jellyfin.baseUrl;
+		settings.jellyfinUserId = values.jellyfin.userId;
+		await settings.save();
 
 		return settings;
 	}

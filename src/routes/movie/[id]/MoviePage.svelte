@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addMovieToRadarr, radarrAvailable } from '$lib/apis/radarr/radarrApi';
+	import { addMovieToRadarr } from '$lib/apis/radarr/radarrApi';
 	import {
 		getTmdbMovie,
 		getTmdbMovieRecommendations,
@@ -9,7 +9,6 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import ContextMenuButton from '$lib/components/ContextMenu/ContextMenuButton.svelte';
 	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -18,6 +17,7 @@
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
@@ -125,7 +125,7 @@
 						<Button type="primary" on:click={play}>
 							<span>Watch</span><ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.radarrMovie && radarrAvailable}
+					{:else if !$itemStore.item?.radarrMovie && $settings.radarr.baseUrl && $settings.radarr.apiKey}
 						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
 							<span>Add to Radarr</span><Plus size={20} />
 						</Button>

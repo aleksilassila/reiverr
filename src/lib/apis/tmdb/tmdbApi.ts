@@ -70,7 +70,7 @@ export const getTmdbMovie = async (tmdbId: number) =>
 			},
 			query: {
 				append_to_response: 'videos,credits,external_ids,images',
-				...({ include_image_language: get(settings).language + ',en,null' } as any)
+				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
 		}
 	}).then((res) => res.data as TmdbMovieFull2 | undefined);
@@ -101,7 +101,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 			},
 			query: {
 				append_to_response: 'videos,aggregate_credits,external_ids,images',
-				...({ include_image_language: get(settings).language + ',en,null' } as any)
+				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
 		},
 		headers: {
@@ -158,7 +158,7 @@ export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
 			.then(
 				(r) =>
 					(
-						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
 						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
 						r?.backdrops?.find((b) => b.iso_639_1) ||
 						r?.backdrops?.[0]
@@ -173,7 +173,7 @@ export const getTmdbMovieBackdrop = async (tmdbId: number) =>
 			.then(
 				(r) =>
 					(
-						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
 						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
 						r?.backdrops?.find((b) => b.iso_639_1) ||
 						r?.backdrops?.[0]
@@ -193,8 +193,8 @@ export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {
 		params: {
 			query: {
-				language: get(settings).language,
-				region: get(settings).region
+				language: get(settings)?.language,
+				region: get(settings)?.region
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -203,7 +203,7 @@ export const getTmdbPopularSeries = () =>
 	TmdbApiOpen.get('/3/tv/popular', {
 		params: {
 			query: {
-				language: get(settings).language
+				language: get(settings)?.language
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -215,7 +215,7 @@ export const getTmdbTrendingAll = () =>
 				time_window: 'day'
 			},
 			query: {
-				language: get(settings).language
+				language: get(settings)?.language
 			}
 		}
 	}).then((res) => res.data?.results || []);
