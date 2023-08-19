@@ -26,9 +26,22 @@ For a list of planned features & known bugs, see [Reiverr Taskboard](https://git
 
 # Installation
 
-The easiest and the recommended way to insstall Reiverr is via docker-compose. Make sure to update the api keys and base URLs to match your setup.
+The easiest and the recommended way to install Reiverr is via Docker. Make sure to update the api keys and base URLs to match your setup.
 
 Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+
+### Docker CLI
+
+```sh
+docker run -it --init \
+  --name reiverr \
+  --restart unless-stopped \
+  -p 9494:9494 \
+  -v /path/to/appdata/config:/config \
+  ghcr.io/aleksilassila/reiverr:latest
+```
+
+### Docker compose
 
 ```yaml
 version: '3.8'
@@ -41,25 +54,35 @@ services:
     container_name: reiverr
     ports:
       - 9494:9494
-    environment:
-      PUBLIC_RADARR_API_KEY: yourapikeyhere
-      PUBLIC_RADARR_BASE_URL: http://127.0.0.1:7878
-      PUBLIC_SONARR_API_KEY: yourapikeyhere
-      PUBLIC_SONARR_BASE_URL: http://127.0.0.1:8989
-      PUBLIC_JELLYFIN_API_KEY: yourapikeyhere
-      PUBLIC_JELLYFIN_URL: http://127.0.0.1:8096
+    volumes:
+      - /path/to/appdata/config:/config
     restart: unless-stopped
 ```
 
+### Manual Instructions
+
+1. Requirements:
+   - Node v18.14.0 or high
+   - NPM v9.3.1 or high
+1. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
+1. Build the app:
+   ```sh
+   npm ci --ignore-scripts
+   npm run build
+   npm ci --ignore-scripts --omit=dev # optional
+   ```
+1. Start the app:
+   ```sh
+   npm run deploy
+   ```
+
 ### Reiverr will be accessible via port 9494 by default.
 
-If you have any questions or run into issues, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
+If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues).
 
-## Early Adopters: jellyfin login is currently broken and will be fixed later today
+## Other Platforms
 
-### Other Upcoming Platforms
-
-Platforms that are planned to be supported in the future:
+The roadmap includes plans to support the following platforms in the future:
 
 - Windows Desktop App
 - MacOS Desktop App
@@ -83,30 +106,22 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 
 To get started with development:
 
-1. Clone the repo
-2. Add and populate `.env` file
-3. Run `npm install`
-4. Run `npm run dev`
+1. Clone the repository
+2. Run `npm install`
+3. Run `npm run dev`
 
 Alternatively, you can run `docker-compose up`.
 
-Example .env file:
+For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.
 
-```env
-# The PUBLIC_ prefix is required for SvelteKit to expose the variable to the web browser.
-# If you are exposing the server to the internet (not recommended), you should use HTTPS.
+Useful resources:
 
-# Fill in the blanks and change the base URLs to match your setup.
-
-PUBLIC_RADARR_API_KEY=yourapikeyhere
-PUBLIC_RADARR_BASE_URL=http://127.0.0.1:7878
-
-PUBLIC_SONARR_API_KEY=yourapikeyhere
-PUBLIC_SONARR_BASE_URL=http://127.0.0.1:8989
-
-PUBLIC_JELLYFIN_API_KEY=yourapikeyhere
-PUBLIC_JELLYFIN_URL=http://127.0.0.1:8096
-```
+- https://developer.themoviedb.org/reference
+- https://api.jellyfin.org/
+- https://sonarr.tv/docs/api/
+- https://radarr.video/docs/api/
+- https://github.com/jellyfin/jellyfin-web
+- Network tab in the browser in Jellyfin, Radarr & Sonarr web UIs
 
 # Additional Screenshots
 

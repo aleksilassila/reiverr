@@ -10,7 +10,7 @@
 	import type { TitleType } from '$lib/types';
 	import { _ } from 'svelte-i18n';
 
-	export let modalId: Symbol;
+	export let modalId: symbol;
 
 	let inputValue = '';
 	let inputElement: HTMLInputElement;

@@ -3,8 +3,8 @@ import { writable } from 'svelte/store';
 import TitlePageModal from '../TitlePageLayout/TitlePageModal.svelte';
 
 type ModalItem = {
-	id: Symbol;
-	group: Symbol;
+	id: symbol;
+	group: symbol;
 	component: ConstructorOfATypedSvelteComponent;
 	props: Record<string, any>;
 };
@@ -14,7 +14,7 @@ function createDynamicModalStack() {
 		top: undefined
 	});
 
-	function close(symbol: Symbol) {
+	function close(symbol: symbol) {
 		store.update((s) => {
 			s.stack = s.stack.filter((i) => i.id !== symbol);
 			s.top = s.stack[s.stack.length - 1];
@@ -22,7 +22,7 @@ function createDynamicModalStack() {
 		});
 	}
 
-	function closeGroup(group: Symbol) {
+	function closeGroup(group: symbol) {
 		store.update((s) => {
 			s.stack = s.stack.filter((i) => i.group !== group);
 			s.top = s.stack[s.stack.length - 1];
@@ -33,7 +33,7 @@ function createDynamicModalStack() {
 	function create(
 		component: ConstructorOfATypedSvelteComponent,
 		props: Record<string, any>,
-		group: Symbol | undefined = undefined
+		group: symbol | undefined = undefined
 	) {
 		const id = Symbol();
 		const item = { id, component, props, group: group || id };
@@ -60,7 +60,7 @@ function createDynamicModalStack() {
 
 export const modalStack = createDynamicModalStack();
 
-let lastTitleModal: Symbol | undefined = undefined;
+let lastTitleModal: symbol | undefined = undefined;
 export function openTitleModal(tmdbId: number, type: TitleType) {
 	if (lastTitleModal) {
 		modalStack.close(lastTitleModal);

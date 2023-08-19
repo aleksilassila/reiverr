@@ -1,11 +1,11 @@
 import { writable } from 'svelte/store';
 
 function createContextMenu() {
-	const visibleItem = writable<Symbol | null>(null);
+	const visibleItem = writable<symbol | null>(null);
 
 	return {
 		subscribe: visibleItem.subscribe,
-		show: (item: Symbol) => {
+		show: (item: symbol) => {
 			visibleItem.set(item);
 		},
 		hide: () => {

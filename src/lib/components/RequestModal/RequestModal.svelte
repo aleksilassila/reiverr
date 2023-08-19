@@ -16,10 +16,11 @@
 
 	const dispatch = createEventDispatcher();
 
-	export let modalId: Symbol;
-	export let groupId: Symbol | undefined = undefined;
+	export let modalId: symbol;
+	export let groupId: symbol | undefined = undefined;
 
 	export let title = 'Releases';
+
 	export let radarrId: number | undefined = undefined;
 	export let sonarrEpisodeId: number | undefined = undefined;
 	export let seasonPack: { sonarrId: number; seasonNumber: number } | undefined = undefined;
@@ -66,21 +67,21 @@
 		};
 	}
 
-	function handleDownload(guid: string) {
+	function handleDownload(guid: string, indexerId: number) {
 		downloadFetchingGuid = guid;
 		if (radarrId) {
-			downloadRadarrMovie(guid).then((res) => {
+			downloadRadarrMovie(guid, indexerId).then((ok) => {
 				dispatch('download');
 				downloadFetchingGuid = undefined;
-				if (res.response?.ok) {
+				if (ok) {
 					downloadingGuid = guid;
 				}
 			});
 		} else {
-			downloadSonarrEpisode(guid).then((res) => {
+			downloadSonarrEpisode(guid, indexerId).then((ok) => {
 				dispatch('download');
 				downloadFetchingGuid = undefined;
-				if (res.response?.ok) {
+				if (ok) {
 					downloadingGuid = guid;
 				}
 			});
@@ -130,7 +131,10 @@
 								<div class="text-zinc-400">{formatSize(release?.size || 0)}</div>
 								{#if release.guid !== downloadingGuid}
 									<IconButton
-										on:click={() => release.guid && handleDownload(release.guid)}
+										on:click={() =>
+											release.guid &&
+											release.indexerId &&
+											handleDownload(release.guid, release.indexerId)}
 										disabled={downloadFetchingGuid === release.guid}
 									>
 										<Plus size={20} />

@@ -9,7 +9,7 @@
 	export let tmdbId: number;
 	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
-	export let backdropUri: string;
+	export let backdropUrl: string;
 
 	export let title = '';
 	export let subtitle = '';
@@ -19,7 +19,7 @@
 
 <a
 	href={`/${type}/${tmdbId}`}
-	style={"background-image: url('" + TMDB_POSTER_SMALL + backdropUri + "');"}
+	style={"background-image: url('" + backdropUrl + "');"}
 	class="relative flex shadow-lg rounded-lg aspect-[2/3] bg-center bg-cover w-44 selectable group hover:text-inherit flex-shrink-0"
 >
 	<div

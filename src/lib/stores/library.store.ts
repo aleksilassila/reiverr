@@ -23,13 +23,15 @@ import {
 	getTmdbSeriesBackdrop,
 	getTmdbSeriesFromTvdbId
 } from '$lib/apis/tmdb/tmdbApi';
+import { TMDB_BACKDROP_SMALL, TMDB_POSTER_SMALL } from '$lib/constants';
 import type { TitleType } from '$lib/types';
 import { get, writable } from 'svelte/store';
+import { settings } from './settings.store';
 
 export interface PlayableItem {
 	tmdbRating: number;
-	cardBackdropUrl: string;
-	posterUri: string;
+	backdropUrl: string;
+	posterUrl: string;
 	download?: {
 		progress: number;
 		completionTime: string | undefined;
@@ -76,11 +78,12 @@ async function getLibrary(): Promise<Library> {
 	const sonarrSeries = await sonarrSeriesPromise;
 	const sonarrDownloads = await sonarrDownloadsPromise;
 
-	const jellyfinContinueWatching = await jellyfinContinueWatchingPromise;
-	const jellyfinLibraryItems = await jellyfinLibraryItemsPromise;
-	const jellyfinEpisodes = await jellyfinEpisodesPromise.then((episodes) =>
-		episodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99))
-	);
+	const jellyfinContinueWatching = (await jellyfinContinueWatchingPromise) || [];
+	const jellyfinLibraryItems = (await jellyfinLibraryItemsPromise) || [];
+	const jellyfinEpisodes =
+		(await jellyfinEpisodesPromise.then((episodes) =>
+			episodes?.sort((a, b) => (a.IndexNumber || 99) - (b.IndexNumber || 99))
+		)) || [];
 	const jellyfinNextUp = await jellyfinNextUpPromise;
 
 	const items: Record<string, PlayableItem> = {};
@@ -112,15 +115,15 @@ async function getLibrary(): Promise<Library> {
 				? { length, progress: watchingProgress }
 				: undefined;
 
-		const backdropUrl = await getTmdbMovieBackdrop(radarrMovie.tmdbId || 0);
+		const backdropUri = await getTmdbMovieBackdrop(radarrMovie.tmdbId || 0);
 		const posterUri = await getTmdbMoviePoster(radarrMovie.tmdbId || 0);
 
-		return {
+		const playableItem: PlayableItem = {
 			type: 'movie' as const,
 			tmdbId: radarrMovie.tmdbId || 0,
 			tmdbRating: radarrMovie.ratings?.tmdb?.value || 0,
-			cardBackdropUrl: backdropUrl || '',
-			posterUri: posterUri || '',
+			backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
+			posterUrl: posterUri ? TMDB_POSTER_SMALL + posterUri : '',
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
@@ -129,6 +132,8 @@ async function getLibrary(): Promise<Library> {
 			radarrMovie,
 			radarrDownloads: itemRadarrDownloads
 		};
+
+		return playableItem;
 	});
 
 	const seriesPromise: Promise<PlayableItem>[] = sonarrSeries.map(async (sonarrSeries) => {
@@ -149,7 +154,7 @@ async function getLibrary(): Promise<Library> {
 
 		const nextJellyfinEpisode = jellyfinItem
 			? jellyfinContinueWatching.find((i) => i.SeriesId === jellyfinItem?.Id) ||
-			  jellyfinNextUp.find((i) => i.SeriesId === jellyfinItem?.Id)
+			  jellyfinNextUp?.find((i) => i.SeriesId === jellyfinItem?.Id)
 			: undefined;
 
 		const length = nextJellyfinEpisode?.RunTimeTicks
@@ -169,12 +174,12 @@ async function getLibrary(): Promise<Library> {
 		const backdropUrl = await getTmdbSeriesBackdrop(tmdbId || 0);
 		const posterUri = tmdbItem?.poster_path || '';
 
-		return {
+		const playableItem: PlayableItem = {
 			type: 'series' as const,
 			tmdbId: tmdbId || 0,
 			tmdbRating: tmdbItem?.vote_average || 0,
-			cardBackdropUrl: backdropUrl || '',
-			posterUri,
+			backdropUrl: backdropUrl ? TMDB_BACKDROP_SMALL + backdropUrl : '',
+			posterUrl: posterUri ? TMDB_POSTER_SMALL + posterUri : '',
 			download,
 			continueWatching,
 			isPlayed: jellyfinItem?.UserData?.Played || false,
@@ -185,9 +190,59 @@ async function getLibrary(): Promise<Library> {
 			jellyfinEpisodes: jellyfinEpisodes.filter((i) => i.SeriesId === jellyfinItem?.Id),
 			nextJellyfinEpisode
 		};
+
+		return playableItem;
 	});
 
-	await Promise.all([...moviesPromise, ...seriesPromise]).then((r) =>
+	const jellyfinSourceItems = jellyfinLibraryItems
+		.filter(
+			(i) =>
+				!radarrMovies.find((m) => m.tmdbId === Number(i.ProviderIds?.Tmdb)) &&
+				!sonarrSeries.find((s) => s.tvdbId === Number(i.ProviderIds?.Tvdb))
+		)
+		.map((jellyfinItem) => {
+			const itemJellyfinEpisodes = jellyfinEpisodes.filter((e) => e.SeriesId === jellyfinItem.Id);
+			const jellyfinNextUpEpisode =
+				jellyfinNextUp?.find((e) => e.SeriesId === jellyfinItem.Id) ||
+				jellyfinContinueWatching.find((e) => e.SeriesId === jellyfinItem.Id);
+
+			const length = jellyfinNextUpEpisode?.RunTimeTicks
+				? jellyfinNextUpEpisode.RunTimeTicks / 10_000_000 / 60
+				: undefined;
+			const watchingProgress = jellyfinNextUpEpisode?.UserData?.PlayedPercentage;
+			const continueWatching =
+				length && watchingProgress && !!jellyfinNextUpEpisode
+					? { length, progress: watchingProgress }
+					: undefined;
+
+			const tmdbId = Number(jellyfinItem.ProviderIds?.Tmdb);
+			const backdropUrl = jellyfinItem.BackdropImageTags?.length
+				? `http://jellyfin.home/Items/${jellyfinItem?.Id}/Images/Backdrop?quality=100&tag=${jellyfinItem?.BackdropImageTags?.[0]}`
+				: '';
+			const posterUri = jellyfinItem.ImageTags?.Primary
+				? `http://jellyfin.home/Items/${jellyfinItem?.Id}/Images/Backdrop?quality=100&tag=${jellyfinItem?.ImageTags?.Primary}`
+				: '';
+
+			const type: TitleType = jellyfinItem.Type === 'Movie' ? 'movie' : 'series';
+
+			const playableItem: PlayableItem = {
+				type,
+				tmdbId,
+				tmdbRating: jellyfinItem.CommunityRating || 0,
+				backdropUrl: backdropUrl,
+				posterUrl: posterUri,
+				continueWatching,
+				isPlayed: jellyfinItem.UserData?.Played || false,
+				jellyfinId: jellyfinItem.Id,
+				jellyfinItem,
+				jellyfinEpisodes: itemJellyfinEpisodes,
+				nextJellyfinEpisode: jellyfinNextUpEpisode
+			};
+
+			return playableItem;
+		});
+
+	await Promise.all([...moviesPromise, ...seriesPromise, ...jellyfinSourceItems]).then((r) =>
 		r.forEach((item) => {
 			items[item.tmdbId] = item;
 		})
@@ -202,9 +257,23 @@ async function getLibrary(): Promise<Library> {
 	};
 }
 
+async function waitForSettings() {
+	return new Promise((resolve) => {
+		let resolved = false;
+		settings.subscribe((settings) => {
+			if (settings?.initialised && !resolved) {
+				resolved = true;
+				resolve(settings);
+			}
+		});
+	});
+}
+
 let delayedRefreshTimeout: NodeJS.Timeout;
 function createLibraryStore() {
-	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
+	const { update, set, ...library } = writable<Promise<Library>>(
+		waitForSettings().then(() => getLibrary())
+	); //TODO promise to undefined
 
 	async function filterNotInLibrary<T>(toFilter: T[], getTmdbId: (item: T) => number) {
 		const libraryData = await get(library);
@@ -245,6 +314,7 @@ function _createLibraryItemStore(tmdbId: number) {
 
 const itemStores: Record<string, ReturnType<typeof _createLibraryItemStore>> = {};
 
+export type LibraryItemStore = ReturnType<typeof _createLibraryItemStore>;
 export function createLibraryItemStore(tmdbId: number) {
 	if (!itemStores[tmdbId]) {
 		itemStores[tmdbId] = _createLibraryItemStore(tmdbId);

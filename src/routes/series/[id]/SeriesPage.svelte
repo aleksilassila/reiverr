@@ -17,9 +17,11 @@
 	import { modalStack } from '$lib/components/Modal/Modal';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
+	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
@@ -64,7 +66,7 @@
 	);
 	const tmdbSimilarProps = getTmdbSeriesSimilar(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
 		Promise.all(
 			s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
@@ -105,6 +107,7 @@
 			episodeProps[season?.season_number || 0] = episodes;
 		});
 
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.[0];
 		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
 	});
 
@@ -171,21 +174,31 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="title-right">
-			{#if $itemStore.loading}
-				<div class="placeholder h-10 w-48 rounded-xl" />
-			{:else if $itemStore.item?.sonarrSeries?.statistics?.sizeOnDisk}
-				<Button type="primary" on:click={playNextEpisode}>
-					<span>Next Episode</span><ChevronRight size={20} />
-				</Button>
-			{:else if !$itemStore.item?.sonarrSeries}
-				<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
-					<span>Add to Sonarr</span><Plus size={20} />
-				</Button>
-			{:else}
-				<Button type="primary" on:click={openRequestModal}>
-					<span class="mr-2">Request Series</span><Plus size={20} />
-				</Button>
-			{/if}
+			<div
+				class="flex gap-2 items-center flex-row-reverse justify-end lg:flex-row lg:justify-start"
+			>
+				{#if $itemStore.loading}
+					<div class="placeholder h-10 w-48 rounded-xl" />
+				{:else}
+					<OpenInButton title={series?.name} {itemStore} type="series" {tmdbId} />
+					{#if $itemStore.item?.jellyfinEpisodes?.length && !!nextJellyfinEpisode}
+						<Button type="primary" on:click={playNextEpisode}>
+							<span>
+								Watch {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+							</span>
+							<ChevronRight size={20} />
+						</Button>
+					{:else if !$itemStore.item?.sonarrSeries && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
+						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
+							<span>Add to Sonarr</span><Plus size={20} />
+						</Button>
+					{:else if $itemStore.item?.sonarrSeries}
+						<Button type="primary" on:click={openRequestModal}>
+							<span class="mr-2">Request Series</span><Plus size={20} />
+						</Button>
+					{/if}
+				{/if}
+			</div>
 		</svelte:fragment>
 
 		<div slot="episodes-carousel">

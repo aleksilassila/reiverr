@@ -8,7 +8,7 @@
 	import EpisodeSelectModal from './EpisodeSelectModal.svelte';
 	import RequestModal from './RequestModal.svelte';
 
-	export let modalId: Symbol;
+	export let modalId: symbol;
 	export let sonarrId: number;
 	export let seasons: number;
 	export let heading = 'Seasons';

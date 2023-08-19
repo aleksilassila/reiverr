@@ -13,9 +13,11 @@
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
+	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
@@ -31,10 +33,10 @@
 	const tmdbMoviePromise = getTmdbMovie(tmdbId);
 	const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const tmdbSimilarProps = getTmdbMovieSimilar(tmdbId)
 		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUri));
+		.then((r) => r.filter((p) => p.backdropUrl));
 	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
 		Promise.all(
 			m?.credits?.cast?.slice(0, 20).map((m) => ({
@@ -46,7 +48,7 @@
 		)
 	);
 
-	function stream() {
+	function play() {
 		if ($itemStore.item?.jellyfinItem?.Id)
 			playerState.streamJellyfinId($itemStore.item?.jellyfinItem?.Id);
 	}
@@ -112,21 +114,28 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="title-right">
-			{#if $itemStore.loading}
-				<div class="placeholder h-10 w-48 rounded-xl" />
-			{:else if $itemStore.item?.jellyfinItem}
-				<Button type="primary" on:click={stream}>
-					<span>Stream</span><ChevronRight size={20} />
-				</Button>
-			{:else if !$itemStore.item?.radarrMovie}
-				<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
-					<span>Add to Radarr</span><Plus size={20} />
-				</Button>
-			{:else}
-				<Button type="primary" on:click={openRequestModal}>
-					<span class="mr-2">Request Movie</span><Plus size={20} />
-				</Button>
-			{/if}
+			<div
+				class="flex gap-2 items-center flex-row-reverse justify-end lg:flex-row lg:justify-start"
+			>
+				{#if $itemStore.loading}
+					<div class="placeholder h-10 w-48 rounded-xl" />
+				{:else}
+					<OpenInButton title={movie?.title} {itemStore} type="movie" {tmdbId} />
+					{#if $itemStore.item?.jellyfinItem}
+						<Button type="primary" on:click={play}>
+							<span>Watch</span><ChevronRight size={20} />
+						</Button>
+					{:else if !$itemStore.item?.radarrMovie && $settings.radarr.baseUrl && $settings.radarr.apiKey}
+						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
+							<span>Add to Radarr</span><Plus size={20} />
+						</Button>
+					{:else if $itemStore.item?.radarrMovie}
+						<Button type="primary" on:click={openRequestModal}>
+							<span class="mr-2">Request Movie</span><Plus size={20} />
+						</Button>
+					{/if}
+				{/if}
+			</div>
 		</svelte:fragment>
 
 		<svelte:fragment slot="info-components">

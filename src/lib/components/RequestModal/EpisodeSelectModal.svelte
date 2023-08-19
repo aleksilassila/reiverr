@@ -6,8 +6,8 @@
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import RequestModal from './RequestModal.svelte';
 
-	export let modalId: Symbol;
-	export let groupId: Symbol;
+	export let modalId: symbol;
+	export let groupId: symbol;
 
 	export let sonarrId: number;
 	export let seasonNumber: number;
@@ -22,8 +22,8 @@
 		modalStack.create(
 			RequestModal,
 			{
-				episode,
-				sonarrId,
+				sonarrEpisodeId: episode.id,
+				// sonarrId,
 				groupId
 			},
 			groupId
