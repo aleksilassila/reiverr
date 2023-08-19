@@ -185,23 +185,33 @@
 <svelte:window on:keydown={handleShortcuts} />
 
 {#if noItems}
-	<div class="h-screen flex items-center justify-center text-zinc-500 p-8">
-		<h1>Configure Radarr, Sonarr and Jellyfin to view and manage your library.</h1>
-	</div>
-{:else}
 	<div
-		style={"background-image: url('" +
-			TMDB_IMAGES_ORIGINAL +
-			(downloadingProps[0]?.backdropUrl || nextUpProps[0]?.backdropUrl) +
-			"');"}
-		class="absolute inset-0 h-[50vh] bg-center bg-cover"
+		class="h-screen flex items-center justify-center text-zinc-500 p-8"
 		in:fade|global={{
 			duration: $settings.animationDuration,
 			delay: $settings.animationDuration
 		}}
 		out:fade|global={{ duration: $settings.animationDuration }}
 	>
-		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
+		<h1>Configure Radarr, Sonarr and Jellyfin to view and manage your library.</h1>
+	</div>
+{:else}
+	<div
+		in:fade|global={{
+			duration: $settings.animationDuration,
+			delay: $settings.animationDuration
+		}}
+		out:fade|global={{ duration: $settings.animationDuration }}
+	>
+		<div
+			style={"background-image: url('" +
+				TMDB_IMAGES_ORIGINAL +
+				(downloadingProps[0]?.backdropUrl || nextUpProps[0]?.backdropUrl) +
+				"');"}
+			class="absolute inset-0 h-[50vh] bg-center bg-cover"
+		>
+			<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
+		</div>
 	</div>
 
 	<div

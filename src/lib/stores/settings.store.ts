@@ -1,68 +1,64 @@
-import { get, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 
-interface Settings {
+export interface SettingsValues {
+	initialised: boolean;
 	autoplayTrailers: boolean;
-	excludeLibraryItemsFromDiscovery: boolean;
 	language: string;
-	region: string;
-	discover: {
-		includedLanguages: string[];
-		filterBasedOnLanguage: boolean;
-	};
 	animationDuration: number;
+	discover: {
+		region: string;
+		excludeLibraryItems: boolean;
+		includedLanguages: string;
+	};
 	sonarr: {
-		qualityProfileId: number;
+		baseUrl: string | null;
+		apiKey: string | null;
 		rootFolderPath: string;
+		qualityProfileId: number;
 		languageProfileId: number;
 	};
 	radarr: {
-		qualityProfileId: number;
-		profileId: number;
+		baseUrl: string | null;
+		apiKey: string | null;
 		rootFolderPath: string;
+		qualityProfileId: number;
 	};
 	jellyfin: {
-		userId: string;
-	};
-	playback: {
-		preferredPlaybackSource: 'reiverr' | 'jellyfin';
+		baseUrl: string | null;
+		apiKey: string | null;
+		userId: string | null;
 	};
 }
 
-const defaultSettings: Settings = {
+export const defaultSettings: SettingsValues = {
+	initialised: false,
+
 	autoplayTrailers: true,
-	excludeLibraryItemsFromDiscovery: true,
 	language: 'en',
-	region: 'US',
-	discover: {
-		filterBasedOnLanguage: true,
-		includedLanguages: ['en']
-	},
 	animationDuration: 150,
+	discover: {
+		region: '',
+		excludeLibraryItems: true,
+		includedLanguages: 'en'
+	},
 	sonarr: {
-		qualityProfileId: 4,
-		rootFolderPath: '/tv',
-		languageProfileId: 1
+		apiKey: null,
+		baseUrl: null,
+		qualityProfileId: 0,
+		rootFolderPath: '',
+		languageProfileId: 0
 	},
 	radarr: {
-		qualityProfileId: 4,
-		profileId: 4,
-		rootFolderPath: '/movies'
+		apiKey: null,
+		baseUrl: null,
+		qualityProfileId: 0,
+		rootFolderPath: ''
 	},
 	jellyfin: {
-		userId: ''
-	},
-	playback: {
-		preferredPlaybackSource: 'reiverr'
+		apiKey: null,
+		baseUrl: null,
+		userId: null
 	}
 };
 
-export const settings = writable<Settings>(defaultSettings);
-
-export const getIncludedLanguagesQuery = () => {
-	const settingsValue = get(settings);
-	if (settingsValue.discover.filterBasedOnLanguage) {
-		return { with_original_language: settingsValue.language };
-	}
-
-	return {};
-};
+export const settings = writable<SettingsValues>(defaultSettings);

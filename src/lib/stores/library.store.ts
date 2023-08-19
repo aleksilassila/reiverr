@@ -26,6 +26,7 @@ import {
 import { TMDB_BACKDROP_SMALL, TMDB_POSTER_SMALL } from '$lib/constants';
 import type { TitleType } from '$lib/types';
 import { get, writable } from 'svelte/store';
+import { settings } from './settings.store';
 
 export interface PlayableItem {
 	tmdbRating: number;
@@ -222,8 +223,6 @@ async function getLibrary(): Promise<Library> {
 				? `http://jellyfin.home/Items/${jellyfinItem?.Id}/Images/Backdrop?quality=100&tag=${jellyfinItem?.ImageTags?.Primary}`
 				: '';
 
-			console.log(jellyfinItem);
-
 			const type: TitleType = jellyfinItem.Type === 'Movie' ? 'movie' : 'series';
 
 			const playableItem: PlayableItem = {
@@ -258,9 +257,23 @@ async function getLibrary(): Promise<Library> {
 	};
 }
 
+async function waitForSettings() {
+	return new Promise((resolve) => {
+		let resolved = false;
+		settings.subscribe((settings) => {
+			if (settings?.initialised && !resolved) {
+				resolved = true;
+				resolve(settings);
+			}
+		});
+	});
+}
+
 let delayedRefreshTimeout: NodeJS.Timeout;
 function createLibraryStore() {
-	const { update, set, ...library } = writable<Promise<Library>>(getLibrary()); //TODO promise to undefined
+	const { update, set, ...library } = writable<Promise<Library>>(
+		waitForSettings().then(() => getLibrary())
+	); //TODO promise to undefined
 
 	async function filterNotInLibrary<T>(toFilter: T[], getTmdbId: (item: T) => number) {
 		const libraryData = await get(library);
