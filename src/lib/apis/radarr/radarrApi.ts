@@ -28,8 +28,10 @@ export interface RadarrMovieOptions {
 function getRadarrApi() {
 	const baseUrl = get(settings)?.radarr.baseUrl;
 	const apiKey = get(settings)?.radarr.apiKey;
+	const rootFolder = get(settings)?.radarr.rootFolderPath;
+	const qualityProfileId = get(settings)?.radarr.qualityProfileId;
 
-	if (!baseUrl || !apiKey) return undefined;
+	if (!baseUrl || !apiKey || !rootFolder || !qualityProfileId) return undefined;
 
 	console.log(baseUrl, apiKey);
 

@@ -41,8 +41,12 @@ export interface SonarrSeriesOptions {
 function getSonarrApi() {
 	const baseUrl = get(settings)?.sonarr.baseUrl;
 	const apiKey = get(settings)?.sonarr.apiKey;
+	const rootFolder = get(settings)?.sonarr.rootFolderPath;
+	const qualityProfileId = get(settings)?.sonarr.qualityProfileId;
+	const languageProfileId = get(settings)?.sonarr.languageProfileId;
 
-	if (!baseUrl || !apiKey) return undefined;
+	if (!baseUrl || !apiKey || !rootFolder || !qualityProfileId || !languageProfileId)
+		return undefined;
 
 	return createClient<paths>({
 		baseUrl,
