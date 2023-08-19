@@ -1,6 +1,6 @@
 {
 	"name": "reiverr",
-	"version": "0.3.0",
+	"version": "0.5.1",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/aleksilassila/reiverr"
@@ -9,7 +9,7 @@
 		"dev": "vite dev --host",
 		"build": "vite build",
 		"preview": "vite preview",
-		"deploy": "PORT=9494 node build/",
+		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"test": "playwright test",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -55,6 +55,9 @@
 		"openapi-fetch": "^0.2.1",
 		"radix-icons-svelte": "^1.2.1",
 		"svelte-i18n": "^3.7.0",
-		"tailwind-scrollbar-hide": "^1.1.7"
+		"reflect-metadata": "^0.1.13",
+		"sqlite3": "^5.1.6",
+		"tailwind-scrollbar-hide": "^1.1.7",
+		"typeorm": "^0.3.17"
 	}
 }

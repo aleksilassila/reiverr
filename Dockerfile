@@ -26,6 +26,10 @@ COPY package-lock.json .
 
 RUN npm ci --omit dev
 
+RUN mkdir -p ./config
+
+RUN ln -s /usr/src/app/config /config
+
 CMD [ "npm", "run", "deploy" ]
 
 FROM node:18 as development
@@ -39,5 +43,9 @@ COPY package.json .
 COPY package-lock.json .
 
 RUN npm i
+
+RUN mkdir -p ./config
+
+RUN ln -s /usr/src/app/config /config
 
 CMD [ "npm", "run", "dev" ]

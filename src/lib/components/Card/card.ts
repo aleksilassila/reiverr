@@ -7,9 +7,10 @@ import {
 } from '$lib/apis/tmdb/tmdbApi';
 import type { ComponentProps } from 'svelte';
 import type Card from './Card.svelte';
+import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 
 export const fetchCardTmdbMovieProps = async (movie: TmdbMovie2): Promise<ComponentProps<Card>> => {
-	const backdropUri = getTmdbMovieBackdrop(movie.id || 0);
+	const backdropUri = await getTmdbMovieBackdrop(movie.id || 0);
 
 	const movieAny = movie as any;
 	const genres =
@@ -24,7 +25,7 @@ export const fetchCardTmdbMovieProps = async (movie: TmdbMovie2): Promise<Compon
 		title: movie.title || '',
 		genres,
 		runtimeMinutes: movie.runtime,
-		backdropUri: (await backdropUri) || '',
+		backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
 		rating: movie.vote_average || 0
 	};
 };
@@ -32,7 +33,7 @@ export const fetchCardTmdbMovieProps = async (movie: TmdbMovie2): Promise<Compon
 export const fetchCardTmdbSeriesProps = async (
 	series: TmdbSeries2
 ): Promise<ComponentProps<Card>> => {
-	const backdropUri = getTmdbSeriesBackdrop(series.id || 0);
+	const backdropUri = await getTmdbSeriesBackdrop(series.id || 0);
 
 	const seriesAny = series as any;
 	const genres =
@@ -47,7 +48,7 @@ export const fetchCardTmdbSeriesProps = async (
 		title: series.name || '',
 		genres,
 		runtimeMinutes: series.episode_run_time?.[0],
-		backdropUri: (await backdropUri) || '',
+		backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
 		rating: series.vote_average || 0,
 		type: 'series'
 	};

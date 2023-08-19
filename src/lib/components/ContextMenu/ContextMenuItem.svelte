@@ -7,9 +7,9 @@
 <button
 	on:click
 	class={classNames(
-		'text-sm font-medium px-3 py-1 hover:bg-zinc-200 hover:bg-opacity-10 rounded-md text-left cursor-default',
+		'text-sm font-medium tracking-wide px-3 py-1 hover:bg-zinc-200 hover:bg-opacity-10 rounded-md text-left cursor-default',
 		{
-			'opacity-80 pointer-events-none': disabled
+			'opacity-75 pointer-events-none': disabled
 		}
 	)}
 >

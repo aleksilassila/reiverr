@@ -9,4 +9,4 @@ services:
       context: .
       target: production
     ports:
-      - 9494:3000
+      - 9494:9494
