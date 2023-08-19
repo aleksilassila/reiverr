@@ -192,3 +192,33 @@ export const getRadarrHealth = async (
 		})
 		.then((res) => res.status === 200)
 		.catch(() => false);
+
+export const getRadarrRootFolders = async (
+	baseUrl: string | undefined = undefined,
+	apiKey: string | undefined = undefined
+) =>
+	axios
+		.get<components['schemas']['RootFolderResource'][]>(
+			(baseUrl || get(settings)?.sonarr.baseUrl) + '/api/v3/rootFolder',
+			{
+				headers: {
+					'X-Api-Key': apiKey || get(settings)?.sonarr.apiKey
+				}
+			}
+		)
+		.then((res) => res.data || []);
+
+export const getRadarrQualityProfiles = async (
+	baseUrl: string | undefined = undefined,
+	apiKey: string | undefined = undefined
+) =>
+	axios
+		.get<components['schemas']['QualityProfileResource'][]>(
+			(baseUrl || get(settings)?.sonarr.baseUrl) + '/api/v3/qualityprofile',
+			{
+				headers: {
+					'X-Api-Key': apiKey || get(settings)?.sonarr.apiKey
+				}
+			}
+		)
+		.then((res) => res.data || []);

@@ -14,7 +14,7 @@
 
 	const TRAILER_TIMEOUT = 3000;
 	const TRAILER_LOAD_TIME = 1000;
-	const ANIMATION_DURATION = 150;
+	const ANIMATION_DURATION = $settings.animationDuration;
 
 	export let tmdbId: number;
 	export let type: TitleType;

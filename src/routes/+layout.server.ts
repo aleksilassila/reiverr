@@ -5,6 +5,6 @@ export const load: LayoutServerLoad = async () => {
 	const settings = await Settings.get();
 
 	return {
-		settings: JSON.parse(JSON.stringify(settings)) as Settings
+		settings
 	};
 };

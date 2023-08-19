@@ -257,3 +257,48 @@ export const getSonarrHealth = async (
 		})
 		.then((res) => res.status === 200)
 		.catch(() => false);
+
+export const getSonarrRootFolders = async (
+	baseUrl: string | undefined = undefined,
+	apiKey: string | undefined = undefined
+) =>
+	axios
+		.get<components['schemas']['RootFolderResource'][]>(
+			(baseUrl || get(settings)?.sonarr.baseUrl) + '/api/v3/rootFolder',
+			{
+				headers: {
+					'X-Api-Key': apiKey || get(settings)?.sonarr.apiKey
+				}
+			}
+		)
+		.then((res) => res.data || []);
+
+export const getSonarrQualityProfiles = async (
+	baseUrl: string | undefined = undefined,
+	apiKey: string | undefined = undefined
+) =>
+	axios
+		.get<components['schemas']['QualityProfileResource'][]>(
+			(baseUrl || get(settings)?.sonarr.baseUrl) + '/api/v3/qualityprofile',
+			{
+				headers: {
+					'X-Api-Key': apiKey || get(settings)?.sonarr.apiKey
+				}
+			}
+		)
+		.then((res) => res.data || []);
+
+export const getSonarrLanguageProfiles = async (
+	baseUrl: string | undefined = undefined,
+	apiKey: string | undefined = undefined
+) =>
+	axios
+		.get<components['schemas']['LanguageProfileResource'][]>(
+			(baseUrl || get(settings)?.sonarr.baseUrl) + '/api/v3/languageprofile',
+			{
+				headers: {
+					'X-Api-Key': apiKey || get(settings)?.sonarr.apiKey
+				}
+			}
+		)
+		.then((res) => res.data || []);

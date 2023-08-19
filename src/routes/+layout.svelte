@@ -9,29 +9,7 @@
 	import type { LayoutServerData } from './$types';
 
 	export let data: LayoutServerData;
-	const settingsData = data.settings;
-
-	settings.set({
-		...defaultSettings,
-		autoplayTrailers: settingsData.autoplayTrailers,
-		sonarr: {
-			...defaultSettings.sonarr,
-			apiKey: settingsData.sonarrApiKey,
-			baseUrl: settingsData.sonarrBaseUrl
-		},
-		radarr: {
-			...defaultSettings.radarr,
-			apiKey: settingsData.radarrApiKey,
-			baseUrl: settingsData.radarrBaseUrl
-		},
-		jellyfin: {
-			...defaultSettings.jellyfin,
-			apiKey: settingsData.jellyfinApiKey,
-			baseUrl: settingsData.jellyfinBaseUrl,
-			userId: settingsData.jellyfinUserId
-		},
-		initialised: true
-	});
+	settings.set(data.settings);
 </script>
 
 <!-- {#if data.isApplicationSetUp} -->

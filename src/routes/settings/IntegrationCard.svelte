@@ -6,9 +6,14 @@
 	export let status: 'connected' | 'disconnected' | 'error' = 'disconnected';
 </script>
 
-<div class="border border-zinc-800 rounded-xl p-4 flex flex-col gap-4">
+<div
+	class={classNames('border border-zinc-800 rounded-xl p-4 flex flex-col gap-4', {
+		// 'border-zinc-800': status === 'connected'
+		// 'border-zinc-800': status === 'disconnected'
+	})}
+>
 	<div class="flex items-baseline justify-between">
-		<a class="text-zinc-200 text-xl font-medium" {href}>{title}</a>
+		<a class="text-zinc-200 text-xl font-medium" target="_blank" {href}>{title}</a>
 		<div
 			class={classNames('w-3 h-3 rounded-full', {
 				'bg-green-600': status === 'connected',

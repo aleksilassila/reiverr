@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { TMDB_API_KEY } from '$lib/constants';
-import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
+import { settings } from '$lib/stores/settings.store';
 import { formatDateToYearMonthDay } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
@@ -194,7 +194,7 @@ export const getTmdbPopularMovies = () =>
 		params: {
 			query: {
 				language: get(settings)?.language,
-				region: get(settings)?.region
+				region: get(settings)?.discover.region
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -202,18 +202,6 @@ export const getTmdbPopularMovies = () =>
 export const getTmdbPopularSeries = () =>
 	TmdbApiOpen.get('/3/tv/popular', {
 		params: {
-			query: {
-				language: get(settings)?.language
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTmdbTrendingAll = () =>
-	TmdbApiOpen.get('/3/trending/all/{time_window}', {
-		params: {
-			path: {
-				time_window: 'day'
-			},
 			query: {
 				language: get(settings)?.language
 			}
@@ -229,44 +217,11 @@ export const getTmdbNetworkSeries = (networkId: number) =>
 		}
 	}).then((res) => res.data?.results || []);
 
-export const getTmdbDigitalReleases = () =>
-	TmdbApiOpen.get('/3/discover/movie', {
-		params: {
-			query: {
-				with_release_type: 4,
-				sort_by: 'popularity.desc',
-				'release_date.lte': formatDateToYearMonthDay(new Date()),
-				...getIncludedLanguagesQuery()
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTmdbUpcomingMovies = () =>
-	TmdbApiOpen.get('/3/discover/movie', {
-		params: {
-			query: {
-				'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc'
-				// ...getIncludedLanguagesQuery()
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTrendingActors = () =>
-	TmdbApiOpen.get('/3/trending/person/{time_window}', {
-		params: {
-			path: {
-				time_window: 'week'
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
 export const getTmdbGenreMovies = (genreId: number) =>
 	TmdbApiOpen.get('/3/discover/movie', {
 		params: {
 			query: {
-				with_genres: String(genreId),
-				...getIncludedLanguagesQuery()
+				with_genres: String(genreId)
 			}
 		}
 	}).then((res) => res.data?.results || []);
