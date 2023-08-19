@@ -13,6 +13,7 @@
 	import GeneralSettingsPage from './GeneralSettingsPage.svelte';
 	import IntegrationSettingsPage from './IntegrationSettingsPage.svelte';
 	import { fade } from 'svelte/transition';
+	import { _ } from 'svelte-i18n';
 
 	type Section = 'general' | 'integrations';
 
@@ -155,19 +156,20 @@
 				class="mb-6 text-lg font-medium flex items-center text-zinc-300 hover:text-zinc-200"
 				on:click={() => history.back()}
 			>
-				<ChevronLeft size={22} /> Settings
+				<ChevronLeft size={22} />
+				{$_('settings.navbar.settings')}
 			</button>
 			<button
 				on:click={() => (openTab = 'general')}
 				class={openTab && getNavButtonStyle('general')}
 			>
-				General
+				{$_('settings.navbar.general')}
 			</button>
 			<button
 				on:click={() => (openTab = 'integrations')}
 				class={openTab && getNavButtonStyle('integrations')}
 			>
-				Integrations
+				{$_('settings.navbar.integrations')}
 			</button>
 		</div>
 		<div class="flex flex-col gap-2">
@@ -177,7 +179,7 @@
 				on:click={handleSubmit}
 				type={valuesChanged ? 'success' : 'base'}
 			>
-				Save Changes
+				{$_('settings.misc.saveChanges')}
 			</FormButton>
 			<FormButton
 				disabled={!valuesChanged}
@@ -186,7 +188,7 @@
 					settings.set(initialValues);
 				}}
 			>
-				Reset to Defaults
+				{$_('settings.misc.resetToDefaults')}
 			</FormButton>
 		</div>
 	</div>
@@ -196,11 +198,13 @@
 			class="text-lg font-medium flex items-center text-zinc-300 hover:text-zinc-200"
 			on:click={() => history.back()}
 		>
-			<ChevronLeft size={22} /> Settings
+			<ChevronLeft size={22} />
 		</button>
 		<Select bind:value={openTab}>
-			<option value="general">General</option>
-			<option value="integrations">Integrations</option>
+			<option value="general"> {$_('settings.navbar.general')} </option>
+			<option value="integrations">
+				{$_('settings.navbar.integrations')}
+			</option>
 		</Select>
 	</div>
 
@@ -226,7 +230,9 @@
 		</div>
 		<div class="flex items-center p-4 gap-8 justify-center text-zinc-500 bg-stone-950">
 			<div>v{version}</div>
-			<a target="_blank" href="https://github.com/aleksilassila/reiverr/releases">Changelog</a>
+			<a target="_blank" href="https://github.com/aleksilassila/reiverr/releases">
+				{$_('settings.misc.changelog')}
+			</a>
 			<a target="_blank" href="https://github.com/aleksilassila/reiverr">GitHub</a>
 		</div>
 	</div>

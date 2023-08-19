@@ -194,7 +194,9 @@
 		}}
 		out:fade|global={{ duration: $settings.animationDuration }}
 	>
-		<h1>Configure Radarr, Sonarr and Jellyfin to view and manage your library.</h1>
+		<h1>
+			{$_('library.missingConfiguration')}
+		</h1>
 	</div>
 {:else}
 	<div

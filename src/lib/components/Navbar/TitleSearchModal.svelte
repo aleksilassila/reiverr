@@ -76,15 +76,15 @@
 			on:input={handleInput}
 			type="text"
 			class="flex-1 bg-transparent font-light outline-none"
-			placeholder={$_('searchModalPlaceholder')}
+			placeholder={$_('search.placeHolder')}
 		/>
 	</ModalHeader>
 	{#if resultProps === undefined || inputValue === ''}
 		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">
-			{$_('searchNoRecentSearches')}
+			{$_('search.noRecentSearches')}
 		</div>
 	{:else if resultProps?.length === 0 && !fetching}
-		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">{$_('searchNoResults')}</div>
+		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">{$_('search.noResults')}</div>
 	{:else}
 		<div class="py-2">
 			{#each resultProps.slice(0, 5) as result}

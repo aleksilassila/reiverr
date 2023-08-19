@@ -14,6 +14,7 @@
 	import IntegrationCard from './IntegrationCard.svelte';
 	import TestConnectionButton from './TestConnectionButton.svelte';
 	import { getRadarrQualityProfiles, getRadarrRootFolders } from '$lib/apis/radarr/radarrApi';
+	import { _ } from 'svelte-i18n';
 
 	export let values: SettingsValues;
 
@@ -111,11 +112,12 @@
 	<div
 		class="border-b border-zinc-800 pb-4 mt-8 col-span-2 justify-self-stretch flex flex-col gap-2"
 	>
-		<h1 class="font-medium text-2xl text-zinc-200 tracking-wide">Integrations</h1>
+		<h1 class="font-medium text-2xl text-zinc-200 tracking-wide">
+			{$_('settings.integrations.integrations')}
+		</h1>
 		<p class="text-sm text-zinc-400">
-			Note: Base urls must be accessible from the browser, meaning that internal docker addresses
-			won't work, for example. API Keys <span class="font-medium underline">will be exposed</span> to
-			the browser.
+			<!--- @html to render underline class-->
+			{@html $_('settings.integrations.integrationsNote')}
 		</p>
 	</div>
 
@@ -126,7 +128,9 @@
 			status={sonarrConnected ? 'connected' : 'disconnected'}
 		>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">Base URL</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.baseUrl')}
+				</h2>
 				<Input
 					placeholder={'http://127.0.0.1:8989'}
 					class="w-full"
@@ -134,7 +138,9 @@
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">API Key</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.apiKey')}
+				</h2>
 				<Input class="w-full" bind:value={values.sonarr.apiKey} />
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
@@ -143,7 +149,9 @@
 					<Trash size={20} />
 				</FormButton>
 			</div>
-			<h1 class="border-b border-zinc-800 py-2">Options</h1>
+			<h1 class="border-b border-zinc-800 py-2">
+				{$_('settings.integrations.options.options')}
+			</h1>
 			<div
 				class={classNames(
 					'grid grid-cols-[1fr_min-content] justify-items-start gap-4 text-zinc-400',
@@ -152,7 +160,9 @@
 					}
 				)}
 			>
-				<h2>Root Folder</h2>
+				<h2>
+					{$_('settings.integrations.options.rootFolder')}
+				</h2>
 				{#if !sonarrRootFolders}
 					<Select loading />
 				{:else}
@@ -163,7 +173,9 @@
 					</Select>
 				{/if}
 
-				<h2>Quality Profile</h2>
+				<h2>
+					{$_('settings.integrations.options.qualityProfile')}
+				</h2>
 				{#if !sonarrQualityProfiles}
 					<Select loading />
 				{:else}
@@ -174,7 +186,9 @@
 					</Select>
 				{/if}
 
-				<h2>Language Profile</h2>
+				<h2>
+					{$_('settings.integrations.options.languageProfile')}
+				</h2>
 				{#if !sonarrLanguageProfiles}
 					<Select loading />
 				{:else}
@@ -195,7 +209,9 @@
 			status={radarrConnected ? 'connected' : 'disconnected'}
 		>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">Base URL</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.baseUrl')}
+				</h2>
 				<Input
 					placeholder={'http://127.0.0.1:7878'}
 					class="w-full"
@@ -203,7 +219,9 @@
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">API Key</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.apiKey')}
+				</h2>
 				<Input class="w-full" bind:value={values.radarr.apiKey} />
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
@@ -212,7 +230,9 @@
 					<Trash size={20} />
 				</FormButton>
 			</div>
-			<h1 class="border-b border-zinc-800 py-2">Options</h1>
+			<h1 class="border-b border-zinc-800 py-2">
+				{$_('settings.integrations.options.options')}
+			</h1>
 			<div
 				class={classNames(
 					'grid grid-cols-[1fr_min-content] justify-items-start gap-4 text-zinc-400',
@@ -221,7 +241,9 @@
 					}
 				)}
 			>
-				<h2>Root Folder</h2>
+				<h2>
+					{$_('settings.integrations.options.rootFolder')}
+				</h2>
 				{#if !radarrRootFolders}
 					<Select loading />
 				{:else}
@@ -232,7 +254,9 @@
 					</Select>
 				{/if}
 
-				<h2>Quality Profile</h2>
+				<h2>
+					{$_('settings.integrations.options.qualityProfile')}
+				</h2>
 				{#if !radarrQualityProfiles}
 					<Select loading />
 				{:else}
@@ -253,7 +277,9 @@
 			status={jellyfinConnected ? 'connected' : 'disconnected'}
 		>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">Base URL</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.baseUrl')}
+				</h2>
 				<Input
 					placeholder={'http://127.0.0.1:8096'}
 					class="w-full"
@@ -261,7 +287,9 @@
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
-				<h2 class="text-sm text-zinc-500">API Key</h2>
+				<h2 class="text-sm text-zinc-500">
+					{$_('settings.integrations.apiKey')}
+				</h2>
 				<Input class="w-full" bind:value={values.jellyfin.apiKey} />
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
@@ -270,7 +298,7 @@
 					<Trash size={20} />
 				</FormButton>
 			</div>
-			<h1 class="border-b border-zinc-800 py-2">Options</h1>
+			<h1 class="border-b border-zinc-800 py-2">{$_('settings.integrations.options.options')}</h1>
 			<div
 				class={classNames(
 					'grid grid-cols-[1fr_min-content] justify-items-start gap-4 text-zinc-400',
@@ -279,7 +307,9 @@
 					}
 				)}
 			>
-				<h2>Jellyfin User</h2>
+				<h2>
+					{$_('settings.integrations.options.jellyfinUser')}
+				</h2>
 				{#if !jellyfinUsers}
 					<Select loading />
 				{:else}

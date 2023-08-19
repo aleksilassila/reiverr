@@ -59,11 +59,21 @@
 	<div
 		class="flex items-center justify-center gap-4 md:gap-8 font-normal text-sm tracking-wider text-zinc-200"
 	>
-		<a href="/" class={$page && getLinkStyle('/')}>{$_('navbarHome')}</a>
-		<a href="/discover" class={$page && getLinkStyle('/discover')}>{$_('navbarDiscover')}</a>
-		<a href="/library" class={$page && getLinkStyle('/library')}>{$_('navbarLibrary')}</a>
-		<a href="/sources" class={$page && getLinkStyle('/sources')}>{$_('navbarSources')}</a>
-		<a href="/settings" class={$page && getLinkStyle('/settings')}>{$_('navbarSettings')}</a>
+		<a href="/" class={$page && getLinkStyle('/')}>
+			{$_('navbar.home')}
+		</a>
+		<a href="/discover" class={$page && getLinkStyle('/discover')}>
+			{$_('navbar.discover')}
+		</a>
+		<a href="/library" class={$page && getLinkStyle('/library')}>
+			{$_('navbar.library')}
+		</a>
+		<a href="/sources" class={$page && getLinkStyle('/sources')}>
+			{$_('navbar.sources')}
+		</a>
+		<a href="/settings" class={$page && getLinkStyle('/settings')}>
+			{$_('navbar.settings')}
+		</a>
 	</div>
 	<div class="flex gap-2 items-center">
 		<IconButton on:click={openSearchModal}>
@@ -104,29 +114,37 @@
 		transition:fade={{ duration: 150 }}
 	>
 		<div class="row-span-2 flex flex-col gap-4 items-center justify-center">
-			<a on:click={() => (isMobileMenuVisible = false)} href="/" class={$page && getLinkStyle('/')}
-				>Home</a
-			>
+			<a on:click={() => (isMobileMenuVisible = false)} href="/" class={$page && getLinkStyle('/')}>
+				{$_('navbar.home')}
+			</a>
 			<a
 				on:click={() => (isMobileMenuVisible = false)}
 				href="/discover"
-				class={$page && getLinkStyle('/discover')}>Discover</a
+				class={$page && getLinkStyle('/discover')}
 			>
+				{$_('navbar.discover')}
+			</a>
 			<a
 				on:click={() => (isMobileMenuVisible = false)}
 				href="/library"
-				class={$page && getLinkStyle('/library')}>Library</a
+				class={$page && getLinkStyle('/library')}
 			>
+				{$_('navbar.library')}
+			</a>
 			<a
 				on:click={() => (isMobileMenuVisible = false)}
 				href="/sources"
-				class={$page && getLinkStyle('/sources')}>Sources</a
+				class={$page && getLinkStyle('/sources')}
 			>
+				{$_('navbar.sources')}
+			</a>
 			<a
 				on:click={() => (isMobileMenuVisible = false)}
 				href="/settings"
-				class={$page && getLinkStyle('/settings')}>Settings</a
+				class={$page && getLinkStyle('/settings')}
 			>
+				{$_('navbar.settings')}
+			</a>
 		</div>
 	</div>
 {/if}

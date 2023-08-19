@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FormButton from '$lib/components/forms/FormButton.svelte';
 	import { onDestroy, type ComponentProps } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	export let handleHealthCheck: () => Promise<boolean>;
 
@@ -34,4 +35,6 @@
 	});
 </script>
 
-<FormButton {type} {loading} on:click={handleClick}>Test Connection</FormButton>
+<FormButton {type} {loading} on:click={handleClick}
+	>{$_('settings.integrations.testConnection')}</FormButton
+>
