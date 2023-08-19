@@ -37,6 +37,7 @@ docker run -it --init \
   --name reiverr \
   --restart unless-stopped \
   -p 9494:9494 \
+  -v /path/to/appdata/config:/config \
   ghcr.io/aleksilassila/reiverr:latest
 ```
 
@@ -53,6 +54,8 @@ services:
     container_name: reiverr
     ports:
       - 9494:9494
+    volumes:
+      - /path/to/appdata/config:/config
     restart: unless-stopped
 ```
 
@@ -103,7 +106,7 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 
 To get started with development:
 
-1. Clone the repo
+1. Clone the repository
 2. Run `npm install`
 3. Run `npm run dev`
 

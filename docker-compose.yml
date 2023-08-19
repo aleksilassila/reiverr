@@ -7,3 +7,5 @@ services:
     container_name: reiverr-dev
     image: ghcr.io/aleksilassila/reiverr:latest
     restart: unless-stopped
+    volumes:
+      - ./config:/config
