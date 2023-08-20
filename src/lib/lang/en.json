@@ -28,7 +28,23 @@
 		"missingConfiguration": "Configure Radarr, Sonarr y Jellyfin to watch and manage your library",
 		"available": "Available",
 		"watched": "Watched",
-		"unavailable": "Unavailable"
+		"unavailable": "Unavailable",
+		"sort": {
+			"byTitle": "By Title"
+		},
+		"content": {
+			"movie": "Movie",
+			"show": "Show",
+			"requestContent": "Request",
+			"directedBy": "Directed By",
+			"releaseDate": "Release Date",
+			"budget": "Budget",
+			"status": "Status",
+			"runtime": "Runtime",
+			"castAndCrew": "Cast & Crew",
+			"recommendations": "Recommendations",
+			"similarTitles": "Similar Titles"
+		}
 	},
 	"sources": {},
 	"titleShowcase": {

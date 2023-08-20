@@ -28,7 +28,23 @@
 		"missingConfiguration": "Configura Radarr, Sonarr y Jellyfin para ver y administrar tu biblioteca",
 		"available": "Disponible",
 		"watched": "Visto",
-		"unavailable": "No disponible"
+		"unavailable": "No disponible",
+		"sort": {
+			"byTitle": "Por Título"
+		},
+		"content": {
+			"movie": "Película",
+			"show": "Show",
+			"requestContent": "Solicitar",
+			"directedBy": "Dirigido por",
+			"releaseDate": "Fecha de Lanzamiento",
+			"budget": "Presupuesto",
+			"status": "Estado",
+			"runtime": "Duración",
+			"castAndCrew": "Reparto y Equipo",
+			"recommendations": "Recomendaciones",
+			"similarTitles": "Títulos Similares"
+		}
 	},
 	"sources": {},
 	"titleShowcase": {

@@ -284,7 +284,7 @@
 							})}
 							on:click={() => (openTab = 'available')}
 						>
-							{$_('libraryAvailable')}
+							{$_('library.available')}
 						</button>
 						<button
 							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
@@ -292,7 +292,7 @@
 							})}
 							on:click={() => (openTab = 'watched')}
 						>
-							{$_('libraryWatched')}
+							{$_('library.watched')}
 						</button>
 						<button
 							class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
@@ -300,14 +300,16 @@
 							})}
 							on:click={() => (openTab = 'unavailable')}
 						>
-							{$_('libraryUnavailable')}
+							{$_('library.unavailable')}
 						</button>
 					</div>
 				</UiCarousel>
 				<div class="flex items-center gap-3 justify-end flex-shrink-0 flex-initial relative">
 					<IconButton>
 						<div class="flex gap-0.5 items-center text-sm">
-							<span>By Title</span>
+							<span>
+								{$_('library.sort.byTitle')}
+							</span>
 							<CaretDown size={20} />
 						</div>
 					</IconButton>
