@@ -199,6 +199,7 @@
 			on:click={() => history.back()}
 		>
 			<ChevronLeft size={22} />
+			{$_('settings.navbar.settings')}
 		</button>
 		<Select bind:value={openTab}>
 			<option value="general"> {$_('settings.navbar.general')} </option>

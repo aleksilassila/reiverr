@@ -5,20 +5,9 @@
 	import type { SettingsValues } from '$lib/stores/settings.store';
 	import { ISO_LANGUAGES } from '$lib/utils/iso-languages';
 	import { ISO_REGIONS } from '$lib/utils/iso-regions';
-	import { SUPPORTED_LANGUAGES } from '$lib/utils/supported-languages';
-	import { _, locale } from 'svelte-i18n';
+	import { _, dictionary } from 'svelte-i18n';
 
 	export let values: SettingsValues;
-
-	// We should only return the supported languages
-	const filteredLanguages = Object.entries(ISO_LANGUAGES)
-		.map(([code, name]) => {
-			if (SUPPORTED_LANGUAGES.includes(code)) {
-				return { code, name };
-			}
-			return null;
-		})
-		.filter((language) => language !== null);
 </script>
 
 <div
@@ -31,8 +20,8 @@
 	</h1>
 	<h2>{$_('settings.general.userInterface.language')}</h2>
 	<Select bind:value={values.language}>
-		{#each Object.entries(filteredLanguages) as [code, lang]}
-			<option value={code}>{`${lang?.name.name} - ${lang?.name.nativeName}`}</option>
+		{#each Object.entries(ISO_LANGUAGES).filter( ([c, l]) => Object.keys($dictionary).includes(c) ) as [code, lang]}
+			<option value={code}>{`${lang?.name} - ${lang?.nativeName}`}</option>
 		{/each}
 	</Select>
 	<h2>
