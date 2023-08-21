@@ -98,7 +98,9 @@ Before you contribute:
 
 - If you are taking on an existing bug or feature ticket, please comment on the issue or mark yourself as an assignee to avoid multiple people working on the same thing.
 - If the ticket is vague or missing information, please ask for clarification in the comments.
-- UI style must match the rest of the project and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with "design")
+- UI style must match the rest of the project and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with "design").
+- [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
+- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
 
 I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated!
 
@@ -107,8 +109,9 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 To get started with development:
 
 1. Clone the repository
-2. Run `npm install`
-3. Run `npm run dev`
+2. Check out the `dev` branch
+3. Run `npm install`
+4. Run `npm run dev`
 
 Alternatively, you can run `docker-compose up`.
 
