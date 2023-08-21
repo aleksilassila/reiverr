@@ -5,7 +5,7 @@
 	import TitleSearchModal from './TitleSearchModal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { fade } from 'svelte/transition';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 
 	let y = 0;
 	let transparent = true;

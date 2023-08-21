@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ChevronRight } from 'radix-icons-svelte';
 	import Button from '../Button.svelte';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 	import ModalContainer from '../Modal/ModalContainer.svelte';
 	import ModalContent from '../Modal/ModalContent.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';

@@ -10,7 +10,7 @@
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import type { TitleType } from '$lib/types';
-	import { openTitleModal } from '../Modal/Modal';
+	import { openTitleModal } from '../../stores/modal.store';
 
 	const TRAILER_TIMEOUT = 3000;
 	const TRAILER_LOAD_TIME = 1000;

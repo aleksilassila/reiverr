@@ -30,7 +30,7 @@
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 	import Slider from './Slider.svelte';
 	import { playerState } from './VideoPlayer';
 

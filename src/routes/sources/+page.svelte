@@ -1,8 +1,26 @@
 <script lang="ts">
+	import Button from '$lib/components/Button.svelte';
+	import Notification from '$lib/components/Notification/Notification.svelte';
 	import RadarrStats from '$lib/components/SourceStats/RadarrStats.svelte';
 	import SonarrStats from '$lib/components/SourceStats/SonarrStats.svelte';
+	import { notificationStack } from '$lib/stores/notification.store';
 	import { settings } from '$lib/stores/settings.store';
+	import { flip } from 'svelte/animate';
 	import { fade } from 'svelte/transition';
+
+	let i = 0;
+
+	function handleCreateNotification() {
+		i = i + 1;
+		notificationStack.create(
+			Notification,
+			{
+				title: 'Test Notification',
+				description: 'Desc' + i
+			},
+			0
+		);
+	}
 </script>
 
 <div
@@ -17,6 +35,7 @@
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<RadarrStats large />
 		<SonarrStats large />
+		<Button on:click={handleCreateNotification}>Test Notification</Button>
 		<!-- <div
 			class="border-zinc-800 border-2 border-dashed relative w-full p-3 px-4 rounded-xl overflow-hidden text-zinc-500 text-center flex flex-col gap-1"
 		>

@@ -9,7 +9,7 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import { modalStack } from '$lib/components/Modal/Modal';
+	import { modalStack } from '$lib/stores/modal.store';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';

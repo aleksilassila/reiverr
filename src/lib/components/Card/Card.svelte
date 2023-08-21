@@ -7,7 +7,7 @@
 	import { Clock, Star } from 'radix-icons-svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
-	import { openTitleModal } from '../Modal/Modal';
+	import { openTitleModal } from '../../stores/modal.store';
 	import ProgressBar from '../ProgressBar.svelte';
 
 	export let tmdbId: number;
