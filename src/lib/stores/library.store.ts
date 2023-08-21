@@ -217,10 +217,14 @@ async function getLibrary(): Promise<Library> {
 
 			const tmdbId = Number(jellyfinItem.ProviderIds?.Tmdb);
 			const backdropUrl = jellyfinItem.BackdropImageTags?.length
-				? `http://jellyfin.home/Items/${jellyfinItem?.Id}/Images/Backdrop?quality=100&tag=${jellyfinItem?.BackdropImageTags?.[0]}`
+				? `${get(settings).jellyfin.baseUrl}/Items/${
+						jellyfinItem?.Id
+				  }/Images/Backdrop?quality=100&tag=${jellyfinItem?.BackdropImageTags?.[0]}`
 				: '';
 			const posterUri = jellyfinItem.ImageTags?.Primary
-				? `http://jellyfin.home/Items/${jellyfinItem?.Id}/Images/Backdrop?quality=100&tag=${jellyfinItem?.ImageTags?.Primary}`
+				? `${get(settings).jellyfin.baseUrl}/Items/${
+						jellyfinItem?.Id
+				  }/Images/Backdrop?quality=100&tag=${jellyfinItem?.ImageTags?.Primary}`
 				: '';
 
 			const type: TitleType = jellyfinItem.Type === 'Movie' ? 'movie' : 'series';
