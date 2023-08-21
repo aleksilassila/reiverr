@@ -3,7 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
 	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 
 	export let tmdbId: number;
 	export let type: TitleType;

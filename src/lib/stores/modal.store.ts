@@ -1,6 +1,6 @@
 import type { TitleType } from '$lib/types';
 import { writable } from 'svelte/store';
-import TitlePageModal from '../TitlePageLayout/TitlePageModal.svelte';
+import TitlePageModal from '../components/TitlePageLayout/TitlePageModal.svelte';
 
 type ModalItem = {
 	id: symbol;

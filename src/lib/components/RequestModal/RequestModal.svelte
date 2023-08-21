@@ -10,7 +10,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import HeightHider from '../HeightHider.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 	import ModalContent from '../Modal/ModalContainer.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 

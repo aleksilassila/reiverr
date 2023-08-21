@@ -8,6 +8,7 @@
 	import { writable } from 'svelte/store';
 	import '../app.css';
 	import type { LayoutServerData } from './$types';
+	import Notifications from '$lib/components/Notification/Notifications.svelte';
 
 	export let data: LayoutServerData;
 	settings.set(data.settings);
@@ -23,6 +24,7 @@
 	{#key $page.url.pathname}
 		<DynamicModal />
 	{/key}
+	<Notifications />
 	<UpdateChecker />
 </div>
 <!-- {:else} -->

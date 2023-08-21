@@ -14,7 +14,7 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
-	import { modalStack } from '$lib/components/Modal/Modal';
+	import { modalStack } from '$lib/stores/modal.store';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
 	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
