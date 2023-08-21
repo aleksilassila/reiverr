@@ -15,7 +15,7 @@ class TypeOrm {
 			TypeOrm.instance = new DataSource({
 				type: 'sqlite',
 				database: 'config/reiverr.sqlite',
-				synchronize: dev,
+				synchronize: true,
 				entities: [Settings],
 				logging: true
 			})
