@@ -22,9 +22,9 @@
 	export let radarrConnected: boolean;
 	export let jellyfinConnected: boolean;
 
-	export let checkSonarrHealth: () => Promise<boolean>;
-	export let checkRadarrHealth: () => Promise<boolean>;
-	export let checkJellyfinHealth: () => Promise<boolean>;
+	export let updateSonarrHealth: (reset?: boolean) => Promise<boolean>;
+	export let updateRadarrHealth: (reset?: boolean) => Promise<boolean>;
+	export let updateJellyfinHealth: (reset?: boolean) => Promise<boolean>;
 
 	let sonarrRootFolders: undefined | { id: number; path: string }[] = undefined;
 	let sonarrQualityProfiles: undefined | { id: number; name: string }[] = undefined;
@@ -40,16 +40,16 @@
 			values.sonarr.baseUrl = '';
 			values.sonarr.apiKey = '';
 
-			checkSonarrHealth();
+			updateSonarrHealth();
 		} else if (service === 'radarr') {
 			values.radarr.baseUrl = '';
 			values.radarr.apiKey = '';
-			checkRadarrHealth();
+			updateRadarrHealth();
 		} else if (service === 'jellyfin') {
 			values.jellyfin.baseUrl = '';
 			values.jellyfin.apiKey = '';
 			values.jellyfin.userId = '';
-			checkJellyfinHealth();
+			updateJellyfinHealth();
 		}
 	}
 
@@ -135,16 +135,21 @@
 					placeholder={'http://127.0.0.1:8989'}
 					class="w-full"
 					bind:value={values.sonarr.baseUrl}
+					on:change={() => updateSonarrHealth(true)}
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
 				<h2 class="text-sm text-zinc-500">
 					{$_('settings.integrations.apiKey')}
 				</h2>
-				<Input class="w-full" bind:value={values.sonarr.apiKey} />
+				<Input
+					class="w-full"
+					bind:value={values.sonarr.apiKey}
+					on:change={() => updateSonarrHealth(true)}
+				/>
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
-				<TestConnectionButton handleHealthCheck={checkSonarrHealth} />
+				<TestConnectionButton handleHealthCheck={updateSonarrHealth} />
 				<FormButton on:click={() => handleRemoveIntegration('sonarr')} type="error">
 					<Trash size={20} />
 				</FormButton>
@@ -216,16 +221,21 @@
 					placeholder={'http://127.0.0.1:7878'}
 					class="w-full"
 					bind:value={values.radarr.baseUrl}
+					on:change={() => updateSonarrHealth(true)}
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
 				<h2 class="text-sm text-zinc-500">
 					{$_('settings.integrations.apiKey')}
 				</h2>
-				<Input class="w-full" bind:value={values.radarr.apiKey} />
+				<Input
+					class="w-full"
+					bind:value={values.radarr.apiKey}
+					on:change={() => updateSonarrHealth(true)}
+				/>
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
-				<TestConnectionButton handleHealthCheck={checkRadarrHealth} />
+				<TestConnectionButton handleHealthCheck={updateRadarrHealth} />
 				<FormButton on:click={() => handleRemoveIntegration('radarr')} type="error">
 					<Trash size={20} />
 				</FormButton>
@@ -284,16 +294,21 @@
 					placeholder={'http://127.0.0.1:8096'}
 					class="w-full"
 					bind:value={values.jellyfin.baseUrl}
+					on:change={() => updateSonarrHealth(true)}
 				/>
 			</div>
 			<div class="flex flex-col gap-1">
 				<h2 class="text-sm text-zinc-500">
 					{$_('settings.integrations.apiKey')}
 				</h2>
-				<Input class="w-full" bind:value={values.jellyfin.apiKey} />
+				<Input
+					class="w-full"
+					bind:value={values.jellyfin.apiKey}
+					on:change={() => updateSonarrHealth(true)}
+				/>
 			</div>
 			<div class="grid grid-cols-[1fr_min-content] gap-2">
-				<TestConnectionButton handleHealthCheck={checkJellyfinHealth} />
+				<TestConnectionButton handleHealthCheck={updateJellyfinHealth} />
 				<FormButton on:click={() => handleRemoveIntegration('jellyfin')} type="error">
 					<Trash size={20} />
 				</FormButton>

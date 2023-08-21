@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import Notification from '$lib/components/Notification/Notification.svelte';
 
 export type NotificationItem = {
 	id: symbol;
@@ -57,3 +58,11 @@ function createNotificationStack() {
 }
 
 export const notificationStack = createNotificationStack();
+
+export function createErrorNotification(title: string, details: string, type = 'error') {
+	return notificationStack.create(Notification, {
+		type,
+		title,
+		description: details
+	});
+}

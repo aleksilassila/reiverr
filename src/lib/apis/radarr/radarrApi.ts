@@ -33,8 +33,6 @@ function getRadarrApi() {
 
 	if (!baseUrl || !apiKey || !rootFolder || !qualityProfileId) return undefined;
 
-	console.log(baseUrl, apiKey);
-
 	return createClient<paths>({
 		baseUrl,
 		headers: {

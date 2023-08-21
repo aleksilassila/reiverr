@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { notificationStack } from '$lib/stores/notification.store';
 	import classNames from 'classnames';
-	import { Cross2 } from 'radix-icons-svelte';
+	import { Cross2, ExclamationTriangle } from 'radix-icons-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import IconButton from '../IconButton.svelte';
 
@@ -11,15 +11,23 @@
 	export let description: string;
 	export let duration = 0;
 
+	export let type: 'info' | 'error' | 'warning' = 'info';
+
 	function handleClose() {
-		console.log('close');
 		notificationStack.close(id);
 	}
 </script>
 
 <div
-	class="bg-zinc-900 bg-opacity-60 rounded-lg backdrop-blur-xl overflow-hidden
-flex flex-col w-72"
+	class={classNames(
+		'bg-opacity-60 rounded-lg backdrop-blur-xl overflow-hidden',
+		'flex flex-col w-72',
+		{
+			'bg-zinc-900': type === 'info',
+			'bg-red-900': type === 'error',
+			'bg-yellow-900': type === 'warning'
+		}
+	)}
 	in:fly|global={{ duration: 150, x: 50 }}
 	out:fade|global={{ duration: 150 }}
 >
@@ -34,7 +42,10 @@ flex flex-col w-72"
 		<div
 			class="relative z-[1] flex items-center justify-between bg-zinc-200 bg-opacity-10 p-1 px-3"
 		>
-			<div>
+			<div class="flex items-center gap-2">
+				{#if type !== 'info'}
+					<ExclamationTriangle size={12} />
+				{/if}
 				<h1 class="text-zinc-200 font-medium text-sm">{title}</h1>
 			</div>
 			<IconButton on:click={handleClose}>

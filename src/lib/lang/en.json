@@ -85,11 +85,12 @@
 				"connected": "Connected",
 				"disconnected": "Disconnected"
 			},
-			"options:": {
+			"options": {
 				"options": "Options",
 				"rootFolder": "Root Folder",
 				"qualityProfile": "Quality Profile",
-				"languageProfile": "Language Profile"
+				"languageProfile": "Language Profile",
+				"jellyfinUser": "Jellyfin User"
 			}
 		},
 		"misc": {

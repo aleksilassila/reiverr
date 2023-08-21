@@ -14,6 +14,7 @@
 	import IntegrationSettingsPage from './IntegrationSettingsPage.svelte';
 	import { fade } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
+	import { createErrorNotification } from '$lib/stores/notification.store';
 
 	type Section = 'general' | 'integrations';
 
@@ -25,12 +26,16 @@
 
 	let values: SettingsValues;
 	let initialValues: SettingsValues;
-	settings.subscribe((v) => {
+	settings.subscribe(async (v) => {
 		values = structuredClone(v);
 		initialValues = structuredClone(v);
-		if (values.sonarr.baseUrl && values.sonarr.apiKey) checkSonarrHealth();
-		if (values.radarr.baseUrl && values.radarr.apiKey) checkRadarrHealth();
-		if (values.jellyfin.baseUrl && values.jellyfin.apiKey) checkJellyfinHealth();
+		const s = updateSonarrHealth();
+		const r = updateRadarrHealth();
+		const j = updateJellyfinHealth();
+
+		await Promise.all([s, r, j]);
+
+		checkForPartialConfiguration(v);
 	});
 
 	let valuesChanged = false;
@@ -49,7 +54,11 @@
 			values.sonarr.baseUrl &&
 			!(await getSonarrHealth(values.sonarr.baseUrl, values.sonarr.apiKey))
 		) {
-			throw new Error('Could not connect to Sonarr');
+			createErrorNotification(
+				'Invalid Configuration',
+				'Could not connect to Sonarr. Check Sonarr credentials.'
+			);
+			return;
 		}
 
 		if (
@@ -57,27 +66,58 @@
 			values.radarr.baseUrl &&
 			!(await getRadarrHealth(values.radarr.baseUrl, values.radarr.apiKey))
 		) {
-			throw new Error('Could not connect to Radarr');
+			createErrorNotification(
+				'Invalid Configuration',
+				'Could not connect to Radarr. Check Radarr credentials.'
+			);
+			return;
 		}
 
 		if (values.jellyfin.apiKey && values.jellyfin.baseUrl) {
-			if (!(await getJellyfinHealth(values.jellyfin.baseUrl, values.jellyfin.apiKey)))
-				throw new Error('Could not connect to Jellyfin');
+			if (!(await getJellyfinHealth(values.jellyfin.baseUrl, values.jellyfin.apiKey))) {
+				createErrorNotification(
+					'Invalid Configuration',
+					'Could not connect to Jellyfin. Check Jellyfin credentials.'
+				);
+				return;
+			}
 			const users = await getJellyfinUsers(values.jellyfin.baseUrl, values.jellyfin.apiKey);
 			if (!users.find((u) => u.Id === values.jellyfin.userId)) values.jellyfin.userId = null;
 		}
 
-		checkSonarrHealth();
-		checkRadarrHealth();
-		checkJellyfinHealth();
+		updateSonarrHealth();
+		updateRadarrHealth();
+		updateJellyfinHealth();
 
 		axios.post('/api/settings', values).then(() => {
 			settings.set(values);
 		});
 	}
 
-	async function checkSonarrHealth(): Promise<boolean> {
-		if (!values.sonarr.baseUrl || !values.sonarr.apiKey) {
+	function checkForPartialConfiguration(v: SettingsValues) {
+		let error = '';
+		if (sonarrConnected && !v.sonarr.rootFolderPath) {
+			error = 'Sonarr disabled: Root folder path is required';
+		} else if (sonarrConnected && !v.sonarr.qualityProfileId) {
+			error = 'Sonarr disabled: Quality profile is required';
+		} else if (sonarrConnected && !v.sonarr.languageProfileId) {
+			error = 'Sonarr disabled: Language profile is required';
+		}
+
+		if (radarrConnected && !v.radarr.rootFolderPath) {
+			error = 'Radarr disabled: Root folder path is required';
+		} else if (radarrConnected && !v.radarr.qualityProfileId) {
+			error = 'Radarr disabled: Quality profile is required';
+		}
+
+		if (jellyfinConnected && !v.jellyfin.userId) {
+			error = 'Jellyfin disabled: User is required';
+		}
+		if (error) createErrorNotification('Incomplete Configuration', error, 'warning');
+	}
+
+	async function updateSonarrHealth(reset = false): Promise<boolean> {
+		if (!values.sonarr.baseUrl || !values.sonarr.apiKey || reset) {
 			sonarrConnected = false;
 			return false;
 		}
@@ -90,8 +130,8 @@
 		});
 	}
 
-	async function checkRadarrHealth(): Promise<boolean> {
-		if (!values.radarr.baseUrl || !values.radarr.apiKey) {
+	async function updateRadarrHealth(reset = false): Promise<boolean> {
+		if (!values.radarr.baseUrl || !values.radarr.apiKey || reset) {
 			radarrConnected = false;
 			return false;
 		}
@@ -104,11 +144,12 @@
 		});
 	}
 
-	async function checkJellyfinHealth(): Promise<boolean> {
-		if (!values.jellyfin.baseUrl || !values.jellyfin.apiKey) {
+	async function updateJellyfinHealth(reset = false): Promise<boolean> {
+		if (!values.jellyfin.baseUrl || !values.jellyfin.apiKey || reset) {
 			jellyfinConnected = false;
 			return false;
 		}
+
 		return getJellyfinHealth(
 			values.jellyfin.baseUrl || undefined,
 			values.jellyfin.apiKey || undefined
@@ -222,9 +263,9 @@
 						{sonarrConnected}
 						{radarrConnected}
 						{jellyfinConnected}
-						{checkSonarrHealth}
-						{checkRadarrHealth}
-						{checkJellyfinHealth}
+						{updateSonarrHealth}
+						{updateRadarrHealth}
+						{updateJellyfinHealth}
 					/>
 				{/if}
 			</div>
