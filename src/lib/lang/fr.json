@@ -1,0 +1,102 @@
+{
+	"appName": "Reiverr",
+	"setupRequiredTitle": "Bienvenue à",
+	"setupRequiredDescription": "Il semble que l'application manque de certaines variables d'environnement nécessaires au fonctionnement de l'application. ",
+	"navbar": {
+		"home": "Accueil",
+		"discover": "Découvrir",
+		"library": "Bibliothèque",
+		"sources": "Sources",
+		"settings": "Paramètres"
+	},
+	"search": {
+		"placeHolder": "Rechercher des films et des émissions de télévision",
+		"noRecentSearches": "Aucune recherche récente",
+		"noResults": "Aucun résultat trouvé"
+	},
+	"discover": {
+		"trending": "Tendance",
+		"popularPeople": "Personnes populaires",
+		"upcomingMovies": "Films à venir",
+		"upcomingSeries": "Série à venir",
+		"genres": "Genres",
+		"newDigitalReleases": "Nouvelles versions numériques",
+		"streamingNow": "En streaming maintenant",
+		"TVNetworks": "Réseaux de télévision"
+	},
+	"library": {
+		"missingConfiguration": "Configurez Radarr, Sonarr et Jellyfin pour surveiller et gérer votre bibliothèque",
+		"available": "Disponible",
+		"watched": "Regardé",
+		"unavailable": "Indisponible",
+		"sort": {
+			"byTitle": "Par titre"
+		},
+		"content": {
+			"movie": "Film",
+			"show": "Voir",
+			"requestContent": "Demander",
+			"directedBy": "Dirigé par",
+			"releaseDate": "Date de sortie",
+			"budget": "Budget",
+			"status": "Statut",
+			"runtime": "Durée",
+			"castAndCrew": "Casting",
+			"recommendations": "Recommandations",
+			"similarTitles": "Titres similaires"
+		}
+	},
+	"sources": {},
+	"titleShowcase": {
+		"details": "Détails",
+		"watchTrailer": "Regarde la bande-annonce",
+		"releaseDate": "Date de sortie",
+		"directedBy": "Dirigé par"
+	},
+	"settings": {
+		"navbar": {
+			"settings": "Configuration",
+			"general": "Général",
+			"integrations": "Intégrations"
+		},
+		"general": {
+			"userInterface": {
+				"userInterface": "Interface utilisateur",
+				"language": "Langue",
+				"autoplayTrailers": "Bandes-annonces à lecture automatique",
+				"animationDuration": "Durée de l'animation"
+			},
+			"discovery": {
+				"discovery": "Découverte",
+				"none": "Aucun",
+				"region": "Région",
+				"excludeLibraryItemsFromDiscovery": "Exclure les éléments de bibliothèque de Discovery",
+				"includedLanguages": "Langues incluses",
+				"includedLanguagesDescription": "Filtrez les résultats en fonction de la langue parlée. "
+			}
+		},
+		"integrations": {
+			"integrations": "Intégrations",
+			"integrationsNote": "Remarque: Les URL de base doivent être accessibles depuis le navigateur, ce qui signifie que les adresses Docker internes ne fonctionneront pas, par exemple. <span class='font-medium underline'>sera exposé</span> au navigateur.",
+			"baseUrl": "URL de base",
+			"apiKey": "clé API",
+			"testConnection": "Tester la connexion",
+			"status": {
+				"connected": "Connecté",
+				"disconnected": "Déconnecté"
+			},
+			"options": {
+				"options": "Options",
+				"rootFolder": "Dossier racine",
+				"qualityProfile": "Profil de qualité",
+				"languageProfile": "Profil linguistique",
+				"jellyfinUser": "Utilisateur de Jellyfin"
+			}
+		},
+		"misc": {
+			"saveChanges": "Sauvegarder les modifications",
+			"resetToDefaults": "Réinitialiser les paramètres par défaut ",
+			"changelog": "Journal des modifications"
+		}
+	}
+}
