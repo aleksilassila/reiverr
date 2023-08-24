@@ -12,7 +12,8 @@
 	"search": {
 		"placeHolder": "Busca entre películas y series",
 		"noRecentSearches": "Sin búsquedas recientes",
-		"noResults": "Sin resultados"
+		"noResults": "Sin resultados",
+		"viewAll": "Ver todo"
 	},
 	"discover": {
 		"trending": "Tendencia",

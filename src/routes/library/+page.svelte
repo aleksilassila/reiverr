@@ -12,6 +12,7 @@
 	import type { ComponentProps } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
+	import { page } from '$app/stores';
 
 	let itemsVisible: 'all' | 'movies' | 'shows' = 'all';
 	let sortBy: 'added' | 'rating' | 'release' | 'size' | 'name' = 'name';
@@ -19,8 +20,8 @@
 	let loading = true;
 	let noItems = false;
 	let searchInput: HTMLInputElement | undefined;
-	let searchInputValue = '';
-
+	$: searchInputValue = $page.url.searchParams.get('query') ?? '';
+	
 	let openNextUpTab: 'downloading' | 'nextUp' = 'downloading';
 	let openTab: 'available' | 'watched' | 'unavailable' = 'available';
 
@@ -124,7 +125,8 @@
 			if (searchInputValue) {
 				return (
 					item.radarrMovie?.title?.toLowerCase().includes(searchInputValue.toLowerCase()) ||
-					item.sonarrSeries?.title?.toLowerCase().includes(searchInputValue.toLowerCase())
+					item.sonarrSeries?.title?.toLowerCase().includes(searchInputValue.toLowerCase()) ||
+					item.jellyfinItem?.Name?.toLocaleLowerCase().includes(searchInputValue.toLowerCase())
 				);
 			} else {
 				return true;

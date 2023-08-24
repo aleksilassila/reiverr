@@ -9,6 +9,8 @@
 	import { onMount } from 'svelte';
 	import type { TitleType } from '$lib/types';
 	import { _ } from 'svelte-i18n';
+	import { goto } from '$app/navigation';
+	import Button from '../Button.svelte';
 
 	export let modalId: symbol;
 
@@ -62,6 +64,16 @@
 		modalStack.close(modalId);
 	}
 
+	function handleShowAll() {
+		const libraryUrl = inputValue !== '' ? `/library?query=${inputValue}` : '/library'; 
+		goto(libraryUrl, {replaceState: true});
+		handleClose();
+	}
+
+	function handleEnterClick(event: KeyboardEvent) {
+		if (event.key==="Enter") handleShowAll();
+	}
+
 	$: if (inputElement) inputElement.focus();
 
 	onMount(() => () => clearTimeout(searchTimeout));
@@ -74,6 +86,7 @@
 			bind:value={inputValue}
 			bind:this={inputElement}
 			on:input={handleInput}
+			on:keypress={handleEnterClick}
 			type="text"
 			class="flex-1 bg-transparent font-light outline-none"
 			placeholder={$_('search.placeHolder')}
@@ -87,6 +100,11 @@
 		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">{$_('search.noResults')}</div>
 	{:else}
 		<div class="py-2">
+			<div class="p-2">
+				<Button size="sm" type="secondary" on:click={() => handleShowAll()}>
+					<span>{$_('search.viewAll')}</span>
+				</Button>
+			</div>
 			{#each resultProps.slice(0, 5) as result}
 				<!-- svelte-ignore a11y-click-events-have-key-events -->
 				<!-- svelte-ignore a11y-no-static-element-interactions -->

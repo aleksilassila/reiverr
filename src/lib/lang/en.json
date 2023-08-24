@@ -12,7 +12,8 @@
 	"search": {
 		"placeHolder": "Search for Movies and TV Shows",
 		"noRecentSearches": "No recent searches",
-		"noResults": "No search results"
+		"noResults": "No search results",
+		"viewAll": "View all"
 	},
 	"discover": {
 		"trending": "Trending",
