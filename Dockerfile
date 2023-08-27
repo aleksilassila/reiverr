@@ -3,13 +3,10 @@ FROM node:18-alpine as pre-production
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
-
-#COPY package.json .
-#COPY package-lock.json .
-
-RUN npm i
-
 RUN npm run build
 
 FROM node:18-alpine as production
@@ -21,8 +18,7 @@ ENV NODE_ENV=production
 
 COPY --from=pre-production /usr/src/app/build ./build
 
-COPY package.json .
-COPY package-lock.json .
+COPY package.json package-lock.json ./
 
 RUN npm ci --omit dev
 

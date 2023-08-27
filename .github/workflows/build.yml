@@ -1,4 +1,4 @@
-name: Build & Deploy
+name: Create and publish a Docker image
 
 on:
   release:
@@ -40,3 +40,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
