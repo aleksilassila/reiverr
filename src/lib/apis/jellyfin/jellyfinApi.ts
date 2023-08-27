@@ -33,7 +33,7 @@ export const getJellyfinContinueWatching = async (): Promise<JellyfinItem[] | un
 				},
 				query: {
 					mediaTypes: ['Video'],
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres']
 				}
 			}
 		})
@@ -45,7 +45,7 @@ export const getJellyfinNextUp = async () =>
 			params: {
 				query: {
 					userId: get(settings)?.jellyfin.userId || '',
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres']
 				}
 			}
 		})
@@ -266,3 +266,22 @@ export const getJellyfinUsers = async (
 		})
 		.then((res) => res.data || [])
 		.catch(() => []);
+
+export const getJellyfinPoster = (item: JellyfinItem, quality = 100) =>
+	item.ImageTags?.Primary
+		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}&tag=${
+				item?.ImageTags?.Primary
+		  }`
+		: '';
+
+export const getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {
+	if (item.BackdropImageTags?.length) {
+		return `${get(settings).jellyfin.baseUrl}/Items/${
+			item?.Id
+		}/Images/Backdrop?quality=${quality}&tag=${item?.BackdropImageTags?.[0]}`;
+	} else {
+		return `${get(settings).jellyfin.baseUrl}/Items/${
+			item?.Id
+		}/Images/Primary?quality=${quality}&tag=${item?.ImageTags?.Primary}`;
+	}
+};

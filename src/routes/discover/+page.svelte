@@ -11,7 +11,6 @@
 	import { library } from '$lib/stores/library.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
-	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
 

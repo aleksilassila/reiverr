@@ -11,7 +11,7 @@
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { library } from '$lib/stores/library.store';
 
-	export let backdropPath: string;
+	export let backdropUrl: string;
 
 	export let title = '';
 	export let subtitle = '';
@@ -72,22 +72,25 @@
 				'cursor-default': !jellyfinId
 			}
 		)}
-		style={"background-image: url('" + TMDB_BACKDROP_SMALL + backdropPath + "');"}
+		style={"background-image: url('" + backdropUrl + "');"}
 		in:fade|global={{ duration: 100, delay: 100 }}
 		out:fade|global={{ duration: 100 }}
 	>
 		<div
 			class={classNames(
-				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0',
+				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0 bg-darken',
 				{
-					'bg-darken': !jellyfinId || watched,
-					'bg-gradient-to-t from-darken': !!jellyfinId
+					// 'bg-darken': !jellyfinId || watched,
+					// 'bg-gradient-to-t from-darken': !!jellyfinId
 				}
 			)}
 		/>
 		<div
 			class={classNames(
-				'flex-1 flex flex-col justify-between relative group-hover:opacity-0 group-focus-visible:opacity-0 transition-all'
+				'flex-1 flex flex-col justify-between relative group-hover:opacity-0 group-focus-visible:opacity-0 transition-all',
+				{
+					'opacity-8': !jellyfinId || watched
+				}
 			)}
 		>
 			<div class="flex justify-between items-center">
@@ -100,9 +103,13 @@
 				</div>
 				<div>
 					<slot name="right-top">
-						{#if runtime}
+						{#if runtime && !progress}
 							<p class="text-xs lg:text-sm font-medium text-zinc-300">
-								{runtime} min
+								{runtime.toFixed(0)} min
+							</p>
+						{:else if runtime && progress}
+							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+								{(runtime - (runtime / 100) * progress).toFixed(0)} min left
 							</p>
 						{/if}
 					</slot>

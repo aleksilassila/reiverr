@@ -98,7 +98,7 @@
 				episodes.push({
 					title: tmdbEpisode?.name || '',
 					subtitle: `Episode ${tmdbEpisode?.episode_number}`,
-					backdropPath: tmdbEpisode?.still_path || '',
+					backdropUrl: tmdbEpisode?.still_path || '',
 					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
 					watched: jellyfinEpisode?.UserData?.Played || false,
 					jellyfinId: jellyfinEpisodeId
