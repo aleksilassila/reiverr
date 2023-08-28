@@ -82,7 +82,7 @@ export const getJellyfinItems = async () =>
 // 		}
 // 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinEpisodes = async () =>
+export const getJellyfinEpisodes = async (parentId = '') =>
 	getJellyfinApi()
 		?.get('/Users/{userId}/Items', {
 			params: {
@@ -91,7 +91,8 @@ export const getJellyfinEpisodes = async () =>
 				},
 				query: {
 					recursive: true,
-					includeItemTypes: ['Episode']
+					includeItemTypes: ['Episode'],
+					parentId
 				}
 			},
 			headers: {
@@ -99,6 +100,23 @@ export const getJellyfinEpisodes = async () =>
 			}
 		})
 		.then((r) => r.data?.Items || []);
+
+export const getJellyfinEpisodesInSeasons = async (seriesId: string) =>
+	getJellyfinEpisodes(seriesId).then((items) => {
+		const seasons: Record<string, JellyfinItem[]> = {};
+
+		items?.forEach((item) => {
+			const seasonNumber = item.ParentIndexNumber || 0;
+
+			if (!seasons[seasonNumber]) {
+				seasons[seasonNumber] = [];
+			}
+
+			seasons[seasonNumber].push(item);
+		});
+
+		return seasons;
+	});
 
 // export const getJellyfinEpisodesBySeries = (seriesId: string) =>
 // 	getJellyfinEpisodes().then((items) => items?.filter((i) => i.SeriesId === seriesId) || []);

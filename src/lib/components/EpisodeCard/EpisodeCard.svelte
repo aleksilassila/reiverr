@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
+	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
+	import { library } from '$lib/stores/library.store';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
+	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
-	import ContextMenuItem from '../ContextMenu/ContextMenuItem.svelte';
-	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
-	import { library } from '$lib/stores/library.store';
 
 	export let backdropUrl: string;
 
@@ -19,6 +18,7 @@
 	export let runtime = 0;
 	export let progress = 0;
 	export let watched = false;
+	export let airDate: Date | undefined = undefined;
 
 	export let jellyfinId: string | undefined = undefined;
 
@@ -96,7 +96,16 @@
 			<div class="flex justify-between items-center">
 				<div>
 					<slot name="left-top">
-						{#if episodeNumber}
+						{#if airDate && airDate > new Date()}
+							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+								{airDate.toLocaleString('en-US', {
+									month: 'short',
+									day: 'numeric',
+									hour: 'numeric',
+									minute: 'numeric'
+								})}
+							</p>
+						{:else if episodeNumber}
 							<p class="text-xs lg:text-sm font-medium text-zinc-300">{episodeNumber}</p>
 						{/if}
 					</slot>
