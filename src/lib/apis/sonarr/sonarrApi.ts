@@ -306,3 +306,12 @@ export const getSonarrLanguageProfiles = async (
 			}
 		)
 		.then((res) => res.data || []);
+
+export function getSonarrPosterUrl(item: SonarrSeries, original = false) {
+	const url =
+		get(settings).sonarr.baseUrl + (item.images?.find((i) => i.coverType === 'poster')?.url || '');
+
+	if (!original) return url.replace('poster.jpg', `poster-${500}.jpg`);
+
+	return url;
+}

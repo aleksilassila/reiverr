@@ -33,6 +33,7 @@
 	import { modalStack } from '../../stores/modal.store';
 	import Slider from './Slider.svelte';
 	import { playerState } from './VideoPlayer';
+	import { linear } from 'svelte/easing';
 
 	export let modalId: symbol;
 
@@ -326,7 +327,36 @@
 			fullscreen = !!getFullscreenElement?.();
 		});
 	}
+
+	function handleRequestFullscreen() {
+		if (reqFullscreenFunc) {
+			fullscreen = !fullscreen;
+			// @ts-ignore
+		} else if (video?.webkitEnterFullScreen) {
+			// Edge case to allow fullscreen on iPhone
+			// @ts-ignore
+			video.webkitEnterFullScreen();
+		}
+	}
+
+	function handleShortcuts(event: KeyboardEvent) {
+		if (event.key === 'f') {
+			handleRequestFullscreen();
+		} else if (event.key === ' ') {
+			paused = !paused;
+		} else if (event.key === 'ArrowLeft') {
+			video.currentTime -= 10;
+		} else if (event.key === 'ArrowRight') {
+			video.currentTime += 10;
+		} else if (event.key === 'ArrowUp') {
+			volume = Math.min(volume + 0.1, 1);
+		} else if (event.key === 'ArrowDown') {
+			volume = Math.max(volume - 0.1, 0);
+		}
+	}
 </script>
+
+<svelte:window on:keydown={handleShortcuts} />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
@@ -336,15 +366,18 @@
 			'cursor-none': !uiVisible
 		}
 	)}
+	in:fade|global={{ duration: 500, easing: linear }}
+	out:fade|global={{ duration: 300, easing: linear }}
 >
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
-		class="bg-black w-screen h-screen flex items-center justify-center"
+		class="w-screen h-screen flex items-center justify-center"
 		bind:this={videoWrapper}
 		on:mousemove={() => handleUserInteraction(false)}
 		on:touchend|preventDefault={() => handleUserInteraction(true)}
 		on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
 		on:click={() => (paused = !paused)}
+		in:fade|global={{ duration: 500, delay: 1200, easing: linear }}
 	>
 		<!-- svelte-ignore a11y-media-has-caption -->
 		<video
@@ -446,20 +479,13 @@
 								<Slider bind:primaryValue={volume} secondaryValue={0} max={1} />
 							</div>
 
-							{#if reqFullscreenFunc}
-								<IconButton on:click={() => (fullscreen = !fullscreen)}>
-									{#if fullscreen}
-										<ExitFullScreen size={20} />
-									{:else if !fullscreen && exitFullscreen}
-										<EnterFullScreen size={20} />
-									{/if}
-								</IconButton>
-								<!-- Edge case to allow fullscreen on iPhone -->
-							{:else if video?.webkitEnterFullScreen}
-								<IconButton on:click={() => video.webkitEnterFullScreen()}>
+							<IconButton on:click={handleRequestFullscreen}>
+								{#if fullscreen}
+									<ExitFullScreen size={20} />
+								{:else if !fullscreen && exitFullscreen}
 									<EnterFullScreen size={20} />
-								</IconButton>
-							{/if}
+								{/if}
+							</IconButton>
 						</div>
 					</div>
 				</div>

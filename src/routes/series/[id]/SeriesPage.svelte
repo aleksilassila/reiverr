@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
+	import { getJellyfinEpisodes, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
 	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
@@ -14,13 +14,18 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
-	import { modalStack } from '$lib/stores/modal.store';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
 	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
 	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
-	import { createLibraryItemStore, library } from '$lib/stores/library.store';
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
+	import {
+		createJellyfinItemStore,
+		createSonarrDownloadStore,
+		createSonarrSeriesStore
+	} from '$lib/stores/data.store';
+	import { modalStack } from '$lib/stores/modal.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
@@ -28,38 +33,40 @@
 	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
+	export let title: string;
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 	const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
 
-	const itemStore = createLibraryItemStore(tmdbId);
+	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
+	const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
+		getTmdbSeriesSeasons(tmdbId, s?.number_of_seasons || 0)
+	);
+
+	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
+	const sonarrSeriesStore = createSonarrSeriesStore(title);
+	const sonarrDownloadStore = createSonarrDownloadStore(sonarrSeriesStore);
+
+	let sonarrSeries = $sonarrSeriesStore.item;
+	let jellyfinItem = $jellyfinItemStore.item;
 
 	let seasonSelectVisible = false;
 	let visibleSeasonNumber: number | undefined = undefined;
 	let visibleEpisodeIndex: number | undefined = undefined;
 
 	function openRequestModal() {
-		if (
-			!$itemStore.item?.sonarrSeries?.id ||
-			!$itemStore.item?.sonarrSeries?.statistics?.seasonCount
-		)
-			return;
+		if (!sonarrSeries?.id || !sonarrSeries?.statistics?.seasonCount) return;
 
 		modalStack.create(SeriesRequestModal, {
-			sonarrId: $itemStore.item?.sonarrSeries?.id || 0,
-			seasons: $itemStore.item?.sonarrSeries?.statistics?.seasonCount || 0,
-			heading: $itemStore.item?.sonarrSeries?.title || 'Series'
+			sonarrId: sonarrSeries?.id || 0,
+			seasons: sonarrSeries?.statistics?.seasonCount || 0,
+			heading: sonarrSeries?.title || 'Series'
 		});
 	}
 
 	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
 	let episodeComponents: HTMLDivElement[] = [];
 	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
-
-	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
-	const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
-		getTmdbSeriesSeasons(tmdbId, s?.number_of_seasons || 0)
-	);
 
 	const tmdbRecommendationProps = getTmdbSeriesRecommendations(tmdbId).then((r) =>
 		Promise.all(r.map(fetchCardTmdbProps))
@@ -78,18 +85,18 @@
 		)
 	);
 
-	itemStore.subscribe(async (libraryItem) => {
+	jellyfinItemStore.promise.then(async (jellyfinItem) => {
+		const jellyfinEpisodes = jellyfinItem?.Id ? await getJellyfinEpisodes(jellyfinItem?.Id) : [];
 		const tmdbSeasons = await tmdbSeasonsPromise;
 
 		tmdbSeasons.forEach((season) => {
 			const episodes: ComponentProps<EpisodeCard>[] = [];
 			season?.episodes?.forEach((tmdbEpisode) => {
-				const jellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.find(
+				const jellyfinEpisode = jellyfinEpisodes?.find(
 					(e) =>
 						e?.IndexNumber === tmdbEpisode?.episode_number &&
 						e?.ParentIndexNumber === tmdbEpisode?.season_number
 				);
-				const jellyfinEpisodeId = jellyfinEpisode?.Id;
 
 				if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
 					nextJellyfinEpisode = jellyfinEpisode;
@@ -98,16 +105,17 @@
 				episodes.push({
 					title: tmdbEpisode?.name || '',
 					subtitle: `Episode ${tmdbEpisode?.episode_number}`,
-					backdropPath: tmdbEpisode?.still_path || '',
+					backdropUrl: TMDB_BACKDROP_SMALL + tmdbEpisode?.still_path || '',
 					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
 					watched: jellyfinEpisode?.UserData?.Played || false,
-					jellyfinId: jellyfinEpisodeId
+					jellyfinId: jellyfinEpisode?.Id,
+					airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : undefined
 				});
 			});
 			episodeProps[season?.season_number || 0] = episodes;
 		});
 
-		if (!nextJellyfinEpisode) nextJellyfinEpisode = libraryItem.item?.jellyfinEpisodes?.[0];
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = jellyfinEpisodes?.[0];
 		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
 	});
 
@@ -115,15 +123,15 @@
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
 	}
 
-	async function refresh() {
-		await library.refresh();
+	async function refreshSonarr() {
+		await sonarrSeriesStore.refreshIn();
 	}
 
 	let addToSonarrLoading = false;
 	function addToSonarr() {
 		addToSonarrLoading = true;
 		addSeriesToSonarr(tmdbId)
-			.then(refresh)
+			.then(refreshSonarr)
 			.finally(() => (addToSonarrLoading = false));
 	}
 
@@ -177,22 +185,22 @@
 			<div
 				class="flex gap-2 items-center flex-row-reverse justify-end lg:flex-row lg:justify-start"
 			>
-				{#if $itemStore.loading}
+				{#if $jellyfinItemStore.loading || $sonarrSeriesStore.loading}
 					<div class="placeholder h-10 w-48 rounded-xl" />
 				{:else}
-					<OpenInButton title={series?.name} {itemStore} type="series" {tmdbId} />
-					{#if $itemStore.item?.jellyfinEpisodes?.length && !!nextJellyfinEpisode}
+					<OpenInButton title={series?.name} {jellyfinItem} {sonarrSeries} type="series" {tmdbId} />
+					{#if !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
 							<span>
 								Watch {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
 							</span>
 							<ChevronRight size={20} />
 						</Button>
-					{:else if !$itemStore.item?.sonarrSeries && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
+					{:else if !sonarrSeries && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 							<span>Add to Sonarr</span><Plus size={20} />
 						</Button>
-					{:else if $itemStore.item?.sonarrSeries}
+					{:else if sonarrSeries}
 						<Button type="primary" on:click={openRequestModal}>
 							<span class="mr-2">Request Series</span><Plus size={20} />
 						</Button>
@@ -313,33 +321,31 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="servarr-components">
-			{#if !$itemStore.loading && $itemStore.item?.sonarrSeries}
-				{@const item = $itemStore.item}
-				{#if item.sonarrSeries?.statistics?.episodeFileCount}
+			{#if sonarrSeries}
+				{#if sonarrSeries?.statistics?.episodeFileCount}
 					<div class="col-span-2 lg:col-span-1">
 						<p class="text-zinc-400 text-sm">Available</p>
 						<h2 class="font-medium">
-							{item.sonarrSeries?.statistics?.episodeFileCount || 0} Episodes
+							{sonarrSeries?.statistics?.episodeFileCount || 0} Episodes
 						</h2>
 					</div>
 				{/if}
-				{#if item.sonarrSeries?.statistics?.sizeOnDisk}
+				{#if sonarrSeries?.statistics?.sizeOnDisk}
 					<div class="col-span-2 lg:col-span-1">
 						<p class="text-zinc-400 text-sm">Size On Disk</p>
 						<h2 class="font-medium">
-							{formatSize(item.sonarrSeries?.statistics?.sizeOnDisk || 0)}
+							{formatSize(sonarrSeries?.statistics?.sizeOnDisk || 0)}
 						</h2>
 					</div>
 				{/if}
-				{#if $itemStore.item?.download}
+				{#if $sonarrDownloadStore.downloads?.length}
+					{@const download = $sonarrDownloadStore.downloads?.[0]}
 					<div class="col-span-2 lg:col-span-1">
 						<p class="text-zinc-400 text-sm">Download Completed In</p>
 						<h2 class="font-medium">
-							{$itemStore.item?.download.completionTime
+							{download?.estimatedCompletionTime
 								? formatMinutesToTime(
-										(new Date($itemStore.item?.download.completionTime).getTime() - Date.now()) /
-											1000 /
-											60
+										(new Date(download?.estimatedCompletionTime).getTime() - Date.now()) / 1000 / 60
 								  )
 								: 'Stalled'}
 						</h2>
@@ -354,7 +360,7 @@
 						<span class="mr-2">Manage</span><Archive size={20} />
 					</Button>
 				</div>
-			{:else if $itemStore.loading}
+			{:else if $sonarrSeriesStore.loading}
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
 					<div class="placeholder h-10 w-40 rounded-xl" />
 					<div class="placeholder h-10 w-40 rounded-xl" />

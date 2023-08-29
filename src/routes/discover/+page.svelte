@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { TmdbApiOpen, type TmdbMovie2, type TmdbSeries2 } from '$lib/apis/tmdb/tmdbApi';
+	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
+	import { TmdbApiOpen } from '$lib/apis/tmdb/tmdbApi';
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -8,25 +9,35 @@
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import { genres, networks } from '$lib/discover';
-	import { library } from '$lib/stores/library.store';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
-	import { get } from 'svelte/store';
-	import { fade } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
+	import { fade } from 'svelte/transition';
 
 	function parseIncludedLanguages(includedLanguages: string) {
 		return includedLanguages.replace(' ', '').split(',').join('|');
 	}
 
-	const fetchCardProps = async (items: TmdbMovie2[] | TmdbSeries2[]) =>
-		Promise.all(
-			(
-				await ($settings.discover.excludeLibraryItems
-					? library.filterNotInLibrary(items, (t) => t.id || 0)
-					: items)
-			).map(fetchCardTmdbProps)
-		).then((props) => props.filter((p) => p.backdropUrl));
+	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
+		jellyfinItemsStore.subscribe((data) => {
+			if (data.loading) return;
+			resolve(data.data || []);
+		});
+	});
+
+	const fetchCardProps = async (items: { id?: number }[]) => {
+		const i = $settings.discover.excludeLibraryItems
+			? items.filter(
+					async (item) =>
+						!(await jellyfinItemsPromise).find((i) => i.ProviderIds?.Tmdb === String(item.id))
+			  )
+			: items;
+
+		return Promise.all(i.map(fetchCardTmdbProps)).then((props) =>
+			props.filter((p) => p.backdropUrl)
+		);
+	};
 
 	const fetchTrendingProps = () =>
 		TmdbApiOpen.get('/3/trending/all/{time_window}', {
