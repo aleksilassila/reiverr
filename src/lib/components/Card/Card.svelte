@@ -2,8 +2,8 @@
 	import {
 		createJellyfinItemStore,
 		createRadarrMovieStore,
-		createSonarrItemStore
-	} from '$lib/stores/library.store';
+		createSonarrSeriesStore
+	} from '$lib/stores/data.store';
 	import type { TitleType } from '$lib/types';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
@@ -30,7 +30,7 @@
 
 	let jellyfinItemStore = createJellyfinItemStore(tmdbId);
 	let radarrMovieStore = createRadarrMovieStore(tmdbId);
-	let sonarrSeriesStore = createSonarrItemStore(title);
+	let sonarrSeriesStore = createSonarrSeriesStore(title);
 </script>
 
 <ContextMenu heading={title}>

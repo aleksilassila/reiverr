@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getDiskSpace } from '$lib/apis/radarr/radarrApi';
-	import { library } from '$lib/stores/library.store';
+	import { radarrMoviesStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatSize } from '$lib/utils.js';
 	import RadarrIcon from '../svgs/RadarrIcon.svelte';
@@ -11,24 +11,15 @@
 
 	async function fetchStats() {
 		const discSpacePromise = getDiskSpace();
-		const { itemsArray } = await $library;
-		const availableMovies = itemsArray.filter(
-			(item) =>
-				!item.download &&
-				item.radarrMovie &&
-				item.radarrMovie.isAvailable &&
-				item.radarrMovie.movieFile
-		);
+		const radarrMovies = await radarrMoviesStore.promise;
+		const availableMovies = radarrMovies.filter((item) => item.isAvailable && item.movieFile);
 
 		const diskSpaceInfo =
 			(await discSpacePromise).find((disk) => disk.path === '/') ||
 			(await discSpacePromise)[0] ||
 			undefined;
 
-		const spaceOccupied = availableMovies.reduce(
-			(acc, movie) => acc + (movie.radarrMovie?.sizeOnDisk || 0),
-			0
-		);
+		const spaceOccupied = availableMovies.reduce((acc, movie) => acc + (movie?.sizeOnDisk || 0), 0);
 
 		return {
 			moviesCount: availableMovies.length,

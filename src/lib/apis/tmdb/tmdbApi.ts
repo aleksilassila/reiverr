@@ -75,11 +75,11 @@ export const getTmdbMovie = async (tmdbId: number) =>
 		}
 	}).then((res) => res.data as TmdbMovieFull2 | undefined);
 
-export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
+export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	TmdbApiOpen.get('/3/find/{external_id}', {
 		params: {
 			path: {
-				external_id: String(tvdbId)
+				external_id: tvdbId
 			},
 			query: {
 				external_source: 'tvdb_id'

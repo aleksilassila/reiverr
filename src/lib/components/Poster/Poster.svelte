@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import type { TitleType } from '$lib/types';
 	import classNames from 'classnames';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 
-	export let tmdbId: number;
+	export let tmdbId: number | undefined = undefined;
+	export let tvdbId: number | undefined = undefined;
 	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
 	export let backdropUrl: string;
@@ -15,12 +15,20 @@
 	export let subtitle = '';
 
 	export let progress = 0;
+
+	export let size: 'dynamic' | 'md' = 'md';
 </script>
 
 <a
-	href={`/${type}/${tmdbId}`}
+	href={tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : '#'}
 	style={"background-image: url('" + backdropUrl + "');"}
-	class="relative flex shadow-lg rounded-lg aspect-[2/3] bg-center bg-cover w-44 selectable group hover:text-inherit flex-shrink-0"
+	class={classNames(
+		'relative flex shadow-lg rounded-lg aspect-[2/3] bg-center bg-cover w-44 selectable group hover:text-inherit flex-shrink-0',
+		{
+			'w-44': size === 'md',
+			'w-full': size === 'dynamic'
+		}
+	)}
 >
 	<div
 		class={classNames(

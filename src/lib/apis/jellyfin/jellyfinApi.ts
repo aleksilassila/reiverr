@@ -62,7 +62,7 @@ export const getJellyfinItems = async () =>
 					hasTmdbId: true,
 					recursive: true,
 					includeItemTypes: ['Movie', 'Series'],
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
 				}
 			}
 		})
@@ -285,7 +285,7 @@ export const getJellyfinUsers = async (
 		.then((res) => res.data || [])
 		.catch(() => []);
 
-export const getJellyfinPoster = (item: JellyfinItem, quality = 100) =>
+export const getJellyfinPosterUrl = (item: JellyfinItem, quality = 100) =>
 	item.ImageTags?.Primary
 		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}&tag=${
 				item?.ImageTags?.Primary

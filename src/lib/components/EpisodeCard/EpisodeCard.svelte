@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
-	import { library } from '$lib/stores/library.store';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';
@@ -28,14 +28,14 @@
 		if (!jellyfinId) return;
 
 		watched = true;
-		setJellyfinItemWatched(jellyfinId).finally(() => library.refreshIn(5000));
+		setJellyfinItemWatched(jellyfinId).finally(() => jellyfinItemsStore.refreshIn(5000));
 	}
 
 	function handleSetUnwatched() {
 		if (!jellyfinId) return;
 
 		watched = false;
-		setJellyfinItemUnwatched(jellyfinId).finally(() => library.refreshIn(5000));
+		setJellyfinItemUnwatched(jellyfinId).finally(() => jellyfinItemsStore.refreshIn(5000));
 	}
 
 	function handlePlay() {

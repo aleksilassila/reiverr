@@ -9,7 +9,6 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import { modalStack } from '$lib/stores/modal.store';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
@@ -18,11 +17,10 @@
 	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import {
 		createJellyfinItemStore,
-		createLibraryItemStore,
 		createRadarrDownloadStore,
-		createRadarrMovieStore,
-		library
-	} from '$lib/stores/library.store';
+		createRadarrMovieStore
+	} from '$lib/stores/data.store';
+	import { modalStack } from '$lib/stores/modal.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
@@ -64,7 +62,7 @@
 	}
 
 	async function refreshRadarr() {
-		await $radarrMovieStore.refreshIn();
+		await radarrMovieStore.refreshIn();
 	}
 
 	let addToRadarrLoading = false;

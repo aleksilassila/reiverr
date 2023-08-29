@@ -6,7 +6,7 @@
 	} from '$lib/apis/jellyfin/jellyfinApi';
 	import type { RadarrMovie } from '$lib/apis/radarr/radarrApi';
 	import type { SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
-	import { library } from '$lib/stores/library.store';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import type { TitleType } from '$lib/types';
 	import ContextMenuDivider from './ContextMenuDivider.svelte';
@@ -25,14 +25,14 @@
 	function handleSetWatched() {
 		if (jellyfinItem?.Id) {
 			watched = true;
-			setJellyfinItemWatched(jellyfinItem.Id).finally(() => library.refreshIn(3000));
+			setJellyfinItemWatched(jellyfinItem.Id).finally(() => jellyfinItemsStore.refreshIn(3000));
 		}
 	}
 
 	function handleSetUnwatched() {
 		if (jellyfinItem?.Id) {
 			watched = false;
-			setJellyfinItemUnwatched(jellyfinItem.Id).finally(() => library.refreshIn(3000));
+			setJellyfinItemUnwatched(jellyfinItem.Id).finally(() => jellyfinItemsStore.refreshIn(3000));
 		}
 	}
 

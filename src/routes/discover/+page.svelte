@@ -9,7 +9,7 @@
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import { genres, networks } from '$lib/discover';
-	import { jellyfinItemsStore } from '$lib/stores/library.store';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
 	import { _ } from 'svelte-i18n';

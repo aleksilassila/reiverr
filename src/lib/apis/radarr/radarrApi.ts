@@ -222,3 +222,9 @@ export const getRadarrQualityProfiles = async (
 			}
 		)
 		.then((res) => res.data || []);
+
+export function getRadarrPosterUrl(item: RadarrMovie) {
+	return (
+		get(settings).radarr.baseUrl + (item.images?.find((i) => i.coverType === 'poster')?.url || '')
+	);
+}

@@ -23,9 +23,8 @@
 	import {
 		createJellyfinItemStore,
 		createSonarrDownloadStore,
-		createSonarrItemStore,
-		library
-	} from '$lib/stores/library.store';
+		createSonarrSeriesStore
+	} from '$lib/stores/data.store';
 	import { modalStack } from '$lib/stores/modal.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
@@ -39,8 +38,13 @@
 	export let handleCloseModal: () => void = () => {};
 	const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
 
+	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
+	const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
+		getTmdbSeriesSeasons(tmdbId, s?.number_of_seasons || 0)
+	);
+
 	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
-	const sonarrSeriesStore = createSonarrItemStore(title);
+	const sonarrSeriesStore = createSonarrSeriesStore(title);
 	const sonarrDownloadStore = createSonarrDownloadStore(sonarrSeriesStore);
 
 	let sonarrSeries = $sonarrSeriesStore.item;
@@ -63,11 +67,6 @@
 	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
 	let episodeComponents: HTMLDivElement[] = [];
 	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
-
-	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
-	const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
-		getTmdbSeriesSeasons(tmdbId, s?.number_of_seasons || 0)
-	);
 
 	const tmdbRecommendationProps = getTmdbSeriesRecommendations(tmdbId).then((r) =>
 		Promise.all(r.map(fetchCardTmdbProps))
@@ -124,15 +123,15 @@
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
 	}
 
-	async function refresh() {
-		await library.refresh(tmdbId);
+	async function refreshSonarr() {
+		await sonarrSeriesStore.refreshIn();
 	}
 
 	let addToSonarrLoading = false;
 	function addToSonarr() {
 		addToSonarrLoading = true;
 		addSeriesToSonarr(tmdbId)
-			.then(refresh)
+			.then(refreshSonarr)
 			.finally(() => (addToSonarrLoading = false));
 	}
 

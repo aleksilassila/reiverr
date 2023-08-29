@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getDiskSpace } from '$lib/apis/sonarr/sonarrApi';
-	import { library } from '$lib/stores/library.store';
+	import { sonarrSeriesStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatSize } from '$lib/utils.js';
 	import SonarrIcon from '../svgs/SonarrIcon.svelte';
@@ -11,10 +11,8 @@
 
 	async function fetchStats() {
 		const discSpacePromise = getDiskSpace();
-		const { itemsArray } = await $library;
-		const availableSeries = itemsArray.filter(
-			(item) => item.sonarrSeries && item.sonarrSeries.statistics?.episodeFileCount
-		);
+		const sonarrSeries = await sonarrSeriesStore.promise;
+		const availableSeries = sonarrSeries.filter((item) => item.statistics?.episodeFileCount);
 
 		const diskSpaceInfo =
 			(await discSpacePromise).find((disk) => disk.path === '/') ||
@@ -22,12 +20,12 @@
 			undefined;
 
 		const spaceOccupied = availableSeries.reduce(
-			(acc, series) => acc + (series.sonarrSeries?.statistics?.sizeOnDisk || 0),
+			(acc, series) => acc + (series?.statistics?.sizeOnDisk || 0),
 			0
 		);
 
 		const episodesCount = availableSeries.reduce(
-			(acc, series) => acc + (series.sonarrSeries?.statistics?.episodeFileCount || 0),
+			(acc, series) => acc + (series?.statistics?.episodeFileCount || 0),
 			0
 		);
 

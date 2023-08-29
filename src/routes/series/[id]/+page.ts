@@ -1,11 +1,25 @@
-import { getTmdbSeries } from '$lib/apis/tmdb/tmdbApi';
+import { getTmdbSeries, getTmdbSeriesFromTvdbId } from '$lib/apis/tmdb/tmdbApi';
+import { sonarrSeriesStore } from '$lib/stores/data.store';
 import type { PageLoad } from './$types';
 
 export const load = (async ({ params }) => {
-	const tmdbSeries = await getTmdbSeries(Number(params.id));
+	const sonarrItem = await sonarrSeriesStore.promise.then((series) =>
+		series.find((s) => s.tvdbId === Number(params.id))
+	);
 
-	return {
-		tmdbId: params.id,
-		name: tmdbSeries?.name
-	};
+	if (sonarrItem) {
+		const tmdbSeries = await getTmdbSeriesFromTvdbId(params.id);
+
+		return {
+			tmdbId: tmdbSeries?.id,
+			name: tmdbSeries?.name
+		};
+	} else {
+		const tmdbSeries = await getTmdbSeries(Number(params.id));
+
+		return {
+			tmdbId: tmdbSeries?.id,
+			name: tmdbSeries?.name
+		};
+	}
 }) satisfies PageLoad;

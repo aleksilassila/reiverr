@@ -306,3 +306,9 @@ export const getSonarrLanguageProfiles = async (
 			}
 		)
 		.then((res) => res.data || []);
+
+export function getSonarrPosterUrl(item: SonarrSeries) {
+	return (
+		get(settings).sonarr.baseUrl + (item.images?.find((i) => i.coverType === 'poster')?.url || '')
+	);
+}
