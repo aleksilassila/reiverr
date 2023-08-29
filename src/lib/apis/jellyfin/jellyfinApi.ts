@@ -285,11 +285,11 @@ export const getJellyfinUsers = async (
 		.then((res) => res.data || [])
 		.catch(() => []);
 
-export const getJellyfinPosterUrl = (item: JellyfinItem, quality = 100) =>
+export const getJellyfinPosterUrl = (item: JellyfinItem, quality = 100, original = false) =>
 	item.ImageTags?.Primary
-		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}&tag=${
-				item?.ImageTags?.Primary
-		  }`
+		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}${
+				original ? '' : '&fillWidth=432'
+		  }&tag=${item?.ImageTags?.Primary}`
 		: '';
 
 export const getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {

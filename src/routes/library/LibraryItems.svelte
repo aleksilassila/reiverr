@@ -137,7 +137,7 @@
 
 <div class="flex items-center justify-between gap-2">
 	<UiCarousel>
-		<div class="flex gap-6 text-xl font-medium text-zinc-400">
+		<div class="flex gap-6 text-lg font-medium text-zinc-400">
 			<button
 				class={classNames('hover:text-zinc-300 selectable rounded px-1 -mx-1', {
 					'text-zinc-200': openTab === 'available'

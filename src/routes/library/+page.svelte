@@ -16,6 +16,7 @@
 	import { _ } from 'svelte-i18n';
 	import { fade } from 'svelte/transition';
 	import LibraryItems from './LibraryItems.svelte';
+	import { capitalize } from '$lib/utils';
 
 	let openNextUpTab: 'downloading' | 'nextUp' = 'downloading';
 	let noItems = false;
@@ -38,16 +39,19 @@
 			$servarrDownloadsStore.sonarrDownloads?.map((item) => ({
 				tvdbId: item.series.tvdbId,
 				title: item.series.title || '',
-				subtitle: item.series.genres?.join(', ') || '',
+				subtitle:
+					`S${item.episode?.seasonNumber}E${item.episode?.episodeNumber} • ` +
+					capitalize(item.status || ''),
 				type: 'series',
+				progress: 100 * (((item.size || 0) - (item.sizeleft || 0)) / (item.size || 1)),
 				backdropUrl: item.series.images?.find((i) => i.coverType === 'poster')?.url || ''
 			})) || [];
-		console.log($servarrDownloadsStore.radarrDownloads);
+
 		const radarrProps: ComponentProps<Poster>[] =
 			$servarrDownloadsStore.radarrDownloads?.map((item) => ({
 				tmdbId: item.movie.tmdbId,
 				title: item.movie.title || '',
-				subtitle: item.movie.genres?.join(', ') || '',
+				subtitle: capitalize(item.status || ''),
 				type: 'movie',
 				backdropUrl: item.movie.images?.find((i) => i.coverType === 'poster')?.url || '',
 				progress: 100 * (((item.size || 0) - (item.sizeleft || 0)) / (item.size || 1))
@@ -104,7 +108,7 @@
 									type="primary"
 									on:click={() => showcase?.Id && playerState.streamJellyfinId(showcase?.Id)}
 								>
-									Stream<ChevronRight size={20} />
+									Watch<ChevronRight size={20} />
 								</Button>
 								<Button
 									href={`/${showcase?.Type === 'Movie' ? 'movie' : 'series'}/${

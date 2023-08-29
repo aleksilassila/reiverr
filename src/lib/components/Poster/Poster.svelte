@@ -4,6 +4,7 @@
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import LazyImg from '../LazyImg.svelte';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
@@ -21,22 +22,20 @@
 
 <a
 	href={tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : '#'}
-	style={"background-image: url('" + backdropUrl + "');"}
 	class={classNames(
-		'relative flex shadow-lg rounded-lg aspect-[2/3] bg-center bg-cover w-44 selectable group hover:text-inherit flex-shrink-0',
+		'relative flex shadow-lg rounded-xl aspect-[2/3] w-44 selectable group hover:text-inherit flex-shrink-0 overflow-hidden',
 		{
 			'w-44': size === 'md',
 			'w-full': size === 'dynamic'
 		}
 	)}
 >
+	<LazyImg src={backdropUrl} class="absolute inset-0 group-hover:scale-105 transition-transform" />
 	<div
 		class={classNames(
-			'flex-1 flex flex-col justify-between bg-darken opacity-0 group-hover:opacity-100 transition-opacity',
+			'flex-1 flex flex-col justify-between bg-darken opacity-0 group-hover:opacity-100 transition-opacity z-[1]',
 			{
 				'py-2 px-3': true
-				// 'pb-4': progress,
-				// 'pb-2': !progress
 			}
 		)}
 	>
@@ -60,21 +59,23 @@
 			</slot>
 		</div>
 	</div>
-	<div
-		class="absolute inset-0 bg-gradient-to-t from-darken group-hover:opacity-0 transition-opacity"
-	/>
-	<div class="absolute inset-0 flex items-center justify-center">
-		<PlayButton
-			on:click={(e) => {
-				e.preventDefault();
-				jellyfinId && playerState.streamJellyfinId(jellyfinId);
-			}}
-			class="sm:opacity-0 group-hover:opacity-100 transition-opacity"
-		/>
-	</div>
+	<!-- <div
+		class="absolute inset-0 bg-gradient-to-t from-darken group-hover:opacity-0 transition-opacity z-[1]"
+	/> -->
+	{#if jellyfinId}
+		<div class="absolute inset-0 flex items-center justify-center z-[1]">
+			<PlayButton
+				on:click={(e) => {
+					e.preventDefault();
+					jellyfinId && playerState.streamJellyfinId(jellyfinId);
+				}}
+				class="sm:opacity-0 group-hover:opacity-100 transition-opacity"
+			/>
+		</div>
+	{/if}
 	{#if progress}
 		<div
-			class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity bg-gradient-to-t ease-in-out"
+			class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 group-hover:opacity-0 transition-opacity bg-gradient-to-t ease-in-out z-[1]"
 		>
 			<ProgressBar {progress} />
 		</div>
