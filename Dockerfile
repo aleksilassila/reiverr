@@ -20,6 +20,10 @@ COPY --from=builder /usr/src/app/build build/
 COPY --from=builder /usr/src/app/node_modules node_modules/
 COPY package.json ./
 
+# Config folder
+RUN mkdir -p ./config
+RUN ln -s /usr/src/app/config /config
+
 ENV PORT=9494
 ENV NODE_ENV=production
 CMD [ "node", "build" ]
