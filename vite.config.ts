@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig(() => ({
 	plugins: [sveltekit()],
 	server: {
+		port: Number(process.env.PORT || 4173)
+	},
+	preview: {
 		port: Number(process.env.PORT || 9494)
 	},
 	test: {
@@ -11,5 +14,5 @@ export default defineConfig(() => ({
 	},
 	ssr: {
 		external: ['reflect-metadata']
-	},
+	}
 }));

@@ -19,6 +19,5 @@ COPY --from=builder /usr/src/app/build ./build
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit dev
-RUN mkdir -p ./config
 
-CMD [ "npm", "run", "preview" ]
+CMD [ "node", "build" ]
