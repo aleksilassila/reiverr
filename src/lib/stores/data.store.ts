@@ -7,7 +7,8 @@ import {
 import {
 	getSonarrDownloads,
 	getSonarrSeries,
-	type SonarrDownload
+	type SonarrDownload,
+	type SonarrSeries
 } from '$lib/apis/sonarr/sonarrApi';
 import { derived, writable } from 'svelte/store';
 import { settings } from './settings.store';
@@ -101,20 +102,27 @@ export function createRadarrMovieStore(tmdbId: number) {
 	};
 }
 
-export function createSonarrSeriesStore(name: string) {
+export function createSonarrSeriesStore(name: Promise<string> | string) {
 	function shorten(str: string) {
 		return str.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
 	}
 
-	const store = derived(sonarrSeriesStore, (s) => {
-		return {
+	const store = writable<{ loading: boolean; item?: SonarrSeries }>({
+		loading: true,
+		item: undefined
+	});
+
+	sonarrSeriesStore.subscribe(async (s) => {
+		const awaited = await name;
+
+		store.set({
 			loading: s.loading,
 			item: s.data?.find(
 				(i) =>
-					shorten(i.titleSlug || '') === shorten(name) ||
-					i.alternateTitles?.find((t) => shorten(t.title || '') === shorten(name))
+					shorten(i.titleSlug || '') === shorten(awaited) ||
+					i.alternateTitles?.find((t) => shorten(t.title || '') === shorten(awaited))
 			)
-		};
+		});
 	});
 
 	return {

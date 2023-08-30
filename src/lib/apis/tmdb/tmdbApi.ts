@@ -91,7 +91,7 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
-	getTmdbSeriesFromTvdbId(tvdbId).then((res: any) => res?.id as number | undefined);
+	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => res?.id as number | undefined);
 
 export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {
@@ -279,6 +279,16 @@ export const searchTmdbTitles = (query: string) =>
 			}
 		}
 	}).then((res) => res.data?.results || []);
+
+export const getTmdbItemBackdrop = (item: {
+	images: { backdrops: { file_path: string; iso_639_1: string }[] };
+}) =>
+	(
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1) ||
+		item?.images?.backdrops?.[0]
+	)?.file_path;
 
 export const TMDB_MOVIE_GENRES = [
 	{

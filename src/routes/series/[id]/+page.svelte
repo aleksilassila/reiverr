@@ -6,10 +6,8 @@
 
 	let tmdbId: number;
 	$: tmdbId = Number(data.tmdbId);
-	let name: string;
-	$: name = data.name || '';
 </script>
 
 {#key tmdbId}
-	<SeriesPage {tmdbId} title={name} />
+	<SeriesPage {tmdbId} />
 {/key}

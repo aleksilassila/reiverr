@@ -11,18 +11,18 @@
 	}
 </script>
 
-<img
-	{src}
-	{alt}
-	class={classNames(
-		'transition-opacity',
-		{
-			'opacity-0': !loaded,
-			'opacity-100': loaded
-		},
-		$$restProps.class
-	)}
-	style="object-fit: cover; width: 100%; height: 100%;"
-	loading="lazy"
-	on:load={handleLoad}
-/>
+<div
+	class={classNames('transition-opacity duration-300', {
+		'opacity-0': !loaded,
+		'opacity-100': loaded
+	})}
+>
+	<img
+		{src}
+		{alt}
+		class={classNames($$restProps.class)}
+		style="object-fit: cover; width: 100%; height: 100%;"
+		loading="lazy"
+		on:load={handleLoad}
+	/>
+</div>

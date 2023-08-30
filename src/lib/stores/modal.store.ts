@@ -61,9 +61,9 @@ function createDynamicModalStack() {
 export const modalStack = createDynamicModalStack();
 
 let lastTitleModal: symbol | undefined = undefined;
-export function openTitleModal(tmdbId: number, type: TitleType, title = '') {
+export function openTitleModal(tmdbId: number, type: TitleType) {
 	if (lastTitleModal) {
 		modalStack.close(lastTitleModal);
 	}
-	lastTitleModal = modalStack.create(TitlePageModal, { tmdbId, type, title });
+	lastTitleModal = modalStack.create(TitlePageModal, { tmdbId, type });
 }

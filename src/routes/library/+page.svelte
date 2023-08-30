@@ -44,7 +44,8 @@
 					capitalize(item.status || ''),
 				type: 'series',
 				progress: 100 * (((item.size || 0) - (item.sizeleft || 0)) / (item.size || 1)),
-				backdropUrl: item.series.images?.find((i) => i.coverType === 'poster')?.url || ''
+				backdropUrl: item.series.images?.find((i) => i.coverType === 'poster')?.url || '',
+				orientation: 'portrait'
 			})) || [];
 
 		const radarrProps: ComponentProps<Poster>[] =
@@ -54,7 +55,8 @@
 				subtitle: capitalize(item.status || ''),
 				type: 'movie',
 				backdropUrl: item.movie.images?.find((i) => i.coverType === 'poster')?.url || '',
-				progress: 100 * (((item.size || 0) - (item.sizeleft || 0)) / (item.size || 1))
+				progress: 100 * (((item.size || 0) - (item.sizeleft || 0)) / (item.size || 1)),
+				orientation: 'portrait'
 			})) || [];
 
 		downloadProps = [...(sonarrProps || []), ...(radarrProps || [])];
@@ -90,7 +92,7 @@
 				class="bg-center bg-cover col-start-1 row-start-1 col-span-2 row-span-3 relative pt-24"
 			>
 				<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
-				<div class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-[10%] pb-8">
+				<div class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-56 pb-12">
 					<div class="flex gap-4 items-end">
 						<div
 							style={"background-image: url('" +
@@ -108,7 +110,7 @@
 									type="primary"
 									on:click={() => showcase?.Id && playerState.streamJellyfinId(showcase?.Id)}
 								>
-									Watch<ChevronRight size={20} />
+									Play<ChevronRight size={20} />
 								</Button>
 								<Button
 									href={`/${showcase?.Type === 'Movie' ? 'movie' : 'series'}/${
@@ -133,7 +135,7 @@
 		}}
 		out:fade|global={{ duration: $settings.animationDuration }}
 	>
-		<div class="max-w-screen-2xl m-auto flex flex-col gap-4">
+		<div class="max-w-screen-2xl m-auto flex flex-col gap-12">
 			{#if downloadProps?.length}
 				<div>
 					<Carousel heading="Downloading">

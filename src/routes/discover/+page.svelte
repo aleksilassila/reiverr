@@ -1,23 +1,21 @@
 <script lang="ts">
 	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { TmdbApiOpen } from '$lib/apis/tmdb/tmdbApi';
+	import { TmdbApiOpen, getTmdbItemBackdrop, getTmdbMovieBackdrop } from '$lib/apis/tmdb/tmdbApi';
 	import Card from '$lib/components/Card/Card.svelte';
-	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import GenreCard from '$lib/components/GenreCard.svelte';
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import Poster from '$lib/components/Poster/Poster.svelte';
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import { genres, networks } from '$lib/discover';
 	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import { formatDateToYearMonthDay } from '$lib/utils';
+	import type { ComponentProps } from 'svelte';
 	import { _ } from 'svelte-i18n';
 	import { fade } from 'svelte/transition';
-
-	function parseIncludedLanguages(includedLanguages: string) {
-		return includedLanguages.replace(' ', '').split(',').join('|');
-	}
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
 		jellyfinItemsStore.subscribe((data) => {
@@ -26,17 +24,29 @@
 		});
 	});
 
-	const fetchCardProps = async (items: { id?: number }[]) => {
-		const i = $settings.discover.excludeLibraryItems
+	const fetchCardProps = async (
+		items: { name?: string; title?: string; id?: number; vote_average?: number }[]
+	): Promise<ComponentProps<Poster>[]> => {
+		const filtered = $settings.discover.excludeLibraryItems
 			? items.filter(
 					async (item) =>
 						!(await jellyfinItemsPromise).find((i) => i.ProviderIds?.Tmdb === String(item.id))
 			  )
 			: items;
 
-		return Promise.all(i.map(fetchCardTmdbProps)).then((props) =>
-			props.filter((p) => p.backdropUrl)
-		);
+		return Promise.all(
+			filtered.map(async (item) => {
+				const backdropUri = await getTmdbMovieBackdrop(item.id || 0);
+				return {
+					tmdbId: item.id || 0,
+					title: item.title || item.name || '',
+					// subtitle: item.subtitle || '',
+					rating: item.vote_average || undefined,
+					size: 'md',
+					backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : ''
+				} as const;
+			})
+		).then((props) => props.filter((p) => p.backdropUrl));
 	};
 
 	const fetchTrendingProps = () =>
@@ -132,6 +142,10 @@
 		})
 			.then((res) => res.data?.results || [])
 			.then(fetchCardProps);
+
+	function parseIncludedLanguages(includedLanguages: string) {
+		return includedLanguages.replace(' ', '').split(',').join('|');
+	}
 </script>
 
 <div
@@ -152,7 +166,7 @@
 				<CarouselPlaceholderItems size="lg" />
 			{:then props}
 				{#each props as prop (prop.tmdbId)}
-					<Card size="lg" {...prop} />
+					<Poster size="lg" {...prop} />
 				{/each}
 			{/await}
 		</Carousel>
@@ -160,7 +174,7 @@
 </div>
 
 <div
-	class="flex flex-col gap-8 max-w-screen-2xl mx-auto py-4"
+	class="flex flex-col gap-12 max-w-screen-2xl mx-auto py-4"
 	in:fade|global={{
 		duration: $settings.animationDuration,
 		delay: $settings.animationDuration
@@ -181,7 +195,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<Card {...prop} />
+				<Poster {...prop} />
 			{/each}
 		{/await}
 	</Carousel>
@@ -190,7 +204,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<Card {...prop} />
+				<Poster {...prop} />
 			{/each}
 		{/await}
 	</Carousel>
@@ -204,7 +218,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<Card {...prop} />
+				<Poster {...prop} />
 			{/each}
 		{/await}
 	</Carousel>
@@ -213,7 +227,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<Card {...prop} />
+				<Poster {...prop} />
 			{/each}
 		{/await}
 	</Carousel>

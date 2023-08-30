@@ -6,7 +6,6 @@
 	import { modalStack } from '../../stores/modal.store';
 
 	export let tmdbId: number;
-	export let title: string = '';
 	export let type: TitleType;
 	export let modalId: symbol;
 
@@ -26,7 +25,7 @@
 		{#if type === 'movie'}
 			<MoviePage {tmdbId} isModal={true} {handleCloseModal} />
 		{:else}
-			<SeriesPage {tmdbId} {title} isModal={true} {handleCloseModal} />
+			<SeriesPage {tmdbId} isModal={true} {handleCloseModal} />
 		{/if}
 	</div>
 </div>

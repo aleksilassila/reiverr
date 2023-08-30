@@ -34,6 +34,7 @@
 	import Slider from './Slider.svelte';
 	import { playerState } from './VideoPlayer';
 	import { linear } from 'svelte/easing';
+	import ContextMenuButton from '../ContextMenu/ContextMenuButton.svelte';
 
 	export let modalId: symbol;
 
@@ -366,8 +367,8 @@
 			'cursor-none': !uiVisible
 		}
 	)}
-	in:fade|global={{ duration: 500, easing: linear }}
-	out:fade|global={{ duration: 300, easing: linear }}
+	in:fade|global={{ duration: 300, easing: linear }}
+	out:fade|global={{ duration: 200, easing: linear }}
 >
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
@@ -375,8 +376,6 @@
 		bind:this={videoWrapper}
 		on:mousemove={() => handleUserInteraction(false)}
 		on:touchend|preventDefault={() => handleUserInteraction(true)}
-		on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
-		on:click={() => (paused = !paused)}
 		in:fade|global={{ duration: 500, delay: 1200, easing: linear }}
 	>
 		<!-- svelte-ignore a11y-media-has-caption -->
@@ -398,6 +397,8 @@
 			bind:muted={mute}
 			class="sm:w-full sm:h-full"
 			playsinline={true}
+			on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
+			on:click={() => (paused = !paused)}
 		/>
 
 		{#if uiVisible}
@@ -436,29 +437,22 @@
 						</IconButton>
 
 						<div class="flex items-center space-x-3">
-							<div class="relative">
-								<ContextMenu
-									heading="Quality"
-									position="absolute"
-									bottom={true}
-									id={qualityContextMenuId}
-								>
-									<svelte:fragment slot="menu">
-										{#each getQualities(resolution) as quality}
-											<SelectableContextMenuItem
-												selected={quality.maxBitrate === currentBitrate}
-												on:click={() => handleSelectQuality(quality.maxBitrate)}
-											>
-												{quality.name}
-											</SelectableContextMenuItem>
-										{/each}
-									</svelte:fragment>
-									<IconButton on:click={handleQualityToggleVisibility}>
-										<Gear size={20} />
-									</IconButton>
-								</ContextMenu>
-							</div>
+							<ContextMenuButton heading="Quality">
+								<svelte:fragment slot="menu">
+									{#each getQualities(resolution) as quality}
+										<SelectableContextMenuItem
+											selected={quality.maxBitrate === currentBitrate}
+											on:click={() => handleSelectQuality(quality.maxBitrate)}
+										>
+											{quality.name}
+										</SelectableContextMenuItem>
+									{/each}
+								</svelte:fragment>
 
+								<IconButton>
+									<Gear size={20} />
+								</IconButton>
+							</ContextMenuButton>
 							<IconButton
 								on:click={() => {
 									mute = !mute;

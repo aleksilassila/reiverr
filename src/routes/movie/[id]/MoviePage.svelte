@@ -131,7 +131,7 @@
 					<OpenInButton title={movie?.title} {jellyfinItem} {radarrMovie} type="movie" {tmdbId} />
 					{#if jellyfinItem}
 						<Button type="primary" on:click={play}>
-							<span>Watch</span><ChevronRight size={20} />
+							<span>Play</span><ChevronRight size={20} />
 						</Button>
 					{:else if !radarrMovie && $settings.radarr.baseUrl && $settings.radarr.apiKey}
 						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>

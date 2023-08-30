@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getJellyfinEpisodes, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
+	import { addSeriesToSonarr, type SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
@@ -33,7 +33,6 @@
 	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
-	export let title: string;
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 	const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
@@ -44,11 +43,13 @@
 	);
 
 	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
-	const sonarrSeriesStore = createSonarrSeriesStore(title);
+	const sonarrSeriesStore = createSonarrSeriesStore(tmdbSeriesPromise.then((s) => s?.name || ''));
 	const sonarrDownloadStore = createSonarrDownloadStore(sonarrSeriesStore);
 
-	let sonarrSeries = $sonarrSeriesStore.item;
+	let sonarrSeries: undefined | SonarrSeries = undefined;
 	let jellyfinItem = $jellyfinItemStore.item;
+
+	sonarrSeriesStore.subscribe((s) => (sonarrSeries = s.item));
 
 	let seasonSelectVisible = false;
 	let visibleSeasonNumber: number | undefined = undefined;
@@ -192,7 +193,7 @@
 					{#if !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
 							<span>
-								Watch {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+								Play {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
 							</span>
 							<ChevronRight size={20} />
 						</Button>

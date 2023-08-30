@@ -13,7 +13,7 @@
 		},
 		$$restProps.class
 	)}
-	on:click|stopPropagation
+	on:click
 >
 	<slot />
 </button>
