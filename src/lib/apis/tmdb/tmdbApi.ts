@@ -1,7 +1,6 @@
 import { browser } from '$app/environment';
 import { TMDB_API_KEY } from '$lib/constants';
 import { settings } from '$lib/stores/settings.store';
-import { formatDateToYearMonthDay } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';

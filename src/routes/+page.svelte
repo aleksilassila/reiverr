@@ -9,6 +9,8 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcase.svelte';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
+	import { log } from '$lib/utils';
 
 	let continueWatchingVisible = true;
 
@@ -21,11 +23,16 @@
 
 	let nextUpProps = Promise.all([nextUpP, continueWatchingP])
 		.then(([nextUp, continueWatching]) => [...(continueWatching || []), ...(nextUp || [])])
+		.then(log)
 		.then((items) =>
-			items?.map(
-				(item) =>
-					({
-						tmdbId: Number(item.ProviderIds?.Tmdb) || 0,
+			Promise.all(
+				items?.map(async (item) => {
+					const parentSeries = await jellyfinItemsStore.promise.then((items) =>
+						items.find((i) => i.Id === item.SeriesId)
+					);
+
+					return {
+						tmdbId: Number(item.ProviderIds?.Tmdb) || Number(parentSeries?.ProviderIds?.Tmdb) || 0,
 						jellyfinId: item.Id,
 						backdropUrl: getJellyfinBackdrop(item),
 						title: item.Name || '',
@@ -43,7 +50,8 @@
 										item.Genres?.join(', ') ||
 										''
 							  })
-					} as const)
+					} as const;
+				})
 			)
 		);
 
@@ -103,13 +111,6 @@
 					on:click={() => (window.location.href = `/${prop.type}/${prop.tmdbId}`)}
 					{...prop}
 				/>
-				<!-- <Poster {...prop}>
-					<div slot="bottom-left" class="text-sm font-medium text-zinc-300">
-						{#if prop.progress}
-							{(prop.runtime - (prop.runtime / 100) * prop.progress).toFixed()} Minutes Left
-						{/if}
-					</div>
-				</Poster> -->
 			{/each}
 		{/await}
 	</Carousel>

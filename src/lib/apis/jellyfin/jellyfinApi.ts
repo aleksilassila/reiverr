@@ -66,7 +66,7 @@ export const getJellyfinItems = async () =>
 				}
 			}
 		})
-		.then((r) => r.data?.Items || []);
+		.then((r) => r.data?.Items || []) || Promise.resolve([]);
 
 // export const getJellyfinSeries = () =>
 // 	JellyfinApi.get('/Users/{userId}/Items', {

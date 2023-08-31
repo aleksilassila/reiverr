@@ -12,6 +12,7 @@
 	import { genres, networks } from '$lib/discover';
 	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
+	import type { TitleType } from '$lib/types';
 	import { formatDateToYearMonthDay } from '$lib/utils';
 	import type { ComponentProps } from 'svelte';
 	import { _ } from 'svelte-i18n';
@@ -25,7 +26,15 @@
 	});
 
 	const fetchCardProps = async (
-		items: { name?: string; title?: string; id?: number; vote_average?: number }[]
+		items: {
+			name?: string;
+			title?: string;
+			id?: number;
+			vote_average?: number;
+			number_of_seasons?: number;
+			first_air_date?: string;
+		}[],
+		type: TitleType | undefined = undefined
 	): Promise<ComponentProps<Poster>[]> => {
 		const filtered = $settings.discover.excludeLibraryItems
 			? items.filter(
@@ -37,13 +46,19 @@
 		return Promise.all(
 			filtered.map(async (item) => {
 				const backdropUri = await getTmdbMovieBackdrop(item.id || 0);
+				const t =
+					type ||
+					(item?.number_of_seasons === undefined && item?.first_air_date === undefined
+						? 'movie'
+						: 'series');
 				return {
 					tmdbId: item.id || 0,
 					title: item.title || item.name || '',
 					// subtitle: item.subtitle || '',
 					rating: item.vote_average || undefined,
 					size: 'md',
-					backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : ''
+					backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
+					type: t
 				} as const;
 			})
 		).then((props) => props.filter((p) => p.backdropUrl));
@@ -110,7 +125,7 @@
 			}
 		})
 			.then((res) => res.data?.results || [])
-			.then(fetchCardProps);
+			.then((i) => fetchCardProps(i, 'series'));
 
 	const fetchDigitalReleases = () =>
 		TmdbApiOpen.get('/3/discover/movie', {
@@ -141,7 +156,7 @@
 			}
 		})
 			.then((res) => res.data?.results || [])
-			.then(fetchCardProps);
+			.then((i) => fetchCardProps(i, 'series'));
 
 	function parseIncludedLanguages(includedLanguages: string) {
 		return includedLanguages.replace(' ', '').split(',').join('|');
@@ -166,7 +181,7 @@
 				<CarouselPlaceholderItems size="lg" />
 			{:then props}
 				{#each props as prop (prop.tmdbId)}
-					<Poster size="lg" {...prop} />
+					<Poster {...prop} size="lg" />
 				{/each}
 			{/await}
 		</Carousel>
