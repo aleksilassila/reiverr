@@ -18,7 +18,7 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
-	export let size: 'dynamic' | 'md' | 'lg' = 'md';
+	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 </script>
 
@@ -29,6 +29,8 @@
 		{
 			'aspect-video': orientation === 'landscape',
 			'aspect-[2/3]': orientation === 'portrait',
+			'w-32': size === 'sm' && orientation === 'portrait',
+			'h-32': size === 'sm' && orientation === 'landscape',
 			'w-44': size === 'md' && orientation === 'portrait',
 			'h-44': size === 'md' && orientation === 'landscape',
 			'w-60': size === 'lg' && orientation === 'portrait',

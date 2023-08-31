@@ -17,6 +17,7 @@
 	import { fade } from 'svelte/transition';
 	import LibraryItems from './LibraryItems.svelte';
 	import { capitalize } from '$lib/utils';
+	import LazyImg from '$lib/components/LazyImg.svelte';
 
 	let openNextUpTab: 'downloading' | 'nextUp' = 'downloading';
 	let noItems = false;
@@ -84,16 +85,29 @@
 		}}
 		out:fade|global={{ duration: $settings.animationDuration }}
 	>
-		{#await showcasePromise then showcase}
-			<div
-				style={"background-image: url('" +
-					((showcase && getJellyfinBackdrop(showcase)) || PLACEHOLDER_BACKDROP) +
-					"');"}
-				class="bg-center bg-cover col-start-1 row-start-1 col-span-2 row-span-3 relative pt-24"
-			>
-				<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
-				<div class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-56 pb-12">
-					<div class="flex gap-4 items-end">
+		<div class="relative pt-24">
+			{#await showcasePromise then showcase}
+				<LazyImg
+					src={(showcase && getJellyfinBackdrop(showcase)) || PLACEHOLDER_BACKDROP}
+					class="absolute inset-0"
+				/>
+			{/await}
+			<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
+			<div class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-56 pb-12">
+				<div class="flex gap-4 items-end">
+					{#await showcasePromise}
+						<div class="w-32 aspect-[2/3] placeholder rounded-lg shadow-lg" />
+						<div class="flex flex-col gap-2">
+							<div class="placeholder-text w-20">Placeholder</div>
+							<div class="placeholder-text w-[50vw] text-3xl sm:text-4xl md:text-5xl">
+								Placeholder
+							</div>
+							<div class="flex gap-2 mt-2">
+								<div class="placeholder-text w-28 h-10" />
+								<div class="placeholder-text w-28 h-10" />
+							</div>
+						</div>
+					{:then showcase}
 						<div
 							style={"background-image: url('" +
 								(showcase ? getJellyfinPosterUrl(showcase) : '') +
@@ -121,10 +135,10 @@
 								</Button>
 							</div>
 						</div>
-					</div>
+					{/await}
 				</div>
 			</div>
-		{/await}
+		</div>
 	</div>
 
 	<div
