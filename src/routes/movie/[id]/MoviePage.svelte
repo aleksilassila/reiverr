@@ -24,41 +24,51 @@
 	import { settings } from '$lib/stores/settings.store';
 	import { formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Archive, ChevronRight, Plus } from 'radix-icons-svelte';
+	import { Archive, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 
 	export let tmdbId: number;
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
+
 	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
+	const data = loadInitialPageData();
 
 	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
 	const radarrMovieStore = createRadarrMovieStore(tmdbId);
 	const radarrDownloadStore = createRadarrDownloadStore(radarrMovieStore);
 
-	const jellyfinItem = $jellyfinItemStore.item;
-	const radarrMovie = $radarrMovieStore.item;
+	async function loadInitialPageData() {
+		const tmdbMoviePromise = getTmdbMovie(tmdbId);
 
-	const tmdbMoviePromise = getTmdbMovie(tmdbId);
-	const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
-		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUrl));
-	const tmdbSimilarProps = getTmdbMovieSimilar(tmdbId)
-		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUrl));
-	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
-		Promise.all(
-			m?.credits?.cast?.slice(0, 20).map((m) => ({
-				tmdbId: m.id || 0,
-				backdropUri: m.profile_path || '',
-				name: m.name || '',
-				subtitle: m.character || m.known_for_department || ''
-			})) || []
-		)
-	);
+		const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
+			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
+			.then((r) => r.filter((p) => p.backdropUrl));
+		const tmdbSimilarProps = getTmdbMovieSimilar(tmdbId)
+			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
+			.then((r) => r.filter((p) => p.backdropUrl));
+
+		const castPropsPromise: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
+			Promise.all(
+				m?.credits?.cast?.slice(0, 20).map((m) => ({
+					tmdbId: m.id || 0,
+					backdropUri: m.profile_path || '',
+					name: m.name || '',
+					subtitle: m.character || m.known_for_department || ''
+				})) || []
+			)
+		);
+
+		return {
+			tmdbMovie: await tmdbMoviePromise,
+			tmdbRecommendationProps: await tmdbRecommendationProps,
+			tmdbSimilarProps: await tmdbSimilarProps,
+			castProps: await castPropsPromise
+		};
+	}
 
 	function play() {
-		if (jellyfinItem?.Id) playerState.streamJellyfinId(jellyfinItem?.Id);
+		if ($jellyfinItemStore.item?.Id) playerState.streamJellyfinId($jellyfinItemStore.item?.Id);
 	}
 
 	async function refreshRadarr() {
@@ -74,42 +84,45 @@
 	}
 
 	function openRequestModal() {
-		if (!radarrMovie?.id) return;
+		if (!$radarrMovieStore.item?.id) return;
 
 		modalStack.create(RequestModal, {
-			radarrId: radarrMovie?.id
+			radarrId: $radarrMovieStore.item?.id
 		});
 	}
 </script>
 
-{#await tmdbMoviePromise then movie}
+{#await data}
+	<TitlePageLayout {isModal} {handleCloseModal} />
+{:then { tmdbMovie, tmdbRecommendationProps, tmdbSimilarProps, castProps }}
+	{@const movie = tmdbMovie}
 	<TitlePageLayout
+		titleInformation={{
+			tmdbId,
+			type: 'movie',
+			title: movie?.title || 'Movie',
+			backdropUriCandidates: movie?.images?.backdrops?.map((b) => b.file_path || '') || [],
+			posterPath: movie?.poster_path || '',
+			tagline: movie?.tagline || movie?.title || '',
+			overview: movie?.overview || ''
+		}}
 		{isModal}
-		{tmdbId}
 		{handleCloseModal}
-		type="movie"
-		title={movie?.title || 'Movie'}
-		backdropUriCandidates={movie?.images?.backdrops?.map((b) => b.file_path || '') || []}
-		posterPath={movie?.poster_path || ''}
-		tagline={movie?.tagline || movie?.title || ''}
-		overview={movie?.overview || ''}
 	>
-		<svelte:fragment slot="title-info-1"
-			>{new Date(movie?.release_date || Date.now()).getFullYear()}</svelte:fragment
-		>
-		<svelte:fragment slot="title-info-2">
-			{@const progress = jellyfinItem?.UserData?.PlayedPercentage}
+		<svelte:fragment slot="title-info">
+			{new Date(movie?.release_date || Date.now()).getFullYear()}
+			<DotFilled />
+			{@const progress = $jellyfinItemStore.item?.UserData?.PlayedPercentage}
 			{#if progress}
 				{progress.toFixed()} min left
 			{:else}
 				{movie?.runtime} min
 			{/if}
-		</svelte:fragment>
-		<svelte:fragment slot="title-info-3">
+			<DotFilled />
 			<a href={tmdbUrl} target="_blank">{movie?.vote_average?.toFixed(1)} TMDB</a>
 		</svelte:fragment>
 		<svelte:fragment slot="episodes-carousel">
-			{@const progress = jellyfinItem?.UserData?.PlayedPercentage}
+			{@const progress = $jellyfinItemStore.item?.UserData?.PlayedPercentage}
 			{#if progress}
 				<div
 					class={classNames('px-2 sm:px-4 lg:px-8', {
@@ -128,6 +141,8 @@
 				{#if $jellyfinItemStore.loading || $radarrMovieStore.loading}
 					<div class="placeholder h-10 w-48 rounded-xl" />
 				{:else}
+					{@const jellyfinItem = $jellyfinItemStore.item}
+					{@const radarrMovie = $radarrMovieStore.item}
 					<OpenInButton title={movie?.title} {jellyfinItem} {radarrMovie} type="movie" {tmdbId} />
 					{#if jellyfinItem}
 						<Button type="primary" on:click={play}>
@@ -203,6 +218,7 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="servarr-components">
+			{@const radarrMovie = $radarrMovieStore.item}
 			{#if radarrMovie}
 				{#if radarrMovie?.movieFile?.quality}
 					<div class="col-span-2 lg:col-span-1">
@@ -284,11 +300,3 @@
 		</svelte:fragment>
 	</TitlePageLayout>
 {/await}
-
-<!-- {#if requestModalVisible} -->
-<!-- {@const radarrMovie = $itemStore.item?.radarrMovie} -->
-<!-- {#if radarrMovie && radarrMovie.id} -->
-<!-- <RequestModal modalProps={requestModalProps} radarrId={radarrMovie.id} /> -->
-<!-- {/if} -->
-<!-- {/if} -->
-<!--  -->

@@ -31,7 +31,7 @@
 	import type { TitleId } from '$lib/types';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
+	import { Archive, ChevronLeft, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { get } from 'svelte/store';
 
@@ -46,8 +46,42 @@
 	const sonarrDownloadStore = createSonarrDownloadStore(sonarrSeriesStore);
 
 	let seasonSelectVisible = false;
-	let visibleSeasonNumber: number | undefined = undefined;
+	let visibleSeasonNumber: number = 1;
 	let visibleEpisodeIndex: number | undefined = undefined;
+
+	let jellyfinEpisodeData: {
+		[key: string]: {
+			jellyfinId: string | undefined;
+			progress: number;
+			watched: boolean;
+		};
+	} = {};
+	let episodeComponents: HTMLDivElement[] = [];
+	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
+
+	// Refresh jellyfin episode data
+	jellyfinItemStore.subscribe(async (value) => {
+		const item = value.item;
+		if (!item?.Id) return;
+		const episodes = await getJellyfinEpisodes(item.Id);
+
+		episodes?.forEach((episode) => {
+			const key = `S${episode?.ParentIndexNumber}E${episode?.IndexNumber}`;
+
+			if (!nextJellyfinEpisode && episode?.UserData?.Played === false) {
+				nextJellyfinEpisode = episode;
+			}
+
+			jellyfinEpisodeData[key] = {
+				jellyfinId: episode?.Id,
+				progress: episode?.UserData?.PlayedPercentage || 0,
+				watched: episode?.UserData?.Played || false
+			};
+		});
+
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = episodes?.[0];
+		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber;
+	});
 
 	async function loadInitialPageData() {
 		const tmdbId = await (titleId.provider === 'tvdb'
@@ -107,74 +141,6 @@
 		};
 	}
 
-	let jellyfinEpisodeData: {
-		[key: string]: {
-			jellyfinId: string | undefined;
-			progress: number;
-			watched: boolean;
-		};
-	} = {};
-	let episodeComponents: HTMLDivElement[] = [];
-	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
-
-	// Refresh jellyfin episode data
-	jellyfinItemStore.subscribe(async (value) => {
-		const item = value.item;
-		if (!item?.Id) return;
-		const episodes = await getJellyfinEpisodes(item.Id);
-
-		episodes?.forEach((episode) => {
-			const key = `S${episode?.ParentIndexNumber}E${episode?.IndexNumber}`;
-
-			if (!nextJellyfinEpisode && episode?.UserData?.Played === false) {
-				nextJellyfinEpisode = episode;
-			}
-
-			jellyfinEpisodeData[key] = {
-				jellyfinId: episode?.Id,
-				progress: episode?.UserData?.PlayedPercentage || 0,
-				watched: episode?.UserData?.Played || false
-			};
-		});
-
-		if (!nextJellyfinEpisode) nextJellyfinEpisode = episodes?.[0];
-		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
-	});
-
-	// jellyfinItemStore.promise.then(async (jellyfinItem) => {
-	// 	const jellyfinEpisodes = jellyfinItem?.Id ? await getJellyfinEpisodes(jellyfinItem?.Id) : [];
-	// 	const tmdbSeasons = await tmdbSeasonsPromise;
-
-	// 	tmdbSeasons.forEach((season) => {
-	// 		const episodes: ComponentProps<EpisodeCard>[] = [];
-	// 		season?.episodes?.forEach((tmdbEpisode) => {
-	// 			const jellyfinEpisode = jellyfinEpisodes?.find(
-	// 				(e) =>
-	// 					e?.IndexNumber === tmdbEpisode?.episode_number &&
-	// 					e?.ParentIndexNumber === tmdbEpisode?.season_number
-	// 			);
-
-	// 			if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
-	// 				nextJellyfinEpisode = jellyfinEpisode;
-	// 			}
-
-	// 			episodes.push({
-	// 				title: tmdbEpisode?.name || '',
-	// 				subtitle: `Episode ${tmdbEpisode?.episode_number}`,
-	// 				backdropUrl: TMDB_BACKDROP_SMALL + tmdbEpisode?.still_path || '',
-	// 				progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
-	// 				watched: jellyfinEpisode?.UserData?.Played || false,
-	// 				jellyfinId: jellyfinEpisode?.Id,
-	// 				airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : undefined
-	// 			});
-	// 		});
-	// 		episodeProps[season?.season_number || 0] = episodes;
-	// 	});
-
-	// 	if (!nextJellyfinEpisode) nextJellyfinEpisode = jellyfinEpisodes?.[0];
-	// 	visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
-	// });
-
 	function playNextEpisode() {
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
 	}
@@ -231,23 +197,39 @@
 	}
 </script>
 
-{#await data then { tmdbSeries, tmdbId, ...data }}
+{#await data}
+	<TitlePageLayout {isModal} {handleCloseModal}>
+		<div slot="episodes-carousel">
+			<Carousel
+				gradientFromColor="from-stone-950"
+				class={classNames('px-2 sm:px-4 lg:px-8', {
+					'2xl:px-0': !isModal
+				})}
+				heading="Episodes"
+			>
+				<CarouselPlaceholderItems />
+			</Carousel>
+		</div>
+	</TitlePageLayout>
+{:then { tmdbSeries, tmdbId, ...data }}
 	<TitlePageLayout
-		{tmdbId}
-		type="series"
+		titleInformation={{
+			tmdbId,
+			type: 'series',
+			backdropUriCandidates: tmdbSeries?.images?.backdrops?.map((b) => b.file_path || '') || [],
+			posterPath: tmdbSeries?.poster_path || '',
+			title: tmdbSeries?.name || '',
+			tagline: tmdbSeries?.tagline || tmdbSeries?.name || '',
+			overview: tmdbSeries?.overview || ''
+		}}
 		{isModal}
 		{handleCloseModal}
-		backdropUriCandidates={tmdbSeries?.images?.backdrops?.map((b) => b.file_path || '') || []}
-		posterPath={tmdbSeries?.poster_path || ''}
-		title={tmdbSeries?.name || ''}
-		tagline={tmdbSeries?.tagline || tmdbSeries?.name || ''}
-		overview={tmdbSeries?.overview || ''}
 	>
-		<svelte:fragment slot="title-info-1">
+		<svelte:fragment slot="title-info">
 			{new Date(tmdbSeries?.first_air_date || Date.now()).getFullYear()}
-		</svelte:fragment>
-		<svelte:fragment slot="title-info-2">{tmdbSeries?.status}</svelte:fragment>
-		<svelte:fragment slot="title-info-3">
+			<DotFilled />
+			{tmdbSeries?.status}
+			<DotFilled />
 			<a href={data.tmdbUrl} target="_blank">{tmdbSeries?.vote_average?.toFixed(1)} TMDB</a>
 		</svelte:fragment>
 
@@ -295,7 +277,7 @@
 				<UiCarousel slot="title" class="flex gap-6">
 					{#each [...Array(tmdbSeries?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
 						{@const season = tmdbSeries?.seasons?.find((s) => s.season_number === seasonNumber)}
-						{@const isSelected = season?.season_number === (visibleSeasonNumber || 1)}
+						{@const isSelected = season?.season_number === visibleSeasonNumber}
 						<button
 							class={classNames(
 								'font-medium tracking-wide transition-colors flex-shrink-0 flex items-center gap-1',
@@ -329,7 +311,7 @@
 					{/each}
 				</UiCarousel>
 				{#key visibleSeasonNumber}
-					{#each data.tmdbEpisodeProps[(visibleSeasonNumber || 1) - 1] || [] as props, i}
+					{#each data.tmdbEpisodeProps[visibleSeasonNumber - 1] || [] as props, i}
 						{@const jellyfinData = jellyfinEpisodeData[`S${visibleSeasonNumber}E${i + 1}`]}
 						<div bind:this={episodeComponents[i]}>
 							<EpisodeCard
