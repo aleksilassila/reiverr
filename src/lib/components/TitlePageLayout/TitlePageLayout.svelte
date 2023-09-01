@@ -1,24 +1,27 @@
 <script lang="ts">
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '$lib/constants';
-	import type { TitleType } from '$lib/types';
+	import type { TitleId, TitleType } from '$lib/types';
 	import classNames from 'classnames';
 	import { ChevronLeft, Cross2, DotFilled, ExternalLink } from 'radix-icons-svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
 	import IconButton from '../IconButton.svelte';
+	import LazyImg from '../LazyImg.svelte';
 
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 
-	export let tmdbId: number;
-	export let type: TitleType;
-
-	export let backdropUriCandidates: string[];
-	export let posterPath: string;
-	export let title: string;
-
-	export let tagline: string;
-	export let overview: string;
+	export let titleInformation:
+		| {
+				tmdbId: number;
+				type: TitleType;
+				title: string;
+				tagline: string;
+				overview: string;
+				backdropUriCandidates: string[];
+				posterPath: string;
+		  }
+		| undefined = undefined;
 
 	let topHeight: number;
 	let bottomHeight: number;
@@ -33,31 +36,34 @@
 
 <svelte:window bind:outerHeight={windowHeight} />
 
+<!-- Desktop -->
 <div
-	style={"background-image: url('" +
-		TMDB_IMAGES_ORIGINAL +
-		getBackdropUri(backdropUriCandidates) +
-		"'); height: " +
-		imageHeight.toFixed() +
-		'px'}
+	style={'height: ' + imageHeight.toFixed() + 'px'}
 	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover bg-stone-950', {
 		absolute: isModal,
 		fixed: !isModal
 	})}
 >
-	<div class="absolute inset-0 bg-darken" />
+	{#if titleInformation}
+		<LazyImg
+			src={TMDB_IMAGES_ORIGINAL + getBackdropUri(titleInformation.backdropUriCandidates)}
+			class="h-full"
+		>
+			<div class="absolute inset-0 bg-darken" />
+		</LazyImg>
+	{/if}
 </div>
 
+<!-- Mobile -->
 <div
-	style={"background-image: url('" +
-		TMDB_IMAGES_ORIGINAL +
-		posterPath +
-		"'); height: " +
-		imageHeight.toFixed() +
-		'px'}
+	style={'height: ' + imageHeight.toFixed() + 'px'}
 	class="sm:hidden fixed inset-x-0 bg-center bg-cover bg-stone-950"
 >
-	<div class="absolute inset-0 bg-darken" />
+	{#if titleInformation}
+		<LazyImg src={TMDB_IMAGES_ORIGINAL + titleInformation.posterPath} class="h-full">
+			<div class="absolute inset-0 bg-darken" />
+		</LazyImg>
+	{/if}
 </div>
 
 <div
@@ -73,11 +79,16 @@
 		bind:clientHeight={topHeight}
 	>
 		{#if isModal}
-			<a href={`/${type}/${tmdbId}`} class="absolute top-8 right-4 sm:right-8 z-10">
-				<IconButton>
-					<ExternalLink size={20} />
-				</IconButton>
-			</a>
+			{#if titleInformation}
+				<a
+					href={`/${titleInformation.type}/${titleInformation.tmdbId}`}
+					class="absolute top-8 right-4 sm:right-8 z-10"
+				>
+					<IconButton>
+						<ExternalLink size={20} />
+					</IconButton>
+				</a>
+			{/if}
 			<div class="absolute top-8 left-4 sm:left-8 z-10">
 				<button class="flex items-center sm:hidden font-medium" on:click={handleCloseModal}>
 					<ChevronLeft size={20} />
@@ -92,26 +103,26 @@
 		{/if}
 		<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-30%" />
 		<div class="z-[1] flex-1 flex justify-end gap-8 items-end max-w-screen-2xl mx-auto">
-			<div
-				class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block"
-				style={"background-image: url('" + TMDB_POSTER_SMALL + posterPath + "')"}
-			/>
+			{#if titleInformation}
+				<div
+					class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block"
+					style={"background-image: url('" + TMDB_POSTER_SMALL + titleInformation.posterPath + "')"}
+				/>
+			{:else}
+				<div class="aspect-[2/3] w-52 bg-center bg-cover rounded-md hidden sm:block placeholder" />
+			{/if}
 			<div class="flex-1 flex gap-4 justify-between flex-col lg:flex-row lg:items-end">
 				<div>
 					<div class="text-zinc-300 text-sm uppercase font-semibold flex items-center gap-1">
-						<p class="flex-shrink-0">
-							<slot name="title-info-1" />
-						</p>
-						<DotFilled />
-						<p class="flex-shrink-0">
-							<slot name="title-info-2" />
-						</p>
-						<DotFilled />
-						<p class="flex-shrink-0"><slot name="title-info-3" /></p>
-						<!-- <DotFilled />
-							<p class="line-clamp-1">{series?.genres?.map((g) => g.name).join(', ')}</p> -->
+						<slot name="title-info">
+							<div class="placeholder-text">Placeholder Long</div>
+						</slot>
 					</div>
-					<h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold">{title}</h1>
+					{#if titleInformation}
+						<h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold">{titleInformation.title}</h1>
+					{:else}
+						<h1 class="text-4xl sm:text-5xl md:text-6xl placeholder-text mt-2">Placeholder</h1>
+					{/if}
 				</div>
 				<div class="flex-shrink-0">
 					<slot name="title-right" />
@@ -138,9 +149,10 @@
 			<div
 				class="flex flex-col gap-3 max-w-5xl row-span-3 col-span-4 sm:col-span-6 lg:col-span-3 mb-4 lg:mr-8"
 			>
-				<div class="flex gap-4 justify-between">
-					<h1 class="font-semibold text-xl sm:text-2xl">{tagline}</h1>
-					<!-- <div class="flex items-center gap-4">
+				{#if titleInformation}
+					<div class="flex gap-4 justify-between">
+						<h1 class="font-semibold text-xl sm:text-2xl">{titleInformation.tagline}</h1>
+						<!-- <div class="flex items-center gap-4">
 						<a
 							target="_blank"
 							href={'https://www.themoviedb.org/tv/' + tmdbId}
@@ -168,8 +180,22 @@
 								<Globe size={15} />
 							</a>
 						{/if} -->
-				</div>
-				<p class="pl-4 border-l-2 text-sm sm:text-base">{overview}</p>
+					</div>
+					<p class="pl-4 border-l-2 text-sm sm:text-base">{titleInformation.overview}</p>
+				{:else}
+					<div class="flex gap-4 justify-between">
+						<h1 class="font-semibold text-xl sm:text-2xl placeholder-text">Placeholder</h1>
+					</div>
+					<div class="flex">
+						<div class="mr-4 placeholder w-1 flex-shrink-0 rounded" />
+						<p class="text-sm sm:text-base placeholder-text">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur sit amet sem eget
+							dolor lobortis mollis. Aliquam semper imperdiet mi nec viverra. Praesent ac ligula
+							congue, aliquam diam nec, ullamcorper libero. Nunc mattis rhoncus justo, ac pretium
+							urna vehicula et.
+						</p>
+					</div>
+				{/if}
 			</div>
 		</slot>
 		<slot name="info-components" />

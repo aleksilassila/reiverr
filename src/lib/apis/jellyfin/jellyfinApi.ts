@@ -33,7 +33,7 @@ export const getJellyfinContinueWatching = async (): Promise<JellyfinItem[] | un
 				},
 				query: {
 					mediaTypes: ['Video'],
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres']
 				}
 			}
 		})
@@ -45,7 +45,7 @@ export const getJellyfinNextUp = async () =>
 			params: {
 				query: {
 					userId: get(settings)?.jellyfin.userId || '',
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres']
 				}
 			}
 		})
@@ -62,11 +62,11 @@ export const getJellyfinItems = async () =>
 					hasTmdbId: true,
 					recursive: true,
 					includeItemTypes: ['Movie', 'Series'],
-					fields: ['ProviderIds']
+					fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
 				}
 			}
 		})
-		.then((r) => r.data?.Items || []);
+		.then((r) => r.data?.Items || []) || Promise.resolve([]);
 
 // export const getJellyfinSeries = () =>
 // 	JellyfinApi.get('/Users/{userId}/Items', {
@@ -82,7 +82,7 @@ export const getJellyfinItems = async () =>
 // 		}
 // 	}).then((r) => r.data?.Items || []);
 
-export const getJellyfinEpisodes = async () =>
+export const getJellyfinEpisodes = async (parentId = '') =>
 	getJellyfinApi()
 		?.get('/Users/{userId}/Items', {
 			params: {
@@ -91,7 +91,8 @@ export const getJellyfinEpisodes = async () =>
 				},
 				query: {
 					recursive: true,
-					includeItemTypes: ['Episode']
+					includeItemTypes: ['Episode'],
+					parentId
 				}
 			},
 			headers: {
@@ -99,6 +100,23 @@ export const getJellyfinEpisodes = async () =>
 			}
 		})
 		.then((r) => r.data?.Items || []);
+
+export const getJellyfinEpisodesInSeasons = async (seriesId: string) =>
+	getJellyfinEpisodes(seriesId).then((items) => {
+		const seasons: Record<string, JellyfinItem[]> = {};
+
+		items?.forEach((item) => {
+			const seasonNumber = item.ParentIndexNumber || 0;
+
+			if (!seasons[seasonNumber]) {
+				seasons[seasonNumber] = [];
+			}
+
+			seasons[seasonNumber].push(item);
+		});
+
+		return seasons;
+	});
 
 // export const getJellyfinEpisodesBySeries = (seriesId: string) =>
 // 	getJellyfinEpisodes().then((items) => items?.filter((i) => i.SeriesId === seriesId) || []);
@@ -266,3 +284,22 @@ export const getJellyfinUsers = async (
 		})
 		.then((res) => res.data || [])
 		.catch(() => []);
+
+export const getJellyfinPosterUrl = (item: JellyfinItem, quality = 100, original = false) =>
+	item.ImageTags?.Primary
+		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}${
+				original ? '' : '&fillWidth=432'
+		  }&tag=${item?.ImageTags?.Primary}`
+		: '';
+
+export const getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {
+	if (item.BackdropImageTags?.length) {
+		return `${get(settings).jellyfin.baseUrl}/Items/${
+			item?.Id
+		}/Images/Backdrop?quality=${quality}&tag=${item?.BackdropImageTags?.[0]}`;
+	} else {
+		return `${get(settings).jellyfin.baseUrl}/Items/${
+			item?.Id
+		}/Images/Primary?quality=${quality}&tag=${item?.ImageTags?.Primary}`;
+	}
+};

@@ -1,4 +1,4 @@
-import type { TitleType } from '$lib/types';
+import type { TitleId, TitleType } from '$lib/types';
 import { writable } from 'svelte/store';
 import TitlePageModal from '../components/TitlePageLayout/TitlePageModal.svelte';
 
@@ -61,9 +61,11 @@ function createDynamicModalStack() {
 export const modalStack = createDynamicModalStack();
 
 let lastTitleModal: symbol | undefined = undefined;
-export function openTitleModal(tmdbId: number, type: TitleType) {
+export function openTitleModal(titleId: TitleId) {
 	if (lastTitleModal) {
 		modalStack.close(lastTitleModal);
 	}
-	lastTitleModal = modalStack.create(TitlePageModal, { tmdbId, type });
+	lastTitleModal = modalStack.create(TitlePageModal, {
+		titleId
+	});
 }

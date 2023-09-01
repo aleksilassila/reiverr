@@ -1,0 +1,22 @@
+{
+	"appId": "me.aleksilassila.reiverr",
+	"productName": "Reiverr",
+	"directories": {
+		"output": "dist"
+	},
+	"mac": {
+		"asar": false
+	},
+	"win": {
+		"asar": false,
+		"target": "msi"
+	},
+	"asar": false,
+	"files": [
+		"src/electron.cjs",
+		{
+			"from": "build",
+			"to": "build"
+		}
+	]
+}
