@@ -1,12 +1,16 @@
 <script lang="ts">
+	import {
+		getJellyfinBackdrop,
+		getJellyfinContinueWatching,
+		getJellyfinNextUp
+	} from '$lib/apis/jellyfin/jellyfinApi';
 	import { getTmdbMovie, getTmdbPopularMovies } from '$lib/apis/tmdb/tmdbApi';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import Poster from '$lib/components/Poster/Poster.svelte';
+	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcase.svelte';
-	import { library } from '$lib/stores/library.store';
-	import type { ComponentProps } from 'svelte';
-	import { _ } from 'svelte-i18n';
+	import { jellyfinItemsStore } from '$lib/stores/data.store';
+	import { log } from '$lib/utils';
 
 	let continueWatchingVisible = true;
 
@@ -14,41 +18,46 @@
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
 		.then((movies) => movies.filter((m) => !!m).slice(0, 10));
 
-	let continueWatchingProps: Promise<(ComponentProps<Poster> & { runtime: number })[]> = $library
-		.then((libraryData) => libraryData.continueWatching)
+	let nextUpP = getJellyfinNextUp();
+	let continueWatchingP = getJellyfinContinueWatching();
+
+	let nextUpProps = Promise.all([nextUpP, continueWatchingP])
+		.then(([nextUp, continueWatching]) => [
+			...(continueWatching || []),
+			...(nextUp?.filter((i) => !continueWatching?.find((c) => c.SeriesId === i.SeriesId)) || [])
+		])
 		.then((items) =>
-			items.map((item) =>
-				item.type === 'movie'
-					? {
-							type: 'movie',
-							tmdbId: item.tmdbId || 0,
-							jellyfinId: item.jellyfinId,
-							backdropUrl: item.posterUrl || '',
-							title: item.radarrMovie?.title || item.jellyfinItem?.Name || '',
-							subtitle: item.radarrMovie?.genres?.join(', ') || '',
-							progress: item.continueWatching?.progress,
-							runtime: item.radarrMovie?.runtime || 0
-					  }
-					: {
-							tmdbId: item.tmdbId || 0,
-							jellyfinId: item.nextJellyfinEpisode?.Id,
-							type: 'series',
-							backdropUrl: item.posterUrl || '',
-							title: item.nextJellyfinEpisode?.Name || item.sonarrSeries?.title || '',
-							subtitle:
-								(item.nextJellyfinEpisode?.IndexNumber &&
-									'Episode ' + item.nextJellyfinEpisode?.IndexNumber) ||
-								item.sonarrSeries?.genres?.join(', ') ||
-								'',
-							progress: item.continueWatching?.progress,
-							runtime: item.nextJellyfinEpisode?.RunTimeTicks
-								? item.nextJellyfinEpisode?.RunTimeTicks / 10_000_000 / 60
-								: item.sonarrSeries?.runtime || 0
-					  }
+			Promise.all(
+				items?.map(async (item) => {
+					const parentSeries = await jellyfinItemsStore.promise.then((items) =>
+						items.find((i) => i.Id === item.SeriesId)
+					);
+
+					return {
+						tmdbId: Number(item.ProviderIds?.Tmdb) || Number(parentSeries?.ProviderIds?.Tmdb) || 0,
+						jellyfinId: item.Id,
+						backdropUrl: getJellyfinBackdrop(item),
+						title: item.Name || '',
+						progress: item.UserData?.PlayedPercentage || undefined,
+						runtime: item.RunTimeTicks ? item.RunTimeTicks / 10_000_000 / 60 : 0,
+						...(item.Type === 'Movie'
+							? {
+									type: 'movie',
+									subtitle: item.Genres?.join(', ') || ''
+							  }
+							: {
+									type: 'series',
+									subtitle:
+										(item?.IndexNumber && 'Episode ' + item.IndexNumber) ||
+										item.Genres?.join(', ') ||
+										''
+							  })
+					} as const;
+				})
 			)
 		);
 
-	continueWatchingProps.then((props) => {
+	nextUpProps.then((props) => {
 		if (props.length === 0) {
 			continueWatchingVisible = false;
 		}
@@ -96,17 +105,14 @@
 <div class="py-8" hidden={!continueWatchingVisible}>
 	<Carousel gradientFromColor="from-stone-950" class="px-4 lg:px-16 2xl:px-32">
 		<div slot="title" class="text-xl font-medium text-zinc-200">Continue Watching</div>
-		{#await continueWatchingProps}
+		{#await nextUpProps}
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop}
-				<Poster {...prop}>
-					<div slot="bottom-left" class="text-sm font-medium text-zinc-300">
-						{#if prop.progress}
-							{(prop.runtime - (prop.runtime / 100) * prop.progress).toFixed()} Minutes Left
-						{/if}
-					</div>
-				</Poster>
+				<EpisodeCard
+					on:click={() => (window.location.href = `/${prop.type}/${prop.tmdbId}`)}
+					{...prop}
+				/>
 			{/each}
 		{/await}
 	</Carousel>

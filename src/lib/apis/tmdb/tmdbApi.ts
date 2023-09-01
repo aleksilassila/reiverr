@@ -1,7 +1,6 @@
 import { browser } from '$app/environment';
 import { TMDB_API_KEY } from '$lib/constants';
 import { settings } from '$lib/stores/settings.store';
-import { formatDateToYearMonthDay } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
@@ -75,11 +74,11 @@ export const getTmdbMovie = async (tmdbId: number) =>
 		}
 	}).then((res) => res.data as TmdbMovieFull2 | undefined);
 
-export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
+export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	TmdbApiOpen.get('/3/find/{external_id}', {
 		params: {
 			path: {
-				external_id: String(tvdbId)
+				external_id: tvdbId
 			},
 			query: {
 				external_source: 'tvdb_id'
@@ -91,7 +90,11 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
 	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
-	getTmdbSeriesFromTvdbId(tvdbId).then((res: any) => res?.id as number | undefined);
+	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
+		const id = res?.id as number | undefined;
+		if (!id) return Promise.reject();
+		return id;
+	});
 
 export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {
@@ -279,6 +282,16 @@ export const searchTmdbTitles = (query: string) =>
 			}
 		}
 	}).then((res) => res.data?.results || []);
+
+export const getTmdbItemBackdrop = (item: {
+	images: { backdrops: { file_path: string; iso_639_1: string }[] };
+}) =>
+	(
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1) ||
+		item?.images?.backdrops?.[0]
+	)?.file_path;
 
 export const TMDB_MOVIE_GENRES = [
 	{

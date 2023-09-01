@@ -14,6 +14,10 @@ a {
 	@apply bg-zinc-700 bg-opacity-75;
 }
 
+.placeholder-text {
+	@apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
+}
+
 .selectable {
 	@apply focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }

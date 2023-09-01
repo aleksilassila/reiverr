@@ -1,4 +1,7 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
+import type { SonarrSeries } from './apis/sonarr/sonarrApi';
+import type { RadarrMovie } from './apis/radarr/radarrApi';
+import { settings } from './stores/settings.store';
 
 export function formatMinutesToTime(minutes: number) {
 	const days = Math.floor(minutes / 60 / 24);
