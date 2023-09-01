@@ -22,8 +22,10 @@
 	let continueWatchingP = getJellyfinContinueWatching();
 
 	let nextUpProps = Promise.all([nextUpP, continueWatchingP])
-		.then(([nextUp, continueWatching]) => [...(continueWatching || []), ...(nextUp || [])])
-		.then(log)
+		.then(([nextUp, continueWatching]) => [
+			...(continueWatching || []),
+			...(nextUp?.filter((i) => !continueWatching?.find((c) => c.SeriesId === i.SeriesId)) || [])
+		])
 		.then((items) =>
 			Promise.all(
 				items?.map(async (item) => {

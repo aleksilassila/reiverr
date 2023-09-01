@@ -2,6 +2,7 @@
 	import { getJellyfinEpisodes, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
 	import { addSeriesToSonarr, type SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
 	import {
+		getTmdbIdFromTvdbId,
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
 		getTmdbSeriesSeasons,
@@ -27,98 +28,152 @@
 	} from '$lib/stores/data.store';
 	import { modalStack } from '$lib/stores/modal.store';
 	import { settings } from '$lib/stores/settings.store';
+	import type { TitleId } from '$lib/types';
 	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import { get } from 'svelte/store';
 
-	export let tmdbId: number;
+	export let titleId: TitleId;
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
-	const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
 
-	const tmdbSeriesPromise = getTmdbSeries(tmdbId);
-	const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
-		getTmdbSeriesSeasons(tmdbId, s?.number_of_seasons || 0)
-	);
+	let data = loadInitialPageData();
 
-	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
-	const sonarrSeriesStore = createSonarrSeriesStore(tmdbSeriesPromise.then((s) => s?.name || ''));
+	const jellyfinItemStore = createJellyfinItemStore(data.then((d) => d.tmdbId));
+	const sonarrSeriesStore = createSonarrSeriesStore(data.then((d) => d.tmdbSeries?.name || ''));
 	const sonarrDownloadStore = createSonarrDownloadStore(sonarrSeriesStore);
-
-	let sonarrSeries: undefined | SonarrSeries = undefined;
-	let jellyfinItem = $jellyfinItemStore.item;
-
-	sonarrSeriesStore.subscribe((s) => (sonarrSeries = s.item));
 
 	let seasonSelectVisible = false;
 	let visibleSeasonNumber: number | undefined = undefined;
 	let visibleEpisodeIndex: number | undefined = undefined;
 
-	function openRequestModal() {
-		if (!sonarrSeries?.id || !sonarrSeries?.statistics?.seasonCount) return;
+	async function loadInitialPageData() {
+		const tmdbId = await (titleId.provider === 'tvdb'
+			? getTmdbIdFromTvdbId(titleId.id)
+			: Promise.resolve(titleId.id));
 
-		modalStack.create(SeriesRequestModal, {
-			sonarrId: sonarrSeries?.id || 0,
-			seasons: sonarrSeries?.statistics?.seasonCount || 0,
-			heading: sonarrSeries?.title || 'Series'
-		});
+		const tmdbSeriesPromise = getTmdbSeries(tmdbId);
+		const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
+			getTmdbSeriesSeasons(s?.id || 0, s?.number_of_seasons || 0)
+		);
+
+		const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
+
+		const tmdbRecommendationPropsPromise = getTmdbSeriesRecommendations(tmdbId).then((r) =>
+			Promise.all(r.map(fetchCardTmdbProps))
+		);
+		const tmdbSimilarPropsPromise = getTmdbSeriesSimilar(tmdbId)
+			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
+			.then((r) => r.filter((p) => p.backdropUrl));
+
+		const castPropsPromise: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
+			Promise.all(
+				s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
+					tmdbId: m.id || 0,
+					backdropUri: m.profile_path || '',
+					name: m.name || '',
+					subtitle: m.roles?.[0]?.character || m.known_for_department || ''
+				})) || []
+			)
+		);
+
+		const tmdbEpisodePropsPromise: Promise<ComponentProps<EpisodeCard>[][]> =
+			tmdbSeasonsPromise.then((seasons) =>
+				seasons.map(
+					(season) =>
+						season?.episodes?.map((episode) => ({
+							title: episode?.name || '',
+							subtitle: `Episode ${episode?.episode_number}`,
+							backdropUrl: TMDB_BACKDROP_SMALL + episode?.still_path || '',
+							airDate:
+								episode.air_date && new Date(episode.air_date) > new Date()
+									? new Date(episode.air_date)
+									: undefined
+						})) || []
+				)
+			);
+
+		return {
+			tmdbId,
+			tmdbSeries: await tmdbSeriesPromise,
+			tmdbSeasons: await tmdbSeasonsPromise,
+			tmdbUrl,
+			tmdbRecommendationProps: await tmdbRecommendationPropsPromise,
+			tmdbSimilarProps: await tmdbSimilarPropsPromise,
+			castProps: await castPropsPromise,
+			tmdbEpisodeProps: await tmdbEpisodePropsPromise
+		};
 	}
 
-	let episodeProps: ComponentProps<EpisodeCard>[][] = [];
+	let jellyfinEpisodeData: {
+		[key: string]: {
+			jellyfinId: string | undefined;
+			progress: number;
+			watched: boolean;
+		};
+	} = {};
 	let episodeComponents: HTMLDivElement[] = [];
 	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
 
-	const tmdbRecommendationProps = getTmdbSeriesRecommendations(tmdbId).then((r) =>
-		Promise.all(r.map(fetchCardTmdbProps))
-	);
-	const tmdbSimilarProps = getTmdbSeriesSimilar(tmdbId)
-		.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-		.then((r) => r.filter((p) => p.backdropUrl));
-	const castProps: Promise<ComponentProps<PeopleCard>[]> = tmdbSeriesPromise.then((s) =>
-		Promise.all(
-			s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
-				tmdbId: m.id || 0,
-				backdropUri: m.profile_path || '',
-				name: m.name || '',
-				subtitle: m.roles?.[0]?.character || m.known_for_department || ''
-			})) || []
-		)
-	);
+	// Refresh jellyfin episode data
+	jellyfinItemStore.subscribe(async (value) => {
+		const item = value.item;
+		if (!item?.Id) return;
+		const episodes = await getJellyfinEpisodes(item.Id);
 
-	jellyfinItemStore.promise.then(async (jellyfinItem) => {
-		const jellyfinEpisodes = jellyfinItem?.Id ? await getJellyfinEpisodes(jellyfinItem?.Id) : [];
-		const tmdbSeasons = await tmdbSeasonsPromise;
+		episodes?.forEach((episode) => {
+			const key = `S${episode?.ParentIndexNumber}E${episode?.IndexNumber}`;
 
-		tmdbSeasons.forEach((season) => {
-			const episodes: ComponentProps<EpisodeCard>[] = [];
-			season?.episodes?.forEach((tmdbEpisode) => {
-				const jellyfinEpisode = jellyfinEpisodes?.find(
-					(e) =>
-						e?.IndexNumber === tmdbEpisode?.episode_number &&
-						e?.ParentIndexNumber === tmdbEpisode?.season_number
-				);
+			if (!nextJellyfinEpisode && episode?.UserData?.Played === false) {
+				nextJellyfinEpisode = episode;
+			}
 
-				if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
-					nextJellyfinEpisode = jellyfinEpisode;
-				}
-
-				episodes.push({
-					title: tmdbEpisode?.name || '',
-					subtitle: `Episode ${tmdbEpisode?.episode_number}`,
-					backdropUrl: TMDB_BACKDROP_SMALL + tmdbEpisode?.still_path || '',
-					progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
-					watched: jellyfinEpisode?.UserData?.Played || false,
-					jellyfinId: jellyfinEpisode?.Id,
-					airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : undefined
-				});
-			});
-			episodeProps[season?.season_number || 0] = episodes;
+			jellyfinEpisodeData[key] = {
+				jellyfinId: episode?.Id,
+				progress: episode?.UserData?.PlayedPercentage || 0,
+				watched: episode?.UserData?.Played || false
+			};
 		});
 
-		if (!nextJellyfinEpisode) nextJellyfinEpisode = jellyfinEpisodes?.[0];
+		if (!nextJellyfinEpisode) nextJellyfinEpisode = episodes?.[0];
 		visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
 	});
+
+	// jellyfinItemStore.promise.then(async (jellyfinItem) => {
+	// 	const jellyfinEpisodes = jellyfinItem?.Id ? await getJellyfinEpisodes(jellyfinItem?.Id) : [];
+	// 	const tmdbSeasons = await tmdbSeasonsPromise;
+
+	// 	tmdbSeasons.forEach((season) => {
+	// 		const episodes: ComponentProps<EpisodeCard>[] = [];
+	// 		season?.episodes?.forEach((tmdbEpisode) => {
+	// 			const jellyfinEpisode = jellyfinEpisodes?.find(
+	// 				(e) =>
+	// 					e?.IndexNumber === tmdbEpisode?.episode_number &&
+	// 					e?.ParentIndexNumber === tmdbEpisode?.season_number
+	// 			);
+
+	// 			if (!nextJellyfinEpisode && jellyfinEpisode?.UserData?.Played === false) {
+	// 				nextJellyfinEpisode = jellyfinEpisode;
+	// 			}
+
+	// 			episodes.push({
+	// 				title: tmdbEpisode?.name || '',
+	// 				subtitle: `Episode ${tmdbEpisode?.episode_number}`,
+	// 				backdropUrl: TMDB_BACKDROP_SMALL + tmdbEpisode?.still_path || '',
+	// 				progress: jellyfinEpisode?.UserData?.PlayedPercentage || 0,
+	// 				watched: jellyfinEpisode?.UserData?.Played || false,
+	// 				jellyfinId: jellyfinEpisode?.Id,
+	// 				airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : undefined
+	// 			});
+	// 		});
+	// 		episodeProps[season?.season_number || 0] = episodes;
+	// 	});
+
+	// 	if (!nextJellyfinEpisode) nextJellyfinEpisode = jellyfinEpisodes?.[0];
+	// 	visibleSeasonNumber = nextJellyfinEpisode?.ParentIndexNumber || visibleSeasonNumber || 1;
+	// });
 
 	function playNextEpisode() {
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
@@ -129,13 +184,27 @@
 	}
 
 	let addToSonarrLoading = false;
-	function addToSonarr() {
+	async function addToSonarr() {
+		const tmdbId = await data.then((d) => d.tmdbId);
 		addToSonarrLoading = true;
 		addSeriesToSonarr(tmdbId)
 			.then(refreshSonarr)
 			.finally(() => (addToSonarrLoading = false));
 	}
 
+	async function openRequestModal() {
+		const sonarrSeries = get(sonarrSeriesStore).item;
+
+		if (!sonarrSeries?.id || !sonarrSeries?.statistics?.seasonCount) return;
+
+		modalStack.create(SeriesRequestModal, {
+			sonarrId: sonarrSeries?.id || 0,
+			seasons: sonarrSeries?.statistics?.seasonCount || 0,
+			heading: sonarrSeries?.title || 'Series'
+		});
+	}
+
+	// Focus next episode on load
 	let didFocusNextEpisode = false;
 	$: {
 		if (episodeComponents && !didFocusNextEpisode) {
@@ -162,24 +231,24 @@
 	}
 </script>
 
-{#await tmdbSeriesPromise then series}
+{#await data then { tmdbSeries, tmdbId, ...data }}
 	<TitlePageLayout
 		{tmdbId}
 		type="series"
 		{isModal}
 		{handleCloseModal}
-		backdropUriCandidates={series?.images?.backdrops?.map((b) => b.file_path || '') || []}
-		posterPath={series?.poster_path || ''}
-		title={series?.name || ''}
-		tagline={series?.tagline || series?.name || ''}
-		overview={series?.overview || ''}
+		backdropUriCandidates={tmdbSeries?.images?.backdrops?.map((b) => b.file_path || '') || []}
+		posterPath={tmdbSeries?.poster_path || ''}
+		title={tmdbSeries?.name || ''}
+		tagline={tmdbSeries?.tagline || tmdbSeries?.name || ''}
+		overview={tmdbSeries?.overview || ''}
 	>
 		<svelte:fragment slot="title-info-1">
-			{new Date(series?.first_air_date || Date.now()).getFullYear()}
+			{new Date(tmdbSeries?.first_air_date || Date.now()).getFullYear()}
 		</svelte:fragment>
-		<svelte:fragment slot="title-info-2">{series?.status}</svelte:fragment>
+		<svelte:fragment slot="title-info-2">{tmdbSeries?.status}</svelte:fragment>
 		<svelte:fragment slot="title-info-3">
-			<a href={tmdbUrl} target="_blank">{series?.vote_average?.toFixed(1)} TMDB</a>
+			<a href={data.tmdbUrl} target="_blank">{tmdbSeries?.vote_average?.toFixed(1)} TMDB</a>
 		</svelte:fragment>
 
 		<svelte:fragment slot="title-right">
@@ -189,7 +258,13 @@
 				{#if $jellyfinItemStore.loading || $sonarrSeriesStore.loading}
 					<div class="placeholder h-10 w-48 rounded-xl" />
 				{:else}
-					<OpenInButton title={series?.name} {jellyfinItem} {sonarrSeries} type="series" {tmdbId} />
+					<OpenInButton
+						title={tmdbSeries?.name}
+						jellyfinItem={$jellyfinItemStore.item}
+						sonarrSeries={$sonarrSeriesStore.item}
+						type="series"
+						{tmdbId}
+					/>
 					{#if !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
 							<span>
@@ -197,11 +272,11 @@
 							</span>
 							<ChevronRight size={20} />
 						</Button>
-					{:else if !sonarrSeries && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
+					{:else if !$sonarrSeriesStore.item && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
 							<span>Add to Sonarr</span><Plus size={20} />
 						</Button>
-					{:else if sonarrSeries}
+					{:else if $sonarrSeriesStore.item}
 						<Button type="primary" on:click={openRequestModal}>
 							<span class="mr-2">Request Series</span><Plus size={20} />
 						</Button>
@@ -218,8 +293,8 @@
 				})}
 			>
 				<UiCarousel slot="title" class="flex gap-6">
-					{#each [...Array(series?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
-						{@const season = series?.seasons?.find((s) => s.season_number === seasonNumber)}
+					{#each [...Array(tmdbSeries?.number_of_seasons || 0).keys()].map((i) => i + 1) as seasonNumber}
+						{@const season = tmdbSeries?.seasons?.find((s) => s.season_number === seasonNumber)}
 						{@const isSelected = season?.season_number === (visibleSeasonNumber || 1)}
 						<button
 							class={classNames(
@@ -228,14 +303,14 @@
 									'text-zinc-200': isSelected && seasonSelectVisible,
 									'text-zinc-500 hover:text-zinc-200 cursor-pointer':
 										(!isSelected || seasonSelectVisible === false) &&
-										series?.number_of_seasons !== 1,
-									'text-zinc-500 cursor-default': series?.number_of_seasons === 1,
+										tmdbSeries?.number_of_seasons !== 1,
+									'text-zinc-500 cursor-default': tmdbSeries?.number_of_seasons === 1,
 									hidden:
 										!seasonSelectVisible && visibleSeasonNumber !== (season?.season_number || 1)
 								}
 							)}
 							on:click={() => {
-								if (series?.number_of_seasons === 1) return;
+								if (tmdbSeries?.number_of_seasons === 1) return;
 
 								if (seasonSelectVisible) {
 									visibleSeasonNumber = season?.season_number || 1;
@@ -247,16 +322,27 @@
 						>
 							<ChevronLeft
 								size={20}
-								class={(seasonSelectVisible || series?.number_of_seasons === 1) && 'hidden'}
+								class={(seasonSelectVisible || tmdbSeries?.number_of_seasons === 1) && 'hidden'}
 							/>
 							Season {season?.season_number}
 						</button>
 					{/each}
 				</UiCarousel>
 				{#key visibleSeasonNumber}
-					{#each episodeProps[visibleSeasonNumber || 1] || [] as props, i}
+					{#each data.tmdbEpisodeProps[(visibleSeasonNumber || 1) - 1] || [] as props, i}
+						{@const jellyfinData = jellyfinEpisodeData[`S${visibleSeasonNumber}E${i + 1}`]}
 						<div bind:this={episodeComponents[i]}>
-							<EpisodeCard {...props} on:click={() => (visibleEpisodeIndex = i)} />
+							<EpisodeCard
+								{...props}
+								{...jellyfinData
+									? {
+											watched: jellyfinData.watched,
+											progress: jellyfinData.progress,
+											jellyfinId: jellyfinData.jellyfinId
+									  }
+									: {}}
+								on:click={() => (visibleEpisodeIndex = i)}
+							/>
 						</div>
 					{:else}
 						<CarouselPlaceholderItems />
@@ -268,13 +354,13 @@
 		<svelte:fragment slot="info-components">
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Created By</p>
-				<h2 class="font-medium">{series?.created_by?.map((c) => c.name).join(', ')}</h2>
+				<h2 class="font-medium">{tmdbSeries?.created_by?.map((c) => c.name).join(', ')}</h2>
 			</div>
-			{#if series?.first_air_date}
+			{#if tmdbSeries?.first_air_date}
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">First Air Date</p>
 					<h2 class="font-medium">
-						{new Date(series?.first_air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries?.first_air_date).toLocaleDateString('en', {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
@@ -282,22 +368,22 @@
 					</h2>
 				</div>
 			{/if}
-			{#if series?.next_episode_to_air}
+			{#if tmdbSeries?.next_episode_to_air}
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">Next Air Date</p>
 					<h2 class="font-medium">
-						{new Date(series.next_episode_to_air?.air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries.next_episode_to_air?.air_date).toLocaleDateString('en', {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
 						})}
 					</h2>
 				</div>
-			{:else if series?.last_air_date}
+			{:else if tmdbSeries?.last_air_date}
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">Last Air Date</p>
 					<h2 class="font-medium">
-						{new Date(series.last_air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries.last_air_date).toLocaleDateString('en', {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
@@ -307,21 +393,22 @@
 			{/if}
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Networks</p>
-				<h2 class="font-medium">{series?.networks?.map((n) => n.name).join(', ')}</h2>
+				<h2 class="font-medium">{tmdbSeries?.networks?.map((n) => n.name).join(', ')}</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Episode Run Time</p>
-				<h2 class="font-medium">{series?.episode_run_time} Minutes</h2>
+				<h2 class="font-medium">{tmdbSeries?.episode_run_time} Minutes</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Spoken Languages</p>
 				<h2 class="font-medium">
-					{series?.spoken_languages?.map((l) => capitalize(l.english_name || '')).join(', ')}
+					{tmdbSeries?.spoken_languages?.map((l) => capitalize(l.english_name || '')).join(', ')}
 				</h2>
 			</div>
 		</svelte:fragment>
 
 		<svelte:fragment slot="servarr-components">
+			{@const sonarrSeries = $sonarrSeriesStore.item}
 			{#if sonarrSeries}
 				{#if sonarrSeries?.statistics?.episodeFileCount}
 					<div class="col-span-2 lg:col-span-1">
@@ -371,7 +458,7 @@
 
 		<div slot="cast-crew-carousel-title" class="font-medium text-lg">Cast & Crew</div>
 		<svelte:fragment slot="cast-crew-carousel">
-			{#await castProps}
+			{#await data.castProps}
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
@@ -382,7 +469,7 @@
 
 		<div slot="recommendations-carousel-title" class="font-medium text-lg">Recommendations</div>
 		<svelte:fragment slot="recommendations-carousel">
-			{#await tmdbRecommendationProps}
+			{#await data.tmdbRecommendationProps}
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}
@@ -393,7 +480,7 @@
 
 		<div slot="similar-carousel-title" class="font-medium text-lg">Similar Series</div>
 		<svelte:fragment slot="similar-carousel">
-			{#await tmdbSimilarProps}
+			{#await data.tmdbSimilarProps}
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop}

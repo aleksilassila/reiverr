@@ -6,6 +6,7 @@
 	import Carousel from '../Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../Carousel/CarouselPlaceholderItems.svelte';
 	import IconButton from '../IconButton.svelte';
+	import LazyImg from '../LazyImg.svelte';
 
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
@@ -33,7 +34,30 @@
 
 <svelte:window bind:outerHeight={windowHeight} />
 
+<!-- Desktop -->
 <div
+	style={'height: ' + imageHeight.toFixed() + 'px'}
+	class={classNames('hidden sm:block inset-x-0 bg-center bg-cover bg-stone-950', {
+		absolute: isModal,
+		fixed: !isModal
+	})}
+>
+	<LazyImg src={TMDB_IMAGES_ORIGINAL + getBackdropUri(backdropUriCandidates)} class="h-full">
+		<div class="absolute inset-0 bg-darken" />
+	</LazyImg>
+</div>
+
+<!-- Mobile -->
+<div
+	style={'height: ' + imageHeight.toFixed() + 'px'}
+	class="sm:hidden fixed inset-x-0 bg-center bg-cover bg-stone-950"
+>
+	<LazyImg src={TMDB_IMAGES_ORIGINAL + posterPath} class="h-full">
+		<div class="absolute inset-0 bg-darken" />
+	</LazyImg>
+</div>
+
+<!-- <div
 	style={"background-image: url('" +
 		TMDB_IMAGES_ORIGINAL +
 		getBackdropUri(backdropUriCandidates) +
@@ -46,9 +70,9 @@
 	})}
 >
 	<div class="absolute inset-0 bg-darken" />
-</div>
+</div> -->
 
-<div
+<!-- <div
 	style={"background-image: url('" +
 		TMDB_IMAGES_ORIGINAL +
 		posterPath +
@@ -58,7 +82,7 @@
 	class="sm:hidden fixed inset-x-0 bg-center bg-cover bg-stone-950"
 >
 	<div class="absolute inset-0 bg-darken" />
-</div>
+</div> -->
 
 <div
 	class={classNames('flex flex-col relative z-[1]', {

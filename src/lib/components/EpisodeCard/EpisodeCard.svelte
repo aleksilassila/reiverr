@@ -28,6 +28,7 @@
 		if (!jellyfinId) return;
 
 		watched = true;
+		progress = 0;
 		setJellyfinItemWatched(jellyfinId).finally(() => jellyfinItemsStore.refreshIn(5000));
 	}
 

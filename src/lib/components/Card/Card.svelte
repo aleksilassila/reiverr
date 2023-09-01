@@ -55,7 +55,7 @@
 		)}
 		on:click={() => {
 			if (openInModal) {
-				openTitleModal(tmdbId, type);
+				openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
 			} else {
 				window.location.href = `/${type}/${tmdbId}`;
 			}

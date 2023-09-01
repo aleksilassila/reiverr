@@ -123,7 +123,11 @@
 			out:fade|global={{ duration: ANIMATION_DURATION }}
 		>
 			<div class="flex gap-4 items-center">
-				<Button size="lg" type="primary" on:click={() => openTitleModal(tmdbId, type)}>
+				<Button
+					size="lg"
+					type="primary"
+					on:click={() => openTitleModal({ type, id: tmdbId, provider: 'tmdb' })}
+				>
 					<span>{$_('titleShowcase.details')}</span><ChevronRight size={20} />
 				</Button>
 				{#if trailerId}

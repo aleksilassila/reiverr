@@ -90,7 +90,11 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
-	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => res?.id as number | undefined);
+	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
+		const id = res?.id as number | undefined;
+		if (!id) return Promise.reject();
+		return id;
+	});
 
 export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {

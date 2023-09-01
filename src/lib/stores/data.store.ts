@@ -65,13 +65,21 @@ function _createDataFetchStore<T>(fn: () => Promise<T>) {
 
 export const jellyfinItemsStore = _createDataFetchStore(getJellyfinItems);
 
-export function createJellyfinItemStore(tmdbId: number) {
-	const store = derived(jellyfinItemsStore, (s) => {
-		return {
-			loading: s.loading,
-			item: s.data?.find((i) => i.ProviderIds?.Tmdb === String(tmdbId))
-		};
+export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
+	const store = writable<{ loading: boolean; item?: JellyfinItem }>({
+		loading: true,
+		item: undefined
 	});
+
+	jellyfinItemsStore.subscribe(async (s) => {
+		const awaited = await tmdbId;
+
+		store.set({
+			loading: s.loading,
+			item: s.data?.find((i) => i.ProviderIds?.Tmdb === String(awaited))
+		});
+	});
+
 	return {
 		subscribe: store.subscribe,
 		refresh: jellyfinItemsStore.refresh,

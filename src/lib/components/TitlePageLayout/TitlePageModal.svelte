@@ -1,12 +1,11 @@
 <script lang="ts">
-	import type { TitleType } from '$lib/types';
+	import type { TitleId } from '$lib/types';
 	import { fly } from 'svelte/transition';
 	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
 	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
 	import { modalStack } from '../../stores/modal.store';
 
-	export let tmdbId: number;
-	export let type: TitleType;
+	export let titleId: TitleId;
 	export let modalId: symbol;
 
 	function handleCloseModal() {
@@ -22,10 +21,10 @@
 		in:fly|global={{ y: 20, duration: 200, delay: 200 }}
 		out:fly|global={{ y: 20, duration: 200 }}
 	>
-		{#if type === 'movie'}
-			<MoviePage {tmdbId} isModal={true} {handleCloseModal} />
+		{#if titleId.type === 'movie'}
+			<MoviePage tmdbId={titleId.id} isModal={true} {handleCloseModal} />
 		{:else}
-			<SeriesPage {tmdbId} isModal={true} {handleCloseModal} />
+			<SeriesPage {titleId} isModal={true} {handleCloseModal} />
 		{/if}
 	</div>
 </div>

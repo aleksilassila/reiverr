@@ -6,9 +6,11 @@
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import LazyImg from '../LazyImg.svelte';
 	import { Star } from 'radix-icons-svelte';
+	import { openTitleModal } from '$lib/stores/modal.store';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
+	export let openInModal = true;
 	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
 	export let backdropUrl: string;
@@ -22,10 +24,20 @@
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 </script>
 
-<a
-	href={tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : '#'}
+<button
+	on:click={() => {
+		if (openInModal) {
+			if (tmdbId) {
+				openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
+			} else if (tvdbId) {
+				openTitleModal({ type, id: tvdbId, provider: 'tvdb' });
+			}
+		} else {
+			window.location.href = tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : '#';
+		}
+	}}
 	class={classNames(
-		'relative flex shadow-lg rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden',
+		'relative flex shadow-lg rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left',
 		{
 			'aspect-video': orientation === 'landscape',
 			'aspect-[2/3]': orientation === 'portrait',
@@ -41,8 +53,18 @@
 >
 	<LazyImg src={backdropUrl} class="absolute inset-0 group-hover:scale-105 transition-transform" />
 	<div
+		class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"
+		style="filter: blur(50px); transform: scale(3);"
+	>
+		<LazyImg src={backdropUrl} />
+	</div>
+	<!-- <div
+		style={`background-image: url(${backdropUrl}); background-size: cover; background-position: center; filter: blur(50px); transform: scale(3);`}
+		class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"
+	/> -->
+	<div
 		class={classNames(
-			'flex-1 flex flex-col justify-between bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',
+			'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',
 			{
 				'py-2 px-3': true
 			}
@@ -95,4 +117,4 @@
 			<ProgressBar {progress} />
 		</div>
 	{/if}
-</a>
+</button>
