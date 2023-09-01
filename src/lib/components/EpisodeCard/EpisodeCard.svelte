@@ -65,7 +65,7 @@
 		on:click
 		class={classNames(
 			'aspect-video bg-center bg-cover rounded-lg overflow-hidden transition-opacity shadow-lg selectable flex-shrink-0 placeholder-image relative',
-			'flex flex-col px-2 lg:px-3 py-2 gap-2',
+			'flex flex-col px-2 lg:px-3 py-2 gap-2 text-left',
 			{
 				'h-40': size === 'md',
 				'h-full': size === 'dynamic',

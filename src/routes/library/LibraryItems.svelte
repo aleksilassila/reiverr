@@ -3,11 +3,11 @@
 	import IconButton from '$lib/components/IconButton.svelte';
 	import { settings } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
-	import { fade } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
-	import { CaretDown, ChevronDown, Gear } from 'radix-icons-svelte';
+	import { CaretDown, ChevronDown, Cross2, Gear, MagnifyingGlass } from 'radix-icons-svelte';
 	import CardPlaceholder from '$lib/components/Card/CardPlaceholder.svelte';
-	import type { ComponentProps } from 'svelte';
+	import { tick, type ComponentProps } from 'svelte';
 	import Poster from '$lib/components/Poster/Poster.svelte';
 	import { getJellyfinPosterUrl, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
 	import { getRadarrPosterUrl, type RadarrMovie } from '$lib/apis/radarr/radarrApi';
@@ -33,7 +33,8 @@
 
 	let openTab: 'available' | 'watched' | 'unavailable' = 'available';
 	let page = 0;
-	let loading = true;
+
+	let searchVisible = false;
 
 	let searchInput: HTMLInputElement | undefined;
 
@@ -97,7 +98,7 @@
 		if (page === 0) posterProps = [];
 
 		const jellyfinItemsPromise = jellyfinItemsStore.promise
-			.then((i) => i || [])
+			.then((i) => i.filter((i) => i.Name?.toLowerCase().includes(searchQuery.toLowerCase())) || [])
 			.then((i) => {
 				const sorted = i.sort((a, b) => {
 					if (sort === 'Date Added') {
@@ -146,6 +147,7 @@
 				}))
 				.then(({ items, jellyfinItems }) =>
 					items
+						.filter((i) => i.title?.toLowerCase().includes(searchQuery.toLowerCase()))
 						.filter(
 							(i) =>
 								!jellyfinItems.find((j) => j.ProviderIds?.Tmdb === String((<any>i).tmdbId || '-'))
@@ -159,6 +161,7 @@
 		}
 
 		const toAdd = props.slice(PAGE_SIZE * page, PAGE_SIZE * (page + 1));
+
 		hasMore = toAdd.length === PAGE_SIZE;
 		libraryLoading = false;
 		posterProps = [...posterProps, ...toAdd];
@@ -169,18 +172,54 @@
 		page = 0;
 	}
 
-	function handleShortcuts(event: KeyboardEvent) {
+	async function handleOpenSearch() {
+		searchVisible = true;
+		await tick();
+		searchInput?.focus();
+	}
+
+	async function handleCloseSearch() {
+		searchVisible = false;
+		searchQuery = '';
+	}
+
+	async function handleShortcuts(event: KeyboardEvent) {
 		if (event.key === 'f' && (event.metaKey || event.ctrlKey)) {
 			event.preventDefault();
-			searchInput?.focus();
+			handleOpenSearch();
+		} else if (event.key === 'Escape') {
+			handleCloseSearch();
 		}
 	}
 </script>
 
 <svelte:window on:keydown={handleShortcuts} />
 
+{#if searchVisible}
+	<div
+		transition:fly={{ y: 5, duration: 200 }}
+		class="fixed top-20 left-1/2 w-80 -ml-40 z-10 bg-[#33333388] backdrop-blur-xl rounded-full
+		flex items-center text-zinc-300"
+	>
+		<div class="absolute inset-y-0 left-4 flex items-center justify-center">
+			<MagnifyingGlass size={20} />
+		</div>
+		<div class="absolute inset-y-0 right-4 flex items-center justify-center">
+			<IconButton on:click={handleCloseSearch}>
+				<Cross2 size={20} />
+			</IconButton>
+		</div>
+		<input
+			bind:this={searchInput}
+			bind:value={searchQuery}
+			placeholder="Seach in library"
+			class="appearance-none mx-2.5 my-2.5 px-10 bg-transparent outline-none placeholder:text-zinc-400 font-medium w-full"
+		/>
+	</div>
+{/if}
+
 <div class="flex flex-col gap-4">
-	<div class="flex items-center justify-between gap-2">
+	<div class="flex items-center justify-between gap-4">
 		<UiCarousel>
 			<div class="flex gap-6 text-lg font-medium text-zinc-400">
 				<button
@@ -243,8 +282,8 @@
 					</div>
 				</IconButton>
 			</ContextMenu>
-			<IconButton>
-				<Gear size={20} />
+			<IconButton on:click={handleOpenSearch}>
+				<MagnifyingGlass size={20} />
 			</IconButton>
 		</div>
 	</div>
