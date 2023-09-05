@@ -4,7 +4,7 @@
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
+	import PersonPageLayout from '$lib/components/PersonPageLayout/PersonPageLayout.svelte';
 	import { Archive, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 
 	const GenderDescription = ['Not set', 'Female', 'Male', 'Non-binary'];
@@ -38,10 +38,10 @@
 </script>
 
 {#await data}
-	<TitlePageLayout {isModal} {handleCloseModal} />
+	<PersonPageLayout {isModal} {handleCloseModal} />
 {:then { tmdbPerson, tmdbMoviesOn, tmdbSeriesOn }}
 	{@const person = tmdbPerson}
-	<TitlePageLayout
+	<PersonPageLayout
 		titleInformation={{
 			tmdbId: Number(person?.id),
 			type: 'person',
@@ -59,7 +59,7 @@
 				<p>{person?.homepage}</p>
 				<DotFilled />
 			{/if}
-			<a href={tmdbUrl} target="_blank">Popularity index: {person?.popularity?.toFixed(1)} TMDB</a>
+			<a href={tmdbUrl} target="_blank">Popularity: {person?.popularity?.toFixed(1)} on TMDB</a>
 		</svelte:fragment>
 		<svelte:fragment slot="title-right" />
 
@@ -104,8 +104,8 @@
 			{/if}
 		</svelte:fragment>
 
-		<div slot="cast-crew-carousel-title" class="font-medium text-lg">Appeared on movies like</div>
-		<svelte:fragment slot="cast-crew-carousel">
+		<div slot="movie-carousel-title" class="font-medium text-lg">Appeared on movies like</div>
+		<svelte:fragment slot="movie-carousel">
 			{#await tmdbMoviesOn}
 				<CarouselPlaceholderItems />
 			{:then props}
@@ -114,8 +114,8 @@
 				{/each}
 			{/await}
 		</svelte:fragment>
-		<div slot="recommendations-carousel-title" class="font-medium text-lg">And tv shows like</div>
-		<svelte:fragment slot="recommendations-carousel">
+		<div slot="tv-carousel-title" class="font-medium text-lg">And tv shows like</div>
+		<svelte:fragment slot="tv-carousel">
 			{#await tmdbSeriesOn}
 				<CarouselPlaceholderItems />
 			{:then props}
@@ -124,5 +124,5 @@
 				{/each}
 			{/await}
 		</svelte:fragment>
-	</TitlePageLayout>
+	</PersonPageLayout>
 {/await}
