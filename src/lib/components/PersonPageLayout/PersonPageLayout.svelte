@@ -199,12 +199,6 @@
 			</div>
 		</slot>
 		<slot name="info-components" />
-		<!-- <slot name="servarr-components">
-			<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
-				<div class="placeholder h-10 w-40 rounded-xl" />
-				<div class="placeholder h-10 w-40 rounded-xl" />
-			</div>
-		</slot> -->
 	</div>
 	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
 		<Carousel gradientFromColor="from-stone-950">
