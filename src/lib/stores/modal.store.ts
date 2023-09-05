@@ -1,6 +1,7 @@
 import type { TitleId, TitleType } from '$lib/types';
 import { writable } from 'svelte/store';
 import TitlePageModal from '../components/TitlePageLayout/TitlePageModal.svelte';
+import PersonPageModal from '../components/PersonPageLayout/PersonPageModal.svelte';
 
 type ModalItem = {
 	id: symbol;
@@ -66,6 +67,17 @@ export function openTitleModal(titleId: TitleId) {
 		modalStack.close(lastTitleModal);
 	}
 	lastTitleModal = modalStack.create(TitlePageModal, {
+		titleId
+	});
+}
+
+let lastPersonModal: symbol | undefined = undefined;
+export function openPersonModal(titleId: TitleId) {
+	console.log(lastPersonModal, titleId);
+	if (lastPersonModal) {
+		modalStack.close(lastPersonModal);
+	}
+	lastPersonModal = modalStack.create(PersonPageModal, {
 		titleId
 	});
 }
