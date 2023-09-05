@@ -11,7 +11,7 @@
 	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
 	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
 
-	const GenderDescription = ['Not set', 'Female', 'Male', 'Non-binary'];
+	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
 
 	export let personId: number;
 	export let isModal = false;
@@ -131,7 +131,7 @@
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Gender</p>
 				<h2 class="font-medium">
-					{GenderDescription[person?.gender ?? 0]}
+					{GENDER_OPTIONS[person?.gender ?? 0]}
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
