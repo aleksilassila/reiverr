@@ -14,6 +14,15 @@ export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
+export type TmdbPerson =
+	operations['person-details']['responses']['200']['content']['application/json'];
+
+export interface TmdbPersonFull extends TmdbPerson {
+	images: operations['person-images']['responses']['200']['content']['application/json'];
+	movie_credits: operations['person-tv-credits']['responses']['200']['content']['application/json'];
+	tv_credits: operations['person-movie-credits']['responses']['200']['content']['application/json'];
+	combined_credits: operations['person-combined-credits']['responses']['200']['content']['application/json'];
+}
 
 export interface TmdbMovieFull2 extends TmdbMovie2 {
 	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
@@ -292,6 +301,18 @@ export const getTmdbItemBackdrop = (item: {
 		item?.images?.backdrops?.find((b) => b.iso_639_1) ||
 		item?.images?.backdrops?.[0]
 	)?.file_path;
+
+export const getTmdbPerson = async (person_id: number) =>
+	TmdbApiOpen.get('/3/person/{person_id}', {
+		params: {
+			path: {
+				person_id: person_id
+			},
+			query: {
+				append_to_response: 'images,movie_credits,tv_credits,combined_credits'
+			}
+		}
+	}).then((res) => res.data as TmdbPersonFull);
 
 export const TMDB_MOVIE_GENRES = [
 	{
