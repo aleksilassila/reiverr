@@ -76,7 +76,7 @@
 			tmdbPerson,
 			tmdbMoviesOn,
 			tmdbSeriesOn,
-			tmdbSocials
+			tmdbSocials: tmdbSocials.slice(0, 6),
 		};
 	}
 </script>
