@@ -5,7 +5,11 @@
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import PersonPageLayout from '$lib/components/PersonPageLayout/PersonPageLayout.svelte';
-	import { Archive, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
+	import FacebookIcon from '$lib/components/svgs/FacebookIcon.svelte';
+	import ImdbIcon from '$lib/components/svgs/ImdbIcon.svelte';
+	import TwitterIcon from '$lib/components/svgs/TwitterIcon.svelte';
+	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
+	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
 
 	const GenderDescription = ['Not set', 'Female', 'Male', 'Non-binary'];
 
@@ -29,16 +33,44 @@
 			.then((res) => res.filter((p) => p.backdropUrl))
 			.then((res) => res.sort((a, b) => b.rating - a.rating));
 
-		const tmdbSocials = {
-			facebook: tmdbPerson.external_ids.facebook_id,
-			imdb: tmdbPerson.external_ids.imdb_id,
-			instagram: tmdbPerson.external_ids.instagram_id,
-			tiktok: tmdbPerson.external_ids.tiktok_id,
-			twitter: tmdbPerson.external_ids.twitter_id,
-			youtube: tmdbPerson.external_ids.youtube_id,
-			wikipedia: tmdbPerson.external_ids.wikidata_id,
-			
-		};
+		const tmdbSocials = [];
+
+		for (const [social, id] of Object.entries(tmdbPerson.external_ids)) {
+			if (Boolean(id)) {
+				switch (social) {
+					case 'facebook_id':
+						tmdbSocials.push({
+							url: `https://facebook.com/${id}`,
+							icon: FacebookIcon
+						});
+						break;
+					case 'imdb_id':
+						tmdbSocials.push({
+							url: `https://imdb.com/name/${id}`,
+							icon: ImdbIcon
+						});
+						break;
+					case 'twitter_id':
+						tmdbSocials.push({
+							url: `https://x.com/${id}`,
+							icon: TwitterIcon
+						});
+						break;
+					case 'youtube_id':
+						tmdbSocials.push({
+							url: `https://youtube.com/@${id}`,
+							icon: YoutubeIcon
+						});
+						break;
+					case 'instagram_id':
+						tmdbSocials.push({
+							url: `https://instagram.com/${id}`,
+							icon: InstagramLogo
+						});
+						break;
+				}
+			}
+		}
 
 		return {
 			tmdbPerson,
@@ -51,7 +83,7 @@
 
 {#await data}
 	<PersonPageLayout {isModal} {handleCloseModal} />
-{:then { tmdbPerson, tmdbMoviesOn, tmdbSeriesOn }}
+{:then { tmdbPerson, tmdbMoviesOn, tmdbSeriesOn, tmdbSocials }}
 	{@const person = tmdbPerson}
 	<PersonPageLayout
 		titleInformation={{
@@ -76,6 +108,20 @@
 		<svelte:fragment slot="title-right" />
 
 		<svelte:fragment slot="info-components">
+			{#if tmdbSocials}
+				<div class="col-span-2 lg:col-span-1">
+					<p class="text-zinc-400 text-sm">Socials</p>
+					<h2 class="pt-2 text-sm">
+						<div class="flex gap-2 justify-start">
+							{#each tmdbSocials ?? [] as Prop}
+								<a href={Prop.url} target="_blank" >
+									<Prop.icon class="h-6 w-6 flex-shrink-0 text-white"/>
+								</a>
+							{/each}
+						</div>
+					</h2>
+				</div>
+			{/if}
 			<div class="col-span-2 lg:col-span-1">
 				<p class="text-zinc-400 text-sm">Known for</p>
 				<h2 class="font-medium">
