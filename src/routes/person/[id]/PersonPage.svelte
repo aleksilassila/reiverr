@@ -9,6 +9,7 @@
 	import ImdbIcon from '$lib/components/svgs/ImdbIcon.svelte';
 	import TwitterIcon from '$lib/components/svgs/TwitterIcon.svelte';
 	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
+	import TiktokIcon from '$lib/components/svgs/TiktokIcon.svelte';
 	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
 
 	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
@@ -68,6 +69,12 @@
 							icon: InstagramLogo
 						});
 						break;
+					case 'tiktok_id':
+						tmdbSocials.push({
+							url: `https://www.tiktok.com/@${id}`,
+							icon: TiktokIcon
+						});
+						break;
 				}
 			}
 		}
@@ -76,7 +83,7 @@
 			tmdbPerson,
 			tmdbMoviesOn,
 			tmdbSeriesOn,
-			tmdbSocials: tmdbSocials.slice(0, 6),
+			tmdbSocials,
 		};
 	}
 </script>
@@ -112,7 +119,7 @@
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">Socials</p>
 					<h2 class="pt-2 text-sm">
-						<div class="flex gap-2 justify-start">
+						<div class="grid grid-cols-6 gap-4 justify-start">
 							{#each tmdbSocials ?? [] as Prop}
 								<a href={Prop.url} target="_blank" >
 									<Prop.icon class="h-6 w-6 flex-shrink-0 text-white"/>
