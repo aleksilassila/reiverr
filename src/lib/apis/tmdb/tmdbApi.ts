@@ -21,7 +21,7 @@ export interface TmdbPersonFull extends TmdbPerson {
 	images: operations['person-images']['responses']['200']['content']['application/json'];
 	movie_credits: operations['person-tv-credits']['responses']['200']['content']['application/json'];
 	tv_credits: operations['person-movie-credits']['responses']['200']['content']['application/json'];
-	combined_credits: operations['person-combined-credits']['responses']['200']['content']['application/json'];
+	external_ids: operations['person-external-ids']['responses']['200']['content']['application/json'];
 }
 
 export interface TmdbMovieFull2 extends TmdbMovie2 {
@@ -309,7 +309,7 @@ export const getTmdbPerson = async (person_id: number) =>
 				person_id: person_id
 			},
 			query: {
-				append_to_response: 'images,movie_credits,tv_credits,combined_credits'
+				append_to_response: 'images,movie_credits,tv_credits,external_ids'
 			}
 		}
 	}).then((res) => res.data as TmdbPersonFull);

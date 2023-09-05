@@ -29,10 +29,22 @@
 			.then((res) => res.filter((p) => p.backdropUrl))
 			.then((res) => res.sort((a, b) => b.rating - a.rating));
 
+		const tmdbSocials = {
+			facebook: tmdbPerson.external_ids.facebook_id,
+			imdb: tmdbPerson.external_ids.imdb_id,
+			instagram: tmdbPerson.external_ids.instagram_id,
+			tiktok: tmdbPerson.external_ids.tiktok_id,
+			twitter: tmdbPerson.external_ids.twitter_id,
+			youtube: tmdbPerson.external_ids.youtube_id,
+			wikipedia: tmdbPerson.external_ids.wikidata_id,
+			
+		};
+
 		return {
 			tmdbPerson,
 			tmdbMoviesOn,
-			tmdbSeriesOn
+			tmdbSeriesOn,
+			tmdbSocials
 		};
 	}
 </script>
