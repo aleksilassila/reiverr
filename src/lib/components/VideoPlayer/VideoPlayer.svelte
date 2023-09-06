@@ -194,11 +194,19 @@
 					/>
 					<media-time type="duration" class="text-zinc-400 font-bold text-base" />
 				</div>
-				<div class="w-full flex items-center px-3 mb-1.5 h-5">
+				<div class="w-full flex items-center px-5 mb-1.5 h-5">
 					<media-play-button class="text-zinc-400 h-8 w-8">
 						<PlayIcon slot="play" />
 						<PauseIcon slot="pause" />
 						<ReplayIcon slot="replay" />
+						<media-tooltip
+							position="top"
+							class="rounded-md bg-zinc-800/90 px-2.5 py-1.5 font-bold"
+						>
+							<span slot="play">{'Play'}</span>
+							<span slot="pause">{'Pause'}</span>
+							<span slot="replay">{'Play again'}</span>
+						</media-tooltip>
 					</media-play-button>
 					<div class="flex-1" />
 					{#if player?.textTracks?.length > 0}
@@ -210,13 +218,18 @@
 					<media-fullscreen-button class="text-zinc-400 h-8 w-8">
 						<EnterFullScreenIcon slot="enter" />
 						<ExitFullScreenIcon slot="exit" />
+						<media-tooltip
+							position="top right"
+							class="rounded-md bg-zinc-800/90 px-2.5 py-1.5 font-bold"
+						>
+							<span slot="enter">{'Enter Fullscreen'}</span>
+							<span slot="exit">{'Exit Fullscreen'}</span>
+						</media-tooltip>
 					</media-fullscreen-button>
 				</div>
 			</div>
 			<BufferingIcon />
 		</div>
-
-		<!-- <media-community-skin /> -->
 	</media-player>
 	<div class="absolute top-6 right-6 z-50" transition:fade={{ duration: 100 }}>
 		<IconButton on:click={handleClose}>
