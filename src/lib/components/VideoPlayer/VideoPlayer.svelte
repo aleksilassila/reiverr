@@ -29,7 +29,14 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
-	import { Cross2 as CrossIcon, Play as PlayIcon, Pause as PauseIcon, Reload as ReplayIcon } from 'radix-icons-svelte';
+	import { 
+		Cross2 as CrossIcon, 
+		Play as PlayIcon, 
+		Pause as PauseIcon, 
+		Reload as ReplayIcon,
+		EnterFullScreen as EnterFullScreenIcon,
+		ExitFullScreen as ExitFullScreenIcon,
+	} from 'radix-icons-svelte';
 	import BufferingIcon from './BufferingIcon.svelte';
 	import CaptionMenu from './CaptionMenu.svelte';
 	import IconButton from '../IconButton.svelte';
@@ -194,7 +201,10 @@
 					{#if player?.textTracks?.length > 0}
 						<CaptionMenu tracks={subtitleList} />
 					{/if}
-					<media-fullscreen-button class="text-zinc-300" />
+					<media-fullscreen-button class="text-zinc-300" >
+						<EnterFullScreenIcon slot="enter" />
+						<ExitFullScreenIcon slot="exit" />
+					</media-fullscreen-button>
 				</div>
 			</div>
 			<BufferingIcon />
