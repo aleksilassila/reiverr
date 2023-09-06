@@ -84,7 +84,7 @@
 			getJellyfinPlaybackInfo(
 				itemId,
 				getDeviceProfile(),
-				item?.UserData?.PlaybackPositionTicks || 0,
+				item?.UserData?.PlaybackPositionTicks || player?.currentTime * 10_000_000 || 0,
 				maxBitrate || getQualities(item?.Height || 1080)[0].maxBitrate
 			).then(async (playbackInfo) => {
 				if (!playbackInfo) return;
@@ -123,7 +123,7 @@
 				if (progressInterval) clearInterval(progressInterval);
 				progressInterval = setInterval(() => {
 					player && player.currentTime > 0 && sessionId && itemId;
-					// reportProgress();
+					// reportProgress(); // tmp
 				}, 5000);
 
 				deleteEncoding = () => {
@@ -164,13 +164,14 @@
 			<!-- Controls -->
 			<div class="absolute bottom-3 left-0 w-full z-10 px-1 py-0.5">
 				<div class="bg-black/50 rounded-sm w-full flex items-center px-5 gap-5">
-					<media-time showHours type="current" class="text-zinc-300 font-bold text-base" />
+					<media-time type="current" class="text-zinc-300 font-bold text-base" />
 					<media-time-slider class="flex-1" style />
 					<media-time type="duration" class="text-zinc-300 font-bold text-base" />
 				</div>
-				<div class="bg-black/50 rounded-sm w-full flex items-center px-3">
+				<div class="bg-black/50 rounded-sm w-full flex items-center px-3 mb-1.5">
 					<media-play-button class="text-zinc-300" />
 					<div class="flex-1" />
+					<media-fullscreen-button class="text-zinc-300" />
 				</div>
 			</div>
 			<!-- Buffering Icon -->
