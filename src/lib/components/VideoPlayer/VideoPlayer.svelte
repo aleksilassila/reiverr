@@ -146,7 +146,7 @@
 	out:fade|global={{ duration: 200, easing: linear }}
 >
 	<media-player
-		bind:this={player}
+		class="group"
 		autoplay
 		src={videoSource}
 		title={jellyfinItem?.Name}
@@ -154,44 +154,55 @@
 		aspect-ratio="16/9"
 		crossorigin
 		playsinline
+		bind:this={player}
 	>
 		<media-outlet>
 			<media-poster alt={jellyfinItem?.Name} />
 		</media-outlet>
-		<!-- Controls -->
-		<div class="absolute bottom-3 left-0 w-full z-10 px-1 py-0.5">
-			<div class="bg-black/50 rounded-sm w-full flex items-center px-5 gap-5">
-				<media-time type="current" class="text-zinc-300 font-bold text-base" />
-				<media-time-slider class="flex-1" />
-				<media-time type="duration" class="text-zinc-300 font-bold text-base" />
+		<!-- VideoUi -->
+		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
+			<!-- Controls -->
+			<div class="absolute bottom-3 left-0 w-full z-10 px-1 py-0.5">
+				<div class="bg-black/50 rounded-sm w-full flex items-center px-5 gap-5">
+					<media-time showHours type="current" class="text-zinc-300 font-bold text-base" />
+					<media-time-slider class="flex-1" style />
+					<media-time type="duration" class="text-zinc-300 font-bold text-base" />
+				</div>
+				<div class="bg-black/50 rounded-sm w-full flex items-center px-3">
+					<media-play-button class="text-zinc-300" />
+					<div class="flex-1" />
+				</div>
 			</div>
-			<div class="bg-black/50 rounded-sm w-full flex items-center px-3">
-				<media-play-button class="text-zinc-300" />
-				<div class="flex-1" />
-			</div>
-		</div>
-		<!-- Buffering -->
-		<div
-			class="pointer-events-none absolute inset-0 z-50 flex h-full w-full items-center justify-center"
-		>
-			<svg
-				class="buffering:opacity-100 buffering:animate-spin h-10 w-10 text-zinc-600 opacity-0 transition-opacity duration-200 ease-linear"
-				fill="none"
-				viewBox="0 0 120 120"
-				aria-hidden="true"
+			<!-- Buffering Icon -->
+			<div
+				class="pointer-events-none absolute inset-0 z-50 flex h-full w-full items-center justify-center"
 			>
-				<circle class="opacity-25" cx="60" cy="60" r="54" stroke="currentColor" stroke-width="8" />
-				<circle
-					class="opacity-75"
-					cx="60"
-					cy="60"
-					r="54"
-					stroke="currentColor"
-					stroke-width="10"
-					pathLength="100"
-					style="stroke-dasharray: 100; stroke-dashoffset: 50"
-				/>
-			</svg>
+				<svg
+					class="buffering:opacity-100 buffering:animate-spin h-10 w-10 text-zinc-600 opacity-0 transition-opacity duration-200 ease-linear"
+					fill="none"
+					viewBox="0 0 120 120"
+					aria-hidden="true"
+				>
+					<circle
+						class="opacity-25"
+						cx="60"
+						cy="60"
+						r="54"
+						stroke="currentColor"
+						stroke-width="8"
+					/>
+					<circle
+						class="opacity-75"
+						cx="60"
+						cy="60"
+						r="54"
+						stroke="currentColor"
+						stroke-width="10"
+						pathLength="100"
+						style="stroke-dasharray: 100; stroke-dashoffset: 50"
+					/>
+				</svg>
+			</div>
 		</div>
 
 		<!-- <media-community-skin /> -->
