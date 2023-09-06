@@ -25,5 +25,5 @@ export default {
 	future: {
 		hoverOnlyWhenSupported: true
 	},
-	plugins: [require('tailwind-scrollbar-hide')]
+	plugins: [require('tailwind-scrollbar-hide'), require('vidstack/tailwind.cjs')]
 };
