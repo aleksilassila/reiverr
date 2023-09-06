@@ -29,7 +29,7 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
-	import { Cross2 as CrossIcon, Play as PlayIcon } from 'radix-icons-svelte';
+	import { Cross2 as CrossIcon, Play as PlayIcon, Pause as PauseIcon, Reload as ReplayIcon } from 'radix-icons-svelte';
 	import BufferingIcon from './BufferingIcon.svelte';
 	import CaptionMenu from './CaptionMenu.svelte';
 	import IconButton from '../IconButton.svelte';
@@ -183,7 +183,9 @@
 				</div>
 				<div class="bg-black/50 rounded-sm w-full flex items-center px-3 mb-1.5">
 					<media-play-button class="text-zinc-300">
-						<PlayIcon class="text-zinc-300" />
+						<PlayIcon slot="play" />
+						<PauseIcon slot="pause" />
+						<ReplayIcon  slot="replay" />
 					</media-play-button>
 					<div class="flex-1" />
 					{#if player?.textTracks?.length > 0}
