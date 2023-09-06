@@ -6,7 +6,7 @@
 	import classNames from 'classnames';
 
 	// vidstack
-	import type { MediaPlayerElement } from 'vidstack';
+	import type { MediaPlayerElement, TextTrack } from 'vidstack';
 	import 'vidstack/styles/defaults.css';
 	import 'vidstack/styles/community-skin/video.css';
 	import { defineCustomElements } from 'vidstack/elements';
@@ -29,7 +29,9 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
+	import { Play as PlayIcon } from 'radix-icons-svelte';
 	import BufferingIcon from './BufferingIcon.svelte';
+	import CaptionMenu from './CaptionMenu.svelte';
 
 	defineCustomElements();
 
@@ -45,6 +47,7 @@
 	let resolution: number = 1080;
 	let currentBitrate: number = 0;
 	let jellyfinItem: Awaited<ReturnType<typeof getJellyfinItem>>;
+	let subtitleList: Partial<TextTrack>[];
 
 	onMount(() => {
 		if (player && $playerState.jellyfinId) {
@@ -58,19 +61,19 @@
 	});
 
 	const addSubtitlesToPlayer = () => {
-		const subtitleList =
+		subtitleList =
 			jellyfinItem?.MediaStreams?.filter((item) => item.Type === 'Subtitle').map((subtitle) => {
 				return {
 					kind: 'subtitles',
 					src: `${$settings.jellyfin.baseUrl}/Videos/${jellyfinItem?.Id}/${jellyfinItem?.Id}/Subtitles/${subtitle.Index}/Stream.vtt?api_key=${$settings.jellyfin.apiKey}`,
-					srclang: subtitle.Language,
+					index: subtitle.Index,
+					language: subtitle.Language,
 					label: subtitle.DisplayTitle,
 					default: subtitle.IsDefault
-				};
+				} as Partial<TextTrack>;
 			}) ?? [];
 		for (const subtitle of subtitleList) {
-			// @ts-ignore
-			player.textTracks.add(subtitle);
+			player.textTracks.add(subtitle as TextTrack);
 		}
 	};
 
@@ -169,10 +172,15 @@
 					<media-time type="duration" class="text-zinc-300 font-bold text-base" />
 				</div>
 				<div class="bg-black/50 rounded-sm w-full flex items-center px-3 mb-1.5">
-					<media-play-button class="text-zinc-300" />
+					<media-play-button class="text-zinc-300">
+						<PlayIcon class="text-zinc-300" />
+					</media-play-button>
 					<div class="flex-1" />
 					{#if player?.textTracks?.length > 0}
 						<media-caption-button class="text-zinc-300" />
+					{/if}
+					{#if player?.textTracks?.length > 0}
+						<CaptionMenu tracks={subtitleList} />
 					{/if}
 					<media-fullscreen-button class="text-zinc-300" />
 				</div>
