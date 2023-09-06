@@ -29,11 +29,14 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
-	import { Play as PlayIcon } from 'radix-icons-svelte';
+	import { Cross2 as CrossIcon, Play as PlayIcon } from 'radix-icons-svelte';
 	import BufferingIcon from './BufferingIcon.svelte';
 	import CaptionMenu from './CaptionMenu.svelte';
+	import IconButton from '../IconButton.svelte';
 
 	defineCustomElements();
+
+	export let modalId: symbol;
 
 	let stopCallback: () => void;
 	let deleteEncoding: () => void;
@@ -54,6 +57,13 @@
 			if (!videoSource) fetchPlaybackInfo($playerState.jellyfinId);
 		}
 	});
+
+	function handleClose() {
+		playerState.close();
+		player.destroy();
+		clearInterval(progressInterval);
+		modalStack.close(modalId);
+	}
 
 	onDestroy(() => {
 		player.destroy();
@@ -190,4 +200,10 @@
 
 		<!-- <media-community-skin /> -->
 	</media-player>
+	<div class="absolute top-6 right-6 z-50" transition:fade={{ duration: 100 }}>
+		<IconButton on:click={handleClose}>
+			<CrossIcon size={25} />
+		</IconButton>
+		<BufferingIcon />
+	</div>
 </div>
