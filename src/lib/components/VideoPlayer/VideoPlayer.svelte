@@ -29,7 +29,7 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
-	import Slider from './Slider.svelte';
+	import BufferingIcon from './BufferingIcon.svelte';
 
 	defineCustomElements();
 
@@ -140,7 +140,7 @@
 
 <div
 	class={classNames(
-		'bg-black w-screen h-[100dvh] sm:h-screen relative flex items-center justify-center text-blue-600'
+		'bg-black w-screen h-[100dvh] sm:h-screen relative flex items-center justify-center'
 	)}
 	in:fade|global={{ duration: 300, easing: linear }}
 	out:fade|global={{ duration: 200, easing: linear }}
@@ -171,39 +171,13 @@
 				<div class="bg-black/50 rounded-sm w-full flex items-center px-3 mb-1.5">
 					<media-play-button class="text-zinc-300" />
 					<div class="flex-1" />
+					{#if player?.textTracks?.length > 0}
+						<media-caption-button class="text-zinc-300" />
+					{/if}
 					<media-fullscreen-button class="text-zinc-300" />
 				</div>
 			</div>
-			<!-- Buffering Icon -->
-			<div
-				class="pointer-events-none absolute inset-0 z-50 flex h-full w-full items-center justify-center"
-			>
-				<svg
-					class="buffering:opacity-100 buffering:animate-spin h-10 w-10 text-zinc-600 opacity-0 transition-opacity duration-200 ease-linear"
-					fill="none"
-					viewBox="0 0 120 120"
-					aria-hidden="true"
-				>
-					<circle
-						class="opacity-25"
-						cx="60"
-						cy="60"
-						r="54"
-						stroke="currentColor"
-						stroke-width="8"
-					/>
-					<circle
-						class="opacity-75"
-						cx="60"
-						cy="60"
-						r="54"
-						stroke="currentColor"
-						stroke-width="10"
-						pathLength="100"
-						style="stroke-dasharray: 100; stroke-dashoffset: 50"
-					/>
-				</svg>
-			</div>
+			<BufferingIcon />
 		</div>
 
 		<!-- <media-community-skin /> -->
