@@ -175,6 +175,7 @@
 		<media-outlet>
 			<media-poster alt={jellyfinItem?.Name} />
 		</media-outlet>
+		<media-captions />
 		<!-- VideoUi -->
 		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
 			<!-- Controls -->
@@ -185,9 +186,6 @@
 					<div class="flex-1" />
 					{#if player?.textTracks?.length > 0}
 						<media-caption-button class="text-zinc-400 h-8 w-8" />
-					{/if}
-					{#if player?.textTracks?.length > 0}
-						<CaptionMenu tracks={subtitleList} />
 					{/if}
 					<FullscreenButton />
 				</div>
