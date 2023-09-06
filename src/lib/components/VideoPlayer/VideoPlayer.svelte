@@ -29,13 +29,13 @@
 	import { playerState } from './VideoPlayer';
 
 	// ui
-	import { 
-		Cross2 as CrossIcon, 
-		Play as PlayIcon, 
-		Pause as PauseIcon, 
+	import {
+		Cross2 as CrossIcon,
+		Play as PlayIcon,
+		Pause as PauseIcon,
 		Reload as ReplayIcon,
 		EnterFullScreen as EnterFullScreenIcon,
-		ExitFullScreen as ExitFullScreenIcon,
+		ExitFullScreen as ExitFullScreenIcon
 	} from 'radix-icons-svelte';
 	import BufferingIcon from './BufferingIcon.svelte';
 	import CaptionMenu from './CaptionMenu.svelte';
@@ -182,26 +182,32 @@
 		<!-- VideoUi -->
 		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
 			<!-- Controls -->
-			<div class="absolute bottom-3 left-0 w-full z-10 px-1 py-0.5">
-				<div class="bg-black/50 rounded-sm w-full flex items-center px-5 gap-5">
-					<media-time type="current" class="text-zinc-300 font-bold text-base" />
-					<media-time-slider class="flex-1" style />
-					<media-time type="duration" class="text-zinc-300 font-bold text-base" />
+			<div class="absolute bottom-3 left-0 w-full z-10 px-0 py-0.5 bg-black/30 rounded-lg">
+				<div class="w-full flex items-center px-5 gap-5">
+					<media-time type="current" class="text-zinc-400 font-bold text-base" />
+					<media-time-slider
+						class="group mx-1 flex h-12 items-center flex-1"
+						track-class="absolute top-1/2 left-0 z-0 h-1 w-full -translate-y-1/2 bg-zinc-200/25 outline-none group-data-[focus]:ring-4 group-data-[focus]:ring-yellow-600"
+						track-fill-class="absolute top-1/2 left-0 z-20 h-1 w-[var(--slider-fill-percent)] -translate-y-1/2 bg-amber-400 will-change-[width]"
+						thumb-container-class="absolute top-0 left-[var(--slider-fill-percent)] z-20 h-full w-5 -translate-x-1/2 group-data-[dragging]:left-[var(--slider-pointer-percent)] items-center"
+						thumb-class="absolute top-1/2 left-0 h-2.5 w-3 -translate-y-1/2 rounded-full bg-amber-400 opacity-0 transition-opacity duration-150 ease-in group-data-[interactive]:opacity-100"
+					/>
+					<media-time type="duration" class="text-zinc-400 font-bold text-base" />
 				</div>
-				<div class="bg-black/50 rounded-sm w-full flex items-center px-3 mb-1.5">
-					<media-play-button class="text-zinc-300">
+				<div class="w-full flex items-center px-3 mb-1.5 h-5">
+					<media-play-button class="text-zinc-400 h-8 w-8">
 						<PlayIcon slot="play" />
 						<PauseIcon slot="pause" />
-						<ReplayIcon  slot="replay" />
+						<ReplayIcon slot="replay" />
 					</media-play-button>
 					<div class="flex-1" />
 					{#if player?.textTracks?.length > 0}
-						<media-caption-button class="text-zinc-300" />
+						<media-caption-button class="text-zinc-400 h-8 w-8" />
 					{/if}
 					{#if player?.textTracks?.length > 0}
 						<CaptionMenu tracks={subtitleList} />
 					{/if}
-					<media-fullscreen-button class="text-zinc-300" >
+					<media-fullscreen-button class="text-zinc-400 h-8 w-8">
 						<EnterFullScreenIcon slot="enter" />
 						<ExitFullScreenIcon slot="exit" />
 					</media-fullscreen-button>
