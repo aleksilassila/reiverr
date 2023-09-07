@@ -36,6 +36,7 @@
 	import TimeSlider from './components/TimeSlider.svelte';
 	import PlayPauseButton from './components/PlayPauseButton.svelte';
 	import FullscreenButton from './components/FullscreenButton.svelte';
+	import SettingsMenu from './components/SettingsMenu.svelte';
 
 	defineCustomElements();
 
@@ -184,9 +185,7 @@
 				<div class="w-full flex items-center px-5 mb-1.5 h-5">
 					<PlayPauseButton />
 					<div class="flex-1" />
-					{#if player?.textTracks?.length > 0}
-						<media-caption-button class="text-zinc-400 h-8 w-8" />
-					{/if}
+					<SettingsMenu />
 					<FullscreenButton />
 				</div>
 			</div>
