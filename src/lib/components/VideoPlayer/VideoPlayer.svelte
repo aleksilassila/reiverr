@@ -176,13 +176,13 @@
 		<media-outlet>
 			<media-poster alt={jellyfinItem?.Name} />
 		</media-outlet>
-		<media-captions />
+		<media-captions class="transition-all bottom-20 group-data-[user-idle]:bottom-0" />
 		<!-- VideoUi -->
 		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
 			<!-- Controls -->
-			<div class="absolute bottom-3 left-0 w-full z-10 px-0 py-0.5 bg-black/30 rounded-lg">
+			<div class="absolute bottom-2 inset-x-0 w-full z-10 px-2 pb-3 bg-black/60 rounded-md">
 				<TimeSlider />
-				<div class="w-full flex items-center px-5 mb-1.5 h-5">
+				<div class="w-full flex items-center px-5 pb-1.5 h-5 gap-1">
 					<PlayPauseButton />
 					<div class="flex-1" />
 					<SettingsMenu />
