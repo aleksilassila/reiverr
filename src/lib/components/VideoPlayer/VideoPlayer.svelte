@@ -54,6 +54,7 @@
 	let videoSource: string;
 	let resolution: number = 1080;
 	let currentBitrate: number = 0;
+	let currentTime: number = 0;
 	let jellyfinItem: Awaited<ReturnType<typeof getJellyfinItem>>;
 	let subtitleList: Partial<TextTrack>[];
 
@@ -63,6 +64,16 @@
 		}
 	});
 
+	const onPlayerAttached = () => {
+		console.info('player attached!');
+		// update seek when changing source
+		player.subscribe(({ canPlay }) => {
+			if (canPlay) {
+				player.currentTime = currentTime;
+			}
+		});
+	};
+
 	function handleClose() {
 		playerState.close();
 		player.destroy();
@@ -71,14 +82,30 @@
 	}
 
 	onDestroy(() => {
-		player.destroy();
-		clearInterval(progressInterval);
+		handleClose();
 	});
+
+	const handleQualityChange = async (event: any) => {
+		const data = event.detail;
+
+		if (!$playerState.jellyfinId || !player) return;
+		if (data.maxBitrate === 0) return;
+		if (data.maxBitrate === currentBitrate) return;
+
+		currentBitrate = data.maxBitrate;
+		currentTime = player.state.currentTime;
+		console.log(currentTime);
+		await fetchPlaybackInfo?.($playerState.jellyfinId, data.maxBitrate, false);
+		player.src = videoSource;
+		// await reportProgress?.();
+		await deleteEncoding?.();
+	};
 
 	const addSubtitlesToPlayer = () => {
 		subtitleList =
 			jellyfinItem?.MediaStreams?.filter((item) => item.Type === 'Subtitle').map((subtitle) => {
 				return {
+					id: `${subtitle.Language}/${subtitle.Index}` as string,
 					kind: 'subtitles',
 					src: `${$settings.jellyfin.baseUrl}/Videos/${jellyfinItem?.Id}/${jellyfinItem?.Id}/Subtitles/${subtitle.Index}/Stream.vtt?api_key=${$settings.jellyfin.apiKey}`,
 					index: subtitle.Index,
@@ -122,7 +149,7 @@
 
 				addSubtitlesToPlayer();
 
-				if (item?.UserData?.PlaybackPositionTicks) {
+				if (item?.UserData?.PlaybackPositionTicks && starting) {
 					player.currentTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
 				}
 
@@ -164,6 +191,7 @@
 	out:fade|global={{ duration: 200, easing: linear }}
 >
 	<media-player
+		on:attached={onPlayerAttached}
 		class="group"
 		autoplay
 		src={videoSource}
@@ -190,7 +218,7 @@
 						<VolumeSlider />
 					</div>
 					<div class="flex-1" />
-					<SettingsMenu />
+					<SettingsMenu on:qualityupdate={(event) => handleQualityChange(event)} />
 					<FullscreenButton />
 				</div>
 			</div>
