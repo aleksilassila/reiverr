@@ -1,8 +1,17 @@
 <script lang="ts">
 	import { Gear as SettingIcon } from 'radix-icons-svelte';
+	import { createEventDispatcher } from 'svelte';
 	import QualityChooserMenu from './QualityChooserMenu.svelte';
 	let position = 'top';
 	let tooltip = 'top';
+	let selectedQuality = {
+		name: '',
+		maxBitrate: 0,
+		minResolution: 0
+	};
+
+	const dispatch = createEventDispatcher();
+	$: selectedQuality && dispatch('qualityupdate', selectedQuality);
 </script>
 
 <media-menu {position} part="settings-menu">
@@ -21,7 +30,7 @@
         <media-playback-rate-menu-button $prop:label={'Speed'} />
         <media-playback-rate-menu-items $prop:normalLabel={'Normal'} />
       </media-menu> -->
-		<QualityChooserMenu />
+		<QualityChooserMenu bind:selectedQuality />
 		<media-menu class="w-80">
 			<media-captions-menu-button label={'Captions'} class="rounded-md bg-zinc-900/80" />
 			<media-captions-menu-items

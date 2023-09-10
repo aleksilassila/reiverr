@@ -7,15 +7,17 @@
 	} from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { getQualities } from '$lib/apis/jellyfin/qualities';
-	let qualities = getQualities(1080); // itemJellyfin.Height
+	let qualities = getQualities(4096); // media.height
 	export let selectedQuality = qualities[0];
+
+    $: selectedQuality;
 </script>
 
 <media-menu class="w-80">
 	<media-menu-button class="rounded-md bg-zinc-900/80">
 		<QualityIcon slot="icon" />
 		<span slot="label">Quality</span>
-		<div slot="hint" class="flex-1 text-right">{selectedQuality.name}</div>
+		<div slot="hint" class="flex-1 text-right">{selectedQuality.name || 'Original Quality'}</div>
 		<CloseIcon slot="close-icon" />
 		<OpenIcon slot="open-icon" />
 	</media-menu-button>
