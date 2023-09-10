@@ -8,7 +8,6 @@
 	// vidstack
 	import type { MediaPlayerElement, TextTrack } from 'vidstack';
 	import 'vidstack/styles/defaults.css';
-	import 'vidstack/styles/community-skin/video.css';
 	import { defineCustomElements } from 'vidstack/elements';
 
 	// jellyfin
@@ -37,6 +36,8 @@
 	import PlayPauseButton from './components/PlayPauseButton.svelte';
 	import FullscreenButton from './components/FullscreenButton.svelte';
 	import SettingsMenu from './components/SettingsMenu.svelte';
+	import VolumeSlider from './components/VolumeSlider.svelte';
+	import MuteButton from './components/MuteButton.svelte';
 
 	defineCustomElements();
 
@@ -184,6 +185,10 @@
 				<TimeSlider />
 				<div class="w-full flex items-center px-5 pb-1.5 h-5 gap-1">
 					<PlayPauseButton />
+					<div class="ml-3 flex items-center">
+						<MuteButton />
+						<VolumeSlider />
+					</div>
 					<div class="flex-1" />
 					<SettingsMenu />
 					<FullscreenButton />
