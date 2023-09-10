@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Gear as SettingIcon } from 'radix-icons-svelte';
+	import QualityChooserMenu from './QualityChooserMenu.svelte';
 	let position = 'top';
 	let tooltip = 'top';
 </script>
@@ -11,7 +12,7 @@
 			>{'Settings'}
 		</media-tooltip>
 	</media-menu-button>
-	<media-menu-items class="rounded-md bg-black/80 p-2 ">
+	<media-menu-items class="rounded-md bg-black/80 p-2">
 		<!-- <media-menu>
         <media-audio-menu-button label={'Audio'} />
         <media-audio-menu-items emptyLabel={'Default'} />
@@ -20,10 +21,7 @@
         <media-playback-rate-menu-button $prop:label={'Speed'} />
         <media-playback-rate-menu-items $prop:normalLabel={'Normal'} />
       </media-menu> -->
-		<!-- <media-menu>
-        <media-quality-menu-button $prop:label={'Quality'} />
-        <media-quality-menu-items $prop:autoLabel={'Auto'} />
-      </media-menu> -->
+		<QualityChooserMenu />
 		<media-menu class="w-80">
 			<media-captions-menu-button label={'Captions'} class="rounded-md bg-zinc-900/80" />
 			<media-captions-menu-items
