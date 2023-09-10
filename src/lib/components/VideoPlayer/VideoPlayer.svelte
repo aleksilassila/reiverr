@@ -185,7 +185,7 @@
 				<TimeSlider />
 				<div class="w-full flex items-center px-5 pb-1.5 h-5 gap-1">
 					<PlayPauseButton />
-					<div class="ml-3 flex items-center">
+					<div class="group ml-1 flex items-center gap-1">
 						<MuteButton />
 						<VolumeSlider />
 					</div>
