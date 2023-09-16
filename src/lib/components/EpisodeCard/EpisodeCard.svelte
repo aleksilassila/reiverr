@@ -39,7 +39,10 @@
 		setJellyfinItemUnwatched(jellyfinId).finally(() => jellyfinItemsStore.refreshIn(5000));
 	}
 
-	function handlePlay() {
+	function handlePlay(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		if (!jellyfinId) return;
 
 		playerState.streamJellyfinId(jellyfinId);
@@ -67,7 +70,7 @@
 			'aspect-video bg-center bg-cover rounded-lg overflow-hidden transition-opacity shadow-lg selectable flex-shrink-0 placeholder-image relative',
 			'flex flex-col px-2 lg:px-3 py-2 gap-2 text-left',
 			{
-				'h-40': size === 'md',
+				'h-44': size === 'md',
 				'h-full': size === 'dynamic',
 				group: !!jellyfinId,
 				'cursor-default': !jellyfinId
@@ -79,10 +82,10 @@
 	>
 		<div
 			class={classNames(
-				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0 bg-darken',
+				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0 bg-gradient-to-t',
 				{
-					// 'bg-darken': !jellyfinId || watched,
-					// 'bg-gradient-to-t from-darken': !!jellyfinId
+					'bg-darken': !jellyfinId || watched,
+					'bg-gradient-to-t from-darken': !!jellyfinId
 				}
 			)}
 		/>
