@@ -27,6 +27,8 @@
 	import { _ } from 'svelte-i18n';
 	import { fade } from 'svelte/transition';
 
+	let continueWatchingVisible = true;
+
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
 		.then((movies) => movies.filter((m) => !!m).slice(0, 10));
