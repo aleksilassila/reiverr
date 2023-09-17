@@ -10,7 +10,6 @@
 	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcase.svelte';
 	import { jellyfinItemsStore } from '$lib/stores/data.store';
-	import { log } from '$lib/utils';
 
 	let continueWatchingVisible = true;
 

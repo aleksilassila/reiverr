@@ -70,13 +70,3 @@ export function openTitleModal(titleId: TitleId) {
 		titleId
 	});
 }
-
-let lastPersonModal: symbol | undefined = undefined;
-export function openPersonModal(titleId: TitleId) {
-	if (lastPersonModal) {
-		modalStack.close(lastPersonModal);
-	}
-	lastPersonModal = modalStack.create(PersonPageModal, {
-		titleId
-	});
-}

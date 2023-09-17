@@ -20,6 +20,6 @@
 		in:fly|global={{ y: 20, duration: 200, delay: 200 }}
 		out:fly|global={{ y: 20, duration: 200 }}
 	>
-		<PersonPage personId={titleId.id} isModal={true} {handleCloseModal} />
+		<PersonPage tmdbId={titleId.id} isModal={true} {handleCloseModal} />
 	</div>
 </div>

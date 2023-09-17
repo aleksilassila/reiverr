@@ -6,7 +6,7 @@
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import GenreCard from '$lib/components/GenreCard.svelte';
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
-	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import PersonCard from '$lib/components/PersonCard/PersonCard.svelte';
 	import Poster from '$lib/components/Poster/Poster.svelte';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import { genres, networks } from '$lib/discover';
@@ -201,7 +201,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<PeopleCard {...prop} />
+				<PersonCard {...prop} />
 			{/each}
 		{/await}
 	</Carousel>

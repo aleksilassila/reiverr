@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { TitleType } from '$lib/types';
 	import { TMDB_PROFILE_SMALL } from '$lib/constants';
-	import { openPersonModal } from '$lib/stores/modal.store';
+	import { openTitleModal } from '$lib/stores/modal.store';
 	import classNames from 'classnames';
 
 	export let tmdbId: number;
@@ -16,7 +16,7 @@
 
 <button
 	class={classNames(
-		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-stone-900 group',
+		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-stone-900 group text-left',
 		{
 			'w-36 h-56': size === 'md',
 			'h-52': size === 'lg',
@@ -25,7 +25,7 @@
 	)}
 	on:click={() => {
 		if (openInModal) {
-			openPersonModal({ type, id: tmdbId, provider: 'tmdb' });
+			openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
 		} else {
 			window.location.href = `/${type}/${tmdbId}`;
 		}

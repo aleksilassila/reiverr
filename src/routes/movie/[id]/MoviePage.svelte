@@ -8,8 +8,9 @@
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '$lib/components/Card/card';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import PersonCard from '$lib/components/PersonCard/PersonCard.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RequestModal from '$lib/components/RequestModal/RequestModal.svelte';
 	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
@@ -48,7 +49,7 @@
 			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
 			.then((r) => r.filter((p) => p.backdropUrl));
 
-		const castPropsPromise: Promise<ComponentProps<PeopleCard>[]> = tmdbMoviePromise.then((m) =>
+		const castPropsPromise: Promise<ComponentProps<PersonCard>[]> = tmdbMoviePromise.then((m) =>
 			Promise.all(
 				m?.credits?.cast?.slice(0, 20).map((m) => ({
 					tmdbId: m.id || 0,
@@ -266,36 +267,49 @@
 			{/if}
 		</svelte:fragment>
 
-		<div slot="cast-crew-carousel-title" class="font-medium text-lg">Cast & Crew</div>
-		<svelte:fragment slot="cast-crew-carousel">
-			{#await castProps}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<PeopleCard {...prop} />
-				{/each}
-			{/await}
-		</svelte:fragment>
+		<svelte:fragment slot="carousels">
+			{#await data}
+				<Carousel gradientFromColor="from-stone-950">
+					<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+					<CarouselPlaceholderItems />
+				</Carousel>
 
-		<div slot="recommendations-carousel-title" class="font-medium text-lg">Recommendations</div>
-		<svelte:fragment slot="recommendations-carousel">
-			{#await tmdbRecommendationProps}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<Card {...prop} openInModal={isModal} />
-				{/each}
-			{/await}
-		</svelte:fragment>
+				<Carousel gradientFromColor="from-stone-950">
+					<div slot="title" class="font-medium text-lg">Recommendations</div>
+					<CarouselPlaceholderItems />
+				</Carousel>
 
-		<div slot="similar-carousel-title" class="font-medium text-lg">Similar Titles</div>
-		<svelte:fragment slot="similar-carousel">
-			{#await tmdbSimilarProps}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<Card {...prop} openInModal={isModal} />
-				{/each}
+				<Carousel gradientFromColor="from-stone-950">
+					<div slot="title" class="font-medium text-lg">Similar Series</div>
+					<CarouselPlaceholderItems />
+				</Carousel>
+			{:then { castProps, tmdbRecommendationProps, tmdbSimilarProps }}
+				{#if castProps?.length}
+					<Carousel gradientFromColor="from-stone-950">
+						<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+						{#each castProps as prop}
+							<PersonCard {...prop} />
+						{/each}
+					</Carousel>
+				{/if}
+
+				{#if tmdbRecommendationProps?.length}
+					<Carousel gradientFromColor="from-stone-950">
+						<div slot="title" class="font-medium text-lg">Recommendations</div>
+						{#each tmdbRecommendationProps as prop}
+							<Card {...prop} openInModal={isModal} />
+						{/each}
+					</Carousel>
+				{/if}
+
+				{#if tmdbSimilarProps?.length}
+					<Carousel gradientFromColor="from-stone-950">
+						<div slot="title" class="font-medium text-lg">Similar Series</div>
+						{#each tmdbSimilarProps as prop}
+							<Card {...prop} openInModal={isModal} />
+						{/each}
+					</Carousel>
+				{/if}
 			{/await}
 		</svelte:fragment>
 	</TitlePageLayout>

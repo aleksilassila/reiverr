@@ -9,5 +9,5 @@
 </script>
 
 {#key personId}
-	<PersonPage {personId} />
+	<PersonPage tmdbId={personId} />
 {/key}

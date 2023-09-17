@@ -11,30 +11,31 @@
 	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
 	import TiktokIcon from '$lib/components/svgs/TiktokIcon.svelte';
 	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
+	import TmdbIcon from '$lib/components/svgs/TmdbIcon.svelte';
+	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import Poster from '$lib/components/Poster/Poster.svelte';
+	import type { ComponentProps } from 'svelte';
+	import { TMDB_POSTER_SMALL } from '$lib/constants';
 
 	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
 
-	export let personId: number;
+	export let tmdbId: number;
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 
-	const tmdbUrl = 'https://www.themoviedb.org/person/' + personId;
+	const tmdbUrl = 'https://www.themoviedb.org/person/' + tmdbId;
 	const data = loadInitialPageData();
 
 	async function loadInitialPageData() {
-		const tmdbPerson = await getTmdbPerson(personId);
-		const tmdbMoviesOn = await Promise.all(
-			tmdbPerson?.movie_credits.cast?.map(fetchCardTmdbProps) ?? []
-		)
-			.then((res) => res.filter((p) => p.backdropUrl))
-			.then((res) => res.sort((a, b) => b.rating - a.rating));
-		const tmdbSeriesOn = await Promise.all(
-			tmdbPerson?.tv_credits.cast?.map(fetchCardTmdbProps) ?? []
-		)
-			.then((res) => res.filter((p) => p.backdropUrl))
-			.then((res) => res.sort((a, b) => b.rating - a.rating));
+		const tmdbPerson = await getTmdbPerson(tmdbId);
 
 		const tmdbSocials = [];
+
+		tmdbSocials.push({
+			url: `https://themoviedb.org/person/${tmdbPerson.id}`,
+			icon: TmdbIcon
+		});
 
 		for (const [social, id] of Object.entries(tmdbPerson.external_ids)) {
 			if (Boolean(id)) {
@@ -79,20 +80,44 @@
 			}
 		}
 
+		const isDirector = tmdbPerson.known_for_department == 'Directing';
+
+		const knownForMovies = tmdbPerson.movie_credits[isDirector ? 'crew' : 'cast']?.filter(
+			(value, index, self) => index === self.findIndex((t) => t.id === value.id)
+		);
+		const knownForSeries = tmdbPerson.tv_credits[isDirector ? 'crew' : 'cast']?.filter(
+			(value, index, self) => index === self.findIndex((t) => t.id === value.id)
+		);
+
+		let knownForProps: ComponentProps<Poster>[] = [
+			...(knownForMovies ?? []),
+			...(knownForSeries ?? [])
+		]
+			.sort(
+				(a: any, b: any) =>
+					new Date(b.first_air_date || b.release_date || 0).getTime() -
+					new Date(a.first_air_date || a.release_date || 0).getTime()
+			)
+			.map((i) => ({
+				tmdbId: i.id,
+				title: (i as any).title ?? (i as any).name ?? '',
+				subtitle: (i as any).job ?? (i as any).character ?? '',
+				backdropUrl: TMDB_POSTER_SMALL + i.poster_path
+			}));
+
 		return {
 			tmdbPerson,
-			tmdbMoviesOn,
-			tmdbSeriesOn,
 			tmdbSocials,
+			knownForProps
 		};
 	}
 </script>
 
 {#await data}
 	<PersonPageLayout {isModal} {handleCloseModal} />
-{:then { tmdbPerson, tmdbMoviesOn, tmdbSeriesOn, tmdbSocials }}
+{:then { tmdbPerson, tmdbSocials, knownForProps }}
 	{@const person = tmdbPerson}
-	<PersonPageLayout
+	<TitlePageLayout
 		titleInformation={{
 			tmdbId: Number(person?.id),
 			type: 'person',
@@ -117,12 +142,12 @@
 		<svelte:fragment slot="info-components">
 			{#if tmdbSocials}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">Socials</p>
+					<p class="text-zinc-400 text-sm">External Links</p>
 					<h2 class="pt-2 text-sm">
-						<div class="grid grid-cols-6 gap-4 justify-start">
+						<div class="flex flex-wrap gap-2">
 							{#each tmdbSocials ?? [] as Prop}
-								<a href={Prop.url} target="_blank" >
-									<Prop.icon class="h-6 w-6 flex-shrink-0 text-white"/>
+								<a href={Prop.url} target="_blank">
+									<Prop.icon class="h-6 w-6 flex-shrink-0 text-white" />
 								</a>
 							{/each}
 						</div>
@@ -157,7 +182,8 @@
 					{person?.place_of_birth}
 				</h2>
 			</div>
-			{#if person?.also_known_as}
+			<!-- TODO: Truncate and add show all button -->
+			<!-- {#if person?.also_known_as}
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">Also known as</p>
 					<h2 class="font-medium">
@@ -166,28 +192,24 @@
 						{/each}
 					</h2>
 				</div>
-			{/if}
+			{/if} -->
 		</svelte:fragment>
 
-		<div slot="movie-carousel-title" class="font-medium text-lg">Appeared on movies like</div>
-		<svelte:fragment slot="movie-carousel">
-			{#await tmdbMoviesOn}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<Card {...prop} openInModal={isModal} />
-				{/each}
-			{/await}
+		<svelte:fragment slot="carousels">
+			<div class="max-w-screen-2xl 2xl:mx-auto w-full">
+				<Carousel gradientFromColor="from-stone-950">
+					<div slot="title" class="font-medium text-lg">Known For</div>
+					{#await knownForProps}
+						<CarouselPlaceholderItems orientation="portrait" />
+					{:then props}
+						{#each props as prop}
+							<Poster orientation="portrait" {...prop} openInModal={isModal} />
+						{/each}
+					{/await}
+				</Carousel>
+			</div>
 		</svelte:fragment>
-		<div slot="tv-carousel-title" class="font-medium text-lg">And tv shows like</div>
-		<svelte:fragment slot="tv-carousel">
-			{#await tmdbSeriesOn}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<Card {...prop} openInModal={isModal} />
-				{/each}
-			{/await}
-		</svelte:fragment>
-	</PersonPageLayout>
+
+		<div slot="servarr-components" />
+	</TitlePageLayout>
 {/await}
