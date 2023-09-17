@@ -1,8 +1,14 @@
 # Reiverr
 
+![Stargazers](https://img.shields.io/github/stars/aleksilassila/reiverr)
+![GitHub issues](https://img.shields.io/github/issues/aleksilassila/reiverr)
+![Discord](https://img.shields.io/discord/923259625145524354)
+![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
+![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
+
 Reiverr is a project that aims to create a single UI for interacting with TMDB, Jellyfin, Radarr and Sonarr, as well as be an alternative to Overseerr.
 
-This project is still in alpha, and many features are still missing. Contributions are welcome! See [contributing](#Contributing) for more information.
+This project is still in alpha, and many features are still missing / being tested and changed. Contributions are welcome! See [contributing](#Contributing) for more information.
 
 ![Demo Videi](images/reiverr-demo.gif)
 
