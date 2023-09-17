@@ -156,6 +156,7 @@
 						<EpisodeCard
 							on:click={() => (window.location.href = `/${prop.type}/${prop.tmdbId}`)}
 							{...prop}
+							size="sm"
 						/>
 					{/each}
 				{/await}

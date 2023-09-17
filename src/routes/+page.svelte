@@ -6,32 +6,26 @@
 		type JellyfinItem
 	} from '$lib/apis/jellyfin/jellyfinApi';
 	import {
-		TmdbApiOpen,
 		getPosterProps,
 		getTmdbMovie,
-		getTmdbPopularMovies
+		getTmdbPopularMovies,
+		TmdbApiOpen
 	} from '$lib/apis/tmdb/tmdbApi';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
 	import GenreCard from '$lib/components/GenreCard.svelte';
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
 	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
 	import Poster from '$lib/components/Poster/Poster.svelte';
-	import TitleShowcase from '$lib/components/TitleShowcase/TitleShowcaseBackground.svelte';
+	import TitleShowcases from '$lib/components/TitleShowcase/TitleShowcasesContainer.svelte';
 	import { genres, networks } from '$lib/discover';
 	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
 	import type { TitleType } from '$lib/types';
 	import { formatDateToYearMonthDay } from '$lib/utils';
 	import type { ComponentProps } from 'svelte';
-	import { fade } from 'svelte/transition';
 	import { _ } from 'svelte-i18n';
-	import LazyImg from '$lib/components/LazyImg.svelte';
-	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
-	import TitleShowcases from '$lib/components/TitleShowcase/TitleShowcasesContainer.svelte';
-
-	let continueWatchingVisible = true;
+	import { fade } from 'svelte/transition';
 
 	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
 		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
@@ -225,56 +219,6 @@
 
 <TitleShowcases />
 
-<!-- <div class="h-[80vh] sm:h-screen">
-	{#await tmdbPopularMoviesPromise then movies}
-		{@const movie = movies[showcaseIndex]}
-		{#key movie?.id}
-			<TitleShowcase
-				tmdbId={movie?.id || 0}
-				type="movie"
-				title={movie?.title || ''}
-				genres={movie?.genres?.map((g) => g.name || '') || []}
-				runtime={movie?.runtime || 0}
-				releaseDate={new Date(movie?.release_date || Date.now())}
-				tmdbRating={movie?.vote_average || 0}
-				trailerId={movie?.videos?.results?.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
-					?.key}
-				director={movie?.credits?.crew?.find((c) => c.job === 'Director')?.name}
-				backdropUri={movie?.backdrop_path || ''}
-				posterUri={movie?.poster_path || ''}
-				{onPrevious}
-				{onNext}
-				{showcaseIndex}
-				showcaseLength={movies.length}
-			/>
-		{/key}
-	{/await}
-</div> -->
-
-<!-- {#await tmdbPopularMoviesPromise then movies}
-	{#if movies.length}
-		<div class="absolute inset-0 blur-3xl brightness-[0.1] z-[-1] overflow-hidden">
-			<LazyImg
-				src={TMDB_IMAGES_ORIGINAL + movies?.[showcaseIndex]?.backdrop_path}
-				class="h-full scale-125"
-			/>
-		</div>
-	{/if}
-{/await} -->
-
-<!-- Blur backdground -->
-<!-- {#await tmdbPopularMoviesPromise then movies}
-	{#if movies.length}
-		<div class="fixed inset-0 z-[-1] overflow-hidden">
-			<LazyImg
-				src={'https://images.unsplash.com/photo-1493839523149-2864fca44919?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80'}
-				class="h-full hue-rotate-[100deg]"
-			/>
-			<div class="absolute z-[1] inset-0 backdrop-blur-3xl bg-stone-950/100" />
-		</div>
-	{/if}
-{/await} -->
-
 <div
 	class="flex flex-col gap-12 py-6 bg-stone-950"
 	in:fade|global={{
@@ -283,22 +227,6 @@
 	}}
 	out:fade|global={{ duration: $settings.animationDuration }}
 >
-	<!-- {#if continueWatchingVisible}
-		<Carousel gradientFromColor="from-stone-950" class="mx-2 sm:mx-8 2xl:mx-0">
-			<div slot="title" class="text-lg font-semibold text-zinc-300">Continue Watching</div>
-			{#await nextUpProps}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop}
-					<EpisodeCard
-						on:click={() => (window.location.href = `/${prop.type}/${prop.tmdbId}`)}
-						{...prop}
-					/>
-				{/each}
-			{/await}
-		</Carousel>
-	{/if} -->
-
 	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.popularPeople')}
