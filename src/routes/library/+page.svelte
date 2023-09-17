@@ -31,7 +31,7 @@
 					(b.DateCreated || b.DateLastMediaAdded || '')
 						? 1
 						: -1
-				)?.[0]
+				)?.[3]
 	);
 
 	let downloadProps: ComponentProps<Poster>[] = [];
@@ -93,7 +93,14 @@
 				/>
 			{/await}
 			<div class="absolute inset-0 bg-gradient-to-t from-stone-950 to-80% to-darken" />
-			<div class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-56 pb-12">
+			<div
+				class="max-w-screen-2xl mx-auto relative z-[1] px-2 md:px-8 pt-32 xl:pt-56 pb-12 overflow-hidden"
+			>
+				<h1
+					class="absolute font-bold uppercase text-amber-200 opacity-10 bottom-12 right-8 text-9xl hidden xl:block z-[-1]"
+				>
+					Library
+				</h1>
 				<div class="flex gap-4 items-end">
 					{#await showcasePromise}
 						<div class="w-32 aspect-[2/3] placeholder rounded-lg shadow-lg" />
