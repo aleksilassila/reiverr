@@ -1,22 +1,18 @@
 <script lang="ts">
 	import { getTmdbPerson } from '$lib/apis/tmdb/tmdbApi';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card/Card.svelte';
-	import { fetchCardTmdbProps } from '$lib/components/Card/card';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import PersonPageLayout from '$lib/components/PersonPageLayout/PersonPageLayout.svelte';
+	import Poster from '$lib/components/Poster/Poster.svelte';
+	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import FacebookIcon from '$lib/components/svgs/FacebookIcon.svelte';
 	import ImdbIcon from '$lib/components/svgs/ImdbIcon.svelte';
+	import TiktokIcon from '$lib/components/svgs/TiktokIcon.svelte';
+	import TmdbIcon from '$lib/components/svgs/TmdbIcon.svelte';
 	import TwitterIcon from '$lib/components/svgs/TwitterIcon.svelte';
 	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
-	import TiktokIcon from '$lib/components/svgs/TiktokIcon.svelte';
-	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
-	import TmdbIcon from '$lib/components/svgs/TmdbIcon.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import Poster from '$lib/components/Poster/Poster.svelte';
-	import type { ComponentProps } from 'svelte';
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
+	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
+	import type { ComponentProps } from 'svelte';
 
 	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
 
@@ -102,20 +98,37 @@
 				tmdbId: i.id,
 				title: (i as any).title ?? (i as any).name ?? '',
 				subtitle: (i as any).job ?? (i as any).character ?? '',
-				backdropUrl: TMDB_POSTER_SMALL + i.poster_path
-			}));
+				backdropUrl: i.poster_path ? TMDB_POSTER_SMALL + i.poster_path : ''
+			}))
+			.filter((i) => i.backdropUrl);
+
+		const movieCredits =
+			tmdbPerson.movie_credits.cast?.filter(
+				(value, index, self) => index === self.findIndex((t) => t.id === value.id)
+			).length || 0;
+		const seriesCredits =
+			tmdbPerson.tv_credits.cast?.filter(
+				(value, index, self) => index === self.findIndex((t) => t.id === value.id)
+			).length || 0;
+		const crewCredits =
+			tmdbPerson.movie_credits.crew?.filter(
+				(value, index, self) => index === self.findIndex((t) => t.id === value.id)
+			).length || 0;
 
 		return {
 			tmdbPerson,
 			tmdbSocials,
-			knownForProps
+			knownForProps,
+			movieCredits,
+			seriesCredits,
+			crewCredits
 		};
 	}
 </script>
 
 {#await data}
-	<PersonPageLayout {isModal} {handleCloseModal} />
-{:then { tmdbPerson, tmdbSocials, knownForProps }}
+	<TitlePageLayout {isModal} {handleCloseModal} />
+{:then { tmdbPerson, tmdbSocials, knownForProps, movieCredits, seriesCredits, crewCredits }}
 	{@const person = tmdbPerson}
 	<TitlePageLayout
 		titleInformation={{
@@ -132,10 +145,12 @@
 	>
 		<svelte:fragment slot="title-info">
 			{#if person?.homepage}
-				<p>{person?.homepage}</p>
+				<a href={person?.homepage} target="_blank">Homepage</a>
 				<DotFilled />
 			{/if}
-			<a href={tmdbUrl} target="_blank">Popularity: {person?.popularity?.toFixed(1)} on TMDB</a>
+			{#if movieCredits + seriesCredits + crewCredits > 0}
+				<p>{movieCredits + seriesCredits + crewCredits} Credits</p>
+			{/if}
 		</svelte:fragment>
 		<svelte:fragment slot="title-right" />
 
