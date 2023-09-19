@@ -4,6 +4,7 @@
 	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
 	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
 	import { modalStack } from '../../stores/modal.store';
+	import PersonPage from '../../../routes/person/[id]/PersonPage.svelte';
 
 	export let titleId: TitleId;
 	export let modalId: symbol;
@@ -23,8 +24,10 @@
 	>
 		{#if titleId.type === 'movie'}
 			<MoviePage tmdbId={titleId.id} isModal={true} {handleCloseModal} />
-		{:else}
+		{:else if titleId.type === 'series'}
 			<SeriesPage {titleId} isModal={true} {handleCloseModal} />
+		{:else if titleId.type === 'person'}
+			<PersonPage tmdbId={titleId.id} isModal={true} {handleCloseModal} />
 		{/if}
 	</div>
 </div>

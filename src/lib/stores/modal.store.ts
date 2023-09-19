@@ -1,4 +1,4 @@
-import type { TitleId, TitleType } from '$lib/types';
+import type { TitleId } from '$lib/types';
 import { writable } from 'svelte/store';
 import TitlePageModal from '../components/TitlePageLayout/TitlePageModal.svelte';
 

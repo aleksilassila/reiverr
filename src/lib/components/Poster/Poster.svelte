@@ -20,6 +20,7 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
+	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 </script>
@@ -37,7 +38,7 @@
 		}
 	}}
 	class={classNames(
-		'relative flex shadow-lg rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left',
+		'relative flex rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left',
 		{
 			'aspect-video': orientation === 'landscape',
 			'aspect-[2/3]': orientation === 'portrait',
@@ -47,7 +48,8 @@
 			'h-44': size === 'md' && orientation === 'landscape',
 			'w-60': size === 'lg' && orientation === 'portrait',
 			'h-60': size === 'lg' && orientation === 'landscape',
-			'w-full': size === 'dynamic'
+			'w-full': size === 'dynamic',
+			'shadow-lg': shadow
 		}
 	)}
 >

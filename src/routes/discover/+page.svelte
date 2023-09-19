@@ -1,14 +1,12 @@
 <script lang="ts">
 	import type { JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { TmdbApiOpen, getTmdbItemBackdrop, getTmdbMovieBackdrop } from '$lib/apis/tmdb/tmdbApi';
-	import Card from '$lib/components/Card/Card.svelte';
+	import { TmdbApiOpen, getPosterProps } from '$lib/apis/tmdb/tmdbApi';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import GenreCard from '$lib/components/GenreCard.svelte';
 	import NetworkCard from '$lib/components/NetworkCard.svelte';
-	import PeopleCard from '$lib/components/PeopleCard/PeopleCard.svelte';
+	import PersonCard from '$lib/components/PersonCard/PersonCard.svelte';
 	import Poster from '$lib/components/Poster/Poster.svelte';
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 	import { genres, networks } from '$lib/discover';
 	import { jellyfinItemsStore } from '$lib/stores/data.store';
 	import { settings } from '$lib/stores/settings.store';
@@ -33,6 +31,7 @@
 			vote_average?: number;
 			number_of_seasons?: number;
 			first_air_date?: string;
+			poster_path?: string;
 		}[],
 		type: TitleType | undefined = undefined
 	): Promise<ComponentProps<Poster>[]> => {
@@ -43,40 +42,23 @@
 			  )
 			: items;
 
-		return Promise.all(
-			filtered.map(async (item) => {
-				const backdropUri = await getTmdbMovieBackdrop(item.id || 0);
-				const t =
-					type ||
-					(item?.number_of_seasons === undefined && item?.first_air_date === undefined
-						? 'movie'
-						: 'series');
-				return {
-					tmdbId: item.id || 0,
-					title: item.title || item.name || '',
-					// subtitle: item.subtitle || '',
-					rating: item.vote_average || undefined,
-					size: 'md',
-					backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
-					type: t
-				} as const;
-			})
-		).then((props) => props.filter((p) => p.backdropUrl));
+		return Promise.all(filtered.map(async (item) => getPosterProps(item, type))).then((props) =>
+			props.filter((p) => p.backdropUrl)
+		);
 	};
 
-	const fetchTrendingProps = () =>
-		TmdbApiOpen.get('/3/trending/all/{time_window}', {
-			params: {
-				path: {
-					time_window: 'day'
-				},
-				query: {
-					language: $settings.language
-				}
+	const trendingItemsPromise = TmdbApiOpen.get('/3/trending/all/{time_window}', {
+		params: {
+			path: {
+				time_window: 'day'
+			},
+			query: {
+				language: $settings.language
 			}
-		})
-			.then((res) => res.data?.results || [])
-			.then(fetchCardProps);
+		}
+	}).then((res) => res.data?.results || []);
+
+	const fetchTrendingProps = () => trendingItemsPromise.then(fetchCardProps);
 
 	const fetchTrendingActorProps = () =>
 		TmdbApiOpen.get('/3/trending/person/{time_window}', {
@@ -163,8 +145,16 @@
 	}
 </script>
 
+<!-- {#await trendingItemsPromise then items}
+	{#if items.length}
+		<div class="absolute inset-0 blur-3xl brightness-[0.2] z-[-1] scale-125">
+			<LazyImg src={TMDB_IMAGES_ORIGINAL + items?.[4].backdrop_path} class="h-full" />
+		</div>
+	{/if}
+{/await} -->
+
 <div
-	class="pt-24 bg-stone-950 pb-8"
+	class="pt-24 pb-8"
 	in:fade|global={{
 		duration: $settings.animationDuration,
 		delay: $settings.animationDuration
@@ -201,7 +191,7 @@
 			<CarouselPlaceholderItems />
 		{:then props}
 			{#each props as prop (prop.tmdbId)}
-				<PeopleCard {...prop} />
+				<PersonCard {...prop} />
 			{/each}
 		{/await}
 	</Carousel>
