@@ -94,11 +94,10 @@
 
 		currentBitrate = data.maxBitrate;
 		currentTime = player.state.currentTime;
-		console.log(currentTime);
+		await deleteEncoding?.();
 		await fetchPlaybackInfo?.($playerState.jellyfinId, data.maxBitrate, false);
 		player.src = videoSource;
-		// await reportProgress?.();
-		await deleteEncoding?.();
+		await reportProgress?.();
 	};
 
 	const addSubtitlesToPlayer = () => {
@@ -160,6 +159,7 @@
 					await reportJellyfinPlaybackProgress(
 						itemId,
 						sessionId,
+						mediaSourceId as string,
 						player.paused == true,
 						player.currentTime * 10_000_000
 					);
@@ -168,7 +168,7 @@
 				if (progressInterval) clearInterval(progressInterval);
 				progressInterval = setInterval(() => {
 					player && player.currentTime > 0 && sessionId && itemId;
-					// reportProgress(); // tmp
+					reportProgress(); // tmp
 				}, 5000);
 
 				deleteEncoding = () => {
@@ -205,7 +205,7 @@
 		<media-outlet>
 			<media-poster alt={jellyfinItem?.Name} />
 		</media-outlet>
-		<media-captions class="transition-all bottom-20 group-data-[user-idle]:bottom-0" />
+		<media-captions class="transition-all bottom-20 group-data-[user-idle]:bottom-0 font-fira font-medium" />
 		<!-- VideoUi -->
 		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
 			<!-- Controls -->
