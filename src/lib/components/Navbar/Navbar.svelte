@@ -62,9 +62,9 @@
 		<a href="/" class={$page && getLinkStyle('/')}>
 			{$_('navbar.home')}
 		</a>
-		<a href="/discover" class={$page && getLinkStyle('/discover')}>
+		<!-- <a href="/discover" class={$page && getLinkStyle('/discover')}>
 			{$_('navbar.discover')}
-		</a>
+		</a> -->
 		<a href="/library" class={$page && getLinkStyle('/library')}>
 			{$_('navbar.library')}
 		</a>

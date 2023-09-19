@@ -22,7 +22,7 @@
 
 	export let jellyfinId: string | undefined = undefined;
 
-	export let size: 'md' | 'dynamic' = 'md';
+	export let size: 'md' | 'sm' | 'dynamic' = 'md';
 
 	function handleSetWatched() {
 		if (!jellyfinId) return;
@@ -39,7 +39,10 @@
 		setJellyfinItemUnwatched(jellyfinId).finally(() => jellyfinItemsStore.refreshIn(5000));
 	}
 
-	function handlePlay() {
+	function handlePlay(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		if (!jellyfinId) return;
 
 		playerState.streamJellyfinId(jellyfinId);
@@ -67,7 +70,8 @@
 			'aspect-video bg-center bg-cover rounded-lg overflow-hidden transition-opacity shadow-lg selectable flex-shrink-0 placeholder-image relative',
 			'flex flex-col px-2 lg:px-3 py-2 gap-2 text-left',
 			{
-				'h-40': size === 'md',
+				'h-44': size === 'md',
+				'h-36 lg:h-44': size === 'sm',
 				'h-full': size === 'dynamic',
 				group: !!jellyfinId,
 				'cursor-default': !jellyfinId
@@ -79,16 +83,17 @@
 	>
 		<div
 			class={classNames(
-				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0 bg-darken',
+				'absolute inset-0 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0 bg-gradient-to-t',
 				{
-					// 'bg-darken': !jellyfinId || watched,
-					// 'bg-gradient-to-t from-darken': !!jellyfinId
+					'bg-darken': !jellyfinId || watched,
+					'bg-gradient-to-t from-darken': !!jellyfinId
 				}
 			)}
 		/>
 		<div
 			class={classNames(
 				'flex-1 flex flex-col justify-between relative group-hover:opacity-0 group-focus-visible:opacity-0 transition-all',
+				'text-xs lg:text-sm font-medium text-zinc-300',
 				{
 					'opacity-8': !jellyfinId || watched
 				}
@@ -98,7 +103,7 @@
 				<div>
 					<slot name="left-top">
 						{#if airDate && airDate > new Date()}
-							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+							<p>
 								{airDate.toLocaleString('en-US', {
 									month: 'short',
 									day: 'numeric',
@@ -107,18 +112,18 @@
 								})}
 							</p>
 						{:else if episodeNumber}
-							<p class="text-xs lg:text-sm font-medium text-zinc-300">{episodeNumber}</p>
+							<p>{episodeNumber}</p>
 						{/if}
 					</slot>
 				</div>
 				<div>
 					<slot name="right-top">
 						{#if runtime && !progress}
-							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+							<p>
 								{runtime.toFixed(0)} min
 							</p>
 						{:else if runtime && progress}
-							<p class="text-xs lg:text-sm font-medium text-zinc-300">
+							<p>
 								{(runtime - (runtime / 100) * progress).toFixed(0)} min left
 							</p>
 						{/if}
@@ -132,7 +137,7 @@
 							<h2 class="text-zinc-300 text-sm font-medium">{subtitle}</h2>
 						{/if}
 						{#if title}
-							<h1 class="font-medium text-left line-clamp-2">
+							<h1 class="text-zinc-200 text-base font-medium text-left line-clamp-2">
 								{title}
 							</h1>
 						{/if}

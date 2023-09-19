@@ -9,17 +9,21 @@
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
+	export let scrollClass = '';
 </script>
 
-<div class={classNames('flex flex-col gap-4', $$restProps.class)}>
-	<div class={'flex justify-between items-center gap-4'}>
+<div class={classNames('flex flex-col gap-4 group/carousel', $$restProps.class)}>
+	<div class={'flex justify-between items-center gap-4 ' + scrollClass}>
 		<slot name="title">
 			<div class="font-semibold text-xl">{heading}</div>
 		</slot>
 		<div
-			class={classNames('flex gap-2', {
-				hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0)
-			})}
+			class={classNames(
+				'flex gap-2 sm:opacity-0 transition-opacity sm:group-hover/carousel:opacity-100',
+				{
+					hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0)
+				}
+			)}
 		>
 			<IconButton
 				on:click={() => {
@@ -40,7 +44,10 @@
 
 	<div class="relative">
 		<div
-			class="flex overflow-x-scroll items-center overflow-y-hidden gap-4 relative scrollbar-hide p-1"
+			class={classNames(
+				'flex overflow-x-scroll items-center overflow-y-visible gap-4 relative scrollbar-hide p-1',
+				scrollClass
+			)}
 			bind:this={carousel}
 			tabindex="-1"
 			on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}

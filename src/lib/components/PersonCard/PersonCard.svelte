@@ -1,26 +1,35 @@
 <script lang="ts">
+	import type { TitleType } from '$lib/types';
 	import { TMDB_PROFILE_SMALL } from '$lib/constants';
+	import { openTitleModal } from '$lib/stores/modal.store';
 	import classNames from 'classnames';
 
 	export let tmdbId: number;
+	export let type: TitleType = 'person';
 	export let backdropUri: string;
 	export let name: string;
 	export let subtitle: string;
-
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
+
+	export let openInModal = true;
 </script>
 
-<a
+<button
 	class={classNames(
-		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-stone-900 group',
+		'flex flex-col justify-start gap-3 p-4 rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-stone-900 group text-left',
 		{
 			'w-36 h-56': size === 'md',
 			'h-52': size === 'lg',
 			'w-full': size === 'dynamic'
 		}
 	)}
-	target="_blank"
-	href={`https://www.themoviedb.org/person/${tmdbId}`}
+	on:click={() => {
+		if (openInModal) {
+			openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
+		} else {
+			window.location.href = `/${type}/${tmdbId}`;
+		}
+	}}
 >
 	<div
 		class="mx-auto rounded-full overflow-hidden flex-shrink-0 aspect-square w-full bg-zinc-200 bg-opacity-20"
@@ -36,4 +45,4 @@
 			{name}
 		</h1>
 	</div>
-</a>
+</button>

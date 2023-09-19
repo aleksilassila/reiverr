@@ -1,9 +1,10 @@
 import { browser } from '$app/environment';
-import { TMDB_API_KEY } from '$lib/constants';
+import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '$lib/constants';
 import { settings } from '$lib/stores/settings.store';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
+import type { TitleType } from '$lib/types';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -14,6 +15,15 @@ export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
+export type TmdbPerson =
+	operations['person-details']['responses']['200']['content']['application/json'];
+
+export interface TmdbPersonFull extends TmdbPerson {
+	images: operations['person-images']['responses']['200']['content']['application/json'];
+	movie_credits: operations['person-tv-credits']['responses']['200']['content']['application/json'];
+	tv_credits: operations['person-movie-credits']['responses']['200']['content']['application/json'];
+	external_ids: operations['person-external-ids']['responses']['200']['content']['application/json'];
+}
 
 export interface TmdbMovieFull2 extends TmdbMovie2 {
 	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
@@ -292,6 +302,48 @@ export const getTmdbItemBackdrop = (item: {
 		item?.images?.backdrops?.find((b) => b.iso_639_1) ||
 		item?.images?.backdrops?.[0]
 	)?.file_path;
+
+export const getPosterProps = async (
+	item: {
+		name?: string;
+		title?: string;
+		id?: number;
+		vote_average?: number;
+		number_of_seasons?: number;
+		first_air_date?: string;
+		poster_path?: string;
+	},
+	type: TitleType | undefined = undefined
+) => {
+	const backdropUri = item.poster_path;
+	const t =
+		type ||
+		(item?.number_of_seasons === undefined && item?.first_air_date === undefined
+			? 'movie'
+			: 'series');
+	return {
+		tmdbId: item.id || 0,
+		title: item.title || item.name || '',
+		// subtitle: item.subtitle || '',
+		rating: item.vote_average || undefined,
+		size: 'md',
+		backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
+		type: t,
+		orientation: 'portrait'
+	} as const;
+};
+
+export const getTmdbPerson = async (person_id: number) =>
+	TmdbApiOpen.get('/3/person/{person_id}', {
+		params: {
+			path: {
+				person_id: person_id
+			},
+			query: {
+				append_to_response: 'images,movie_credits,tv_credits,external_ids'
+			}
+		}
+	}).then((res) => res.data as TmdbPersonFull);
 
 export const TMDB_MOVIE_GENRES = [
 	{
