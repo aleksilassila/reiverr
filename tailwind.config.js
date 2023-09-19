@@ -5,7 +5,8 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Montserrat', 'sans-serif'],
-				display: ['Montserrat', 'system', 'sans-serif']
+				display: ['Montserrat', 'system', 'sans-serif'],
+				fira: ['Fira Sans', 'Montserrat', 'sans-serif']
 			},
 			colors: {
 				darken: '#07050166',
