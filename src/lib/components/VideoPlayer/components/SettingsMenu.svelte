@@ -2,6 +2,7 @@
 	import { Gear as SettingIcon } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import QualityChooserMenu from './QualityChooserMenu.svelte';
+	import CaptionChooserMenu from './CaptionChooserMenu.svelte';
 	let position = 'top';
 	let tooltip = 'top';
 	let selectedQuality = {
@@ -31,15 +32,6 @@
         <media-playback-rate-menu-items $prop:normalLabel={'Normal'} />
       </media-menu> -->
 		<QualityChooserMenu bind:selectedQuality />
-		<media-menu class="w-80">
-			<media-captions-menu-button label={'Captions'} class="rounded-md bg-zinc-900/80 text-sm font-light font-fira" />
-			<media-captions-menu-items
-				offLabel={'Off'}
-				class="relative w-full flex flex-col p-0 aria-hidden:hidden rounded-md bg-zinc-900/80"
-				radio-group-class="w-full"
-				radio-class="group flex text-zinc-300 text-xs font-fira cursor-pointer items-center p-2.5 data-[hocus]:bg-amber-300/20 data-[focus]:ring-2 data-[focus]:ring-amber-500"
-				radio-check-class="rounded-full border-4 flex items-center justify-center w-2.5 h-2.5 mr-2 group-aria-checked:border-amber-400 border-zinc-600 after:content-[''] after:hidden  group-aria-checked:after:inline-block after:rounded-full after:w-1 after:h-1"
-			/>
-		</media-menu>
+	  	<CaptionChooserMenu />
 	</media-menu-items>
 </media-menu>
