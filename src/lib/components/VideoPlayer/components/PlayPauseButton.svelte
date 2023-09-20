@@ -3,10 +3,10 @@
 </script>
 
 <media-play-button class="text-zinc-400 h-8 w-8">
-	<PlayIcon slot="play" />
-	<PauseIcon slot="pause" />
-	<ReplayIcon slot="replay" />
-	<media-tooltip position="top" class="rounded-md bg-zinc-800/90 px-2.5 py-1.5 font-bold">
+	<PlayIcon slot="play" class="h-5" />
+	<PauseIcon slot="pause" class="h-5" />
+	<ReplayIcon slot="replay" class="h-5" />
+	<media-tooltip position="top" class="rounded-md bg-zinc-800/90 px-2.5 py-1.5 font-fira font-medium">
 		<span slot="play">{'Play'}</span>
 		<span slot="pause">{'Pause'}</span>
 		<span slot="replay">{'Play again'}</span>
