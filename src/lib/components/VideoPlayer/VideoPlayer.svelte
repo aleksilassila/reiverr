@@ -209,7 +209,7 @@
 		<!-- VideoUi -->
 		<div class="group-data-[user-idle]:opacity-0 transition-opacity">
 			<!-- Controls -->
-			<div class="absolute bottom-2 inset-x-0 w-full z-10 px-2 pb-3 bg-black/60 rounded-md">
+			<div class="absolute bottom-2 inset-x-0 w-[98%] z-10 px-2 pb-3 bg-black/60 rounded-md mx-auto">
 				<TimeSlider />
 				<div class="w-full flex items-center px-5 pb-1.5 h-5 gap-1">
 					<PlayPauseButton />
