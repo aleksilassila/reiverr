@@ -13,8 +13,8 @@
     $: selectedQuality;
 </script>
 
-<media-menu class="w-80">
-	<media-menu-button class="rounded-md bg-zinc-900/80">
+<media-menu class="w-96">
+	<media-menu-button class="rounded-md bg-zinc-900/80 font-fira font-light">
 		<QualityIcon slot="icon" />
 		<span slot="label">Quality</span>
 		<div slot="hint" class="flex-1 text-right">{selectedQuality.name || 'Original Quality'}</div>
@@ -32,7 +32,7 @@
 					class="
                     transition-colors
                     {selectedQuality.maxBitrate === quality.maxBitrate
-						? 'text-amber-100'
+						? 'text-amber-200'
 						: 'text-zinc-500'}
                     py-1 px-2 cursor-pointer
                     "
@@ -47,7 +47,7 @@
 						/>
 
 						<div class="flex items-center gap-2 justify-between w-full">
-							<span class="font-bold">
+							<span class="font-medium font-fira">
 								{quality.name.split('-')[0]}
 							</span>
 							<span> {quality.name.split('-')[1]} </span>
