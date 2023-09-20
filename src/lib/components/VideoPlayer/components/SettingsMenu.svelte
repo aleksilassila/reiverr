@@ -17,7 +17,7 @@
 
 <media-menu {position} part="settings-menu">
 	<media-menu-button class="h-8 w-8 text-zinc-400">
-		<SettingIcon rotate />
+		<SettingIcon rotate class="h-5" />
 		<media-tooltip position={tooltip} class="rounded-md bg-zinc-800/90 px-2.5 py-1.5 font-bold"
 			>{'Settings'}
 		</media-tooltip>
