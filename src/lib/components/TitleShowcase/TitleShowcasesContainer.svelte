@@ -95,7 +95,7 @@
 	// 	return () => clearInterval(interval);
 	// });
 
-	const PADDING = 'px-4 lg:px-8 xl:px-16';
+	const PADDING = 'px-4 lg:px-8 2xl:px-16';
 </script>
 
 <div class="h-screen flex flex-col relative pb-6 gap-6 xl:gap-8 overflow-hidden">
