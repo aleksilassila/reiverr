@@ -1,102 +1,102 @@
 {
-  "appName": "Reiverr",
-  "setupRequiredTitle": "Willkommen zu",
-  "setupRequiredDescription": "Es scheint das einige Umgebungsvariables zur fehlerfreien Ausführung fehlen. Bitte gebe die folgenden Umgebungsvariablen an:",
-  "navbar": {
-    "home": "Start",
-    "discover": "Entdecken",
-    "library": "Bibliothek",
-    "sources": "Quellen",
-    "settings": "Einstellungen"
-  },
-  "search": {
-    "placeHolder": "Suche nach Filmen und Serien",
-    "noRecentSearches": "Kein Suchverlauf",
-    "noResults": "Keine Suchergebnisse"
-  },
-  "discover": {
-    "trending": "Aufsteigend",
-    "popularPeople": "Beliebte Personen",
-    "upcomingMovies": "Bald verfügbare Filme",
-    "upcomingSeries": "Bald verfügbare Serien",
-    "genres": "Genres",
-    "newDigitalReleases": "Neue Digitale Veröffentlichungen",
-    "streamingNow": "Aktuell im Stream",
-    "TVNetworks": "Anbieter"
-  },
-  "library": {
-    "missingConfiguration": "Konfiguriere Radarr, Sonarr und Jellyfin zum Verwalten und Abspielen der Bibliothek",
-    "available": "Verfügbar",
-    "watched": "Geschaut",
-    "unavailable": "Nicht verfügbar",
-    "sort": {
-      "byTitle": "Nach Titel"
-    },
-    "content": {
-      "movie": "Film",
-      "show": "Serie",
-      "requestContent": "Anfrage",
-      "directedBy": "Regie von",
-      "releaseDate": "Veröffentlichung",
-      "budget": "Budget",
-      "status": "Status",
-      "runtime": "Spielzeit",
-      "castAndCrew": "Cast & Crew",
-      "recommendations": "Empfehlungen",
-      "similarTitles": "Ähnliche Titel"
-    }
-  },
-  "sources": {},
-  "titleShowcase": {
-    "details": "Details",
-    "watchTrailer": "Trailer abspielen",
-    "releaseDate": "Veröffentlichung",
-    "directedBy": "Regie von"
-  },
-  "settings": {
-    "navbar": {
-      "settings": "Konfiguration",
-      "general": "Allgemein",
-      "integrations": "Integrationen"
-    },
-    "general": {
-      "userInterface": {
-        "userInterface": "Benutzeroberfläche",
-        "language": "Sprache",
-        "autoplayTrailers": "Trailer automatisch abspielen",
-        "animationDuration": "Animationsdauer"
-      },
-      "discovery": {
-        "discovery": "Entdecken",
-        "none": "Keine",
-        "region": "Region",
-        "excludeLibraryItemsFromDiscovery": "Schließe Bibliothekeinträge von 'Entdecken' aus",
-        "includedLanguages": "Enthaltene Sprachen",
-        "includedLanguagesDescription": "Filter Resultate nach gesprochener Sprache. Trage ISO 639-1 Sprachcodes kommasepariert ein. Freilassen zum deaktivieren."
-      }
-    },
-    "integrations": {
-      "integrations": "Integrationen",
-      "integrationsNote": "Anmerkungen: Basis URLs müssen vom Browser aus erreichbar sein. Interne Docker Adressen funktionieren nicht. API Schlüssel <span class='font-medium underline'>sind Sichtbar</span> in den Browseranfragen.",
-      "baseUrl": "Basis URL",
-      "apiKey": "API Schlüssel",
-      "testConnection": "Verbindung testen",
-      "status": {
-        "connected": "Verbunden",
-        "disconnected": "Getrennt"
-      },
-      "options": {
-        "options": "Optionen",
-        "rootFolder": "Hauptordner",
-        "qualityProfile": "Qualitätsprofil",
-        "languageProfile": "Sprachprofil",
-        "jellyfinUser": "Jellyfin Benutzer"
-      }
-    },
-    "misc": {
-      "saveChanges": "Änderungen speichern",
-      "resetToDefaults": "Auf Standard zurücksetzen ",
-      "changelog": "Änderungen"
-    }
-  }
+	"appName": "Reiverr",
+	"setupRequiredTitle": "Willkommen zu",
+	"setupRequiredDescription": "Es scheint das einige Umgebungsvariables zur fehlerfreien Ausführung fehlen. Bitte gib die folgenden Umgebungsvariablen an:",
+	"navbar": {
+		"home": "Start",
+		"discover": "Entdecken",
+		"library": "Bibliothek",
+		"sources": "Quellen",
+		"settings": "Einstellungen"
+	},
+	"search": {
+		"placeHolder": "Suche nach Filmen und Serien",
+		"noRecentSearches": "Kein Suchverlauf",
+		"noResults": "Keine Suchergebnisse"
+	},
+	"discover": {
+		"trending": "Aufsteigend",
+		"popularPeople": "Beliebte Personen",
+		"upcomingMovies": "Bald verfügbare Filme",
+		"upcomingSeries": "Bald verfügbare Serien",
+		"genres": "Genres",
+		"newDigitalReleases": "Neue Digitale Veröffentlichungen",
+		"streamingNow": "Aktuell im Stream",
+		"TVNetworks": "Anbieter"
+	},
+	"library": {
+		"missingConfiguration": "Konfiguriere Radarr, Sonarr und Jellyfin, zum Verwalten und Abspielen der Bibliothek",
+		"available": "Verfügbar",
+		"watched": "Geschaut",
+		"unavailable": "Nicht verfügbar",
+		"sort": {
+			"byTitle": "Nach Titel"
+		},
+		"content": {
+			"movie": "Film",
+			"show": "Serie",
+			"requestContent": "Anfrage",
+			"directedBy": "Regie von",
+			"releaseDate": "Veröffentlichung",
+			"budget": "Budget",
+			"status": "Status",
+			"runtime": "Spielzeit",
+			"castAndCrew": "Cast & Crew",
+			"recommendations": "Empfehlungen",
+			"similarTitles": "Ähnliche Titel"
+		}
+	},
+	"sources": {},
+	"titleShowcase": {
+		"details": "Details",
+		"watchTrailer": "Trailer abspielen",
+		"releaseDate": "Veröffentlichung",
+		"directedBy": "Regie von"
+	},
+	"settings": {
+		"navbar": {
+			"settings": "Konfiguration",
+			"general": "Allgemein",
+			"integrations": "Integrationen"
+		},
+		"general": {
+			"userInterface": {
+				"userInterface": "Benutzeroberfläche",
+				"language": "Sprache",
+				"autoplayTrailers": "Trailer automatisch abspielen",
+				"animationDuration": "Animationsdauer"
+			},
+			"discovery": {
+				"discovery": "Entdecken",
+				"none": "Keine",
+				"region": "Region",
+				"excludeLibraryItemsFromDiscovery": "Schließe Bibliothekeinträge von 'Entdecken' aus",
+				"includedLanguages": "Enthaltene Sprachen",
+				"includedLanguagesDescription": "Filter Resultate nach gesprochener Sprache. Trage ISO 639-1 Sprachcodes kommasepariert ein. Freilassen zum deaktivieren."
+			}
+		},
+		"integrations": {
+			"integrations": "Integrationen",
+			"integrationsNote": "Anmerkungen: Basis URLs müssen vom Browser aus erreichbar sein. Interne Docker Adressen funktionieren nicht. API Schlüssel <span class='font-medium underline'>sind Sichtbar</span> in den Browseranfragen.",
+			"baseUrl": "Basis URL",
+			"apiKey": "API Schlüssel",
+			"testConnection": "Verbindung testen",
+			"status": {
+				"connected": "Verbunden",
+				"disconnected": "Getrennt"
+			},
+			"options": {
+				"options": "Optionen",
+				"rootFolder": "Hauptordner",
+				"qualityProfile": "Qualitätsprofil",
+				"languageProfile": "Sprachprofil",
+				"jellyfinUser": "Jellyfin Benutzer"
+			}
+		},
+		"misc": {
+			"saveChanges": "Änderungen speichern",
+			"resetToDefaults": "Auf Standard zurücksetzen ",
+			"changelog": "Änderungen"
+		}
+	}
 }
