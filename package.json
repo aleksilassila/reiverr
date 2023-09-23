@@ -61,6 +61,7 @@
 		"sqlite3": "^5.1.6",
 		"svelte-i18n": "^3.7.0",
 		"tailwind-scrollbar-hide": "^1.1.7",
-		"typeorm": "^0.3.17"
+		"typeorm": "^0.3.17",
+		"vidstack": "^0.6.13"
 	}
 }
