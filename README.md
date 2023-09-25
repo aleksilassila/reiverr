@@ -96,6 +96,8 @@ The roadmap includes plans to support the following platforms in the future:
 
 # Contributing
 
+#### Read this > [State of the project 25. Sep 23](https://github.com/aleksilassila/reiverr/discussions/27#discussioncomment-7101012)
+
 Unlike the most Servarr projects, this one is built with Svelte and SvelteKit. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
 
 To see a list of missing features & known bugs that you can help with, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5). Feel free to also create your own issues for bug reports or feature requests, as well as discussions for general questions.
