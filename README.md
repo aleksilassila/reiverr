@@ -136,8 +136,10 @@ Useful resources:
 
 # Additional Screenshots
 
-![Landing Page](images/screenshot-1.png)
+![Library Page](images/screenshot-1.png)
 
-![Series Page](images/screenshot-2.png)
+![Discover Genre Page](images/screenshot-2.png)
 
-![Library Page](images/screenshot-3.png)
+![Discover Page](images/screenshot-3.png)
+
+![Settings Page](images/screenshot-4.png)
