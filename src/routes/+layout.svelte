@@ -7,11 +7,10 @@
 	import { type SettingsValues, defaultSettings, settings } from '$lib/stores/settings.store';
 	import { writable } from 'svelte/store';
 	import '../app.css';
-	import type { LayoutServerData } from './$types';
 	import Notifications from '$lib/components/Notification/Notifications.svelte';
 
-	export let data: LayoutServerData;
-	settings.set(data.settings);
+	// export let data: LayoutServerData;
+	// settings.set(data.settings);
 </script>
 
 <!-- {#if data.isApplicationSetUp} -->
