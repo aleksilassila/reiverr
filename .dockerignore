@@ -1,6 +1,7 @@
 node_modules
 .svelte-kit
 build
+dist
 .idea
 .env
 .DS_Store

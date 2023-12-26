@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { TitleId } from '$lib/types';
 	import { fly } from 'svelte/transition';
-	import MoviePage from '../../../routes/movie/[id]/MoviePage.svelte';
-	import SeriesPage from '../../../routes/series/[id]/SeriesPage.svelte';
+	import MoviePage from '../MoviePage.svelte';
+	import SeriesPage from '../SeriesPage.svelte';
 	import { modalStack } from '../../stores/modal.store';
-	import PersonPage from '../../../routes/person/[id]/PersonPage.svelte';
+	import PersonPage from '../PersonPage.svelte';
 
 	export let titleId: TitleId;
 	export let modalId: symbol;

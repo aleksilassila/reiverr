@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { settings } from '$lib/stores/settings.store';
 	import { addMessages, init, locale } from 'svelte-i18n';
 
 	import de from '../../lang/de.json';
@@ -7,6 +6,7 @@
 	import es from '../../lang/es.json';
 	import fr from '../../lang/fr.json';
 	import it from '../../lang/it.json';
+	import { settings } from '../../stores/settings.store';
 
 	addMessages('de', de);
 	addMessages('en', en);
