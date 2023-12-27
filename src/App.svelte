@@ -1,56 +1,58 @@
 <script lang="ts">
-  import Carousel from "./lib/components/Carousel/Carousel.svelte";
-  import I18n from "./lib/components/Lang/I18n.svelte";
-  import { _ } from "svelte-i18n";
-  import CarouselPlaceholderItems from "./lib/components/Carousel/CarouselPlaceholderItems.svelte";
-  import { Link, navigate, Route, Router } from "svelte-navigator";
-  import { fade } from "svelte/transition";
-  import { networks } from "./lib/discover";
-  import NetworkCard from "./lib/components/NetworkCard.svelte";
+	import I18n from './lib/components/Lang/I18n.svelte';
+	import { Link, navigate, Route, Router } from 'svelte-navigator';
+	import { fade } from 'svelte/transition';
+	import { handleKeyboardNavigation, navigationContainers } from './lib/actions/focusAction';
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === "ArrowRight") {
-      console.log("right");
-      navigate("/about");
-    }
-    if (event.key === "ArrowLeft") {
-      console.log("left");
-      navigate("/");
-    }
-  }
+	let focusableElements: HTMLElement[] = [];
+
+	function registerArrayFocus(node: HTMLElement) {
+		focusableElements.push(node);
+		console.log('Added node', node);
+
+		return {
+			destroy() {
+				focusableElements = focusableElements.filter((el) => el !== node);
+				console.log('Removed node', node);
+			}
+		};
+	}
+
+	const navBarContainer = navigationContainers.navBar.getRegisterer();
+	const homeContainer = navigationContainers.home.getRegisterer();
 </script>
 
 <I18n />
-<main class="bg-stone-950 text-white">
-  <Router>
-    <nav>
-      <Link to="/">Home</Link>
-      <Link to="about">About</Link>
-    </nav>
+<main class="bg-stone-950 text-white flex">
+	<Router>
+		<nav class="border">
+			<Link to="/">
+				<div use:navBarContainer tabindex="0">Home</div>
+			</Link>
+			<Link to="about">
+				<div use:navBarContainer tabindex="0">About</div>
+			</Link>
+		</nav>
 
-    <Carousel>
-      <div slot="title" class="text-lg font-semibold text-zinc-300">
-        {$_("discover.upcomingSeries")}
-      </div>
-      <CarouselPlaceholderItems />
-    </Carousel>
-
-    <Carousel>
-      <div slot="title" class="text-lg font-semibold text-zinc-300">
-        {$_("discover.TVNetworks")}
-      </div>
-      {#each Object.values(networks) as network (network.tmdbNetworkId)}
-        <NetworkCard {network} />
-      {/each}
-    </Carousel>
-
-    <Route path="/">
-      <div transition:fade|global>Home path</div>
-    </Route>
-    <Route path="about">
-      <div transition:fade|global>about path</div>
-    </Route>
-  </Router>
+		<div class="flex-1">
+			<Route path="/">
+				<div class="flex flex-row">
+					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
+						Home path
+					</div>
+					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
+						Another item
+					</div>
+					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
+						Button perhaps?
+					</div>
+				</div>
+			</Route>
+			<Route path="about">
+				<div transition:fade|global>about path</div>
+			</Route>
+		</div>
+	</Router>
 </main>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window on:keydown={handleKeyboardNavigation} />
