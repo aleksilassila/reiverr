@@ -1,6 +1,7 @@
 name: Build & Deploy
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - v*
@@ -45,23 +46,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2.9.1
+
       - name: 'Login to GitHub Container Registry'
         uses: docker/login-action@v2
         with:
           registry: ${{env.REGISTRY}}
           username: ${{github.actor}}
-          password: ${{secrets.GITHUB_TOKEN}}
+          password: ${{secrets.GIT_TOKEN}}
+
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+#        with:
+#          username: ${{secrets.DOCKERHUB_USERNAME}}
+#          password: ${{secrets.DOCKERHUB_TOKEN}}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
 
       - name: Build containers
-        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+        run: docker buildx build -f docker-compose.yml -f docker-compose.prod.yml --platform=linux/amd64,linux/arm64 --push --tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}} --cache-from=type=registry,ref=${{env.REGISTRY}}/${{env.IMAGE_NAME}}:buildcache --cache-to=type=registry,ref=${{env.REGISTRY}}/${{env.IMAGE_NAME}}:buildcache,mode=max
 
-      - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+#      - name: Build and push Docker images
+#        uses: docker/build-push-action@v4
+#        with:
+#          context: .
+#          platforms: linux/amd64,linux/arm64
+#          tags: ${{ steps.meta.outputs.tags }}
+#          labels: ${{ steps.meta.outputs.labels }}
+#          #push: true
+#          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{env.IMAGE_NAME}}:buildcache
+#          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{env.IMAGE_NAME}}:buildcache,mode=max
+
+#      - name: Add tag
+#        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
 
       # - name: Tag with Git SHA
       #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
 
-      - name: Push to Docker Hub
-        run: |
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
+#      - name: Push to Docker Hub
+#        run: |
+#          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+#          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
