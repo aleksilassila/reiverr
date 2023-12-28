@@ -174,11 +174,13 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 }
 
 const navBar = new Container().setDirection('vertical');
+const main = new Container().setDirection('vertical');
 const home = new Container();
 
-home.setLeftNeighbor(navBar);
+home.setLeftNeighbor(main);
 
 export const navigationContainers = {
 	home,
+	main,
 	navBar
 };

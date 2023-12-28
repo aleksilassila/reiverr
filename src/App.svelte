@@ -3,6 +3,7 @@
 	import { Link, navigate, Route, Router } from 'svelte-navigator';
 	import { fade } from 'svelte/transition';
 	import { handleKeyboardNavigation, navigationContainers } from './lib/actions/focusAction';
+	import HomePage from './lib/pages/HomePage.svelte';
 
 	let focusableElements: HTMLElement[] = [];
 
@@ -19,36 +20,27 @@
 	}
 
 	const navBarContainer = navigationContainers.navBar.getRegisterer();
+	const mainContainer = navigationContainers.main.getRegisterer();
 	const homeContainer = navigationContainers.home.getRegisterer();
 </script>
 
 <I18n />
-<main class="bg-stone-950 text-white flex">
+<main class="bg-stone-950 text-white flex flex-1 w-screen">
 	<Router>
 		<nav class="border">
 			<Link to="/">
 				<div use:navBarContainer tabindex="0">Home</div>
 			</Link>
-			<Link to="about">
-				<div use:navBarContainer tabindex="0">About</div>
+			<Link to="library">
+				<div use:navBarContainer tabindex="0">Library</div>
 			</Link>
 		</nav>
 
-		<div class="flex-1">
+		<div class="flex-1 flex flex-col min-w-0" use:mainContainer>
 			<Route path="/">
-				<div class="flex flex-row">
-					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
-						Home path
-					</div>
-					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
-						Another item
-					</div>
-					<div use:homeContainer tabindex="0" transition:fade|global class="focus:ring">
-						Button perhaps?
-					</div>
-				</div>
+				<HomePage />
 			</Route>
-			<Route path="about">
+			<Route path="library">
 				<div transition:fade|global>about path</div>
 			</Route>
 		</div>
