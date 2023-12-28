@@ -1,67 +1,44 @@
-name: Build & Deploy
+name: Create and publish a Docker image
 
 on:
-  push:
-    tags:
-      - v*
-    # branches:
-    #   - master
-    #   - dev
-
-  # pull_request:
-  #   branches:
-  #     - main
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  TAG: ${{ github.ref_name }}
 
 jobs:
-  # test:
-  #   timeout-minutes: 10
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v1
-
-  #     #      - name: Build containers
-  #     #        run: docker compose build
-
-  #     - name: Test backend
-  #       run: docker compose run --build backend sh -c 'npx prisma migrate reset --force && export NODE_ENV=test && npx jest'
-
   push:
-    timeout-minutes: 10
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    # needs: test
-    # if: github.ref == 'refs/heads/main'
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: 'Login to GitHub Container Registry'
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ${{env.REGISTRY}}
           username: ${{github.actor}}
-          password: ${{secrets.GITHUB_TOKEN}}
-
-      - name: Build containers
-        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-
-      - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-
-      # - name: Tag with Git SHA
-      #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
-
-      - name: Push to Docker Hub
-        run: |
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
+          password: ${{github.token}}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

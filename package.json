@@ -10,7 +10,7 @@
 		"dev": "vite dev --host",
 		"build": "vite build",
 		"preview": "vite preview",
-		"deploy": "PORT=9494 NODE_ENV=production node build/",
+		"deploy": "node build",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",
 		"test": "playwright test",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
