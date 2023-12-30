@@ -1,14 +1,20 @@
 <script lang="ts">
-	import { navigationContainers } from '../actions/focusAction';
-	import { fade } from 'svelte/transition';
+	import { Container, navigationContainers } from '../actions/focusAction';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 
-	const homeContainer = navigationContainers.home.getRegisterer();
+	const carouselContainer1 = new Container('carousel').setDirection('horizontal');
+	navigationContainers.home.addChild(carouselContainer1);
+
+	const carouselContainer2 = new Container('carousel').setDirection('horizontal');
+	navigationContainers.home.addChild(carouselContainer2);
 </script>
 
 <div class="flex flex-col">
 	<Carousel>
-		<CarouselPlaceholderItems />
+		<CarouselPlaceholderItems container={carouselContainer1} />
+	</Carousel>
+	<Carousel>
+		<CarouselPlaceholderItems container={carouselContainer2} />
 	</Carousel>
 </div>

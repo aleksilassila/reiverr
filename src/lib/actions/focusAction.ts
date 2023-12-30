@@ -1,8 +1,11 @@
+export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
+
 export class Container {
 	id: symbol;
 	name: string;
 	parent?: Container;
-	htmlElements: HTMLElement[] = [];
+	children: Container[] = [];
+	htmlElement?: HTMLElement;
 	private upNeighbor?: Container;
 	private downNeighbor?: Container;
 	private leftNeighbor?: Container;
@@ -25,102 +28,147 @@ export class Container {
 		}
 	}
 
-	getRegisterer() {
+	getRegisterer(): Registerer {
 		return (htmlElement: HTMLElement) => {
-			this.addHtmlElement(htmlElement);
+			this.addChildElement(htmlElement);
 
 			return {
 				destroy: () => {
-					this.removeHtmlElement(htmlElement);
+					this.removeChildElement(htmlElement);
 				}
 			};
 		};
 	}
 
 	giveFocus(direction: 'up' | 'down' | 'left' | 'right') {
-		const shouldCycle =
-			this.direction === 'horizontal'
-				? (direction === 'left' && this.focusIndex !== 0) ||
-				  (direction === 'right' && this.focusIndex !== this.htmlElements.length - 1)
-				: (direction === 'up' && this.focusIndex !== 0) ||
-				  (direction === 'down' && this.focusIndex !== this.htmlElements.length - 1);
+		console.log('This: ');
+		this.log();
 
-		if (shouldCycle) {
-			console.log('Cycling through', this.htmlElements);
-			if (direction === 'up') {
-				this.focusIndex--;
-			} else if (direction === 'down') {
-				this.focusIndex++;
-			} else if (direction === 'left') {
-				this.focusIndex--;
-			} else if (direction === 'right') {
-				this.focusIndex++;
+		console.log('Giving focus to', direction, 'neighbor');
+		const upNeighbor = this.getUpNeighbor();
+		const downNeighbor = this.getDownNeighbor();
+		const leftNeighbor = this.getLeftNeighbor();
+		const rightNeighbor = this.getRightNeighbor();
+		if (direction === 'up' && upNeighbor) {
+			if (upNeighbor.direction === 'vertical') {
+				upNeighbor.focusIndex = upNeighbor.children.length - 1;
 			}
-			this.focusElement();
+
+			upNeighbor.focusElement();
+		} else if (direction === 'down' && downNeighbor) {
+			if (downNeighbor.direction === 'vertical') {
+				downNeighbor.focusIndex = 0;
+			}
+
+			downNeighbor.focusElement();
+		} else if (direction === 'left' && leftNeighbor) {
+			if (leftNeighbor.direction === 'horizontal') {
+				leftNeighbor.focusIndex = leftNeighbor.children.length - 1;
+			}
+
+			leftNeighbor.focusElement();
+		} else if (direction === 'right' && rightNeighbor) {
+			if (rightNeighbor.direction === 'horizontal') {
+				rightNeighbor.focusIndex = 0;
+			}
+
+			rightNeighbor.focusElement();
 		} else {
-			console.log("Giving focus to neighbor's", direction, 'neighbor');
-			const upNeighbor = this.getUpNeighbor();
-			const downNeighbor = this.getDownNeighbor();
-			const leftNeighbor = this.getLeftNeighbor();
-			const rightNeighbor = this.getRightNeighbor();
-			if (direction === 'up' && upNeighbor) {
-				if (upNeighbor.direction === 'vertical')
-					upNeighbor.focusIndex = upNeighbor.htmlElements.length - 1;
-
-				Container.focusedObject = upNeighbor;
-				upNeighbor.focusElement();
-			} else if (direction === 'down' && downNeighbor) {
-				if (downNeighbor.direction === 'vertical') downNeighbor.focusIndex = 0;
-
-				Container.focusedObject = downNeighbor;
-				downNeighbor.focusElement();
-			} else if (direction === 'left' && leftNeighbor) {
-				if (leftNeighbor.direction === 'horizontal')
-					leftNeighbor.focusIndex = leftNeighbor.htmlElements.length - 1;
-
-				Container.focusedObject = leftNeighbor;
-				leftNeighbor.focusElement();
-			} else if (direction === 'right' && rightNeighbor) {
-				if (rightNeighbor.direction === 'horizontal') rightNeighbor.focusIndex = 0;
-
-				Container.focusedObject = rightNeighbor;
-				rightNeighbor.focusElement();
-			}
+			return false;
 		}
+
+		return true;
 	}
 
-	getUpNeighbor() {
-		return this.upNeighbor;
+	private getUpNeighbor(): Container | undefined {
+		return this.upNeighbor || this.parent?.getUpNeighbor();
 	}
 
-	getDownNeighbor() {
-		return this.downNeighbor;
+	private getDownNeighbor(): Container | undefined {
+		return this.downNeighbor || this.parent?.getDownNeighbor();
 	}
 
-	getLeftNeighbor() {
-		return this.leftNeighbor;
+	private getLeftNeighbor(): Container | undefined {
+		return this.leftNeighbor || this.parent?.getLeftNeighbor();
 	}
 
-	getRightNeighbor() {
-		return this.rightNeighbor;
+	private getRightNeighbor(): Container | undefined {
+		return this.rightNeighbor || this.parent?.getRightNeighbor();
 	}
 
 	focusElement() {
-		this.htmlElements[this.focusIndex].focus();
+		Container.focusedObject = this;
+		if (this.htmlElement) {
+			this.htmlElement.focus({ preventScroll: true });
+			this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+
+			if (this.parent) {
+				this.parent.focusIndex = this.parent.children.findIndex((child) => child === this);
+			}
+		} else {
+			this.children[this.focusIndex].focusElement();
+		}
 	}
 
-	setParent(parent: Container) {
+	private setParent(parent?: Container) {
 		this.parent = parent;
 		return this;
 	}
 
-	addHtmlElement(htmlElement: HTMLElement) {
-		this.htmlElements.push(htmlElement);
+	private setHtmlElement(htmlElement: HTMLElement) {
+		this.htmlElement = htmlElement;
 		return this;
 	}
 
-	removeHtmlElement(htmlElement: HTMLElement) {
-		this.htmlElements = this.htmlElements.filter((element) => element !== htmlElement);
+	addChild(child: Container) {
+		console.log('Adding child', child.name, 'to', this.name);
+		if (this.direction === 'vertical' && this.children.length >= 1) {
+			child.setUpNeighbor(this.children[this.children.length - 1]);
+		} else if (this.direction === 'horizontal' && this.children.length >= 1) {
+			child.setLeftNeighbor(this.children[this.children.length - 1]);
+		}
+		this.children.push(child.setParent(this));
+		console.log('After add', this);
+		return this;
+	}
+
+	private addChildElement(htmlElement: HTMLElement) {
+		const childContainer = new Container().setHtmlElement(htmlElement).setParent(this);
+
+		if (this.direction === 'vertical' && this.children.length >= 1) {
+			childContainer.setUpNeighbor(this.children[this.children.length - 1]);
+		} else if (this.direction === 'horizontal' && this.children.length >= 1) {
+			childContainer.setLeftNeighbor(this.children[this.children.length - 1]);
+		}
+
+		this.children.push(childContainer);
+		return this;
+	}
+
+	private removeChildElement(htmlElement: HTMLElement) {
+		const child = this.children.find((child) => child.htmlElement === htmlElement);
+		child?.setParent(undefined)?.removeNeighbors();
+		this.children = this.children.filter((child) => child.htmlElement !== htmlElement);
+		return this;
+	}
+
+	private removeNeighbors() {
+		if (this.upNeighbor?.downNeighbor === this) {
+			this.upNeighbor.downNeighbor = undefined;
+		}
+		if (this.downNeighbor?.upNeighbor === this) {
+			this.downNeighbor.upNeighbor = undefined;
+		}
+		if (this.leftNeighbor?.rightNeighbor === this) {
+			this.leftNeighbor.rightNeighbor = undefined;
+		}
+		if (this.rightNeighbor?.leftNeighbor === this) {
+			this.rightNeighbor.leftNeighbor = undefined;
+		}
+		this.upNeighbor = undefined;
+		this.downNeighbor = undefined;
+		this.leftNeighbor = undefined;
+		this.rightNeighbor = undefined;
 		return this;
 	}
 
@@ -152,6 +200,14 @@ export class Container {
 		this.direction = direction;
 		return this;
 	}
+
+	log() {
+		console.log(this.name, this);
+		if (this.parent) {
+			console.log('With parent: ');
+			this.parent.log();
+		}
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -163,21 +219,22 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	}
 
 	if (event.key === 'ArrowUp') {
-		currentlyFocusedObject.giveFocus('up');
+		if (currentlyFocusedObject.giveFocus('up')) event.preventDefault();
 	} else if (event.key === 'ArrowDown') {
-		currentlyFocusedObject.giveFocus('down');
+		if (currentlyFocusedObject.giveFocus('down')) event.preventDefault();
 	} else if (event.key === 'ArrowLeft') {
-		currentlyFocusedObject.giveFocus('left');
+		if (currentlyFocusedObject.giveFocus('left')) event.preventDefault();
 	} else if (event.key === 'ArrowRight') {
-		currentlyFocusedObject.giveFocus('right');
+		if (currentlyFocusedObject.giveFocus('right')) event.preventDefault();
 	}
 }
 
-const navBar = new Container().setDirection('vertical');
-const main = new Container().setDirection('vertical');
-const home = new Container();
+const navBar = new Container('navBar').setDirection('vertical');
+const main = new Container('main').setDirection('vertical');
+const home = new Container('home').setDirection('vertical');
 
-home.setLeftNeighbor(main);
+main.setLeftNeighbor(navBar);
+main.addChild(home);
 
 export const navigationContainers = {
 	home,
