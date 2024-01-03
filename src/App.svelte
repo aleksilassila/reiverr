@@ -1,27 +1,15 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
-	import { Link, navigate, Route, Router } from 'svelte-navigator';
+	import { Link, Route, Router } from 'svelte-navigator';
 	import { fade } from 'svelte/transition';
-	import { handleKeyboardNavigation, navigationContainers } from './lib/actions/focusAction';
+	import { Container, handleKeyboardNavigation } from './lib/actions/focusAction';
 	import HomePage from './lib/pages/HomePage.svelte';
 
-	let focusableElements: HTMLElement[] = [];
+	const mainContainer = new Container('main').setDirection('horizontal').setFocusByDefault(true);
+	const navBarContainer = mainContainer.createChild('nav').setDirection('vertical');
+	const contentContainer = mainContainer.createChild('content').setDirection('vertical');
 
-	function registerArrayFocus(node: HTMLElement) {
-		focusableElements.push(node);
-		console.log('Added node', node);
-
-		return {
-			destroy() {
-				focusableElements = focusableElements.filter((el) => el !== node);
-				console.log('Removed node', node);
-			}
-		};
-	}
-
-	const navBarContainer = navigationContainers.navBar.getRegisterer();
-	const mainContainer = navigationContainers.main.getRegisterer();
-	const homeContainer = navigationContainers.home.getRegisterer();
+	const navBarRegisterer = navBarContainer.getRegisterer();
 </script>
 
 <I18n />
@@ -29,16 +17,17 @@
 	<Router>
 		<nav class="border">
 			<Link to="/">
-				<div use:navBarContainer tabindex="0">Home</div>
+				<div use:navBarRegisterer tabindex="0">Home</div>
 			</Link>
+
 			<Link to="library">
-				<div use:navBarContainer tabindex="0">Library</div>
+				<div use:navBarRegisterer tabindex="0">Library</div>
 			</Link>
 		</nav>
 
-		<div class="flex-1 flex flex-col min-w-0" use:mainContainer>
+		<div class="flex-1 flex flex-col min-w-0">
 			<Route path="/">
-				<HomePage />
+				<HomePage container={contentContainer} />
 			</Route>
 			<Route path="library">
 				<div transition:fade|global>about path</div>

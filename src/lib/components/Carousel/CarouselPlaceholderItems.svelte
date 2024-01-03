@@ -5,7 +5,7 @@
 	export let orientation: 'landscape' | 'portrait' = 'landscape';
 
 	export let container: Container;
-	let registerer = container.getRegisterer();
+	let registerer = container.createChild('carousel').setDirection('horizontal').getRegisterer();
 </script>
 
 {#each Array(10) as _, i (i)}
