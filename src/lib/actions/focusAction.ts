@@ -1,3 +1,5 @@
+import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
+
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
@@ -19,9 +21,26 @@ export class Container {
 
 	private direction: FlowDirection = 'vertical';
 
-	private focusIndex: number = 0;
+	static focusedObject: Writable<Container | undefined> = writable(undefined);
 
-	static focusedObject: Container;
+	focusIndex: Writable<number> = writable(0);
+	hasFocus: Readable<boolean> = derived(Container.focusedObject, ($focusedObject) => {
+		console.log('Updating hasFocus', $focusedObject, this);
+		return $focusedObject === this;
+	});
+	hasFocusWithin: Readable<boolean> = derived(Container.focusedObject, ($focusedObject) => {
+		let currentContainer: Container | undefined = $focusedObject;
+
+		while (currentContainer) {
+			if (currentContainer === this) {
+				return true;
+			}
+			currentContainer = currentContainer.parent;
+		}
+
+		return false;
+	});
+
 	static objects = new Map<symbol, Container>();
 
 	constructor(name: string = '') {
@@ -48,11 +67,11 @@ export class Container {
 
 	focus() {
 		if (this.children.length > 0) {
-			this.children[this.focusIndex]?.focus();
+			this.children[get(this.focusIndex)]?.focus();
 		} else if (this.htmlElement) {
 			this.htmlElement.focus({ preventScroll: true });
 			this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-			Container.focusedObject = this;
+			Container.focusedObject.set(this);
 			this.updateFocusIndex();
 		}
 	}
@@ -60,7 +79,7 @@ export class Container {
 	updateFocusIndex(container?: Container) {
 		if (container) {
 			const index = this.children.indexOf(container);
-			this.focusIndex = index === -1 ? this.focusIndex : index;
+			this.focusIndex.update((prev) => (index === -1 ? prev : index));
 		}
 		if (this.parent) {
 			this.parent.updateFocusIndex(this);
@@ -82,14 +101,14 @@ export class Container {
 	getFocusableNeighbor(direction: Direction): Container | undefined {
 		const canLoop =
 			(this.direction === 'vertical' &&
-				((direction === 'up' && this.focusIndex !== 0) ||
-					(direction === 'down' && this.focusIndex !== this.children.length - 1))) ||
+				((direction === 'up' && get(this.focusIndex) !== 0) ||
+					(direction === 'down' && get(this.focusIndex) !== this.children.length - 1))) ||
 			(this.direction === 'horizontal' &&
-				((direction === 'left' && this.focusIndex !== 0) ||
-					(direction === 'right' && this.focusIndex !== this.children.length - 1)));
+				((direction === 'left' && get(this.focusIndex) !== 0) ||
+					(direction === 'right' && get(this.focusIndex) !== this.children.length - 1)));
 		if (this.children.length > 0 && canLoop) {
 			if (direction === 'up' || direction === 'left') {
-				let index = this.focusIndex - 1;
+				let index = get(this.focusIndex) - 1;
 				while (index >= 0) {
 					if (this.children[index].isFocusable()) {
 						return this.children[index];
@@ -97,7 +116,7 @@ export class Container {
 					index--;
 				}
 			} else if (direction === 'down' || direction === 'right') {
-				let index = this.focusIndex + 1;
+				let index = get(this.focusIndex) + 1;
 				while (index < this.children.length) {
 					if (this.children[index].isFocusable()) {
 						return this.children[index];
@@ -114,7 +133,7 @@ export class Container {
 
 	giveFocus(direction: Direction) {
 		const neighbor = this.getFocusableNeighbor(direction);
-		console.log('Giving focus to', direction, 'neighbor: ', neighbor?.name, neighbor);
+		// console.log('Giving focus to', direction, 'neighbor: ', neighbor?.name, neighbor);
 		if (neighbor) {
 			neighbor.focus();
 			return true;
@@ -129,7 +148,7 @@ export class Container {
 
 			this.createChild().addHtmlElement(htmlElement);
 
-			if (!Container.focusedObject && this.shouldFocusByDefault()) {
+			if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
 				this.focus();
 			}
 
@@ -176,14 +195,14 @@ export class Container {
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
-	const currentlyFocusedObject = Container.focusedObject;
+	const currentlyFocusedObject = get(Container.focusedObject);
 
 	if (!currentlyFocusedObject) {
 		console.error('No focused object!!!');
 		return;
 	}
 
-	console.log('Currently focused object: ', currentlyFocusedObject.name, currentlyFocusedObject);
+	// console.log('Currently focused object: ', currentlyFocusedObject.name, currentlyFocusedObject);
 
 	if (event.key === 'ArrowUp') {
 		if (currentlyFocusedObject.giveFocus('up')) event.preventDefault();
