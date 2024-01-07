@@ -1,7 +1,14 @@
 <script lang="ts">
-	export let;
+	import { Container } from '../actions/focusAction';
+
+	export let container: Container;
+	const registerer = container.getHtmlElementRegisterer();
+
+	export let handleClick = () => {
+		container.focus();
+	};
 </script>
 
-<div>
+<button use:registerer tabindex="0" on:click={handleClick} class="outline-none ring-0">
 	<slot />
-</div>
+</button>

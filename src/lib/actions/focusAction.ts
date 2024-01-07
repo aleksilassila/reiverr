@@ -142,7 +142,7 @@ export class Container {
 		}
 	}
 
-	getRegisterer(): Registerer {
+	getChildRegisterer(): Registerer {
 		return (htmlElement: HTMLElement) => {
 			if (this.htmlElement) console.warn('Registering to a container that has an element.');
 
@@ -157,6 +157,35 @@ export class Container {
 					this.removeHtmlElement();
 				}
 			};
+		};
+	}
+
+	getHtmlElementRegisterer(): Registerer {
+		return (htmlElement: HTMLElement) => {
+			if (this.children.length > 0) {
+				console.warn('Registering an html element to a container that has children.');
+				for (const child of this.children) {
+					this.removeChild(child);
+				}
+			}
+			this.addHtmlElement(htmlElement);
+			return {
+				destroy: () => {
+					this.removeHtmlElement();
+				}
+			};
+		};
+	}
+
+	getStores(): {
+		container: Container;
+		hasFocus: Readable<boolean>;
+		hasFocusWithin: Readable<boolean>;
+	} {
+		return {
+			container: this,
+			hasFocus: this.hasFocus,
+			hasFocusWithin: this.hasFocusWithin
 		};
 	}
 
@@ -214,3 +243,5 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		if (currentlyFocusedObject.giveFocus('right')) event.preventDefault();
 	}
 }
+
+export const focusedObject = Container.focusedObject;

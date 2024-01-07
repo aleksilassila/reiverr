@@ -13,7 +13,7 @@
 	Container.focusedObject.subscribe((fo) => console.log('focusedObject', fo));
 	carousel.hasFocus.subscribe((hf) => console.log('hasFocus', hf));
 
-	let registerer = carousel.getRegisterer();
+	let registerer = carousel.getChildRegisterer();
 </script>
 
 <p
