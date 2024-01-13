@@ -5,7 +5,8 @@ import viteLegacyPlugin from '@vitejs/plugin-legacy';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [viteLegacyPlugin(), svelte(), viteSingleFile()]
+	plugins: [viteLegacyPlugin(), svelte(), viteSingleFile()],
+	optimizeDeps: { exclude: ['svelte-navigator'] }
 
 	// base: '/dist',
 	//     experimental: {

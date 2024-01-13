@@ -7,8 +7,9 @@
 	},
 	"type": "module",
 	"scripts": {
-		"dev": "vite --open",
+		"dev": "vite",
 		"build": "vite build",
+		"build:tizen": "vite build --outDir tizen/dist",
 		"preview": "vite preview",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",

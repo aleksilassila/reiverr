@@ -1,7 +1,7 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
-	import { Link, navigate, Route, Router } from 'svelte-navigator';
-	import { Container, handleKeyboardNavigation } from './lib/actions/focusAction';
+	import { Link, Route, Router } from 'svelte-navigator';
+	import { handleKeyboardNavigation, mainContainer } from './lib/actions/focusAction';
 	import SeriesPage from './lib/pages/SeriesPage.svelte';
 	import MoviesPage from './lib/pages/MoviesPage.svelte';
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
@@ -12,14 +12,14 @@
 	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
 	import NavbarItem from './lib/components-new/NavbarItem.svelte';
 
-	const mainContainer = new Container('main').setDirection('horizontal').setFocusByDefault(true);
-
 	const navBarContainer = mainContainer.createChild('nav').setDirection('vertical');
 	const isNavBarOpen = navBarContainer.hasFocusWithin;
 
 	const contentContainer = mainContainer.createChild('content').setDirection('vertical');
 
-	onMount(() => navigate('series'));
+	onMount(() => {
+		contentContainer.focus();
+	});
 </script>
 
 <I18n />
@@ -31,7 +31,7 @@
 			})}
 		>
 			<div>
-				<Link to="series" class="rounded-sm flex items-center">
+				<Link to="" class="rounded-sm flex items-center">
 					<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
 					<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
 				</Link>
@@ -65,7 +65,7 @@
 		</nav>
 
 		<div class="flex-1 flex flex-col min-w-0">
-			<Route path="series">
+			<Route>
 				<SeriesPage container={contentContainer} />
 			</Route>
 			<Route path="movies">

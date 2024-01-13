@@ -1,4 +1,5 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
+import { navigate } from 'svelte-navigator';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 
@@ -228,6 +229,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 
 	if (!currentlyFocusedObject) {
 		console.error('No focused object!!!');
+		mainContainer.focus();
 		return;
 	}
 
@@ -245,3 +247,6 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 }
 
 export const focusedObject = Container.focusedObject;
+export const mainContainer = new Container('main')
+	.setDirection('horizontal')
+	.setFocusByDefault(true);
