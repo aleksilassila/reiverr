@@ -1,10 +1,10 @@
-import type { components, paths } from '$lib/apis/radarr/radarr.generated';
-import { getTmdbMovie } from '$lib/apis/tmdb/tmdbApi';
-import { settings } from '$lib/stores/settings.store';
-import { log } from '$lib/utils';
 import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
+import { settings } from '../../stores/settings.store';
+import type { components, paths } from './radarr.generated';
+import { getTmdbMovie } from '../tmdb/tmdbApi';
+import { log } from '../../utils';
 
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
@@ -43,14 +43,14 @@ function getRadarrApi() {
 
 export const getRadarrMovies = (): Promise<RadarrMovie[]> =>
 	getRadarrApi()
-		?.get('/api/v3/movie', {
+		?.GET('/api/v3/movie', {
 			params: {}
 		})
 		.then((r) => r.data || []) || Promise.resolve([]);
 
 export const getRadarrMovieByTmdbId = (tmdbId: string): Promise<RadarrMovie | undefined> =>
 	getRadarrApi()
-		?.get('/api/v3/movie', {
+		?.GET('/api/v3/movie', {
 			params: {
 				query: {
 					tmdbId: Number(tmdbId)
@@ -82,7 +82,7 @@ export const addMovieToRadarr = async (tmdbId: number) => {
 
 	return (
 		getRadarrApi()
-			?.post('/api/v3/movie', {
+			?.POST('/api/v3/movie', {
 				params: {},
 				body: options
 			})
@@ -92,7 +92,7 @@ export const addMovieToRadarr = async (tmdbId: number) => {
 
 export const cancelDownloadRadarrMovie = async (downloadId: number) => {
 	const deleteResponse = await getRadarrApi()
-		?.del('/api/v3/queue/{id}', {
+		?.DELETE('/api/v3/queue/{id}', {
 			params: {
 				path: {
 					id: downloadId
@@ -110,12 +110,12 @@ export const cancelDownloadRadarrMovie = async (downloadId: number) => {
 
 export const fetchRadarrReleases = (movieId: number) =>
 	getRadarrApi()
-		?.get('/api/v3/release', { params: { query: { movieId: movieId } } })
+		?.GET('/api/v3/release', { params: { query: { movieId: movieId } } })
 		.then((r) => r.data || []) || Promise.resolve([]);
 
 export const downloadRadarrMovie = (guid: string, indexerId: number) =>
 	getRadarrApi()
-		?.post('/api/v3/release', {
+		?.POST('/api/v3/release', {
 			params: {},
 			body: {
 				indexerId,
@@ -126,7 +126,7 @@ export const downloadRadarrMovie = (guid: string, indexerId: number) =>
 
 export const deleteRadarrMovie = (id: number) =>
 	getRadarrApi()
-		?.del('/api/v3/moviefile/{id}', {
+		?.DELETE('/api/v3/moviefile/{id}', {
 			params: {
 				path: {
 					id
@@ -137,7 +137,7 @@ export const deleteRadarrMovie = (id: number) =>
 
 export const getRadarrDownloads = (): Promise<RadarrDownload[]> =>
 	getRadarrApi()
-		?.get('/api/v3/queue', {
+		?.GET('/api/v3/queue', {
 			params: {
 				query: {
 					includeMovie: true
@@ -155,7 +155,7 @@ export const getRadarrDownloadsByTmdbId = (tmdbId: number) =>
 
 const lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 	getRadarrApi()
-		?.get('/api/v3/movie/lookup/tmdb', {
+		?.GET('/api/v3/movie/lookup/tmdb', {
 			params: {
 				query: {
 					tmdbId
@@ -166,12 +166,12 @@ const lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 
 export const getDiskSpace = (): Promise<DiskSpaceInfo[]> =>
 	getRadarrApi()
-		?.get('/api/v3/diskspace', {})
+		?.GET('/api/v3/diskspace', {})
 		.then((d) => d.data || []) || Promise.resolve([]);
 
 export const removeFromRadarr = (id: number) =>
 	getRadarrApi()
-		?.del('/api/v3/movie/{id}', {
+		?.DELETE('/api/v3/movie/{id}', {
 			params: {
 				path: {
 					id

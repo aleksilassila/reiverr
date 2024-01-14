@@ -72,7 +72,7 @@
 				<MoviesPage container={contentContainer} />
 			</Route>
 			<Route path="library">
-				<LibraryPage container={contentContainer} />
+				<LibraryPage parent={contentContainer} />
 			</Route>
 			<Route path="manage">
 				<ManagePage container={contentContainer} />

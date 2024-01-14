@@ -1,17 +1,13 @@
-import { getJellyfinItems, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-import {
-	getRadarrDownloads,
-	getRadarrMovies,
-	type RadarrDownload
-} from '$lib/apis/radarr/radarrApi';
+import { derived, writable } from 'svelte/store';
+import { settings } from './settings.store';
+import { getJellyfinItems, type JellyfinItem } from '../apis/jellyfin/jellyfinApi';
 import {
 	getSonarrDownloads,
 	getSonarrSeries,
 	type SonarrDownload,
 	type SonarrSeries
-} from '$lib/apis/sonarr/sonarrApi';
-import { derived, writable } from 'svelte/store';
-import { settings } from './settings.store';
+} from '../apis/sonarr/sonarrApi';
+import { getRadarrDownloads, getRadarrMovies, type RadarrDownload } from '../apis/radarr/radarrApi';
 
 async function waitForSettings() {
 	return new Promise((resolve) => {

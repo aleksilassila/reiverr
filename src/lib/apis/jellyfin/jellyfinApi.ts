@@ -1,9 +1,9 @@
-import type { components, paths } from '$lib/apis/jellyfin/jellyfin.generated';
-import type { DeviceProfile } from '$lib/apis/jellyfin/playback-profiles';
-import { settings } from '$lib/stores/settings.store';
 import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
+import type { components, paths } from './jellyfin.generated';
+import { settings } from '../../stores/settings.store';
+import type { DeviceProfile } from './playback-profiles';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
@@ -26,7 +26,7 @@ function getJellyfinApi() {
 
 export const getJellyfinContinueWatching = async (): Promise<JellyfinItem[] | undefined> =>
 	getJellyfinApi()
-		?.get('/Users/{userId}/Items/Resume', {
+		?.GET('/Users/{userId}/Items/Resume', {
 			params: {
 				path: {
 					userId: get(settings)?.jellyfin.userId || ''
@@ -41,7 +41,7 @@ export const getJellyfinContinueWatching = async (): Promise<JellyfinItem[] | un
 
 export const getJellyfinNextUp = async () =>
 	getJellyfinApi()
-		?.get('/Shows/NextUp', {
+		?.GET('/Shows/NextUp', {
 			params: {
 				query: {
 					userId: get(settings)?.jellyfin.userId || '',
@@ -53,7 +53,7 @@ export const getJellyfinNextUp = async () =>
 
 export const getJellyfinItems = async () =>
 	getJellyfinApi()
-		?.get('/Users/{userId}/Items', {
+		?.GET('/Users/{userId}/Items', {
 			params: {
 				path: {
 					userId: get(settings)?.jellyfin.userId || ''
@@ -84,7 +84,7 @@ export const getJellyfinItems = async () =>
 
 export const getJellyfinEpisodes = async (parentId = '') =>
 	getJellyfinApi()
-		?.get('/Users/{userId}/Items', {
+		?.GET('/Users/{userId}/Items', {
 			params: {
 				path: {
 					userId: get(settings)?.jellyfin.userId || ''
@@ -126,7 +126,7 @@ export const getJellyfinEpisodesInSeasons = async (seriesId: string) =>
 
 export const getJellyfinItem = async (itemId: string) =>
 	getJellyfinApi()
-		?.get('/Users/{userId}/Items/{itemId}', {
+		?.GET('/Users/{userId}/Items/{itemId}', {
 			params: {
 				path: {
 					itemId,
@@ -146,7 +146,7 @@ export const getJellyfinPlaybackInfo = async (
 	maxStreamingBitrate = 140000000
 ) =>
 	getJellyfinApi()
-		?.post('/Items/{itemId}/PlaybackInfo', {
+		?.POST('/Items/{itemId}/PlaybackInfo', {
 			params: {
 				path: {
 					itemId: itemId
@@ -184,7 +184,7 @@ export const reportJellyfinPlaybackStarted = (
 	audioStreamIndex?: number,
 	subtitleStreamIndex?: number
 ) =>
-	getJellyfinApi()?.post('/Sessions/Playing', {
+	getJellyfinApi()?.POST('/Sessions/Playing', {
 		body: {
 			CanSeek: true,
 			ItemId: itemId,
@@ -201,7 +201,7 @@ export const reportJellyfinPlaybackProgress = (
 	isPaused: boolean,
 	positionTicks: number
 ) =>
-	getJellyfinApi()?.post('/Sessions/Playing/Progress', {
+	getJellyfinApi()?.POST('/Sessions/Playing/Progress', {
 		body: {
 			ItemId: itemId,
 			PlaySessionId: sessionId,
@@ -217,7 +217,7 @@ export const reportJellyfinPlaybackStopped = (
 	sessionId: string,
 	positionTicks: number
 ) =>
-	getJellyfinApi()?.post('/Sessions/Playing/Stopped', {
+	getJellyfinApi()?.POST('/Sessions/Playing/Stopped', {
 		body: {
 			ItemId: itemId,
 			PlaySessionId: sessionId,
@@ -227,7 +227,7 @@ export const reportJellyfinPlaybackStopped = (
 	});
 
 export const delteActiveEncoding = (playSessionId: string) =>
-	getJellyfinApi()?.del('/Videos/ActiveEncodings', {
+	getJellyfinApi()?.DELETE('/Videos/ActiveEncodings', {
 		params: {
 			query: {
 				deviceId: JELLYFIN_DEVICE_ID,
@@ -237,7 +237,7 @@ export const delteActiveEncoding = (playSessionId: string) =>
 	});
 
 export const setJellyfinItemWatched = async (jellyfinId: string) =>
-	getJellyfinApi()?.post('/Users/{userId}/PlayedItems/{itemId}', {
+	getJellyfinApi()?.POST('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
 				userId: get(settings)?.jellyfin.userId || '',
@@ -250,7 +250,7 @@ export const setJellyfinItemWatched = async (jellyfinId: string) =>
 	});
 
 export const setJellyfinItemUnwatched = async (jellyfinId: string) =>
-	getJellyfinApi()?.del('/Users/{userId}/PlayedItems/{itemId}', {
+	getJellyfinApi()?.DELETE('/Users/{userId}/PlayedItems/{itemId}', {
 		params: {
 			path: {
 				userId: get(settings)?.jellyfin.userId || '',
