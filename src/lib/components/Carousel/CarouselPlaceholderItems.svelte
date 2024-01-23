@@ -1,37 +1,31 @@
 <script lang="ts">
 	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
-	import { Container } from '../../actions/focusAction';
 	import classNames from 'classnames';
+	import Container from '../../../Container.svelte';
+	import type { Readable } from 'svelte/store';
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 	export let orientation: 'landscape' | 'portrait' = 'landscape';
 
-	export let container: Container;
-	let carousel = container.createChild('carousel').setDirection('horizontal');
-	let focusIndexStore = carousel.focusIndex;
-	let focusWithinStore = carousel.hasFocusWithin;
-
-	Container.focusedObject.subscribe((fo) => console.log('focusedObject', fo));
-	carousel.hasFocus.subscribe((hf) => console.log('hasFocus', hf));
-
-	let registerer = carousel.getChildRegisterer();
+	let focusIndex: Readable<number>;
+	let focusWithin: Readable<boolean>;
 </script>
 
 <p
 	class={classNames({
-		'bg-blue-500': $focusWithinStore
+		'bg-blue-500': $focusWithin
 	})}
 >
-	Index: {$focusIndexStore}
+	Index: {$focusIndex}
 </p>
 
 {#each Array(10) as _, i (i)}
-	<div
-		tabindex="0"
-		use:registerer
+	<Container
+		bind:focusIndex
+		bind:focusWithin
 		class={classNames({
-			'bg-red-500': $focusIndexStore === i && $focusWithinStore
+			'bg-red-500': $focusIndex === i && $focusWithin
 		})}
 	>
 		<CardPlaceholder {size} index={i} {orientation} />
-	</div>
+	</Container>
 {/each}

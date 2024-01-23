@@ -1,8 +1,5 @@
 <script lang="ts">
-	import type { Container } from '../actions/focusAction';
-
-	export let container: Container;
-	let registerer = container.getChildRegisterer();
+	import Container from '../../Container.svelte';
 </script>
 
-<div use:registerer>SearchPage</div>
+<Container>SearchPage</Container>

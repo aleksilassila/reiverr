@@ -55,5 +55,15 @@
 		"typescript": "^5.2.2",
 		"vite": "^4.5.1",
 		"vite-plugin-singlefile": "^0.13.5"
+	},
+	"browserslist": {
+		"production": [
+			"supports es6-module"
+		],
+		"development": [
+			"last 1 chrome version",
+			"last 1 firefox version",
+			"last 1 safari version"
+		]
 	}
 }

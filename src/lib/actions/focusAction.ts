@@ -1,5 +1,4 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
-import { navigate } from 'svelte-navigator';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 
@@ -19,6 +18,7 @@ export class Container {
 		right: undefined
 	};
 	private focusByDefault: boolean = false;
+	private isInitialized: boolean = false;
 
 	private direction: FlowDirection = 'vertical';
 
@@ -42,12 +42,13 @@ export class Container {
 		return false;
 	});
 
-	static objects = new Map<symbol, Container>();
+	static objects = new Map<HTMLElement, Container>();
 
 	constructor(name: string = '') {
 		this.id = Symbol();
 		this.name = name;
-		Container.objects.set(this.id, this);
+
+		// Find parents
 	}
 
 	setDirection(direction: FlowDirection) {
@@ -60,11 +61,17 @@ export class Container {
 		return this;
 	}
 
-	createChild(name: string = '') {
-		const child = new Container(name);
-		this.addChild(child);
-		return child;
+	setHtmlElement(htmlElement: HTMLElement) {
+		this.htmlElement = htmlElement;
+		Container.objects.set(htmlElement, this);
+		return this;
 	}
+
+	// createChild(htmlElement: HTMLElement, name: string = '') {
+	// 	const child = new Container(htmlElement, name);
+	// 	this.addChild(child);
+	// 	return child;
+	// }
 
 	focus() {
 		if (this.children.length > 0) {
@@ -89,7 +96,7 @@ export class Container {
 
 	isFocusable() {
 		if (this.htmlElement) {
-			return true;
+			return this.htmlElement.tabIndex >= 0;
 		} else {
 			for (const child of this.children) {
 				if (child.isFocusable()) {
@@ -143,57 +150,135 @@ export class Container {
 		}
 	}
 
-	getChildRegisterer(): Registerer {
-		return (htmlElement: HTMLElement) => {
-			if (this.htmlElement) console.warn('Registering to a container that has an element.');
+	// getChildRegisterer(): Registerer {
+	// 	return (htmlElement: HTMLElement) => {
+	// 		if (this.htmlElement) console.warn('Registering to a container that has an element.');
+	//
+	// 		this.createChild().addHtmlElement(htmlElement);
+	//
+	// 		if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
+	// 			this.focus();
+	// 		}
+	//
+	// 		return {
+	// 			destroy: () => {
+	// 				this.removeHtmlElement();
+	// 			}
+	// 		};
+	// 	};
+	// }
+	//
+	// getHtmlElementRegisterer(): Registerer {
+	// 	return (htmlElement: HTMLElement) => {
+	// 		if (this.children.length > 0) {
+	// 			console.warn('Registering an html element to a container that has children.');
+	// 			for (const child of this.children) {
+	// 				this.removeChild(child);
+	// 			}
+	// 		}
+	// 		this.addHtmlElement(htmlElement);
+	// 		return {
+	// 			destroy: () => {
+	// 				this.removeHtmlElement();
+	// 			}
+	// 		};
+	// 	};
+	// }
 
-			this.createChild().addHtmlElement(htmlElement);
+	_initializeContainer() {
+		const getParentContainer = (htmlElement: HTMLElement): Container | undefined => {
+			if (Container.objects.get(htmlElement)) return Container.objects.get(htmlElement);
+			else if (htmlElement.parentElement) return getParentContainer(htmlElement.parentElement);
+			else return undefined;
+		};
 
-			if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
-				this.focus();
+		if (!this.htmlElement) {
+			console.error('No html element found for', this);
+			return;
+		} else if (this.isInitialized) {
+			console.warn('Container already initialized', this);
+		}
+
+		const parentContainer = this.htmlElement.parentElement
+			? getParentContainer(this.htmlElement.parentElement)
+			: undefined;
+		if (parentContainer) {
+			parentContainer.addChild(this);
+		} else {
+			console.error('No parent container found for', this.htmlElement);
+		}
+
+		if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
+			this.focus();
+		}
+	}
+
+	_unmountContainer() {
+		console.log('Unmounting container', this);
+		const isFocusedWithin = get(this.hasFocusWithin);
+
+		if (this.htmlElement) {
+			Container.objects.delete(this.htmlElement);
+		}
+
+		const parent = this.parent;
+		if (parent) {
+			parent.removeChild(this);
+			if (isFocusedWithin) {
+				parent.focus();
 			}
+		}
+	}
+
+	private static createRegisterer(
+		_container?: Container,
+		flowDirection: FlowDirection = 'vertical'
+	): Registerer {
+		const container = _container || new Container().setDirection(flowDirection);
+
+		return (htmlElement: HTMLElement) => {
+			console.log('Registering', htmlElement, container);
+			container.setHtmlElement(htmlElement);
 
 			return {
 				destroy: () => {
-					this.removeHtmlElement();
+					container.parent?.removeChild(container);
+					Container.objects.delete(htmlElement);
 				}
 			};
 		};
 	}
 
-	getHtmlElementRegisterer(): Registerer {
-		return (htmlElement: HTMLElement) => {
-			if (this.children.length > 0) {
-				console.warn('Registering an html element to a container that has children.');
-				for (const child of this.children) {
-					this.removeChild(child);
-				}
-			}
-			this.addHtmlElement(htmlElement);
-			return {
-				destroy: () => {
-					this.removeHtmlElement();
-				}
-			};
-		};
+	static getRegisterer(flowDirection: FlowDirection = 'vertical'): Registerer {
+		return (htmlElement: HTMLElement) =>
+			this.createRegisterer(undefined, flowDirection)(htmlElement);
+	}
+
+	getRegisterer(): Registerer {
+		return (htmlElement: HTMLElement) => Container.createRegisterer(this)(htmlElement);
+	}
+
+	static getStores(element: HTMLElement) {
+		return Container.objects.get(element)?.getStores();
 	}
 
 	getStores(): {
 		container: Container;
 		hasFocus: Readable<boolean>;
 		hasFocusWithin: Readable<boolean>;
+		registerer: Registerer;
 	} {
 		return {
 			container: this,
 			hasFocus: this.hasFocus,
-			hasFocusWithin: this.hasFocusWithin
+			hasFocusWithin: this.hasFocusWithin,
+			registerer: this.getRegisterer()
 		};
 	}
 
 	private addChild(child: Container) {
 		this.children.push(child);
 		child.parent = this;
-		this.htmlElement = undefined;
 		return this;
 	}
 
@@ -203,21 +288,16 @@ export class Container {
 		return this;
 	}
 
-	private addHtmlElement(htmlElement: HTMLElement) {
-		if (this.children.length > 0) {
-			console.warn('Adding an html element to a container that has children.');
-			for (const child of this.children) {
-				this.removeChild(child);
-			}
-		}
-		this.htmlElement = htmlElement;
-		return this;
-	}
-
-	private removeHtmlElement() {
-		this.htmlElement = undefined;
-		return this;
-	}
+	// private addHtmlElement(htmlElement: HTMLElement) {
+	// 	if (this.children.length > 0) {
+	// 		console.warn('Adding an html element to a container that has children.');
+	// 		for (const child of this.children) {
+	// 			this.removeChild(child);
+	// 		}
+	// 	}
+	// 	this.htmlElement = htmlElement;
+	// 	return this;
+	// }
 
 	private shouldFocusByDefault(): boolean {
 		return this.focusByDefault || this.parent?.shouldFocusByDefault() || false;
@@ -229,7 +309,12 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 
 	if (!currentlyFocusedObject) {
 		console.error('No focused object!!!');
-		mainContainer.focus();
+		// Find object that can be focused
+		Container.objects.forEach((container) => {
+			if (container.isFocusable()) {
+				container.focus();
+			}
+		});
 		return;
 	}
 
@@ -247,6 +332,8 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 }
 
 export const focusedObject = Container.focusedObject;
-export const mainContainer = new Container('main')
-	.setDirection('horizontal')
-	.setFocusByDefault(true);
+// export const mainContainer = new Container('main')
+// 	.setDirection('horizontal')
+// 	.setFocusByDefault(true);
+
+export const registerer = Container.getRegisterer();

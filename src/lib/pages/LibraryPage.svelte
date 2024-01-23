@@ -1,12 +1,9 @@
 <script lang="ts">
-	import type { Container } from '../actions/focusAction';
 	import { settings } from '../stores/settings.store';
 	import { jellyfinItemsStore } from '../stores/data.store';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
-
-	export let parent: Container;
-	let registerer = parent.getChildRegisterer();
+	import Container from '../../Container.svelte';
 
 	settings.update((prev) => ({
 		...prev,
@@ -22,13 +19,13 @@
 	jellyfinItemsStore.subscribe((items) => {
 		console.warn('GOT ITEMS', items.data);
 	});
-	let asd: HTMLDivElement;
-	$: console.log('asd', asd);
 </script>
 
-<div use:registerer bind:this={asd}>
+<Container>
 	<div>LibraryPage</div>
-	<Carousel>
-		<CarouselPlaceholderItems container={parent} />
-	</Carousel>
-</div>
+	<Container horizontal>
+		<Carousel>
+			<CarouselPlaceholderItems />
+		</Carousel>
+	</Container>
+</Container>

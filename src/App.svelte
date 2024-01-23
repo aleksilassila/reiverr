@@ -1,34 +1,54 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { Link, Route, Router } from 'svelte-navigator';
-	import { handleKeyboardNavigation, mainContainer } from './lib/actions/focusAction';
+	import { handleKeyboardNavigation } from './lib/actions/focusAction';
+	import { onMount } from 'svelte';
+	import Container from './Container.svelte';
+	import NavbarItem from './lib/components-new/NavbarItem.svelte';
+	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
+	import classNames from 'classnames';
+	import type { Readable } from 'svelte/store';
 	import SeriesPage from './lib/pages/SeriesPage.svelte';
 	import MoviesPage from './lib/pages/MoviesPage.svelte';
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
-	import { onMount } from 'svelte';
-	import classNames from 'classnames';
-	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
-	import NavbarItem from './lib/components-new/NavbarItem.svelte';
 
-	const navBarContainer = mainContainer.createChild('nav').setDirection('vertical');
-	const isNavBarOpen = navBarContainer.hasFocusWithin;
+	// const navBarContainer = mainContainer.createChild('nav').setDirection('vertical');
+	// const isNavBarOpen = navBarContainer.hasFocusWithin;
+	//
+	// const contentContainer = mainContainer.createChild('content').setDirection('vertical');
 
-	const contentContainer = mainContainer.createChild('content').setDirection('vertical');
+	// onMount(() => {
+	// 	contentContainer.focus();
+	// });
 
-	onMount(() => {
-		contentContainer.focus();
-	});
+	onMount(() => console.log('didmount'));
+	let mount = false;
+	$: console.log('mount', mount);
+	let isNavBarOpen: Readable<boolean>;
 </script>
 
 <I18n />
-<main class="bg-stone-950 text-white flex flex-1 w-screen">
+<Container horizontal class="bg-stone-950 text-white flex flex-1 w-screen">
+	<!--	<Container class="flex flex-col">-->
+	<!--		<Container tag="button" on:click={() => (mount = !mount)}>Button 1</Container>-->
+	<!--		<Container tag="button" on:click={() => console.log('Button 2 clicked')}>Button 2</Container>-->
+	<!--		<Container tag="button" on:click={() => console.log('Button 3 clicked')}>Button 3</Container>-->
+	<!--	</Container>-->
+
+	<!--	<div>-->
+	<!--		<Container tag="button" on:click={() => console.log('test')}>Test</Container>-->
+	<!--	</div>-->
+	<!--	{#if mount}-->
+	<!--		<TestElement />-->
+	<!--	{/if}-->
 	<Router>
-		<nav
+		<Container
 			class={classNames('flex flex-col', 'p-4', {
 				border: $isNavBarOpen
 			})}
+			bind:isNavBarOpen
 		>
 			<div>
 				<Link to="" class="rounded-sm flex items-center">
@@ -38,50 +58,50 @@
 			</div>
 
 			<div class="flex flex-col flex-1 justify-center">
-				<NavbarItem parentContainer={navBarContainer} to="series">
+				<NavbarItem to="series">
 					<Laptop class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Series</span>
 				</NavbarItem>
-				<NavbarItem parentContainer={navBarContainer} to="movies">
+				<NavbarItem to="movies">
 					<CardStack class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Movies</span>
 				</NavbarItem>
-				<NavbarItem parentContainer={navBarContainer} to="library">
+				<NavbarItem to="library">
 					<Bookmark class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Library</span>
 				</NavbarItem>
-				<NavbarItem parentContainer={navBarContainer} to="search">
+				<NavbarItem to="search">
 					<MagnifyingGlass class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Search</span>
 				</NavbarItem>
 			</div>
 
 			<div>
-				<NavbarItem parentContainer={navBarContainer} to="manage">
+				<NavbarItem to="manage">
 					<Gear class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Manage</span>
 				</NavbarItem>
 			</div>
-		</nav>
+		</Container>
 
-		<div class="flex-1 flex flex-col min-w-0">
+		<Container class="flex-1 flex flex-col min-w-0">
 			<Route>
-				<SeriesPage container={contentContainer} />
+				<SeriesPage />
 			</Route>
 			<Route path="movies">
-				<MoviesPage container={contentContainer} />
+				<MoviesPage />
 			</Route>
 			<Route path="library">
-				<LibraryPage parent={contentContainer} />
+				<LibraryPage />
 			</Route>
 			<Route path="manage">
-				<ManagePage container={contentContainer} />
+				<ManagePage />
 			</Route>
 			<Route path="search">
-				<SearchPage container={contentContainer} />
+				<SearchPage />
 			</Route>
-		</div>
+		</Container>
 	</Router>
-</main>
+</Container>
 
 <svelte:window on:keydown={handleKeyboardNavigation} />

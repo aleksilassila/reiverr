@@ -2,13 +2,13 @@
 	import { Container } from '../actions/focusAction';
 
 	export let container: Container;
-	const registerer = container.getHtmlElementRegisterer();
+	const registerer = container.getRegisterer();
 
 	export let handleClick = () => {
 		container.focus();
 	};
 </script>
 
-<button use:registerer tabindex="0" on:click={handleClick} class="outline-none ring-0">
+<button use:registerer on:click={handleClick} class="outline-none ring-0">
 	<slot />
 </button>
