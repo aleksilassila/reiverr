@@ -2,4 +2,4 @@
 	import Container from '../../Container.svelte';
 </script>
 
-<Container>SeriesPage</Container>
+<Container focusOnMount>SeriesPage</Container>

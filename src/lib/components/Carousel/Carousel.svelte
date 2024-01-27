@@ -3,7 +3,7 @@
 	import IconButton from '../IconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import type { Registerer } from '../../actions/focusAction';
+	import type { Registerer } from '../../selectable';
 
 	export let gradientFromColor = 'from-stone-950';
 	export let heading = '';

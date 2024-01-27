@@ -1,9 +1,8 @@
 <script lang="ts">
 	import classNames from 'classnames';
 	import { useNavigate } from 'svelte-navigator';
-	import { get, type Readable } from 'svelte/store';
+	import { type Readable } from 'svelte/store';
 	import Container from '../../Container.svelte';
-	import { Container as Cont } from '../../lib/actions/focusAction';
 
 	export let to: string;
 	let hasFocus: Readable<boolean>;
@@ -12,7 +11,6 @@
 
 	function handleClick() {
 		navigate(to);
-		get(Cont.focusedObject)?.giveFocus('right');
 	}
 </script>
 

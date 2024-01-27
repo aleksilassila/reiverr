@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { Container } from '../actions/focusAction';
+	import { Selectable } from '../selectable';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import classNames from 'classnames';
 
-	export let container: Container;
+	export let container: Selectable;
 	const focusWithin = container.hasFocusWithin;
 </script>
 

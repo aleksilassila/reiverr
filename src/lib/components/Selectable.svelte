@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Container } from '../actions/focusAction';
+	import { Selectable } from '../selectable';
 
-	export let container: Container;
+	export let container: Selectable;
 	const registerer = container.getRegisterer();
 
 	export let handleClick = () => {

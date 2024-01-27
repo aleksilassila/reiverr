@@ -5,13 +5,13 @@ export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
 
-export class Container {
+export class Selectable {
 	id: symbol;
 	name: string;
-	private parent?: Container;
-	private children: Container[] = [];
+	private parent?: Selectable;
+	private children: Selectable[] = [];
 	private htmlElement?: HTMLElement;
-	private neighbors: Record<Direction, Container | undefined> = {
+	private neighbors: Record<Direction, Selectable | undefined> = {
 		up: undefined,
 		down: undefined,
 		left: undefined,
@@ -22,27 +22,26 @@ export class Container {
 
 	private direction: FlowDirection = 'vertical';
 
-	static focusedObject: Writable<Container | undefined> = writable(undefined);
+	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
 	focusIndex: Writable<number> = writable(0);
-	hasFocus: Readable<boolean> = derived(Container.focusedObject, ($focusedObject) => {
-		console.log('Updating hasFocus', $focusedObject, this);
+	hasFocus: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
 		return $focusedObject === this;
 	});
-	hasFocusWithin: Readable<boolean> = derived(Container.focusedObject, ($focusedObject) => {
-		let currentContainer: Container | undefined = $focusedObject;
+	hasFocusWithin: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
+		let currentSelectable: Selectable | undefined = $focusedObject;
 
-		while (currentContainer) {
-			if (currentContainer === this) {
+		while (currentSelectable) {
+			if (currentSelectable === this) {
 				return true;
 			}
-			currentContainer = currentContainer.parent;
+			currentSelectable = currentSelectable.parent;
 		}
 
 		return false;
 	});
 
-	static objects = new Map<HTMLElement, Container>();
+	static objects = new Map<HTMLElement, Selectable>();
 
 	constructor(name: string = '') {
 		this.id = Symbol();
@@ -56,22 +55,11 @@ export class Container {
 		return this;
 	}
 
-	setFocusByDefault(focusByDefault: boolean) {
-		this.focusByDefault = focusByDefault;
-		return this;
-	}
-
 	setHtmlElement(htmlElement: HTMLElement) {
 		this.htmlElement = htmlElement;
-		Container.objects.set(htmlElement, this);
+		Selectable.objects.set(htmlElement, this);
 		return this;
 	}
-
-	// createChild(htmlElement: HTMLElement, name: string = '') {
-	// 	const child = new Container(htmlElement, name);
-	// 	this.addChild(child);
-	// 	return child;
-	// }
 
 	focus() {
 		if (this.children.length > 0) {
@@ -79,14 +67,14 @@ export class Container {
 		} else if (this.htmlElement) {
 			this.htmlElement.focus({ preventScroll: true });
 			this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-			Container.focusedObject.set(this);
+			Selectable.focusedObject.set(this);
 			this.updateFocusIndex();
 		}
 	}
 
-	updateFocusIndex(container?: Container) {
-		if (container) {
-			const index = this.children.indexOf(container);
+	updateFocusIndex(selectable?: Selectable) {
+		if (selectable) {
+			const index = this.children.indexOf(selectable);
 			this.focusIndex.update((prev) => (index === -1 ? prev : index));
 		}
 		if (this.parent) {
@@ -106,7 +94,7 @@ export class Container {
 		}
 	}
 
-	getFocusableNeighbor(direction: Direction): Container | undefined {
+	getFocusableNeighbor(direction: Direction): Selectable | undefined {
 		const canLoop =
 			(this.direction === 'vertical' &&
 				((direction === 'up' && get(this.focusIndex) !== 0) ||
@@ -114,6 +102,7 @@ export class Container {
 			(this.direction === 'horizontal' &&
 				((direction === 'left' && get(this.focusIndex) !== 0) ||
 					(direction === 'right' && get(this.focusIndex) !== this.children.length - 1)));
+
 		if (this.children.length > 0 && canLoop) {
 			if (direction === 'up' || direction === 'left') {
 				let index = get(this.focusIndex) - 1;
@@ -137,11 +126,12 @@ export class Container {
 		} else {
 			return this.parent?.getFocusableNeighbor(direction);
 		}
+
+		console.warn('How did we end up here');
 	}
 
-	giveFocus(direction: Direction) {
+	private giveFocus(direction: Direction) {
 		const neighbor = this.getFocusableNeighbor(direction);
-		// console.log('Giving focus to', direction, 'neighbor: ', neighbor?.name, neighbor);
 		if (neighbor) {
 			neighbor.focus();
 			return true;
@@ -150,45 +140,30 @@ export class Container {
 		}
 	}
 
-	// getChildRegisterer(): Registerer {
-	// 	return (htmlElement: HTMLElement) => {
-	// 		if (this.htmlElement) console.warn('Registering to a container that has an element.');
-	//
-	// 		this.createChild().addHtmlElement(htmlElement);
-	//
-	// 		if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
-	// 			this.focus();
-	// 		}
-	//
-	// 		return {
-	// 			destroy: () => {
-	// 				this.removeHtmlElement();
-	// 			}
-	// 		};
-	// 	};
-	// }
-	//
-	// getHtmlElementRegisterer(): Registerer {
-	// 	return (htmlElement: HTMLElement) => {
-	// 		if (this.children.length > 0) {
-	// 			console.warn('Registering an html element to a container that has children.');
-	// 			for (const child of this.children) {
-	// 				this.removeChild(child);
-	// 			}
-	// 		}
-	// 		this.addHtmlElement(htmlElement);
-	// 		return {
-	// 			destroy: () => {
-	// 				this.removeHtmlElement();
-	// 			}
-	// 		};
-	// 	};
-	// }
+	static focusUp() {
+		const currentlyFocusedObject = get(Selectable.focusedObject);
+		return currentlyFocusedObject?.giveFocus('up');
+	}
 
-	_initializeContainer() {
-		const getParentContainer = (htmlElement: HTMLElement): Container | undefined => {
-			if (Container.objects.get(htmlElement)) return Container.objects.get(htmlElement);
-			else if (htmlElement.parentElement) return getParentContainer(htmlElement.parentElement);
+	static focusDown() {
+		const currentlyFocusedObject = get(Selectable.focusedObject);
+		return currentlyFocusedObject?.giveFocus('down');
+	}
+
+	static focusLeft() {
+		const currentlyFocusedObject = get(Selectable.focusedObject);
+		return currentlyFocusedObject?.giveFocus('left');
+	}
+
+	static focusRight() {
+		const currentlyFocusedObject = get(Selectable.focusedObject);
+		return currentlyFocusedObject?.giveFocus('right');
+	}
+
+	_initializeSelectable() {
+		const getParentSelectable = (htmlElement: HTMLElement): Selectable | undefined => {
+			if (Selectable.objects.get(htmlElement)) return Selectable.objects.get(htmlElement);
+			else if (htmlElement.parentElement) return getParentSelectable(htmlElement.parentElement);
 			else return undefined;
 		};
 
@@ -196,29 +171,31 @@ export class Container {
 			console.error('No html element found for', this);
 			return;
 		} else if (this.isInitialized) {
-			console.warn('Container already initialized', this);
+			console.warn('Selectable already initialized', this);
 		}
 
-		const parentContainer = this.htmlElement.parentElement
-			? getParentContainer(this.htmlElement.parentElement)
+		console.log('Initializing', this.htmlElement);
+
+		const parentSelectable = this.htmlElement.parentElement
+			? getParentSelectable(this.htmlElement.parentElement)
 			: undefined;
-		if (parentContainer) {
-			parentContainer.addChild(this);
+		if (parentSelectable) {
+			parentSelectable.addChild(this);
 		} else {
-			console.error('No parent container found for', this.htmlElement);
+			console.error('No parent selectable found for', this.htmlElement);
 		}
 
-		if (!get(Container.focusedObject) && this.shouldFocusByDefault()) {
+		if (!get(Selectable.focusedObject) && this.shouldFocusByDefault()) {
 			this.focus();
 		}
 	}
 
 	_unmountContainer() {
-		console.log('Unmounting container', this);
+		console.log('Unmounting selectable', this);
 		const isFocusedWithin = get(this.hasFocusWithin);
 
 		if (this.htmlElement) {
-			Container.objects.delete(this.htmlElement);
+			Selectable.objects.delete(this.htmlElement);
 		}
 
 		const parent = this.parent;
@@ -231,19 +208,19 @@ export class Container {
 	}
 
 	private static createRegisterer(
-		_container?: Container,
+		_selectable?: Selectable,
 		flowDirection: FlowDirection = 'vertical'
 	): Registerer {
-		const container = _container || new Container().setDirection(flowDirection);
+		const selectable = _selectable || new Selectable().setDirection(flowDirection);
 
 		return (htmlElement: HTMLElement) => {
-			console.log('Registering', htmlElement, container);
-			container.setHtmlElement(htmlElement);
+			console.log('Registering', htmlElement, selectable);
+			selectable.setHtmlElement(htmlElement);
 
 			return {
 				destroy: () => {
-					container.parent?.removeChild(container);
-					Container.objects.delete(htmlElement);
+					selectable.parent?.removeChild(selectable);
+					Selectable.objects.delete(htmlElement);
 				}
 			};
 		};
@@ -255,49 +232,44 @@ export class Container {
 	}
 
 	getRegisterer(): Registerer {
-		return (htmlElement: HTMLElement) => Container.createRegisterer(this)(htmlElement);
+		return (htmlElement: HTMLElement) => Selectable.createRegisterer(this)(htmlElement);
 	}
 
 	static getStores(element: HTMLElement) {
-		return Container.objects.get(element)?.getStores();
+		return Selectable.objects.get(element)?.getStores();
 	}
 
 	getStores(): {
-		container: Container;
+		container: Selectable;
 		hasFocus: Readable<boolean>;
 		hasFocusWithin: Readable<boolean>;
 		registerer: Registerer;
+		focusIndex: Writable<number>;
 	} {
 		return {
 			container: this,
 			hasFocus: this.hasFocus,
 			hasFocusWithin: this.hasFocusWithin,
-			registerer: this.getRegisterer()
+			registerer: this.getRegisterer(),
+			focusIndex: this.focusIndex
 		};
 	}
 
-	private addChild(child: Container) {
+	private addChild(child: Selectable) {
 		this.children.push(child);
 		child.parent = this;
 		return this;
 	}
 
-	private removeChild(child: Container) {
+	private removeChild(child: Selectable) {
+		if (this.children.indexOf(child) < get(this.focusIndex)) {
+			this.focusIndex.update((prev) => prev - 1);
+		}
+
 		this.children = this.children.filter((c) => c !== child);
 		child.parent = undefined;
 		return this;
 	}
-
-	// private addHtmlElement(htmlElement: HTMLElement) {
-	// 	if (this.children.length > 0) {
-	// 		console.warn('Adding an html element to a container that has children.');
-	// 		for (const child of this.children) {
-	// 			this.removeChild(child);
-	// 		}
-	// 	}
-	// 	this.htmlElement = htmlElement;
-	// 	return this;
-	// }
 
 	private shouldFocusByDefault(): boolean {
 		return this.focusByDefault || this.parent?.shouldFocusByDefault() || false;
@@ -305,12 +277,12 @@ export class Container {
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
-	const currentlyFocusedObject = get(Container.focusedObject);
+	const currentlyFocusedObject = get(Selectable.focusedObject);
 
 	if (!currentlyFocusedObject) {
 		console.error('No focused object!!!');
 		// Find object that can be focused
-		Container.objects.forEach((container) => {
+		Selectable.objects.forEach((container) => {
 			if (container.isFocusable()) {
 				container.focus();
 			}
@@ -321,19 +293,12 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	// console.log('Currently focused object: ', currentlyFocusedObject.name, currentlyFocusedObject);
 
 	if (event.key === 'ArrowUp') {
-		if (currentlyFocusedObject.giveFocus('up')) event.preventDefault();
+		if (Selectable.focusUp()) event.preventDefault();
 	} else if (event.key === 'ArrowDown') {
-		if (currentlyFocusedObject.giveFocus('down')) event.preventDefault();
+		if (Selectable.focusDown()) event.preventDefault();
 	} else if (event.key === 'ArrowLeft') {
-		if (currentlyFocusedObject.giveFocus('left')) event.preventDefault();
+		if (Selectable.focusLeft()) event.preventDefault();
 	} else if (event.key === 'ArrowRight') {
-		if (currentlyFocusedObject.giveFocus('right')) event.preventDefault();
+		if (Selectable.focusRight()) event.preventDefault();
 	}
 }
-
-export const focusedObject = Container.focusedObject;
-// export const mainContainer = new Container('main')
-// 	.setDirection('horizontal')
-// 	.setFocusByDefault(true);
-
-export const registerer = Container.getRegisterer();

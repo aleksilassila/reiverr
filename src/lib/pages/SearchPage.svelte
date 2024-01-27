@@ -2,4 +2,4 @@
 	import Container from '../../Container.svelte';
 </script>
 
-<Container>SearchPage</Container>
+<Container focusOnMount>SearchPage</Container>

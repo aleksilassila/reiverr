@@ -1,7 +1,7 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { Link, Route, Router } from 'svelte-navigator';
-	import { handleKeyboardNavigation } from './lib/actions/focusAction';
+	import { handleKeyboardNavigation, Selectable } from './lib/selectable';
 	import { onMount } from 'svelte';
 	import Container from './Container.svelte';
 	import NavbarItem from './lib/components-new/NavbarItem.svelte';
@@ -14,35 +14,18 @@
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
 
-	// const navBarContainer = mainContainer.createChild('nav').setDirection('vertical');
-	// const isNavBarOpen = navBarContainer.hasFocusWithin;
-	//
-	// const contentContainer = mainContainer.createChild('content').setDirection('vertical');
+	Selectable.focusedObject.subscribe((s) => console.log('FocusedObject', s));
+	let mainContent: Selectable;
 
-	// onMount(() => {
-	// 	contentContainer.focus();
-	// });
+	onMount(() => {
+		mainContent.focus();
+	});
 
-	onMount(() => console.log('didmount'));
-	let mount = false;
-	$: console.log('mount', mount);
 	let isNavBarOpen: Readable<boolean>;
 </script>
 
 <I18n />
 <Container horizontal class="bg-stone-950 text-white flex flex-1 w-screen">
-	<!--	<Container class="flex flex-col">-->
-	<!--		<Container tag="button" on:click={() => (mount = !mount)}>Button 1</Container>-->
-	<!--		<Container tag="button" on:click={() => console.log('Button 2 clicked')}>Button 2</Container>-->
-	<!--		<Container tag="button" on:click={() => console.log('Button 3 clicked')}>Button 3</Container>-->
-	<!--	</Container>-->
-
-	<!--	<div>-->
-	<!--		<Container tag="button" on:click={() => console.log('test')}>Test</Container>-->
-	<!--	</div>-->
-	<!--	{#if mount}-->
-	<!--		<TestElement />-->
-	<!--	{/if}-->
 	<Router>
 		<Container
 			class={classNames('flex flex-col', 'p-4', {
@@ -58,7 +41,7 @@
 			</div>
 
 			<div class="flex flex-col flex-1 justify-center">
-				<NavbarItem to="series">
+				<NavbarItem to="/">
 					<Laptop class="w-8 h-8 mr-3" slot="icon" />
 					<span class="text-xl" slot="text"> Series</span>
 				</NavbarItem>
@@ -84,7 +67,7 @@
 			</div>
 		</Container>
 
-		<Container class="flex-1 flex flex-col min-w-0">
+		<Container bind:container={mainContent} class="flex-1 flex flex-col min-w-0">
 			<Route>
 				<SeriesPage />
 			</Route>

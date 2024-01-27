@@ -2,12 +2,12 @@
 	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import classNames from 'classnames';
 	import Container from '../../../Container.svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 	export let orientation: 'landscape' | 'portrait' = 'landscape';
 
-	let focusIndex: Readable<number>;
-	let focusWithin: Readable<boolean>;
+	export let focusIndex: Readable<number>;
+	let focusWithin: Writable<boolean>;
 </script>
 
 <p
@@ -20,7 +20,6 @@
 
 {#each Array(10) as _, i (i)}
 	<Container
-		bind:focusIndex
 		bind:focusWithin
 		class={classNames({
 			'bg-red-500': $focusIndex === i && $focusWithin

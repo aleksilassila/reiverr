@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Container, type FlowDirection } from './lib/actions/focusAction';
+	import { Selectable, type FlowDirection } from './lib/selectable';
 
 	export let name: string = '';
 	export let direction: FlowDirection = 'vertical';
 
-	const { registerer, ...rest } = new Container(name).setDirection(direction).getStores();
+	const { registerer, ...rest } = new Selectable(name).setDirection(direction).getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;
 	export const hasFocusWithin = rest.hasFocusWithin;
 
 	onMount(() => {
-		rest.container._initializeContainer();
+		rest.container._initializeSelectable();
 	});
 </script>
 
