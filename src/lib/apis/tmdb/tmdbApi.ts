@@ -135,10 +135,8 @@ export const getTmdbSeriesSeason = async (
 		}
 	}).then((res) => res.data);
 
-export const getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
-	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1))).then(
-		(r) => r.filter((s) => s) as TmdbSeason[]
-	);
+export const getTmdbSeriesSeasons = (tmdbId: number, seasons: number) =>
+	[...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1));
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {
