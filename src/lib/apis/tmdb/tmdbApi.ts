@@ -230,6 +230,16 @@ export const getTmdbNetworkSeries = (networkId: number) =>
 		}
 	}).then((res) => res.data?.results || []);
 
+export const getTmdbNetworkSeriesRaw = (networkId: number, page: number) =>
+	TmdbApiOpen.get('/3/discover/tv', {
+		params: {
+			query: {
+				with_networks: networkId,
+				page: page,
+			}
+		}
+	}).then((res) => res.data);
+
 export const getTmdbGenreMovies = (genreId: number) =>
 	TmdbApiOpen.get('/3/discover/movie', {
 		params: {
