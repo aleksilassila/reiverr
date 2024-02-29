@@ -9,6 +9,8 @@ import type { TitleType } from '$lib/types';
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
 
+export type DiscoverTvQuery = operations['discover-tv']['parameters']['query']
+
 export type TmdbMovie2 =
 	operations['movie-details']['responses']['200']['content']['application/json'];
 export type TmdbSeries2 =
@@ -230,13 +232,11 @@ export const getTmdbNetworkSeries = (networkId: number) =>
 		}
 	}).then((res) => res.data?.results || []);
 
-export const getTmdbNetworkSeriesRaw = (networkId: number, page: number) =>
+
+export const getTmdbNetworkSeriesQuery = (query: DiscoverTvQuery) =>
 	TmdbApiOpen.get('/3/discover/tv', {
 		params: {
-			query: {
-				with_networks: networkId,
-				page: page,
-			}
+			query
 		}
 	}).then((res) => res.data);
 
