@@ -1,6 +1,5 @@
 <script>
 	import { TriangleRight } from 'radix-icons-svelte';
-	import IconButton from './IconButton.svelte';
 	import classNames from 'classnames';
 </script>
 

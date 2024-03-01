@@ -4,7 +4,6 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import Container from '../../Container.svelte';
-	import type { Readable } from 'svelte/store';
 
 	settings.update((prev) => ({
 		...prev,
@@ -20,15 +19,11 @@
 	jellyfinItemsStore.subscribe((items) => {
 		console.warn('GOT ITEMS', items.data);
 	});
-
-	let focusIndex: Readable<number>;
 </script>
 
 <Container focusOnMount>
 	<div>LibraryPage</div>
-	<Container horizontal bind:focusIndex>
-		<Carousel>
-			<CarouselPlaceholderItems {focusIndex} />
-		</Carousel>
-	</Container>
+	<Carousel>
+		<CarouselPlaceholderItems />
+	</Carousel>
 </Container>

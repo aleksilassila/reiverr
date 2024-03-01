@@ -11,6 +11,7 @@
 		"build": "vite build",
 		"build:tizen": "vite build --outDir tizen/dist",
 		"preview": "vite preview",
+		"preview:tizen": "vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",
 		"test": "playwright test",
@@ -21,10 +22,8 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.28.1",
-		"vitest": "^0.25.3",
-		"reflect-metadata": "^0.1.13",
 		"@jellyfin/sdk": "^0.8.2",
+		"@playwright/test": "^1.28.1",
 		"@sveltejs/vite-plugin-svelte": "^2.4.2",
 		"@tsconfig/svelte": "^5.0.2",
 		"@types/axios": "^0.14.0",
@@ -40,10 +39,11 @@
 		"hls.js": "^1.4.14",
 		"openapi-fetch": "^0.8.2",
 		"openapi-typescript": "^6.7.3",
-		"postcss": "^8.4.32",
+		"postcss": "^8.4.35",
 		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.10.1",
 		"radix-icons-svelte": "^1.2.1",
+		"reflect-metadata": "^0.1.13",
 		"svelte": "^3.59.1",
 		"svelte-check": "^3.6.2",
 		"svelte-i18n": "^4.0.0",
@@ -54,7 +54,8 @@
 		"tslib": "^2.6.2",
 		"typescript": "^5.2.2",
 		"vite": "^4.5.1",
-		"vite-plugin-singlefile": "^0.13.5"
+		"vite-plugin-singlefile": "^0.13.5",
+		"vitest": "^0.25.3"
 	},
 	"browserslist": {
 		"production": [

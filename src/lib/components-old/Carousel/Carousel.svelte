@@ -3,7 +3,7 @@
 	import IconButton from '../IconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
+	import type { Registerer } from '../../selectable';
 
 	export let gradientFromColor = 'from-stone-950';
 	export let heading = '';
@@ -44,19 +44,17 @@
 	</div>
 
 	<div class="relative">
-		<Container horizontal>
-			<div
-				class={classNames(
-					'flex overflow-x-scroll items-center overflow-y-visible gap-4 relative scrollbar-hide p-1',
-					scrollClass
-				)}
-				bind:this={carousel}
-				tabindex="-1"
-				on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
-			>
-				<slot />
-			</div>
-		</Container>
+		<div
+			class={classNames(
+				'flex overflow-x-scroll items-center overflow-y-visible gap-4 relative scrollbar-hide p-1',
+				scrollClass
+			)}
+			bind:this={carousel}
+			tabindex="-1"
+			on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
+		>
+			<slot />
+		</div>
 		{#if scrollX > 50}
 			<div
 				transition:fade={{ duration: 200 }}

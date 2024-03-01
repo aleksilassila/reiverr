@@ -4,7 +4,7 @@
 	import { handleKeyboardNavigation, Selectable } from './lib/selectable';
 	import { onMount } from 'svelte';
 	import Container from './Container.svelte';
-	import NavbarItem from './lib/components-new/NavbarItem.svelte';
+	import NavbarItem from './lib/components/NavbarItem.svelte';
 	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';

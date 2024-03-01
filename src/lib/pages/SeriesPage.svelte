@@ -5,12 +5,12 @@
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
 	import type { ComponentProps } from 'svelte';
-	import Poster from '../components-new/Poster.svelte';
+	import Poster from '../components/Poster.svelte';
 	import type { JellyfinItem } from '../apis/jellyfin/jellyfinApi';
 	import { jellyfinItemsStore } from '../stores/data.store';
-	import Carousel from '../components-new/Carousel/Carousel.svelte';
+	import Carousel from '../components/Carousel/Carousel.svelte';
 	import { _ } from 'svelte-i18n';
-	import CarouselPlaceholderItems from '../components-new/Carousel/CarouselPlaceholderItems.svelte';
+	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
 		jellyfinItemsStore.subscribe((data) => {
