@@ -66,7 +66,7 @@
 
 <GridPage title={data.network}>
 	{#if network}
-		{#each networkSeriesProps as showProps}
+		{#each networkSeriesProps as showProps, index (index)}
 			<Card {...showProps} size="dynamic" />
 		{/each}
 		{#if isLoading}
