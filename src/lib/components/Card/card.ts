@@ -1,13 +1,13 @@
-import type { TmdbMovie2, TmdbSeries2 } from '$lib/apis/tmdb/tmdbApi';
+import type { TmdbMovie2, TmdbSeries2 } from '../../../lib/apis/tmdb/tmdbApi';
 import {
 	TMDB_MOVIE_GENRES,
 	TMDB_SERIES_GENRES,
 	getTmdbMovieBackdrop,
 	getTmdbSeriesBackdrop
-} from '$lib/apis/tmdb/tmdbApi';
+} from '../../../lib/apis/tmdb/tmdbApi';
 import type { ComponentProps } from 'svelte';
 import type Card from './Card.svelte';
-import { TMDB_BACKDROP_SMALL } from '$lib/constants';
+import { TMDB_BACKDROP_SMALL } from '../../../lib/constants';
 
 export const fetchCardTmdbMovieProps = async (movie: TmdbMovie2): Promise<ComponentProps<Card>> => {
 	const backdropUri = await getTmdbMovieBackdrop(movie.id || 0);

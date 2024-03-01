@@ -19,7 +19,7 @@ import {
 	isWebOS,
 	isXbox,
 	safariVersion
-} from '$lib/utils/browser-detection';
+} from '../../../../utils/browser-detection';
 
 /**
  * Gets the max video bitrate

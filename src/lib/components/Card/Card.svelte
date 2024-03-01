@@ -3,9 +3,9 @@
 		createJellyfinItemStore,
 		createRadarrMovieStore,
 		createSonarrSeriesStore
-	} from '$lib/stores/data.store';
-	import type { TitleType } from '$lib/types';
-	import { formatMinutesToTime } from '$lib/utils';
+	} from '../../../lib/stores/data.store';
+	import type { TitleType } from '../../../lib/types';
+	import { formatMinutesToTime } from '../../../lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
 	import { openTitleModal } from '../../stores/modal.store';

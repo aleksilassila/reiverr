@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { TitleType } from '$lib/types';
-	import { TMDB_PROFILE_SMALL } from '$lib/constants';
-	import { openTitleModal } from '$lib/stores/modal.store';
+	import type { TitleType } from '../../../lib/types';
+	import { TMDB_PROFILE_SMALL } from '../../../lib/constants';
+	import { openTitleModal } from '../../../lib/stores/modal.store';
 	import classNames from 'classnames';
 
 	export let tmdbId: number;

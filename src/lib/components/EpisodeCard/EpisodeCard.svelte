@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { setJellyfinItemUnwatched, setJellyfinItemWatched } from '$lib/apis/jellyfin/jellyfinApi';
-	import { jellyfinItemsStore } from '$lib/stores/data.store';
+	import {
+		setJellyfinItemUnwatched,
+		setJellyfinItemWatched
+	} from '../../../lib/apis/jellyfin/jellyfinApi';
+	import { jellyfinItemsStore } from '../../../lib/stores/data.store';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
 	import { fade } from 'svelte/transition';

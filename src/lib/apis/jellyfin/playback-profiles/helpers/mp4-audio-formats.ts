@@ -11,7 +11,7 @@ import {
 	isTizen55,
 	isTv,
 	isWebOS
-} from '$lib/utils/browser-detection';
+} from '../../../../utils/browser-detection';
 
 /**
  * Checks if the client can play the AC3 codec

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import PlayButton from '../PlayButton.svelte';
-	import ProgressBar from '../ProgressBar.svelte';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
-	import LazyImg from '../LazyImg.svelte';
+	import PlayButton from './PlayButton.svelte';
+	import ProgressBar from './ProgressBar.svelte';
+	// import { playerState } from '../VideoPlayer/VideoPlayer';
+	import LazyImg from './LazyImg.svelte';
 	import { Star } from 'radix-icons-svelte';
-	import type { TitleType } from '../../types';
+	import type { TitleType } from '../types';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
@@ -41,12 +41,12 @@
 		{
 			'aspect-video': orientation === 'landscape',
 			'aspect-[2/3]': orientation === 'portrait',
-			'w-32': size === 'sm' && orientation === 'portrait',
-			'h-32': size === 'sm' && orientation === 'landscape',
-			'w-44': size === 'md' && orientation === 'portrait',
-			'h-44': size === 'md' && orientation === 'landscape',
-			'w-60': size === 'lg' && orientation === 'portrait',
-			'h-60': size === 'lg' && orientation === 'landscape',
+			'w-32 h-48': size === 'sm' && orientation === 'portrait',
+			'h-32 w-56': size === 'sm' && orientation === 'landscape',
+			'w-44 h-64': size === 'md' && orientation === 'portrait',
+			'h-44 w-80': size === 'md' && orientation === 'landscape',
+			'w-60 h-96': size === 'lg' && orientation === 'portrait',
+			'h-60 w-96': size === 'lg' && orientation === 'landscape',
 			'w-full': size === 'dynamic',
 			'shadow-lg': shadow
 		}
@@ -105,7 +105,7 @@
 			<PlayButton
 				on:click={(e) => {
 					e.preventDefault();
-					jellyfinId && playerState.streamJellyfinId(jellyfinId);
+					jellyfinId && true; //playerState.streamJellyfinId(jellyfinId);
 				}}
 				class="sm:opacity-0 group-hover:opacity-100 transition-opacity"
 			/>

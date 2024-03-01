@@ -1,35 +1,35 @@
 <script lang="ts">
-	import { getJellyfinEpisodes, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr, type SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
+	import { getJellyfinEpisodes, type JellyfinItem } from '../../lib/apis/jellyfin/jellyfinApi';
+	import { addSeriesToSonarr, type SonarrSeries } from '../../lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbIdFromTvdbId,
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
 		getTmdbSeriesSeasons,
 		getTmdbSeriesSimilar
-	} from '$lib/apis/tmdb/tmdbApi';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card/Card.svelte';
-	import { fetchCardTmdbProps } from '$lib/components/Card/card';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import UiCarousel from '$lib/components/Carousel/UICarousel.svelte';
-	import EpisodeCard from '$lib/components/EpisodeCard/EpisodeCard.svelte';
-	import PersonCard from '$lib/components/PersonCard/PersonCard.svelte';
-	import SeriesRequestModal from '$lib/components/RequestModal/SeriesRequestModal.svelte';
-	import OpenInButton from '$lib/components/TitlePageLayout/OpenInButton.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
-	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
+	} from '../../lib/apis/tmdb/tmdbApi';
+	import Button from '../../lib/components/Button.svelte';
+	import Card from '../../lib/components/Card/Card.svelte';
+	import { fetchCardTmdbProps } from '../../lib/components/Card/card';
+	import Carousel from '../../lib/components/Carousel/Carousel.svelte';
+	import CarouselPlaceholderItems from '../../lib/components/Carousel/CarouselPlaceholderItems.svelte';
+	import UiCarousel from '../../lib/components/Carousel/UICarousel.svelte';
+	import EpisodeCard from '../../lib/components/EpisodeCard/EpisodeCard.svelte';
+	import PersonCard from '../../lib/components/PersonCard/PersonCard.svelte';
+	import SeriesRequestModal from '../../lib/components/RequestModal/SeriesRequestModal.svelte';
+	import OpenInButton from '../../lib/components/TitlePageLayout/OpenInButton.svelte';
+	import TitlePageLayout from '../../lib/components/TitlePageLayout/TitlePageLayout.svelte';
+	import { playerState } from '../../lib/components/VideoPlayer/VideoPlayer';
+	import { TMDB_BACKDROP_SMALL } from '../../lib/constants';
 	import {
 		createJellyfinItemStore,
 		createSonarrDownloadStore,
 		createSonarrSeriesStore
-	} from '$lib/stores/data.store';
-	import { modalStack } from '$lib/stores/modal.store';
-	import { settings } from '$lib/stores/settings.store';
-	import type { TitleId } from '$lib/types';
-	import { capitalize, formatMinutesToTime, formatSize } from '$lib/utils';
+	} from '../../lib/stores/data.store';
+	import { modalStack } from '../../lib/stores/modal.store';
+	import { settings } from '../../lib/stores/settings.store';
+	import type { TitleId } from '../../lib/types';
+	import { capitalize, formatMinutesToTime, formatSize } from '../../lib/utils';
 	import classNames from 'classnames';
 	import { Archive, ChevronLeft, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';

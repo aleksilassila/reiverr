@@ -10,7 +10,7 @@ import {
 	hasEac3Support,
 	hasMp3AudioSupport
 } from './mp4-audio-formats';
-import { isEdge } from '$lib/utils/browser-detection';
+import { isEdge } from '../../../../utils/browser-detection';
 
 /**
  * Gets an array with the supported fmp4 codecs

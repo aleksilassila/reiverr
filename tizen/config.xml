@@ -2,6 +2,7 @@
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/SvelteTizen" version="1.0.0" viewmodes="maximized">
     <tizen:application id="JZUbM5WimZ.SvelteTizen" package="JZUbM5WimZ" required_version="2.3"/>
     <content src="index.html"/>
+    <tizen:content-security-policy>default-src 'self'</tizen:content-security-policy>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
     <icon src="icon.png"/>
     <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"/>

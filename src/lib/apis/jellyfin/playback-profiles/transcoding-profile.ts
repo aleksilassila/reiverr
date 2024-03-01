@@ -17,7 +17,7 @@ import {
 	isChromiumBased,
 	isAndroid,
 	isTizen
-} from '$lib/utils/browser-detection';
+} from '../../../utils/browser-detection';
 
 /**
  * Returns a valid TranscodingProfile for the current platform.

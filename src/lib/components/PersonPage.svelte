@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { getTmdbPerson } from '$lib/apis/tmdb/tmdbApi';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '$lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import Poster from '$lib/components/Poster/Poster.svelte';
-	import TitlePageLayout from '$lib/components/TitlePageLayout/TitlePageLayout.svelte';
-	import FacebookIcon from '$lib/components/svgs/FacebookIcon.svelte';
-	import ImdbIcon from '$lib/components/svgs/ImdbIcon.svelte';
-	import TiktokIcon from '$lib/components/svgs/TiktokIcon.svelte';
-	import TmdbIcon from '$lib/components/svgs/TmdbIcon.svelte';
-	import TwitterIcon from '$lib/components/svgs/TwitterIcon.svelte';
-	import YoutubeIcon from '$lib/components/svgs/YoutubeIcon.svelte';
-	import { TMDB_POSTER_SMALL } from '$lib/constants';
+	import { getTmdbPerson } from '../../lib/apis/tmdb/tmdbApi';
+	import Carousel from '../../lib/components/Carousel/Carousel.svelte';
+	import CarouselPlaceholderItems from '../../lib/components/Carousel/CarouselPlaceholderItems.svelte';
+	import Poster from '../../lib/components/Poster/Poster.svelte';
+	import TitlePageLayout from '../../lib/components/TitlePageLayout/TitlePageLayout.svelte';
+	import FacebookIcon from '../../lib/components/svgs/FacebookIcon.svelte';
+	import ImdbIcon from '../../lib/components/svgs/ImdbIcon.svelte';
+	import TiktokIcon from '../../lib/components/svgs/TiktokIcon.svelte';
+	import TmdbIcon from '../../lib/components/svgs/TmdbIcon.svelte';
+	import TwitterIcon from '../../lib/components/svgs/TwitterIcon.svelte';
+	import YoutubeIcon from '../../lib/components/svgs/YoutubeIcon.svelte';
 	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import { TMDB_POSTER_SMALL } from '../constants';
 
 	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
 
