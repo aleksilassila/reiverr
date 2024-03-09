@@ -33,15 +33,14 @@
 	export let handleCloseModal: () => void = () => {};
 
 	const tmdbUrl = 'https://www.themoviedb.org/movie/' + tmdbId;
-	const data = loadInitialPageData();
+	const data = getTmdbMovie(tmdbId);
+	const recommendationData = preloadRecommendationData();
 
 	const jellyfinItemStore = createJellyfinItemStore(tmdbId);
 	const radarrMovieStore = createRadarrMovieStore(tmdbId);
 	const radarrDownloadStore = createRadarrDownloadStore(radarrMovieStore);
 
-	async function loadInitialPageData() {
-		const tmdbMoviePromise = getTmdbMovie(tmdbId);
-
+	async function preloadRecommendationData() {
 		const tmdbRecommendationProps = getTmdbMovieRecommendations(tmdbId)
 			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
 			.then((r) => r.filter((p) => p.backdropUrl));
@@ -49,7 +48,7 @@
 			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
 			.then((r) => r.filter((p) => p.backdropUrl));
 
-		const castPropsPromise: Promise<ComponentProps<PersonCard>[]> = tmdbMoviePromise.then((m) =>
+		const castPropsPromise: Promise<ComponentProps<PersonCard>[]> = data.then((m) =>
 			Promise.all(
 				m?.credits?.cast?.slice(0, 20).map((m) => ({
 					tmdbId: m.id || 0,
@@ -61,10 +60,9 @@
 		);
 
 		return {
-			tmdbMovie: await tmdbMoviePromise,
 			tmdbRecommendationProps: await tmdbRecommendationProps,
 			tmdbSimilarProps: await tmdbSimilarProps,
-			castProps: await castPropsPromise
+			castProps: await castPropsPromise,	
 		};
 	}
 
@@ -95,8 +93,7 @@
 
 {#await data}
 	<TitlePageLayout {isModal} {handleCloseModal} />
-{:then { tmdbMovie, tmdbRecommendationProps, tmdbSimilarProps, castProps }}
-	{@const movie = tmdbMovie}
+{:then movie }
 	<TitlePageLayout
 		titleInformation={{
 			tmdbId,
@@ -268,7 +265,7 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="carousels">
-			{#await data}
+			{#await recommendationData}
 				<Carousel gradientFromColor="from-stone-950">
 					<div slot="title" class="font-medium text-lg">Cast & Crew</div>
 					<CarouselPlaceholderItems />

@@ -11,9 +11,7 @@
 	const ANIMATION_DURATION = $settings.animationDuration;
 
 	export let tmdbId: number;
-
-	export let trailerId: string | undefined = undefined;
-
+	export let lazyTrailerId: Promise<string | undefined>;
 	export let backdropUri: string;
 
 	let scrollY: number;
@@ -22,6 +20,9 @@
 	let hoverTrailer = false;
 	export let UIVisible = true;
 	$: UIVisible = !(hoverTrailer && trailerVisible);
+
+	let trailerId: string | undefined = undefined;
+	lazyTrailerId.then((v) => (trailerId = v));
 
 	let trailerShowTimeout: NodeJS.Timeout | undefined = undefined;
 	$: {
@@ -64,7 +65,7 @@
 
 <svelte:window bind:scrollY on:scroll={handleWindowScroll} />
 
-{#if !trailerVisible}
+{#if !trailerVisible || !trailerId}
 	{#key tmdbId}
 		<div
 			style={"background-image: url('" + TMDB_IMAGES_ORIGINAL + backdropUri + "');"}

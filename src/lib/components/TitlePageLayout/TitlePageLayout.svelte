@@ -155,7 +155,7 @@
 		)}
 	>
 		<div
-			class="grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl max-w-screen-2xl 2xl:mx-auto py-4"
+			class="grid grid-cols-4 sm:grid-cols-6 gap-4 sm:gap-x-8 rounded-xl py-4 max-w-screen-2xl 2xl:mx-auto"
 		>
 			<slot name="info-description">
 				<div
@@ -221,30 +221,9 @@
 				</div>
 			</slot>
 		</div>
-		<slot name="carousels" />
-		<!-- <div class="max-w-screen-2xl 2xl:mx-auto w-full">
-		<Carousel gradientFromColor="from-stone-950">
-			<slot name="cast-crew-carousel-title" slot="title" />
-			<slot name="cast-crew-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
-	</div>
-	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
-		<Carousel gradientFromColor="from-stone-950">
-			<slot name="recommendations-carousel-title" slot="title" />
-			<slot name="recommendations-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
-	</div>
-	<div class="max-w-screen-2xl 2xl:mx-auto w-full">
-		<Carousel gradientFromColor="from-stone-950">
-			<slot name="similar-carousel-title" slot="title" />
-			<slot name="similar-carousel">
-				<CarouselPlaceholderItems />
-			</slot>
-		</Carousel>
-	</div> -->
+		<div class="flex flex-col gap-6 max-w-screen-2xl 2xl:mx-auto">
+			<!-- TODO: Remove mx-auto as it's bugged when in modal and on firefox -->
+			<slot name="carousels" />
+		</div>
 	</div>
 </div>

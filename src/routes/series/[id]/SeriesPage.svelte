@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { getJellyfinEpisodes, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-	import { addSeriesToSonarr, type SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
+	import { addSeriesToSonarr } from '$lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbIdFromTvdbId,
 		getTmdbSeries,
 		getTmdbSeriesRecommendations,
 		getTmdbSeriesSeasons,
-		getTmdbSeriesSimilar
+		getTmdbSeriesSimilar,
+		type TmdbSeriesFull2
 	} from '$lib/apis/tmdb/tmdbApi';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card/Card.svelte';
@@ -39,7 +40,8 @@
 	export let isModal = false;
 	export let handleCloseModal: () => void = () => {};
 
-	let data = loadInitialPageData();
+	const data = loadInitialPageData();
+	const recommendationData = preloadRecommendationData();
 
 	const jellyfinItemStore = createJellyfinItemStore(data.then((d) => d.tmdbId));
 	const sonarrSeriesStore = createSonarrSeriesStore(data.then((d) => d.tmdbSeries?.name || ''));
@@ -48,16 +50,16 @@
 	let seasonSelectVisible = false;
 	let visibleSeasonNumber: number = 1;
 	let visibleEpisodeIndex: number | undefined = undefined;
+	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
 
-	let jellyfinEpisodeData: {
+	const jellyfinEpisodeData: {
 		[key: string]: {
 			jellyfinId: string | undefined;
 			progress: number;
 			watched: boolean;
 		};
 	} = {};
-	let episodeComponents: HTMLDivElement[] = [];
-	let nextJellyfinEpisode: JellyfinItem | undefined = undefined;
+	const episodeComponents: HTMLDivElement[] = [];
 
 	// Refresh jellyfin episode data
 	jellyfinItemStore.subscribe(async (value) => {
@@ -87,65 +89,70 @@
 		const tmdbId = await (titleId.provider === 'tvdb'
 			? getTmdbIdFromTvdbId(titleId.id)
 			: Promise.resolve(titleId.id));
-
-		const tmdbSeriesPromise = getTmdbSeries(tmdbId);
-		const tmdbSeasonsPromise = tmdbSeriesPromise.then((s) =>
-			getTmdbSeriesSeasons(s?.id || 0, s?.number_of_seasons || 0)
-		);
-
-		const tmdbUrl = 'https://www.themoviedb.org/tv/' + tmdbId;
-
-		const tmdbRecommendationPropsPromise = getTmdbSeriesRecommendations(tmdbId).then((r) =>
-			Promise.all(r.map(fetchCardTmdbProps))
-		);
-		const tmdbSimilarPropsPromise = getTmdbSeriesSimilar(tmdbId)
-			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
-			.then((r) => r.filter((p) => p.backdropUrl));
-
-		const castPropsPromise: Promise<ComponentProps<PersonCard>[]> = tmdbSeriesPromise.then((s) =>
-			Promise.all(
-				s?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
-					tmdbId: m.id || 0,
-					backdropUri: m.profile_path || '',
-					name: m.name || '',
-					subtitle: m.roles?.[0]?.character || m.known_for_department || ''
-				})) || []
-			)
-		);
-
-		const tmdbEpisodePropsPromise: Promise<ComponentProps<EpisodeCard>[][]> =
-			tmdbSeasonsPromise.then((seasons) =>
-				seasons.map(
-					(season) =>
-						season?.episodes?.map((episode) => ({
-							title: episode?.name || '',
-							subtitle: `Episode ${episode?.episode_number}`,
-							backdropUrl: TMDB_BACKDROP_SMALL + episode?.still_path || '',
-							airDate:
-								episode.air_date && new Date(episode.air_date) > new Date()
-									? new Date(episode.air_date)
-									: undefined
-						})) || []
-				)
-			);
+		const tmdbSeries = await getTmdbSeries(tmdbId);
 
 		return {
 			tmdbId,
-			tmdbSeries: await tmdbSeriesPromise,
-			tmdbSeasons: await tmdbSeasonsPromise,
-			tmdbUrl,
-			tmdbRecommendationProps: await tmdbRecommendationPropsPromise,
-			tmdbSimilarProps: await tmdbSimilarPropsPromise,
-			castProps: await castPropsPromise,
-			tmdbEpisodeProps: await tmdbEpisodePropsPromise
+			tmdbUrl: 'https://www.themoviedb.org/tv/' + tmdbId,
+			tmdbSeries,
+			seasonsData: preloadAndMapSeasonsData(tmdbSeries)
 		};
+	}
+
+	async function preloadRecommendationData() {
+		const { tmdbId, tmdbSeries } = await data;
+		const tmdbRecommendationProps = getTmdbSeriesRecommendations(tmdbId).then((r) =>
+			Promise.all(r.map(fetchCardTmdbProps))
+		);
+
+		const tmdbSimilarProps = getTmdbSeriesSimilar(tmdbId)
+			.then((r) => Promise.all(r.map(fetchCardTmdbProps)))
+			.then((r) => r.filter((p) => p.backdropUrl));
+
+		const castProps: ComponentProps<PersonCard>[] =
+			tmdbSeries?.aggregate_credits?.cast?.slice(0, 20)?.map((m) => ({
+				tmdbId: m.id || 0,
+				backdropUri: m.profile_path || '',
+				name: m.name || '',
+				subtitle: m.roles?.[0]?.character || m.known_for_department || ''
+			})) || [];
+
+		return {
+			tmdbRecommendationProps: await tmdbRecommendationProps,
+			tmdbSimilarProps: await tmdbSimilarProps,
+			castProps
+		};
+	}
+
+	function preloadAndMapSeasonsData(
+		tmdbSeries: TmdbSeriesFull2 | undefined
+	): Promise<ComponentProps<EpisodeCard>[]>[] {
+		const tmdbSeasons = getTmdbSeriesSeasons(
+			tmdbSeries?.id || 0,
+			tmdbSeries?.number_of_seasons || 0
+		);
+
+		return tmdbSeasons.map((season) =>
+			season.then(
+				(s) =>
+					s?.episodes?.map((episode) => ({
+						title: episode?.name || '',
+						subtitle: `Episode ${episode?.episode_number}`,
+						backdropUrl: TMDB_BACKDROP_SMALL + episode?.still_path || '',
+						airDate:
+							episode.air_date && new Date(episode.air_date) > new Date()
+								? new Date(episode.air_date)
+								: undefined
+					})) || []
+			)
+		);
 	}
 
 	function playNextEpisode() {
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
 	}
 
-	async function refreshSonarr() {
+	 async function refreshSonarr() {
 		await sonarrSeriesStore.refreshIn();
 	}
 
@@ -211,7 +218,7 @@
 			</Carousel>
 		</div>
 	</TitlePageLayout>
-{:then { tmdbSeries, tmdbId, ...data }}
+{:then { tmdbId, tmdbUrl, tmdbSeries, seasonsData }}
 	<TitlePageLayout
 		titleInformation={{
 			tmdbId,
@@ -230,7 +237,7 @@
 			<DotFilled />
 			{tmdbSeries?.status}
 			<DotFilled />
-			<a href={data.tmdbUrl} target="_blank">{tmdbSeries?.vote_average?.toFixed(1)} TMDB</a>
+			<a href={tmdbUrl} target="_blank">{tmdbSeries?.vote_average?.toFixed(1)} TMDB</a>
 		</svelte:fragment>
 
 		<svelte:fragment slot="title-right">
@@ -311,24 +318,28 @@
 					{/each}
 				</UiCarousel>
 				{#key visibleSeasonNumber}
-					{#each data.tmdbEpisodeProps[visibleSeasonNumber - 1] || [] as props, i}
-						{@const jellyfinData = jellyfinEpisodeData[`S${visibleSeasonNumber}E${i + 1}`]}
-						<div bind:this={episodeComponents[i]}>
-							<EpisodeCard
-								{...props}
-								{...jellyfinData
-									? {
-											watched: jellyfinData.watched,
-											progress: jellyfinData.progress,
-											jellyfinId: jellyfinData.jellyfinId
-									  }
-									: {}}
-								on:click={() => (visibleEpisodeIndex = i)}
-							/>
-						</div>
-					{:else}
+					{#await seasonsData[visibleSeasonNumber - 1]}
 						<CarouselPlaceholderItems />
-					{/each}
+					{:then seasonEpisodes}
+						{#each seasonEpisodes || [] as props, i}
+							{@const jellyfinData = jellyfinEpisodeData[`S${visibleSeasonNumber}E${i + 1}`]}
+							<div bind:this={episodeComponents[i]}>
+								<EpisodeCard
+									{...props}
+									{...jellyfinData
+										? {
+												watched: jellyfinData.watched,
+												progress: jellyfinData.progress,
+												jellyfinId: jellyfinData.jellyfinId
+										  }
+										: {}}
+									on:click={() => (visibleEpisodeIndex = i)}
+								/>
+							</div>
+						{:else}
+							<CarouselPlaceholderItems />
+						{/each}
+					{/await}
 				{/key}
 			</Carousel>
 		</div>
@@ -439,7 +450,7 @@
 		</svelte:fragment>
 
 		<svelte:fragment slot="carousels">
-			{#await data}
+			{#await recommendationData}
 				<Carousel gradientFromColor="from-stone-950">
 					<div slot="title" class="font-medium text-lg">Cast & Crew</div>
 					<CarouselPlaceholderItems />

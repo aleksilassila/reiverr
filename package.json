@@ -1,6 +1,6 @@
 {
 	"name": "reiverr",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/aleksilassila/reiverr"
@@ -22,7 +22,7 @@
 	"devDependencies": {
 		"@fontsource/fira-mono": "^4.5.10",
 		"@neoconfetti/svelte": "^1.0.0",
-		"@playwright/test": "^1.28.1",
+		"@playwright/test": "^1.41.2",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/adapter-node": "^1.3.1",
 		"@sveltejs/kit": "^1.5.0",

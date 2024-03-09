@@ -65,11 +65,49 @@
 		}
 	});
 
-	const tmdbPopularMoviesPromise = getTmdbPopularMovies()
-		.then((movies) => Promise.all(movies.map((movie) => getTmdbMovie(movie.id || 0))))
-		.then((movies) => movies.filter((m) => !!m).slice(0, 10));
+	let popularMovies: (
+		| {
+				movie: Awaited<ReturnType<typeof getTmdbPopularMovies>>[0];
+				lazyRuntime: Promise<number>;
+				lazyTrailerId: Promise<string | undefined>;
+		  }
+	)[] = [];
+
+	/**
+	 * Here we load a list of popular movies:
+	 *   * runtime & video data is not available as part of the initial request
+	 *   * If an additional detail request fails, we unload the movie from the showcase
+	 */
+	const tmdbPopularMoviesPromise = getTmdbPopularMovies().then(
+		(movies) =>
+			(popularMovies = movies.map((movie) => {
+				const movieDetails = getTmdbMovie(movie.id || 0);
+				const movieDetailsPromise = movieDetails.then((fullMovie) => ({
+					runtime: fullMovie?.runtime || 0,
+					trailerId: fullMovie?.videos?.results?.find(
+						(v) => v.site === 'YouTube' && v.type === 'Trailer'
+					)?.key
+				}));
+
+				movieDetails.catch(() => unloadMovie());
+				movieDetails.then((md) => !md && unloadMovie());
+				const unloadMovie = () => {
+					const idx = popularMovies.findIndex((m) => m.movie === movie);
+					popularMovies.splice(idx, 1);
+					popularMovies = popularMovies;
+				};
+
+				return {
+					movie,
+					lazyRuntime: movieDetailsPromise.then((fm) => fm.runtime),
+					lazyTrailerId: movieDetailsPromise.then((fm) => fm.trailerId)
+				};
+			}))
+	);
 
 	let showcaseIndex = 0;
+	$: clampedPopularMovies = popularMovies.slice(0, 10);
+	$: visibleShowcaseMovie = clampedPopularMovies[showcaseIndex];
 
 	async function onNext() {
 		showcaseIndex = (showcaseIndex + 1) % (await tmdbPopularMoviesPromise).length;
@@ -95,7 +133,7 @@
 	// 	return () => clearInterval(interval);
 	// });
 
-	const PADDING = 'px-4 lg:px-8 xl:px-16';
+	const PADDING = 'px-4 lg:px-8 2xl:px-16';
 </script>
 
 <div class="h-screen flex flex-col relative pb-6 gap-6 xl:gap-8 overflow-hidden">
@@ -105,16 +143,16 @@
 			PADDING
 		)}
 	>
-		{#await tmdbPopularMoviesPromise then movies}
-			{@const movie = movies[showcaseIndex]}
+		{#if visibleShowcaseMovie}
+			{@const { movie, lazyRuntime, lazyTrailerId } = visibleShowcaseMovie}
 
 			{#key movie?.id}
 				<TitleShowcaseVisuals
 					tmdbId={movie?.id || 0}
 					type="movie"
 					title={movie?.title || ''}
-					genres={movie?.genres?.map((g) => g.name || '') || []}
-					runtime={movie?.runtime || 0}
+					genreIds={movie.genre_ids || []}
+					{lazyRuntime}
 					releaseDate={new Date(movie?.release_date || Date.now())}
 					tmdbRating={movie?.vote_average || 0}
 					posterUri={movie?.poster_path || ''}
@@ -124,7 +162,13 @@
 			<div
 				class="md:relative self-stretch flex justify-center items-end row-start-2 row-span-1 col-start-1 col-span-2 md:row-start-1 md:row-span-2 md:col-start-2 md:col-span-2"
 			>
-				<PageDots index={showcaseIndex} length={movies.length} {onJump} {onPrevious} {onNext} />
+				<PageDots
+					index={showcaseIndex}
+					length={clampedPopularMovies.length}
+					{onJump}
+					{onPrevious}
+					{onNext}
+				/>
 				{#if !hideUI}
 					<div class="absolute top-1/2 right-0 z-10">
 						<IconButton on:click={onNext}>
@@ -133,13 +177,15 @@
 					</div>
 				{/if}
 			</div>
-			<TitleShowcase
-				tmdbId={movie?.id || 0}
-				trailerId={movie?.videos?.results?.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
-					?.key}
-				backdropUri={movie?.backdrop_path || ''}
-			/>
-		{/await}
+
+			{#key movie?.id}
+				<TitleShowcase
+					tmdbId={movie?.id || 0}
+					{lazyTrailerId}
+					backdropUri={movie?.backdrop_path || ''}
+				/>
+			{/key}
+		{/if}
 	</div>
 	<div
 		class={classNames('z-[1] transition-opacity', {

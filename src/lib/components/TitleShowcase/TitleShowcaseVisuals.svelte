@@ -8,6 +8,7 @@
 	import type { TitleType } from '$lib/types';
 	import { openTitleModal } from '$lib/stores/modal.store';
 	import { settings } from '$lib/stores/settings.store';
+	import { TMDB_MOVIE_GENRES } from '$lib/apis/tmdb/tmdbApi';
 
 	const ANIMATION_DURATION = $settings.animationDuration;
 
@@ -15,8 +16,8 @@
 	export let type: TitleType;
 
 	export let title: string;
-	export let genres: string[];
-	export let runtime: number;
+	export let genreIds: number[];
+	export let lazyRuntime: Promise<number>;
 	export let releaseDate: Date;
 	export let tmdbRating: number;
 
@@ -24,7 +25,14 @@
 
 	export let hideUI = false;
 
+	let runtime = 0;
+	let loadingAdditionalDetails = true;
+	lazyRuntime.then((rn) => (runtime = rn)).finally(() => (loadingAdditionalDetails = false));
+
 	$: tmdbUrl = `https://www.themoviedb.org/${type}/${tmdbId}`;
+	$: genres = genreIds
+		.map((gId) => TMDB_MOVIE_GENRES.find((g) => g.id === gId)?.name)
+		.filter<string>((g): g is string => typeof g === 'string');
 
 	function handleOpenTitle() {
 		openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
@@ -60,7 +68,7 @@
 			>
 				<p class="flex-shrink-0">{releaseDate.getFullYear()}</p>
 				<DotFilled />
-				<p class="flex-shrink-0">{formatMinutesToTime(runtime)}</p>
+				<p class="flex-shrink-0">{loadingAdditionalDetails ? 'LOADING' : formatMinutesToTime(runtime)}</p>
 				<DotFilled />
 				<p class="flex-shrink-0"><a href={tmdbUrl}>{tmdbRating.toFixed(1)} TMDB</a></p>
 			</div>

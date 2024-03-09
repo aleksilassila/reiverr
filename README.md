@@ -119,7 +119,7 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 To get started with development:
 
 1. Clone the repository
-2. Check out the `dev` branch
+2. Checkout the `dev` branch
 3. Run `npm install`
 4. Run `npm run dev`
 

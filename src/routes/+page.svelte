@@ -217,6 +217,8 @@
 	function parseIncludedLanguages(includedLanguages: string) {
 		return includedLanguages.replace(' ', '').split(',').join('|');
 	}
+
+	const PADDING = 'px-4 lg:px-8 2xl:px-16';
 </script>
 
 <TitleShowcases />
@@ -229,7 +231,7 @@
 	}}
 	out:fade|global={{ duration: $settings.animationDuration }}
 >
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.popularPeople')}
 		</div>
@@ -241,7 +243,7 @@
 			{/each}
 		{/await}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.upcomingMovies')}
 		</div>
@@ -253,7 +255,7 @@
 			{/each}
 		{/await}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.upcomingSeries')}
 		</div>
@@ -265,7 +267,7 @@
 			{/each}
 		{/await}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.genres')}
 		</div>
@@ -273,7 +275,7 @@
 			<GenreCard {genre} />
 		{/each}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.newDigitalReleases')}
 		</div>
@@ -285,7 +287,7 @@
 			{/each}
 		{/await}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.streamingNow')}
 		</div>
@@ -297,7 +299,7 @@
 			{/each}
 		{/await}
 	</Carousel>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+	<Carousel scrollClass={PADDING}>
 		<div slot="title" class="text-lg font-semibold text-zinc-300">
 			{$_('discover.TVNetworks')}
 		</div>
