@@ -222,6 +222,7 @@
 			</slot>
 		</div>
 		<div class="flex flex-col gap-6 max-w-screen-2xl 2xl:mx-auto">
+			<!-- TODO: Remove mx-auto as it's bugged when in modal and on firefox -->
 			<slot name="carousels" />
 		</div>
 	</div>
