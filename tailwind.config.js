@@ -5,7 +5,8 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Montserrat', 'sans-serif'],
-				display: ['Montserrat', 'system', 'sans-serif']
+				display: ['Montserrat', 'system', 'sans-serif'],
+				fira: ['Fira Sans', 'Montserrat', 'sans-serif']
 			},
 			colors: {
 				darken: '#07050166',
@@ -25,5 +26,5 @@ export default {
 	future: {
 		hoverOnlyWhenSupported: true
 	},
-	plugins: [require('tailwind-scrollbar-hide')]
+	plugins: [require('tailwind-scrollbar-hide'), require('vidstack/tailwind.cjs')]
 };

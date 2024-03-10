@@ -14,7 +14,8 @@
 		"lib": ["es6"],
 		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
-		"strictPropertyInitialization": false
+		"strictPropertyInitialization": false,
+		"types": ["vidstack/globals"]
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//
