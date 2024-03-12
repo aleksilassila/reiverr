@@ -22,17 +22,17 @@ export interface SonarrSeriesOptions {
 	rootFolderPath: string;
 	addOptions: {
 		monitor:
-			| 'unknown'
-			| 'all'
-			| 'future'
-			| 'missing'
-			| 'existing'
-			| 'firstSeason'
-			| 'latestSeason'
-			| 'pilot'
-			| 'monitorSpecials'
-			| 'unmonitorSpecials'
-			| 'none';
+		| 'unknown'
+		| 'all'
+		| 'future'
+		| 'missing'
+		| 'existing'
+		| 'firstSeason'
+		| 'latestSeason'
+		| 'pilot'
+		| 'monitorSpecials'
+		| 'unmonitorSpecials'
+		| 'none';
 		searchForMissingEpisodes: boolean;
 		searchForCutoffUnmetEpisodes: boolean;
 	};
@@ -85,15 +85,17 @@ export const addSeriesToSonarr = async (tmdbId: number) => {
 	if (!tmdbSeries || !tmdbSeries.external_ids.tvdb_id || !tmdbSeries.name)
 		throw new Error('Movie not found');
 
+	let monitorType = await getSonarrMonitor(get(settings)?.sonarr.monitor);
+	let search = get(settings)?.sonarr.StartSearch;
 	const options: SonarrSeriesOptions = {
 		title: tmdbSeries.name,
 		tvdbId: tmdbSeries.external_ids.tvdb_id,
 		qualityProfileId: get(settings)?.sonarr.qualityProfileId || 0,
-		monitored: false,
+		monitored: monitorType != 'none' ? true : false,
 		addOptions: {
-			monitor: 'none',
-			searchForMissingEpisodes: false,
-			searchForCutoffUnmetEpisodes: false
+			monitor: monitorType ? (monitorType as any) : 'none',
+			searchForMissingEpisodes: search ? search : false,
+			searchForCutoffUnmetEpisodes: search ? search : false
 		},
 		rootFolderPath: get(settings)?.sonarr.rootFolderPath || '',
 		languageProfileId: get(settings)?.sonarr.languageProfileId || 0,
@@ -306,6 +308,26 @@ export const getSonarrLanguageProfiles = async (
 			}
 		)
 		.then((res) => res.data || []);
+
+export const getSonarrMonitors = async (
+) => {
+	return [
+		'unknown',
+		'all',
+		'future',
+		'missing',
+		'existing',
+		'firstSeason',
+		'latestSeason',
+		'pilot',
+		'monitorSpecials',
+		'unmonitorSpecials',
+		'none']
+}
+
+export const getSonarrMonitor = async (id: number) => {
+	return getSonarrMonitors().then((r) => { return r[id] as string });
+}
 
 export function getSonarrPosterUrl(item: SonarrSeries, original = false) {
 	const url =
