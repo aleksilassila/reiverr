@@ -16,12 +16,16 @@ export interface SettingsValues {
 		rootFolderPath: string;
 		qualityProfileId: number;
 		languageProfileId: number;
+		monitor: number;
+		StartSearch: boolean;
 	};
 	radarr: {
 		baseUrl: string | null;
 		apiKey: string | null;
 		rootFolderPath: string;
 		qualityProfileId: number;
+		monitor: number;
+		StartSearch: boolean;
 	};
 	jellyfin: {
 		baseUrl: string | null;
@@ -44,6 +48,8 @@ export const defaultSettings: SettingsValues = {
 	sonarr: {
 		apiKey: null,
 		baseUrl: null,
+		monitor: 0,
+		StartSearch: false,
 		qualityProfileId: 0,
 		rootFolderPath: '',
 		languageProfileId: 0
@@ -52,7 +58,9 @@ export const defaultSettings: SettingsValues = {
 		apiKey: null,
 		baseUrl: null,
 		qualityProfileId: 0,
-		rootFolderPath: ''
+		rootFolderPath: '',
+		monitor: 0,
+		StartSearch: false,
 	},
 	jellyfin: {
 		apiKey: null,

@@ -21,8 +21,10 @@ export interface RadarrMovieOptions {
 	year: number;
 	rootFolderPath: string;
 	tmdbId: number;
-	monitored?: boolean;
-	searchNow?: boolean;
+	addOptions: {
+		monitored?: boolean;
+		searchForMovie?: boolean;
+	}
 }
 
 function getRadarrApi() {
@@ -66,6 +68,8 @@ export const addMovieToRadarr = async (tmdbId: number) => {
 	if (radarrMovie?.id) throw new Error('Movie already exists');
 
 	if (!tmdbMovie) throw new Error('Movie not found');
+	const monitorMovie = get(settings)?.radarr.monitor;
+	const search = get(settings)?.radarr.StartSearch;
 
 	const options: RadarrMovieOptions = {
 		qualityProfileId: get(settings)?.radarr.qualityProfileId || 0,
@@ -75,9 +79,11 @@ export const addMovieToRadarr = async (tmdbId: number) => {
 		title: tmdbMovie.title || tmdbMovie.original_title || '',
 		tmdbId: tmdbMovie.id || 0,
 		year: Number(tmdbMovie.release_date?.slice(0, 4)),
-		monitored: false,
 		tags: [],
-		searchNow: false
+		addOptions: {
+			monitored: monitorMovie != 0 ? true : false,
+			searchForMovie: search ? search : false,
+		}
 	};
 
 	return (
@@ -230,4 +236,13 @@ export function getRadarrPosterUrl(item: RadarrMovie, original = false) {
 	if (!original) return url.replace('poster.jpg', `poster-${500}.jpg`);
 
 	return url;
+}
+
+export const getRadarrMonitors = async (
+) => {
+	return [
+		'unknown',
+		'Movie Only',
+		'Movie and Collection'
+	]
 }
