@@ -12,7 +12,7 @@ This project is still in alpha, and many features are still missing / being test
 
 ![Demo Videi](images/reiverr-demo.gif)
 
-# List of major featuers
+# List of major features
 
 TMDB Discovery:
 
