@@ -29,13 +29,12 @@
 	import { contextMenu } from '../ContextMenu/ContextMenu';
 	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { modalStack } from '../../stores/modal.store';
 	import Slider from './Slider.svelte';
-	import { playerState } from './VideoPlayer';
 	import { linear } from 'svelte/easing';
 	import ContextMenuButton from '../ContextMenu/ContextMenuButton.svelte';
+	import { isTizen } from '../../utils/browser-detection';
 
-	export let modalId: symbol;
+	export let jellyfinId: string;
 
 	let qualityContextMenuId = Symbol();
 
@@ -98,7 +97,7 @@
 		if (document.mozCancelFullScreen) exitFullscreen = () => document.mozCancelFullScreen();
 	}
 
-	let paused: boolean;
+	let paused: boolean = false;
 	let duration: number = 0;
 	let displayedTime: number = 0;
 	let bufferedTime: number = 0;
@@ -149,7 +148,7 @@
 
 						hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
 						hls.attachMedia(video);
-					} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+					} else if (video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
 						/*
 						 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
 						 * This is not a problem, since HLS is natively supported on iOS. But any other browser
@@ -236,13 +235,13 @@
 		}
 	}
 
-	function handleClose() {
-		playerState.close();
-		video?.pause();
-		clearInterval(progressInterval);
-		stopCallback?.();
-		modalStack.close(modalId);
-	}
+	// function handleClose() {
+	// 	playerState.close();
+	// 	video?.pause();
+	// 	clearInterval(progressInterval);
+	// 	stopCallback?.();
+	// 	modalStack.close(modalId);
+	// }
 
 	function handleUserInteraction(touch: boolean = false) {
 		if (touch) shouldCloseUi = !shouldCloseUi;
@@ -258,13 +257,8 @@
 		}
 	}
 
-	function handleQualityToggleVisibility() {
-		if ($contextMenu === qualityContextMenuId) contextMenu.hide();
-		else contextMenu.show(qualityContextMenuId);
-	}
-
 	async function handleSelectQuality(bitrate: number) {
-		if (!$playerState.jellyfinId || !video || seeking) return;
+		if (!jellyfinId || !video || seeking) return;
 		if (bitrate === currentBitrate) return;
 
 		currentBitrate = bitrate;
@@ -273,7 +267,7 @@
 		let stateBeforeLoad = paused;
 		await reportProgress?.();
 		await deleteEncoding?.();
-		await fetchPlaybackInfo?.($playerState.jellyfinId, bitrate, false);
+		await fetchPlaybackInfo?.(jellyfinId, bitrate, false);
 		displayedTime = timeBeforeLoad;
 		paused = stateBeforeLoad;
 	}
@@ -297,14 +291,23 @@
 		return str;
 	}
 
+	$: {
+		if (video && jellyfinId) {
+			if (video.src === '') fetchPlaybackInfo(jellyfinId);
+			paused = false;
+			console.log('Paused', paused);
+			video.play();
+		}
+	}
+
 	onMount(() => {
 		// Workaround because the paused state does not sync
 		// with the video element until a change is made
 		paused = false;
 
-		if (video && $playerState.jellyfinId) {
-			if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
-		}
+		// if (video && $playerState.jellyfinId) {
+		// 	if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
+		// }
 	});
 
 	onDestroy(() => {
@@ -359,138 +362,139 @@
 <svelte:window on:keydown={handleShortcuts} />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
+<!--<div-->
+<!--	class={classNames(-->
+<!--		'bg-black w-screen h-[100dvh] sm:h-screen relative flex items-center justify-center',-->
+<!--		{-->
+<!--			'cursor-none': !uiVisible-->
+<!--		}-->
+<!--	)}-->
+<!--	in:fade|global={{ duration: 300, easing: linear }}-->
+<!--	out:fade|global={{ duration: 200, easing: linear }}-->
+<!--&gt;-->
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
-	class={classNames(
-		'bg-black w-screen h-[100dvh] sm:h-screen relative flex items-center justify-center',
-		{
-			'cursor-none': !uiVisible
-		}
-	)}
-	in:fade|global={{ duration: 300, easing: linear }}
-	out:fade|global={{ duration: 200, easing: linear }}
+	class="w-screen h-screen flex items-center justify-center"
+	bind:this={videoWrapper}
+	on:mousemove={() => handleUserInteraction(false)}
+	on:touchend|preventDefault={() => handleUserInteraction(true)}
+	in:fade|global={{ duration: 500, delay: 1200, easing: linear }}
 >
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<div
-		class="w-screen h-screen flex items-center justify-center"
-		bind:this={videoWrapper}
-		on:mousemove={() => handleUserInteraction(false)}
-		on:touchend|preventDefault={() => handleUserInteraction(true)}
-		in:fade|global={{ duration: 500, delay: 1200, easing: linear }}
-	>
-		<!-- svelte-ignore a11y-media-has-caption -->
-		<video
-			bind:this={video}
-			bind:paused
-			bind:duration
-			on:timeupdate={() =>
-				(displayedTime = !seeking && videoLoaded ? video.currentTime : displayedTime)}
-			on:progress={() => handleBuffer()}
-			on:play={() => {
-				if (seeking) video?.pause();
-			}}
-			on:loadeddata={() => {
-				video.currentTime = displayedTime;
-				videoLoaded = true;
-			}}
-			bind:volume
-			bind:muted={mute}
-			class="sm:w-full sm:h-full"
-			playsinline={true}
-			on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
-			on:click={() => (paused = !paused)}
-		/>
+	<!-- svelte-ignore a11y-media-has-caption -->
+	<video
+		bind:this={video}
+		bind:paused
+		bind:duration
+		on:timeupdate={() =>
+			(displayedTime = !seeking && videoLoaded ? video.currentTime : displayedTime)}
+		on:progress={() => handleBuffer()}
+		on:play={() => {
+			if (seeking) video?.pause();
+		}}
+		on:loadeddata={() => {
+			video.currentTime = displayedTime;
+			videoLoaded = true;
+		}}
+		bind:volume
+		bind:muted={mute}
+		class="sm:w-full sm:h-full"
+		playsinline={true}
+		on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
+		on:click={() => (paused = !paused)}
+		autoplay
+	/>
 
-		{#if uiVisible}
-			<!-- Video controls -->
-			<div
-				class="absolute bottom-0 w-screen bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent"
-				on:touchend|stopPropagation
-				transition:fade={{ duration: 100 }}
-			>
-				<div class="flex flex-col items-center p-4 gap-2 w-full">
-					<div class="flex items-center text-sm w-full">
-						<span class="whitespace-nowrap tabular-nums"
-							>{secondsToTime(displayedTime, duration > 3600)}</span
-						>
-						<div class="flex-grow">
-							<Slider
-								bind:primaryValue={displayedTime}
-								secondaryValue={bufferedTime}
-								max={duration}
-								on:mousedown={onSeekStart}
-								on:mouseup={onSeekEnd}
-								on:touchstart={onSeekStart}
-								on:touchend={onSeekEnd}
-							/>
-						</div>
-						<span class="whitespace-nowrap tabular-nums">{secondsToTime(duration)}</span>
+	{#if uiVisible}
+		<!-- Video controls -->
+		<div
+			class="absolute bottom-0 w-screen bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent"
+			on:touchend|stopPropagation
+			transition:fade={{ duration: 100 }}
+		>
+			<div class="flex flex-col items-center p-4 gap-2 w-full">
+				<div class="flex items-center text-sm w-full">
+					<span class="whitespace-nowrap tabular-nums"
+						>{secondsToTime(displayedTime, duration > 3600)}</span
+					>
+					<div class="flex-grow">
+						<Slider
+							bind:primaryValue={displayedTime}
+							secondaryValue={bufferedTime}
+							max={duration}
+							on:mousedown={onSeekStart}
+							on:mouseup={onSeekEnd}
+							on:touchstart={onSeekStart}
+							on:touchend={onSeekEnd}
+						/>
 					</div>
+					<span class="whitespace-nowrap tabular-nums">{secondsToTime(duration)}</span>
+				</div>
 
-					<div class="flex items-center justify-between mb-2 w-full">
-						<IconButton on:click={() => (paused = !paused)}>
-							{#if (!seeking && paused) || (seeking && playerStateBeforeSeek)}
-								<Play size={20} />
+				<div class="flex items-center justify-between mb-2 w-full">
+					<IconButton on:click={() => (paused = !paused)}>
+						{#if (!seeking && paused) || (seeking && playerStateBeforeSeek)}
+							<Play size={20} />
+						{:else}
+							<Pause size={20} />
+						{/if}
+					</IconButton>
+
+					<div class="flex items-center space-x-3">
+						<ContextMenuButton heading="Quality">
+							<svelte:fragment slot="menu">
+								{#each getQualities(resolution) as quality}
+									<SelectableContextMenuItem
+										selected={quality.maxBitrate === currentBitrate}
+										on:click={() => handleSelectQuality(quality.maxBitrate)}
+									>
+										{quality.name}
+									</SelectableContextMenuItem>
+								{/each}
+							</svelte:fragment>
+
+							<IconButton>
+								<Gear size={20} />
+							</IconButton>
+						</ContextMenuButton>
+						<IconButton
+							on:click={() => {
+								mute = !mute;
+							}}
+						>
+							{#if volume == 0 || mute}
+								<SpeakerOff size={20} />
+							{:else if volume < 0.25}
+								<SpeakerQuiet size={20} />
+							{:else if volume < 0.9}
+								<SpeakerModerate size={20} />
 							{:else}
-								<Pause size={20} />
+								<SpeakerLoud size={20} />
 							{/if}
 						</IconButton>
 
-						<div class="flex items-center space-x-3">
-							<ContextMenuButton heading="Quality">
-								<svelte:fragment slot="menu">
-									{#each getQualities(resolution) as quality}
-										<SelectableContextMenuItem
-											selected={quality.maxBitrate === currentBitrate}
-											on:click={() => handleSelectQuality(quality.maxBitrate)}
-										>
-											{quality.name}
-										</SelectableContextMenuItem>
-									{/each}
-								</svelte:fragment>
-
-								<IconButton>
-									<Gear size={20} />
-								</IconButton>
-							</ContextMenuButton>
-							<IconButton
-								on:click={() => {
-									mute = !mute;
-								}}
-							>
-								{#if volume == 0 || mute}
-									<SpeakerOff size={20} />
-								{:else if volume < 0.25}
-									<SpeakerQuiet size={20} />
-								{:else if volume < 0.9}
-									<SpeakerModerate size={20} />
-								{:else}
-									<SpeakerLoud size={20} />
-								{/if}
-							</IconButton>
-
-							<div class="w-32">
-								<Slider bind:primaryValue={volume} secondaryValue={0} max={1} />
-							</div>
-
-							<IconButton on:click={handleRequestFullscreen}>
-								{#if fullscreen}
-									<ExitFullScreen size={20} />
-								{:else if !fullscreen && exitFullscreen}
-									<EnterFullScreen size={20} />
-								{/if}
-							</IconButton>
+						<div class="w-32">
+							<Slider bind:primaryValue={volume} secondaryValue={0} max={1} />
 						</div>
+
+						<IconButton on:click={handleRequestFullscreen}>
+							{#if fullscreen}
+								<ExitFullScreen size={20} />
+							{:else if !fullscreen && exitFullscreen}
+								<EnterFullScreen size={20} />
+							{/if}
+						</IconButton>
 					</div>
 				</div>
 			</div>
-		{/if}
-	</div>
-
-	{#if uiVisible}
-		<div class="absolute top-4 right-8 z-50" transition:fade={{ duration: 100 }}>
-			<IconButton on:click={handleClose}>
-				<Cross2 size={25} />
-			</IconButton>
 		</div>
 	{/if}
 </div>
+
+<!--{#if uiVisible}-->
+<!--	<div class="absolute top-4 right-8 z-50" transition:fade={{ duration: 100 }}>-->
+<!--		<IconButton on:click={handleClose}>-->
+<!--			<Cross2 size={25} />-->
+<!--		</IconButton>-->
+<!--	</div>-->
+<!--{/if}-->
+<!--</div>-->

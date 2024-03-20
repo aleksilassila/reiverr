@@ -66,9 +66,28 @@ export class Selectable {
 			this.children[get(this.focusIndex)]?.focus();
 		} else if (this.htmlElement) {
 			this.htmlElement.focus({ preventScroll: true });
-			this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+			// this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+			this.scrollIntoView(50);
 			Selectable.focusedObject.set(this);
 			this.updateFocusIndex();
+		}
+	}
+
+	scrollIntoView(offset = 0, direction: Direction = 'left') {
+		if (this.htmlElement) {
+			const boundingRect = this.htmlElement.getBoundingClientRect();
+			const offsetParent = this.htmlElement.offsetParent as HTMLElement;
+
+			if (offsetParent) {
+				const left = this.htmlElement.offsetLeft - offset;
+
+				console.log(boundingRect);
+				console.log('Scrolling to left: ', left);
+				offsetParent.scrollTo({
+					left,
+					behavior: 'smooth'
+				});
+			}
 		}
 	}
 
@@ -191,7 +210,7 @@ export class Selectable {
 	}
 
 	_unmountContainer() {
-		console.log('Unmounting selectable', this);
+		// console.log('Unmounting selectable', this);
 		const isFocusedWithin = get(this.hasFocusWithin);
 
 		if (this.htmlElement) {
@@ -214,7 +233,7 @@ export class Selectable {
 		const selectable = _selectable || new Selectable().setDirection(flowDirection);
 
 		return (htmlElement: HTMLElement) => {
-			console.log('Registering', htmlElement, selectable);
+			// console.log('Registering', htmlElement, selectable);
 			selectable.setHtmlElement(htmlElement);
 
 			return {
@@ -274,6 +293,12 @@ export class Selectable {
 	private shouldFocusByDefault(): boolean {
 		return this.focusByDefault || this.parent?.shouldFocusByDefault() || false;
 	}
+
+	click() {
+		if (this.htmlElement) {
+			this.htmlElement.click();
+		}
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -300,5 +325,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		if (Selectable.focusLeft()) event.preventDefault();
 	} else if (event.key === 'ArrowRight') {
 		if (Selectable.focusRight()) event.preventDefault();
+	} else if (event.key === 'Enter') {
+		currentlyFocusedObject.click();
 	}
 }

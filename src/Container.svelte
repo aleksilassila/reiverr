@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Selectable } from './lib/selectable';
-	import type { Readable } from 'svelte/store';
 
 	export let name: string = '';
 	export let horizontal = false;

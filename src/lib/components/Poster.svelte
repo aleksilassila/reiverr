@@ -6,6 +6,8 @@
 	import LazyImg from './LazyImg.svelte';
 	import { Star } from 'radix-icons-svelte';
 	import type { TitleType } from '../types';
+	import Container from '../../Container.svelte';
+	import { useNavigate } from 'svelte-navigator';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
@@ -22,9 +24,11 @@
 	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
+
+	const navigate = useNavigate();
 </script>
 
-<button
+<Container
 	on:click={() => {
 		if (openInModal) {
 			if (tmdbId) {
@@ -32,12 +36,12 @@
 			} else if (tvdbId) {
 				//openTitleModal({ type, id: tvdbId, provider: 'tvdb' });
 			}
-		} else {
-			window.location.href = tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : '#';
+		} else if (tmdbId || tvdbId) {
+			navigate(`/${type}/${tmdbId || tvdbId}`);
 		}
 	}}
 	class={classNames(
-		'relative flex rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left',
+		'relative flex rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left cursor-pointer',
 		{
 			'aspect-video': orientation === 'landscape',
 			'aspect-[2/3]': orientation === 'portrait',
@@ -118,4 +122,4 @@
 			<ProgressBar {progress} />
 		</div>
 	{/if}
-</button>
+</Container>

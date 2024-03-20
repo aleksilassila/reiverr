@@ -47,7 +47,7 @@
 		<Container horizontal>
 			<div
 				class={classNames(
-					'flex overflow-x-scroll items-center overflow-y-visible gap-4 relative scrollbar-hide p-1',
+					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide p-1',
 					scrollClass
 				)}
 				bind:this={carousel}

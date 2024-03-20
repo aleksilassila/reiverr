@@ -8,13 +8,13 @@
 	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
-	import SeriesPage from './lib/pages/SeriesPage.svelte';
+	import BrowseSeriesPage from './lib/pages/BrowseSeriesPage.svelte';
 	import MoviesPage from './lib/pages/MoviesPage.svelte';
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
+	import SeriesPage from './lib/pages/SeriesPage.svelte';
 
-	Selectable.focusedObject.subscribe((s) => console.log('FocusedObject', s));
 	let mainContent: Selectable;
 
 	onMount(() => {
@@ -68,8 +68,8 @@
 		</Container>
 
 		<Container bind:container={mainContent} class="flex-1 flex flex-col min-w-0">
-			<Route>
-				<SeriesPage />
+			<Route path="/">
+				<BrowseSeriesPage />
 			</Route>
 			<Route path="movies">
 				<MoviesPage />
@@ -82,6 +82,10 @@
 			</Route>
 			<Route path="search">
 				<SearchPage />
+			</Route>
+			<Route path="series/:id" component={SeriesPage} />
+			<Route path="*">
+				<div>404</div>
 			</Route>
 		</Container>
 	</Router>
