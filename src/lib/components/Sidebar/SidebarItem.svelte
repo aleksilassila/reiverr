@@ -2,7 +2,7 @@
 	import classNames from 'classnames';
 	import { useNavigate } from 'svelte-navigator';
 	import { type Readable } from 'svelte/store';
-	import Container from '../../Container.svelte';
+	import Container from '../../../Container.svelte';
 
 	export let to: string;
 	let hasFocus: Readable<boolean>;

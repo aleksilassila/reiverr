@@ -22,8 +22,8 @@ a {
 	@apply outline-none outline-0 focus-visible:border-2 border-[#f0cd6dc2];
 }
 
-.selectable:focus-visible, .selectable:focus {
-	outline-style: solid;
+.selectable:focus, .selectable:focus-within {
+	border-width: 2px;
 }
 
 .peer-selectable {
@@ -32,4 +32,10 @@ a {
 
 .selectable-explicit {
 	@apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+}
+
+@media tv {
+	html {
+		font-size: 24px;
+	}
 }
