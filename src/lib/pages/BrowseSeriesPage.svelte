@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
-	import { getPosterProps, TmdbApiOpen } from '../apis/tmdb/tmdbApi';
+	import { getPosterProps, getTmdbPopularMovies, TmdbApiOpen } from '../apis/tmdb/tmdbApi';
 	import { formatDateToYearMonthDay } from '../utils';
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
@@ -11,7 +11,8 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import { _ } from 'svelte-i18n';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
-	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
+	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
+	import { getShowcasePropsFromTmdb } from '../components/HeroShowcase/HeroShowcase';
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
 		jellyfinItemsStore.subscribe((data) => {
@@ -59,6 +60,8 @@
 			.then((res) => res.data?.results || [])
 			.then((i) => fetchCardProps(i, 'series'));
 
+	const fetchPopularMovies = () => getTmdbPopularMovies();
+
 	const fetchLibraryItems = async () => {
 		const items = await getJellyfinItems();
 		const props = await fetchCardProps(items, 'series');
@@ -72,20 +75,23 @@
 </script>
 
 <Container focusOnMount>
-	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
-		<div slot="title" class="text-lg font-semibold text-zinc-300">
-			{$_('discover.streamingNow')}
-		</div>
-		{#await fetchNowStreaming()}
-			<CarouselPlaceholderItems />
-		{:then props}
-			{#each props as prop (prop.tmdbId)}
-				<Container class="m-2">
-					<Poster {...prop} />
-				</Container>
-			{/each}
-		{/await}
-	</Carousel>
+	<HeroShowcase items={getTmdbPopularMovies().then(getShowcasePropsFromTmdb)}>
+		<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
+			<div slot="title" class="text-lg font-semibold text-zinc-300">
+				{$_('discover.streamingNow')}
+			</div>
+			{#await fetchNowStreaming()}
+				<CarouselPlaceholderItems />
+			{:then props}
+				{#each props as prop (prop.tmdbId)}
+					<Container class="m-2">
+						<Poster {...prop} />
+					</Container>
+				{/each}
+			{/await}
+		</Carousel>
+	</HeroShowcase>
+
 	<!--	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">-->
 	<!--		<div slot="title" class="text-lg font-semibold text-zinc-300">-->
 	<!--			{$_('discover.library')}-->

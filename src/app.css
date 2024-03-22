@@ -19,7 +19,7 @@ a {
 }
 
 .selectable {
-	@apply outline-none outline-0 focus-visible:border-2 border-[#f0cd6dc2];
+	@apply outline-none outline-0 border-2 border-[#00000000] focus-visible:border-[#f0cd6dc2];
 }
 
 .selectable:focus, .selectable:focus-within {

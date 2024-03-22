@@ -4,6 +4,12 @@ export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
+export type NavigationActions = {
+	[direction in Direction]?: (selectable: Selectable) => boolean;
+} & {
+	back?: (selectable: Selectable) => boolean;
+	enter?: (selectable: Selectable) => boolean;
+};
 
 export class Selectable {
 	id: symbol;
@@ -19,6 +25,7 @@ export class Selectable {
 	};
 	private focusByDefault: boolean = false;
 	private isInitialized: boolean = false;
+	private navigationActions: NavigationActions = {};
 
 	private direction: FlowDirection = 'vertical';
 
@@ -299,6 +306,15 @@ export class Selectable {
 			this.htmlElement.click();
 		}
 	}
+
+	setNavigationActions(actions: NavigationActions) {
+		this.navigationActions = actions;
+		return this;
+	}
+
+	getNavigationActions(): NavigationActions {
+		return this.navigationActions;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -317,15 +333,26 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 
 	// console.log('Currently focused object: ', currentlyFocusedObject.name, currentlyFocusedObject);
 
+	const navigationActions = currentlyFocusedObject.getNavigationActions();
 	if (event.key === 'ArrowUp') {
-		if (Selectable.focusUp()) event.preventDefault();
+		if (navigationActions.up && navigationActions.up(currentlyFocusedObject))
+			event.preventDefault();
+		else if (Selectable.focusUp()) event.preventDefault();
 	} else if (event.key === 'ArrowDown') {
-		if (Selectable.focusDown()) event.preventDefault();
+		if (navigationActions.down && navigationActions.down(currentlyFocusedObject))
+			event.preventDefault();
+		else if (Selectable.focusDown()) event.preventDefault();
 	} else if (event.key === 'ArrowLeft') {
-		if (Selectable.focusLeft()) event.preventDefault();
+		if (navigationActions.left && navigationActions.left(currentlyFocusedObject))
+			event.preventDefault();
+		else if (Selectable.focusLeft()) event.preventDefault();
 	} else if (event.key === 'ArrowRight') {
-		if (Selectable.focusRight()) event.preventDefault();
+		if (navigationActions.right && navigationActions.right(currentlyFocusedObject))
+			event.preventDefault();
+		else if (Selectable.focusRight()) event.preventDefault();
 	} else if (event.key === 'Enter') {
-		currentlyFocusedObject.click();
+		if (navigationActions.enter && navigationActions.enter(currentlyFocusedObject))
+			event.preventDefault();
+		else currentlyFocusedObject.click();
 	}
 }

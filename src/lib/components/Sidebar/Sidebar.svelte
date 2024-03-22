@@ -3,7 +3,6 @@
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
-	import SidebarItem from './SidebarItem.svelte';
 	import { useNavigate } from 'svelte-navigator';
 
 	let isNavBarOpen: Readable<boolean>;
@@ -14,12 +13,13 @@
 	const asd2 = '';
 	const itemContainer = (index: number, _focusIndex: number) =>
 		classNames('h-12 flex items-center', {
-			'text-amber-300': _focusIndex === index
+			'text-amber-300': _focusIndex === index,
+			'text-stone-300': _focusIndex !== index
 		});
 </script>
 
 <Container
-	class={classNames('flex items-stretch relative', 'p-4', {
+	class={classNames('flex items-stretch fixed z-20 left-0 inset-y-0', 'py-4 w-16', {
 		//'max-w-[64px]': !$isNavBarOpen,
 		//'max-w-64': $isNavBarOpen
 	})}
@@ -33,7 +33,7 @@
 	<!--		</Link>-->
 	<!--	</div>-->
 
-	<div class={'flex flex-col flex-1 relative z-20'}>
+	<div class={'flex flex-col flex-1 relative z-20 items-center'}>
 		<div class={'flex flex-col flex-1 justify-center'}>
 			<Container on:click={() => navigate('/')}>
 				<div class={itemContainer(0, $focusIndex)}>

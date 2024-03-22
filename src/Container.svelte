@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Selectable } from './lib/selectable';
+	import { type NavigationActions, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
 
 	export let name: string = '';
@@ -8,8 +8,11 @@
 	export let focusOnMount = false;
 	export let debugOutline = false;
 
+	export let navigationActions: NavigationActions = {};
+
 	const { registerer, ...rest } = new Selectable(name)
 		.setDirection(horizontal ? 'horizontal' : 'vertical')
+		.setNavigationActions(navigationActions)
 		.getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;
