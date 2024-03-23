@@ -36,11 +36,11 @@
 			"movie": "Filmes",
 			"show": "Séries",
 			"requestContent": "Solicitar",
-			"directedBy": "Dirigido por",
+			"directedBy": "Direção",
 			"releaseDate": "Data de lançamento",
 			"budget": "Orçamento",
 			"status": "Estado",
-			"runtime": "Tempo de execução",
+			"runtime": "Duração",
 			"castAndCrew": "Elenco e equipe",
 			"recommendations": "Recomendações",
 			"similarTitles": "Títulos semelhantes"
@@ -49,9 +49,9 @@
 	"sources": {},
 	"titleShowcase": {
 		"details": "Detalhes",
-		"watchTrailer": "Assistir Trailer",
+		"watchTrailer": "Assistir trailer",
 		"releaseDate": "Data de lançamento",
-		"directedBy": "Dirigido por"
+		"directedBy": "Direção"
 	},
 	"settings": {
 		"navbar": {
@@ -77,7 +77,7 @@
 		},
 		"integrations": {
 			"integrations": "Integrações",
-			"integrationsNote": "Observação: as URLs base devem estar acessíveis no navegador, o que significa que os endereços internos do docker não funcionarão, por exemplo. As chaves de API <span class='font-medium underline'>serão expostas</span> ao navegador.",
+			"integrationsNote": "Observação: Os URLs base devem estar acessíveis no navegador, o que significa que os endereços internos do docker não funcionarão, por exemplo. As chaves de API <span class='font-medium underline'>serão expostas</span> ao navegador.",
 			"baseUrl": "URL base",
 			"apiKey": "Chave API",
 			"testConnection": "Testar conexão",
@@ -95,8 +95,8 @@
 		},
 		"misc": {
 			"saveChanges": "Salvar alterações",
-			"resetToDefaults": "Redefinir para os padrões",
-			"changelog": "Mudanças"
+			"resetToDefaults": "Redefinir para os padrões ",
+			"changelog": "Registro de alterações"
 		}
 	}
 }
