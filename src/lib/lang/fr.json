@@ -34,7 +34,7 @@
 		},
 		"content": {
 			"movie": "Film",
-			"show": "Voir",
+			"show": "Série",
 			"requestContent": "Demander",
 			"directedBy": "Dirigé par",
 			"releaseDate": "Date de sortie",
@@ -70,16 +70,16 @@
 				"discovery": "Découverte",
 				"none": "Aucun",
 				"region": "Région",
-				"excludeLibraryItemsFromDiscovery": "Exclure les éléments de bibliothèque de Discovery",
+				"excludeLibraryItemsFromDiscovery": "Exclure les éléments de bibliothèque de Découverte",
 				"includedLanguages": "Langues incluses",
-				"includedLanguagesDescription": "Filtrez les résultats en fonction de la langue parlée. "
+				"includedLanguagesDescription": "Filtrer les résultats en fonction de la langue parlée. Utiliser les codes de langue ISO 639-1 séparés par des virgules. Laisser vide pour désactiver."
 			}
 		},
 		"integrations": {
 			"integrations": "Intégrations",
-			"integrationsNote": "Remarque: Les URL de base doivent être accessibles depuis le navigateur, ce qui signifie que les adresses Docker internes ne fonctionneront pas, par exemple. <span class='font-medium underline'>sera exposé</span> au navigateur.",
+			"integrationsNote": "Remarque: Les URL de base doivent être accessibles depuis le navigateur, ce qui signifie que les adresses Docker internes ne fonctionneront pas, par exemple. Les clés de l'API <span class='font-medium underline'>sera exposé</span> au navigateur.",
 			"baseUrl": "URL de base",
-			"apiKey": "clé API",
+			"apiKey": "Clé API",
 			"testConnection": "Tester la connexion",
 			"status": {
 				"connected": "Connecté",
