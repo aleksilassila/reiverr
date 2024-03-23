@@ -2,7 +2,6 @@
 	import classNames from 'classnames';
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
-	// import { playerState } from '../VideoPlayer/VideoPlayer';
 	import LazyImg from '../LazyImg.svelte';
 	import { Star } from 'radix-icons-svelte';
 	import type { TitleType } from '../../types';
@@ -21,6 +20,7 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
+	export let focusable = true;
 	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
@@ -29,6 +29,7 @@
 </script>
 
 <Container
+	active={focusable}
 	on:click={() => {
 		if (openInModal) {
 			if (tmdbId) {

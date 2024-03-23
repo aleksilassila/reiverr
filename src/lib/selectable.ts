@@ -26,6 +26,7 @@ export class Selectable {
 	private focusByDefault: boolean = false;
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
+	private isActive: boolean = true;
 
 	private direction: FlowDirection = 'vertical';
 
@@ -69,14 +70,45 @@ export class Selectable {
 	}
 
 	focus() {
+		function updateFocusIndex(currentSelectable: Selectable, selectable?: Selectable) {
+			if (selectable) {
+				const index = currentSelectable.children.indexOf(selectable);
+				currentSelectable.focusIndex.update((prev) => (index === -1 ? prev : index));
+			}
+			if (currentSelectable.parent) {
+				updateFocusIndex(currentSelectable.parent, currentSelectable);
+			}
+		}
+
 		if (this.children.length > 0) {
-			this.children[get(this.focusIndex)]?.focus();
+			const focusIndex = get(this.focusIndex);
+
+			if (this.children[focusIndex]?.isFocusable()) {
+				this.children[focusIndex].focus();
+			} else {
+				let i = focusIndex;
+				while (i < this.children.length) {
+					if (this.children[i].isFocusable()) {
+						this.children[i].focus();
+						return;
+					}
+					i++;
+				}
+				i = focusIndex - 1;
+				while (i >= 0) {
+					if (this.children[i].isFocusable()) {
+						this.children[i].focus();
+						return;
+					}
+					i--;
+				}
+			}
 		} else if (this.htmlElement) {
 			this.htmlElement.focus({ preventScroll: true });
 			// this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
 			this.scrollIntoView(50);
 			Selectable.focusedObject.set(this);
-			this.updateFocusIndex();
+			updateFocusIndex(this);
 		}
 	}
 
@@ -98,17 +130,12 @@ export class Selectable {
 		}
 	}
 
-	updateFocusIndex(selectable?: Selectable) {
-		if (selectable) {
-			const index = this.children.indexOf(selectable);
-			this.focusIndex.update((prev) => (index === -1 ? prev : index));
-		}
-		if (this.parent) {
-			this.parent.updateFocusIndex(this);
-		}
-	}
+	/**
+	 * @returns {boolean} whether the selectable is focusable
+	 */
+	isFocusable(): boolean {
+		if (!this.isActive) return false;
 
-	isFocusable() {
 		if (this.htmlElement) {
 			return this.htmlElement.tabIndex >= 0;
 		} else {
@@ -118,20 +145,23 @@ export class Selectable {
 				}
 			}
 		}
+
+		return false;
 	}
 
 	getFocusableNeighbor(direction: Direction): Selectable | undefined {
-		const canLoop =
+		const focusIndex = get(this.focusIndex);
+		const canCycleSiblings =
 			(this.direction === 'vertical' &&
-				((direction === 'up' && get(this.focusIndex) !== 0) ||
-					(direction === 'down' && get(this.focusIndex) !== this.children.length - 1))) ||
+				((direction === 'up' && focusIndex !== 0) ||
+					(direction === 'down' && focusIndex !== this.children.length - 1))) ||
 			(this.direction === 'horizontal' &&
-				((direction === 'left' && get(this.focusIndex) !== 0) ||
-					(direction === 'right' && get(this.focusIndex) !== this.children.length - 1)));
+				((direction === 'left' && focusIndex !== 0) ||
+					(direction === 'right' && focusIndex !== this.children.length - 1)));
 
-		if (this.children.length > 0 && canLoop) {
+		if (this.children.length > 0 && canCycleSiblings) {
 			if (direction === 'up' || direction === 'left') {
-				let index = get(this.focusIndex) - 1;
+				let index = focusIndex - 1;
 				while (index >= 0) {
 					if (this.children[index].isFocusable()) {
 						return this.children[index];
@@ -139,7 +169,7 @@ export class Selectable {
 					index--;
 				}
 			} else if (direction === 'down' || direction === 'right') {
-				let index = get(this.focusIndex) + 1;
+				let index = focusIndex + 1;
 				while (index < this.children.length) {
 					if (this.children[index].isFocusable()) {
 						return this.children[index];
@@ -314,6 +344,11 @@ export class Selectable {
 
 	getNavigationActions(): NavigationActions {
 		return this.navigationActions;
+	}
+
+	setIsActive(isActive: boolean) {
+		this.isActive = isActive;
+		return this;
 	}
 }
 

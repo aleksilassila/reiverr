@@ -27,14 +27,14 @@
 		<div on:click={() => onJump(i)}>
 			<div
 				class={classNames(
-					'cursor-pointer transition-transform hover:scale-125 hover:opacity-50 p-2.5',
+					'cursor-pointer transition-transform hover:scale-125 hover:opacity-50 p-1.5 xl:p-2.5',
 					{
 						'opacity-50': i === index,
 						'opacity-20': i !== index
 					}
 				)}
 			>
-				<div class={'bg-zinc-200 rounded-full w-2.5 h-2.5'} />
+				<div class={'bg-zinc-200 rounded-full w-2 h-2 xl:w-2.5 xl:h-2.5'} />
 			</div>
 		</div>
 	{/each}

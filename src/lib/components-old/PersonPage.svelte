@@ -2,7 +2,7 @@
 	import { getTmdbPerson } from '../../lib/apis/tmdb/tmdbApi';
 	import Carousel from '../../lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../../lib/components/Carousel/CarouselPlaceholderItems.svelte';
-	import Poster from '../../lib/components/Poster/Poster.svelte';
+	import Poster from '../components/Card/Card.svelte';
 	import TitlePageLayout from '../../lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import FacebookIcon from '../../lib/components/svgs/FacebookIcon.svelte';
 	import ImdbIcon from '../../lib/components/svgs/ImdbIcon.svelte';

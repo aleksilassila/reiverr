@@ -8,6 +8,8 @@
 	export let focusOnMount = false;
 	export let debugOutline = false;
 
+	export let active = true;
+
 	export let navigationActions: NavigationActions = {};
 
 	const { registerer, ...rest } = new Selectable(name)
@@ -20,6 +22,8 @@
 	export const focusIndex = rest.focusIndex;
 
 	export let tag = 'div';
+
+	$: container.setIsActive(active);
 
 	onMount(() => {
 		rest.container._initializeSelectable();
@@ -37,7 +41,7 @@
 <svelte:element
 	this={tag}
 	on:click
-	tabindex="0"
+	tabindex={active ? 0 : -1}
 	{...$$restProps}
 	class={classNames($$restProps.class, {
 		'outline-none': debugOutline === false

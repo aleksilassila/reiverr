@@ -5,7 +5,7 @@
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
 	import type { ComponentProps } from 'svelte';
-	import Poster from '../components/Poster/Poster.svelte';
+	import Poster from '../components/Card/Card.svelte';
 	import { getJellyfinItems, type JellyfinItem } from '../apis/jellyfin/jellyfinApi';
 	import { jellyfinItemsStore } from '../stores/data.store';
 	import Carousel from '../components/Carousel/Carousel.svelte';

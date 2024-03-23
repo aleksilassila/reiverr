@@ -8,7 +8,7 @@
 	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
 	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import classNames from 'classnames';
-	import Poster from '../Poster/Poster.svelte';
+	import Card from '../Card/Card.svelte';
 	import { TMDB_POSTER_SMALL } from '../../constants';
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
@@ -40,13 +40,13 @@
 <Container class="h-screen pl-16 flex flex-col relative">
 	<HeroShowcaseBackground {items} index={showcaseIndex} />
 	<Container
-		class="flex-1 px-8 flex overflow-hidden z-10"
 		navigationActions={{
 			right: onNext,
 			left: onPrevious,
 			up: () => Selectable.focusLeft() || true
 		}}
-	>
+	/>
+	<div class="flex-1 px-8 flex overflow-hidden z-10">
 		<div class="flex flex-1">
 			{#await items}
 				<div class="flex-1 flex items-end">
@@ -70,7 +70,11 @@
 					{@const item = items[showcaseIndex]}
 					<div class="flex-1 flex items-end">
 						<div class="mr-8">
-							<Poster orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />
+							<Card
+								focusable={false}
+								orientation="portrait"
+								backdropUrl={TMDB_POSTER_SMALL + item.posterUrl}
+							/>
 						</div>
 						<div class="flex flex-col">
 							<div
@@ -120,7 +124,7 @@
 				<p>{error.message}</p>
 			{/await}
 		</div>
-	</Container>
+	</div>
 	<Container class="z-10">
 		<slot />
 	</Container>
