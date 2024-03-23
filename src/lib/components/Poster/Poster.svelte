@@ -1,12 +1,12 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import PlayButton from './PlayButton.svelte';
-	import ProgressBar from './ProgressBar.svelte';
+	import PlayButton from '../PlayButton.svelte';
+	import ProgressBar from '../ProgressBar.svelte';
 	// import { playerState } from '../VideoPlayer/VideoPlayer';
-	import LazyImg from './LazyImg.svelte';
+	import LazyImg from '../LazyImg.svelte';
 	import { Star } from 'radix-icons-svelte';
-	import type { TitleType } from '../types';
-	import Container from '../../Container.svelte';
+	import type { TitleType } from '../../types';
+	import Container from '../../../Container.svelte';
 	import { useNavigate } from 'svelte-navigator';
 
 	export let tmdbId: number | undefined = undefined;
@@ -61,6 +61,7 @@
 		class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"
 		style="filter: blur(50px); transform: scale(3);"
 	>
+		<!-- This is the tinted and blurred hover overlay -->
 		<LazyImg src={backdropUrl} />
 	</div>
 	<!-- <div

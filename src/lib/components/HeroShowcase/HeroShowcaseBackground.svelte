@@ -13,22 +13,27 @@
 	}
 </script>
 
-<div
-	class="absolute inset-0 flex overflow-hidden h-full w-full"
-	style="perspective: 1px; -webkit-perspective: 1px;"
->
-	{#await items then items}
-		{#each items as item, index}
-			<div
-				class="w-full h-full flex-shrink-0 basis-auto relative"
-				style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
-				bind:this={htmlElements[index]}
-			>
+<div class="absolute inset-0">
+	<div
+		class="flex overflow-hidden h-[60%] w-full"
+		style="perspective: 1px; -webkit-perspective: 1px;"
+	>
+		{#await items then items}
+			{#each items as item, i}
 				<div
-					class="w-full h-full flex-shrink-0 basis-auto bg-center bg-cover absolute inset-0"
-					style={`background-image: url('${TMDB_IMAGES_ORIGINAL}${item.backdropUrl}'); transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);`}
-				/>
-			</div>
-		{/each}
-	{/await}
+					class="w-full h-full flex-shrink-0 basis-auto relative"
+					style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
+					bind:this={htmlElements[i]}
+				>
+					<div
+						class="w-full h-full flex-shrink-0 basis-auto bg-center bg-cover absolute inset-0"
+						style={`background-image: url('${TMDB_IMAGES_ORIGINAL}${item.backdropUrl}'); transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);`}
+					/>
+				</div>
+			{/each}
+		{/await}
+	</div>
+	<div
+		class="bg-gradient-to-t from-stone-950 via-stone-950 via-40% to-transparent absolute inset-0"
+	/>
 </div>

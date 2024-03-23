@@ -1,6 +1,5 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { DotFilled } from 'radix-icons-svelte';
 
 	export let index: number;
 	export let length: number;
@@ -26,16 +25,17 @@
 			<div class={classNames('h-[3px] bg-zinc-200 rounded-full', {})} />
 		</div> -->
 		<div on:click={() => onJump(i)}>
-			<DotFilled
+			<div
 				class={classNames(
-					'transition-transform hover:scale-150 hover:opacity-50 cursor-pointer text-zinc-200',
+					'cursor-pointer transition-transform hover:scale-125 hover:opacity-50 p-2.5',
 					{
 						'opacity-50': i === index,
 						'opacity-20': i !== index
 					}
 				)}
-				size={20}
-			/>
+			>
+				<div class={'bg-zinc-200 rounded-full w-2.5 h-2.5'} />
+			</div>
 		</div>
 	{/each}
 </div>

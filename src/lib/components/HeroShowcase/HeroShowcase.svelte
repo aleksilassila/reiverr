@@ -4,19 +4,21 @@
 	import type { ShowcaseItemProps } from './HeroShowcase';
 	import HeroShowcaseBackground from './HeroShowcaseBackground.svelte';
 	import { Selectable } from '../../selectable';
+	import IconButton from '../IconButton.svelte';
+	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
+	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
+	import classNames from 'classnames';
+	import Poster from '../Poster/Poster.svelte';
+	import { TMDB_POSTER_SMALL } from '../../constants';
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
-	let showcaseIndex = 0;
+	let showcaseIndex = 6;
 	let showcaseLength = 0;
 	$: items.then((i) => (showcaseLength = i?.length || 0));
 
 	function onNext() {
-		if (showcaseIndex === showcaseLength - 1) {
-			Selectable.focusRight();
-		} else {
-			showcaseIndex = (showcaseIndex + 1) % showcaseLength;
-		}
+		showcaseIndex = (showcaseIndex + 1) % showcaseLength;
 		return true;
 	}
 
@@ -38,36 +40,88 @@
 <Container class="h-screen pl-16 flex flex-col relative">
 	<HeroShowcaseBackground {items} index={showcaseIndex} />
 	<Container
-		class="flex-1 p-2 flex overflow-hidden"
+		class="flex-1 px-8 flex overflow-hidden z-10"
 		navigationActions={{
 			right: onNext,
 			left: onPrevious,
-			up: () => Selectable.focusLeft()
+			up: () => Selectable.focusLeft() || true
 		}}
 	>
-		<!--{#await items}-->
-		<!--		<div class="flex placeholder flex-1 rounded-2xl">-->
-		<!--			{showcaseIndex}-->
-		<!--			<div />-->
-		<!--		</div>-->
-		<!--{:then items}-->
-		<!--	{#each items as item}-->
-		<!--		<div class="flex flex-col items-center justify-center w-full h-full">-->
-		<!--			<img src={item.posterUrl} alt={item.title} class="w-48 h-72" />-->
-		<!--			<h2 class="text-lg font-bold">{item.title}</h2>-->
-		<!--			<p>{item.year}</p>-->
-		<!--			<p>{item.runtime}</p>-->
-		<!--			<p>{item.rating}</p>-->
-		<!--			<p>{item.ratingSource}</p>-->
-		<!--			<p>{item.genres.join(', ')}</p>-->
-		<!--		</div>-->
-		<!--	{/each}-->
-		<PageDots index={showcaseIndex} length={showcaseLength} {onJump} {onPrevious} {onNext} />
-		<!--{:catch error}-->
-		<!--	<p>{error.message}</p>-->
-		<!--{/await}-->
+		<div class="flex flex-1">
+			{#await items}
+				<div class="flex-1 flex items-end">
+					<CardPlaceholder orientation="portrait" />
+					<div class="flex flex-col">
+						<div>stats</div>
+						<div>title</div>
+						<div>genres</div>
+					</div>
+				</div>
+				<div class="flex flex-col justify-end">
+					<div class="flex flex-1 justify-end items-center">
+						<IconButton on:click={onNext}>
+							<ChevronRight size={38} />
+						</IconButton>
+					</div>
+					<PageDots index={showcaseIndex} length={showcaseLength} {onJump} {onPrevious} {onNext} />
+				</div>
+			{:then items}
+				{#if items[showcaseIndex]}
+					{@const item = items[showcaseIndex]}
+					<div class="flex-1 flex items-end">
+						<div class="mr-8">
+							<Poster orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />
+						</div>
+						<div class="flex flex-col">
+							<div
+								class={classNames(
+									'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 max-w-xl mt-2',
+									{
+										'text-4xl sm:text-5xl 2xl:text-6xl': item?.title.length < 15,
+										'text-3xl sm:text-4xl 2xl:text-5xl': item?.title.length >= 15
+									}
+								)}
+							>
+								{item?.title}
+							</div>
+							<div
+								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
+							>
+								<p class="flex-shrink-0">{item.year}</p>
+								<!-- <DotFilled />
+								<p class="flex-shrink-0">{item.runtime}</p> -->
+								<DotFilled />
+								<p class="flex-shrink-0"><a href={item.url}>{item.rating} TMDB</a></p>
+							</div>
+							<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-2xl mt-4">
+								{item.overview}
+							</div>
+							<!-- <div class="flex items-center">
+								{#each item?.genres.slice(0, 3) as genre}
+									<span
+										class="backdrop-blur-lg rounded-full bg-zinc-400 bg-opacity-20 p-1.5 px-4 font-medium text-sm flex-grow-0 mr-4"
+									>
+										{genre}
+									</span>
+								{/each}
+							</div> -->
+						</div>
+					</div>
+				{/if}
+				<div class="flex flex-col justify-end">
+					<div class="flex flex-1 justify-end items-center">
+						<IconButton on:click={onNext}>
+							<ChevronRight size={38} />
+						</IconButton>
+					</div>
+					<PageDots index={showcaseIndex} length={showcaseLength} {onJump} {onPrevious} {onNext} />
+				</div>
+			{:catch error}
+				<p>{error.message}</p>
+			{/await}
+		</div>
 	</Container>
-	<Container>
+	<Container class="z-10">
 		<slot />
 	</Container>
 </Container>

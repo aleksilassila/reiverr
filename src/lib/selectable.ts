@@ -88,8 +88,8 @@ export class Selectable {
 			if (offsetParent) {
 				const left = this.htmlElement.offsetLeft - offset;
 
-				console.log(boundingRect);
-				console.log('Scrolling to left: ', left);
+				// console.log(boundingRect);
+				// console.log('Scrolling to left: ', left);
 				offsetParent.scrollTo({
 					left,
 					behavior: 'smooth'
@@ -200,7 +200,7 @@ export class Selectable {
 			console.warn('Selectable already initialized', this);
 		}
 
-		console.log('Initializing', this.htmlElement);
+		// console.log('Initializing', this.htmlElement);
 
 		const parentSelectable = this.htmlElement.parentElement
 			? getParentSelectable(this.htmlElement.parentElement)
