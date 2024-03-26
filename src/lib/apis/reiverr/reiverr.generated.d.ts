@@ -5,20 +5,17 @@
 
 
 export interface paths {
-  "/api/user": {
+  "/user": {
     get: operations["UserController_getProfile"];
     post: operations["UserController_create"];
   };
-  "/api/user/{id}": {
+  "/user/{id}": {
     get: operations["UserController_findById"];
   };
-  "/api/auth": {
+  "/auth": {
     post: operations["AuthController_signIn"];
   };
-  "/api/auth/profile": {
-    get: operations["AuthController_getProfile"];
-  };
-  "/api": {
+  "/": {
     get: operations["AppController_getHello"];
   };
 }
@@ -59,6 +56,18 @@ export interface components {
       isAdmin: boolean;
       settings: components["schemas"]["Settings"];
     };
+    CreateUserDto: {
+      name: string;
+      password: string;
+      isAdmin: boolean;
+    };
+    SignInDto: {
+      name: string;
+      password: string;
+    };
+    SignInResponse: {
+      accessToken: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -81,13 +90,26 @@ export interface operations {
           "application/json": components["schemas"]["UserDto"];
         };
       };
-      /** @description User not found */
       404: {
-        content: never;
+        content: {
+          "application/json": {
+            /** @example 404 */
+            statusCode: number;
+            /** @example Not Found */
+            message: string;
+            /** @example Not Found */
+            error?: string;
+          };
+        };
       };
     };
   };
   UserController_create: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateUserDto"];
+      };
+    };
     responses: {
       200: {
         content: never;
@@ -107,23 +129,44 @@ export interface operations {
           "application/json": components["schemas"]["UserDto"];
         };
       };
-      /** @description User not found */
       404: {
-        content: never;
+        content: {
+          "application/json": {
+            /** @example 404 */
+            statusCode: number;
+            /** @example Not Found */
+            message: string;
+            /** @example Not Found */
+            error?: string;
+          };
+        };
       };
     };
   };
   AuthController_signIn: {
-    responses: {
-      200: {
-        content: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SignInDto"];
       };
     };
-  };
-  AuthController_getProfile: {
     responses: {
+      /** @description User found */
       200: {
-        content: never;
+        content: {
+          "application/json": components["schemas"]["SignInResponse"];
+        };
+      };
+      401: {
+        content: {
+          "application/json": {
+            /** @example 401 */
+            statusCode: number;
+            /** @example Unauthorized */
+            message: string;
+            /** @example Unauthorized */
+            error?: string;
+          };
+        };
       };
     };
   };

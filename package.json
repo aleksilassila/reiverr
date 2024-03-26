@@ -19,7 +19,9 @@
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"test:unit": "vitest",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write ."
+		"format": "prettier --plugin-search-dir . --write .",
+		"openapi:update": "npm run --prefix backend openapi:schema && npm run openapi:codegen",
+		"openapi:codegen": "openapi-typescript \"backend/swagger-spec.json\" -o src/lib/apis/reiverr/reiverr.generated.d.ts"
 	},
 	"devDependencies": {
 		"@jellyfin/sdk": "^0.8.2",

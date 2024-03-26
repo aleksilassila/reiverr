@@ -11,9 +11,12 @@ import { AccessTokenPayload } from './auth.service';
 import { User } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 
-export const GetUser = createParamDecorator((data, req): User => {
-  return req.user;
-});
+export const GetUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext): User => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
 
 @Injectable()
 export class AuthGuard implements CanActivate {

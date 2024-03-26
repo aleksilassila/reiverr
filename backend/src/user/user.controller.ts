@@ -14,6 +14,7 @@ import { AuthGuard, GetUser } from '../auth/auth.guard';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
+import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 
 @ApiTags('user')
 @Controller('user')
@@ -22,9 +23,11 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get()
-  @ApiNotFoundResponse({ description: 'User not found' })
   @ApiOkResponse({ description: 'User found', type: UserDto })
+  @ApiException(() => NotFoundException, { description: 'User not found' })
   async getProfile(@GetUser() user: User): Promise<UserDto> {
+    console.log(user);
+
     if (!user) {
       throw new NotFoundException();
     }
@@ -35,7 +38,7 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOkResponse({ description: 'User found', type: UserDto })
-  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiException(() => NotFoundException, { description: 'User not found' })
   async findById(
     @Param('id') id: string,
     @GetUser() callerUser: User,
