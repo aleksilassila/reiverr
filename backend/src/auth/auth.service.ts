@@ -2,10 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 
-interface AccessTokenPayload {
+export interface AccessTokenPayload {
   sub: string;
-  name: string;
-  isAdmin: boolean;
 }
 
 @Injectable()
@@ -29,8 +27,6 @@ export class AuthService {
 
     const payload: AccessTokenPayload = {
       sub: user.id,
-      name: user.name,
-      isAdmin: user.isAdmin,
     };
 
     return {
@@ -38,8 +34,3 @@ export class AuthService {
     };
   }
 }
-export type AuthUser = {
-  id: string;
-  name: string;
-  isAdmin: boolean;
-};

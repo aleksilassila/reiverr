@@ -38,7 +38,7 @@
 		"eslint-plugin-svelte": "^2.35.1",
 		"hls.js": "^1.4.14",
 		"openapi-fetch": "^0.8.2",
-		"openapi-typescript": "^6.7.3",
+		"openapi-typescript": "^6.7.5",
 		"postcss": "^8.4.35",
 		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.10.1",

@@ -8,55 +8,65 @@ import {
   Param,
   Post,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { AuthGuard } from '../auth/auth.guard';
-import { AuthUser } from 'src/auth/auth.service';
+import { AuthGuard, GetUser } from '../auth/auth.guard';
+import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { CreateUserDto, UserDto } from './user.dto';
+import { User } from './user.entity';
 
+@ApiTags('user')
 @Controller('user')
 export class UserController {
   constructor(private userService: UserService) {}
 
   @UseGuards(AuthGuard)
   @Get()
-  async getProfile(@Request() req) {
-    const user = await this.userService.findOne((req.user as AuthUser).id);
-
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiOkResponse({ description: 'User found', type: UserDto })
+  async getProfile(@GetUser() user: User): Promise<UserDto> {
     if (!user) {
       throw new NotFoundException();
     }
 
-    return user;
+    return UserDto.fromEntity(user);
   }
 
+  @UseGuards(AuthGuard)
   @Get(':id')
-  async findById(@Param('id') id: string) {
+  @ApiOkResponse({ description: 'User found', type: UserDto })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async findById(
+    @Param('id') id: string,
+    @GetUser() callerUser: User,
+  ): Promise<UserDto> {
+    if (!callerUser.isAdmin && callerUser.id !== id) {
+      throw new NotFoundException();
+    }
+
     const user = await this.userService.findOne(id);
 
     if (!user) {
       throw new NotFoundException();
     }
 
-    return user;
+    return UserDto.fromEntity(user);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post()
   async create(
     @Body()
-    userCreateDto: {
-      name: string;
-      password: string;
-      isAdmin?: boolean;
-    },
+    userCreateDto: CreateUserDto,
   ) {
     const canCreateAdmin = await this.userService.noPreviousAdmins();
 
-    return this.userService.create(
+    const user = await this.userService.create(
       userCreateDto.name,
       userCreateDto.password,
       canCreateAdmin && userCreateDto.isAdmin,
     );
+
+    return UserDto.fromEntity(user);
   }
 }

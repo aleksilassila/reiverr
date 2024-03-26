@@ -14,7 +14,8 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
-//    "paths": {
+    "noUncheckedIndexedAccess": true
+    //    "paths": {
 //        "$lib/*": ["src/lib/*"],
 //    }
   },

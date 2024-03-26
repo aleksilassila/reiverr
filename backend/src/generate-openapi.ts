@@ -15,7 +15,5 @@ async function bootstrap() {
   });
   SwaggerModule.setup('openapi', app, document);
   fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
-
-  await app.listen(3000);
 }
 bootstrap();
