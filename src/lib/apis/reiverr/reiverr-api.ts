@@ -2,11 +2,9 @@ import createClient from 'openapi-fetch';
 import type { paths } from './reiverr.generated';
 import { get } from 'svelte/store';
 import { appState } from '../../stores/app-state.store';
+import type { Api } from '../api.interface';
 
-interface ApiInterface<Paths extends NonNullable<unknown>> {
-	getClient(): ReturnType<typeof createClient<Paths>>;
-}
-export class ReiverrApi implements ApiInterface<paths> {
+export class ReiverrApi implements Api<paths> {
 	getClient(basePath?: string) {
 		const token = get(appState).token;
 

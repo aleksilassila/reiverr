@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getJellyfinEpisodes, type JellyfinItem } from '../../lib/apis/jellyfin/jellyfinApi';
+	import { getJellyfinEpisodes, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
 	import { addSeriesToSonarr, type SonarrSeries } from '../../lib/apis/sonarr/sonarrApi';
 	import {
 		getTmdbIdFromTvdbId,

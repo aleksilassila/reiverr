@@ -6,7 +6,7 @@
 	import type { TitleType } from '../types';
 	import type { ComponentProps } from 'svelte';
 	import Poster from '../components/Card/Card.svelte';
-	import { getJellyfinItems, type JellyfinItem } from '../apis/jellyfin/jellyfinApi';
+	import { type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
 	import { jellyfinItemsStore } from '../stores/data.store';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import { _ } from 'svelte-i18n';
@@ -62,12 +62,12 @@
 
 	const fetchPopularMovies = () => getTmdbPopularMovies();
 
-	const fetchLibraryItems = async () => {
-		const items = await getJellyfinItems();
-		const props = await fetchCardProps(items, 'series');
-		console.log('JellyfinItems', items, props);
-		return props;
-	};
+	// const fetchLibraryItems = async () => {
+	// 	const items = await getJellyfinItems();
+	// 	const props = await fetchCardProps(items, 'series');
+	// 	console.log('JellyfinItems', items, props);
+	// 	return props;
+	// };
 
 	function parseIncludedLanguages(includedLanguages: string) {
 		return includedLanguages.replace(' ', '').split(',').join('|');
@@ -76,8 +76,8 @@
 
 <Container focusOnMount>
 	<HeroShowcase items={getTmdbPopularMovies().then(getShowcasePropsFromTmdb)}>
-		<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">
-			<div slot="title" class="text-lg font-semibold text-zinc-300">
+		<Carousel scrollClass="px-8">
+			<div slot="title" class="text-xl font-semibold text-zinc-300">
 				{$_('discover.streamingNow')}
 			</div>
 			{#await fetchNowStreaming()}

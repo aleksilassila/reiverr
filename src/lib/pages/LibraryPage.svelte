@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { settings } from '../stores/settings.store';
 	import { jellyfinItemsStore } from '../stores/data.store';
-	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import Container from '../../Container.svelte';
+	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
+	import CardGrid from '../components/CardGrid.svelte';
+	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
+
+	const libraryItemsP = jellyfinApi.getLibraryItems();
 
 	settings.update((prev) => ({
 		...prev,
@@ -21,9 +25,15 @@
 	});
 </script>
 
-<Container focusOnMount>
+<Container focusOnMount class="pl-20">
 	<div>LibraryPage</div>
-	<Carousel>
-		<CarouselPlaceholderItems />
-	</Carousel>
+	<CardGrid>
+		{#await libraryItemsP}
+			<CarouselPlaceholderItems />
+		{:then items}
+			{#each items as item}
+				<JellyfinCard {item} />
+			{/each}
+		{/await}
+	</CardGrid>
 </Container>

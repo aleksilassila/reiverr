@@ -6,7 +6,7 @@
 		reportJellyfinPlaybackProgress,
 		reportJellyfinPlaybackStarted,
 		reportJellyfinPlaybackStopped
-	} from '../../apis/jellyfin/jellyfinApi';
+	} from '../../apis/jellyfin/jellyfin-api';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
 	import { settings } from '../../stores/settings.store';

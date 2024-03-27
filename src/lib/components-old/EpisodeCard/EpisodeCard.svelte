@@ -2,7 +2,7 @@
 	import {
 		setJellyfinItemUnwatched,
 		setJellyfinItemWatched
-	} from '../../../lib/apis/jellyfin/jellyfinApi';
+	} from '../../apis/jellyfin/jellyfin-api';
 	import { jellyfinItemsStore } from '../../../lib/stores/data.store';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';

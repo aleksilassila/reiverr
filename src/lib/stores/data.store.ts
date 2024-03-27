@@ -1,6 +1,6 @@
 import { derived, writable } from 'svelte/store';
 import { settings } from './settings.store';
-import { getJellyfinItems, type JellyfinItem } from '../apis/jellyfin/jellyfinApi';
+import { jellyfinApi, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
 import {
 	getSonarrDownloads,
 	getSonarrSeries,
@@ -59,7 +59,7 @@ function _createDataFetchStore<T>(fn: () => Promise<T>) {
 	};
 }
 
-export const jellyfinItemsStore = _createDataFetchStore(getJellyfinItems);
+export const jellyfinItemsStore = _createDataFetchStore(jellyfinApi.getLibraryItems);
 
 export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	const store = writable<{ loading: boolean; item?: JellyfinItem }>({

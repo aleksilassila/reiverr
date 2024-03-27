@@ -4,11 +4,82 @@ import { get } from 'svelte/store';
 import type { components, paths } from './jellyfin.generated';
 import { settings } from '../../stores/settings.store';
 import type { DeviceProfile } from './playback-profiles';
+import type { Api } from '../api.interface';
+import { appState } from '../../stores/app-state.store';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
+export class JellyfinApi implements Api<paths> {
+	getClient() {
+		const jellyfinSettings = get(appState).user?.settings.jellyfin;
+		const baseUrl = jellyfinSettings?.baseUrl;
+		const apiKey = jellyfinSettings?.apiKey;
+
+		return createClient<paths>({
+			baseUrl,
+			headers: {
+				Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${apiKey}"`
+			}
+		});
+	}
+
+	getUserId() {
+		return get(appState).user?.settings.jellyfin.userId || '';
+	}
+
+	async getContinueWatching(): Promise<JellyfinItem[] | undefined> {
+		return this.getClient()
+			.GET('/Users/{userId}/Items/Resume', {
+				params: {
+					path: {
+						userId: this.getUserId()
+					},
+					query: {
+						mediaTypes: ['Video'],
+						fields: ['ProviderIds', 'Genres']
+					}
+				}
+			})
+			.then((r) => r.data?.Items || []);
+	}
+
+	async getLibraryItems() {
+		return (
+			this.getClient()
+				.GET('/Users/{userId}/Items', {
+					params: {
+						path: {
+							userId: this.getUserId()
+						},
+						query: {
+							hasTmdbId: true,
+							recursive: true,
+							includeItemTypes: ['Movie', 'Series'],
+							fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
+						}
+					}
+				})
+				.then((r) => r.data?.Items || []) || Promise.resolve([])
+		);
+	}
+
+	getPosterUrl(item: JellyfinItem, quality = 100, original = false) {
+		return item.ImageTags?.Primary
+			? `${get(appState).user?.settings.jellyfin.baseUrl}/Items/${
+					item?.Id
+			  }/Images/Primary?quality=${quality}${original ? '' : '&fillWidth=432'}&tag=${
+					item?.ImageTags?.Primary
+			  }`
+			: '';
+	}
+}
+
+export const jellyfinApi = new JellyfinApi();
+export const getReiverrApiClient = jellyfinApi.getClient;
+
+/*
 function getJellyfinApi() {
 	const baseUrl = get(settings)?.jellyfin.baseUrl;
 	const apiKey = get(settings)?.jellyfin.apiKey;
@@ -50,23 +121,6 @@ export const getJellyfinNextUp = async () =>
 			}
 		})
 		.then((r) => r.data?.Items || []);
-
-export const getJellyfinItems = async () =>
-	getJellyfinApi()
-		?.GET('/Users/{userId}/Items', {
-			params: {
-				path: {
-					userId: get(settings)?.jellyfin.userId || ''
-				},
-				query: {
-					hasTmdbId: true,
-					recursive: true,
-					includeItemTypes: ['Movie', 'Series'],
-					fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
-				}
-			}
-		})
-		.then((r) => r.data?.Items || []) || Promise.resolve([]);
 
 // export const getJellyfinSeries = () =>
 // 	JellyfinApi.get('/Users/{userId}/Items', {
@@ -285,13 +339,6 @@ export const getJellyfinUsers = async (
 		.then((res) => res.data || [])
 		.catch(() => []);
 
-export const getJellyfinPosterUrl = (item: JellyfinItem, quality = 100, original = false) =>
-	item.ImageTags?.Primary
-		? `${get(settings).jellyfin.baseUrl}/Items/${item?.Id}/Images/Primary?quality=${quality}${
-				original ? '' : '&fillWidth=432'
-		  }&tag=${item?.ImageTags?.Primary}`
-		: '';
-
 export const getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {
 	if (item.BackdropImageTags?.length) {
 		return `${get(settings).jellyfin.baseUrl}/Items/${
@@ -303,3 +350,4 @@ export const getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {
 		}/Images/Primary?quality=${quality}&tag=${item?.ImageTags?.Primary}`;
 	}
 };
+*/

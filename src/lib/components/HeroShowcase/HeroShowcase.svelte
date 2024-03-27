@@ -125,7 +125,7 @@
 			{/await}
 		</div>
 	</div>
-	<Container class="z-10">
+	<Container class="z-10 pt-8">
 		<slot />
 	</Container>
 </Container>
