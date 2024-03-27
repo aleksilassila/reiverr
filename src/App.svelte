@@ -22,7 +22,7 @@
 </script>
 
 <I18n />
-<Container horizontal class="bg-stone-950 text-white flex flex-1 w-screen">
+<Container direction="horizontal" class="bg-stone-950 text-white flex flex-1 w-screen">
 	{#if $appState.user === undefined}
 		<div class="h-screen w-screen flex flex-col items-center justify-center">
 			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">

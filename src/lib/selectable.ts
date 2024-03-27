@@ -29,6 +29,7 @@ export class Selectable {
 	private isActive: boolean = true;
 
 	private direction: FlowDirection = 'vertical';
+	private gridColumns: number = 0;
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
@@ -149,17 +150,42 @@ export class Selectable {
 		return false;
 	}
 
+	// TODO: Clean this up
 	getFocusableNeighbor(direction: Direction): Selectable | undefined {
 		const focusIndex = get(this.focusIndex);
+		const isGrid = this.gridColumns > 0;
+
 		const canCycleSiblings =
 			(this.direction === 'vertical' &&
 				((direction === 'up' && focusIndex !== 0) ||
 					(direction === 'down' && focusIndex !== this.children.length - 1))) ||
 			(this.direction === 'horizontal' &&
 				((direction === 'left' && focusIndex !== 0) ||
-					(direction === 'right' && focusIndex !== this.children.length - 1)));
+					(direction === 'right' && focusIndex !== this.children.length - 1))) ||
+			(isGrid &&
+				this.direction === 'horizontal' &&
+				((direction === 'up' && focusIndex >= this.gridColumns) ||
+					(direction === 'down' && focusIndex < this.children.length - this.gridColumns)));
 
 		if (this.children.length > 0 && canCycleSiblings) {
+			if (isGrid && direction === 'up') {
+				let index = focusIndex - this.gridColumns;
+				while (index >= 0) {
+					if (this.children[index]?.isFocusable()) {
+						return this.children[index];
+					}
+					index -= this.gridColumns;
+				}
+			} else if (isGrid && direction === 'down') {
+				let index = focusIndex + this.gridColumns;
+				while (index < this.children.length) {
+					if (this.children[index]?.isFocusable()) {
+						return this.children[index];
+					}
+					index += this.gridColumns;
+				}
+			}
+
 			if (direction === 'up' || direction === 'left') {
 				let index = focusIndex - 1;
 				while (index >= 0) {
@@ -350,6 +376,15 @@ export class Selectable {
 		this.isActive = isActive;
 		return this;
 	}
+
+	setGridColumns(columns: number) {
+		this.gridColumns = columns;
+		return this;
+	}
+
+	getGridColumns() {
+		return this.gridColumns;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -365,8 +400,6 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		});
 		return;
 	}
-
-	// console.log('Currently focused object: ', currentlyFocusedObject.name, currentlyFocusedObject);
 
 	const navigationActions = currentlyFocusedObject.getNavigationActions();
 	if (event.key === 'ArrowUp') {

@@ -4,7 +4,8 @@
 	import classNames from 'classnames';
 
 	export let name: string = '';
-	export let horizontal = false;
+	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
+	export let gridCols: number = 1;
 	export let focusOnMount = false;
 	export let debugOutline = false;
 
@@ -13,7 +14,8 @@
 	export let navigationActions: NavigationActions = {};
 
 	const { registerer, ...rest } = new Selectable(name)
-		.setDirection(horizontal ? 'horizontal' : 'vertical')
+		.setDirection(direction === 'grid' ? 'horizontal' : direction)
+		.setGridColumns(gridCols)
 		.setNavigationActions(navigationActions)
 		.getStores();
 	export const container = rest.container;
@@ -24,6 +26,7 @@
 	export let tag = 'div';
 
 	$: container.setIsActive(active);
+	$: container.setGridColumns(gridCols);
 
 	onMount(() => {
 		rest.container._initializeSelectable();

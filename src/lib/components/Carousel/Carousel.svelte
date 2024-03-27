@@ -44,7 +44,7 @@
 	</div>
 
 	<div class="relative">
-		<Container horizontal>
+		<Container direction="horizontal">
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',
