@@ -10,21 +10,20 @@
 	import SearchPage from './lib/pages/SearchPage.svelte';
 	import SeriesPage from './lib/pages/SeriesPage.svelte';
 	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
-	import { userStore } from './lib/stores/user.store';
 	import LoginPage from './lib/pages/LoginPage.svelte';
-	import { reiverrApi } from './lib/apis/reiverr/reiverrApi';
+	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';
+	import { appState } from './lib/stores/app-state.store';
 
-	reiverrApi
-		.getApi()
+	getReiverrApiClient()
 		.GET('/user', {})
 		.then((res) => res.data)
-		.then((user) => userStore.set(user || null))
-		.catch(() => userStore.set(null));
+		.then((user) => appState.setUser(user || null))
+		.catch(() => appState.setUser(null));
 </script>
 
 <I18n />
 <Container horizontal class="bg-stone-950 text-white flex flex-1 w-screen">
-	{#if $userStore === undefined}
+	{#if $appState.user === undefined}
 		<div class="h-screen w-screen flex flex-col items-center justify-center">
 			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
 				<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
@@ -32,7 +31,7 @@
 			</div>
 			<div>Loading...</div>
 		</div>
-	{:else if $userStore === null}
+	{:else if $appState.user === null}
 		<LoginPage />
 	{:else}
 		<Router>

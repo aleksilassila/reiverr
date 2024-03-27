@@ -13,7 +13,7 @@
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
-	let showcaseIndex = 6;
+	let showcaseIndex = 0;
 	let showcaseLength = 0;
 	$: items.then((i) => (showcaseLength = i?.length || 0));
 

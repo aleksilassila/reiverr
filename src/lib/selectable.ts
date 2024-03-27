@@ -84,20 +84,20 @@ export class Selectable {
 			const focusIndex = get(this.focusIndex);
 
 			if (this.children[focusIndex]?.isFocusable()) {
-				this.children[focusIndex].focus();
+				this.children[focusIndex]?.focus();
 			} else {
 				let i = focusIndex;
 				while (i < this.children.length) {
-					if (this.children[i].isFocusable()) {
-						this.children[i].focus();
+					if (this.children[i]?.isFocusable()) {
+						this.children[i]?.focus();
 						return;
 					}
 					i++;
 				}
 				i = focusIndex - 1;
 				while (i >= 0) {
-					if (this.children[i].isFocusable()) {
-						this.children[i].focus();
+					if (this.children[i]?.isFocusable()) {
+						this.children[i]?.focus();
 						return;
 					}
 					i--;
@@ -163,7 +163,7 @@ export class Selectable {
 			if (direction === 'up' || direction === 'left') {
 				let index = focusIndex - 1;
 				while (index >= 0) {
-					if (this.children[index].isFocusable()) {
+					if (this.children[index]?.isFocusable()) {
 						return this.children[index];
 					}
 					index--;
@@ -171,7 +171,7 @@ export class Selectable {
 			} else if (direction === 'down' || direction === 'right') {
 				let index = focusIndex + 1;
 				while (index < this.children.length) {
-					if (this.children[index].isFocusable()) {
+					if (this.children[index]?.isFocusable()) {
 						return this.children[index];
 					}
 					index++;
