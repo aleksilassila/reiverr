@@ -96,15 +96,17 @@ The roadmap includes plans to support the following platforms in the future:
 
 # Contributing
 
-## Read these if youre planning to contribute:
-- [Project State Discussion December 23](https://github.com/aleksilassila/reiverr/issues/98)
-- ([State of the project 25. Sep 23](https://github.com/aleksilassila/reiverr/discussions/27#discussioncomment-7101012))
+## State of the Project ⚠️
+
+Reiverr is currently being completely rewritten in plain svelte and with some major changes to architecture to make the project compatible with TVs. The SvelteKit version of the project will be deprecated in favor of the reworked app in 2024 summer, if all goes according to plan. I don't recommend contributing before the switch has been made, as the rework is still in constant change and the old sveltekit project will be discontinued.
+
+- [Project State Discussion Thread](https://github.com/aleksilassila/reiverr/issues/98)
+
+## Before you contribute
 
 Unlike the most Servarr projects, this one is built with Svelte and SvelteKit. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
 
 To see a list of missing features & known bugs that you can help with, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5). Feel free to also create your own issues for bug reports or feature requests, as well as discussions for general questions.
-
-Before you contribute:
 
 - If you are taking on an existing bug or feature ticket, please comment on the issue or mark yourself as an assignee to avoid multiple people working on the same thing.
 - If the ticket is vague or missing information, please ask for clarification in the comments.
