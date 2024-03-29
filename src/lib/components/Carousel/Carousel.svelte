@@ -3,6 +3,7 @@
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import Container from '../../../Container.svelte';
+	import { scrollWithOffset } from '../../selectable';
 
 	export let gradientFromColor = 'from-stone-950';
 	export let heading = '';
@@ -44,7 +45,7 @@
 	</div>
 
 	<div class="relative">
-		<Container direction="horizontal">
+		<Container childrenRevealStrategy={scrollWithOffset('left', 50)} direction="horizontal">
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',

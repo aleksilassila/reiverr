@@ -11,6 +11,91 @@ export type NavigationActions = {
 	enter?: (selectable: Selectable) => boolean;
 };
 
+export type RevealStrategy = (target: Selectable) => void;
+
+export const scrollWithOffset =
+	(side: Direction | 'all' = 'all', offset = 50): RevealStrategy =>
+	(target) => {
+		function getScrollParent(node: HTMLElement): HTMLElement | undefined {
+			const parent = node.parentElement;
+
+			if (parent) {
+				if (parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) {
+					return parent;
+				} else {
+					return getScrollParent(parent);
+				}
+			}
+		}
+
+		// scrollIntoView(offset = 0, direction: Direction = 'left') {
+		const targetHtmlElement = target.getHtmlElement();
+		if (targetHtmlElement) {
+			const boundingRect = targetHtmlElement.getBoundingClientRect();
+
+			const leftOffset = targetHtmlElement.offsetLeft;
+			const rightOffset = targetHtmlElement.offsetLeft + boundingRect.width;
+			const topOffset = targetHtmlElement.offsetTop;
+			const bottomOffset = targetHtmlElement.offsetTop + boundingRect.height;
+
+			const offsetParent = getScrollParent(targetHtmlElement);
+
+			if (offsetParent) {
+				const parentBoundingRect = offsetParent.getBoundingClientRect();
+
+				const scrollLeft = offsetParent.scrollLeft;
+				const scrollRight =
+					offsetParent.scrollLeft + Math.min(parentBoundingRect.width, window.innerWidth);
+				const scrollTop = offsetParent.scrollTop;
+				const scrollBottom =
+					offsetParent.scrollTop + Math.min(parentBoundingRect.height, window.innerHeight);
+
+				if (side === 'all') {
+					const left =
+						leftOffset - offset < scrollLeft
+							? leftOffset - offset
+							: rightOffset + offset > scrollRight
+							? rightOffset - Math.min(parentBoundingRect.width, window.innerWidth) + offset
+							: -1;
+					const top =
+						topOffset - offset < scrollTop
+							? topOffset - offset
+							: bottomOffset + offset > scrollBottom
+							? bottomOffset - Math.min(parentBoundingRect.height, window.innerHeight) + offset
+							: -1;
+
+					if (left !== -1 || top !== -1) {
+						offsetParent.scrollTo({
+							...(left !== -1 && { left }),
+							...(top !== -1 && { top }),
+							behavior: 'smooth'
+						});
+					}
+				} else if (side === 'left' || side === 'right') {
+					const left = {
+						left: leftOffset - offset,
+						right: rightOffset - parentBoundingRect.width + offset
+					}[side];
+
+					offsetParent.scrollTo({
+						left,
+						behavior: 'smooth'
+					});
+				} else if (side === 'up' || side === 'down') {
+					const top = {
+						up: topOffset - offset,
+						down: bottomOffset - parentBoundingRect.height + offset
+					}[side];
+
+					offsetParent.scrollTo({
+						top,
+						behavior: 'smooth'
+					});
+				}
+			}
+		}
+	};
+
 export class Selectable {
 	id: symbol;
 	name: string;
@@ -27,6 +112,8 @@ export class Selectable {
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
+	private scrollIntoView?: RevealStrategy;
+	private scrollChildrenIntoView?: RevealStrategy;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -81,6 +168,12 @@ export class Selectable {
 			}
 		}
 
+		if (!get(this.hasFocusWithin)) {
+			if (this.scrollIntoView) this.scrollIntoView(this);
+			else if (this.parent?.getScrollChildrenIntoView())
+				this.parent?.getScrollChildrenIntoView()?.(this);
+		}
+
 		if (this.children.length > 0) {
 			const focusIndex = get(this.focusIndex);
 
@@ -107,27 +200,9 @@ export class Selectable {
 		} else if (this.htmlElement) {
 			this.htmlElement.focus({ preventScroll: true });
 			// this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-			this.scrollIntoView(50);
+			// this.scrollIntoView(50);
 			Selectable.focusedObject.set(this);
 			updateFocusIndex(this);
-		}
-	}
-
-	scrollIntoView(offset = 0, direction: Direction = 'left') {
-		if (this.htmlElement) {
-			const boundingRect = this.htmlElement.getBoundingClientRect();
-			const offsetParent = this.htmlElement.offsetParent as HTMLElement;
-
-			if (offsetParent) {
-				const left = this.htmlElement.offsetLeft - offset;
-
-				// console.log(boundingRect);
-				// console.log('Scrolling to left: ', left);
-				offsetParent.scrollTo({
-					left,
-					behavior: 'smooth'
-				});
-			}
 		}
 	}
 
@@ -150,66 +225,32 @@ export class Selectable {
 		return false;
 	}
 
-	// TODO: Clean this up
 	getFocusableNeighbor(direction: Direction): Selectable | undefined {
 		const focusIndex = get(this.focusIndex);
-		const isGrid = this.gridColumns > 0;
 
-		const canCycleSiblings =
-			(this.direction === 'vertical' &&
-				((direction === 'up' && focusIndex !== 0) ||
-					(direction === 'down' && focusIndex !== this.children.length - 1))) ||
-			(this.direction === 'horizontal' &&
-				((direction === 'left' && focusIndex !== 0) ||
-					(direction === 'right' && focusIndex !== this.children.length - 1))) ||
-			(isGrid &&
-				this.direction === 'horizontal' &&
-				((direction === 'up' && focusIndex >= this.gridColumns) ||
-					(direction === 'down' && focusIndex < this.children.length - this.gridColumns)));
+		const indexAddition = {
+			up: this.direction === 'vertical' ? -1 : -this.gridColumns,
+			down: this.direction === 'vertical' ? 1 : this.gridColumns,
+			left: this.direction === 'horizontal' ? -1 : -this.gridColumns,
+			right: this.direction === 'horizontal' ? 1 : this.gridColumns
+		}[direction];
 
-		if (this.children.length > 0 && canCycleSiblings) {
-			if (isGrid && direction === 'up') {
-				let index = focusIndex - this.gridColumns;
-				while (index >= 0) {
-					if (this.children[index]?.isFocusable()) {
-						return this.children[index];
-					}
-					index -= this.gridColumns;
+		// Cycle siblings
+		if (indexAddition !== 0) {
+			let index = focusIndex + indexAddition;
+			while (index >= 0 && index < this.children.length) {
+				if (this.children[index]?.isFocusable()) {
+					return this.children[index];
 				}
-			} else if (isGrid && direction === 'down') {
-				let index = focusIndex + this.gridColumns;
-				while (index < this.children.length) {
-					if (this.children[index]?.isFocusable()) {
-						return this.children[index];
-					}
-					index += this.gridColumns;
-				}
+				index += indexAddition;
 			}
+		}
 
-			if (direction === 'up' || direction === 'left') {
-				let index = focusIndex - 1;
-				while (index >= 0) {
-					if (this.children[index]?.isFocusable()) {
-						return this.children[index];
-					}
-					index--;
-				}
-			} else if (direction === 'down' || direction === 'right') {
-				let index = focusIndex + 1;
-				while (index < this.children.length) {
-					if (this.children[index]?.isFocusable()) {
-						return this.children[index];
-					}
-					index++;
-				}
-			}
-		} else if (this.neighbors[direction]?.isFocusable()) {
+		if (this.neighbors[direction]?.isFocusable()) {
 			return this.neighbors[direction];
 		} else {
 			return this.parent?.getFocusableNeighbor(direction);
 		}
-
-		console.warn('How did we end up here');
 	}
 
 	private giveFocus(direction: Direction) {
@@ -385,6 +426,24 @@ export class Selectable {
 	getGridColumns() {
 		return this.gridColumns;
 	}
+
+	getHtmlElement() {
+		return this.htmlElement;
+	}
+
+	setRevealStrategy(revealStrategy?: RevealStrategy) {
+		this.scrollIntoView = revealStrategy;
+		return this;
+	}
+
+	setChildrenRevealStrategy(revealStrategy?: RevealStrategy) {
+		this.scrollChildrenIntoView = revealStrategy;
+		return this;
+	}
+
+	getScrollChildrenIntoView() {
+		return this.scrollChildrenIntoView;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -424,3 +483,5 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		else currentlyFocusedObject.click();
 	}
 }
+
+// Selectable.focusedObject.subscribe(console.log);

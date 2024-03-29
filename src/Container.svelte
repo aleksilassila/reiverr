@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { type NavigationActions, Selectable } from './lib/selectable';
+	import { type NavigationActions, type RevealStrategy, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
 
 	export let name: string = '';
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
-	export let gridCols: number = 1;
+	export let gridCols: number = 0;
 	export let focusOnMount = false;
 	export let debugOutline = false;
+	export let revealStrategy: RevealStrategy | undefined = undefined;
+	export let childrenRevealStrategy: RevealStrategy | undefined = undefined;
 
 	export let active = true;
 
@@ -17,6 +19,8 @@
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
 		.setNavigationActions(navigationActions)
+		.setRevealStrategy(revealStrategy)
+		.setChildrenRevealStrategy(childrenRevealStrategy)
 		.getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;

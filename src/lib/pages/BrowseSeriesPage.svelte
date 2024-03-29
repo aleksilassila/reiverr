@@ -5,7 +5,7 @@
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
 	import type { ComponentProps } from 'svelte';
-	import Poster from '../components/Card/Card.svelte';
+	import Card from '../components/Card/Card.svelte';
 	import { type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
 	import { jellyfinItemsStore } from '../stores/data.store';
 	import Carousel from '../components/Carousel/Carousel.svelte';
@@ -13,6 +13,7 @@
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
 	import { getShowcasePropsFromTmdb } from '../components/HeroShowcase/HeroShowcase';
+	import { scrollWithOffset } from '../selectable';
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
 		jellyfinItemsStore.subscribe((data) => {
@@ -32,7 +33,7 @@
 			poster_path?: string;
 		}[],
 		type: TitleType | undefined = undefined
-	): Promise<ComponentProps<Poster>[]> => {
+	): Promise<ComponentProps<Card>[]> => {
 		const filtered = $settings.discover.excludeLibraryItems
 			? items.filter(
 					async (item) =>
@@ -84,9 +85,9 @@
 				<CarouselPlaceholderItems />
 			{:then props}
 				{#each props as prop (prop.tmdbId)}
-					<Container class="m-2">
-						<Poster {...prop} />
-					</Container>
+					<div class="m-2">
+						<Card {...prop} />
+					</div>
 				{/each}
 			{/await}
 		</Carousel>
