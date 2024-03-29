@@ -231,8 +231,18 @@ export class Selectable {
 		const indexAddition = {
 			up: this.direction === 'vertical' ? -1 : -this.gridColumns,
 			down: this.direction === 'vertical' ? 1 : this.gridColumns,
-			left: this.direction === 'horizontal' ? -1 : -this.gridColumns,
-			right: this.direction === 'horizontal' ? 1 : this.gridColumns
+			left:
+				this.direction === 'horizontal'
+					? (focusIndex % this.gridColumns) - 1 < 0
+						? 0
+						: -1
+					: -this.gridColumns,
+			right:
+				this.direction === 'horizontal'
+					? (focusIndex % this.gridColumns) + 1 >= this.gridColumns
+						? 0
+						: 1
+					: this.gridColumns
 		}[direction];
 
 		// Cycle siblings
