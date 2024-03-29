@@ -1,4 +1,4 @@
-import type { getTmdbPopularMovies } from '../../apis/tmdb/tmdbApi';
+import type { getTmdbPopularMovies } from '../../apis/tmdb/tmdb-api';
 import { formatMinutesToTime } from '../../utils';
 
 export type RatingSource = 'tmdb'; // TODO: Add more rating sources & move elsewhere

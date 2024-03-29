@@ -7,7 +7,7 @@
 		getTmdbSeriesRecommendations,
 		getTmdbSeriesSeasons,
 		getTmdbSeriesSimilar
-	} from '../../lib/apis/tmdb/tmdbApi';
+	} from '../apis/tmdb/tmdb-api';
 	import Button from '../../lib/components/Button.svelte';
 	import Card from '../../lib/components/Card/Card.svelte';
 	import { fetchCardTmdbProps } from '../../lib/components/Card/card';

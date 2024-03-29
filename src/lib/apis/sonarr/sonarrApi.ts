@@ -1,7 +1,7 @@
 import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
-import { getTmdbSeries } from '../tmdb/tmdbApi';
+import { getTmdbSeries } from '../tmdb/tmdb-api';
 import type { components, paths } from './sonarr.generated';
 import { settings } from '../../stores/settings.store';
 import { log } from '../../utils';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
-	import { getPosterProps, getTmdbPopularMovies, TmdbApiOpen } from '../apis/tmdb/tmdbApi';
+	import { getPosterProps, getTmdbPopularMovies, TmdbApiOpen } from '../apis/tmdb/tmdb-api';
 	import { formatDateToYearMonthDay } from '../utils';
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
@@ -14,6 +14,7 @@
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
 	import { getShowcasePropsFromTmdb } from '../components/HeroShowcase/HeroShowcase';
 	import { scrollWithOffset } from '../selectable';
+	import SidebarMargin from '../components/SidebarMargin.svelte';
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
 		jellyfinItemsStore.subscribe((data) => {
@@ -76,23 +77,28 @@
 </script>
 
 <Container focusOnMount>
-	<HeroShowcase items={getTmdbPopularMovies().then(getShowcasePropsFromTmdb)}>
-		<Carousel scrollClass="px-8">
-			<div slot="title" class="text-xl font-semibold text-zinc-300">
-				{$_('discover.streamingNow')}
-			</div>
-			{#await fetchNowStreaming()}
-				<CarouselPlaceholderItems />
-			{:then props}
-				{#each props as prop (prop.tmdbId)}
-					<div class="m-2">
-						<Card {...prop} />
+	<div class="h-screen flex flex-col">
+		<HeroShowcase items={getTmdbPopularMovies().then(getShowcasePropsFromTmdb)} />
+		<div class="mt-8">
+			<Carousel scrollClass="">
+				<SidebarMargin slot="title" class="mx-4">
+					<div class="text-xl font-semibold text-zinc-300">
+						{$_('discover.streamingNow')}
 					</div>
-				{/each}
-			{/await}
-		</Carousel>
-	</HeroShowcase>
-
+				</SidebarMargin>
+				{#await fetchNowStreaming()}
+					<CarouselPlaceholderItems />
+				{:then props}
+					<div class="w-[4.5rem] h-1 shrink-0" />
+					{#each props as prop (prop.tmdbId)}
+						<div class="m-2">
+							<Card {...prop} />
+						</div>
+					{/each}
+				{/await}
+			</Carousel>
+		</div>
+	</div>
 	<!--	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">-->
 	<!--		<div slot="title" class="text-lg font-semibold text-zinc-300">-->
 	<!--			{$_('discover.library')}-->

@@ -45,7 +45,7 @@
 	</div>
 
 	<div class="relative">
-		<Container childrenRevealStrategy={scrollWithOffset('left', 50)} direction="horizontal">
+		<Container childrenRevealStrategy={scrollWithOffset('left', 64 + 16)} direction="horizontal">
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getTmdbPerson } from '../../lib/apis/tmdb/tmdbApi';
+	import { getTmdbPerson } from '../apis/tmdb/tmdb-api';
 	import Carousel from '../../lib/components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../../lib/components/Carousel/CarouselPlaceholderItems.svelte';
 	import Poster from '../components/Card/Card.svelte';

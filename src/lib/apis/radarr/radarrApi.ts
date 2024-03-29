@@ -3,7 +3,7 @@ import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import { settings } from '../../stores/settings.store';
 import type { components, paths } from './radarr.generated';
-import { getTmdbMovie } from '../tmdb/tmdbApi';
+import { getTmdbMovie } from '../tmdb/tmdb-api';
 import { log } from '../../utils';
 
 export type RadarrMovie = components['schemas']['MovieResource'];

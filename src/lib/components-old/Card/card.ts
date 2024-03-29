@@ -1,10 +1,10 @@
-import type { TmdbMovie2, TmdbSeries2 } from '../../../lib/apis/tmdb/tmdbApi';
+import type { TmdbMovie2, TmdbSeries2 } from '../../apis/tmdb/tmdb-api';
 import {
 	TMDB_MOVIE_GENRES,
 	TMDB_SERIES_GENRES,
 	getTmdbMovieBackdrop,
 	getTmdbSeriesBackdrop
-} from '../../../lib/apis/tmdb/tmdbApi';
+} from '../../apis/tmdb/tmdb-api';
 import type { ComponentProps } from 'svelte';
 import type Card from './Card.svelte';
 import { TMDB_BACKDROP_SMALL } from '../../../lib/constants';

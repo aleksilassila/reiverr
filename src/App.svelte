@@ -13,6 +13,7 @@
 	import LoginPage from './lib/pages/LoginPage.svelte';
 	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';
 	import { appState } from './lib/stores/app-state.store';
+	import MoviePage from './lib/pages/MoviePage.svelte';
 
 	getReiverrApiClient()
 		.GET('/user', {})
@@ -54,6 +55,7 @@
 					<SearchPage />
 				</Route>
 				<Route path="series/:id" component={SeriesPage} />
+				<Route path="movie/:id" component={MoviePage} />
 				<Route path="*">
 					<div>404</div>
 				</Route>

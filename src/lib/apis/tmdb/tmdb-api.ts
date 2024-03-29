@@ -4,6 +4,8 @@ import type { operations, paths } from './tmdb.generated';
 import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '../../constants';
 import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
+import type { Api } from '../api.interface';
+import { appState } from '../../stores/app-state.store';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -37,6 +39,34 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
 	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
 }
+
+export class TmdbApi implements Api<paths> {
+	getClient() {
+		return createClient<paths>({
+			baseUrl: 'https://api.themoviedb.org',
+			headers: {
+				Authorization: `Bearer ${TMDB_API_KEY}`
+			}
+		});
+	}
+
+	async getTmdbMovie(tmdbId: number) {
+		return TmdbApiOpen.GET('/3/movie/{movie_id}', {
+			params: {
+				path: {
+					movie_id: tmdbId
+				},
+				query: {
+					append_to_response: 'videos,credits,external_ids,images',
+					...({ include_image_language: get(settings)?.language + ',en,null' } as any)
+				}
+			}
+		}).then((res) => res.data as TmdbMovieFull2 | undefined);
+	}
+}
+
+export const tmdbApi = new TmdbApi();
+export const getTmdbClient = tmdbApi.getClient;
 
 const backdropCache = window?.caches?.open('backdrops') || undefined;
 const posterCache = window?.caches?.open('posters') || undefined;
