@@ -5,11 +5,16 @@
 	import { TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
 	import { DotFilled } from 'radix-icons-svelte';
-	import SidebarMargin from '../components/SidebarMargin.svelte';
+	import Button from '../components/Button.svelte';
+	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
+	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
 
 	export let id: string;
 
 	const movieDataP = tmdbApi.getTmdbMovie(Number(id));
+	const jellyfinItem = jellyfinApi.getLibraryItemFromTmdbId(id);
+
+	let playbackId: string = '';
 
 	let heroIndex: number;
 </script>
@@ -60,8 +65,19 @@
 						</div>
 					{/if}
 				{/await}
+				{#await jellyfinItem then item}
+					{#if item}
+						<div class="flex mt-4">
+							<Button on:click={() => (playbackId = item.Id || '')}>Play</Button>
+						</div>
+					{/if}
+				{/await}
 			</div>
 		</HeroCarousel>
 	</div>
-	<Container on:click={() => history.back()}>Go back</Container>
+	<div>
+		{#if playbackId}
+			<VideoPlayer jellyfinId={playbackId} />
+		{/if}
+	</div>
 </Container>

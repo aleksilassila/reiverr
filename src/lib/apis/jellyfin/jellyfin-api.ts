@@ -1,11 +1,9 @@
-import axios from 'axios';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { components, paths } from './jellyfin.generated';
-import { settings } from '../../stores/settings.store';
-import type { DeviceProfile } from './playback-profiles';
 import type { Api } from '../api.interface';
 import { appState } from '../../stores/app-state.store';
+import type { DeviceProfile } from './playback-profiles';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
@@ -29,6 +27,10 @@ export class JellyfinApi implements Api<paths> {
 		return get(appState).user?.settings.jellyfin.userId || '';
 	}
 
+	getApiKey() {
+		return get(appState).user?.settings.jellyfin.apiKey || '';
+	}
+
 	async getContinueWatching(): Promise<JellyfinItem[] | undefined> {
 		return this.getClient()
 			.GET('/Users/{userId}/Items/Resume', {
@@ -45,24 +47,28 @@ export class JellyfinApi implements Api<paths> {
 			.then((r) => r.data?.Items || []);
 	}
 
-	async getLibraryItems() {
-		return (
-			this.getClient()
-				.GET('/Users/{userId}/Items', {
-					params: {
-						path: {
-							userId: this.getUserId()
-						},
-						query: {
-							hasTmdbId: true,
-							recursive: true,
-							includeItemTypes: ['Movie', 'Series'],
-							fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
+	jellyfinItemsCache: JellyfinItem[] = [];
+	async getLibraryItems(refreshCache = false) {
+		if (refreshCache || !this.jellyfinItemsCache.length) {
+			this.jellyfinItemsCache =
+				(await this.getClient()
+					.GET('/Users/{userId}/Items', {
+						params: {
+							path: {
+								userId: this.getUserId()
+							},
+							query: {
+								hasTmdbId: true,
+								recursive: true,
+								includeItemTypes: ['Movie', 'Series'],
+								fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
+							}
 						}
-					}
-				})
-				.then((r) => r.data?.Items || []) || Promise.resolve([])
-		);
+					})
+					.then((r) => r.data?.Items || [])) || Promise.resolve([]);
+		}
+
+		return this.jellyfinItemsCache;
 	}
 
 	getPosterUrl(item: JellyfinItem, quality = 100, original = false) {
@@ -73,6 +79,113 @@ export class JellyfinApi implements Api<paths> {
 					item?.ImageTags?.Primary
 			  }`
 			: '';
+	}
+
+	getLibraryItem(itemId: string, refreshCache = false) {
+		return this.getLibraryItems(refreshCache).then((items) => items.find((i) => i.Id === itemId));
+	}
+
+	getLibraryItemFromTmdbId(tmdbId: string, refreshCache = false) {
+		return this.getLibraryItems(refreshCache).then((items) =>
+			items.find((i) => i.ProviderIds?.Tmdb === tmdbId)
+		);
+	}
+
+	// PLAYBACK
+
+	getPlaybackInfo = async (
+		itemId: string,
+		playbackProfile: DeviceProfile,
+		startTimeTicks = 0,
+		maxStreamingBitrate = 140000000
+	) =>
+		this.getClient()
+			?.POST('/Items/{itemId}/PlaybackInfo', {
+				params: {
+					path: {
+						itemId: itemId
+					},
+					query: {
+						userId: this.getUserId(),
+						startTimeTicks,
+						autoOpenLiveStream: true,
+						maxStreamingBitrate
+					}
+				},
+				body: {
+					DeviceProfile: playbackProfile
+				}
+			})
+			.then((r) => ({
+				playbackUri:
+					r.data?.MediaSources?.[0]?.TranscodingUrl ||
+					`/Videos/${r.data?.MediaSources?.[0]?.Id}/stream.mp4?Static=true&mediaSourceId=${
+						r.data?.MediaSources?.[0]?.Id
+					}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${this.getApiKey()}&Tag=${
+						r.data?.MediaSources?.[0]?.ETag
+					}`,
+				mediaSourceId: r.data?.MediaSources?.[0]?.Id,
+				playSessionId: r.data?.PlaySessionId,
+				directPlay:
+					!!r.data?.MediaSources?.[0]?.SupportsDirectPlay ||
+					!!r.data?.MediaSources?.[0]?.SupportsDirectStream
+			}));
+
+	reportPlaybackStarted(
+		itemId: string,
+		sessionId: string,
+		mediaSourceId: string,
+		audioStreamIndex?: number,
+		subtitleStreamIndex?: number
+	) {
+		return this.getClient()?.POST('/Sessions/Playing', {
+			body: {
+				CanSeek: true,
+				ItemId: itemId,
+				PlaySessionId: sessionId,
+				MediaSourceId: mediaSourceId,
+				AudioStreamIndex: 1,
+				SubtitleStreamIndex: -1
+			}
+		});
+	}
+	reportPlaybackProgress(
+		itemId: string,
+		sessionId: string,
+		isPaused: boolean,
+		positionTicks: number
+	) {
+		return this.getClient()?.POST('/Sessions/Playing/Progress', {
+			body: {
+				ItemId: itemId,
+				PlaySessionId: sessionId,
+				IsPaused: isPaused,
+				PositionTicks: Math.round(positionTicks),
+				CanSeek: true,
+				MediaSourceId: itemId
+			}
+		});
+	}
+
+	reportPlaybackStopped(itemId: string, sessionId: string, positionTicks: number) {
+		return this.getClient()?.POST('/Sessions/Playing/Stopped', {
+			body: {
+				ItemId: itemId,
+				PlaySessionId: sessionId,
+				PositionTicks: Math.round(positionTicks),
+				MediaSourceId: itemId
+			}
+		});
+	}
+	deleteActiveEncoding(playSessionId: string) {
+		return this.getClient()?.DELETE('/Videos/ActiveEncodings', {
+			params: {
+				query: {
+					deviceId: JELLYFIN_DEVICE_ID,
+					playSessionId: playSessionId
+				}
+			}
+		});
 	}
 }
 

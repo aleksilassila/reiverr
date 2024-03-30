@@ -22,3 +22,10 @@ export function createLocalStorageStore<T>(key: string, defaultValue: T) {
 }
 
 export const skippedVersion = createLocalStorageStore<string | null>('skipped-version', null);
+export const videoPlayerSettings = createLocalStorageStore<{
+	muted: boolean;
+	volume: number;
+}>('video-player-settings', {
+	muted: false,
+	volume: 1
+});

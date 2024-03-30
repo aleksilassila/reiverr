@@ -1,19 +1,9 @@
 <script lang="ts">
-	import {
-		delteActiveEncoding as deleteActiveEncoding,
-		getJellyfinItem,
-		getJellyfinPlaybackInfo,
-		reportJellyfinPlaybackProgress,
-		reportJellyfinPlaybackStarted,
-		reportJellyfinPlaybackStopped
-	} from '../../apis/jellyfin/jellyfin-api';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
 	import { settings } from '../../stores/settings.store';
-	import classNames from 'classnames';
 	import Hls from 'hls.js';
 	import {
-		Cross2,
 		EnterFullScreen,
 		ExitFullScreen,
 		Gear,
@@ -33,6 +23,9 @@
 	import { linear } from 'svelte/easing';
 	import ContextMenuButton from '../ContextMenu/ContextMenuButton.svelte';
 	import { isTizen } from '../../utils/browser-detection';
+	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api.js';
+	import { videoPlayerSettings } from '../../stores/localstorage.store';
+	import { get } from 'svelte/store';
 
 	export let jellyfinId: string;
 
@@ -54,7 +47,8 @@
 
 	// Find the correct functions
 	let elem = document.createElement('div');
-	// @ts-ignore
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	// @ts-expect-error
 	if (elem.requestFullscreen) {
 		reqFullscreenFunc = (elem) => {
 			elem.requestFullscreen();
@@ -62,40 +56,54 @@
 		fullscreenChangeEvent = 'fullscreenchange';
 		getFullscreenElement = () => <HTMLElement>document.fullscreenElement;
 		if (document.exitFullscreen) exitFullscreen = () => document.exitFullscreen();
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 	} else if (elem.webkitRequestFullscreen) {
 		reqFullscreenFunc = (elem) => {
-			// @ts-ignore
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			elem.webkitRequestFullscreen();
 		};
 		fullscreenChangeEvent = 'webkitfullscreenchange';
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		getFullscreenElement = () => <HTMLElement>document.webkitFullscreenElement;
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		if (document.webkitExitFullscreen) exitFullscreen = () => document.webkitExitFullscreen();
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 	} else if (elem.msRequestFullscreen) {
 		reqFullscreenFunc = (elem) => {
-			// @ts-ignore
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			elem.msRequestFullscreen();
 		};
 		fullscreenChangeEvent = 'MSFullscreenChange';
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		getFullscreenElement = () => <HTMLElement>document.msFullscreenElement;
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		if (document.msExitFullscreen) exitFullscreen = () => document.msExitFullscreen();
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 	} else if (elem.mozRequestFullScreen) {
 		reqFullscreenFunc = (elem) => {
-			// @ts-ignore
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			elem.mozRequestFullScreen();
 		};
 		fullscreenChangeEvent = 'mozfullscreenchange';
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		getFullscreenElement = () => <HTMLElement>document.mozFullScreenElement;
-		// @ts-ignore
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
 		if (document.mozCancelFullScreen) exitFullscreen = () => document.mozCancelFullScreen();
 	}
+
+	const inintialValues = get(videoPlayerSettings);
 
 	let paused: boolean = false;
 	let duration: number = 0;
@@ -107,8 +115,8 @@
 	let playerStateBeforeSeek: boolean;
 
 	let fullscreen: boolean = false;
-	let volume: number = 1;
-	let mute: boolean = false;
+	let volume: number = inintialValues.volume;
+	let mute: boolean = inintialValues.muted;
 
 	let resolution: number = 1080;
 	let currentBitrate: number = 0;
@@ -117,92 +125,96 @@
 	let uiVisible = true;
 	$: uiVisible = !shouldCloseUi || seeking || paused || $contextMenu === qualityContextMenuId;
 
+	$: videoPlayerSettings.set({ volume, muted: mute });
+
 	const fetchPlaybackInfo = (
 		itemId: string,
 		maxBitrate: number | undefined = undefined,
 		starting: boolean = true
 	) =>
-		getJellyfinItem(itemId).then((item) =>
-			getJellyfinPlaybackInfo(
-				itemId,
-				getDeviceProfile(),
-				item?.UserData?.PlaybackPositionTicks || Math.floor(displayedTime * 10_000_000),
-				maxBitrate || getQualities(item?.Height || 1080)[0].maxBitrate
-			).then(async (playbackInfo) => {
-				if (!playbackInfo) return;
-				const { playbackUri, playSessionId: sessionId, mediaSourceId, directPlay } = playbackInfo;
+		jellyfinApi.getLibraryItem(itemId).then((item) =>
+			jellyfinApi
+				.getPlaybackInfo(
+					itemId,
+					getDeviceProfile(),
+					item?.UserData?.PlaybackPositionTicks || Math.floor(displayedTime * 10_000_000),
+					maxBitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate
+				)
+				.then(async (playbackInfo) => {
+					if (!playbackInfo) return;
+					const { playbackUri, playSessionId: sessionId, mediaSourceId, directPlay } = playbackInfo;
 
-				if (!playbackUri || !sessionId) {
-					console.log('No playback URL or session ID', playbackUri, sessionId);
-					return;
-				}
-
-				video.poster = item?.BackdropImageTags?.length
-					? `${$settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
-					: '';
-
-				videoLoaded = false;
-				if (!directPlay) {
-					if (Hls.isSupported()) {
-						const hls = new Hls();
-
-						hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
-						hls.attachMedia(video);
-					} else if (video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
-						/*
-						 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
-						 * This is not a problem, since HLS is natively supported on iOS. But any other browser
-						 * that does not support MSE will not be able to play the video.
-						 */
-						video.src = $settings.jellyfin.baseUrl + playbackUri;
-					} else {
-						throw new Error('HLS is not supported');
+					if (!playbackUri || !sessionId) {
+						console.log('No playback URL or session ID', playbackUri, sessionId);
+						return;
 					}
-				} else {
-					video.src = $settings.jellyfin.baseUrl + playbackUri;
-				}
 
-				resolution = item?.Height || 1080;
-				currentBitrate = maxBitrate || getQualities(resolution)[0].maxBitrate;
+					video.poster = item?.BackdropImageTags?.length
+						? `${$settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+						: '';
 
-				if (item?.UserData?.PlaybackPositionTicks) {
-					displayedTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
-				}
+					videoLoaded = false;
+					if (!directPlay) {
+						if (Hls.isSupported()) {
+							const hls = new Hls();
 
-				// We should not requestFullscreen automatically, as it's not what
-				// the user expects. Moreover, most browsers will deny the request
-				// if the video takes a while to load.
-				// video.play().then(() => videoWrapper.requestFullscreen());
+							hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
+							hls.attachMedia(video);
+						} else if (video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
+							/*
+							 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
+							 * This is not a problem, since HLS is natively supported on iOS. But any other browser
+							 * that does not support MSE will not be able to play the video.
+							 */
+							video.src = $settings.jellyfin.baseUrl + playbackUri;
+						} else {
+							throw new Error('HLS is not supported');
+						}
+					} else {
+						video.src = $settings.jellyfin.baseUrl + playbackUri;
+					}
 
-				// A start report should only be sent when the video starts playing,
-				// not every time a playback info request is made
-				if (mediaSourceId && starting)
-					await reportJellyfinPlaybackStarted(itemId, sessionId, mediaSourceId);
+					resolution = item?.Height || 1080;
+					currentBitrate = maxBitrate || getQualities(resolution)[0]?.maxBitrate;
 
-				reportProgress = async () => {
-					await reportJellyfinPlaybackProgress(
-						itemId,
-						sessionId,
-						video?.paused == true,
-						video?.currentTime * 10_000_000
-					);
-				};
+					if (item?.UserData?.PlaybackPositionTicks) {
+						displayedTime = item?.UserData?.PlaybackPositionTicks / 10_000_000;
+					}
 
-				if (progressInterval) clearInterval(progressInterval);
-				progressInterval = setInterval(() => {
-					video && video.readyState === 4 && video?.currentTime > 0 && sessionId && itemId;
-					reportProgress();
-				}, 5000);
+					// We should not requestFullscreen automatically, as it's not what
+					// the user expects. Moreover, most browsers will deny the request
+					// if the video takes a while to load.
+					// video.play().then(() => videoWrapper.requestFullscreen());
 
-				deleteEncoding = () => {
-					deleteActiveEncoding(sessionId);
-				};
+					// A start report should only be sent when the video starts playing,
+					// not every time a playback info request is made
+					if (mediaSourceId && starting)
+						await jellyfinApi.reportPlaybackStarted(itemId, sessionId, mediaSourceId);
 
-				stopCallback = () => {
-					reportJellyfinPlaybackStopped(itemId, sessionId, video?.currentTime * 10_000_000);
-					deleteEncoding();
-				};
-			})
+					reportProgress = async () => {
+						await jellyfinApi.reportPlaybackProgress(
+							itemId,
+							sessionId,
+							video?.paused == true,
+							video?.currentTime * 10_000_000
+						);
+					};
+
+					if (progressInterval) clearInterval(progressInterval);
+					progressInterval = setInterval(() => {
+						video && video.readyState === 4 && video?.currentTime > 0 && sessionId && itemId;
+						reportProgress();
+					}, 5000);
+
+					deleteEncoding = () => {
+						jellyfinApi.deleteActiveEncoding(sessionId);
+					};
+
+					stopCallback = () => {
+						jellyfinApi.reportPlaybackStopped(itemId, sessionId, video?.currentTime * 10_000_000);
+						deleteEncoding();
+					};
+				})
 		);
 
 	function onSeekStart() {
@@ -294,17 +306,14 @@
 	$: {
 		if (video && jellyfinId) {
 			if (video.src === '') fetchPlaybackInfo(jellyfinId);
-			paused = false;
-			console.log('Paused', paused);
-			video.play();
+			// video.play();
 		}
 	}
 
 	onMount(() => {
 		// Workaround because the paused state does not sync
 		// with the video element until a change is made
-		paused = false;
-
+		// paused = false;
 		// if (video && $playerState.jellyfinId) {
 		// 	if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
 		// }
@@ -345,7 +354,7 @@
 	function handleShortcuts(event: KeyboardEvent) {
 		if (event.key === 'f') {
 			handleRequestFullscreen();
-		} else if (event.key === ' ') {
+		} else if (event.key === ' ' || event.key === 'k') {
 			paused = !paused;
 		} else if (event.key === 'ArrowLeft') {
 			video.currentTime -= 10;
@@ -355,6 +364,8 @@
 			volume = Math.min(volume + 0.1, 1);
 		} else if (event.key === 'ArrowDown') {
 			volume = Math.max(volume - 0.1, 0);
+		} else if (event.key === 'm') {
+			mute = !mute;
 		}
 	}
 </script>
@@ -374,7 +385,7 @@
 <!--&gt;-->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
-	class="w-screen h-screen flex items-center justify-center"
+	class="w-full h-full flex items-center justify-center relative"
 	bind:this={videoWrapper}
 	on:mousemove={() => handleUserInteraction(false)}
 	on:touchend|preventDefault={() => handleUserInteraction(true)}
@@ -407,7 +418,7 @@
 	{#if uiVisible}
 		<!-- Video controls -->
 		<div
-			class="absolute bottom-0 w-screen bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent"
+			class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/[.8] via-60% via-black-opacity-80 to-transparent"
 			on:touchend|stopPropagation
 			transition:fade={{ duration: 100 }}
 		>

@@ -25,7 +25,7 @@ type AwaitableStoreValue<R, T = { data?: R }> = {
 	loading: boolean;
 } & T;
 
-function _createDataFetchStore<T>(fn: () => Promise<T>) {
+export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 	const store = writable<AwaitableStoreValue<T>>({
 		loading: true,
 		data: undefined
