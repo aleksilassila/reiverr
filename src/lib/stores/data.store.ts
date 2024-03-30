@@ -7,7 +7,7 @@ import {
 	type SonarrDownload,
 	type SonarrSeries
 } from '../apis/sonarr/sonarrApi';
-import { getRadarrDownloads, getRadarrMovies, type RadarrDownload } from '../apis/radarr/radarrApi';
+import { radarrApi, type RadarrDownload } from '../apis/radarr/radarr-api';
 
 async function waitForSettings() {
 	return new Promise((resolve) => {
@@ -89,7 +89,7 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 }
 
 export const sonarrSeriesStore = _createDataFetchStore(getSonarrSeries);
-export const radarrMoviesStore = _createDataFetchStore(getRadarrMovies);
+export const radarrMoviesStore = _createDataFetchStore(radarrApi.getRadarrMovies);
 
 export function createRadarrMovieStore(tmdbId: number) {
 	const store = derived(radarrMoviesStore, (s) => {
@@ -137,7 +137,7 @@ export function createSonarrSeriesStore(name: Promise<string> | string) {
 }
 
 export const sonarrDownloadsStore = _createDataFetchStore(getSonarrDownloads);
-export const radarrDownloadsStore = _createDataFetchStore(getRadarrDownloads);
+export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getRadarrDownloads);
 export const servarrDownloadsStore = (() => {
 	const store = derived([sonarrDownloadsStore, radarrDownloadsStore], ([sonarr, radarr]) => {
 		return {
@@ -213,3 +213,86 @@ export function createSonarrDownloadStore(
 		refresh: async () => sonarrDownloadsStore.refresh()
 	};
 }
+
+export const useActionRequests = <P extends Record<string, (...args: any[]) => Promise<any>>>(
+	values: P
+) => {
+	const initialFetching: Record<keyof P, boolean> = {} as any;
+	Object.keys(values).forEach((key) => {
+		initialFetching[key as keyof P] = false;
+	});
+
+	const fetching = writable(initialFetching);
+
+	const initialData: Record<keyof P, Awaited<ReturnType<P[keyof P]>> | undefined> = {} as any;
+	Object.keys(values).forEach((key) => {
+		initialData[key as keyof P] = undefined;
+	});
+
+	const data = writable(initialData);
+
+	const methods: P = {} as any;
+	Object.keys(values).forEach((key) => {
+		// @ts-expect-error
+		methods[key as keyof P] = async (...args: any[]) => {
+			fetching.update((f) => ({ ...f, [key]: true }));
+			values[key as keyof P]?.(...args)
+				.then((d) => data.update((prev) => ({ ...prev, [key]: d })))
+				.finally(() => {
+					fetching.update((f) => ({ ...f, [key]: false }));
+				});
+		};
+	});
+
+	return {
+		requests: methods,
+		data: {
+			subscribe: data.subscribe
+		},
+		isFetching: {
+			subscribe: fetching.subscribe
+		}
+	};
+};
+export const useRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P,
+	...initialArgs: A
+) => {
+	const request = writable<ReturnType<P>>(undefined);
+	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
+	const isLoading = writable(true);
+	const isFetching = writable(true);
+
+	function refresh(...args: A): ReturnType<P> {
+		isFetching.set(true);
+		const p: ReturnType<P> = fn(...args)
+			.then((res) => {
+				data.set(res);
+				return res;
+			})
+			.finally(() => {
+				isFetching.set(false);
+			});
+
+		request.set(p);
+		return p;
+	}
+
+	refresh(...initialArgs);
+
+	return {
+		promise: {
+			subscribe: request.subscribe
+		},
+		data: {
+			subscribe: data.subscribe
+		},
+		isLoading: {
+			subscribe: isLoading.subscribe
+		},
+		isFetching: {
+			subscribe: isFetching.subscribe
+		},
+		refresh
+	};
+};

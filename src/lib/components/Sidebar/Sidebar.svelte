@@ -40,7 +40,7 @@
 					<Laptop class="w-8 h-8" slot="icon" />
 				</div>
 			</Container>
-			<Container on:click={() => navigate('/movie/695721')}>
+			<Container on:click={() => navigate('/movie/359410')}>
 				<div class={itemContainer(1, $focusIndex)}>
 					<CardStack class="w-8 h-8" slot="icon" />
 				</div>

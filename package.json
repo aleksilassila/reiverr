@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
-		"build:tizen": "vite build --outDir tizen/dist",
+		"build:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist",
 		"preview": "vite preview",
 		"preview:tizen": "vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",

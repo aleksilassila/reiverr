@@ -190,7 +190,7 @@ export class JellyfinApi implements Api<paths> {
 }
 
 export const jellyfinApi = new JellyfinApi();
-export const getJellyfinApiClient = jellyfinApi.getClient;
+export const jellyfinApiClient = jellyfinApi.getClient;
 
 /*
 function getJellyfinApi() {

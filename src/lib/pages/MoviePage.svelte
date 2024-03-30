@@ -2,28 +2,42 @@
 	import Container from '../../Container.svelte';
 	import HeroCarousel from '../components/HeroCarousel/HeroCarousel.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import { TMDB_IMAGES_ORIGINAL } from '../constants';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
-	import { DotFilled } from 'radix-icons-svelte';
+	import { DotFilled, ExternalLink, Plus } from 'radix-icons-svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
+	import { radarrApi } from '../apis/radarr/radarr-api';
+	import { useActionRequests, useRequest } from '../stores/data.store';
 
 	export let id: string;
 
-	const movieDataP = tmdbApi.getTmdbMovie(Number(id));
-	const jellyfinItem = jellyfinApi.getLibraryItemFromTmdbId(id);
+	const { promise: movieDataP } = useRequest(tmdbApi.getTmdbMovie, Number(id));
+	const { promise: jellyfinItemP } = useRequest(
+		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
+		id
+	);
+	const { promise: radarrItemP, refresh: refreshRadarrItem } = useRequest(
+		radarrApi.getMovieByTmdbId,
+		Number(id)
+	);
 
 	let playbackId: string = '';
 
 	let heroIndex: number;
+
+	const { requests, isFetching, data } = useActionRequests({
+		handleAddToRadarr: (id: number) =>
+			radarrApi.addMovieToRadarr(id).finally(() => refreshRadarrItem(Number(id)))
+	});
 </script>
 
 <Container focusOnMount>
 	<div class="h-screen flex flex-col">
 		<HeroCarousel
 			bind:index={heroIndex}
-			urls={movieDataP.then(
+			urls={$movieDataP.then(
 				(movie) =>
 					movie?.images.backdrops
 						?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
@@ -32,7 +46,7 @@
 			)}
 		>
 			<div class="h-full flex flex-col justify-end">
-				{#await movieDataP then movie}
+				{#await $movieDataP then movie}
 					{#if movie}
 						<div
 							class={classNames(
@@ -46,7 +60,7 @@
 							{movie?.title}
 						</div>
 						<div
-							class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
+							class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
 						>
 							<p class="flex-shrink-0">
 								{new Date(movie.release_date || Date.now())?.getFullYear()}
@@ -65,12 +79,32 @@
 						</div>
 					{/if}
 				{/await}
-				{#await jellyfinItem then item}
-					{#if item}
-						<div class="flex mt-4">
-							<Button on:click={() => (playbackId = item.Id || '')}>Play</Button>
-						</div>
-					{/if}
+				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
+					<Container direction="horizontal" class="flex mt-8 gap-2">
+						{#if jellyfinItem}
+							<Button on:click={() => (playbackId = jellyfinItem.Id || '')}>Play</Button>
+						{:else if radarrItem}
+							<Button>Request</Button>
+						{:else}
+							<Button
+								on:click={() => requests.handleAddToRadarr(Number(id))}
+								inactive={$isFetching.handleAddToRadarr}
+							>
+								Add to Radarr
+								<Plus slot="icon" size={19} />
+							</Button>
+						{/if}
+						{#if PLATFORM_WEB}
+							<Button>
+								Open In TMDB
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+							<Button>
+								Open In Jellyfin
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+						{/if}
+					</Container>
 				{/await}
 			</div>
 		</HeroCarousel>

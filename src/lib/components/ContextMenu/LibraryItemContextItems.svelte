@@ -4,7 +4,7 @@
 		setJellyfinItemWatched,
 		type JellyfinItem
 	} from '$lib/apis/jellyfin/jellyfinApi';
-	import type { RadarrMovie } from '../../apis/radarr/radarrApi';
+	import type { RadarrMovie } from '../../apis/radarr/radarr-api';
 	import type { SonarrSeries } from '../../apis/sonarr/sonarrApi';
 	import { jellyfinItemsStore } from '../../stores/data.store';
 	import { settings } from '../../stores/settings.store';
