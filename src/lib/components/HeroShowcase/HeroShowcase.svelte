@@ -1,10 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
-	import PageDots from './PageDots.svelte';
 	import type { ShowcaseItemProps } from './HeroShowcase';
-	import HeroBackground from '../HeroCarousel/HeroBackground.svelte';
-	import { Selectable } from '../../selectable';
-	import IconButton from '../IconButton.svelte';
 	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
 	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import classNames from 'classnames';
@@ -15,27 +10,6 @@
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
 	let showcaseIndex = 0;
-	let showcaseLength = 0;
-	$: items.then((i) => (showcaseLength = i?.length || 0));
-
-	function onNext() {
-		showcaseIndex = (showcaseIndex + 1) % showcaseLength;
-		return true;
-	}
-
-	function onPrevious() {
-		if (showcaseIndex === 0) {
-			Selectable.giveFocus('left');
-		} else {
-			showcaseIndex = (showcaseIndex - 1 + showcaseLength) % showcaseLength;
-		}
-		return true;
-	}
-
-	function onJump(index: number) {
-		showcaseIndex = index;
-		return true;
-	}
 </script>
 
 <HeroCarousel
@@ -51,14 +25,6 @@
 					<div>title</div>
 					<div>genres</div>
 				</div>
-			</div>
-			<div class="flex flex-col justify-end">
-				<div class="flex flex-1 justify-end items-center">
-					<IconButton on:click={onNext}>
-						<ChevronRight size={38} />
-					</IconButton>
-				</div>
-				<PageDots index={showcaseIndex} length={showcaseLength} {onJump} {onPrevious} {onNext} />
 			</div>
 		{:then items}
 			{@const item = items[showcaseIndex]}

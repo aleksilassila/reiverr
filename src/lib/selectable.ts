@@ -269,10 +269,10 @@ export class Selectable {
 		return undefined;
 	}
 
-	private giveFocus(direction: Direction): boolean {
+	private giveFocus(direction: Direction, bypassActions: boolean = false): boolean {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		let selectable: Selectable | undefined = this;
-		while (selectable) {
+		while (selectable && !bypassActions) {
 			const action = selectable.navigationActions[direction];
 			if (action && action(this)) {
 				return true;
@@ -292,9 +292,9 @@ export class Selectable {
 		}
 	}
 
-	static giveFocus(direction: Direction) {
+	static giveFocus(direction: Direction, bypassActions: boolean = false) {
 		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus(direction);
+		return currentlyFocusedObject?.giveFocus(direction, bypassActions);
 	}
 
 	_initializeSelectable() {

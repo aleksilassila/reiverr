@@ -41,7 +41,7 @@
 		navigationActions={{
 			right: onNext,
 			left: onPrevious,
-			up: () => Selectable.giveFocus('left') || true
+			up: () => Selectable.giveFocus('left', true) || true
 		}}
 	/>
 	<div class="flex flex-1 z-10 p-4">
