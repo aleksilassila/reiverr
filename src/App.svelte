@@ -14,6 +14,8 @@
 	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';
 	import { appState } from './lib/stores/app-state.store';
 	import MoviePage from './lib/pages/MoviePage.svelte';
+	import DetatchedPage from './lib/components/DetatchedPage/DetatchedPage.svelte';
+	import Button from './lib/components/Button.svelte';
 
 	getReiverrApiClient()
 		.GET('/user', {})
@@ -23,7 +25,7 @@
 </script>
 
 <I18n />
-<Container direction="horizontal" class="bg-stone-950 text-white flex flex-1 w-screen">
+<Container class="bg-stone-950 text-white flex flex-1 w-screen">
 	{#if $appState.user === undefined}
 		<div class="h-screen w-screen flex flex-col items-center justify-center">
 			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
@@ -36,13 +38,12 @@
 		<LoginPage />
 	{:else}
 		<Router>
-			<Sidebar />
-
-			<Container class="flex-1 flex flex-col min-w-0">
+			<Container class="flex-1 flex flex-col min-w-0" direction="horizontal" trapFocus>
+				<Sidebar />
 				<Route path="/">
 					<BrowseSeriesPage />
 				</Route>
-				<Route path="movies">
+				<Route path="movies/*">
 					<MoviesPage />
 				</Route>
 				<Route path="library">
@@ -60,6 +61,16 @@
 					<div>404</div>
 				</Route>
 			</Container>
+		</Router>
+
+		<Router>
+			<Route path="movies/movie/:id">
+				<DetatchedPage>
+					<Button>Button 1</Button>
+					<Button>Button 2</Button>
+					<Button on:click={() => history.back()}>Back</Button>
+				</DetatchedPage>
+			</Route>
 		</Router>
 	{/if}
 </Container>

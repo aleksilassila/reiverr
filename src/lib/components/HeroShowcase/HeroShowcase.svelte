@@ -25,7 +25,7 @@
 
 	function onPrevious() {
 		if (showcaseIndex === 0) {
-			Selectable.focusLeft();
+			Selectable.giveFocus('left');
 		} else {
 			showcaseIndex = (showcaseIndex - 1 + showcaseLength) % showcaseLength;
 		}

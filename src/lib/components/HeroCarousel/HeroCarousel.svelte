@@ -21,7 +21,7 @@
 
 	function onPrevious() {
 		if (index === 0) {
-			Selectable.focusLeft();
+			return false;
 		} else {
 			index = (index - 1 + length) % length;
 		}
@@ -41,7 +41,7 @@
 		navigationActions={{
 			right: onNext,
 			left: onPrevious,
-			up: () => Selectable.focusLeft() || true
+			up: () => Selectable.giveFocus('left') || true
 		}}
 	/>
 	<div class="flex flex-1 z-10 p-4">

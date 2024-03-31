@@ -109,6 +109,7 @@ export class Selectable {
 		right: undefined
 	};
 	private focusByDefault: boolean = false;
+	private trapFocus: boolean = false;
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
@@ -256,15 +257,33 @@ export class Selectable {
 			}
 		}
 
+		// if (this.navigationActions[direction]) {
+		// 	return this;
+		// } else
 		if (this.neighbors[direction]?.isFocusable()) {
 			return this.neighbors[direction];
-		} else {
+		} else if (!this.trapFocus) {
 			return this.parent?.getFocusableNeighbor(direction);
 		}
+
+		return undefined;
 	}
 
-	private giveFocus(direction: Direction) {
+	private giveFocus(direction: Direction): boolean {
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
+		let selectable: Selectable | undefined = this;
+		while (selectable) {
+			const action = selectable.navigationActions[direction];
+			if (action && action(this)) {
+				return true;
+			}
+			selectable = selectable.parent;
+		}
+
 		const neighbor = this.getFocusableNeighbor(direction);
+		// if (neighbor?.navigationActions?.[direction] && neighbor.navigationActions[direction]?.(this)) {
+		// 	return true;
+		// } else
 		if (neighbor) {
 			neighbor.focus();
 			return true;
@@ -273,24 +292,9 @@ export class Selectable {
 		}
 	}
 
-	static focusUp() {
+	static giveFocus(direction: Direction) {
 		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus('up');
-	}
-
-	static focusDown() {
-		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus('down');
-	}
-
-	static focusLeft() {
-		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus('left');
-	}
-
-	static focusRight() {
-		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus('right');
+		return currentlyFocusedObject?.giveFocus(direction);
 	}
 
 	_initializeSelectable() {
@@ -454,6 +458,11 @@ export class Selectable {
 	getScrollChildrenIntoView() {
 		return this.scrollChildrenIntoView;
 	}
+
+	setTrapFocus(trapFocus: boolean) {
+		this.trapFocus = trapFocus;
+		return this;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -472,21 +481,13 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 
 	const navigationActions = currentlyFocusedObject.getNavigationActions();
 	if (event.key === 'ArrowUp') {
-		if (navigationActions.up && navigationActions.up(currentlyFocusedObject))
-			event.preventDefault();
-		else if (Selectable.focusUp()) event.preventDefault();
+		if (Selectable.giveFocus('up')) event.preventDefault();
 	} else if (event.key === 'ArrowDown') {
-		if (navigationActions.down && navigationActions.down(currentlyFocusedObject))
-			event.preventDefault();
-		else if (Selectable.focusDown()) event.preventDefault();
+		if (Selectable.giveFocus('down')) event.preventDefault();
 	} else if (event.key === 'ArrowLeft') {
-		if (navigationActions.left && navigationActions.left(currentlyFocusedObject))
-			event.preventDefault();
-		else if (Selectable.focusLeft()) event.preventDefault();
+		if (Selectable.giveFocus('left')) event.preventDefault();
 	} else if (event.key === 'ArrowRight') {
-		if (navigationActions.right && navigationActions.right(currentlyFocusedObject))
-			event.preventDefault();
-		else if (Selectable.focusRight()) event.preventDefault();
+		if (Selectable.giveFocus('right')) event.preventDefault();
 	} else if (event.key === 'Enter') {
 		if (navigationActions.enter && navigationActions.enter(currentlyFocusedObject))
 			event.preventDefault();

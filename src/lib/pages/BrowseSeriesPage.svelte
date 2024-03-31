@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
-	import { getPosterProps, getTmdbPopularMovies, TmdbApiOpen } from '../apis/tmdb/tmdb-api';
+	import { getPosterProps, tmdbApi, TmdbApiOpen } from '../apis/tmdb/tmdb-api';
 	import { formatDateToYearMonthDay } from '../utils';
 	import { settings } from '../stores/settings.store';
 	import type { TitleType } from '../types';
@@ -62,8 +62,6 @@
 			.then((res) => res.data?.results || [])
 			.then((i) => fetchCardProps(i, 'series'));
 
-	const fetchPopularMovies = () => getTmdbPopularMovies();
-
 	// const fetchLibraryItems = async () => {
 	// 	const items = await getJellyfinItems();
 	// 	const props = await fetchCardProps(items, 'series');
@@ -78,7 +76,7 @@
 
 <Container focusOnMount>
 	<div class="h-screen flex flex-col">
-		<HeroShowcase items={getTmdbPopularMovies().then(getShowcasePropsFromTmdb)} />
+		<HeroShowcase items={tmdbApi.getPopularMovies().then(getShowcasePropsFromTmdb)} />
 		<div class="mt-8">
 			<Carousel scrollClass="">
 				<SidebarMargin slot="title" class="mx-4">

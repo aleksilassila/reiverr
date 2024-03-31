@@ -41,7 +41,7 @@
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
 		class={classNames(
-			'fixed inset-0 justify-center items-center z-20 overflow-hidden flex transition-opacity reltaive',
+			'fixed inset-0 justify-center items-center z-20 overflow-hidden flex transition-opacity',
 			{
 				'opacity-0': hidden
 			}

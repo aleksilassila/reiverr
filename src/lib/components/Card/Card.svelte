@@ -11,7 +11,6 @@
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
-	export let openInModal = true;
 	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
 	export let backdropUrl: string;
@@ -32,14 +31,8 @@
 <Container
 	active={focusable}
 	on:click={() => {
-		if (openInModal) {
-			if (tmdbId) {
-				//openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
-			} else if (tvdbId) {
-				//openTitleModal({ type, id: tvdbId, provider: 'tvdb' });
-			}
-		} else if (tmdbId || tvdbId) {
-			navigate(`/${type}/${tmdbId || tvdbId}`);
+		if (tmdbId || tvdbId) {
+			navigate(`${type}/${tmdbId || tvdbId}`);
 		}
 	}}
 	class={classNames(

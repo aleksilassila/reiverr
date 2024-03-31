@@ -7,6 +7,7 @@
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
 	export let gridCols: number = 0;
 	export let focusOnMount = false;
+	export let trapFocus = false;
 	export let debugOutline = false;
 	export let revealStrategy: RevealStrategy | undefined = undefined;
 	export let childrenRevealStrategy: RevealStrategy | undefined = undefined;
@@ -21,6 +22,7 @@
 		.setNavigationActions(navigationActions)
 		.setRevealStrategy(revealStrategy)
 		.setChildrenRevealStrategy(childrenRevealStrategy)
+		.setTrapFocus(trapFocus)
 		.getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;

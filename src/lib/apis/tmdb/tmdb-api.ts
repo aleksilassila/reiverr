@@ -63,6 +63,16 @@ export class TmdbApi implements Api<paths> {
 			}
 		}).then((res) => res.data as TmdbMovieFull2 | undefined);
 	}
+
+	getPopularMovies = () =>
+		TmdbApiOpen.GET('/3/movie/popular', {
+			params: {
+				query: {
+					language: get(settings)?.language,
+					region: get(settings)?.discover.region
+				}
+			}
+		}).then((res) => res.data?.results || []);
 }
 
 export const tmdbApi = new TmdbApi();
@@ -230,16 +240,6 @@ export const getTmdbMoviePoster = async (tmdbId: number) =>
 	getTmdbCache(posterCache, tmdbId, () => getTmdbMovie(tmdbId).then((m) => m?.poster_path));
 
 /** Discover */
-
-export const getTmdbPopularMovies = () =>
-	TmdbApiOpen.GET('/3/movie/popular', {
-		params: {
-			query: {
-				language: get(settings)?.language,
-				region: get(settings)?.discover.region
-			}
-		}
-	}).then((res) => res.data?.results || []);
 
 export const getTmdbPopularSeries = () =>
 	TmdbApiOpen.GET('/3/tv/popular', {
