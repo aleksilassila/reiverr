@@ -64,13 +64,7 @@
 		</Router>
 
 		<Router>
-			<Route path="movies/movie/:id">
-				<DetatchedPage>
-					<Button>Button 1</Button>
-					<Button>Button 2</Button>
-					<Button on:click={() => history.back()}>Back</Button>
-				</DetatchedPage>
-			</Route>
+			<Route path="movies/movie/:id" component={MoviePage} />
 		</Router>
 	{/if}
 </Container>

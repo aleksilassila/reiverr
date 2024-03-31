@@ -10,6 +10,7 @@
 	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
+	import DetatchedPage from '../components/DetatchedPage/DetatchedPage.svelte';
 
 	export let id: string;
 
@@ -33,7 +34,7 @@
 	});
 </script>
 
-<Container focusOnMount>
+<DetatchedPage>
 	<div class="h-screen flex flex-col">
 		<HeroCarousel
 			bind:index={heroIndex}
@@ -114,4 +115,4 @@
 			<VideoPlayer jellyfinId={playbackId} />
 		{/if}
 	</div>
-</Container>
+</DetatchedPage>

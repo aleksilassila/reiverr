@@ -226,7 +226,7 @@ export class Selectable {
 		return false;
 	}
 
-	getFocusableNeighbor(direction: Direction): Selectable | undefined {
+	private giveFocus(direction: Direction, bypassActions: boolean = false): boolean {
 		const focusIndex = get(this.focusIndex);
 
 		const indexAddition = {
@@ -250,46 +250,28 @@ export class Selectable {
 		if (indexAddition !== 0) {
 			let index = focusIndex + indexAddition;
 			while (index >= 0 && index < this.children.length) {
-				if (this.children[index]?.isFocusable()) {
-					return this.children[index];
+				const children = this.children[index];
+				if (children && children.isFocusable()) {
+					children.focus();
+					return true;
 				}
 				index += indexAddition;
 			}
 		}
 
-		// if (this.navigationActions[direction]) {
-		// 	return this;
-		// } else
-		if (this.neighbors[direction]?.isFocusable()) {
-			return this.neighbors[direction];
-		} else if (!this.trapFocus) {
-			return this.parent?.getFocusableNeighbor(direction);
-		}
+		// About to leave this container (=coulnd't cycle siblings)
 
-		return undefined;
-	}
-
-	private giveFocus(direction: Direction, bypassActions: boolean = false): boolean {
-		// eslint-disable-next-line @typescript-eslint/no-this-alias
-		let selectable: Selectable | undefined = this;
-		while (selectable && !bypassActions) {
-			const action = selectable.navigationActions[direction];
-			if (action && action(this)) {
-				return true;
-			}
-			selectable = selectable.parent;
-		}
-
-		const neighbor = this.getFocusableNeighbor(direction);
-		// if (neighbor?.navigationActions?.[direction] && neighbor.navigationActions[direction]?.(this)) {
-		// 	return true;
-		// } else
-		if (neighbor) {
-			neighbor.focus();
+		const action = this.navigationActions[direction];
+		if (action && !bypassActions && action(this)) {
 			return true;
-		} else {
-			return false;
+		} else if (this.neighbors[direction]?.isFocusable()) {
+			this.neighbors[direction]?.focus();
+			return true;
+		} else if (!this.trapFocus) {
+			return this.parent?.giveFocus(direction, bypassActions) || false;
 		}
+
+		return false;
 	}
 
 	static giveFocus(direction: Direction, bypassActions: boolean = false) {
