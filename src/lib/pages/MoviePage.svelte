@@ -13,6 +13,7 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { modalStack } from '../components/Modal/modal.store';
 	import RequestModal from '../components/RequestModal/RadarrRequestModal.svelte';
+	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 
 	export let id: string;
 
@@ -85,7 +86,9 @@
 				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
 					<Container direction="horizontal" class="flex mt-8 gap-2">
 						{#if jellyfinItem}
-							<Button on:click={() => (playbackId = jellyfinItem.Id || '')}>
+							<Button
+								on:click={() => jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
+							>
 								Play
 								<Play size={19} slot="icon" />
 							</Button>
@@ -123,10 +126,5 @@
 				{/await}
 			</div>
 		</HeroCarousel>
-	</div>
-	<div>
-		{#if playbackId}
-			<VideoPlayer jellyfinId={playbackId} />
-		{/if}
 	</div>
 </DetachedPage>

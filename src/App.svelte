@@ -66,6 +66,7 @@
 
 		<Router>
 			<Route path="movies/movie/:id" component={MoviePage} />
+			<Route path="library/movie/:id" component={MoviePage} />
 		</Router>
 
 		<ModalStack />
