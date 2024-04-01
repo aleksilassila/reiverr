@@ -1,7 +1,6 @@
 <script lang="ts">
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
-	import { settings } from '../../stores/settings.store';
 	import Hls from 'hls.js';
 	import {
 		EnterFullScreen,
@@ -26,6 +25,7 @@
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api.js';
 	import { videoPlayerSettings } from '../../stores/localstorage.store';
 	import { get } from 'svelte/store';
+	import { appState } from '../../stores/app-state.store';
 
 	export let jellyfinId: string;
 
@@ -150,7 +150,7 @@
 					}
 
 					video.poster = item?.BackdropImageTags?.length
-						? `${$settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+						? `${$appState.user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 						: '';
 
 					videoLoaded = false;
@@ -158,7 +158,7 @@
 						if (Hls.isSupported()) {
 							const hls = new Hls();
 
-							hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
+							hls.loadSource($appState.user?.settings.jellyfin.baseUrl + playbackUri);
 							hls.attachMedia(video);
 						} else if (video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
 							/*
@@ -166,12 +166,12 @@
 							 * This is not a problem, since HLS is natively supported on iOS. But any other browser
 							 * that does not support MSE will not be able to play the video.
 							 */
-							video.src = $settings.jellyfin.baseUrl + playbackUri;
+							video.src = $appState.user?.settings.jellyfin.baseUrl + playbackUri;
 						} else {
 							throw new Error('HLS is not supported');
 						}
 					} else {
-						video.src = $settings.jellyfin.baseUrl + playbackUri;
+						video.src = $appState.user?.settings.jellyfin.baseUrl + playbackUri;
 					}
 
 					resolution = item?.Height || 1080;

@@ -4,7 +4,7 @@
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
-	import { DotFilled, Download, ExternalLink, Play, Plus } from 'radix-icons-svelte';
+	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
@@ -84,21 +84,36 @@
 					{/if}
 				{/await}
 				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
-					<Container direction="horizontal" class="flex mt-8 gap-2">
+					<Container direction="horizontal" class="flex mt-8">
 						{#if jellyfinItem}
 							<Button
+								class="mr-2"
 								on:click={() => jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
 							>
 								Play
 								<Play size={19} slot="icon" />
 							</Button>
-						{:else if radarrItem}
-							<Button on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}>
+						{/if}
+						{#if radarrItem}
+							{#if jellyfinItem}
+								<Button
+									class="mr-2"
+									on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}
+								>
+									Manage Files
+									<File size={19} slot="icon" />
+								</Button>
+							{/if}
+							<Button
+								class="mr-2"
+								on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}
+							>
 								Request
 								<Download size={19} slot="icon" />
 							</Button>
 						{:else}
 							<Button
+								class="mr-2"
 								on:click={() => requests.handleAddToRadarr(Number(id))}
 								inactive={$isFetching.handleAddToRadarr}
 							>
@@ -106,18 +121,12 @@
 								<Plus slot="icon" size={19} />
 							</Button>
 						{/if}
-						{#if jellyfinItem && radarrItem}
-							<Button on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}>
-								Manage Files
-								<Download size={19} slot="icon" />
-							</Button>
-						{/if}
 						{#if PLATFORM_WEB}
-							<Button>
+							<Button class="mr-2">
 								Open In TMDB
 								<ExternalLink size={19} slot="icon-after" />
 							</Button>
-							<Button>
+							<Button class="mr-2">
 								Open In Jellyfin
 								<ExternalLink size={19} slot="icon-after" />
 							</Button>
