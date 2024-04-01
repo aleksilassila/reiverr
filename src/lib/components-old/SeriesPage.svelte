@@ -26,7 +26,7 @@
 		createSonarrDownloadStore,
 		createSonarrSeriesStore
 	} from '../../lib/stores/data.store';
-	import { modalStack } from '../../lib/stores/modal.store';
+	import { modalStack } from '../components/Modal/modal.store';
 	import { settings } from '../../lib/stores/settings.store';
 	import type { TitleId } from '../../lib/types';
 	import { capitalize, formatMinutesToTime, formatSize } from '../../lib/utils';

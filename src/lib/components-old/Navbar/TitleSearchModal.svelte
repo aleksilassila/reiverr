@@ -3,7 +3,7 @@
 	import { searchTmdbTitles } from '$lib/apis/tmdb/tmdbApi';
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
-	import { modalStack } from '../../stores/modal.store';
+	import { modalStack } from '../../components/Modal/modal.store';
 	import ModalContent from '../Modal/ModalContainer.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import { onMount } from 'svelte';

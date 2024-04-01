@@ -1,5 +1,5 @@
-import type { getTmdbPopularMovies } from '../../apis/tmdb/tmdb-api';
 import { formatMinutesToTime } from '../../utils';
+import type { tmdbApi } from '../../apis/tmdb/tmdb-api';
 
 export type RatingSource = 'tmdb'; // TODO: Add more rating sources & move elsewhere
 
@@ -20,9 +20,8 @@ export type ShowcaseItemProps = {
 };
 
 export async function getShowcasePropsFromTmdb(
-	response: Awaited<ReturnType<typeof getTmdbPopularMovies>>
+	response: Awaited<ReturnType<typeof tmdbApi.getPopularMovies>>
 ): Promise<ShowcaseItemProps[]> {
-	console.log(response);
 	return response.slice(0, 10).map((movie) => ({
 		title: movie.title || '',
 		posterUrl: movie.poster_path || '',

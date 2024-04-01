@@ -29,7 +29,7 @@
 	import { contextMenu } from '../ContextMenu/ContextMenu';
 	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { modalStack } from '../../stores/modal.store';
+	import { modalStack } from '../../components/Modal/modal.store';
 	import Slider from './Slider.svelte';
 	import { playerState } from './VideoPlayer';
 	import { linear } from 'svelte/easing';

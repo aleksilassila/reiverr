@@ -4,6 +4,7 @@
 	import classNames from 'classnames';
 
 	export let inactive: boolean = false;
+	export let focusOnMount: boolean = false;
 
 	let hasFoucus: Readable<boolean>;
 </script>
@@ -18,13 +19,15 @@
 		'cursor-not-allowed pointer-events-none opacity-40': inactive
 	})}
 	on:click
+	let:hasFocus
+	{focusOnMount}
 >
 	{#if $$slots.icon}
 		<div class="mr-2">
 			<slot name="icon" />
 		</div>
 	{/if}
-	<slot />
+	<slot {hasFocus} />
 	{#if $$slots['icon-after']}
 		<div class="ml-2">
 			<slot name="icon-after" />

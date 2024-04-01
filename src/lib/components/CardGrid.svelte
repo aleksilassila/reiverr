@@ -17,8 +17,6 @@
 		}
 	};
 
-	$: console.log('cols', cols);
-
 	onMount(() => {
 		calculateRows();
 	});

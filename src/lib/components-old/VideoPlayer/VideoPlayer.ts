@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { modalStack } from '../../stores/modal.store';
+import { modalStack } from '../../components/Modal/modal.store';
 import VideoPlayer from './VideoPlayer.svelte';
 import { jellyfinItemsStore } from '../../stores/data.store';
 

@@ -7,7 +7,7 @@ import { settings } from '../../stores/settings.store';
 import { log } from '../../utils';
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
-export type SonarrReleaseResource = components['schemas']['ReleaseResource'];
+export type SonarrRelease = components['schemas']['ReleaseResource'];
 export type SonarrDownload = components['schemas']['QueueResource'] & { series: SonarrSeries };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 export type SonarrEpisode = components['schemas']['EpisodeResource'];

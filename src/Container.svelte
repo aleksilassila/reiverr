@@ -57,5 +57,5 @@
 	})}
 	use:registerer
 >
-	<slot />
+	<slot hasFocus={$hasFocus} hasFocusWithin={$hasFocusWithin} focusIndex={$focusIndex} />
 </svelte:element>

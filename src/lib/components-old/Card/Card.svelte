@@ -8,7 +8,7 @@
 	import { formatMinutesToTime } from '../../../lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
-	import { openTitleModal } from '../../stores/modal.store';
+	import { openTitleModal } from '../../components/Modal/modal.store';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
 	import ProgressBar from '../ProgressBar.svelte';

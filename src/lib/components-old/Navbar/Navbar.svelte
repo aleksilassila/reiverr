@@ -5,7 +5,7 @@
 	import TitleSearchModal from './TitleSearchModal.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { fade } from 'svelte/transition';
-	import { modalStack } from '../../stores/modal.store';
+	import { modalStack } from '../../components/Modal/modal.store';
 	import { _ } from 'svelte-i18n';
 
 	let y = 0;

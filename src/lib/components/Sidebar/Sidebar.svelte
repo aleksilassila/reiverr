@@ -9,8 +9,6 @@
 	let focusIndex: Readable<number>;
 
 	const navigate = useNavigate();
-	const asd = '';
-	const asd2 = '';
 	const itemContainer = (index: number, _focusIndex: number) =>
 		classNames('h-12 flex items-center', {
 			'text-amber-300': _focusIndex === index,

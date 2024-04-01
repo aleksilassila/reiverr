@@ -10,7 +10,7 @@ import type { Api } from '../api.interface';
 
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
-export type ReleaseResource = components['schemas']['ReleaseResource'];
+export type RadarrRelease = components['schemas']['ReleaseResource'];
 export type RadarrDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 
@@ -116,7 +116,7 @@ export class RadarrApi implements Api<paths> {
 		return !!deleteResponse?.response.ok;
 	};
 
-	fetchRadarrReleases = (movieId: number) =>
+	fetchRadarrReleases = (movieId: number): Promise<RadarrRelease[]> =>
 		this.getClient()
 			?.GET('/api/v3/release', { params: { query: { movieId: movieId } } })
 			.then((r) => r.data || []) || Promise.resolve([]);

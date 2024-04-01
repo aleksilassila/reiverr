@@ -14,14 +14,15 @@
 	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';
 	import { appState } from './lib/stores/app-state.store';
 	import MoviePage from './lib/pages/MoviePage.svelte';
-	import DetatchedPage from './lib/components/DetatchedPage/DetatchedPage.svelte';
-	import Button from './lib/components/Button.svelte';
+	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 
 	getReiverrApiClient()
 		.GET('/user', {})
 		.then((res) => res.data)
 		.then((user) => appState.setUser(user || null))
 		.catch(() => appState.setUser(null));
+
+	appState.subscribe((s) => console.log('appState', s));
 </script>
 
 <I18n />
@@ -66,6 +67,8 @@
 		<Router>
 			<Route path="movies/movie/:id" component={MoviePage} />
 		</Router>
+
+		<ModalStack />
 	{/if}
 </Container>
 

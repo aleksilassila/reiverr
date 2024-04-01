@@ -265,6 +265,7 @@ export const useRequest = <P extends (...args: A) => Promise<any>, A extends any
 
 	function refresh(...args: A): ReturnType<P> {
 		isFetching.set(true);
+		// @ts-ignore
 		const p: ReturnType<P> = fn(...args)
 			.then((res) => {
 				data.set(res);
@@ -278,7 +279,7 @@ export const useRequest = <P extends (...args: A) => Promise<any>, A extends any
 		return p;
 	}
 
-	refresh(...initialArgs);
+	refresh(...initialArgs).finally(() => isLoading.set(false));
 
 	return {
 		promise: {

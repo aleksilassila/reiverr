@@ -4,13 +4,15 @@
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
-	import { DotFilled, ExternalLink, Plus } from 'radix-icons-svelte';
+	import { DotFilled, Download, ExternalLink, Play, Plus } from 'radix-icons-svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
-	import DetatchedPage from '../components/DetatchedPage/DetatchedPage.svelte';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { modalStack } from '../components/Modal/modal.store';
+	import RequestModal from '../components/RequestModal/RadarrRequestModal.svelte';
 
 	export let id: string;
 
@@ -34,7 +36,7 @@
 	});
 </script>
 
-<DetatchedPage>
+<DetachedPage>
 	<div class="h-screen flex flex-col">
 		<HeroCarousel
 			bind:index={heroIndex}
@@ -83,9 +85,15 @@
 				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
 					<Container direction="horizontal" class="flex mt-8 gap-2">
 						{#if jellyfinItem}
-							<Button on:click={() => (playbackId = jellyfinItem.Id || '')}>Play</Button>
+							<Button on:click={() => (playbackId = jellyfinItem.Id || '')}>
+								Play
+								<Play size={19} slot="icon" />
+							</Button>
 						{:else if radarrItem}
-							<Button>Request</Button>
+							<Button on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}>
+								Request
+								<Download size={19} slot="icon" />
+							</Button>
 						{:else}
 							<Button
 								on:click={() => requests.handleAddToRadarr(Number(id))}
@@ -93,6 +101,12 @@
 							>
 								Add to Radarr
 								<Plus slot="icon" size={19} />
+							</Button>
+						{/if}
+						{#if jellyfinItem && radarrItem}
+							<Button on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}>
+								Manage Files
+								<Download size={19} slot="icon" />
 							</Button>
 						{/if}
 						{#if PLATFORM_WEB}
@@ -115,4 +129,4 @@
 			<VideoPlayer jellyfinId={playbackId} />
 		{/if}
 	</div>
-</DetatchedPage>
+</DetachedPage>

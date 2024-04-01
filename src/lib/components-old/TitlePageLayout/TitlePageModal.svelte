@@ -3,7 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import MoviePage from '../MoviePage.svelte';
 	import SeriesPage from '../SeriesPage.svelte';
-	import { modalStack } from '../../stores/modal.store';
+	import { modalStack } from '../../components/Modal/modal.store';
 	import PersonPage from '../PersonPage.svelte';
 
 	export let titleId: TitleId;
