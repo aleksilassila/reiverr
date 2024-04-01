@@ -16,7 +16,7 @@
 	import UiCarousel from '../../lib/components/Carousel/UICarousel.svelte';
 	import EpisodeCard from '../../lib/components/EpisodeCard/EpisodeCard.svelte';
 	import PersonCard from '../../lib/components/PersonCard/PersonCard.svelte';
-	import SeriesRequestModal from '../../lib/components/RequestModal/SeriesRequestModal.svelte';
+	import SeriesRequestModal from '../components/ManageMedia/SeriesRequestModal.svelte';
 	import OpenInButton from '../../lib/components/TitlePageLayout/OpenInButton.svelte';
 	import TitlePageLayout from '../../lib/components/TitlePageLayout/TitlePageLayout.svelte';
 	import { playerState } from '../../lib/components/VideoPlayer/VideoPlayer';

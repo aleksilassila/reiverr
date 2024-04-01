@@ -12,8 +12,9 @@
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { modalStack } from '../components/Modal/modal.store';
-	import RequestModal from '../components/RequestModal/RadarrRequestModal.svelte';
+	import RequestModal from '../components/ManageMedia/RequestMedia/RadarrRequestModal.svelte';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
+	import ManageFilesModal from '../components/ManageMedia/LocalFiles/ManageFilesModal.svelte';
 
 	export let id: string;
 
@@ -98,7 +99,7 @@
 							{#if jellyfinItem}
 								<Button
 									class="mr-2"
-									on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}
+									on:click={() => modalStack.create(ManageFilesModal, { id: radarrItem.id })}
 								>
 									Manage Files
 									<File size={19} slot="icon" />

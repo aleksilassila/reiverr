@@ -132,6 +132,16 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
+	getMovieFilesByMovieId = (movieId: number): Promise<MovieFileResource[]> =>
+		this.getClient()
+			?.GET('/api/v3/moviefile', {
+				params: {
+					query: {
+						movieId
+					}
+				}
+			})
+			.then((r) => r.data || []) || Promise.resolve([]);
 	deleteRadarrMovieFile = (id: number) =>
 		this.getClient()
 			?.DELETE('/api/v3/moviefile/{id}', {

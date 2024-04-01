@@ -1,15 +1,13 @@
 <script lang="ts">
-	import { type RadarrRelease } from '../../apis/radarr/radarr-api';
-	import type { SonarrRelease } from '../../apis/sonarr/sonarrApi';
+	import { type RadarrRelease } from '../../../apis/radarr/radarr-api';
+	import type { SonarrRelease } from '../../../apis/sonarr/sonarrApi';
 	import classNames from 'classnames';
-	import { useRequest } from '../../stores/data.store';
-	import Button from '../Button.svelte';
+	import { useRequest } from '../../../stores/data.store';
+	import Button from '../../Button.svelte';
 	import { DotFilled, Download, Plus } from 'radix-icons-svelte';
-	import { formatMinutesToTime, formatSize } from '../../utils';
+	import { formatMinutesToTime, formatSize } from '../../../utils';
 	import { derived } from 'svelte/store';
-	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
-	import Container from '../../../Container.svelte';
-	import { scrollWithOffset } from '../../selectable';
+	import ButtonGhost from '../../Ghosts/ButtonGhost.svelte';
 
 	export let id: number;
 	export let getReleases: (id: number) => Promise<(RadarrRelease | SonarrRelease)[]>;
