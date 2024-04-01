@@ -78,6 +78,7 @@ export const getTmdbMovie = async (tmdbId: number) =>
 				movie_id: tmdbId
 			},
 			query: {
+				language: get(settings)?.language,
 				append_to_response: 'videos,credits,external_ids,images',
 				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
@@ -113,6 +114,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 				series_id: tmdbId
 			},
 			query: {
+				language: get(settings)?.language,
 				append_to_response: 'videos,aggregate_credits,external_ids,images',
 				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
@@ -338,6 +340,7 @@ export const getTmdbPerson = async (person_id: number) =>
 				person_id: person_id
 			},
 			query: {
+				language: get(settings)?.language,
 				append_to_response: 'images,movie_credits,tv_credits,external_ids'
 			}
 		}

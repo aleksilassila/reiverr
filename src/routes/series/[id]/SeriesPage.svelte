@@ -35,6 +35,7 @@
 	import { Archive, ChevronLeft, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
 	import { get } from 'svelte/store';
+	import { _ } from 'svelte-i18n';
 
 	export let titleId: TitleId;
 	export let isModal = false;
@@ -257,17 +258,17 @@
 					{#if !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
 							<span>
-								Play {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+								{$_('library.content.play')} {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
 							</span>
 							<ChevronRight size={20} />
 						</Button>
 					{:else if !$sonarrSeriesStore.item && $settings.sonarr.apiKey && $settings.sonarr.baseUrl}
 						<Button type="primary" disabled={addToSonarrLoading} on:click={addToSonarr}>
-							<span>Add to Sonarr</span><Plus size={20} />
+							<span>{$_('library.content.addSonarr')}</span><Plus size={20} />
 						</Button>
 					{:else if $sonarrSeriesStore.item}
 						<Button type="primary" on:click={openRequestModal}>
-							<span class="mr-2">Request Series</span><Plus size={20} />
+							<span class="mr-2">{$_('library.content.requestSerie')}</span><Plus size={20} />
 						</Button>
 					{/if}
 				{/if}
@@ -346,14 +347,14 @@
 
 		<svelte:fragment slot="info-components">
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Created By</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.directedBy')}</p>
 				<h2 class="font-medium">{tmdbSeries?.created_by?.map((c) => c.name).join(', ')}</h2>
 			</div>
 			{#if tmdbSeries?.first_air_date}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">First Air Date</p>
+					<p class="text-zinc-400 text-sm">{$_('library.content.firstAirDate')}</p>
 					<h2 class="font-medium">
-						{new Date(tmdbSeries?.first_air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries?.first_air_date).toLocaleDateString($settings.language, {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
@@ -363,9 +364,9 @@
 			{/if}
 			{#if tmdbSeries?.next_episode_to_air}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">Next Air Date</p>
+					<p class="text-zinc-400 text-sm">{$_('library.content.nextAirDate')}</p>
 					<h2 class="font-medium">
-						{new Date(tmdbSeries.next_episode_to_air?.air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries.next_episode_to_air?.air_date).toLocaleDateString($settings.language, {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
@@ -374,9 +375,9 @@
 				</div>
 			{:else if tmdbSeries?.last_air_date}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">Last Air Date</p>
+					<p class="text-zinc-400 text-sm">{$_('library.content.lastAirDate')}</p>
 					<h2 class="font-medium">
-						{new Date(tmdbSeries.last_air_date).toLocaleDateString('en', {
+						{new Date(tmdbSeries.last_air_date).toLocaleDateString($settings.language, {
 							year: 'numeric',
 							month: 'short',
 							day: 'numeric'
@@ -385,15 +386,15 @@
 				</div>
 			{/if}
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Networks</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.networks')}</p>
 				<h2 class="font-medium">{tmdbSeries?.networks?.map((n) => n.name).join(', ')}</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Episode Run Time</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.episodeRunTime')}</p>
 				<h2 class="font-medium">{tmdbSeries?.episode_run_time} Minutes</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Spoken Languages</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.spokenLanguages')}</p>
 				<h2 class="font-medium">
 					{tmdbSeries?.spoken_languages?.map((l) => capitalize(l.english_name || '')).join(', ')}
 				</h2>
@@ -405,7 +406,7 @@
 			{#if sonarrSeries}
 				{#if sonarrSeries?.statistics?.episodeFileCount}
 					<div class="col-span-2 lg:col-span-1">
-						<p class="text-zinc-400 text-sm">Available</p>
+						<p class="text-zinc-400 text-sm">{$_('library.content.available')}</p>
 						<h2 class="font-medium">
 							{sonarrSeries?.statistics?.episodeFileCount || 0} Episodes
 						</h2>
@@ -413,7 +414,7 @@
 				{/if}
 				{#if sonarrSeries?.statistics?.sizeOnDisk}
 					<div class="col-span-2 lg:col-span-1">
-						<p class="text-zinc-400 text-sm">Size On Disk</p>
+						<p class="text-zinc-400 text-sm">{$_('library.content.sizeDisk')}</p>
 						<h2 class="font-medium">
 							{formatSize(sonarrSeries?.statistics?.sizeOnDisk || 0)}
 						</h2>
@@ -422,7 +423,7 @@
 				{#if $sonarrDownloadStore.downloads?.length}
 					{@const download = $sonarrDownloadStore.downloads?.[0]}
 					<div class="col-span-2 lg:col-span-1">
-						<p class="text-zinc-400 text-sm">Download Completed In</p>
+						<p class="text-zinc-400 text-sm">{$_('library.content.downloadCompletedIn')}</p>
 						<h2 class="font-medium">
 							{download?.estimatedCompletionTime
 								? formatMinutesToTime(
@@ -435,10 +436,10 @@
 
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
 					<Button on:click={openRequestModal}>
-						<span class="mr-2">Request Series</span><Plus size={20} />
+						<span class="mr-2">{$_('library.content.requestSerie')}</span><Plus size={20} />
 					</Button>
 					<Button>
-						<span class="mr-2">Manage</span><Archive size={20} />
+						<span class="mr-2">{$_('library.content.manage')}</span><Archive size={20} />
 					</Button>
 				</div>
 			{:else if $sonarrSeriesStore.loading}
@@ -452,23 +453,23 @@
 		<svelte:fragment slot="carousels">
 			{#await recommendationData}
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.castAndCrew')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Recommendations</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Similar Series</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.similarSeries')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 			{:then { castProps, tmdbRecommendationProps, tmdbSimilarProps }}
 				{#if castProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.castAndCrew')}</div>
 						{#each castProps as prop}
 							<PersonCard {...prop} />
 						{/each}
@@ -477,7 +478,7 @@
 
 				{#if tmdbRecommendationProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Recommendations</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
 						{#each tmdbRecommendationProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}
@@ -486,7 +487,7 @@
 
 				{#if tmdbSimilarProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Similar Series</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.similarSeries')}</div>
 						{#each tmdbSimilarProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}

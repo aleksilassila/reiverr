@@ -13,8 +13,10 @@
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { DotFilled, InstagramLogo } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import { _ } from 'svelte-i18n';
+	import { settings } from '$lib/stores/settings.store';
 
-	const GENDER_OPTIONS = ['Not set', 'Female', 'Male', 'Non-binary'] as const;
+	const GENDER_OPTIONS = [$_('library.personPage.notSet'), $_('library.personPage.female'), $_('library.personPage.male'), $_('library.personPage.nonBinary')] as const;
 
 	export let tmdbId: number;
 	export let isModal = false;
@@ -157,7 +159,7 @@
 		<svelte:fragment slot="info-components">
 			{#if tmdbSocials}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">External Links</p>
+					<p class="text-zinc-400 text-sm">{$_('library.personPage.externalLinks')}</p>
 					<h2 class="pt-2 text-sm">
 						<div class="flex flex-wrap gap-2">
 							{#each tmdbSocials ?? [] as Prop}
@@ -170,21 +172,21 @@
 				</div>
 			{/if}
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Known for</p>
+				<p class="text-zinc-400 text-sm">{$_('library.personPage.knownFor')}</p>
 				<h2 class="font-medium">
 					{person?.known_for_department}
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Gender</p>
+				<p class="text-zinc-400 text-sm">{$_('library.personPage.gender')}</p>
 				<h2 class="font-medium">
 					{GENDER_OPTIONS[person?.gender ?? 0]}
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Birthday</p>
+				<p class="text-zinc-400 text-sm">{$_('library.personPage.birthday')}</p>
 				<h2 class="font-medium">
-					{new Date(person?.birthday || Date.now()).toLocaleDateString('en', {
+					{new Date(person?.birthday || Date.now()).toLocaleDateString($settings.language, {
 						year: 'numeric',
 						month: 'short',
 						day: 'numeric'
@@ -192,7 +194,7 @@
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Place of Birth</p>
+				<p class="text-zinc-400 text-sm">{$_('library.personPage.placeOfBirth')}</p>
 				<h2 class="font-medium">
 					{person?.place_of_birth}
 				</h2>
@@ -213,7 +215,7 @@
 		<svelte:fragment slot="carousels">
 			<div class="max-w-screen-2xl 2xl:mx-auto w-full">
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Known For</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.personPage.knownFor')}</div>
 					{#await knownForProps}
 						<CarouselPlaceholderItems orientation="portrait" />
 					{:then props}

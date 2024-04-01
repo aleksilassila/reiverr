@@ -15,6 +15,8 @@
 		"noResults": "Keine Suchergebnisse"
 	},
 	"discover": {
+		"LatestAddition": "Letzte Ergänzung",
+		"continueWatching": "Weiterschauen",
 		"trending": "Aufsteigend",
 		"popularPeople": "Beliebte Personen",
 		"upcomingMovies": "Bald verfügbare Filme",
@@ -43,7 +45,51 @@
 			"runtime": "Spielzeit",
 			"castAndCrew": "Cast & Crew",
 			"recommendations": "Empfehlungen",
-			"similarTitles": "Ähnliche Titel"
+			"similarTitles": "Ähnliche Titel",
+
+			"revenue": "Einnahme",
+			"play": "Spiel",
+			"similarSeries": "Ähnliche Serien",
+			"minLeft": "min links",
+			"addRadarr": "Zu Radarr hinzufügen",
+			"addSonarr": "Zu Sonarr hinzufügen",
+			"requestMovie": "Film anfordern",
+			"requestSerie": "Serie anfordern",
+			"sizeDisk": "Größe auf der Festplatte",
+			"downloadedIn": "HeruntergeladenIn",
+			"manage": "Verwalten",
+			"viewLess": "Weniger anzeigen",
+			"viewAll": "Alle anzeigen",
+			"networks": "Netzwerke",
+
+			"firstAirDate": "Erstausstrahlungsdatum",
+			"episodeRunTime": "Episodenlaufzeit",
+			"nextAirDate": "Nächster Ausstrahlungstermin",
+			"lastAirDate": "Letztes Sendedatum",
+			"spokenLanguages": "Gesprochene Sprachen",
+			"season": "Saison",
+			"available": "Verfügbar",
+			"downloadCompletedIn":"Download abgeschlossen in"
+		},
+		"LibraryItemContext": {
+			"markWatched": "Als beobachtet markieren",
+			"markUnwatched": "Als unbeobachtet markieren",
+			"openJellyfin": "In Jellyfin öffnen",
+			"openRadarr": "In Radarr öffnen",
+			"openSonarr": "In Sonarr öffnen",
+			"openTMDB": "In TMDB öffnen"
+		},
+		"personPage": {
+			"externalLinks": "Externe Links",
+			"birthday": "Geburtstag",
+			"knownFor": "bekannt für",
+			"placeOfBirth": "Geburtsort",
+			"gender": "Geschlecht",
+			"notSet": "Nicht festgelegt",
+			"female": "Weiblich",
+			"male": "Männlich",
+			"nonBinary": "Nicht-binär"
+			
 		}
 	},
 	"sources": {},

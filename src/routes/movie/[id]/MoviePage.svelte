@@ -27,6 +27,7 @@
 	import classNames from 'classnames';
 	import { Archive, ChevronRight, DotFilled, Plus } from 'radix-icons-svelte';
 	import type { ComponentProps } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	export let tmdbId: number;
 	export let isModal = false;
@@ -112,7 +113,7 @@
 			<DotFilled />
 			{@const progress = $jellyfinItemStore.item?.UserData?.PlayedPercentage}
 			{#if progress}
-				{progress.toFixed()} min left
+				{progress.toFixed()} {$_('library.content.minLeft')}
 			{:else}
 				{movie?.runtime} min
 			{/if}
@@ -144,15 +145,15 @@
 					<OpenInButton title={movie?.title} {jellyfinItem} {radarrMovie} type="movie" {tmdbId} />
 					{#if jellyfinItem}
 						<Button type="primary" on:click={play}>
-							<span>Play</span><ChevronRight size={20} />
+							<span>{$_('library.content.play')}</span><ChevronRight size={20} />
 						</Button>
 					{:else if !radarrMovie && $settings.radarr.baseUrl && $settings.radarr.apiKey}
 						<Button type="primary" disabled={addToRadarrLoading} on:click={addToRadarr}>
-							<span>Add to Radarr</span><Plus size={20} />
+							<span>{$_('library.content.addRadarr')}</span><Plus size={20} />
 						</Button>
 					{:else if radarrMovie}
 						<Button type="primary" on:click={openRequestModal}>
-							<span class="mr-2">Request Movie</span><Plus size={20} />
+							<span class="mr-2">{$_('library.content.requestMovie')}</span><Plus size={20} />
 						</Button>
 					{/if}
 				{/if}
@@ -161,7 +162,7 @@
 
 		<svelte:fragment slot="info-components">
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Directed By</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.directedBy')}</p>
 				<h2 class="font-medium">
 					{movie?.credits.crew
 						?.filter((c) => c.job == 'Director')
@@ -170,9 +171,9 @@
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Release Date</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.releaseDate')}</p>
 				<h2 class="font-medium">
-					{new Date(movie?.release_date || Date.now()).toLocaleDateString('en', {
+					{new Date(movie?.release_date || Date.now()).toLocaleDateString($settings.language, {
 						year: 'numeric',
 						month: 'short',
 						day: 'numeric'
@@ -181,7 +182,7 @@
 			</div>
 			{#if movie?.budget}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">Budget</p>
+					<p class="text-zinc-400 text-sm">{$_('library.content.budget')}</p>
 					<h2 class="font-medium">
 						{movie?.budget?.toLocaleString('en-US', {
 							style: 'currency',
@@ -192,7 +193,7 @@
 			{/if}
 			{#if movie?.revenue}
 				<div class="col-span-2 lg:col-span-1">
-					<p class="text-zinc-400 text-sm">Revenue</p>
+					<p class="text-zinc-400 text-sm">{$_('library.content.revenue')}</p>
 					<h2 class="font-medium">
 						{movie?.revenue?.toLocaleString('en-US', {
 							style: 'currency',
@@ -202,13 +203,13 @@
 				</div>
 			{/if}
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Status</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.status')}</p>
 				<h2 class="font-medium">
 					{movie?.status}
 				</h2>
 			</div>
 			<div class="col-span-2 lg:col-span-1">
-				<p class="text-zinc-400 text-sm">Runtime</p>
+				<p class="text-zinc-400 text-sm">{$_('library.content.runtime')}</p>
 				<h2 class="font-medium">
 					{movie?.runtime} Minutes
 				</h2>
@@ -228,7 +229,7 @@
 				{/if}
 				{#if radarrMovie?.movieFile?.size}
 					<div class="col-span-2 lg:col-span-1">
-						<p class="text-zinc-400 text-sm">Size On Disk</p>
+						<p class="text-zinc-400 text-sm">{$_('library.content.sizeDisk')}</p>
 						<h2 class="font-medium">
 							{formatSize(radarrMovie?.movieFile?.size || 0)}
 						</h2>
@@ -237,7 +238,7 @@
 				{#if $radarrDownloadStore.downloads?.length}
 					{@const download = $radarrDownloadStore.downloads[0]}
 					<div class="col-span-2 lg:col-span-1">
-						<p class="text-zinc-400 text-sm">Downloaded In</p>
+						<p class="text-zinc-400 text-sm">{$_('library.content.downloadedIn')}</p>
 						<h2 class="font-medium">
 							{download?.estimatedCompletionTime
 								? formatMinutesToTime(
@@ -250,10 +251,10 @@
 
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
 					<Button on:click={openRequestModal}>
-						<span class="mr-2">Request Movie</span><Plus size={20} />
+						<span class="mr-2">{$_('library.content.requestMovie')}</span><Plus size={20} />
 					</Button>
 					<Button>
-						<span class="mr-2">Manage</span><Archive size={20} />
+						<span class="mr-2">{$_('library.content.manage')}</span><Archive size={20} />
 					</Button>
 				</div>
 			{:else if $radarrMovieStore.loading}
@@ -267,23 +268,23 @@
 		<svelte:fragment slot="carousels">
 			{#await recommendationData}
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.castAndCrew')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Recommendations</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">Similar Series</div>
+					<div slot="title" class="font-medium text-lg">{$_('library.content.similarSeries')}</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 			{:then { castProps, tmdbRecommendationProps, tmdbSimilarProps }}
 				{#if castProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Cast & Crew</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.castAndCrew')}</div>
 						{#each castProps as prop}
 							<PersonCard {...prop} />
 						{/each}
@@ -292,7 +293,7 @@
 
 				{#if tmdbRecommendationProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Recommendations</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
 						{#each tmdbRecommendationProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}
@@ -301,7 +302,7 @@
 
 				{#if tmdbSimilarProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">Similar Series</div>
+						<div slot="title" class="font-medium text-lg">{$_('library.content.similarSeries')}</div>
 						{#each tmdbSimilarProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}

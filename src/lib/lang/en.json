@@ -15,6 +15,8 @@
 		"noResults": "No search results"
 	},
 	"discover": {
+		"LatestAddition": "Latest Addition",
+		"continueWatching": "Continue Watching",
 		"trending": "Trending",
 		"popularPeople": "Popular People",
 		"upcomingMovies": "Upcoming Movies",
@@ -43,7 +45,51 @@
 			"runtime": "Runtime",
 			"castAndCrew": "Cast & Crew",
 			"recommendations": "Recommendations",
-			"similarTitles": "Similar Titles"
+			"similarTitles": "Similar Titles",
+
+			"revenue": "Revenue",
+			"play": "Play",
+			"similarSeries": "Similar Series",
+			"minLeft": "min left",
+			"addRadarr": "Add to Radarr",
+			"addSonarr": "Add to Sonarr",
+			"requestMovie": "Request movie",
+			"requestSerie": "Request serie",
+			"sizeDisk": "Size on disk",
+			"downloadedIn": "Downloaded In",
+			"manage": "Manage",
+			"viewLess": "View Less",
+			"viewAll": "View All",
+			"networks": "Networks",
+
+			"firstAirDate": "First Air Date",
+			"episodeRunTime": "Episode Runtime",
+			"nextAirDate": "Next Air Date",
+			"lastAirDate": "Last Air Date",
+			"spokenLanguages": "Spoken Languages",
+			"season": "Season",
+			"available": "Available",
+			"downloadCompletedIn":"Download Completed In"
+		},
+		"LibraryItemContext": {
+			"markWatched": "Mark as watched",
+			"markUnwatched": "Mark as unwatched",
+			"openJellyfin": "Open in Jellyfin",
+			"openRadarr": "Open in Radarr",
+			"openSonarr": "Open in Sonarr",
+			"openTMDB": "Open in TMDB"
+		},
+		"personPage": {
+			"externalLinks": "External Links",
+			"birthday": "Birthday",
+			"knownFor": "Know for",
+			"placeOfBirth": "Place of Birth",
+			"gender": "Gender",
+			"notSet": "Not set",
+			"female": "Female",
+			"male": "Male",
+			"nonBinary": "Non-binary"
+			
 		}
 	},
 	"sources": {},
