@@ -34,7 +34,7 @@
 	}
 </script>
 
-<Container class="flex-1 flex relative">
+<Container class="flex-1 flex">
 	<HeroShowcaseBackground {urls} {index} />
 	<Container
 		revealStrategy={scrollWithOffset('up', 0)}
@@ -45,9 +45,7 @@
 		}}
 	/>
 	<div class="flex flex-1 z-10 p-4">
-		<SidebarMargin class="flex-1">
-			<slot />
-		</SidebarMargin>
+		<slot />
 		<div class="flex flex-col justify-end ml-4">
 			<div class="flex flex-1 justify-end items-center">
 				<IconButton on:click={onNext}>

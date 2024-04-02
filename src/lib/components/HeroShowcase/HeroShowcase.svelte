@@ -6,6 +6,7 @@
 	import Card from '../Card/Card.svelte';
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
+	import SidebarMargin from '../SidebarMargin.svelte';
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
@@ -16,7 +17,7 @@
 	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
 	bind:index={showcaseIndex}
 >
-	<div class="h-full flex overflow-hidden z-10">
+	<SidebarMargin class="h-full flex-1 flex overflow-hidden z-10 relative">
 		{#await items}
 			<div class="flex-1 flex items-end">
 				<CardPlaceholder orientation="portrait" />
@@ -76,5 +77,5 @@
 		{:catch error}
 			<p>{error.message}</p>
 		{/await}
-	</div>
+	</SidebarMargin>
 </HeroCarousel>

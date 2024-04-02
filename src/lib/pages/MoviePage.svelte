@@ -7,7 +7,6 @@
 	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import VideoPlayer from '../components/VideoPlayer/VideoPlayer.svelte';
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
@@ -38,7 +37,7 @@
 </script>
 
 <DetachedPage>
-	<div class="h-screen flex flex-col">
+	<div class="min-h-screen flex flex-col py-12 px-20 relative">
 		<HeroCarousel
 			bind:index={heroIndex}
 			urls={$movieDataP.then(
@@ -49,7 +48,7 @@
 						.slice(0, 5) || []
 			)}
 		>
-			<div class="h-full flex flex-col justify-end">
+			<div class="h-full flex-1 flex flex-col justify-end">
 				{#await $movieDataP then movie}
 					{#if movie}
 						<div

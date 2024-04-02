@@ -310,20 +310,6 @@
 		}
 	}
 
-	onMount(() => {
-		// Workaround because the paused state does not sync
-		// with the video element until a change is made
-		// paused = false;
-		// if (video && $playerState.jellyfinId) {
-		// 	if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
-		// }
-	});
-
-	onDestroy(() => {
-		clearInterval(progressInterval);
-		if (fullscreen) exitFullscreen?.();
-	});
-
 	$: {
 		if (fullscreen && !getFullscreenElement?.()) {
 			if (reqFullscreenFunc) reqFullscreenFunc(videoWrapper);
@@ -368,6 +354,21 @@
 			mute = !mute;
 		}
 	}
+
+	onMount(() => {
+		// Workaround because the paused state does not sync
+		// with the video element until a change is made
+		// paused = false;
+		// if (video && $playerState.jellyfinId) {
+		// 	if (video.src === '') fetchPlaybackInfo($playerState.jellyfinId);
+		// }
+	});
+
+	onDestroy(() => {
+		console.log('Video destroyed');
+		clearInterval(progressInterval);
+		if (fullscreen) exitFullscreen?.();
+	});
 </script>
 
 <svelte:window on:keydown={handleShortcuts} />

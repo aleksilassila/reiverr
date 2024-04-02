@@ -1,10 +1,21 @@
 <script lang="ts">
-	import FullScreenModal from '../Modal/FullScreenModal.svelte';
+	import classNames from 'classnames';
+	import { modalStack } from '../Modal/modal.store';
+	import Container from '../../../Container.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
-	export let modalId: symbol;
+
 	export let id: string;
+	export let modalId: symbol;
+	export let hidden: boolean = false;
 </script>
 
-<FullScreenModal {modalId}>
+<Container
+	navigationActions={{}}
+	focusOnMount
+	trapFocus
+	class={classNames('fixed inset-0 bg-black overflow-auto', {
+		'opacity-0': hidden
+	})}
+>
 	<VideoPlayer jellyfinId={id} />
-</FullScreenModal>
+</Container>

@@ -17,7 +17,9 @@
 
 <Container focusOnMount class="flex flex-col">
 	<div class="flex flex-col h-screen">
-		<HeroShowcase items={popularMovies.then(getShowcasePropsFromTmdb)} />
+		<div class="flex-1 flex relative">
+			<HeroShowcase items={popularMovies.then(getShowcasePropsFromTmdb)} />
+		</div>
 		<div class="mt-8">
 			<Carousel>
 				<SidebarMargin slot="title" class="mx-4">
