@@ -11,8 +11,9 @@ import type { Api } from '../api.interface';
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
 export type RadarrRelease = components['schemas']['ReleaseResource'];
-export type RadarrDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
+export type MovieDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
+export type MovieHistoryResource = components['schemas']['HistoryResource'];
 
 export interface RadarrMovieOptions {
 	title: string;
@@ -116,9 +117,20 @@ export class RadarrApi implements Api<paths> {
 		return !!deleteResponse?.response.ok;
 	};
 
-	fetchRadarrReleases = (movieId: number): Promise<RadarrRelease[]> =>
+	getReleases = (movieId: number): Promise<RadarrRelease[]> =>
 		this.getClient()
 			?.GET('/api/v3/release', { params: { query: { movieId: movieId } } })
+			.then((r) => r.data || []) || Promise.resolve([]);
+
+	getReleaseHistory = (movieId: number): Promise<MovieHistoryResource[]> =>
+		this.getClient()
+			?.GET('/api/v3/history/movie', {
+				params: {
+					query: {
+						movieId
+					}
+				}
+			})
 			.then((r) => r.data || []) || Promise.resolve([]);
 
 	downloadRadarrMovie = (guid: string, indexerId: number) =>
@@ -153,7 +165,7 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getRadarrDownloads = (): Promise<RadarrDownload[]> =>
+	getRadarrDownloads = (): Promise<MovieDownload[]> =>
 		this.getClient()
 			?.GET('/api/v3/queue', {
 				params: {
@@ -162,7 +174,7 @@ export class RadarrApi implements Api<paths> {
 					}
 				}
 			})
-			.then((r) => (r.data?.records?.filter((record) => record.movie) as RadarrDownload[]) || []) ||
+			.then((r) => (r.data?.records?.filter((record) => record.movie) as MovieDownload[]) || []) ||
 		Promise.resolve([]);
 
 	getRadarrDownloadsById = (radarrId: number) =>

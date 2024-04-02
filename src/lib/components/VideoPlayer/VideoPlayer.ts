@@ -17,7 +17,7 @@ function createPlayerState() {
 		},
 		close: () => {
 			store.set({ visible: false, jellyfinId: '' });
-			jellyfinItemsStore.refresh();
+			jellyfinItemsStore.send();
 		}
 	};
 }

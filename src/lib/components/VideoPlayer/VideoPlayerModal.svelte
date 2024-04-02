@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FullScreenModal from '../ManageMedia/FullScreenModal.svelte';
+	import FullScreenModal from '../Modal/FullScreenModal.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
 	export let modalId: symbol;
 	export let id: string;

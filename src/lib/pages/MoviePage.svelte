@@ -12,9 +12,8 @@
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { modalStack } from '../components/Modal/modal.store';
-	import RequestModal from '../components/ManageMedia/RequestMedia/RadarrRequestModal.svelte';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import ManageFilesModal from '../components/ManageMedia/LocalFiles/ManageFilesModal.svelte';
+	import ManageMediaModal from '../components/ManageMedia/ManageMediaModal.svelte';
 
 	export let id: string;
 
@@ -23,7 +22,7 @@
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
 		id
 	);
-	const { promise: radarrItemP, refresh: refreshRadarrItem } = useRequest(
+	const { promise: radarrItemP, send: refreshRadarrItem } = useRequest(
 		radarrApi.getMovieByTmdbId,
 		Number(id)
 	);
@@ -85,7 +84,7 @@
 					{/if}
 				{/await}
 				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
-					<Container direction="horizontal" class="flex mt-8">
+					<Container direction="horizontal" class="flex mt-8" focusOnMount>
 						{#if jellyfinItem}
 							<Button
 								class="mr-2"
@@ -96,21 +95,16 @@
 							</Button>
 						{/if}
 						{#if radarrItem}
-							{#if jellyfinItem}
-								<Button
-									class="mr-2"
-									on:click={() => modalStack.create(ManageFilesModal, { id: radarrItem.id })}
-								>
-									Manage Files
-									<File size={19} slot="icon" />
-								</Button>
-							{/if}
 							<Button
 								class="mr-2"
-								on:click={() => modalStack.create(RequestModal, { id: radarrItem.id })}
+								on:click={() => modalStack.create(ManageMediaModal, { id: radarrItem.id || -1 })}
 							>
-								Request
-								<Download size={19} slot="icon" />
+								{#if jellyfinItem}
+									Manage Files
+								{:else}
+									Request
+								{/if}
+								<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />
 							</Button>
 						{:else}
 							<Button

@@ -109,6 +109,7 @@ export class Selectable {
 		right: undefined
 	};
 	private focusByDefault: boolean = false;
+	private canFocusEmpty: boolean = true;
 	private trapFocus: boolean = false;
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
@@ -213,7 +214,7 @@ export class Selectable {
 	isFocusable(): boolean {
 		if (!this.isActive) return false;
 
-		if (this.htmlElement) {
+		if (this.htmlElement && this.canFocusEmpty) {
 			return this.htmlElement.tabIndex >= 0;
 		} else {
 			for (const child of this.children) {
@@ -443,6 +444,11 @@ export class Selectable {
 
 	setTrapFocus(trapFocus: boolean) {
 		this.trapFocus = trapFocus;
+		return this;
+	}
+
+	setCanFocusEmpty(canFocusEmpty: boolean) {
+		this.canFocusEmpty = canFocusEmpty;
 		return this;
 	}
 }

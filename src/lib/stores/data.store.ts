@@ -7,7 +7,7 @@ import {
 	type SonarrDownload,
 	type SonarrSeries
 } from '../apis/sonarr/sonarrApi';
-import { radarrApi, type RadarrDownload } from '../apis/radarr/radarr-api';
+import { radarrApi, type MovieDownload } from '../apis/radarr/radarr-api';
 
 async function waitForSettings() {
 	return new Promise((resolve) => {
@@ -53,7 +53,7 @@ export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh,
+		send: refresh,
 		refreshIn,
 		promise: refresh()
 	};
@@ -78,7 +78,7 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: jellyfinItemsStore.refresh,
+		send: jellyfinItemsStore.send,
 		refreshIn: jellyfinItemsStore.refreshIn,
 		promise: new Promise<JellyfinItem | undefined>((resolve) => {
 			store.subscribe((s) => {
@@ -101,7 +101,7 @@ export function createRadarrMovieStore(tmdbId: number) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: radarrMoviesStore.refresh,
+		send: radarrMoviesStore.send,
 		refreshIn: radarrMoviesStore.refreshIn
 	};
 }
@@ -131,7 +131,7 @@ export function createSonarrSeriesStore(name: Promise<string> | string) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: sonarrSeriesStore.refresh,
+		send: sonarrSeriesStore.send,
 		refreshIn: sonarrSeriesStore.refreshIn
 	};
 }
@@ -155,7 +155,7 @@ export const servarrDownloadsStore = (() => {
 export function createRadarrDownloadStore(
 	radarrMovieStore: ReturnType<typeof createRadarrMovieStore>
 ) {
-	const store = writable<{ loading: boolean; downloads?: RadarrDownload[] }>({
+	const store = writable<{ loading: boolean; downloads?: MovieDownload[] }>({
 		loading: true,
 		downloads: undefined
 	});
@@ -179,7 +179,7 @@ export function createRadarrDownloadStore(
 
 	return {
 		subscribe: store.subscribe,
-		refresh: async () => radarrDownloadsStore.refresh()
+		send: async () => radarrDownloadsStore.send()
 	};
 }
 
@@ -210,7 +210,7 @@ export function createSonarrDownloadStore(
 
 	return {
 		subscribe: store.subscribe,
-		refresh: async () => sonarrDownloadsStore.refresh()
+		send: async () => sonarrDownloadsStore.send()
 	};
 }
 
@@ -254,16 +254,33 @@ export const useActionRequests = <P extends Record<string, (...args: any[]) => P
 		}
 	};
 };
+
 export const useRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
 	fn: P,
-	...initialArgs: A
+	...args: Parameters<P>
+) => {
+	const isLoading = writable(true);
+	const r = useActionRequest<P, A>(fn);
+
+	r.send(...args).finally(() => isLoading.set(false));
+
+	return {
+		...r,
+		refresh: r.send,
+		isLoading: {
+			subscribe: isLoading.subscribe
+		}
+	};
+};
+
+export const useActionRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P
 ) => {
 	const request = writable<ReturnType<P>>(undefined);
 	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
-	const isLoading = writable(true);
-	const isFetching = writable(true);
+	const isFetching = writable(false);
 
-	function refresh(...args: A): ReturnType<P> {
+	function send(...args: Parameters<P>): ReturnType<P> {
 		isFetching.set(true);
 		// @ts-ignore
 		const p: ReturnType<P> = fn(...args)
@@ -279,8 +296,6 @@ export const useRequest = <P extends (...args: A) => Promise<any>, A extends any
 		return p;
 	}
 
-	if (initialArgs) refresh(...initialArgs).finally(() => isLoading.set(false));
-
 	return {
 		promise: {
 			subscribe: request.subscribe
@@ -288,12 +303,10 @@ export const useRequest = <P extends (...args: A) => Promise<any>, A extends any
 		data: {
 			subscribe: data.subscribe
 		},
-		isLoading: {
-			subscribe: isLoading.subscribe
-		},
+
 		isFetching: {
 			subscribe: isFetching.subscribe
 		},
-		refresh
+		send
 	};
 };

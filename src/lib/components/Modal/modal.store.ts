@@ -1,3 +1,4 @@
+import type { ComponentType, SvelteComponentTyped } from 'svelte';
 import { derived, writable } from 'svelte/store';
 
 type ModalItem = {
@@ -18,9 +19,9 @@ function createModalStack() {
 		items.update((prev) => prev.filter((i) => i.group !== group));
 	}
 
-	function create(
-		component: ConstructorOfATypedSvelteComponent,
-		props: Record<string, any>,
+	function create<P extends Record<string, any>>(
+		component: ComponentType<SvelteComponentTyped<P>>,
+		props: Omit<P, 'modalId' | 'hidden'>,
 		group: symbol | undefined = undefined
 	) {
 		const id = Symbol();
