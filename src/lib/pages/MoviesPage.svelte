@@ -17,7 +17,7 @@
 
 <Container focusOnMount class="flex flex-col">
 	<div class="flex flex-col h-screen">
-		<div class="flex-1 flex relative">
+		<div class="flex-1 flex relative px-20">
 			<HeroShowcase items={popularMovies.then(getShowcasePropsFromTmdb)} />
 		</div>
 		<div class="mt-8">

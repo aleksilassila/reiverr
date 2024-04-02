@@ -44,7 +44,7 @@
 			up: () => Selectable.giveFocus('left', true) || true
 		}}
 	/>
-	<div class="flex flex-1 z-10 p-4">
+	<div class="flex flex-1 z-10">
 		<slot />
 		<div class="flex flex-col justify-end ml-4">
 			<div class="flex flex-1 justify-end items-center">

@@ -17,7 +17,7 @@
 	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
 	bind:index={showcaseIndex}
 >
-	<SidebarMargin class="h-full flex-1 flex overflow-hidden z-10 relative">
+	<div class="h-full flex-1 flex overflow-hidden z-10 relative">
 		{#await items}
 			<div class="flex-1 flex items-end">
 				<CardPlaceholder orientation="portrait" />
@@ -77,5 +77,5 @@
 		{:catch error}
 			<p>{error.message}</p>
 		{/await}
-	</SidebarMargin>
+	</div>
 </HeroCarousel>
