@@ -15,7 +15,12 @@
 	$: urls.then((urls) => (length = urls.length));
 
 	function onNext() {
-		index = (index + 1) % length;
+		if (index === length - 1) {
+			return false;
+		} else {
+			index = (index + 1) % length;
+		}
+
 		return true;
 	}
 

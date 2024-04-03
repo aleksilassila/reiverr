@@ -1,12 +1,7 @@
-import { derived, writable } from 'svelte/store';
+import { derived, type Readable, writable } from 'svelte/store';
 import { settings } from './settings.store';
 import { jellyfinApi, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
-import {
-	getSonarrDownloads,
-	getSonarrSeries,
-	type SonarrDownload,
-	type SonarrSeries
-} from '../apis/sonarr/sonarrApi';
+import { type SeriesDownload, sonarrApi, type SonarrSeries } from '../apis/sonarr/sonarr-api';
 import { radarrApi, type MovieDownload } from '../apis/radarr/radarr-api';
 
 async function waitForSettings() {
@@ -88,7 +83,7 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	};
 }
 
-export const sonarrSeriesStore = _createDataFetchStore(getSonarrSeries);
+export const sonarrSeriesStore = _createDataFetchStore(sonarrApi.getSonarrDownloads);
 export const radarrMoviesStore = _createDataFetchStore(radarrApi.getRadarrMovies);
 
 export function createRadarrMovieStore(tmdbId: number) {
@@ -136,7 +131,7 @@ export function createSonarrSeriesStore(name: Promise<string> | string) {
 	};
 }
 
-export const sonarrDownloadsStore = _createDataFetchStore(getSonarrDownloads);
+export const sonarrDownloadsStore = _createDataFetchStore(sonarrApi.getSonarrDownloads);
 export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getRadarrDownloads);
 export const servarrDownloadsStore = (() => {
 	const store = derived([sonarrDownloadsStore, radarrDownloadsStore], ([sonarr, radarr]) => {
@@ -186,7 +181,7 @@ export function createRadarrDownloadStore(
 export function createSonarrDownloadStore(
 	sonarrItemStore: ReturnType<typeof createSonarrSeriesStore>
 ) {
-	const store = writable<{ loading: boolean; downloads?: SonarrDownload[] }>({
+	const store = writable<{ loading: boolean; downloads?: SeriesDownload[] }>({
 		loading: true,
 		downloads: undefined
 	});
@@ -251,6 +246,29 @@ export const useActionRequests = <P extends Record<string, (...args: any[]) => P
 		},
 		isFetching: {
 			subscribe: fetching.subscribe
+		}
+	};
+};
+
+export const useDependantRequest = <P extends (...args: A) => Promise<any>, A extends any[], S>(
+	fn: P,
+	store: Readable<S>,
+	subscribeFn: (store: S) => Parameters<P> | undefined
+) => {
+	const isLoading = writable(true);
+	const r = useActionRequest<P, A>(fn);
+
+	store.subscribe(($data) => {
+		const args = subscribeFn($data);
+		if (!args) return;
+		r.send(...args).finally(() => isLoading.set(false));
+	});
+
+	return {
+		...r,
+		refresh: r.send,
+		isLoading: {
+			subscribe: isLoading.subscribe
 		}
 	};
 };

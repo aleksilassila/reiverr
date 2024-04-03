@@ -5,7 +5,7 @@
 		type JellyfinItem
 	} from '$lib/apis/jellyfin/jellyfinApi';
 	import type { RadarrMovie } from '../../apis/radarr/radarr-api';
-	import type { SonarrSeries } from '../../apis/sonarr/sonarrApi';
+	import type { SonarrSeries } from '../../apis/sonarr/sonarr-api';
 	import { jellyfinItemsStore } from '../../stores/data.store';
 	import { settings } from '../../stores/settings.store';
 	import type { TitleType } from '../../types';

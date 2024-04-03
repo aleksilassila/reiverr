@@ -56,7 +56,6 @@
 				<Route path="search">
 					<SearchPage />
 				</Route>
-				<Route path="series/:id" component={SeriesPage} />
 				<Route path="movie/:id" component={MoviePage} />
 				<Route path="*">
 					<div>404</div>
@@ -67,6 +66,8 @@
 		<Router>
 			<Route path="movies/movie/:id" component={MoviePage} />
 			<Route path="library/movie/:id" component={MoviePage} />
+			<Route path="series/:id" component={SeriesPage} />
+			<Route path="library/series/:id" component={SeriesPage} />
 		</Router>
 
 		<ModalStack />

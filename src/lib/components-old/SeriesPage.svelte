@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getJellyfinEpisodes, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
-	import { addSeriesToSonarr, type SonarrSeries } from '../../lib/apis/sonarr/sonarrApi';
+	import { addSeriesToSonarr, type SonarrSeries } from '../apis/sonarr/sonarr-api';
 	import {
 		getTmdbIdFromTvdbId,
 		getTmdbSeries,

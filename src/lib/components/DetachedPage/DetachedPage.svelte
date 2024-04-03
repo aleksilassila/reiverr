@@ -11,7 +11,7 @@
 	}}
 	focusOnMount
 	trapFocus
-	class="fixed inset-0 z-20"
+	class="fixed inset-0 z-20 bg-stone-950"
 >
 	<slot />
 </Container>

@@ -50,29 +50,112 @@ export class TmdbApi implements Api<paths> {
 		});
 	}
 
-	async getTmdbMovie(tmdbId: number) {
-		return TmdbApiOpen.GET('/3/movie/{movie_id}', {
-			params: {
-				path: {
-					movie_id: tmdbId
-				},
-				query: {
-					append_to_response: 'videos,credits,external_ids,images',
-					...({ include_image_language: get(settings)?.language + ',en,null' } as any)
+	// MOVIES
+
+	getTmdbMovie = async (tmdbId: number) => {
+		return this.getClient()
+			?.GET('/3/movie/{movie_id}', {
+				params: {
+					path: {
+						movie_id: tmdbId
+					},
+					query: {
+						append_to_response: 'videos,credits,external_ids,images',
+						...({ include_image_language: get(settings)?.language + ',en,null' } as any)
+					}
 				}
-			}
-		}).then((res) => res.data as TmdbMovieFull2 | undefined);
-	}
+			})
+			.then((res) => res.data as TmdbMovieFull2 | undefined);
+	};
 
 	getPopularMovies = () =>
-		TmdbApiOpen.GET('/3/movie/popular', {
-			params: {
-				query: {
-					language: get(settings)?.language,
-					region: get(settings)?.discover.region
+		this.getClient()
+			?.GET('/3/movie/popular', {
+				params: {
+					query: {
+						language: get(settings)?.language,
+						region: get(settings)?.discover.region
+					}
 				}
-			}
-		}).then((res) => res.data?.results || []);
+			})
+			.then((res) => res.data?.results || []);
+
+	// SERIES
+
+	getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
+		this.getClient()
+			?.GET('/3/find/{external_id}', {
+				params: {
+					path: {
+						external_id: tvdbId
+					},
+					query: {
+						external_source: 'tvdb_id'
+					}
+				},
+				headers: {
+					'Cache-Control': CACHE_ONE_DAY
+				}
+			})
+			.then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
+
+	getTmdbIdFromTvdbId = async (tvdbId: number) =>
+		getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
+			const id = res?.id as number | undefined;
+			if (!id) return Promise.reject();
+			return id;
+		});
+
+	getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
+		await this.getClient()
+			?.GET('/3/tv/{series_id}', {
+				params: {
+					path: {
+						series_id: tmdbId
+					},
+					query: {
+						append_to_response: 'videos,aggregate_credits,external_ids,images',
+						...({ include_image_language: get(settings)?.language + ',en,null' } as any)
+					}
+				},
+				headers: {
+					'Cache-Control': CACHE_ONE_DAY
+				}
+			})
+			.then((res) => res.data as TmdbSeriesFull2 | undefined);
+
+	getTmdbSeriesSeason = async (tmdbId: number, season: number): Promise<TmdbSeason | undefined> =>
+		this.getClient()
+			?.GET('/3/tv/{series_id}/season/{season_number}', {
+				params: {
+					path: {
+						series_id: tmdbId,
+						season_number: season
+					}
+				}
+			})
+			.then((res) => res.data);
+
+	getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
+		Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1))).then(
+			(r) => r.filter((s) => s) as TmdbSeason[]
+		);
+
+	getTmdbSeriesImages = async (tmdbId: number) =>
+		this.getClient()
+			?.GET('/3/tv/{series_id}/images', {
+				params: {
+					path: {
+						series_id: tmdbId
+					}
+				},
+				headers: {
+					'Cache-Control': CACHE_FOUR_DAYS // 4 days
+				}
+			})
+			.then((res) => res.data);
+
+	// OTHER
 }
 
 export const tmdbApi = new TmdbApi();

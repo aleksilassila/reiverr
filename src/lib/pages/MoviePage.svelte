@@ -26,10 +26,6 @@
 		Number(id)
 	);
 
-	let playbackId: string = '';
-
-	let heroIndex: number;
-
 	const { requests, isFetching, data } = useActionRequests({
 		handleAddToRadarr: (id: number) =>
 			radarrApi.addMovieToRadarr(id).finally(() => refreshRadarrItem(Number(id)))
@@ -39,7 +35,6 @@
 <DetachedPage>
 	<div class="min-h-screen flex flex-col py-12 px-20 relative">
 		<HeroCarousel
-			bind:index={heroIndex}
 			urls={$movieDataP.then(
 				(movie) =>
 					movie?.images.backdrops
