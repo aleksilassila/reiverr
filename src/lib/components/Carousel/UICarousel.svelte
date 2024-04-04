@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import Container from '../../../Container.svelte';
 
-	let element: HTMLDivElement;
+	let element: Container;
 	let scrollX = 0;
 	let maxScrollX = 0;
 	let fadeLeft = false;
@@ -31,7 +31,7 @@
 		fadeLeft ? '' : 'black 0%, '
 	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}
 	on:scroll={updateScrollPosition}
-	bind:element
+	bind:this={element}
 >
 	<slot />
 </Container>

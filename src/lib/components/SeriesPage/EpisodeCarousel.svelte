@@ -47,7 +47,7 @@
 				</Container>
 			{/each}
 		</UICarousel>
-		<Container revealStrategy={scrollWithOffset('all', 64)} class="flex">
+		<div class="flex">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
 					<div class="mx-2">
@@ -55,6 +55,6 @@
 					</div>
 				{/each}
 			{/each}
-		</Container>
+		</div>
 	</Carousel>
 {/if}

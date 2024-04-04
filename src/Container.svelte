@@ -1,9 +1,9 @@
+<svelte:options accessors />
+
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { type NavigationActions, type RevealStrategy, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
-
-	export let element: HTMLElement;
 
 	export let name: string = '';
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
@@ -60,7 +60,6 @@
 		'outline-none': debugOutline === false
 	})}
 	use:registerer
-	bind:this={element}
 >
 	<slot hasFocus={$hasFocus} hasFocusWithin={$hasFocusWithin} focusIndex={$focusIndex} />
 </svelte:element>

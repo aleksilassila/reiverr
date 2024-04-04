@@ -287,6 +287,69 @@ export class Selectable {
 			else return undefined;
 		};
 
+		const getSiblingSelectable = (parent: Selectable): Selectable | undefined => {
+			const getElementTree = (start: HTMLElement, end: HTMLElement): HTMLElement[] => {
+				let element = start;
+				const elements: HTMLElement[] = [start];
+
+				while (element !== end) {
+					if (element.parentElement) element = element.parentElement;
+					else break;
+					elements.push(element);
+				}
+
+				return elements;
+			};
+
+			if (!this.htmlElement) return undefined;
+
+			const parentHtmlElement = parent.htmlElement;
+
+			if (!parentHtmlElement) return undefined;
+
+			const thisElementTree = getElementTree(this.htmlElement, parentHtmlElement);
+
+			let aboveSibling: Selectable | undefined = undefined;
+
+			for (const existingSibling of parent.children) {
+				// Does not contain this yet
+				if (!existingSibling.htmlElement) {
+					console.error('No html element found for', existingSibling);
+					continue;
+				}
+				const siblingElementTree: HTMLElement[] = getElementTree(
+					existingSibling.htmlElement,
+					parentHtmlElement
+				);
+
+				const commonParentElement = thisElementTree.find((element) =>
+					siblingElementTree.includes(element)
+				);
+				const thisSibling = thisElementTree.find(
+					(element) => element.parentElement && siblingElementTree.includes(element.parentElement)
+				);
+				const targetSibling = siblingElementTree.find(
+					(element) => element.parentElement && thisElementTree.includes(element.parentElement)
+				);
+				if (!thisSibling || !targetSibling || !commonParentElement) {
+					console.warn(
+						"Couldn't find common parent element",
+						thisSibling,
+						targetSibling,
+						commonParentElement
+					);
+					continue;
+				}
+				const allSiblingElements = Array.from(commonParentElement.children);
+
+				if (allSiblingElements.indexOf(targetSibling) < allSiblingElements.indexOf(thisSibling)) {
+					aboveSibling = existingSibling;
+				} else break;
+			}
+
+			return aboveSibling;
+		};
+
 		if (!this.htmlElement) {
 			console.error('No html element found for', this);
 			return;
@@ -300,7 +363,9 @@ export class Selectable {
 			? getParentSelectable(this.htmlElement.parentElement)
 			: undefined;
 		if (parentSelectable) {
-			parentSelectable.addChild(this);
+			const aboveSibling = getSiblingSelectable(parentSelectable);
+			const index = aboveSibling ? parentSelectable.children.indexOf(aboveSibling) : undefined;
+			parentSelectable.addChild(this, index === undefined ? 0 : index + 1);
 		} else {
 			console.error('No parent selectable found for', this.htmlElement);
 		}
@@ -311,7 +376,7 @@ export class Selectable {
 	}
 
 	_unmountContainer() {
-		// console.log('Unmounting selectable', this);
+		console.log('Unmounting selectable', this);
 		const isFocusedWithin = get(this.hasFocusWithin);
 
 		if (this.htmlElement) {
@@ -341,6 +406,7 @@ export class Selectable {
 				destroy: () => {
 					selectable.parent?.removeChild(selectable);
 					Selectable.objects.delete(htmlElement);
+					console.log('destroying', htmlElement, selectable);
 				}
 			};
 		};
@@ -375,14 +441,23 @@ export class Selectable {
 		};
 	}
 
-	private addChild(child: Selectable) {
-		this.children.push(child);
+	private addChild(child: Selectable, index?: number) {
+		if (index !== undefined) {
+			const parentFocusWithin = child.parent?.hasFocusWithin && get(child.parent?.hasFocusWithin);
+			if (parentFocusWithin && this.children.length && index <= get(this.focusIndex)) {
+				this.focusIndex.update((prev) => prev + 1);
+			}
+			this.children.splice(index, 0, child);
+		} else {
+			this.children.push(child);
+		}
+
 		child.parent = this;
 		return this;
 	}
 
 	private removeChild(child: Selectable) {
-		if (this.children.indexOf(child) < get(this.focusIndex)) {
+		if (this.children.indexOf(child) <= get(this.focusIndex)) {
 			this.focusIndex.update((prev) => prev - 1);
 		}
 
