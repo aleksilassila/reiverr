@@ -3,6 +3,8 @@
 	import { type NavigationActions, type RevealStrategy, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
 
+	export let element: HTMLElement;
+
 	export let name: string = '';
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
 	export let gridCols: number = 0;
@@ -10,7 +12,7 @@
 	export let canFocusEmpty = true;
 	export let trapFocus = false;
 	export let debugOutline = false;
-	export let revealStrategy: RevealStrategy | undefined = undefined;
+	export let revealStrategy: RevealStrategy | undefined = undefined; //TODO: change to on:focus
 	export let childrenRevealStrategy: RevealStrategy | undefined = undefined;
 
 	export let active = true;
@@ -58,6 +60,7 @@
 		'outline-none': debugOutline === false
 	})}
 	use:registerer
+	bind:this={element}
 >
 	<slot hasFocus={$hasFocus} hasFocusWithin={$hasFocusWithin} focusIndex={$focusIndex} />
 </svelte:element>

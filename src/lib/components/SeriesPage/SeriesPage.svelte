@@ -1,24 +1,28 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
-	import SidebarMargin from '../components/SidebarMargin.svelte';
-	import HeroCarousel from '../components/HeroCarousel/HeroCarousel.svelte';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { useActionRequest, useDependantRequest, useRequest } from '../stores/data.store';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
+	import Container from '../../../Container.svelte';
+	import SidebarMargin from '../SidebarMargin.svelte';
+	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
+	import DetachedPage from '../DetachedPage/DetachedPage.svelte';
+	import { useActionRequest, useDependantRequest, useRequest } from '../../stores/data.store';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
 	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
-	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import { sonarrApi } from '../apis/sonarr/sonarr-api';
-	import Button from '../components/Button.svelte';
-	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { modalStack } from '../components/Modal/modal.store';
-	import ManageMediaModal from '../components/ManageMedia/ManageMediaModal.svelte';
+	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
+	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
+	import Button from '../Button.svelte';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import { modalStack } from '../Modal/modal.store';
+	import ManageMediaModal from '../ManageMedia/ManageMediaModal.svelte';
 	import { derived } from 'svelte/store';
+	import EpisodeCarousel from './EpisodeCarousel.svelte';
 
 	export let id: string;
 
-	const { promise: tmdbSeries, ...tmdbSeriesRest } = useRequest(tmdbApi.getTmdbSeries, Number(id));
+	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(
+		tmdbApi.getTmdbSeries,
+		Number(id)
+	);
 	const { promise: sonarrItem, data: sonarrItemData } = useRequest(
 		sonarrApi.getSeriesByTmdbId,
 		Number(id)
@@ -42,7 +46,7 @@
 </script>
 
 <DetachedPage>
-	<div class="min-h-screen flex flex-col py-12 px-20 relative">
+	<div class="h-screen flex flex-col py-12 px-20 relative">
 		<HeroCarousel
 			urls={$tmdbSeries.then(
 				(series) =>
@@ -140,4 +144,5 @@
 			</div>
 		</HeroCarousel>
 	</div>
+	<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} />
 </DetachedPage>

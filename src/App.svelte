@@ -8,7 +8,7 @@
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
-	import SeriesPage from './lib/pages/SeriesPage.svelte';
+	import SeriesPage from './lib/components/SeriesPage/SeriesPage.svelte';
 	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 	import LoginPage from './lib/pages/LoginPage.svelte';
 	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';

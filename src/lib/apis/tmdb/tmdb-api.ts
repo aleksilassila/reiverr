@@ -16,6 +16,7 @@ export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
+export type TmdbEpisode = NonNullable<TmdbSeason['episodes']>[0];
 export type TmdbPerson =
 	operations['person-details']['responses']['200']['content']['application/json'];
 
