@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '../../constants';
-	import { fade } from 'svelte/transition';
-	import { cubicIn, cubicOut } from 'svelte/easing';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 
 	export let urls: Promise<string[]>;
 	export let index: number;
-	let visibleIndex = -1;
+	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
 	let htmlElements: HTMLDivElement[] = [];
@@ -16,15 +14,20 @@
 			htmlElements[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
 	}
-	$: {
+
+	function updateVisibleIndex(index: number) {
 		if (visibleIndexTimeout) {
 			clearTimeout(visibleIndexTimeout);
 		}
+		visibleIndexTimeout = setTimeout(
+			() => {
+				visibleIndex = index;
+			},
+			visibleIndex === -2 ? 1000 : 500
+		);
 		visibleIndex = -1;
-		visibleIndexTimeout = setTimeout(() => {
-			visibleIndex = index;
-		}, 500);
 	}
+	$: updateVisibleIndex(index);
 
 	onDestroy(() => visibleIndexTimeout && clearTimeout(visibleIndexTimeout));
 </script>
