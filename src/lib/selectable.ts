@@ -12,7 +12,25 @@ export type NavigationActions = {
 	enter?: (selectable: Selectable) => boolean;
 };
 
-export type FocusHandler = (selectable: Selectable, didNavigate: boolean) => void;
+type FocusHandlerOptions = {
+	didNavigate: boolean;
+	propagate: boolean;
+	stopPropagation: () => void;
+};
+
+const createFocusHandlerOptions = (): FocusHandlerOptions => {
+	const options: Partial<FocusHandlerOptions> = {
+		didNavigate: true,
+		propagate: true
+	};
+
+	options.stopPropagation = () => {
+		options.propagate = false;
+	};
+
+	return options as FocusHandlerOptions;
+};
+export type FocusHandler = (selectable: Selectable, options: FocusHandlerOptions) => void;
 
 export class Selectable {
 	id: symbol;
@@ -76,16 +94,20 @@ export class Selectable {
 		return this;
 	}
 
-	focus(didNavigate: boolean = true) {
-		function updateFocusIndex(parent: Selectable, child?: Selectable) {
-			if (!get(parent.hasFocusWithin)) parent.onFocus?.(parent, didNavigate);
+	focus(didNavigate = true) {
+		function propagateFocusUpdates(
+			options: FocusHandlerOptions,
+			parent: Selectable,
+			child?: Selectable
+		) {
+			if (!get(parent.hasFocusWithin) && options.propagate) parent.onFocus?.(parent, options);
 
 			if (child) {
 				const index = parent.children.indexOf(child);
 				parent.focusIndex.update((prev) => (index === -1 ? prev : index));
 			}
 			if (parent.parent) {
-				updateFocusIndex(parent.parent, parent);
+				propagateFocusUpdates(options, parent.parent, parent);
 			}
 		}
 
@@ -115,7 +137,9 @@ export class Selectable {
 				}
 			}
 		} else if (this.htmlElement) {
-			updateFocusIndex(this);
+			const options = createFocusHandlerOptions();
+			options.didNavigate = didNavigate;
+			propagateFocusUpdates(options, this);
 
 			if (didNavigate) {
 				this.htmlElement.focus({ preventScroll: true });

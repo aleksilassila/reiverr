@@ -66,10 +66,10 @@
 					let:hasFocus
 					class="mx-2 text-nowrap"
 					on:click={() => handleSelectSeason(season)}
-					handleFocus={(s, didNavigate) => {
+					handleFocus={(s, options) => {
 						const element = s.getHtmlElement();
 						if (element) scrollElementIntoView(element, { horizontal: 64 });
-						if (didNavigate) handleSelectSeason(season);
+						if (options.didNavigate) handleSelectSeason(season);
 					}}
 					bind:this={containers[`season-${season.season_number}`]}
 				>
@@ -90,10 +90,10 @@
 					<Container
 						class="mx-2"
 						bind:this={containers[`episode-${episode.id}`]}
-						handleFocus={(s, didNavigate) => {
+						handleFocus={(s, options) => {
 							scrollIntoView({ left: 64 + 16 })(s);
 							selectedTmdbEpisode = episode;
-							if (didNavigate) handleFocusEpisode(episode);
+							if (options.didNavigate) handleFocusEpisode(episode);
 						}}
 					>
 						<EpisodeCard {episode} />
