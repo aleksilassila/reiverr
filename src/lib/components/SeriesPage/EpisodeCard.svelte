@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TmdbEpisode, TmdbSeason } from '../../apis/tmdb/tmdb-api';
+	import type { TmdbEpisode } from '../../apis/tmdb/tmdb-api';
 	import Container from '../../../Container.svelte';
 	import classNames from 'classnames';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';

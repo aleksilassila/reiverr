@@ -13,7 +13,7 @@
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
 	import { getShowcasePropsFromTmdb } from '../components/HeroShowcase/HeroShowcase';
-	import { scrollWithOffset } from '../selectable';
+	import { scrollIntoView } from '../selectable';
 	import SidebarMargin from '../components/SidebarMargin.svelte';
 
 	const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
@@ -75,8 +75,10 @@
 </script>
 
 <Container focusOnMount>
-	<div class="h-screen flex flex-col">
-		<HeroShowcase items={tmdbApi.getPopularMovies().then(getShowcasePropsFromTmdb)} />
+	<div class="flex flex-col h-screen">
+		<div class="flex-1 flex relative px-20">
+			<HeroShowcase items={tmdbApi.getPopularMovies().then(getShowcasePropsFromTmdb)} />
+		</div>
 		<div class="mt-8">
 			<Carousel scrollClass="">
 				<SidebarMargin slot="title" class="mx-4">
@@ -89,30 +91,12 @@
 				{:then props}
 					<div class="w-[4.5rem] h-1 shrink-0" />
 					{#each props as prop (prop.tmdbId)}
-						<div class="m-2">
+						<Container class="m-2" handleFocus={scrollIntoView({ left: 64 + 16 })}>
 							<Card {...prop} />
-						</div>
+						</Container>
 					{/each}
 				{/await}
 			</Carousel>
 		</div>
 	</div>
-	<!--	<Carousel scrollClass="px-2 sm:px-8 2xl:px-16">-->
-	<!--		<div slot="title" class="text-lg font-semibold text-zinc-300">-->
-	<!--			{$_('discover.library')}-->
-	<!--		</div>-->
-	<!--		{#await fetchLibraryItems()}-->
-	<!--			<CarouselPlaceholderItems />-->
-	<!--		{:then props}-->
-	<!--			{#each props as prop (prop.tmdbId)}-->
-	<!--				<Container>-->
-	<!--					<Poster {...prop} />-->
-	<!--				</Container>-->
-	<!--			{/each}-->
-	<!--		{/await}-->
-	<!--	</Carousel>-->
-	<!--	<Poster-->
-	<!--		backdropUrl="http://192.168.0.129:8096/Items/8cc44d55dba1495a2ffcda104286d611/Images/Primary?quality=80&fillWidth=432&tag=d026e7eb1d9ba9934c8769695e396dc4"-->
-	<!--	/>-->
-	<!--	<VideoPlayer jellyfinId="8cc44d55dba1495a2ffcda104286d611" />-->
 </Container>

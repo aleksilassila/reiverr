@@ -7,7 +7,7 @@
 	import type { TitleType } from '../../types';
 	import Container from '../../../Container.svelte';
 	import { useNavigate } from 'svelte-navigator';
-	import { scrollWithOffset } from '../../selectable';
+	import { scrollIntoView } from '../../selectable';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;

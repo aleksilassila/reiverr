@@ -6,7 +6,7 @@
 	import { tmdbApi, type TmdbSeason, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import Container from '../../../Container.svelte';
-	import { scrollWithOffset } from '../../selectable';
+	import { scrollElementIntoView, scrollIntoView } from '../../selectable';
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 
@@ -20,8 +20,22 @@
 		(series) => (series?.seasons?.length ? ([series.seasons.length] as const) : undefined)
 	);
 
+	const episodeContainers: Record<string, Container> = {};
+
 	function handleSelectSeason(season: TmdbSeason) {
-		console.log(season);
+		const episode = season.episodes?.[0];
+		if (episode) {
+			console.log(
+				episode,
+				episodeContainers,
+				`episode-${episode.id}`,
+				episodeContainers[`episode-${episode.id}`]
+			);
+			const selectable = episodeContainers[`episode-${episode.id}`]?.container;
+			if (selectable) {
+				selectable.focus(false);
+			}
+		}
 	}
 </script>
 
@@ -35,6 +49,11 @@
 					let:hasFocus
 					class="mx-2 text-nowrap"
 					on:click={() => handleSelectSeason(season)}
+					handleFocus={(s) => {
+						const element = s.getHtmlElement();
+						if (element) scrollElementIntoView(element, { horizontal: 64 });
+						handleSelectSeason(season);
+					}}
 				>
 					<div
 						class={classNames({
@@ -50,9 +69,13 @@
 		<div class="flex">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
-					<div class="mx-2">
+					<Container
+						class="mx-2"
+						bind:this={episodeContainers[`episode-${episode.id}`]}
+						handleFocus={scrollIntoView({ left: 64 + 16 })}
+					>
 						<EpisodeCard {episode} />
-					</div>
+					</Container>
 				{/each}
 			{/each}
 		</div>

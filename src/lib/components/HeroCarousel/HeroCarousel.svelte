@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
 	import HeroShowcaseBackground from './HeroBackground.svelte';
-	import { scrollWithOffset, Selectable } from '../../selectable';
+	import { scrollIntoView, Selectable } from '../../selectable';
 	import IconButton from '../IconButton.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
@@ -42,7 +42,6 @@
 <Container class="flex-1 flex">
 	<HeroShowcaseBackground {urls} {index} />
 	<Container
-		revealStrategy={scrollWithOffset('up', 0)}
 		navigationActions={{
 			right: onNext,
 			left: onPrevious,

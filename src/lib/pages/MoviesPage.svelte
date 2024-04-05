@@ -10,6 +10,7 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Button from '../components/Button.svelte';
 	import { useNavigate } from 'svelte-navigator';
+	import { scrollIntoView } from '../selectable';
 
 	const popularMovies = tmdbApi.getPopularMovies();
 	const navigate = useNavigate();
@@ -32,9 +33,9 @@
 				{:then items}
 					<div class="w-[4.5rem] h-1 shrink-0" />
 					{#each items as item (item.id)}
-						<div class="m-2">
+						<Container class="m-2" handleFocus={scrollIntoView({ left: 64 + 16 })}>
 							<TmdbCard {item} />
-						</div>
+						</Container>
 					{/each}
 				{/await}
 			</Carousel>

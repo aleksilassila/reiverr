@@ -2,7 +2,7 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { type NavigationActions, type RevealStrategy, Selectable } from './lib/selectable';
+	import { type NavigationActions, type FocusHandler, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
 
 	export let name: string = '';
@@ -12,8 +12,7 @@
 	export let canFocusEmpty = true;
 	export let trapFocus = false;
 	export let debugOutline = false;
-	export let revealStrategy: RevealStrategy | undefined = undefined; //TODO: change to on:focus
-	export let childrenRevealStrategy: RevealStrategy | undefined = undefined;
+	export let handleFocus: (selectable: Selectable) => void = () => {};
 
 	export let active = true;
 
@@ -23,10 +22,9 @@
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
 		.setNavigationActions(navigationActions)
-		.setRevealStrategy(revealStrategy)
-		.setChildrenRevealStrategy(childrenRevealStrategy)
 		.setTrapFocus(trapFocus)
 		.setCanFocusEmpty(canFocusEmpty)
+		.setOnFocus(handleFocus)
 		.getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;

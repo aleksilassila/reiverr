@@ -16,6 +16,7 @@
 	import ManageMediaModal from '../ManageMedia/ManageMediaModal.svelte';
 	import { derived } from 'svelte/store';
 	import EpisodeCarousel from './EpisodeCarousel.svelte';
+	import { scrollIntoView } from '../../selectable';
 
 	export let id: string;
 
@@ -46,7 +47,10 @@
 </script>
 
 <DetachedPage>
-	<div class="h-screen flex flex-col py-12 px-20 relative">
+	<Container
+		class="h-screen flex flex-col py-12 px-20 relative"
+		handleFocus={scrollIntoView({ top: 0 })}
+	>
 		<HeroCarousel
 			urls={$tmdbSeries.then(
 				(series) =>
@@ -143,6 +147,8 @@
 				{/await}
 			</div>
 		</HeroCarousel>
-	</div>
-	<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} />
+	</Container>
+	<Container handleFocus={scrollIntoView({ vertical: 64 })}>
+		<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} />
+	</Container>
 </DetachedPage>

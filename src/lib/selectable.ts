@@ -11,90 +11,7 @@ export type NavigationActions = {
 	enter?: (selectable: Selectable) => boolean;
 };
 
-export type RevealStrategy = (target: Selectable) => void;
-
-export const scrollWithOffset =
-	(side: Direction | 'all' = 'all', offset = 50): RevealStrategy =>
-	(target) => {
-		function getScrollParent(node: HTMLElement): HTMLElement | undefined {
-			const parent = node.parentElement;
-
-			if (parent) {
-				if (parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) {
-					return parent;
-				} else {
-					return getScrollParent(parent);
-				}
-			}
-		}
-
-		// scrollIntoView(offset = 0, direction: Direction = 'left') {
-		const targetHtmlElement = target.getHtmlElement();
-		if (targetHtmlElement) {
-			const boundingRect = targetHtmlElement.getBoundingClientRect();
-
-			const leftOffset = targetHtmlElement.offsetLeft;
-			const rightOffset = targetHtmlElement.offsetLeft + boundingRect.width;
-			const topOffset = targetHtmlElement.offsetTop;
-			const bottomOffset = targetHtmlElement.offsetTop + boundingRect.height;
-
-			const offsetParent = getScrollParent(targetHtmlElement);
-
-			if (offsetParent) {
-				const parentBoundingRect = offsetParent.getBoundingClientRect();
-
-				const scrollLeft = offsetParent.scrollLeft;
-				const scrollRight =
-					offsetParent.scrollLeft + Math.min(parentBoundingRect.width, window.innerWidth);
-				const scrollTop = offsetParent.scrollTop;
-				const scrollBottom =
-					offsetParent.scrollTop + Math.min(parentBoundingRect.height, window.innerHeight);
-
-				if (side === 'all') {
-					const left =
-						leftOffset - offset < scrollLeft
-							? leftOffset - offset
-							: rightOffset + offset > scrollRight
-							? rightOffset - Math.min(parentBoundingRect.width, window.innerWidth) + offset
-							: -1;
-					const top =
-						topOffset - offset < scrollTop
-							? topOffset - offset
-							: bottomOffset + offset > scrollBottom
-							? bottomOffset - Math.min(parentBoundingRect.height, window.innerHeight) + offset
-							: -1;
-
-					if (left !== -1 || top !== -1) {
-						offsetParent.scrollTo({
-							...(left !== -1 && { left }),
-							...(top !== -1 && { top }),
-							behavior: 'smooth'
-						});
-					}
-				} else if (side === 'left' || side === 'right') {
-					const left = {
-						left: leftOffset - offset,
-						right: rightOffset - parentBoundingRect.width + offset
-					}[side];
-
-					offsetParent.scrollTo({
-						left,
-						behavior: 'smooth'
-					});
-				} else if (side === 'up' || side === 'down') {
-					const top = {
-						up: topOffset - offset,
-						down: bottomOffset - parentBoundingRect.height + offset
-					}[side];
-
-					offsetParent.scrollTo({
-						top,
-						behavior: 'smooth'
-					});
-				}
-			}
-		}
-	};
+export type FocusHandler = (target: Selectable) => void;
 
 export class Selectable {
 	id: symbol;
@@ -114,8 +31,7 @@ export class Selectable {
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
-	private scrollIntoView?: RevealStrategy;
-	private scrollChildrenIntoView?: RevealStrategy;
+	private onFocus?: (selectable: Selectable) => void;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -159,7 +75,7 @@ export class Selectable {
 		return this;
 	}
 
-	focus() {
+	focus(navigate: boolean = true) {
 		function updateFocusIndex(currentSelectable: Selectable, selectable?: Selectable) {
 			if (selectable) {
 				const index = currentSelectable.children.indexOf(selectable);
@@ -170,22 +86,19 @@ export class Selectable {
 			}
 		}
 
-		if (!get(this.hasFocusWithin)) {
-			if (this.scrollIntoView) this.scrollIntoView(this);
-			else if (this.parent?.getScrollChildrenIntoView())
-				this.parent?.getScrollChildrenIntoView()?.(this);
-		}
+		if (!get(this.hasFocusWithin)) this.onFocus?.(this);
 
 		if (this.children.length > 0) {
 			const focusIndex = get(this.focusIndex);
 
 			if (this.children[focusIndex]?.isFocusable()) {
-				this.children[focusIndex]?.focus();
+				this.children[focusIndex]?.focus(navigate);
 			} else {
 				let i = focusIndex;
 				while (i < this.children.length) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus();
+						this.children[i]?.focus(navigate);
+						// this.onFocus?.(this);
 						return;
 					}
 					i++;
@@ -193,18 +106,20 @@ export class Selectable {
 				i = focusIndex - 1;
 				while (i >= 0) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus();
+						this.children[i]?.focus(navigate);
+						// this.onFocus?.(this);
 						return;
 					}
 					i--;
 				}
 			}
 		} else if (this.htmlElement) {
-			this.htmlElement.focus({ preventScroll: true });
-			// this.htmlElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-			// this.scrollIntoView(50);
-			Selectable.focusedObject.set(this);
 			updateFocusIndex(this);
+
+			if (navigate) {
+				this.htmlElement.focus({ preventScroll: true });
+				Selectable.focusedObject.set(this);
+			}
 		}
 	}
 
@@ -476,6 +391,10 @@ export class Selectable {
 		}
 	}
 
+	getFocusedChild() {
+		return this.children[get(this.focusIndex)];
+	}
+
 	setNavigationActions(actions: NavigationActions) {
 		this.navigationActions = actions;
 		return this;
@@ -503,20 +422,6 @@ export class Selectable {
 		return this.htmlElement;
 	}
 
-	setRevealStrategy(revealStrategy?: RevealStrategy) {
-		this.scrollIntoView = revealStrategy;
-		return this;
-	}
-
-	setChildrenRevealStrategy(revealStrategy?: RevealStrategy) {
-		this.scrollChildrenIntoView = revealStrategy;
-		return this;
-	}
-
-	getScrollChildrenIntoView() {
-		return this.scrollChildrenIntoView;
-	}
-
 	setTrapFocus(trapFocus: boolean) {
 		this.trapFocus = trapFocus;
 		return this;
@@ -524,6 +429,11 @@ export class Selectable {
 
 	setCanFocusEmpty(canFocusEmpty: boolean) {
 		this.canFocusEmpty = canFocusEmpty;
+		return this;
+	}
+
+	setOnFocus(onFocus: typeof this.onFocus) {
+		this.onFocus = onFocus;
 		return this;
 	}
 }
@@ -559,3 +469,201 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 }
 
 // Selectable.focusedObject.subscribe(console.log);
+
+type Offsets = Partial<
+	Record<
+		'top' | 'bottom' | 'left' | 'right' | 'horizontal' | 'vertical' | 'all',
+		number | undefined
+	>
+>;
+export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets = { all: 16 }) => {
+	function getScrollParent(
+		node: HTMLElement,
+		direction: 'vertical' | 'horizontal'
+	): HTMLElement | undefined {
+		const parent = node.parentElement;
+
+		if (parent) {
+			if (
+				(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
+				(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
+			) {
+				return parent;
+			} else {
+				return getScrollParent(parent, direction);
+			}
+		}
+	}
+
+	if (offsets.vertical !== undefined) {
+		offsets.top = offsets.vertical;
+		offsets.bottom = offsets.vertical;
+	}
+
+	if (offsets.horizontal !== undefined) {
+		offsets.left = offsets.horizontal;
+		offsets.right = offsets.horizontal;
+	}
+
+	if (offsets.all !== undefined) {
+		offsets.top = offsets.all;
+		offsets.bottom = offsets.all;
+		offsets.left = offsets.all;
+		offsets.right = offsets.all;
+	}
+
+	const boundingRect = htmlElement.getBoundingClientRect();
+	const verticalParent = getScrollParent(htmlElement, 'vertical');
+	const horizontalParent = getScrollParent(htmlElement, 'horizontal');
+
+	if (verticalParent && (offsets.top !== undefined || offsets.bottom !== undefined)) {
+		const parentBoundingRect = verticalParent.getBoundingClientRect();
+
+		let top = -1;
+
+		if (offsets.top !== undefined && offsets.bottom !== undefined) {
+			top =
+				boundingRect.y - parentBoundingRect.y < offsets.top
+					? boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top
+					: boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight >
+					  verticalParent.clientHeight - offsets.bottom
+					? boundingRect.y -
+					  parentBoundingRect.y +
+					  htmlElement.clientHeight +
+					  verticalParent.scrollTop +
+					  offsets.bottom -
+					  verticalParent.clientHeight
+					: -1;
+		} else if (offsets.top !== undefined) {
+			top = boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top;
+		} else if (offsets.bottom !== undefined) {
+			top =
+				boundingRect.y -
+				parentBoundingRect.y +
+				htmlElement.clientHeight +
+				verticalParent.scrollTop +
+				offsets.bottom -
+				verticalParent.clientHeight;
+		}
+
+		if (top !== -1) {
+			verticalParent.scrollTo({
+				behavior: 'smooth',
+				top
+			});
+		}
+	}
+	if (horizontalParent && (offsets.left !== undefined || offsets.right !== undefined)) {
+		const parentBoundingRect = horizontalParent.getBoundingClientRect();
+
+		let left = -1;
+
+		if (offsets.left !== undefined && offsets.right !== undefined) {
+			left =
+				boundingRect.x - parentBoundingRect.x < offsets.left
+					? boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left
+					: boundingRect.x - parentBoundingRect.x + htmlElement.clientWidth >
+					  horizontalParent.clientWidth - offsets.right
+					? boundingRect.x -
+					  parentBoundingRect.x +
+					  htmlElement.clientWidth +
+					  horizontalParent.scrollLeft +
+					  offsets.right -
+					  horizontalParent.clientWidth
+					: -1;
+		} else if (offsets.left !== undefined) {
+			left = boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left;
+		} else if (offsets.right !== undefined) {
+			left =
+				boundingRect.x -
+				parentBoundingRect.x +
+				htmlElement.clientWidth +
+				horizontalParent.scrollLeft +
+				offsets.right -
+				horizontalParent.clientWidth;
+		}
+
+		if (left !== -1) {
+			horizontalParent.scrollTo({
+				behavior: 'smooth',
+				left
+			});
+		}
+	}
+};
+
+// export const _scrollElementIntoView = (
+// 	htmlElement: HTMLElement,
+// 	direction: 'vertical' | 'horizontal',
+// 	offset: number = 16
+// ) => {
+// 	function getScrollParent(node: HTMLElement): HTMLElement | undefined {
+// 		const parent = node.parentElement;
+//
+// 		if (parent) {
+// 			if (
+// 				(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
+// 				(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
+// 			) {
+// 				return parent;
+// 			} else {
+// 				return getScrollParent(parent);
+// 			}
+// 		}
+// 	}
+//
+// 	const boundingRect = htmlElement.getBoundingClientRect();
+// 	const parent = getScrollParent(htmlElement);
+//
+// 	if (parent) {
+// 		const parentBoundingRect = parent.getBoundingClientRect();
+//
+// 		const left =
+// 			boundingRect.x - parentBoundingRect.x < offset
+// 				? boundingRect.x - parentBoundingRect.x + parent.scrollLeft - offset
+// 				: boundingRect.x - parentBoundingRect.x + htmlElement.clientWidth >
+// 				  parent.clientWidth - offset
+// 				? boundingRect.x -
+// 				  parentBoundingRect.x +
+// 				  htmlElement.clientWidth +
+// 				  parent.scrollLeft +
+// 				  offset -
+// 				  parent.clientWidth
+// 				: -1;
+//
+// 		const top =
+// 			boundingRect.y - parentBoundingRect.y < offset
+// 				? boundingRect.y - parentBoundingRect.y + parent.scrollTop - offset
+// 				: boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight >
+// 				  parent.clientHeight - offset
+// 				? boundingRect.y -
+// 				  parentBoundingRect.y +
+// 				  htmlElement.clientHeight +
+// 				  parent.scrollTop +
+// 				  offset -
+// 				  parent.clientHeight
+// 				: -1;
+//
+// 		parent.scrollTo({
+// 			behavior: 'smooth',
+// 			...(top !== -1 && direction === 'vertical' && { top }),
+// 			...(left !== -1 && direction === 'vertical' && { left })
+// 		});
+// 	}
+// };
+
+// export const scrollElementIntoView = (
+// 	htmlElement: HTMLElement,
+// 	offsets: Partial<
+// 		Record<'up' | 'down' | 'left' | 'right' | 'horizontal' | 'vertical' | 'all', number | undefined>
+// 	> = { all: 16 }
+// ) => {};
+
+export const scrollIntoView: (...args: [Offsets]) => FocusHandler =
+	(...args) =>
+	(s) => {
+		const element = s.getHtmlElement();
+		if (element) {
+			scrollElementIntoView(element, ...args);
+		}
+	};

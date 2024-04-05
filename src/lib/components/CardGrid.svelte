@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
 	import { onMount } from 'svelte';
-	import { scrollWithOffset } from '../selectable';
 
 	let cols: number = 1;
 	const calculateRows = () => {
@@ -25,7 +24,6 @@
 <Container
 	direction="grid"
 	gridCols={cols}
-	childrenRevealStrategy={scrollWithOffset('all', 50)}
 	class="grid gap-x-4 gap-y-8 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
 >
 	<slot />
