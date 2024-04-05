@@ -2,9 +2,13 @@
 	import { PLATFORM_TV } from '../../constants';
 	import { fade } from 'svelte/transition';
 	import { cubicIn, cubicOut } from 'svelte/easing';
+	import classNames from 'classnames';
+	import { onDestroy } from 'svelte';
 
 	export let urls: Promise<string[]>;
 	export let index: number;
+	let visibleIndex = -1;
+	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
 	let htmlElements: HTMLDivElement[] = [];
 	$: {
@@ -12,20 +16,32 @@
 			htmlElements[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
 	}
+	$: {
+		if (visibleIndexTimeout) {
+			clearTimeout(visibleIndexTimeout);
+		}
+		visibleIndex = -1;
+		visibleIndexTimeout = setTimeout(() => {
+			visibleIndex = index;
+		}, 500);
+	}
+
+	onDestroy(() => visibleIndexTimeout && clearTimeout(visibleIndexTimeout));
 </script>
 
 <div class="absolute inset-0">
 	{#if PLATFORM_TV}
 		{#await urls then urls}
-			{#key index}
+			{#each urls as url, i}
 				<div
-					class="absolute inset-0 bg-center bg-cover"
-					style={`background-image: url('${urls[index]}');`}
-					in:fade={{ delay: 700, duration: 500, easing: cubicIn }}
-					out:fade={{ delay: 0, duration: 500, easing: cubicOut }}
+					class={classNames('absolute inset-0 bg-center bg-cover transition-opacity duration-500', {
+						'opacity-100': visibleIndex === i,
+						'opacity-0': visibleIndex !== i
+					})}
+					style={`background-image: url('${url}');`}
 				/>
-				<div class="bg-gradient-to-t from-stone-950 to-transparent absolute inset-0" />
-			{/key}
+			{/each}
+			<div class="bg-gradient-to-t from-stone-950 to-transparent absolute inset-0" />
 		{/await}
 	{:else}
 		<div
