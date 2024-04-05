@@ -8,7 +8,7 @@
 </script>
 
 <Container
-	navigationActions={{
+	handleNavigateOut={{
 		left: () => {
 			modalStack.close(modalId);
 			return true;

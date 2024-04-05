@@ -18,6 +18,7 @@
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
 	export let nextEpisode: JellyfinItem | undefined = undefined;
+	export let selectedTmdbEpisode: TmdbEpisode | undefined = undefined;
 
 	const { data: tmdbSeasons, isLoading: isTmdbSeasonsLoading } = useDependantRequest(
 		(seasons: number) => tmdbApi.getTmdbSeriesSeasons(id, seasons),
@@ -49,6 +50,10 @@
 		const seasonSelectable = containers[`season-${episode.season_number}`]?.container;
 		if (seasonSelectable) seasonSelectable.focus(false);
 	}
+
+	tmdbSeasons.subscribe((seasons) => {
+		selectedTmdbEpisode = seasons?.[0]?.episodes?.[0];
+	});
 </script>
 
 {#if $isTmdbSeasonsLoading}
@@ -79,7 +84,7 @@
 				</Container>
 			{/each}
 		</UICarousel>
-		<div class="flex">
+		<div class="flex -mx-2">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
 					<Container
@@ -87,6 +92,7 @@
 						bind:this={containers[`episode-${episode.id}`]}
 						handleFocus={(s, didNavigate) => {
 							scrollIntoView({ left: 64 + 16 })(s);
+							selectedTmdbEpisode = episode;
 							if (didNavigate) handleFocusEpisode(episode);
 						}}
 					>

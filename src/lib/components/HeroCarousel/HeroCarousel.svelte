@@ -42,7 +42,7 @@
 <Container class="flex-1 flex">
 	<HeroShowcaseBackground {urls} {index} />
 	<Container
-		navigationActions={{
+		handleNavigateOut={{
 			right: onNext,
 			left: onPrevious,
 			up: () => Selectable.giveFocus('left', true) || true

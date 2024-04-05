@@ -3,7 +3,7 @@
 </script>
 
 <Container
-	navigationActions={{
+	handleNavigateOut={{
 		left: () => {
 			history.back();
 			return false;

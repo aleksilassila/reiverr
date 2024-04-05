@@ -3,6 +3,7 @@
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import Container from '../../../Container.svelte';
+	import { PLATFORM_TV } from '../../constants';
 
 	export let gradientFromColor = 'from-stone-950';
 	export let heading = '';
@@ -22,7 +23,7 @@
 				'flex gap-2 ml-4',
 				//'sm:opacity-0 transition-opacity sm:group-hover/carousel:opacity-100',
 				{
-					hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0)
+					hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0) || PLATFORM_TV
 				}
 			)}
 		>
@@ -44,7 +45,7 @@
 	</div>
 
 	<div class="relative">
-		<Container direction="horizontal" navigationActions={{ left: () => true }}>
+		<Container direction="horizontal" handleNavigateOut={{ left: () => true }}>
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',

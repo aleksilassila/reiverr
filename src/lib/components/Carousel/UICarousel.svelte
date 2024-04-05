@@ -32,7 +32,7 @@
 	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}
 	on:scroll={updateScrollPosition}
 	bind:this={element}
-	navigationActions={{ left: () => true }}
+	handleNavigateOut={{ left: () => true }}
 >
 	<slot />
 </Container>

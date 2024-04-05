@@ -1,4 +1,5 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
+import { getScrollParent } from './utils';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 
@@ -11,7 +12,7 @@ export type NavigationActions = {
 	enter?: (selectable: Selectable) => boolean;
 };
 
-export type FocusHandler = (target: Selectable) => void;
+export type FocusHandler = (selectable: Selectable, didNavigate: boolean) => void;
 
 export class Selectable {
 	id: symbol;
@@ -31,7 +32,7 @@ export class Selectable {
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
-	private onFocus?: (selectable: Selectable, didNavigate: boolean) => void;
+	private onFocus?: FocusHandler;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -76,17 +77,17 @@ export class Selectable {
 	}
 
 	focus(didNavigate: boolean = true) {
-		function updateFocusIndex(currentSelectable: Selectable, selectable?: Selectable) {
-			if (selectable) {
-				const index = currentSelectable.children.indexOf(selectable);
-				currentSelectable.focusIndex.update((prev) => (index === -1 ? prev : index));
+		function updateFocusIndex(parent: Selectable, child?: Selectable) {
+			if (!get(parent.hasFocusWithin)) parent.onFocus?.(parent, didNavigate);
+
+			if (child) {
+				const index = parent.children.indexOf(child);
+				parent.focusIndex.update((prev) => (index === -1 ? prev : index));
 			}
-			if (currentSelectable.parent) {
-				updateFocusIndex(currentSelectable.parent, currentSelectable);
+			if (parent.parent) {
+				updateFocusIndex(parent.parent, parent);
 			}
 		}
-
-		if (!get(this.hasFocusWithin)) this.onFocus?.(this, didNavigate);
 
 		if (this.children.length > 0) {
 			const focusIndex = get(this.focusIndex);
@@ -121,6 +122,16 @@ export class Selectable {
 				Selectable.focusedObject.set(this);
 			}
 		}
+	}
+
+	focusChildren(index: number, didNavigate = true): boolean {
+		const child = this.children[index];
+		if (child && child.isFocusable()) {
+			child.focus(didNavigate);
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -477,24 +488,6 @@ type Offsets = Partial<
 	>
 >;
 export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets = { all: 16 }) => {
-	function getScrollParent(
-		node: HTMLElement,
-		direction: 'vertical' | 'horizontal'
-	): HTMLElement | undefined {
-		const parent = node.parentElement;
-
-		if (parent) {
-			if (
-				(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
-				(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
-			) {
-				return parent;
-			} else {
-				return getScrollParent(parent, direction);
-			}
-		}
-	}
-
 	if (offsets.vertical !== undefined) {
 		offsets.top = offsets.vertical;
 		offsets.bottom = offsets.vertical;
@@ -592,7 +585,7 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 	}
 };
 
-export const scrollIntoView: (...args: [Offsets]) => FocusHandler =
+export const scrollIntoView: (...args: [Offsets]) => (s: Selectable) => void =
 	(...args) =>
 	(s) => {
 		const element = s.getHtmlElement();

@@ -87,3 +87,21 @@ export function capitalize(str: string) {
 	const strings = str.split(' ');
 	return strings.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
 }
+
+export function getScrollParent(
+	node: HTMLElement,
+	direction: 'vertical' | 'horizontal'
+): HTMLElement | undefined {
+	const parent = node.parentElement;
+
+	if (parent) {
+		if (
+			(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
+			(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
+		) {
+			return parent;
+		} else {
+			return getScrollParent(parent, direction);
+		}
+	}
+}

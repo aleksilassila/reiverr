@@ -1,10 +1,9 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
-	import SidebarMargin from '../SidebarMargin.svelte';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
 	import DetachedPage from '../DetachedPage/DetachedPage.svelte';
 	import { useActionRequest, useDependantRequest, useRequest } from '../../stores/data.store';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbEpisode } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
 	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
@@ -16,7 +15,8 @@
 	import ManageMediaModal from '../ManageMedia/ManageMediaModal.svelte';
 	import { derived } from 'svelte/store';
 	import EpisodeCarousel from './EpisodeCarousel.svelte';
-	import { scrollIntoView } from '../../selectable';
+	import { scrollIntoView, Selectable } from '../../selectable';
+	import ScrollHelper from '../ScrollHelper.svelte';
 
 	export let id: string;
 
@@ -44,12 +44,26 @@
 	const { send: addSeriesToSonarr, isFetching: addSeriesToSonarrFetching } = useActionRequest(
 		sonarrApi.addSeriesToSonarr
 	);
+
+	let selectedTmdbEpisode: TmdbEpisode | undefined;
+	let episodesSelectable: Selectable;
+
+	let scrollTop: number;
+	$: showEpisodeInfo = scrollTop > 200;
 </script>
 
 <DetachedPage>
+	<ScrollHelper bind:scrollTop />
 	<Container
 		class="h-screen flex flex-col py-12 px-20 relative"
 		handleFocus={scrollIntoView({ top: 0 })}
+		handleNavigateOut={{
+			down: () => {
+				console.log('Here', episodesSelectable);
+				episodesSelectable?.focusChildren(1);
+				return true;
+			}
+		}}
 	>
 		<HeroCarousel
 			urls={$tmdbSeries.then(
@@ -62,7 +76,38 @@
 		>
 			<div class="h-full flex-1 flex flex-col justify-end">
 				{#await $tmdbSeries then series}
-					{#if series}
+					{#if showEpisodeInfo && selectedTmdbEpisode}
+						{@const episode = selectedTmdbEpisode}
+						<div
+							class={classNames(
+								'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
+								{
+									'text-4xl sm:text-5xl 2xl:text-6xl': episode.name?.length || 0 < 15,
+									'text-3xl sm:text-4xl 2xl:text-5xl': episode?.name?.length || 0 >= 15
+								}
+							)}
+						>
+							{episode.name}
+						</div>
+						<div
+							class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
+						>
+							<p class="flex-shrink-0">
+								{episode.runtime} Minutes
+							</p>
+							<!-- <DotFilled />
+								<p class="flex-shrink-0">{movie.runtime}</p> -->
+							<DotFilled />
+							<p class="flex-shrink-0">
+								<a href={`https://www.themoviedb.org/movie/${series?.id}/episode/${episode.id}`}
+									>{episode.vote_average} TMDB</a
+								>
+							</p>
+						</div>
+						<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
+							{episode.overview}
+						</div>
+					{:else if series}
 						<div
 							class={classNames(
 								'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
@@ -148,7 +193,7 @@
 			</div>
 		</HeroCarousel>
 	</Container>
-	<Container handleFocus={scrollIntoView({ vertical: 64 })}>
-		<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} />
+	<Container handleFocus={scrollIntoView({ vertical: 64 })} bind:container={episodesSelectable}>
+		<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} bind:selectedTmdbEpisode />
 	</Container>
 </DetachedPage>

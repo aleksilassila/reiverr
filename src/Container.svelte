@@ -16,12 +16,12 @@
 
 	export let active = true;
 
-	export let navigationActions: NavigationActions = {};
+	export let handleNavigateOut: NavigationActions = {};
 
 	const { registerer, ...rest } = new Selectable(name)
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
-		.setNavigationActions(navigationActions)
+		.setNavigationActions(handleNavigateOut)
 		.setTrapFocus(trapFocus)
 		.setCanFocusEmpty(canFocusEmpty)
 		.setOnFocus(handleFocus)

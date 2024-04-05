@@ -10,7 +10,7 @@
 </script>
 
 <Container
-	navigationActions={{}}
+	handleNavigateOut={{}}
 	focusOnMount
 	trapFocus
 	class={classNames('fixed inset-0 bg-black overflow-auto', {
