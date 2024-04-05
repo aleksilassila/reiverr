@@ -12,25 +12,23 @@ export type NavigationActions = {
 	enter?: (selectable: Selectable) => boolean;
 };
 
-type FocusHandlerOptions = {
+type FocusEventOptions = {
 	setFocusedElement: boolean;
 	propagate: boolean;
+};
+
+export type EnterEvent = {
+	selectable: Selectable;
+	options: FocusEventOptions;
 	stopPropagation: () => void;
 };
 
-const createFocusHandlerOptions = (): FocusHandlerOptions => {
-	const options: Partial<FocusHandlerOptions> = {
-		setFocusedElement: true,
-		propagate: true
-	};
+const createFocusHandlerOptions = (): FocusEventOptions => ({
+	setFocusedElement: true,
+	propagate: true
+});
 
-	options.stopPropagation = () => {
-		options.propagate = false;
-	};
-
-	return options as FocusHandlerOptions;
-};
-export type FocusHandler = (selectable: Selectable, options: FocusHandlerOptions) => void;
+export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
 
 export class Selectable {
 	id: symbol;
@@ -95,9 +93,9 @@ export class Selectable {
 		return this;
 	}
 
-	focus(options: Partial<FocusHandlerOptions> = {}) {
+	focus(options: Partial<FocusEventOptions> = {}) {
 		function propagateFocusUpdates(
-			options: FocusHandlerOptions,
+			options: FocusEventOptions,
 			parent: Selectable,
 			child?: Selectable
 		) {
@@ -138,7 +136,7 @@ export class Selectable {
 				}
 			}
 		} else if (this.htmlElement) {
-			const _options: FocusHandlerOptions = {
+			const _options: FocusEventOptions = {
 				...createFocusHandlerOptions(),
 				...options
 			};
@@ -151,7 +149,7 @@ export class Selectable {
 		}
 	}
 
-	focusChildren(index: number, options?: Partial<FocusHandlerOptions>): boolean {
+	focusChildren(index: number, options?: Partial<FocusEventOptions>): boolean {
 		const child = this.children[index];
 		if (child && child.isFocusable()) {
 			child.focus(options);
@@ -329,7 +327,6 @@ export class Selectable {
 	}
 
 	_unmountContainer() {
-		console.log('Unmounting selectable', this);
 		const isFocusedWithin = get(this.hasFocusWithin);
 
 		if (this.htmlElement) {
@@ -359,7 +356,6 @@ export class Selectable {
 				destroy: () => {
 					selectable.parent?.removeChild(selectable);
 					Selectable.objects.delete(htmlElement);
-					console.log('destroying', htmlElement, selectable);
 				}
 			};
 		};
@@ -547,6 +543,15 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		let top = -1;
 
 		if (offsets.top !== undefined && offsets.bottom !== undefined) {
+			console.log(htmlElement, verticalParent);
+			console.log(boundingRect, parentBoundingRect);
+			console.log('top', boundingRect.y - parentBoundingRect.y, '<', offsets.top);
+			console.log(
+				'bottom',
+				boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight,
+				'>',
+				verticalParent.clientHeight - offsets.bottom
+			);
 			top =
 				boundingRect.y - parentBoundingRect.y < offsets.top
 					? boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top
@@ -617,10 +622,10 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 	}
 };
 
-export const scrollIntoView: (...args: [Offsets]) => (s: Selectable) => void =
+export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>) => void =
 	(...args) =>
-	(s) => {
-		const element = s.getHtmlElement();
+	(e) => {
+		const element = e.detail.selectable.getHtmlElement();
 		if (element) {
 			scrollElementIntoView(element, ...args);
 		}

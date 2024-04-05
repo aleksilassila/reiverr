@@ -6,6 +6,7 @@
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import CardGrid from '../components/CardGrid.svelte';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
+	import { scrollIntoView } from '../selectable';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 
@@ -19,10 +20,6 @@
 			userId: import.meta.env.VITE_JELLYFIN_USER_ID
 		}
 	}));
-
-	jellyfinItemsStore.subscribe((items) => {
-		console.warn('GOT ITEMS', items.data);
-	});
 </script>
 
 <Container focusOnMount class="pl-20">
@@ -32,7 +29,7 @@
 			<CarouselPlaceholderItems />
 		{:then items}
 			{#each items as item}
-				<JellyfinCard {item} />
+				<JellyfinCard {item} on:enter={scrollIntoView({ all: 64 })} />
 			{/each}
 		{/await}
 	</CardGrid>

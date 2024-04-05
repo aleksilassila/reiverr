@@ -103,9 +103,10 @@
 					let:hasFocus
 					class="mx-2"
 					on:click={() => focusFirstEpisodeOf(season)}
-					handleFocus={(s, options) => {
-						scrollIntoView({ horizontal: 64 })(s);
-						if (options.setFocusedElement) focusFirstEpisodeOf(season);
+					on:enter={(event) => {
+						console.log(event);
+						scrollIntoView({ horizontal: 64 })(event);
+						if (event.detail.options.setFocusedElement) focusFirstEpisodeOf(season);
 					}}
 					bind:this={containers[`season-${season.season_number}`]}
 				>
@@ -129,10 +130,10 @@
 					<Container
 						class="mx-2"
 						bind:this={containers[`episode-${episode.id}`]}
-						handleFocus={(s, options) => {
-							scrollIntoView({ left: 64 + 16 })(s);
+						on:enter={(event) => {
+							scrollIntoView({ left: 64 + 16 })(event);
 							selectedTmdbEpisode = episode;
-							if (options.setFocusedElement) focusSeasonOf(episode);
+							if (event.detail.options.setFocusedElement) focusSeasonOf(episode);
 						}}
 						focusOnClick
 					>

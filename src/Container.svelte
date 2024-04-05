@@ -2,12 +2,18 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { type NavigationActions, type FocusHandler, Selectable } from './lib/selectable';
+	import {
+		type NavigationActions,
+		type FocusHandler,
+		Selectable,
+		type EnterEvent
+	} from './lib/selectable';
 	import classNames from 'classnames';
 	const dispatch = createEventDispatcher<{
 		click: MouseEvent;
 		select: null;
 		clickOrSelect: null;
+		enter: EnterEvent;
 	}>();
 
 	export let name: string = '';
@@ -17,7 +23,6 @@
 	export let canFocusEmpty = true;
 	export let trapFocus = false;
 	export let debugOutline = false;
-	export let handleFocus: FocusHandler = () => {};
 	export let focusOnClick = false;
 
 	export let active = true;
@@ -30,7 +35,15 @@
 		.setNavigationActions(handleNavigateOut)
 		.setTrapFocus(trapFocus)
 		.setCanFocusEmpty(canFocusEmpty)
-		.setOnFocus(handleFocus)
+		.setOnFocus((selectable, options) => {
+			function stopPropagation() {
+				options.propagate = false;
+			}
+
+			if (options.propagate) {
+				dispatch('enter', { selectable, options, stopPropagation });
+			}
+		})
 		.setOnSelect(() => {
 			dispatch('select');
 			dispatch('clickOrSelect');

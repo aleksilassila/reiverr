@@ -15,4 +15,5 @@
 	type={item.Type === 'Movie' ? 'movie' : 'series'}
 	orientation="portrait"
 	rating={item.CommunityRating || undefined}
+	on:enter
 />

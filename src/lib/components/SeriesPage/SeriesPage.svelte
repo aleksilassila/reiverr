@@ -56,7 +56,7 @@
 	<ScrollHelper bind:scrollTop />
 	<Container
 		class="h-screen flex flex-col py-12 px-20 relative"
-		handleFocus={scrollIntoView({ top: 0 })}
+		on:enter={scrollIntoView({ top: 0 })}
 		handleNavigateOut={{
 			down: () => episodesSelectable?.focusChildren(1)
 		}}
@@ -190,7 +190,7 @@
 			</div>
 		</HeroCarousel>
 	</Container>
-	<Container handleFocus={scrollIntoView({ vertical: 64 })} bind:container={episodesSelectable}>
+	<Container on:enter={scrollIntoView({ vertical: 64 })} bind:container={episodesSelectable}>
 		<EpisodeCarousel
 			id={Number(id)}
 			tmdbSeries={tmdbSeriesData}

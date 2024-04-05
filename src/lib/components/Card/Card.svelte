@@ -35,6 +35,7 @@
 			navigate(`${type}/${tmdbId || tvdbId}`);
 		}
 	}}
+	on:enter
 	class={classNames(
 		'relative flex rounded-xl selectable group hover:text-inherit flex-shrink-0 overflow-hidden text-left cursor-pointer',
 		{

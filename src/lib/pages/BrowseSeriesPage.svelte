@@ -91,7 +91,7 @@
 				{:then props}
 					<div class="w-[4.5rem] h-1 shrink-0" />
 					{#each props as prop (prop.tmdbId)}
-						<Container class="m-2" handleFocus={scrollIntoView({ left: 64 + 16 })}>
+						<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
 							<Card {...prop} />
 						</Container>
 					{/each}
