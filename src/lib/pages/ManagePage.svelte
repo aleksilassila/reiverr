@@ -14,4 +14,5 @@
 
 <Container class="pl-24">
 	<Container on:click={handleLogout} class="hover:bg-red-500">Log Out</Container>
+	{window.navigator.userAgent}
 </Container>

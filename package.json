@@ -11,7 +11,7 @@
 		"build": "vite build",
 		"build:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist",
 		"preview": "vite preview",
-		"preview:tizen": "vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
+		"preview:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",
 		"test": "playwright test",

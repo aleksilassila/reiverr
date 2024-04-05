@@ -18,8 +18,12 @@ a {
 	@apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
 }
 
-.selectable {
+html:not([data-useragent*="Tizen"]) .selectable {
 	@apply outline-none outline-0 border-2 border-[#00000000] focus-visible:border-[#f0cd6dc2];
+}
+
+html[data-useragent*="Tizen"] .selectable {
+	@apply outline-none outline-0 border-2 border-[#00000000] focus-within:border-[#f0cd6dc2];
 }
 
 .selectable:focus, .selectable:focus-within {
