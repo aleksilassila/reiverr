@@ -31,7 +31,7 @@ export class Selectable {
 	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
-	private onFocus?: (selectable: Selectable) => void;
+	private onFocus?: (selectable: Selectable, didNavigate: boolean) => void;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -75,7 +75,7 @@ export class Selectable {
 		return this;
 	}
 
-	focus(navigate: boolean = true) {
+	focus(didNavigate: boolean = true) {
 		function updateFocusIndex(currentSelectable: Selectable, selectable?: Selectable) {
 			if (selectable) {
 				const index = currentSelectable.children.indexOf(selectable);
@@ -86,18 +86,18 @@ export class Selectable {
 			}
 		}
 
-		if (!get(this.hasFocusWithin)) this.onFocus?.(this);
+		if (!get(this.hasFocusWithin)) this.onFocus?.(this, didNavigate);
 
 		if (this.children.length > 0) {
 			const focusIndex = get(this.focusIndex);
 
 			if (this.children[focusIndex]?.isFocusable()) {
-				this.children[focusIndex]?.focus(navigate);
+				this.children[focusIndex]?.focus(didNavigate);
 			} else {
 				let i = focusIndex;
 				while (i < this.children.length) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(navigate);
+						this.children[i]?.focus(didNavigate);
 						// this.onFocus?.(this);
 						return;
 					}
@@ -106,7 +106,7 @@ export class Selectable {
 				i = focusIndex - 1;
 				while (i >= 0) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(navigate);
+						this.children[i]?.focus(didNavigate);
 						// this.onFocus?.(this);
 						return;
 					}
@@ -116,7 +116,7 @@ export class Selectable {
 		} else if (this.htmlElement) {
 			updateFocusIndex(this);
 
-			if (navigate) {
+			if (didNavigate) {
 				this.htmlElement.focus({ preventScroll: true });
 				Selectable.focusedObject.set(this);
 			}
@@ -591,73 +591,6 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		}
 	}
 };
-
-// export const _scrollElementIntoView = (
-// 	htmlElement: HTMLElement,
-// 	direction: 'vertical' | 'horizontal',
-// 	offset: number = 16
-// ) => {
-// 	function getScrollParent(node: HTMLElement): HTMLElement | undefined {
-// 		const parent = node.parentElement;
-//
-// 		if (parent) {
-// 			if (
-// 				(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
-// 				(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
-// 			) {
-// 				return parent;
-// 			} else {
-// 				return getScrollParent(parent);
-// 			}
-// 		}
-// 	}
-//
-// 	const boundingRect = htmlElement.getBoundingClientRect();
-// 	const parent = getScrollParent(htmlElement);
-//
-// 	if (parent) {
-// 		const parentBoundingRect = parent.getBoundingClientRect();
-//
-// 		const left =
-// 			boundingRect.x - parentBoundingRect.x < offset
-// 				? boundingRect.x - parentBoundingRect.x + parent.scrollLeft - offset
-// 				: boundingRect.x - parentBoundingRect.x + htmlElement.clientWidth >
-// 				  parent.clientWidth - offset
-// 				? boundingRect.x -
-// 				  parentBoundingRect.x +
-// 				  htmlElement.clientWidth +
-// 				  parent.scrollLeft +
-// 				  offset -
-// 				  parent.clientWidth
-// 				: -1;
-//
-// 		const top =
-// 			boundingRect.y - parentBoundingRect.y < offset
-// 				? boundingRect.y - parentBoundingRect.y + parent.scrollTop - offset
-// 				: boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight >
-// 				  parent.clientHeight - offset
-// 				? boundingRect.y -
-// 				  parentBoundingRect.y +
-// 				  htmlElement.clientHeight +
-// 				  parent.scrollTop +
-// 				  offset -
-// 				  parent.clientHeight
-// 				: -1;
-//
-// 		parent.scrollTo({
-// 			behavior: 'smooth',
-// 			...(top !== -1 && direction === 'vertical' && { top }),
-// 			...(left !== -1 && direction === 'vertical' && { left })
-// 		});
-// 	}
-// };
-
-// export const scrollElementIntoView = (
-// 	htmlElement: HTMLElement,
-// 	offsets: Partial<
-// 		Record<'up' | 'down' | 'left' | 'right' | 'horizontal' | 'vertical' | 'all', number | undefined>
-// 	> = { all: 16 }
-// ) => {};
 
 export const scrollIntoView: (...args: [Offsets]) => FocusHandler =
 	(...args) =>

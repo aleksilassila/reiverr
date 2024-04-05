@@ -12,7 +12,7 @@
 	export let canFocusEmpty = true;
 	export let trapFocus = false;
 	export let debugOutline = false;
-	export let handleFocus: (selectable: Selectable) => void = () => {};
+	export let handleFocus: FocusHandler = () => {};
 
 	export let active = true;
 

@@ -2,8 +2,13 @@
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
 	import EpisodeCard from './EpisodeCard.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
-	import type { Readable } from 'svelte/store';
-	import { tmdbApi, type TmdbSeason, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
+	import { get, type Readable } from 'svelte/store';
+	import {
+		tmdbApi,
+		type TmdbEpisode,
+		type TmdbSeason,
+		type TmdbSeriesFull2
+	} from '../../apis/tmdb/tmdb-api';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import Container from '../../../Container.svelte';
 	import { scrollElementIntoView, scrollIntoView } from '../../selectable';
@@ -20,22 +25,29 @@
 		(series) => (series?.seasons?.length ? ([series.seasons.length] as const) : undefined)
 	);
 
-	const episodeContainers: Record<string, Container> = {};
+	const containers: Record<string, Container> = {};
 
 	function handleSelectSeason(season: TmdbSeason) {
-		const episode = season.episodes?.[0];
-		if (episode) {
-			console.log(
-				episode,
-				episodeContainers,
-				`episode-${episode.id}`,
-				episodeContainers[`episode-${episode.id}`]
-			);
-			const selectable = episodeContainers[`episode-${episode.id}`]?.container;
-			if (selectable) {
-				selectable.focus(false);
+		let isAlreadySelected = false;
+
+		for (const episode of season.episodes || []) {
+			const selectable = containers[`episode-${episode.id}`]?.container;
+			if (selectable && get(selectable.hasFocusWithin)) {
+				isAlreadySelected = true;
+				break;
 			}
 		}
+
+		const episode = season.episodes?.[0];
+		if (episode && !isAlreadySelected) {
+			const selectable = containers[`episode-${episode.id}`]?.container;
+			if (selectable) selectable.focus(false);
+		}
+	}
+
+	function handleFocusEpisode(episode: TmdbEpisode) {
+		const seasonSelectable = containers[`season-${episode.season_number}`]?.container;
+		if (seasonSelectable) seasonSelectable.focus(false);
 	}
 </script>
 
@@ -49,11 +61,12 @@
 					let:hasFocus
 					class="mx-2 text-nowrap"
 					on:click={() => handleSelectSeason(season)}
-					handleFocus={(s) => {
+					handleFocus={(s, didNavigate) => {
 						const element = s.getHtmlElement();
 						if (element) scrollElementIntoView(element, { horizontal: 64 });
-						handleSelectSeason(season);
+						if (didNavigate) handleSelectSeason(season);
 					}}
+					bind:this={containers[`season-${season.season_number}`]}
 				>
 					<div
 						class={classNames({
@@ -71,8 +84,11 @@
 				{#each season?.episodes || [] as episode}
 					<Container
 						class="mx-2"
-						bind:this={episodeContainers[`episode-${episode.id}`]}
-						handleFocus={scrollIntoView({ left: 64 + 16 })}
+						bind:this={containers[`episode-${episode.id}`]}
+						handleFocus={(s, didNavigate) => {
+							scrollIntoView({ left: 64 + 16 })(s);
+							if (didNavigate) handleFocusEpisode(episode);
+						}}
 					>
 						<EpisodeCard {episode} />
 					</Container>
