@@ -49,7 +49,7 @@
 	let episodesSelectable: Selectable;
 
 	let scrollTop: number;
-	$: showEpisodeInfo = scrollTop > 200;
+	$: showEpisodeInfo = scrollTop > 140;
 </script>
 
 <DetachedPage>
@@ -58,11 +58,7 @@
 		class="h-screen flex flex-col py-12 px-20 relative"
 		handleFocus={scrollIntoView({ top: 0 })}
 		handleNavigateOut={{
-			down: () => {
-				console.log('Here', episodesSelectable);
-				episodesSelectable?.focusChildren(1);
-				return true;
-			}
+			down: () => episodesSelectable?.focusChildren(1)
 		}}
 	>
 		<HeroCarousel
@@ -194,6 +190,11 @@
 		</HeroCarousel>
 	</Container>
 	<Container handleFocus={scrollIntoView({ vertical: 64 })} bind:container={episodesSelectable}>
-		<EpisodeCarousel id={Number(id)} tmdbSeries={tmdbSeriesData} bind:selectedTmdbEpisode />
+		<EpisodeCarousel
+			id={Number(id)}
+			tmdbSeries={tmdbSeriesData}
+			{nextJellyfinEpisode}
+			bind:selectedTmdbEpisode
+		/>
 	</Container>
 </DetachedPage>

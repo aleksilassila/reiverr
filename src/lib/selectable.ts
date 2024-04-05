@@ -13,14 +13,14 @@ export type NavigationActions = {
 };
 
 type FocusHandlerOptions = {
-	didNavigate: boolean;
+	setFocusedElement: boolean;
 	propagate: boolean;
 	stopPropagation: () => void;
 };
 
 const createFocusHandlerOptions = (): FocusHandlerOptions => {
 	const options: Partial<FocusHandlerOptions> = {
-		didNavigate: true,
+		setFocusedElement: true,
 		propagate: true
 	};
 
@@ -94,7 +94,7 @@ export class Selectable {
 		return this;
 	}
 
-	focus(didNavigate = true) {
+	focus(options: Partial<FocusHandlerOptions> = {}) {
 		function propagateFocusUpdates(
 			options: FocusHandlerOptions,
 			parent: Selectable,
@@ -115,12 +115,12 @@ export class Selectable {
 			const focusIndex = get(this.focusIndex);
 
 			if (this.children[focusIndex]?.isFocusable()) {
-				this.children[focusIndex]?.focus(didNavigate);
+				this.children[focusIndex]?.focus(options);
 			} else {
 				let i = focusIndex;
 				while (i < this.children.length) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(didNavigate);
+						this.children[i]?.focus(options);
 						// this.onFocus?.(this);
 						return;
 					}
@@ -129,7 +129,7 @@ export class Selectable {
 				i = focusIndex - 1;
 				while (i >= 0) {
 					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(didNavigate);
+						this.children[i]?.focus(options);
 						// this.onFocus?.(this);
 						return;
 					}
@@ -137,21 +137,23 @@ export class Selectable {
 				}
 			}
 		} else if (this.htmlElement) {
-			const options = createFocusHandlerOptions();
-			options.didNavigate = didNavigate;
-			propagateFocusUpdates(options, this);
+			const _options: FocusHandlerOptions = {
+				...createFocusHandlerOptions(),
+				...options
+			};
+			propagateFocusUpdates(_options, this);
 
-			if (didNavigate) {
+			if (_options.setFocusedElement) {
 				this.htmlElement.focus({ preventScroll: true });
 				Selectable.focusedObject.set(this);
 			}
 		}
 	}
 
-	focusChildren(index: number, didNavigate = true): boolean {
+	focusChildren(index: number, options?: Partial<FocusHandlerOptions>): boolean {
 		const child = this.children[index];
 		if (child && child.isFocusable()) {
-			child.focus(didNavigate);
+			child.focus(options);
 			return true;
 		}
 

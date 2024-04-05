@@ -1,9 +1,10 @@
 <svelte:options accessors />
 
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { type NavigationActions, type FocusHandler, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
+	const dispatch = createEventDispatcher();
 
 	export let name: string = '';
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
@@ -13,6 +14,7 @@
 	export let trapFocus = false;
 	export let debugOutline = false;
 	export let handleFocus: FocusHandler = () => {};
+	export let focusOnClick = false;
 
 	export let active = true;
 
@@ -36,6 +38,14 @@
 	$: container.setIsActive(active);
 	$: container.setGridColumns(gridCols);
 
+	function handleClick(e: MouseEvent) {
+		if (focusOnClick) {
+			container.focus();
+		}
+
+		dispatch('click', e);
+	}
+
 	onMount(() => {
 		rest.container._initializeSelectable();
 
@@ -51,7 +61,7 @@
 
 <svelte:element
 	this={tag}
-	on:click
+	on:click={handleClick}
 	tabindex={active ? 0 : -1}
 	{...$$restProps}
 	class={classNames($$restProps.class, {

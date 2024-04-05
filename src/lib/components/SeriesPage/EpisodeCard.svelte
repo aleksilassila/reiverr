@@ -9,7 +9,7 @@
 
 <Container
 	class={classNames(
-		'rounded-xl overflow-hidden',
+		'rounded-xl overflow-hidden cursor-pointer',
 		'h-56 w-96 px-4 py-3',
 		'flex flex-col shrink-0 relative selectable'
 	)}

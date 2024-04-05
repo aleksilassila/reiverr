@@ -2,7 +2,7 @@
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
 	import EpisodeCard from './EpisodeCard.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
-	import { get, type Readable } from 'svelte/store';
+	import { derived, get, type Readable } from 'svelte/store';
 	import {
 		tmdbApi,
 		type TmdbEpisode,
@@ -17,7 +17,7 @@
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
-	export let nextEpisode: JellyfinItem | undefined = undefined;
+	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
 	export let selectedTmdbEpisode: TmdbEpisode | undefined = undefined;
 
 	const { data: tmdbSeasons, isLoading: isTmdbSeasonsLoading } = useDependantRequest(
@@ -28,7 +28,7 @@
 
 	const containers: Record<string, Container> = {};
 
-	function handleSelectSeason(season: TmdbSeason) {
+	function focusFirstEpisodeOf(season: TmdbSeason) {
 		let isAlreadySelected = false;
 
 		for (const episode of season.episodes || []) {
@@ -42,18 +42,40 @@
 		const episode = season.episodes?.[0];
 		if (episode && !isAlreadySelected) {
 			const selectable = containers[`episode-${episode.id}`]?.container;
-			if (selectable) selectable.focus(false);
+			if (selectable) selectable.focus({ setFocusedElement: false });
 		}
 	}
 
-	function handleFocusEpisode(episode: TmdbEpisode) {
+	function focusSeasonOf(episode: TmdbEpisode) {
 		const seasonSelectable = containers[`season-${episode.season_number}`]?.container;
-		if (seasonSelectable) seasonSelectable.focus(false);
+		if (seasonSelectable) seasonSelectable.focus({ setFocusedElement: false });
 	}
 
 	tmdbSeasons.subscribe((seasons) => {
 		selectedTmdbEpisode = seasons?.[0]?.episodes?.[0];
 	});
+
+	// Handle focus next episode
+	derived([tmdbSeasons, nextJellyfinEpisode], (r) => r).subscribe(
+		([$seasons, $jellyfinEpisode]) => {
+			const tmdbEpisode = $seasons
+				?.flatMap((s) => s.episodes)
+				.find(
+					(e) =>
+						e?.episode_number === $jellyfinEpisode?.IndexNumber &&
+						e?.season_number === $jellyfinEpisode?.ParentIndexNumber
+				);
+			if (tmdbEpisode) {
+				const container = containers[`episode-${tmdbEpisode.id}`]?.container;
+				container?.focus({
+					setFocusedElement: false,
+					propagate: false
+				});
+				const element = container?.getHtmlElement();
+				if (element) scrollElementIntoView(element, { horizontal: 64 + 16 });
+			}
+		}
+	);
 </script>
 
 {#if $isTmdbSeasonsLoading}
@@ -65,19 +87,21 @@
 				<Container
 					let:hasFocus
 					class="mx-2 text-nowrap"
-					on:click={() => handleSelectSeason(season)}
+					on:click={() => focusFirstEpisodeOf(season)}
 					handleFocus={(s, options) => {
-						const element = s.getHtmlElement();
-						if (element) scrollElementIntoView(element, { horizontal: 64 });
-						if (options.didNavigate) handleSelectSeason(season);
+						scrollIntoView({ horizontal: 64 })(s);
+						if (options.setFocusedElement) focusFirstEpisodeOf(season);
 					}}
 					bind:this={containers[`season-${season.season_number}`]}
 				>
 					<div
-						class={classNames({
-							'font-semibold tracking-wide': hasFocus,
-							'text-zinc-300 font-medium': !hasFocus
-						})}
+						class={classNames(
+							'cursor-pointer hover:font-semibold hover:tracking-wide hover:text-white',
+							{
+								'font-semibold tracking-wide': hasFocus,
+								'text-zinc-300 font-medium': !hasFocus
+							}
+						)}
 					>
 						Season {season.season_number}
 					</div>
@@ -93,8 +117,9 @@
 						handleFocus={(s, options) => {
 							scrollIntoView({ left: 64 + 16 })(s);
 							selectedTmdbEpisode = episode;
-							if (options.didNavigate) handleFocusEpisode(episode);
+							if (options.setFocusedElement) focusSeasonOf(episode);
 						}}
+						focusOnClick
 					>
 						<EpisodeCard {episode} />
 					</Container>
