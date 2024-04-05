@@ -23,6 +23,8 @@
 		$$restProps.class
 	)}
 	on:click
+	on:select
+	on:clickOrSelect
 	let:hasFocus
 	{focusOnMount}
 >

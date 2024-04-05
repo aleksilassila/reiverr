@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
 	import { useNavigate } from 'svelte-navigator';
 
 	let isNavBarOpen: Readable<boolean>;
-	let focusIndex: Readable<number>;
+	let focusIndex: Writable<number>;
 
 	const navigate = useNavigate();
 	const itemContainer = (index: number, _focusIndex: number) =>
@@ -33,29 +33,29 @@
 
 	<div class={'flex flex-col flex-1 relative z-20 items-center'}>
 		<div class={'flex flex-col flex-1 justify-center'}>
-			<Container on:click={() => navigate('/')}>
+			<Container on:clickOrSelect={() => navigate('/')}>
 				<div class={itemContainer(0, $focusIndex)}>
 					<Laptop class="w-8 h-8" slot="icon" />
 				</div>
 			</Container>
-			<Container on:click={() => navigate('movies')}>
+			<Container on:clickOrSelect={() => navigate('movies')}>
 				<div class={itemContainer(1, $focusIndex)}>
 					<CardStack class="w-8 h-8" slot="icon" />
 				</div>
 			</Container>
-			<Container on:click={() => navigate('library')}>
+			<Container on:clickOrSelect={() => navigate('library')}>
 				<div class={itemContainer(2, $focusIndex)}>
 					<Bookmark class="w-8 h-8" slot="icon" />
 				</div>
 			</Container>
-			<Container on:click={() => navigate('search')}>
+			<Container on:clickOrSelect={() => navigate('search')}>
 				<div class={itemContainer(3, $focusIndex)}>
 					<MagnifyingGlass class="w-8 h-8" slot="icon" />
 				</div>
 			</Container>
 		</div>
 
-		<Container on:click={() => navigate('manage')}>
+		<Container on:clickOrSelect={() => navigate('manage')}>
 			<div class={itemContainer(4, $focusIndex)}>
 				<Gear class="w-8 h-8" slot="icon" />
 			</div>

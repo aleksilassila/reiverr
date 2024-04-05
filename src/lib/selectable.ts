@@ -51,6 +51,7 @@ export class Selectable {
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
 	private onFocus?: FocusHandler;
+	private onSelect?: () => void;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -422,10 +423,8 @@ export class Selectable {
 		return this.focusByDefault || this.parent?.shouldFocusByDefault() || false;
 	}
 
-	click() {
-		if (this.htmlElement) {
-			this.htmlElement.click();
-		}
+	select() {
+		this.onSelect?.();
 	}
 
 	getFocusedChild() {
@@ -473,6 +472,11 @@ export class Selectable {
 		this.onFocus = onFocus;
 		return this;
 	}
+
+	setOnSelect(onSelect: () => void) {
+		this.onSelect = onSelect;
+		return this;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -501,7 +505,9 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	} else if (event.key === 'Enter') {
 		if (navigationActions.enter && navigationActions.enter(currentlyFocusedObject))
 			event.preventDefault();
-		else currentlyFocusedObject.click();
+		else {
+			currentlyFocusedObject.select();
+		}
 	}
 }
 

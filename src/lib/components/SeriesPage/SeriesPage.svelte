@@ -32,12 +32,12 @@
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
 		id
 	);
-	const { data: jellyfinSeriesItemsData } = useDependantRequest(
+	const { data: jellyfinEpisodes } = useDependantRequest(
 		jellyfinApi.getJellyfinEpisodes,
 		jellyfinItemData,
 		(data) => (data?.Id ? ([data.Id] as const) : undefined)
 	);
-	const nextJellyfinEpisode = derived(jellyfinSeriesItemsData, ($items) =>
+	const nextJellyfinEpisode = derived(jellyfinEpisodes, ($items) =>
 		($items || []).find((i) => i.UserData?.Played === false)
 	);
 
@@ -144,7 +144,7 @@
 						{#if $nextJellyfinEpisode}
 							<Button
 								class="mr-2"
-								on:click={() =>
+								on:clickOrSelect={() =>
 									$nextJellyfinEpisode?.Id && playerState.streamJellyfinId($nextJellyfinEpisode.Id)}
 							>
 								Play Season {$nextJellyfinEpisode?.ParentIndexNumber} Episode
@@ -155,7 +155,8 @@
 						{#if sonarrItem}
 							<Button
 								class="mr-2"
-								on:click={() => modalStack.create(ManageMediaModal, { id: sonarrItem.id || -1 })}
+								on:clickOrSelect={() =>
+									modalStack.create(ManageMediaModal, { id: sonarrItem.id || -1 })}
 							>
 								{#if jellyfinItem}
 									Manage Files
@@ -167,7 +168,7 @@
 						{:else}
 							<Button
 								class="mr-2"
-								on:click={() => addSeriesToSonarr(Number(id))}
+								on:clickOrSelect={() => addSeriesToSonarr(Number(id))}
 								inactive={$addSeriesToSonarrFetching}
 							>
 								Add to Sonarr
@@ -193,6 +194,7 @@
 		<EpisodeCarousel
 			id={Number(id)}
 			tmdbSeries={tmdbSeriesData}
+			{jellyfinEpisodes}
 			{nextJellyfinEpisode}
 			bind:selectedTmdbEpisode
 		/>

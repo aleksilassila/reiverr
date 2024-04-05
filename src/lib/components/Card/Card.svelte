@@ -30,7 +30,7 @@
 
 <Container
 	active={focusable}
-	on:click={() => {
+	on:clickOrSelect={() => {
 		if (tmdbId || tvdbId) {
 			navigate(`${type}/${tmdbId || tvdbId}`);
 		}

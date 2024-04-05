@@ -4,7 +4,11 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { type NavigationActions, type FocusHandler, Selectable } from './lib/selectable';
 	import classNames from 'classnames';
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{
+		click: MouseEvent;
+		select: null;
+		clickOrSelect: null;
+	}>();
 
 	export let name: string = '';
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
@@ -27,6 +31,10 @@
 		.setTrapFocus(trapFocus)
 		.setCanFocusEmpty(canFocusEmpty)
 		.setOnFocus(handleFocus)
+		.setOnSelect(() => {
+			dispatch('select');
+			dispatch('clickOrSelect');
+		})
 		.getStores();
 	export const container = rest.container;
 	export const hasFocus = rest.hasFocus;
@@ -44,6 +52,7 @@
 		}
 
 		dispatch('click', e);
+		dispatch('clickOrSelect');
 	}
 
 	onMount(() => {

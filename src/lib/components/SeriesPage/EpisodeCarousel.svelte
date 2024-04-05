@@ -14,9 +14,11 @@
 	import { scrollElementIntoView, scrollIntoView } from '../../selectable';
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
+	import ScrollHelper from '../ScrollHelper.svelte';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
+	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
 	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
 	export let selectedTmdbEpisode: TmdbEpisode | undefined = undefined;
 
@@ -27,6 +29,7 @@
 	);
 
 	const containers: Record<string, Container> = {};
+	let scrollTop: number;
 
 	function focusFirstEpisodeOf(season: TmdbSeason) {
 		let isAlreadySelected = false;
@@ -78,15 +81,27 @@
 	);
 </script>
 
+<ScrollHelper bind:scrollTop />
+
 {#if $isTmdbSeasonsLoading}
 	Loading...
 {:else if $tmdbSeasons}
-	<Carousel scrollClass="px-20">
-		<UICarousel slot="title" class="text-xl flex -mx-2 max-w-2xl">
+	<Carousel
+		scrollClass="px-20"
+		class={classNames('transition-transform', {
+			'-translate-y-16': scrollTop < 140
+		})}
+	>
+		<UICarousel
+			slot="title"
+			class={classNames('text-xl flex -mx-2 max-w-2xl transition-opacity', {
+				'opacity-0': scrollTop < 140
+			})}
+		>
 			{#each $tmdbSeasons as season}
 				<Container
 					let:hasFocus
-					class="mx-2 text-nowrap"
+					class="mx-2"
 					on:click={() => focusFirstEpisodeOf(season)}
 					handleFocus={(s, options) => {
 						scrollIntoView({ horizontal: 64 })(s);
@@ -96,7 +111,7 @@
 				>
 					<div
 						class={classNames(
-							'cursor-pointer hover:font-semibold hover:tracking-wide hover:text-white',
+							'cursor-pointer whitespace-nowrap hover:font-semibold hover:tracking-wide hover:text-white',
 							{
 								'font-semibold tracking-wide': hasFocus,
 								'text-zinc-300 font-medium': !hasFocus
@@ -121,7 +136,14 @@
 						}}
 						focusOnClick
 					>
-						<EpisodeCard {episode} />
+						<EpisodeCard
+							jellyfinEpisode={$jellyfinEpisodes?.find(
+								(i) =>
+									i.IndexNumber === episode.episode_number &&
+									i.ParentIndexNumber === episode.season_number
+							)}
+							{episode}
+						/>
 					</Container>
 				{/each}
 			{/each}

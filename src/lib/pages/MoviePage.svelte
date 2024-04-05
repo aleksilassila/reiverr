@@ -82,7 +82,8 @@
 						{#if jellyfinItem}
 							<Button
 								class="mr-2"
-								on:click={() => jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
+								on:clickOrSelect={() =>
+									jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
 							>
 								Play
 								<Play size={19} slot="icon" />
@@ -91,7 +92,8 @@
 						{#if radarrItem}
 							<Button
 								class="mr-2"
-								on:click={() => modalStack.create(ManageMediaModal, { id: radarrItem.id || -1 })}
+								on:clickOrSelect={() =>
+									modalStack.create(ManageMediaModal, { id: radarrItem.id || -1 })}
 							>
 								{#if jellyfinItem}
 									Manage Files
@@ -103,7 +105,7 @@
 						{:else}
 							<Button
 								class="mr-2"
-								on:click={() => requests.handleAddToRadarr(Number(id))}
+								on:clickOrSelect={() => requests.handleAddToRadarr(Number(id))}
 								inactive={$isFetching.handleAddToRadarr}
 							>
 								Add to Radarr
