@@ -92,38 +92,42 @@
 			'-translate-y-16': scrollTop < 140
 		})}
 	>
-		<UICarousel
-			slot="title"
-			class={classNames('text-xl flex -mx-2 max-w-2xl transition-opacity', {
-				'opacity-0': scrollTop < 140
-			})}
-		>
-			{#each $tmdbSeasons as season}
-				<Container
-					let:hasFocus
-					class="mx-2"
-					on:click={() => focusFirstEpisodeOf(season)}
-					on:enter={(event) => {
-						console.log(event);
-						scrollIntoView({ horizontal: 64 })(event);
-						if (event.detail.options.setFocusedElement) focusFirstEpisodeOf(season);
-					}}
-					bind:this={containers[`season-${season.season_number}`]}
-				>
-					<div
-						class={classNames(
-							'cursor-pointer whitespace-nowrap hover:font-semibold hover:tracking-wide hover:text-white',
-							{
-								'font-semibold tracking-wide': hasFocus,
-								'text-zinc-300 font-medium': !hasFocus
-							}
-						)}
+		<svelte:fragment slot="title">
+			<UICarousel
+				class={classNames('flex -mx-2 transition-opacity', {
+					'opacity-0': scrollTop < 140
+				})}
+				let:focusIndex
+			>
+				{#each $tmdbSeasons as season, i}
+					<Container
+						let:hasFocus
+						on:click={() => focusFirstEpisodeOf(season)}
+						on:enter={(event) => {
+							console.log(event);
+							scrollIntoView({ horizontal: 64 })(event);
+							if (event.detail.options.setFocusedElement) focusFirstEpisodeOf(season);
+						}}
+						bind:this={containers[`season-${season.season_number}`]}
 					>
-						Season {season.season_number}
-					</div>
-				</Container>
-			{/each}
-		</UICarousel>
+						<div
+							class={classNames(
+								'px-3 py-1 cursor-pointer whitespace-nowrap text-xl tracking-wide font-medium rounded-lg',
+								'hover:font-semibold hover:tracking-wide hover:text-white',
+								{
+									'bg-highlight-foreground text-black': hasFocus,
+									//'bg-stone-800/50': hasFocus,
+									'text-zinc-400': !(focusIndex === i),
+									'text-white': focusIndex === i && !hasFocus
+								}
+							)}
+						>
+							Season {season.season_number}
+						</div>
+					</Container>
+				{/each}
+			</UICarousel>
+		</svelte:fragment>
 		<div class="flex -mx-2">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}

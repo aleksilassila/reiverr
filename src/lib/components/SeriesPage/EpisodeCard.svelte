@@ -18,7 +18,7 @@
 <Container
 	class={classNames(
 		'rounded-xl overflow-hidden cursor-pointer group',
-		'w-[428px] h-[240.75px] px-4 py-3',
+		'w-[420px] h-[236.25px] px-4 py-3',
 		'flex flex-col shrink-0 relative selectable'
 	)}
 	let:hasFocus

@@ -9,7 +9,9 @@ export default {
 			},
 			colors: {
 				darken: '#07050166',
-				lighten: '#fde68a20'
+				lighten: '#fde68a20',
+				// 'highlight-foreground': '#E7E5E4'
+				'highlight-foreground': '#ffe6abcc'
 			},
 			keyframes: {
 				timer: {

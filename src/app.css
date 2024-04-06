@@ -3,27 +3,47 @@
 @tailwind utilities;
 
 a {
-	@apply hover:text-amber-200;
+    @apply hover:text-amber-200;
 }
 
 .placeholder {
-	@apply bg-zinc-700 bg-opacity-40 animate-pulse;
+    @apply bg-zinc-700 bg-opacity-40 animate-pulse;
 }
 
 .placeholder-image {
-	@apply bg-zinc-700 bg-opacity-75;
+    @apply bg-zinc-700 bg-opacity-75;
 }
 
 .placeholder-text {
-	@apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
+    @apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
 }
 
+/*html:not([data-useragent*="Tizen"]) .selectable, html:not([data-useragent*="Tizen"]) .selectable-offset {*/
+/*    @apply focus-visible:outline-2;*/
+/*}*/
+
+/*html[data-useragent*="Tizen"] .selectable, html[data-useragent*="Tizen"] .selectable-offset {*/
+/*    @apply focus-within:outline-2;*/
+/*}*/
+
+/*.selectable, .selectable-offset {*/
+/*    @apply outline outline-0 outline-highlight-foreground*/
+/*}*/
+
+/*.selectable {*/
+/*	@apply outline-offset-[-2px] border-2 border-transparent*/
+/*}*/
+
+/*.selectable-offset {*/
+/*	@apply outline-offset-[2px]*/
+/*}*/
+
 html:not([data-useragent*="Tizen"]) .selectable {
-	@apply outline-none outline-0 border-2 border-[#00000000] focus-visible:border-[#f0cd6dc2];
+	@apply outline-none outline-0 border-2 border-[#00000000] focus-visible:border-highlight-foreground;
 }
 
 html[data-useragent*="Tizen"] .selectable {
-	@apply outline-none outline-0 border-2 border-[#00000000] focus-within:border-[#f0cd6dc2];
+	@apply outline-none outline-0 border-2 border-[#00000000] focus-within:border-highlight-foreground;
 }
 
 .selectable:focus, .selectable:focus-within {
@@ -31,15 +51,15 @@ html[data-useragent*="Tizen"] .selectable {
 }
 
 .peer-selectable {
-	@apply peer-focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply peer-focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }
 
 .selectable-explicit {
-	@apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }
 
 @media tv {
-	html {
-		font-size: 24px;
-	}
+    html {
+        font-size: 24px;
+    }
 }

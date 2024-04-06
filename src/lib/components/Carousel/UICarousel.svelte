@@ -26,13 +26,17 @@
 
 <Container
 	direction="horizontal"
-	class={classNames($$restProps.class, 'overflow-x-scroll scrollbar-hide relative p-1')}
+	class={classNames(
+		$$restProps.class,
+		'overflow-x-scroll scrollbar-hide relative p-1 overflow-y-visible'
+	)}
 	style={`mask-image: linear-gradient(to right, transparent 0%, ${
 		fadeLeft ? '' : 'black 0%, '
 	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}
 	on:scroll={updateScrollPosition}
 	bind:this={element}
 	handleNavigateOut={{ left: () => true }}
+	let:focusIndex
 >
-	<slot />
+	<slot {focusIndex} />
 </Container>
