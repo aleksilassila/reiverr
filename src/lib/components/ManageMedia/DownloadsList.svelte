@@ -4,8 +4,9 @@
 	import Button from '../Button.svelte';
 	import { formatSize } from '../../utils';
 	import { ChevronRight } from 'radix-icons-svelte';
+	import type { Download } from '../../apis/combined-types';
 
-	export let downloads: Promise<MovieDownload[]>;
+	export let downloads: Promise<Download[]>;
 	export let cancelDownload: (downloadId: number) => Promise<any>;
 </script>
 

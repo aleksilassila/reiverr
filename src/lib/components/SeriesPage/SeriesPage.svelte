@@ -12,11 +12,12 @@
 	import Button from '../Button.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { modalStack } from '../Modal/modal.store';
-	import ManageMediaModal from '../ManageMedia/ManageMediaModal.svelte';
+	import ManageMediaModal from '../ManageMedia/RadarrMediaMangerModal.svelte';
 	import { derived } from 'svelte/store';
 	import EpisodeCarousel from './EpisodeCarousel.svelte';
 	import { scrollIntoView, Selectable } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
+	import SonarrMediaMangerModal from '../ManageMedia/SonarrMediaMangerModal.svelte';
 
 	export let id: string;
 
@@ -156,7 +157,7 @@
 							<Button
 								class="mr-2"
 								on:clickOrSelect={() =>
-									modalStack.create(ManageMediaModal, { id: sonarrItem.id || -1 })}
+									modalStack.create(SonarrMediaMangerModal, { id: sonarrItem.id || -1 })}
 							>
 								{#if jellyfinItem}
 									Manage Files

@@ -133,7 +133,7 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((r) => r.data || []) || Promise.resolve([]);
 
-	downloadRadarrMovie = (guid: string, indexerId: number) =>
+	downloadMovie = (guid: string, indexerId: number) =>
 		this.getClient()
 			?.POST('/api/v3/release', {
 				params: {},
@@ -144,7 +144,7 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getMovieFilesByMovieId = (movieId: number): Promise<MovieFileResource[]> =>
+	getFilesByMovieId = (movieId: number): Promise<MovieFileResource[]> =>
 		this.getClient()
 			?.GET('/api/v3/moviefile', {
 				params: {
@@ -154,7 +154,7 @@ export class RadarrApi implements Api<paths> {
 				}
 			})
 			.then((r) => r.data || []) || Promise.resolve([]);
-	deleteRadarrMovieFile = (id: number) =>
+	deleteMovieFile = (id: number) =>
 		this.getClient()
 			?.DELETE('/api/v3/moviefile/{id}', {
 				params: {
@@ -177,7 +177,7 @@ export class RadarrApi implements Api<paths> {
 			.then((r) => (r.data?.records?.filter((record) => record.movie) as MovieDownload[]) || []) ||
 		Promise.resolve([]);
 
-	getRadarrDownloadsById = (radarrId: number) =>
+	getDownloadsById = (radarrId: number) =>
 		this.getRadarrDownloads().then((downloads) => downloads.filter((d) => d.movie.id === radarrId));
 
 	getRadarrDownloadsByTmdbId = (tmdbId: number) =>

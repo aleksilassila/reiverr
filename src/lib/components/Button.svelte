@@ -16,7 +16,7 @@
 		{
 			'bg-highlight-foreground text-stone-900': $hasFoucus,
 			'hover:bg-highlight-foreground hover:text-stone-900': true,
-			'bg-stone-800/50': !$hasFoucus,
+			'bg-stone-800/90': !$hasFoucus,
 			'cursor-pointer': !inactive,
 			'cursor-not-allowed pointer-events-none opacity-40': inactive
 		},
@@ -25,6 +25,7 @@
 	on:click
 	on:select
 	on:clickOrSelect
+	on:enter
 	let:hasFocus
 	{focusOnMount}
 >

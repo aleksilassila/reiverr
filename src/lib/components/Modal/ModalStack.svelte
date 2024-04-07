@@ -30,6 +30,13 @@
 	{@const hidden = $modalStackTop?.group === modal.group && $modalStackTop?.id !== modal.id}
 
 	<div class="fixed inset-0 z-30">
-		<svelte:component this={modal.component} {...modal.props} modalId={modal.id} {hidden} />
+		<svelte:component
+			this={modal.component}
+			{...modal.props}
+			modalId={modal.id}
+			{hidden}
+			groupId={modal.group}
+			{modal}
+		/>
 	</div>
 {/each}

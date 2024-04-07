@@ -5,9 +5,10 @@
 	import Button from '../../Button.svelte';
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
 	import FullScreenModalContainer from '../ManageMediaMenuLayout.svelte';
+	import type { FileResource } from '../../../apis/combined-types';
 
 	export let modalId: symbol;
-	export let file: MovieFileResource;
+	export let file: FileResource;
 	export let handleDeleteFile: (fileId: number) => Promise<any>;
 </script>
 

@@ -42,7 +42,6 @@ export class Selectable {
 		left: undefined,
 		right: undefined
 	};
-	private focusByDefault: boolean = false;
 	private canFocusEmpty: boolean = true;
 	private trapFocus: boolean = false;
 	private isInitialized: boolean = false;
@@ -115,12 +114,12 @@ export class Selectable {
 
 			if (this.children[focusIndex]?.isFocusable()) {
 				this.children[focusIndex]?.focus(options);
+				return;
 			} else {
 				let i = focusIndex;
 				while (i < this.children.length) {
 					if (this.children[i]?.isFocusable()) {
 						this.children[i]?.focus(options);
-						// this.onFocus?.(this);
 						return;
 					}
 					i++;
@@ -129,13 +128,14 @@ export class Selectable {
 				while (i >= 0) {
 					if (this.children[i]?.isFocusable()) {
 						this.children[i]?.focus(options);
-						// this.onFocus?.(this);
 						return;
 					}
 					i--;
 				}
 			}
-		} else if (this.htmlElement) {
+		}
+
+		if (this.htmlElement) {
 			const _options: FocusEventOptions = {
 				...createFocusHandlerOptions(),
 				...options
@@ -144,6 +144,7 @@ export class Selectable {
 
 			if (_options.setFocusedElement) {
 				this.htmlElement.focus({ preventScroll: true });
+				console.log('Setting focused element to', this.htmlElement);
 				Selectable.focusedObject.set(this);
 			}
 		}
@@ -231,7 +232,15 @@ export class Selectable {
 		return currentlyFocusedObject?.giveFocus(direction, bypassActions);
 	}
 
+	/**
+	 * This runs after the regsterer has been called and the thmlElement
+	 * has been set. Becasue all the children get initialized before their parents,
+	 * we can't create the parent-child tree structure in the registerer but instead
+	 * have to wait until every element has htmlElement and then later (here) deduce
+	 * the parent-child relationships.
+	 */
 	_initializeSelectable() {
+		console.debug('Initializing', this);
 		const getParentSelectable = (htmlElement: HTMLElement): Selectable | undefined => {
 			if (Selectable.objects.get(htmlElement)) return Selectable.objects.get(htmlElement);
 			else if (htmlElement.parentElement) return getParentSelectable(htmlElement.parentElement);
@@ -321,8 +330,17 @@ export class Selectable {
 			console.error('No parent selectable found for', this.htmlElement);
 		}
 
-		if (!get(Selectable.focusedObject) && this.shouldFocusByDefault()) {
+		if (get(Selectable.focusedObject) === parentSelectable && this.isFocusable()) {
+			console.log('Focusing on add');
 			this.focus();
+		} else {
+			console.log(
+				'Not focusing on add',
+				this,
+				this.isFocusable(),
+				get(Selectable.focusedObject),
+				parentSelectable
+			);
 		}
 	}
 
@@ -342,6 +360,9 @@ export class Selectable {
 		}
 	}
 
+	/**
+	 * This only sets the htmlElement. See {@link _initializeSelectable} for the rest of the initialization.
+	 */
 	private static createRegisterer(
 		_selectable?: Selectable,
 		flowDirection: FlowDirection = 'vertical'
@@ -349,8 +370,8 @@ export class Selectable {
 		const selectable = _selectable || new Selectable().setDirection(flowDirection);
 
 		return (htmlElement: HTMLElement) => {
-			// console.log('Registering', htmlElement, selectable);
 			selectable.setHtmlElement(htmlElement);
+			console.debug('Registering', selectable);
 
 			return {
 				destroy: () => {
@@ -413,10 +434,6 @@ export class Selectable {
 		this.children = this.children.filter((c) => c !== child);
 		child.parent = undefined;
 		return this;
-	}
-
-	private shouldFocusByDefault(): boolean {
-		return this.focusByDefault || this.parent?.shouldFocusByDefault() || false;
 	}
 
 	select() {
@@ -507,7 +524,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	}
 }
 
-// Selectable.focusedObject.subscribe(console.log);
+Selectable.focusedObject.subscribe(console.log);
 
 type Offsets = Partial<
 	Record<
@@ -543,15 +560,6 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		let top = -1;
 
 		if (offsets.top !== undefined && offsets.bottom !== undefined) {
-			console.log(htmlElement, verticalParent);
-			console.log(boundingRect, parentBoundingRect);
-			console.log('top', boundingRect.y - parentBoundingRect.y, '<', offsets.top);
-			console.log(
-				'bottom',
-				boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight,
-				'>',
-				verticalParent.clientHeight - offsets.bottom
-			);
 			top =
 				boundingRect.y - parentBoundingRect.y < offsets.top
 					? boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top

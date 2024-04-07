@@ -1,7 +1,7 @@
 import { derived, type Readable, writable } from 'svelte/store';
 import { settings } from './settings.store';
 import { jellyfinApi, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
-import { type SeriesDownload, sonarrApi, type SonarrSeries } from '../apis/sonarr/sonarr-api';
+import { type EpisodeDownload, sonarrApi, type SonarrSeries } from '../apis/sonarr/sonarr-api';
 import { radarrApi, type MovieDownload } from '../apis/radarr/radarr-api';
 
 async function waitForSettings() {
@@ -54,7 +54,7 @@ export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 	};
 }
 
-export const jellyfinItemsStore = _createDataFetchStore(jellyfinApi.getLibraryItems);
+export const jellyfinItemsStore = _createDataFetchStore(() => jellyfinApi.getLibraryItems());
 
 export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	const store = writable<{ loading: boolean; item?: JellyfinItem }>({
@@ -181,7 +181,7 @@ export function createRadarrDownloadStore(
 export function createSonarrDownloadStore(
 	sonarrItemStore: ReturnType<typeof createSonarrSeriesStore>
 ) {
-	const store = writable<{ loading: boolean; downloads?: SeriesDownload[] }>({
+	const store = writable<{ loading: boolean; downloads?: EpisodeDownload[] }>({
 		loading: true,
 		downloads: undefined
 	});

@@ -9,10 +9,12 @@ import { appState } from '../../stores/app-state.store';
 import { createLocalStorageStore } from '../../stores/localstorage.store';
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
+export type SonarrSeason = components['schemas']['SeasonResource'];
 export type SonarrRelease = components['schemas']['ReleaseResource'];
-export type SeriesDownload = components['schemas']['QueueResource'] & { series: SonarrSeries };
+export type EpisodeDownload = components['schemas']['QueueResource'] & { series: SonarrSeries };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 export type SonarrEpisode = components['schemas']['EpisodeResource'];
+export type EpisodeFileResource = components['schemas']['EpisodeFileResource'];
 
 export interface SonarrSeriesOptions {
 	title: string;
@@ -80,7 +82,18 @@ export class SonarrApi implements Api<paths> {
 		return get(tmdbToTvdbCache)[tmdbId];
 	};
 
-	getSonarrSeries = (): Promise<SonarrSeries[]> =>
+	getSeriesById = (id: number): Promise<SonarrSeries | undefined> =>
+		this.getClient()
+			?.GET('/api/v3/series/{id}', {
+				params: {
+					path: {
+						id
+					}
+				}
+			})
+			.then((r) => r.data) || Promise.resolve(undefined);
+
+	getAllSeries = (): Promise<SonarrSeries[]> =>
 		this.getClient()
 			?.GET('/api/v3/series', {
 				params: {}
@@ -177,7 +190,7 @@ export class SonarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getSonarrDownloads = (): Promise<SeriesDownload[]> =>
+	getSonarrDownloads = (): Promise<EpisodeDownload[]> =>
 		this.getClient()
 			?.GET('/api/v3/queue', {
 				params: {
@@ -191,7 +204,7 @@ export class SonarrApi implements Api<paths> {
 				(r) =>
 					(r.data?.records?.filter(
 						(record) => record.episode && record.series
-					) as SeriesDownload[]) || []
+					) as EpisodeDownload[]) || []
 			) || Promise.resolve([]);
 
 	getSonarrDownloadsById = (sonarrId: number) =>
@@ -210,37 +223,48 @@ export class SonarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getSonarrEpisodes = async (seriesId: number) => {
-		const episodesPromise =
-			this.getClient()
-				?.GET('/api/v3/episode', {
-					params: {
-						query: {
-							seriesId
-						}
+	getFilesBySeriesId = (seriesId: number): Promise<EpisodeFileResource[]> =>
+		this.getClient()
+			?.GET('/api/v3/episodefile', {
+				params: {
+					query: {
+						seriesId
 					}
-				})
-				.then((r) => r.data || []) || Promise.resolve([]);
+				}
+			})
+			.then((r) => r.data || []) || Promise.resolve([]);
 
-		const episodeFilesPromise =
-			this.getClient()
-				?.GET('/api/v3/episodefile', {
-					params: {
-						query: {
-							seriesId
-						}
-					}
-				})
-				.then((r) => r.data || []) || Promise.resolve([]);
-
-		const episodes = await episodesPromise;
-		const episodeFiles = await episodeFilesPromise;
-
-		return episodes.map((episode) => ({
-			episode,
-			episodeFile: episodeFiles.find((file) => file.id === episode.episodeFileId)
-		}));
-	};
+	// getSonarrEpisodes = async (seriesId: number) => {
+	// 	const episodesPromise =
+	// 		this.getClient()
+	// 			?.GET('/api/v3/episode', {
+	// 				params: {
+	// 					query: {
+	// 						seriesId
+	// 					}
+	// 				}
+	// 			})
+	// 			.then((r) => r.data || []) || Promise.resolve([]);
+	//
+	// 	const episodeFilesPromise =
+	// 		this.getClient()
+	// 			?.GET('/api/v3/episodefile', {
+	// 				params: {
+	// 					query: {
+	// 						seriesId
+	// 					}
+	// 				}
+	// 			})
+	// 			.then((r) => r.data || []) || Promise.resolve([]);
+	//
+	// 	const episodes = await episodesPromise;
+	// 	const episodeFiles = await episodeFilesPromise;
+	//
+	// 	return episodes.map((episode) => ({
+	// 		episode,
+	// 		episodeFile: episodeFiles.find((file) => file.id === episode.episodeFileId)
+	// 	}));
+	// };
 
 	fetchSonarrReleases = async (episodeId: number) =>
 		this.getClient()
@@ -265,13 +289,14 @@ export class SonarrApi implements Api<paths> {
 			})
 			.then((r) => r.data || []) || Promise.resolve([]);
 
-	fetchSonarrEpisodes = async (seriesId: number): Promise<SonarrEpisode[]> => {
+	getEpisodes = async (seriesId: number, seasonNumber?: number): Promise<SonarrEpisode[]> => {
 		return (
 			this.getClient()
 				?.GET('/api/v3/episode', {
 					params: {
 						query: {
-							seriesId
+							seriesId,
+							seasonNumber
 						}
 					}
 				})

@@ -19,6 +19,7 @@
 	class={classNames('fixed inset-0 bg-stone-950/80 overflow-auto', {
 		'opacity-0': hidden
 	})}
+	canFocusEmpty
 >
 	<div class="max-h-full mx-auto max-w-2xl -my-16 py-32">
 		<slot />

@@ -14,24 +14,22 @@
 	import { useRequest } from '../../stores/data.store';
 	import { derived, type Readable } from 'svelte/store';
 	import ReleaseActionsModal from './Releases/ReleaseActionsModal.svelte';
+	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
 
 	export let modalId: symbol;
 	export let hidden: boolean;
 	export let id: number;
 
-	const { promise: files, refresh: refreshFiles } = useRequest(
-		radarrApi.getMovieFilesByMovieId,
-		id
-	);
+	const { promise: files, refresh: refreshFiles } = useRequest(radarrApi.getFilesByMovieId, id);
 	const {
 		promise: downloads,
 		data: downloadsData,
 		refresh: refreshDownloads
-	} = useRequest(radarrApi.getRadarrDownloadsById, id);
+	} = useRequest(radarrApi.getDownloadsById, id);
 
 	const handleGrabRelease = (guid: string, indexerId: number) =>
 		radarrApi
-			.downloadRadarrMovie(guid, indexerId)
+			.downloadMovie(guid, indexerId)
 			.then((ok) => {
 				if (!ok) {
 					// TODO: Show error
@@ -54,7 +52,7 @@
 		}, {})
 	);
 
-	function handleSelectRelease(release: RadarrRelease) {
+	function handleSelectRelease(release: RadarrRelease | SonarrRelease) {
 		modalStack.create(
 			ReleaseActionsModal,
 			{
@@ -70,8 +68,7 @@
 			FileActionsModal,
 			{
 				file,
-				handleDeleteFile: (id: number) =>
-					radarrApi.deleteRadarrMovieFile(id).then(() => refreshFiles(id))
+				handleDeleteFile: (id: number) => radarrApi.deleteMovieFile(id).then(() => refreshFiles(id))
 			},
 			modalId
 		);
@@ -81,7 +78,10 @@
 <FullScreenModal {modalId} {hidden}>
 	<ManageMediaMenuLayout>
 		<h1 slot="header">Download</h1>
-		<ReleaseList {id} getReleases={radarrApi.getReleases} selectRelease={handleSelectRelease} />
+		<ReleaseList
+			getReleases={() => radarrApi.getReleases(id)}
+			selectRelease={handleSelectRelease}
+		/>
 	</ManageMediaMenuLayout>
 	<ManageMediaMenuLayout>
 		<h1 slot="header">Local Files</h1>

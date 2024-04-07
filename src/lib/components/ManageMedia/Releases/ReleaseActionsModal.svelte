@@ -7,9 +7,11 @@
 	import FullScreenModalContainer from '../ManageMediaMenuLayout.svelte';
 	import { useActionRequest, useRequest } from '../../../stores/data.store';
 	import { Download, Plus } from 'radix-icons-svelte';
+	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import type { Release } from '../../../apis/combined-types';
 
 	export let modalId: symbol;
-	export let release: RadarrRelease;
+	export let release: Release;
 	export let status: undefined | 'downloading' | 'downloaded' = undefined;
 	export let grabRelease: (guid: string, indexerId: number) => Promise<boolean>;
 

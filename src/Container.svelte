@@ -72,6 +72,7 @@
 		rest.container._initializeSelectable();
 
 		if (focusOnMount) {
+			console.log('focusing', rest.container.getHtmlElement());
 			rest.container.focus();
 		}
 

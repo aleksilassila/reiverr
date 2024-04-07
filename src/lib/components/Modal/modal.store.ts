@@ -21,7 +21,7 @@ function createModalStack() {
 
 	function create<P extends Record<string, any>>(
 		component: ComponentType<SvelteComponentTyped<P>>,
-		props: Omit<P, 'modalId' | 'hidden'>,
+		props: Omit<P, 'modal' | 'groupId' | 'modalId' | 'hidden'>,
 		group: symbol | undefined = undefined
 	) {
 		const id = Symbol();

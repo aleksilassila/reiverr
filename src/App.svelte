@@ -47,7 +47,7 @@
 				<Route path="movies/*">
 					<MoviesPage />
 				</Route>
-				<Route path="library">
+				<Route path="library/*">
 					<LibraryPage />
 				</Route>
 				<Route path="manage">
