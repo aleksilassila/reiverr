@@ -59,7 +59,7 @@
 		class="h-screen flex flex-col py-12 px-20 relative"
 		on:enter={scrollIntoView({ top: 0 })}
 		handleNavigateOut={{
-			down: () => episodesSelectable?.focusChildren(1)
+			down: () => episodesSelectable?.focusChild(1)
 		}}
 	>
 		<HeroCarousel

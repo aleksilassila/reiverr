@@ -44,7 +44,6 @@ export class Selectable {
 	};
 	private canFocusEmpty: boolean = true;
 	private trapFocus: boolean = false;
-	private isInitialized: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
 	private onFocus?: FocusHandler;
@@ -52,6 +51,8 @@ export class Selectable {
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
+
+	private static _initalizationStack: Selectable[] = [];
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
@@ -144,13 +145,13 @@ export class Selectable {
 
 			if (_options.setFocusedElement) {
 				this.htmlElement.focus({ preventScroll: true });
-				console.log('Setting focused element to', this.htmlElement);
 				Selectable.focusedObject.set(this);
 			}
 		}
 	}
 
-	focusChildren(index: number, options?: Partial<FocusEventOptions>): boolean {
+	focusChild(index: number, options?: Partial<FocusEventOptions>): boolean {
+		// TODO: CLEAN UP
 		const child = this.children[index];
 		if (child && child.isFocusable()) {
 			child.focus(options);
@@ -163,10 +164,10 @@ export class Selectable {
 	/**
 	 * @returns {boolean} whether the selectable is focusable
 	 */
-	isFocusable(): boolean {
+	isFocusable(canFocusEmpty = this.canFocusEmpty): boolean {
+		// TODO: CLEAN UP
 		if (!this.isActive) return false;
-
-		if (this.htmlElement && this.canFocusEmpty) {
+		if (this.htmlElement && canFocusEmpty) {
 			return this.htmlElement.tabIndex >= 0;
 		} else {
 			for (const child of this.children) {
@@ -232,22 +233,44 @@ export class Selectable {
 		return currentlyFocusedObject?.giveFocus(direction, bypassActions);
 	}
 
+	private static initializeTreeStructure() {
+		for (let i = 0; i < Selectable._initalizationStack.length; i++) {
+			const selectable = Selectable._initalizationStack[i];
+			const htmlElement = selectable?.getHtmlElement();
+
+			const previousSelectable = Selectable._initalizationStack[i - 1];
+			const previousHtmlElement = previousSelectable?.getHtmlElement();
+
+			const isParent =
+				htmlElement && previousHtmlElement && htmlElement.contains(previousHtmlElement);
+			if (isParent && selectable && previousSelectable && htmlElement && previousHtmlElement) {
+				// Add all previous elements as children
+				for (let j = i - 1; j >= 0; j--) {
+					const potentialChild = Selectable._initalizationStack[j];
+					if (potentialChild && htmlElement.contains(potentialChild.htmlElement || null)) {
+						selectable.addChild(potentialChild, 0);
+						Selectable._initalizationStack.splice(j, 1);
+						i = j;
+					} else break;
+				}
+			}
+		}
+	}
+
 	/**
-	 * This runs after the regsterer has been called and the thmlElement
-	 * has been set. Becasue all the children get initialized before their parents,
-	 * we can't create the parent-child tree structure in the registerer but instead
-	 * have to wait until every element has htmlElement and then later (here) deduce
-	 * the parent-child relationships.
+	 * TODO: Add docs
 	 */
-	_initializeSelectable() {
-		console.debug('Initializing', this);
+	private static finalizeTreeStructure() {
 		const getParentSelectable = (htmlElement: HTMLElement): Selectable | undefined => {
 			if (Selectable.objects.get(htmlElement)) return Selectable.objects.get(htmlElement);
 			else if (htmlElement.parentElement) return getParentSelectable(htmlElement.parentElement);
 			else return undefined;
 		};
 
-		const getSiblingSelectable = (parent: Selectable): Selectable | undefined => {
+		const getSiblingSelectable = (
+			parent: Selectable,
+			child: Selectable
+		): Selectable | undefined => {
 			const getElementTree = (start: HTMLElement, end: HTMLElement): HTMLElement[] => {
 				let element = start;
 				const elements: HTMLElement[] = [start];
@@ -261,13 +284,14 @@ export class Selectable {
 				return elements;
 			};
 
-			if (!this.htmlElement) return undefined;
+			const htmlElement = child.htmlElement;
+			if (!htmlElement) return undefined;
 
 			const parentHtmlElement = parent.htmlElement;
 
 			if (!parentHtmlElement) return undefined;
 
-			const thisElementTree = getElementTree(this.htmlElement, parentHtmlElement);
+			const thisElementTree = getElementTree(htmlElement, parentHtmlElement);
 
 			let aboveSibling: Selectable | undefined = undefined;
 
@@ -310,37 +334,45 @@ export class Selectable {
 			return aboveSibling;
 		};
 
+		for (const child of this._initalizationStack) {
+			const htmlElement = child.htmlElement;
+			const parentSelectable = htmlElement?.parentElement
+				? getParentSelectable(htmlElement.parentElement)
+				: undefined;
+
+			if (parentSelectable) {
+				const aboveSibling = getSiblingSelectable(parentSelectable, child);
+				const index = aboveSibling ? parentSelectable.children.indexOf(aboveSibling) : undefined;
+				parentSelectable.addChild(child, index === undefined ? 0 : index + 1);
+				console.debug('Attached child tree to parent', child, parentSelectable);
+			} else {
+				console.warn('Could not attach child (probably root)', child);
+				child.focus();
+			}
+		}
+
+		Selectable._initalizationStack = [];
+	}
+
+	/** TODO update docs
+	 * This runs after the regsterer has been called and the htmlElement
+	 * has been set. Becasue all the children get initialized before their parents,
+	 * we can't create the parent-child tree structure in the registerer but instead
+	 * have to wait until every element has htmlElement and then later (here) deduce
+	 * the parent-child relationships.
+	 */
+	_mountSelectable(focusOnMount: boolean = false) {
+		console.debug('Mounting', this, Selectable._initalizationStack.slice());
+
+		Selectable.finalizeTreeStructure();
+
+		if (!get(this.hasFocusWithin) && this.isFocusable(true) && focusOnMount) {
+			this.focus(); // TODO: CLEAN UP
+		}
+
 		if (!this.htmlElement) {
 			console.error('No html element found for', this);
 			return;
-		} else if (this.isInitialized) {
-			console.warn('Selectable already initialized', this);
-		}
-
-		// console.log('Initializing', this.htmlElement);
-
-		const parentSelectable = this.htmlElement.parentElement
-			? getParentSelectable(this.htmlElement.parentElement)
-			: undefined;
-		if (parentSelectable) {
-			const aboveSibling = getSiblingSelectable(parentSelectable);
-			const index = aboveSibling ? parentSelectable.children.indexOf(aboveSibling) : undefined;
-			parentSelectable.addChild(this, index === undefined ? 0 : index + 1);
-		} else {
-			console.error('No parent selectable found for', this.htmlElement);
-		}
-
-		if (get(Selectable.focusedObject) === parentSelectable && this.isFocusable()) {
-			console.log('Focusing on add');
-			this.focus();
-		} else {
-			console.log(
-				'Not focusing on add',
-				this,
-				this.isFocusable(),
-				get(Selectable.focusedObject),
-				parentSelectable
-			);
 		}
 	}
 
@@ -361,7 +393,7 @@ export class Selectable {
 	}
 
 	/**
-	 * This only sets the htmlElement. See {@link _initializeSelectable} for the rest of the initialization.
+	 * This only sets the htmlElement. See {@link _mountSelectable} for the rest of the initialization.
 	 */
 	private static createRegisterer(
 		_selectable?: Selectable,
@@ -372,6 +404,8 @@ export class Selectable {
 		return (htmlElement: HTMLElement) => {
 			selectable.setHtmlElement(htmlElement);
 			console.debug('Registering', selectable);
+			Selectable._initalizationStack.push(selectable);
+			Selectable.initializeTreeStructure();
 
 			return {
 				destroy: () => {
@@ -411,10 +445,19 @@ export class Selectable {
 		};
 	}
 
+	/**
+	 * TODO: Adding children to focusIndex does not modify focusIndex.
+	 */
 	private addChild(child: Selectable, index?: number) {
+		if (child === this) {
+			console.error('TRYING TO ADD SELF AS A CHILD', this);
+			return;
+		}
+
+		const firstChild = this.children.length === 0;
+
 		if (index !== undefined) {
-			const parentFocusWithin = child.parent?.hasFocusWithin && get(child.parent?.hasFocusWithin);
-			if (parentFocusWithin && this.children.length && index <= get(this.focusIndex)) {
+			if (this.children.length && index < get(this.focusIndex)) {
 				this.focusIndex.update((prev) => prev + 1);
 			}
 			this.children.splice(index, 0, child);
@@ -423,6 +466,31 @@ export class Selectable {
 		}
 
 		child.parent = this;
+
+		// TODO: CLEAN UP
+		if (index === get(this.focusIndex) && get(this.hasFocusWithin)) {
+			child.focus();
+		}
+
+		// 1. If parent has focus but also has child(ren), focus the child instead
+		// 2. If adding to container that doesn't have focus because being empty
+		// prevented receiving it, check if 1. applies to the parent
+
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
+		let el: Selectable = this;
+		while (firstChild) {
+			if (get(el.hasFocus) && el.children.length) {
+				el.focus();
+				break;
+			}
+
+			if (!el.canFocusEmpty && el.parent) {
+				el = el.parent;
+			} else {
+				break;
+			}
+		}
+
 		return this;
 	}
 

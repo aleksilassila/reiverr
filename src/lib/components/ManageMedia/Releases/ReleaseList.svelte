@@ -108,11 +108,13 @@
 		{/each}
 		{#if !showAll && $releases?.length}
 			<div class="my-1 w-full">
-				<Button on:click={() => (showAll = true)}>Show all {$releases?.length} releases</Button>
+				<Button on:clickOrSelect={() => (showAll = true)}
+					>Show all {$releases?.length} releases</Button
+				>
 			</div>
 		{:else if showAll}
 			<div class="my-1 w-full">
-				<Button on:click={() => (showAll = false)}>Show less</Button>
+				<Button on:clickOrSelect={() => (showAll = false)}>Show less</Button>
 			</div>
 		{/if}
 	{/if}

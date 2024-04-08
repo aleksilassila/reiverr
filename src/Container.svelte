@@ -69,12 +69,7 @@
 	}
 
 	onMount(() => {
-		rest.container._initializeSelectable();
-
-		if (focusOnMount) {
-			console.log('focusing', rest.container.getHtmlElement());
-			rest.container.focus();
-		}
+		rest.container._mountSelectable(focusOnMount);
 
 		return () => {
 			rest.container._unmountContainer();

@@ -19,7 +19,7 @@
 		{/each}
 	{:then downloads}
 		{#each downloads as download, index}
-			<Button on:click={() => cancelDownload(download.id || -1)} let:hasFocus>
+			<Button on:clickOrSelect={() => cancelDownload(download.id || -1)} let:hasFocus>
 				<div class="flex w-full">
 					<h1 class="flex-1 line-clamp-1">
 						{download.title}

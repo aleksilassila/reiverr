@@ -34,7 +34,7 @@
 			<div class="-my-1">
 				<Button
 					focusOnMount
-					on:click={() => handleGrabRelease(release.guid || '', release.indexerId || -1)}
+					on:clickOrSelect={() => handleGrabRelease(release.guid || '', release.indexerId || -1)}
 					inactive={!!($data || $isFetching || status)}
 				>
 					{#if $data || status === 'downloading'}

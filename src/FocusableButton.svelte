@@ -11,7 +11,7 @@
 	export const hasFocusWithin = rest.hasFocusWithin;
 
 	onMount(() => {
-		rest.container._initializeSelectable();
+		rest.container._mountSelectable();
 	});
 </script>
 

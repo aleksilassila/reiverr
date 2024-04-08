@@ -15,6 +15,8 @@
 	import { derived, type Readable } from 'svelte/store';
 	import ReleaseActionsModal from './Releases/ReleaseActionsModal.svelte';
 	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
+	import Button from '../Button.svelte';
+	import type { FileResource } from '../../apis/combined-types';
 
 	export let modalId: symbol;
 	export let hidden: boolean;
@@ -63,7 +65,7 @@
 		);
 	}
 
-	function handleSelectFile(file: MovieFileResource) {
+	function handleSelectFile(file: FileResource) {
 		modalStack.create(
 			FileActionsModal,
 			{
@@ -76,7 +78,7 @@
 </script>
 
 <FullScreenModal {modalId} {hidden}>
-	<ManageMediaMenuLayout>
+	<ManageMediaMenuLayout focusOnMount>
 		<h1 slot="header">Download</h1>
 		<ReleaseList
 			getReleases={() => radarrApi.getReleases(id)}

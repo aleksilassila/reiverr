@@ -22,7 +22,7 @@
 		</div>
 		<Container>
 			<div class="-my-1">
-				<Button focusOnMount on:click={() => file.id && handleDeleteFile(file.id)}>
+				<Button focusOnMount on:clickOrSelect={() => file.id && handleDeleteFile(file.id)}>
 					Delete File
 				</Button>
 			</div>

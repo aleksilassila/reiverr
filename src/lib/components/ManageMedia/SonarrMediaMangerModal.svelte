@@ -89,7 +89,7 @@
 </script>
 
 <FullScreenModal {modalId} {hidden}>
-	<ManageMediaMenuLayout>
+	<ManageMediaMenuLayout focusOnMount>
 		<h1 slot="header">Download</h1>
 		<SeasonList {id} selectSeason={handleSelectSeason} />
 	</ManageMediaMenuLayout>
