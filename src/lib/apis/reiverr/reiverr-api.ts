@@ -1,12 +1,15 @@
 import createClient from 'openapi-fetch';
-import type { paths } from './reiverr.generated';
+import type { components, paths } from './reiverr.generated';
 import { get } from 'svelte/store';
 import { appState } from '../../stores/app-state.store';
 import type { Api } from '../api.interface';
 
+export type ReiverrUser = components['schemas']['UserDto'];
+
 export class ReiverrApi implements Api<paths> {
-	getClient(basePath?: string) {
-		const token = get(appState).token;
+	getClient(basePath?: string, _token?: string) {
+		const token = _token || get(appState).token;
+		console.log('token', token);
 
 		return createClient<paths>({
 			baseUrl: (basePath || get(appState).serverBaseUrl) + '/api',
@@ -15,6 +18,20 @@ export class ReiverrApi implements Api<paths> {
 					Authorization: 'Bearer ' + token
 				}
 			})
+		});
+	}
+
+	async getUser() {
+		const res = await this.getClient()?.GET('/user', {});
+		return res.data;
+	}
+
+	authenticate(name: string, password: string) {
+		return this.getClient().POST('/auth', {
+			body: {
+				name,
+				password
+			}
 		});
 	}
 }

@@ -50,6 +50,14 @@ html[data-useragent*="Tizen"] .selectable {
 	border-width: 2px;
 }
 
+.selected {
+    @apply outline-none outline-0 border-2 border-highlight-foreground;
+}
+
+.unselected {
+    @apply outline-none outline-0 border-2 border-transparent;
+}
+
 .peer-selectable {
     @apply peer-focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }

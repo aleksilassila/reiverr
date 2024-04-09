@@ -16,7 +16,7 @@
 		{
 			'bg-highlight-foreground text-stone-900': $hasFoucus,
 			'hover:bg-highlight-foreground hover:text-stone-900': true,
-			'bg-stone-800/90': !$hasFoucus,
+			'bg-highlight-background': !$hasFoucus,
 			'cursor-pointer': !inactive,
 			'cursor-not-allowed pointer-events-none opacity-40': inactive
 		},
@@ -34,7 +34,9 @@
 			<slot name="icon" />
 		</div>
 	{/if}
-	<slot {hasFocus} />
+	<div class="flex-1 text-center">
+		<slot {hasFocus} />
+	</div>
 	{#if $$slots['icon-after']}
 		<div class="ml-2">
 			<slot name="icon-after" />

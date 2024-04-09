@@ -1,24 +1,17 @@
 <script lang="ts">
-	import { getReiverrApiClient } from '../apis/reiverr/reiverr-api';
+	import { getReiverrApiClient, reiverrApi } from '../apis/reiverr/reiverr-api';
 	import Container from '../../Container.svelte';
 	import { appState } from '../stores/app-state.store';
+	import TextField from '../components/TextField.svelte';
+	import Button from '../components/Button.svelte';
 
 	let name: string = 'test';
 	let password: string = 'test';
 	let error: string | undefined = undefined;
 
-	let input0: HTMLInputElement;
-	let input1: HTMLInputElement;
-	let input2: HTMLInputElement;
-
 	function handleLogin() {
-		getReiverrApiClient()
-			.POST('/auth', {
-				body: {
-					name,
-					password
-				}
-			})
+		reiverrApi
+			.authenticate(name, password)
 			.then((res) => {
 				if (res.error?.statusCode === 401) {
 					error = 'Invalid credentials. Please try again.';
@@ -27,7 +20,7 @@
 				} else {
 					const token = res.data.accessToken;
 					appState.setToken(token);
-					window.location.reload();
+					// window.location.reload();
 				}
 			})
 			.catch((err: Error) => {
@@ -36,36 +29,26 @@
 	}
 </script>
 
-<Container class="flex flex-col" focusOnMount>
+<Container
+	class="w-full h-full max-w-xs mx-auto flex flex-col items-center justify-center"
+	focusOnMount
+>
+	<h1 class="font-semibold tracking-wide text-xl w-full">Login to Reiverr</h1>
+
+	<TextField
+		value={$appState.serverBaseUrl}
+		on:change={(e) => appState.setBaseUrl(e.detail)}
+		class="mt-4 w-full"
+	>
+		Server
+	</TextField>
+
+	<TextField bind:value={name} class="mt-4 w-full">Name</TextField>
+	<TextField bind:value={password} type="password" class="mt-4 w-full">Name</TextField>
+
+	<Button on:clickOrSelect={handleLogin} class="mt-8 w-full">Submit</Button>
+
 	{#if error}
 		<div class="text-red-300">{error}</div>
 	{/if}
-
-	<div>
-		Server:
-		<Container on:click={() => input0?.focus()}>
-			<input
-				class="bg-stone-900"
-				type="text"
-				value={$appState.serverBaseUrl}
-				on:change={(e) => appState.setBaseUrl(e?.target?.value)}
-				bind:this={input0}
-			/>
-		</Container>
-	</div>
-
-	<div>
-		Name:
-		<Container on:click={() => input1?.focus()}>
-			<input class="bg-stone-900" type="text" bind:value={name} bind:this={input1} />
-		</Container>
-	</div>
-
-	<div>
-		Password:
-		<Container on:click={() => input2?.focus()}>
-			<input class="bg-stone-900" type="password" bind:value={password} bind:this={input2} />
-		</Container>
-	</div>
-	<Container on:click={handleLogin}>Submit</Container>
 </Container>

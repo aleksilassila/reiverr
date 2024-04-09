@@ -13,7 +13,7 @@ export type NavigationActions = {
 };
 
 type FocusEventOptions = {
-	setFocusedElement: boolean;
+	setFocusedElement: boolean | HTMLElement;
 	propagate: boolean;
 	onFocus?: (
 		superOnFocus: FocusHandler,
@@ -146,7 +146,11 @@ export class Selectable {
 			propagateFocusUpdates(_options, this);
 
 			if (_options.setFocusedElement) {
-				this.htmlElement.focus({ preventScroll: true });
+				if (_options.setFocusedElement === true) {
+					this.htmlElement.focus({ preventScroll: true });
+				} else {
+					_options.setFocusedElement.focus({ preventScroll: true });
+				}
 				Selectable.focusedObject.set(this);
 			}
 		}

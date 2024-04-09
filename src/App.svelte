@@ -11,16 +11,10 @@
 	import SeriesPage from './lib/components/SeriesPage/SeriesPage.svelte';
 	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 	import LoginPage from './lib/pages/LoginPage.svelte';
-	import { getReiverrApiClient } from './lib/apis/reiverr/reiverr-api';
 	import { appState } from './lib/stores/app-state.store';
 	import MoviePage from './lib/pages/MoviePage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
-
-	getReiverrApiClient()
-		.GET('/user', {})
-		.then((res) => res.data)
-		.then((user) => appState.setUser(user || null))
-		.catch(() => appState.setUser(null));
+	import PageNotFound from './lib/pages/PageNotFound.svelte';
 
 	appState.subscribe((s) => console.log('appState', s));
 </script>
@@ -58,7 +52,7 @@
 				</Route>
 				<Route path="movie/:id" component={MoviePage} />
 				<Route path="*">
-					<div>404</div>
+					<PageNotFound />
 				</Route>
 			</Container>
 		</Router>

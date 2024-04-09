@@ -1,23 +1,22 @@
 import { derived, writable } from 'svelte/store';
-import type { components } from '../apis/reiverr/reiverr.generated';
 import { createLocalStorageStore } from './localstorage.store';
-
-export type User = components['schemas']['UserDto'];
+import { getReiverrApiClient, type ReiverrUser } from '../apis/reiverr/reiverr-api';
 
 interface AuthenticationStoreData {
 	token?: string;
 	serverBaseUrl?: string;
 }
+const authenticationStore = createLocalStorageStore<AuthenticationStoreData>(
+	'authentication-token',
+	{
+		token: undefined,
+		serverBaseUrl: window?.location?.origin
+	}
+);
 
 function createAppState() {
-	const userStore = writable<User | null>(undefined);
-	const authenticationStore = createLocalStorageStore<AuthenticationStoreData>(
-		'authentication-token',
-		{
-			token: undefined,
-			serverBaseUrl: window?.location?.origin
-		}
-	);
+	const userStore = writable<ReiverrUser | null>(undefined);
+
 	const combinedStore = derived([userStore, authenticationStore], ([$user, $auth]) => {
 		return {
 			user: $user,
@@ -34,17 +33,33 @@ function createAppState() {
 		authenticationStore.update((p) => ({ ...p, token }));
 	}
 
-	function setUser(user: User | null) {
+	function setUser(user: ReiverrUser | null) {
 		userStore.set(user);
+	}
+
+	function logOut() {
+		setUser(null);
+		setToken(undefined);
 	}
 
 	return {
 		subscribe: combinedStore.subscribe,
 		setBaseUrl,
 		setToken,
-		setUser
+		setUser,
+		logOut
 	};
 }
 
 export const appState = createAppState();
 export const appStateUser = derived(appState, ($state) => $state.user);
+
+authenticationStore.subscribe((auth) => {
+	if (auth.token) {
+		getReiverrApiClient(auth.serverBaseUrl, auth.token)
+			?.GET('/user', {})
+			.then((user) => appState.setUser(user || null));
+	} else {
+		appState.setUser(null);
+	}
+});
