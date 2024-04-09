@@ -15,6 +15,10 @@ export type NavigationActions = {
 type FocusEventOptions = {
 	setFocusedElement: boolean;
 	propagate: boolean;
+	onFocus?: (
+		superOnFocus: FocusHandler,
+		...args: Parameters<FocusHandler>
+	) => ReturnType<FocusHandler>;
 };
 
 export type EnterEvent = {
@@ -46,13 +50,13 @@ export class Selectable {
 	private trapFocus: boolean = false;
 	private navigationActions: NavigationActions = {};
 	private isActive: boolean = true;
-	private onFocus?: FocusHandler;
+	private onFocus: FocusHandler = () => {};
 	private onSelect?: () => void;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
 
-	private static _initalizationStack: Selectable[] = [];
+	private static _initializationStack: Selectable[] = [];
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
@@ -78,8 +82,6 @@ export class Selectable {
 	constructor(name: string = '') {
 		this.id = Symbol();
 		this.name = name;
-
-		// Find parents
 	}
 
 	setDirection(direction: FlowDirection) {
@@ -94,19 +96,19 @@ export class Selectable {
 	}
 
 	focus(options: Partial<FocusEventOptions> = {}) {
-		function propagateFocusUpdates(
-			options: FocusEventOptions,
-			parent: Selectable,
-			child?: Selectable
-		) {
-			if (!get(parent.hasFocusWithin) && options.propagate) parent.onFocus?.(parent, options);
+		function propagateFocusUpdates(options: FocusEventOptions, selectable: Selectable) {
+			if (options.propagate && options.onFocus)
+				options.onFocus(selectable.onFocus, selectable, options);
+			else if (options.propagate && !get(selectable.hasFocusWithin))
+				selectable.onFocus(selectable, options);
 
-			if (child) {
-				const index = parent.children.indexOf(child);
+			const parent = selectable.parent;
+
+			if (parent) {
+				const index = parent.children.indexOf(selectable);
 				parent.focusIndex.update((prev) => (index === -1 ? prev : index));
-			}
-			if (parent.parent) {
-				propagateFocusUpdates(options, parent.parent, parent);
+
+				propagateFocusUpdates(options, parent);
 			}
 		}
 
@@ -234,11 +236,11 @@ export class Selectable {
 	}
 
 	private static initializeTreeStructure() {
-		for (let i = 0; i < Selectable._initalizationStack.length; i++) {
-			const selectable = Selectable._initalizationStack[i];
+		for (let i = 0; i < Selectable._initializationStack.length; i++) {
+			const selectable = Selectable._initializationStack[i];
 			const htmlElement = selectable?.getHtmlElement();
 
-			const previousSelectable = Selectable._initalizationStack[i - 1];
+			const previousSelectable = Selectable._initializationStack[i - 1];
 			const previousHtmlElement = previousSelectable?.getHtmlElement();
 
 			const isParent =
@@ -246,10 +248,10 @@ export class Selectable {
 			if (isParent && selectable && previousSelectable && htmlElement && previousHtmlElement) {
 				// Add all previous elements as children
 				for (let j = i - 1; j >= 0; j--) {
-					const potentialChild = Selectable._initalizationStack[j];
+					const potentialChild = Selectable._initializationStack[j];
 					if (potentialChild && htmlElement.contains(potentialChild.htmlElement || null)) {
 						selectable.addChild(potentialChild, 0);
-						Selectable._initalizationStack.splice(j, 1);
+						Selectable._initializationStack.splice(j, 1);
 						i = j;
 					} else break;
 				}
@@ -334,7 +336,7 @@ export class Selectable {
 			return aboveSibling;
 		};
 
-		for (const child of this._initalizationStack) {
+		for (const child of this._initializationStack) {
 			const htmlElement = child.htmlElement;
 			const parentSelectable = htmlElement?.parentElement
 				? getParentSelectable(htmlElement.parentElement)
@@ -351,7 +353,7 @@ export class Selectable {
 			}
 		}
 
-		Selectable._initalizationStack = [];
+		Selectable._initializationStack = [];
 	}
 
 	/** TODO update docs
@@ -362,7 +364,7 @@ export class Selectable {
 	 * the parent-child relationships.
 	 */
 	_mountSelectable(focusOnMount: boolean = false) {
-		console.debug('Mounting', this, Selectable._initalizationStack.slice());
+		console.debug('Mounting', this, Selectable._initializationStack.slice());
 
 		Selectable.finalizeTreeStructure();
 
@@ -404,7 +406,7 @@ export class Selectable {
 		return (htmlElement: HTMLElement) => {
 			selectable.setHtmlElement(htmlElement);
 			console.debug('Registering', selectable);
-			Selectable._initalizationStack.push(selectable);
+			Selectable._initializationStack.push(selectable);
 			Selectable.initializeTreeStructure();
 
 			return {

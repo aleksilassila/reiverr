@@ -23,6 +23,9 @@
 	)}
 	let:hasFocus
 	on:select={handlePlay}
+	on:enter
+	on:mount
+	focusOnClick
 >
 	<div class="flex-1 flex flex-col justify-end z-10">
 		<h2 class="text-zinc-300 font-medium">Episode {episode.episode_number}</h2>

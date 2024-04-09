@@ -2,18 +2,15 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import {
-		type NavigationActions,
-		type FocusHandler,
-		Selectable,
-		type EnterEvent
-	} from './lib/selectable';
+	import { type NavigationActions, Selectable, type EnterEvent } from './lib/selectable';
 	import classNames from 'classnames';
+
 	const dispatch = createEventDispatcher<{
 		click: MouseEvent;
 		select: null;
 		clickOrSelect: null;
 		enter: EnterEvent;
+		mount: Selectable;
 	}>();
 
 	export let name: string = '';
@@ -39,10 +36,9 @@
 			function stopPropagation() {
 				options.propagate = false;
 			}
+			console.log('here', selectable);
 
-			if (options.propagate) {
-				dispatch('enter', { selectable, options, stopPropagation });
-			}
+			dispatch('enter', { selectable, options, stopPropagation });
 		})
 		.setOnSelect(() => {
 			dispatch('select');
@@ -70,6 +66,8 @@
 
 	onMount(() => {
 		rest.container._mountSelectable(focusOnMount);
+
+		dispatch('mount', rest.container);
 
 		return () => {
 			rest.container._unmountContainer();

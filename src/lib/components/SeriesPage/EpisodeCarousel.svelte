@@ -11,7 +11,7 @@
 	} from '../../apis/tmdb/tmdb-api';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import Container from '../../../Container.svelte';
-	import { scrollElementIntoView, scrollIntoView } from '../../selectable';
+	import { scrollElementIntoView, scrollIntoView, Selectable } from '../../selectable';
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
@@ -20,7 +20,9 @@
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
 	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
 	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
-	export let selectedTmdbEpisode: TmdbEpisode | undefined = undefined;
+
+	const containers = new Map<TmdbSeason | TmdbEpisode, Selectable>();
+	let scrollTop: number;
 
 	const { data: tmdbSeasons, isLoading: isTmdbSeasonsLoading } = useDependantRequest(
 		(seasons: number) => tmdbApi.getTmdbSeriesSeasons(id, seasons),
@@ -28,14 +30,11 @@
 		(series) => (series?.seasons?.length ? ([series.seasons.length] as const) : undefined)
 	);
 
-	const containers: Record<string, Container> = {};
-	let scrollTop: number;
-
 	function focusFirstEpisodeOf(season: TmdbSeason) {
 		let isAlreadySelected = false;
 
 		for (const episode of season.episodes || []) {
-			const selectable = containers[`episode-${episode.id}`]?.container;
+			const selectable = containers.get(episode);
 			if (selectable && get(selectable.hasFocusWithin)) {
 				isAlreadySelected = true;
 				break;
@@ -44,41 +43,38 @@
 
 		const episode = season.episodes?.[0];
 		if (episode && !isAlreadySelected) {
-			const selectable = containers[`episode-${episode.id}`]?.container;
+			const selectable = containers.get(episode);
 			if (selectable) selectable.focus({ setFocusedElement: false });
 		}
 	}
 
-	function focusSeasonOf(episode: TmdbEpisode) {
-		const seasonSelectable = containers[`season-${episode.season_number}`]?.container;
+	function focusSeason(season: TmdbSeason) {
+		const seasonSelectable = containers.get(season);
 		if (seasonSelectable) seasonSelectable.focus({ setFocusedElement: false });
 	}
 
-	tmdbSeasons.subscribe((seasons) => {
-		selectedTmdbEpisode = seasons?.[0]?.episodes?.[0];
-	});
+	function handleEpisodeMount(event: CustomEvent<Selectable>, tmdbEpisode: TmdbEpisode) {
+		containers.set(tmdbEpisode, event.detail);
+		const selectable = event.detail;
 
-	// Handle focus next episode
-	derived([tmdbSeasons, nextJellyfinEpisode], (r) => r).subscribe(
-		([$seasons, $jellyfinEpisode]) => {
-			const tmdbEpisode = $seasons
-				?.flatMap((s) => s.episodes)
-				.find(
-					(e) =>
-						e?.episode_number === $jellyfinEpisode?.IndexNumber &&
-						e?.season_number === $jellyfinEpisode?.ParentIndexNumber
-				);
-			if (tmdbEpisode) {
-				const container = containers[`episode-${tmdbEpisode.id}`]?.container;
-				container?.focus({
+		// Handle focus next episode
+		nextJellyfinEpisode.subscribe(($jellyfinEpisode) => {
+			console.log('got next jellyfin episode', $jellyfinEpisode, tmdbEpisode, selectable);
+
+			const isNextEpisode =
+				$jellyfinEpisode?.IndexNumber === tmdbEpisode.episode_number &&
+				$jellyfinEpisode?.ParentIndexNumber === tmdbEpisode.season_number;
+
+			if (isNextEpisode) {
+				selectable.focus({
 					setFocusedElement: false,
 					propagate: false
 				});
-				const element = container?.getHtmlElement();
-				if (element) scrollElementIntoView(element, { horizontal: 64 + 16 });
+				const el = selectable.getHtmlElement();
+				if (el) scrollElementIntoView(el, { left: 64 + 16 });
 			}
-		}
-	);
+		});
+	}
 </script>
 
 <ScrollHelper bind:scrollTop />
@@ -108,7 +104,7 @@
 							scrollIntoView({ horizontal: 64 })(event);
 							if (event.detail.options.setFocusedElement) focusFirstEpisodeOf(season);
 						}}
-						bind:this={containers[`season-${season.season_number}`]}
+						on:mount={(e) => containers.set(season, e.detail)}
 					>
 						<div
 							class={classNames(
@@ -131,17 +127,13 @@
 		<div class="flex -mx-2">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
-					<Container
-						class="mx-2"
-						bind:this={containers[`episode-${episode.id}`]}
-						on:enter={(event) => {
-							scrollIntoView({ left: 64 + 16 })(event);
-							selectedTmdbEpisode = episode;
-							if (event.detail.options.setFocusedElement) focusSeasonOf(episode);
-						}}
-						focusOnClick
-					>
+					<div class="mx-2">
 						<EpisodeCard
+							on:enter={(event) => {
+								scrollIntoView({ left: 64 + 16 })(event);
+								focusSeason(season);
+							}}
+							on:mount={(e) => handleEpisodeMount(e, episode)}
 							jellyfinEpisode={$jellyfinEpisodes?.find(
 								(i) =>
 									i.IndexNumber === episode.episode_number &&
@@ -149,7 +141,7 @@
 							)}
 							{episode}
 						/>
-					</Container>
+					</div>
 				{/each}
 			{/each}
 		</div>
