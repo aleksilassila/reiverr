@@ -15,7 +15,6 @@
 
 	const handleChange = (e: Event) => {
 		value = e.target?.value;
-		console.log('e', e);
 		dispatch('change', e.target?.value);
 	};
 </script>

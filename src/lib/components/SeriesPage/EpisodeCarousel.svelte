@@ -100,7 +100,6 @@
 						let:hasFocus
 						on:click={() => focusFirstEpisodeOf(season)}
 						on:enter={(event) => {
-							console.log(event);
 							scrollIntoView({ horizontal: 64 })(event);
 							if (event.detail.options.setFocusedElement) focusFirstEpisodeOf(season);
 						}}

@@ -36,7 +36,6 @@
 			function stopPropagation() {
 				options.propagate = false;
 			}
-			console.log('here', selectable);
 
 			dispatch('enter', { selectable, options, stopPropagation });
 		})

@@ -9,7 +9,6 @@ export type ReiverrUser = components['schemas']['UserDto'];
 export class ReiverrApi implements Api<paths> {
 	getClient(basePath?: string, _token?: string) {
 		const token = _token || get(appState).token;
-		console.log('token', token);
 
 		return createClient<paths>({
 			baseUrl: (basePath || get(appState).serverBaseUrl) + '/api',
