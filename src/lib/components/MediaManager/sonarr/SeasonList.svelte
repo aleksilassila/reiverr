@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { sonarrApi, type SonarrSeason } from '../../apis/sonarr/sonarr-api';
-	import { useRequest } from '../../stores/data.store';
-	import Button from '../Button.svelte';
-	import { scrollIntoView } from '../../selectable';
+	import { sonarrApi, type SonarrSeason } from '../../../apis/sonarr/sonarr-api';
+	import { useRequest } from '../../../stores/data.store';
+	import Button from '../../Button.svelte';
+	import { scrollIntoView } from '../../../selectable';
 
 	export let id: number;
 	export let selectSeason: (seasonNumber: number) => void;

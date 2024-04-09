@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { MovieDownload } from '../../apis/radarr/radarr-api';
 	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
 	import Button from '../Button.svelte';
 	import { formatSize } from '../../utils';

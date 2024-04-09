@@ -1,18 +1,13 @@
 <script lang="ts">
-	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
-	import ManageMediaMenuLayout from '../ManageMediaMenuLayout.svelte';
-	import {
-		sonarrApi,
-		type SonarrEpisode,
-		type SonarrRelease
-	} from '../../../apis/sonarr/sonarr-api';
-	import { useRequest } from '../../../stores/data.store';
-	import Button from '../../Button.svelte';
-	import { modalStack } from '../../Modal/modal.store';
-	import ReleaseListModal from './ReleaseListModal.svelte';
-	import type { RadarrRelease } from '../../../apis/radarr/radarr-api';
-	import ReleaseActionsModal from './ReleaseActionsModal.svelte';
-	import type { Release } from '../../../apis/combined-types';
+	import FullScreenModal from '../../../Modal/FullScreenModal.svelte';
+	import ManageMediaMenuLayout from '../../MediaManagerMenuLayout.svelte';
+	import { sonarrApi, type SonarrEpisode } from '../../../../apis/sonarr/sonarr-api';
+	import { useRequest } from '../../../../stores/data.store';
+	import Button from '../../../Button.svelte';
+	import { modalStack } from '../../../Modal/modal.store';
+	import ReleaseListModal from '../../modals/ReleaseListModal.svelte';
+	import ReleaseActionsModal from '../../modals/ReleaseActionsModal.svelte';
+	import type { Release } from '../../../../apis/combined-types';
 
 	export let modalId: symbol;
 	export let groupId: symbol;

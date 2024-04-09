@@ -1,22 +1,22 @@
 <script lang="ts">
-	import FullScreenModal from '../Modal/FullScreenModal.svelte';
-	import ManageMediaMenuLayout from './ManageMediaMenuLayout.svelte';
+	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
+	import ManageMediaMenuLayout from '../MediaManagerMenuLayout.svelte';
 	import {
 		type MovieFileResource,
 		radarrApi,
 		type RadarrRelease
-	} from '../../apis/radarr/radarr-api';
-	import ReleaseList from './Releases/ReleaseList.svelte';
-	import FilesList from './LocalFiles/FilesList.svelte';
-	import { modalStack } from '../Modal/modal.store';
-	import FileActionsModal from './LocalFiles/FileActionsModal.svelte';
-	import DownloadsList from './DownloadsList.svelte';
-	import { useRequest } from '../../stores/data.store';
+	} from '../../../apis/radarr/radarr-api';
+	import ReleaseList from '../ReleaseList.svelte';
+	import FilesList from '../FileList.svelte';
+	import { modalStack } from '../../Modal/modal.store';
+	import FileActionsModal from '../modals/FileActionsModal.svelte';
+	import DownloadsList from '../DownloadList.svelte';
+	import { useRequest } from '../../../stores/data.store';
 	import { derived, type Readable } from 'svelte/store';
-	import ReleaseActionsModal from './Releases/ReleaseActionsModal.svelte';
-	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
-	import Button from '../Button.svelte';
-	import type { FileResource } from '../../apis/combined-types';
+	import ReleaseActionsModal from '../modals/ReleaseActionsModal.svelte';
+	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import Button from '../../Button.svelte';
+	import type { FileResource } from '../../../apis/combined-types';
 
 	export let modalId: symbol;
 	export let hidden: boolean;

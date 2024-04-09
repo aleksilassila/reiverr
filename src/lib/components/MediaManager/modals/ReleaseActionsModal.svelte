@@ -1,13 +1,11 @@
 <script lang="ts">
 	import Container from '../../../../Container.svelte';
-	import type { MovieFileResource, RadarrRelease } from '../../../apis/radarr/radarr-api';
 	import { formatSize } from '../../../utils';
 	import Button from '../../Button.svelte';
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
-	import FullScreenModalContainer from '../ManageMediaMenuLayout.svelte';
-	import { useActionRequest, useRequest } from '../../../stores/data.store';
+	import FullScreenModalContainer from '../MediaManagerMenuLayout.svelte';
+	import { useActionRequest } from '../../../stores/data.store';
 	import { Download, Plus } from 'radix-icons-svelte';
-	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
 	import type { Release } from '../../../apis/combined-types';
 
 	export let modalId: symbol;

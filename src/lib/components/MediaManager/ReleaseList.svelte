@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { type RadarrRelease } from '../../../apis/radarr/radarr-api';
+	import { type RadarrRelease } from '../../apis/radarr/radarr-api';
 	import classNames from 'classnames';
-	import { useRequest } from '../../../stores/data.store';
-	import Button from '../../Button.svelte';
+	import { useRequest } from '../../stores/data.store';
+	import Button from '../Button.svelte';
 	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
-	import { formatMinutesToTime, formatSize } from '../../../utils';
+	import { formatMinutesToTime, formatSize } from '../../utils';
 	import { derived } from 'svelte/store';
-	import ButtonGhost from '../../Ghosts/ButtonGhost.svelte';
-	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
+	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
 
 	type Release = RadarrRelease | SonarrRelease;
 

@@ -12,12 +12,12 @@
 	import Button from '../Button.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { modalStack } from '../Modal/modal.store';
-	import ManageMediaModal from '../ManageMedia/RadarrMediaMangerModal.svelte';
+	import ManageMediaModal from '../MediaManager/radarr/RadarrMediaMangerModal.svelte';
 	import { derived } from 'svelte/store';
 	import EpisodeCarousel from './EpisodeCarousel.svelte';
 	import { scrollIntoView, Selectable } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
-	import SonarrMediaMangerModal from '../ManageMedia/SonarrMediaMangerModal.svelte';
+	import SonarrMediaMangerModal from '../MediaManager/sonarr/SonarrMediaMangerModal.svelte';
 
 	export let id: string;
 

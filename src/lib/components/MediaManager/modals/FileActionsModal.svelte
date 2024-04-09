@@ -1,10 +1,9 @@
 <script lang="ts">
 	import Container from '../../../../Container.svelte';
-	import type { MovieFileResource } from '../../../apis/radarr/radarr-api';
 	import { formatSize } from '../../../utils';
 	import Button from '../../Button.svelte';
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
-	import FullScreenModalContainer from '../ManageMediaMenuLayout.svelte';
+	import FullScreenModalContainer from '../MediaManagerMenuLayout.svelte';
 	import type { FileResource } from '../../../apis/combined-types';
 
 	export let modalId: symbol;

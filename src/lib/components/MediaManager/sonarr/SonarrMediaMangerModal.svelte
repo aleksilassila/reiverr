@@ -1,19 +1,16 @@
 <script lang="ts">
-	import FullScreenModal from '../Modal/FullScreenModal.svelte';
-	import ManageMediaMenuLayout from './ManageMediaMenuLayout.svelte';
-	import { radarrApi } from '../../apis/radarr/radarr-api';
-	import FilesList from './LocalFiles/FilesList.svelte';
-	import { modalStack } from '../Modal/modal.store';
-	import FileActionsModal from './LocalFiles/FileActionsModal.svelte';
-	import DownloadsList from './DownloadsList.svelte';
-	import { useRequest } from '../../stores/data.store';
+	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
+	import ManageMediaMenuLayout from '../MediaManagerMenuLayout.svelte';
+	import FilesList from '../FileList.svelte';
+	import { modalStack } from '../../Modal/modal.store';
+	import FileActionsModal from '../modals/FileActionsModal.svelte';
+	import DownloadsList from '../DownloadList.svelte';
+	import { useRequest } from '../../../stores/data.store';
 	import { derived, type Readable } from 'svelte/store';
 	import SeasonList from './SeasonList.svelte';
-	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
-	import SeasonReleasesModal from './Releases/SeasonReleasesModal.svelte';
-	import type { FileResource, Release } from '../../apis/combined-types';
-	import ReleaseActionsModal from './Releases/ReleaseActionsModal.svelte';
-	import Button from '../Button.svelte';
+	import { sonarrApi } from '../../../apis/sonarr/sonarr-api';
+	import SeasonReleasesModal from './modals/EpisodeListModal.svelte';
+	import type { FileResource } from '../../../apis/combined-types';
 
 	export let modalId: symbol;
 	export let groupId: symbol;
@@ -62,18 +59,6 @@
 			groupId
 		);
 	}
-
-	const handleSelectRelease = (release: Release) => {
-		modalStack.create(
-			ReleaseActionsModal,
-			{
-				release,
-				grabRelease: handleGrabRelease,
-				status: undefined
-			},
-			groupId
-		);
-	};
 
 	function handleSelectFile(file: FileResource) {
 		modalStack.create(

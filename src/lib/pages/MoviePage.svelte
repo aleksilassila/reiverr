@@ -12,7 +12,7 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { modalStack } from '../components/Modal/modal.store';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import ManageMediaModal from '../components/ManageMedia/RadarrMediaMangerModal.svelte';
+	import ManageMediaModal from '../components/MediaManager/radarr/RadarrMediaMangerModal.svelte';
 
 	export let id: string;
 

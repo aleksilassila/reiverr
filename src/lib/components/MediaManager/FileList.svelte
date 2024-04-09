@@ -1,12 +1,10 @@
 <script lang="ts">
-	import type { MovieFileResource } from '../../../apis/radarr/radarr-api';
-	import ButtonGhost from '../../Ghosts/ButtonGhost.svelte';
-	import Button from '../../Button.svelte';
+	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
+	import Button from '../Button.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';
-	import { formatSize } from '../../../utils.js';
-	import type { EpisodeFileResource } from '../../../apis/sonarr/sonarr-api';
-	import type { FileResource } from '../../../apis/combined-types';
-	import { scrollIntoView } from '../../../selectable';
+	import { formatSize } from '../../utils.js';
+	import type { FileResource } from '../../apis/combined-types';
+	import { scrollIntoView } from '../../selectable';
 
 	export let files: Promise<FileResource[]>;
 	export let handleSelectFile: (file: FileResource) => void;
