@@ -86,8 +86,23 @@ export class JellyfinApi implements Api<paths> {
 			: '';
 	}
 
-	getLibraryItem(itemId: string, refreshCache = false) {
-		return this.getLibraryItems(refreshCache).then((items) => items.find((i) => i.Id === itemId));
+	async getLibraryItem(itemId: string, refreshCache = false) {
+		const item = await this.getLibraryItems(refreshCache).then((items) =>
+			items.find((i) => i.Id === itemId)
+		);
+
+		if (item) return item;
+
+		return this.getClient()
+			.GET('/Users/{userId}/Items/{itemId}', {
+				params: {
+					path: {
+						itemId,
+						userId: this.getUserId()
+					}
+				}
+			})
+			.then((r) => r.data);
 	}
 
 	getLibraryItemFromTmdbId(tmdbId: string, refreshCache = false) {

@@ -27,6 +27,14 @@ export type EnterEvent = {
 	stopPropagation: () => void;
 };
 
+type NavigateEventOptions = {};
+
+export type NavigateEvent = {
+	selectable: Selectable;
+	options: NavigateEventOptions;
+	preventDefault: () => void;
+};
+
 const createFocusHandlerOptions = (): FocusEventOptions => ({
 	setFocusedElement: true,
 	propagate: true

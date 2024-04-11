@@ -2,7 +2,12 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { type NavigationActions, Selectable, type EnterEvent } from './lib/selectable';
+	import {
+		type NavigationActions,
+		Selectable,
+		type EnterEvent,
+		type NavigateEvent
+	} from './lib/selectable';
 	import classNames from 'classnames';
 
 	const dispatch = createEventDispatcher<{
@@ -11,6 +16,7 @@
 		clickOrSelect: null;
 		enter: EnterEvent;
 		mount: Selectable;
+		navigate: NavigateEvent;
 	}>();
 
 	export let name: string = '';
@@ -77,6 +83,7 @@
 <svelte:element
 	this={tag}
 	on:click={handleClick}
+	on:mousemove
 	tabindex={active ? 0 : -1}
 	{...$$restProps}
 	class={classNames($$restProps.class, {
