@@ -8,10 +8,10 @@
 </script>
 
 <Container
-	handleNavigateOut={{
-		left: () => {
+	on:navigate={({ detail }) => {
+		if (detail.direction === 'left' && detail.options.willLeaveContainer) {
 			modalStack.close(modalId);
-			return true;
+			detail.preventNavigation();
 		}
 	}}
 	focusOnMount

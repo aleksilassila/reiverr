@@ -45,6 +45,18 @@
 
 			dispatch('enter', { selectable, options, stopPropagation });
 		})
+		.setOnNavigate((selectable, options) => {
+			function preventNavigation() {
+				options.preventNavigation = true;
+			}
+
+			dispatch('navigate', {
+				selectable,
+				options,
+				preventNavigation,
+				direction: options.direction
+			});
+		})
 		.setOnSelect(() => {
 			dispatch('select');
 			dispatch('clickOrSelect');

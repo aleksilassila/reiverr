@@ -42,10 +42,15 @@
 <Container class="flex-1 flex">
 	<HeroShowcaseBackground {urls} {index} />
 	<Container
-		handleNavigateOut={{
-			right: onNext,
-			left: onPrevious,
-			up: () => Selectable.giveFocus('left', true) || true
+		on:navigate={({ detail }) => {
+			if (detail.options.direction === 'right') {
+				if (onNext()) detail.preventNavigation();
+			} else if (detail.options.direction === 'left') {
+				if (onPrevious()) detail.preventNavigation();
+			} else if (detail.options.direction === 'up') {
+				Selectable.giveFocus('left', true);
+				detail.preventNavigation();
+			}
 		}}
 	/>
 	<div class="flex flex-1 z-10">

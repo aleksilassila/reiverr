@@ -27,20 +27,32 @@ export type EnterEvent = {
 	stopPropagation: () => void;
 };
 
-type NavigateEventOptions = {};
-
-export type NavigateEvent = {
-	selectable: Selectable;
-	options: NavigateEventOptions;
-	preventDefault: () => void;
-};
-
 const createFocusHandlerOptions = (): FocusEventOptions => ({
 	setFocusedElement: true,
 	propagate: true
 });
 
+type NavigateEventOptions = {
+	willLeaveContainer: boolean;
+	preventNavigation: boolean;
+	direction: Direction;
+};
+
+export type NavigateEvent = {
+	selectable: Selectable;
+	direction: Direction;
+	options: NavigateEventOptions;
+	preventNavigation: () => void;
+};
+
+const createNavigateHandlerOptions = (direction: Direction): NavigateEventOptions => ({
+	willLeaveContainer: false,
+	preventNavigation: false,
+	direction
+});
+
 export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
+export type NavigationHandler = (selectable: Selectable, options: NavigateEventOptions) => void;
 
 export class Selectable {
 	id: symbol;
@@ -57,6 +69,7 @@ export class Selectable {
 	private canFocusEmpty: boolean = true;
 	private trapFocus: boolean = false;
 	private navigationActions: NavigationActions = {};
+	private onNavigate: NavigationHandler = () => {};
 	private isActive: boolean = true;
 	private onFocus: FocusHandler = () => {};
 	private onSelect?: () => void;
@@ -196,6 +209,7 @@ export class Selectable {
 
 	private giveFocus(direction: Direction, bypassActions: boolean = false): boolean {
 		const focusIndex = get(this.focusIndex);
+		const navigationEventOptions = createNavigateHandlerOptions(direction);
 
 		const indexAddition = {
 			up: this.direction === 'vertical' ? -1 : -this.gridColumns,
@@ -220,6 +234,8 @@ export class Selectable {
 			while (index >= 0 && index < this.children.length) {
 				const children = this.children[index];
 				if (children && children.isFocusable()) {
+					this.onNavigate(this, navigationEventOptions);
+					if (navigationEventOptions.preventNavigation) return true;
 					children.focus();
 					return true;
 				}
@@ -228,11 +244,12 @@ export class Selectable {
 		}
 
 		// About to leave this container (=coulnd't cycle siblings)
-
-		const action = this.navigationActions[direction];
-		if (action && !bypassActions && action(this)) {
-			return true;
-		} else if (this.neighbors[direction]?.isFocusable()) {
+		navigationEventOptions.willLeaveContainer = true;
+		if (!bypassActions) {
+			this.onNavigate(this, navigationEventOptions);
+			if (navigationEventOptions.preventNavigation) return true;
+		}
+		if (this.neighbors[direction]?.isFocusable()) {
 			this.neighbors[direction]?.focus();
 			return true;
 		} else if (!this.trapFocus) {
@@ -572,6 +589,11 @@ export class Selectable {
 		this.onSelect = onSelect;
 		return this;
 	}
+
+	setOnNavigate(onNavigate: NavigationHandler) {
+		this.onNavigate = onNavigate;
+		return this;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -603,6 +625,8 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		else {
 			currentlyFocusedObject.select();
 		}
+	} else if (event.key === 'Back') {
+	} else if (event.key === 'MediaPlayPause') {
 	}
 }
 

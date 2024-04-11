@@ -3,10 +3,10 @@
 </script>
 
 <Container
-	handleNavigateOut={{
-		left: () => {
+	on:navigate={({ detail }) => {
+		if (detail.direction === 'left' && detail.options.willLeaveContainer) {
 			history.back();
-			return false;
+			detail.preventNavigation();
 		}
 	}}
 	focusOnMount
