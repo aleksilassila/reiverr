@@ -33,7 +33,7 @@
 	}
 </script>
 
-<Container class="w-full h-4 relative overflow-hidden -mx-1 group" let:hasFocus>
+<Container class="w-full h-4 relative overflow-hidden -mx-1 group" let:hasFocus focusOnMount>
 	<div class="absolute inset-y-1 inset-x-2 rounded-full bg-zinc-300/50" />
 
 	<!-- Secondary progress -->

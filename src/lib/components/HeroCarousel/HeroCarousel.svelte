@@ -48,7 +48,7 @@
 			} else if (detail.options.direction === 'left') {
 				if (onPrevious()) detail.preventNavigation();
 			} else if (detail.options.direction === 'up') {
-				Selectable.giveFocus('left', true);
+				Selectable.giveFocus('left', false);
 				detail.preventNavigation();
 			}
 		}}

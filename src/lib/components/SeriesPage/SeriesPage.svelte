@@ -55,7 +55,7 @@
 		class="h-screen flex flex-col py-12 px-20 relative"
 		on:enter={scrollIntoView({ top: 0 })}
 		on:navigate={({ detail }) => {
-			if (detail.direction === 'down') {
+			if (detail.direction === 'down' && detail.willLeaveContainer) {
 				if (episodesSelectable?.focusChild(1)) detail.preventNavigation();
 			}
 		}}

@@ -5,7 +5,6 @@
 	import classNames from 'classnames';
 	import ProgressBar from './ProgressBar.svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
 	import type { Selectable } from '../../selectable';
 
 	export let playbackInfo: PlaybackInfo | undefined;
@@ -22,25 +21,44 @@
 	export let video: HTMLVideoElement;
 
 	let showInterface = true;
+	let showInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let hideInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let container: Selectable;
 
-	function handleMouseMove() {
+	function handleShowInterface() {
 		showInterface = true;
-		clearTimeout(hideInterfaceTimeout);
-		hideInterfaceTimeout = setTimeout(() => {
-			if (seeking) handleMouseMove();
-			else {
-				showInterface = false;
-				container?.focusChild(1);
-			}
-		}, 2000);
+		clearTimeout(showInterfaceTimeout);
+		showInterfaceTimeout = setTimeout(() => {
+			if (seeking) handleShowInterface();
+			else handleHideInterface();
+		}, 5000);
 	}
 
-	onDestroy(() => clearTimeout(hideInterfaceTimeout));
+	function handleHideInterface() {
+		showInterface = false;
+		clearTimeout(hideInterfaceTimeout);
+		hideInterfaceTimeout = setTimeout(() => {
+			container?.focusChild(1);
+		}, 200);
+	}
+
+	onDestroy(() => {
+		clearTimeout(showInterfaceTimeout);
+		clearTimeout(hideInterfaceTimeout);
+	});
 </script>
 
-<Container class="w-full h-full relative" on:mousemove={handleMouseMove}>
+<Container
+	class="w-full h-full relative"
+	on:mousemove={handleShowInterface}
+	on:navigate={({ detail }) => {
+		if (!showInterface) {
+			detail.stopPropagation();
+			detail.preventNavigation();
+		}
+		handleShowInterface();
+	}}
+>
 	<VideoElement
 		bind:playbackInfo
 		bind:paused
@@ -54,7 +72,6 @@
 		bind:video
 	/>
 	<Container
-		direction="horizontal"
 		class={classNames('absolute inset-x-12 top-8 transition-opacity', {
 			'opacity-0': !showInterface
 		})}
@@ -67,11 +84,21 @@
 		})}
 		bind:container
 	>
-		<Container direction="horizontal">Buttons</Container>
+		<Container
+			direction="horizontal"
+			on:navigate={({ detail }) => {
+				if (detail.direction === 'up') {
+					detail.stopPropagation();
+					detail.preventNavigation();
+					handleHideInterface();
+				}
+			}}
+		>
+			Buttons
+		</Container>
 		<ProgressBar
 			bind:seeking
 			on:jumpTo={(e) => {
-				console.log(e.detail);
 				video.currentTime = e.detail;
 			}}
 			bind:totalTime

@@ -9,7 +9,7 @@
 
 <Container
 	on:navigate={({ detail }) => {
-		if (detail.direction === 'left' && detail.options.willLeaveContainer) {
+		if (detail.direction === 'left' && detail.willLeaveContainer) {
 			modalStack.close(modalId);
 			detail.preventNavigation();
 		}

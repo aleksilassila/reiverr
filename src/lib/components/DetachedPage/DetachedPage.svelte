@@ -4,7 +4,11 @@
 
 <Container
 	on:navigate={({ detail }) => {
-		if (detail.direction === 'left' && detail.options.willLeaveContainer) {
+		if (
+			detail.direction === 'left' &&
+			detail.options.willLeaveContainer &&
+			detail.selectable === detail.options.target
+		) {
 			history.back();
 			detail.preventNavigation();
 		}

@@ -33,26 +33,37 @@ const createFocusHandlerOptions = (): FocusEventOptions => ({
 });
 
 type NavigateEventOptions = {
-	willLeaveContainer: boolean;
+	target?: Selectable;
 	preventNavigation: boolean;
+	propagate: boolean;
 	direction: Direction;
 };
 
 export type NavigateEvent = {
 	selectable: Selectable;
 	direction: Direction;
+	willLeaveContainer: boolean;
 	options: NavigateEventOptions;
 	preventNavigation: () => void;
+	stopPropagation: () => void;
 };
 
-const createNavigateHandlerOptions = (direction: Direction): NavigateEventOptions => ({
-	willLeaveContainer: false,
+const createNavigateHandlerOptions = (
+	target: Selectable | undefined,
+	direction: Direction
+): NavigateEventOptions => ({
+	target,
 	preventNavigation: false,
+	propagate: true,
 	direction
 });
 
 export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
-export type NavigationHandler = (selectable: Selectable, options: NavigateEventOptions) => void;
+export type NavigationHandler = (
+	selectable: Selectable,
+	options: NavigateEventOptions,
+	willLeaveContainer: boolean
+) => void;
 
 export class Selectable {
 	id: symbol;
@@ -207,61 +218,135 @@ export class Selectable {
 		return false;
 	}
 
-	private giveFocus(direction: Direction, bypassActions: boolean = false): boolean {
-		const focusIndex = get(this.focusIndex);
-		const navigationEventOptions = createNavigateHandlerOptions(direction);
+	private giveFocus(direction: Direction, fireActions: boolean = true): boolean {
+		function getSelectable(selectable: Selectable): {
+			target?: Selectable;
+			cycledParent?: Selectable;
+		} {
+			const focusIndex = get(selectable.focusIndex);
 
-		const indexAddition = {
-			up: this.direction === 'vertical' ? -1 : -this.gridColumns,
-			down: this.direction === 'vertical' ? 1 : this.gridColumns,
-			left:
-				this.direction === 'horizontal'
-					? (focusIndex % this.gridColumns) - 1 < 0
-						? 0
-						: -1
-					: -this.gridColumns,
-			right:
-				this.direction === 'horizontal'
-					? (focusIndex % this.gridColumns) + 1 >= this.gridColumns
-						? 0
-						: 1
-					: this.gridColumns
-		}[direction];
+			const indexAddition = {
+				up: selectable.direction === 'vertical' ? -1 : -selectable.gridColumns,
+				down: selectable.direction === 'vertical' ? 1 : selectable.gridColumns,
+				left:
+					selectable.direction === 'horizontal'
+						? (focusIndex % selectable.gridColumns) - 1 < 0
+							? 0
+							: -1
+						: -selectable.gridColumns,
+				right:
+					selectable.direction === 'horizontal'
+						? (focusIndex % selectable.gridColumns) + 1 >= selectable.gridColumns
+							? 0
+							: 1
+						: selectable.gridColumns
+			}[direction];
 
-		// Cycle siblings
-		if (indexAddition !== 0) {
-			let index = focusIndex + indexAddition;
-			while (index >= 0 && index < this.children.length) {
-				const children = this.children[index];
-				if (children && children.isFocusable()) {
-					this.onNavigate(this, navigationEventOptions);
-					if (navigationEventOptions.preventNavigation) return true;
-					children.focus();
-					return true;
+			// Cycle siblings
+			if (indexAddition !== 0) {
+				let index = focusIndex + indexAddition;
+				while (index >= 0 && index < selectable.children.length) {
+					const child = selectable.children[index];
+					if (child && child.isFocusable()) {
+						return { target: child, cycledParent: selectable };
+					}
+					index += indexAddition;
 				}
-				index += indexAddition;
+			}
+
+			if (selectable.neighbors[direction]?.isFocusable()) {
+				return { target: selectable.neighbors[direction] };
+				// return selectable.neighbors[direction];
+			} else if (!selectable.trapFocus) {
+				const parent = selectable.parent;
+				if (parent) return getSelectable(parent);
+			}
+
+			return {};
+		}
+
+		function propagateNavigationEvent(
+			selectable: Selectable,
+			options: NavigateEventOptions,
+			cycledParent?: Selectable
+		) {
+			const willLeaveContainer = cycledParent ? cycledParent !== selectable.parent : false;
+
+			selectable.onNavigate(selectable, options, willLeaveContainer);
+
+			if (options.propagate && selectable.parent) {
+				propagateNavigationEvent(
+					selectable.parent,
+					options,
+					willLeaveContainer ? cycledParent : undefined
+				);
 			}
 		}
 
-		// About to leave this container (=coulnd't cycle siblings)
-		navigationEventOptions.willLeaveContainer = true;
-		if (!bypassActions) {
-			this.onNavigate(this, navigationEventOptions);
-			if (navigationEventOptions.preventNavigation) return true;
-		}
-		if (this.neighbors[direction]?.isFocusable()) {
-			this.neighbors[direction]?.focus();
+		const { target, cycledParent } = getSelectable(this);
+		const navigationEventOptions = createNavigateHandlerOptions(target, direction);
+		if (fireActions) propagateNavigationEvent(this, navigationEventOptions, cycledParent);
+
+		if (target && !navigationEventOptions.preventNavigation) {
+			target.focus();
 			return true;
-		} else if (!this.trapFocus) {
-			return this.parent?.giveFocus(direction, bypassActions) || false;
 		}
 
 		return false;
+
+		// const focusIndex = get(this.focusIndex);
+		//
+		// const indexAddition = {
+		// 	up: this.direction === 'vertical' ? -1 : -this.gridColumns,
+		// 	down: this.direction === 'vertical' ? 1 : this.gridColumns,
+		// 	left:
+		// 		this.direction === 'horizontal'
+		// 			? (focusIndex % this.gridColumns) - 1 < 0
+		// 				? 0
+		// 				: -1
+		// 			: -this.gridColumns,
+		// 	right:
+		// 		this.direction === 'horizontal'
+		// 			? (focusIndex % this.gridColumns) + 1 >= this.gridColumns
+		// 				? 0
+		// 				: 1
+		// 			: this.gridColumns
+		// }[direction];
+		//
+		// // Cycle siblings
+		// if (indexAddition !== 0) {
+		// 	let index = focusIndex + indexAddition;
+		// 	while (index >= 0 && index < this.children.length) {
+		// 		const children = this.children[index];
+		// 		if (children && children.isFocusable()) {
+		// 			propagateNavigationEvent(this, navigationEventOptions);
+		// 			if (navigationEventOptions.preventNavigation) return true;
+		// 			children.focus();
+		// 			return true;
+		// 		}
+		// 		index += indexAddition;
+		// 	}
+		// }
+		//
+		// // About to leave this container (=coulnd't cycle siblings)
+		// navigationEventOptions.willLeaveContainer = true;
+		// if (!bypassActions) {
+		// 	propagateNavigationEvent(this, navigationEventOptions);
+		// 	if (navigationEventOptions.preventNavigation) return true;
+		// }
+		// if (this.neighbors[direction]?.isFocusable()) {
+		// 	this.neighbors[direction]?.focus();
+		// 	return true;
+		// } else if (!this.trapFocus) {
+		// 	return this.parent?.giveFocus(direction, bypassActions) || false;
+		// }
+		//
+		// return false;
 	}
 
-	static giveFocus(direction: Direction, bypassActions: boolean = false) {
+	static giveFocus(direction: Direction, fireActions?: boolean) {
 		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus(direction, bypassActions);
+		return currentlyFocusedObject?.giveFocus(direction, fireActions);
 	}
 
 	private static initializeTreeStructure() {

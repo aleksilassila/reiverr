@@ -15,6 +15,7 @@
 	import MoviePage from './lib/pages/MoviePage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import PageNotFound from './lib/pages/PageNotFound.svelte';
+	import NavigationDebugger from './lib/components/NavigationDebugger.svelte';
 
 	appState.subscribe((s) => console.log('appState', s));
 </script>
@@ -67,5 +68,7 @@
 		<ModalStack />
 	{/if}
 </Container>
+
+<NavigationDebugger />
 
 <svelte:window on:keydown={handleKeyboardNavigation} />

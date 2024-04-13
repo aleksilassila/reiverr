@@ -45,15 +45,21 @@
 
 			dispatch('enter', { selectable, options, stopPropagation });
 		})
-		.setOnNavigate((selectable, options) => {
+		.setOnNavigate((selectable, options, willLeaveContainer) => {
 			function preventNavigation() {
 				options.preventNavigation = true;
+			}
+
+			function stopPropagation() {
+				options.propagate = false;
 			}
 
 			dispatch('navigate', {
 				selectable,
 				options,
+				willLeaveContainer,
 				preventNavigation,
+				stopPropagation,
 				direction: options.direction
 			});
 		})

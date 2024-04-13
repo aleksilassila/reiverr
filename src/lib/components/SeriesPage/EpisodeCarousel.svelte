@@ -21,6 +21,8 @@
 	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
 	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
 
+	export let selectedTmdbEpisode: TmdbEpisode | undefined;
+
 	const containers = new Map<TmdbSeason | TmdbEpisode, Selectable>();
 	let scrollTop: number;
 
@@ -131,6 +133,7 @@
 							on:enter={(event) => {
 								scrollIntoView({ left: 64 + 16 })(event);
 								focusSeason(season);
+								selectedTmdbEpisode = episode;
 							}}
 							on:mount={(e) => handleEpisodeMount(e, episode)}
 							jellyfinEpisode={$jellyfinEpisodes?.find(
