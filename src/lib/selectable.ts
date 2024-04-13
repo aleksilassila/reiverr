@@ -137,10 +137,15 @@ export class Selectable {
 			const parent = selectable.parent;
 
 			if (parent) {
-				const index = parent.children.indexOf(selectable);
-				parent.focusIndex.update((prev) => (index === -1 ? prev : index));
+				const updateParentFocusIndex = options.setFocusedElement
+					? true
+					: !get(parent?.hasFocusWithin);
+				if (updateParentFocusIndex) {
+					const index = parent.children.indexOf(selectable);
+					parent.focusIndex.update((prev) => (index === -1 ? prev : index));
 
-				propagateFocusUpdates(options, parent);
+					propagateFocusUpdates(options, parent);
+				}
 			}
 		}
 
@@ -270,8 +275,7 @@ export class Selectable {
 			options: NavigateEventOptions,
 			cycledParent?: Selectable
 		) {
-			const willLeaveContainer = cycledParent ? cycledParent !== selectable.parent : false;
-
+			const willLeaveContainer = cycledParent ? cycledParent !== selectable : false;
 			selectable.onNavigate(selectable, options, willLeaveContainer);
 
 			if (options.propagate && selectable.parent) {
