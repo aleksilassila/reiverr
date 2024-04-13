@@ -29,7 +29,7 @@
 			<CarouselPlaceholderItems />
 		{:then items}
 			{#each items as item}
-				<JellyfinCard {item} on:enter={scrollIntoView({ all: 64 })} />
+				<JellyfinCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" />
 			{/each}
 		{/await}
 	</CardGrid>
