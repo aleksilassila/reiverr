@@ -156,6 +156,15 @@ export class TmdbApi implements Api<paths> {
 			})
 			.then((res) => res.data);
 
+	getPopularSeries = () =>
+		TmdbApiOpen.GET('/3/tv/popular', {
+			params: {
+				query: {
+					language: get(settings)?.language
+				}
+			}
+		}).then((res) => res.data?.results || []);
+
 	// OTHER
 }
 
@@ -178,7 +187,7 @@ const getTmdbCache = async (
 		else {
 			const backdropUri = await fn();
 			if (backdropUri) {
-				cache.put(String(tmdbId), new Response(backdropUri));
+				await cache.put(String(tmdbId), new Response(backdropUri));
 			}
 			return backdropUri;
 		}
@@ -324,15 +333,6 @@ export const getTmdbMoviePoster = async (tmdbId: number) =>
 	getTmdbCache(posterCache, tmdbId, () => getTmdbMovie(tmdbId).then((m) => m?.poster_path));
 
 /** Discover */
-
-export const getTmdbPopularSeries = () =>
-	TmdbApiOpen.GET('/3/tv/popular', {
-		params: {
-			query: {
-				language: get(settings)?.language
-			}
-		}
-	}).then((res) => res.data?.results || []);
 
 export const getTmdbNetworkSeries = (networkId: number) =>
 	TmdbApiOpen.GET('/3/discover/tv', {

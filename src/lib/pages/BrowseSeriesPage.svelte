@@ -12,7 +12,10 @@
 	import { _ } from 'svelte-i18n';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
-	import { getShowcasePropsFromTmdb } from '../components/HeroShowcase/HeroShowcase';
+	import {
+		getShowcasePropsFromTmdbMovie,
+		getShowcasePropsFromTmdbSeries
+	} from '../components/HeroShowcase/HeroShowcase';
 	import { scrollIntoView } from '../selectable';
 	import SidebarMargin from '../components/SidebarMargin.svelte';
 
@@ -77,7 +80,7 @@
 <Container focusOnMount>
 	<div class="flex flex-col h-screen">
 		<div class="flex-1 flex relative px-20">
-			<HeroShowcase items={tmdbApi.getPopularMovies().then(getShowcasePropsFromTmdb)} />
+			<HeroShowcase items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)} />
 		</div>
 		<div class="mt-8">
 			<Carousel scrollClass="">
