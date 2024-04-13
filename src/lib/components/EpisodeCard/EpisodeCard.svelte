@@ -1,18 +1,12 @@
 <script lang="ts">
-	import type { TmdbEpisode } from '../../apis/tmdb/tmdb-api';
 	import Container from '../../../Container.svelte';
 	import classNames from 'classnames';
-	import { TMDB_BACKDROP_SMALL } from '../../constants';
-	import { Play, TriangleRight } from 'radix-icons-svelte';
-	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import { TriangleRight } from 'radix-icons-svelte';
 
-	export let episode: TmdbEpisode;
-	export let jellyfinEpisode: JellyfinItem | undefined;
-
-	function handlePlay() {
-		if (jellyfinEpisode?.Id) playerState.streamJellyfinId(jellyfinEpisode.Id);
-	}
+	export let episodeNumber: number;
+	export let episodeName: string;
+	export let backdropUrl: string;
+	export let handlePlay: () => void = () => {};
 </script>
 
 <Container
@@ -28,17 +22,17 @@
 	focusOnClick
 >
 	<div class="flex-1 flex flex-col justify-end z-10">
-		<h2 class="text-zinc-300 font-medium">Episode {episode.episode_number}</h2>
-		<h1 class="text-zinc-100 text-lg font-medium line-clamp-2">{episode.name}</h1>
+		<h2 class="text-zinc-300 font-medium">Episode {episodeNumber}</h2>
+		<h1 class="text-zinc-100 text-lg font-medium line-clamp-2">{episodeName}</h1>
 	</div>
 	<div
 		class="absolute inset-0 bg-center bg-cover"
-		style={`background-image: url('${TMDB_BACKDROP_SMALL + episode.still_path}')`}
+		style={`background-image: url('${backdropUrl}')`}
 	/>
 	<div
 		class="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent via-40% to-transparent"
 	/>
-	{#if jellyfinEpisode}
+	{#if handlePlay}
 		<div
 			class={classNames(
 				'opacity-0 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center',

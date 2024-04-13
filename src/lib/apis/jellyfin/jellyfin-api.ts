@@ -8,6 +8,8 @@ import axios from 'axios';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
+type Type = 'movie' | 'series';
+
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
 export class JellyfinApi implements Api<paths> {
@@ -36,8 +38,8 @@ export class JellyfinApi implements Api<paths> {
 		return get(appState).user?.settings.jellyfin.baseUrl || '';
 	}
 
-	async getContinueWatching(): Promise<JellyfinItem[] | undefined> {
-		return this.getClient()
+	getContinueWatching = async (type?: Type): Promise<JellyfinItem[] | undefined> =>
+		this.getClient()
 			.GET('/Users/{userId}/Items/Resume', {
 				params: {
 					path: {
@@ -45,12 +47,12 @@ export class JellyfinApi implements Api<paths> {
 					},
 					query: {
 						mediaTypes: ['Video'],
-						fields: ['ProviderIds', 'Genres']
+						fields: ['ProviderIds', 'Genres'],
+						...(type ? { parentId: await this.getViewId(type) } : {})
 					}
 				}
 			})
 			.then((r) => r.data?.Items || []);
-	}
 
 	jellyfinItemsCache: JellyfinItem[] = [];
 	async getLibraryItems(refreshCache = false) {
@@ -448,7 +450,7 @@ export class JellyfinApi implements Api<paths> {
 			.then((res) => res.data || [])
 			.catch(() => []);
 
-	getJellyfinBackdrop = (item: JellyfinItem, quality = 100) => {
+	getBackdrop = (item: JellyfinItem, quality = 100) => {
 		if (item.BackdropImageTags?.length) {
 			return `${this.getBaseUrl()}/Items/${item?.Id}/Images/Backdrop?quality=${quality}&tag=${
 				item?.BackdropImageTags?.[0]
@@ -459,6 +461,64 @@ export class JellyfinApi implements Api<paths> {
 			}`;
 		}
 	};
+
+	private views: Record<string, JellyfinItem | undefined> = {
+		movie: undefined,
+		series: undefined
+	};
+	getViewId = async (type?: Type) => {
+		if (!type) return undefined;
+
+		if (!this.views[type]) {
+			await this.getClient()
+				.GET('/Users/{userId}/Views', {
+					params: {
+						path: {
+							userId: this.getUserId()
+						}
+					}
+				})
+				.then((r) => {
+					for (const view of r.data?.Items || []) {
+						const key = { Movies: 'movie', Shows: 'series' }[view.Name || ''];
+						this.views[key || view.Name || ''] = view;
+					}
+				});
+		}
+
+		return this.views[type]?.Id;
+	};
+
+	getRecentlyAdded = (type?: Type) =>
+		this.getViewId(type).then((parentId) =>
+			this.getClient()
+				.GET('/Users/{userId}/Items/Latest', {
+					params: {
+						path: {
+							userId: this.getUserId()
+						},
+						query: {
+							...(parentId ? { parentId } : {}),
+							fields: ['ProviderIds']
+						}
+					}
+				})
+				.then((r) => r.data || [])
+		);
+	// this.getLibraryItems().then((items) => {
+	// 	return items
+	// 		.sort((a, b) => {
+	// 			const aDate = new Date(a.DateCreated || a.DateLastMediaAdded || '');
+	// 			const bDate = new Date(b.DateCreated || b.DateLastMediaAdded || '');
+	//
+	// 			return bDate.getTime() - aDate.getTime();
+	// 		})
+	// 		.filter((item) => {
+	// 			if (type === 'movie') return item.Type === 'Movie';
+	// 			if (type === 'series') return item.Type === 'Series';
+	// 			return true;
+	// 		});
+	// });
 }
 
 export const jellyfinApi = new JellyfinApi();

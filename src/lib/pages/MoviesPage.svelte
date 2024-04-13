@@ -4,16 +4,22 @@
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import SidebarMargin from '../components/SidebarMargin.svelte';
-	import { _ } from 'svelte-i18n';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import Button from '../components/Button.svelte';
-	import { useNavigate } from 'svelte-navigator';
 	import { scrollIntoView } from '../selectable';
+	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
+	import { useRequest } from '../stores/data.store';
+	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
+
+	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
+		jellyfinApi.getContinueWatching,
+		'movie'
+	);
+	const { data: recentlyAdded, isLoading: isLoadingRecentlyAdded } = useRequest(
+		jellyfinApi.getRecentlyAdded,
+		'movie'
+	);
 
 	const popularMovies = tmdbApi.getPopularMovies();
-	const navigate = useNavigate();
 </script>
 
 <Container focusOnMount class="flex flex-col">
@@ -22,22 +28,33 @@
 			<HeroShowcase items={popularMovies.then(getShowcasePropsFromTmdbMovie)} />
 		</div>
 		<div class="mt-8">
-			<Carousel>
-				<SidebarMargin slot="title" class="mx-4">
-					<div class="text-xl font-semibold text-zinc-300">
-						{$_('discover.streamingNow')}
-					</div>
-				</SidebarMargin>
-				{#await popularMovies}
+			<Carousel scrollClass="px-20">
+				<div class="text-xl font-semibold text-zinc-300" slot="title">
+					{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
+						? 'Loading...'
+						: $continueWatching?.length
+						? 'Continue Watching'
+						: 'Recently Added'}
+				</div>
+				{#if $isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)}
 					<CarouselPlaceholderItems />
-				{:then items}
-					<div class="w-[4.5rem] h-1 shrink-0" />
-					{#each items as item (item.id)}
-						<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
-							<TmdbCard {item} />
-						</Container>
-					{/each}
-				{/await}
+				{:else if $continueWatching?.length}
+					<div class="flex -mx-2">
+						{#each $continueWatching as item (item.Id)}
+							<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
+								<JellyfinCard {item} />
+							</Container>
+						{/each}
+					</div>
+				{:else if $recentlyAdded?.length}
+					<div class="flex -mx-2">
+						{#each $recentlyAdded as item (item.Id)}
+							<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
+								<JellyfinCard {item} />
+							</Container>
+						{/each}
+					</div>
+				{/if}
 			</Carousel>
 		</div>
 	</div>

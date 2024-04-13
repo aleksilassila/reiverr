@@ -3,6 +3,9 @@
 	import Card from './Card.svelte';
 
 	export let item: JellyfinItem;
+	export let size: 'dynamic' | 'md' | 'lg' | 'sm' | undefined = undefined;
+
+	console.log(item, item.ProviderIds?.Tmdb);
 </script>
 
 <Card
@@ -11,8 +14,8 @@
 	title={item.Name || undefined}
 	subtitle={item.Genres?.join(', ') || undefined}
 	backdropUrl={jellyfinApi.getPosterUrl(item, 80)}
-	size="dynamic"
 	type={item.Type === 'Movie' ? 'movie' : 'series'}
+	{size}
 	orientation="portrait"
 	rating={item.CommunityRating || undefined}
 	on:enter

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
-	import EpisodeCard from './EpisodeCard.svelte';
+	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
 	import { derived, get, type Readable } from 'svelte/store';
 	import {
@@ -15,6 +15,8 @@
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
+	import TmdbEpisodeCard from '../EpisodeCard/TmdbEpisodeCard.svelte';
+	import { playerState } from '../VideoPlayer/VideoPlayer';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
@@ -128,20 +130,23 @@
 		<div class="flex -mx-2">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
+					{@const jellyfinEpisodeId = $jellyfinEpisodes?.find(
+						(i) =>
+							i.IndexNumber === episode.episode_number &&
+							i.ParentIndexNumber === episode.season_number
+					)?.Id}
 					<div class="mx-2">
-						<EpisodeCard
+						<TmdbEpisodeCard
 							on:enter={(event) => {
 								scrollIntoView({ left: 64 + 16 })(event);
 								focusSeason(season);
 								selectedTmdbEpisode = episode;
 							}}
 							on:mount={(e) => handleEpisodeMount(e, episode)}
-							jellyfinEpisode={$jellyfinEpisodes?.find(
-								(i) =>
-									i.IndexNumber === episode.episode_number &&
-									i.ParentIndexNumber === episode.season_number
-							)}
 							{episode}
+							handlePlay={jellyfinEpisodeId
+								? () => playerState.streamJellyfinId(jellyfinEpisodeId)
+								: undefined}
 						/>
 					</div>
 				{/each}
