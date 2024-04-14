@@ -49,7 +49,7 @@
 
 {#if showOverlay}
 	<div
-		class={classNames('fixed bg-red-500 opacity-20 z-50')}
+		class={classNames('fixed bg-red-500 opacity-20 z-50 pointer-events-none')}
 		style={`left: ${x}px; top: ${y}px; width: ${width}px; height: ${height}px;`}
 	/>
 {/if}

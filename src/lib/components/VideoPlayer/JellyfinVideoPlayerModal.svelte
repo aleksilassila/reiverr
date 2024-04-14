@@ -8,6 +8,7 @@
 	import { getQualities } from '../../apis/jellyfin/qualities';
 	import { appState } from '../../stores/app-state.store';
 	import { onDestroy } from 'svelte';
+	import { modalStack } from '../Modal/modal.store';
 
 	export let id: string;
 	export let modalId: symbol;

@@ -714,7 +714,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		else {
 			currentlyFocusedObject.select();
 		}
-	} else if (event.key === 'Back') {
+	} else if (event.key === 'Back' || event.key === 'XF86Back') {
 	} else if (event.key === 'MediaPlayPause') {
 	}
 }

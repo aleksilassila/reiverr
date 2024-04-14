@@ -69,15 +69,17 @@
 
 	<div
 		class={classNames(
-			'absolute inset-y-0 right-full pl-[64px] pr-10 z-10 transition-all bg-stone-900/90',
-			'flex flex-col flex-1 p-4 opacity-0',
+			'absolute inset-y-0 left-0 pl-[64px] pr-10 z-10 transition-all bg-stone-900/90',
+			'flex flex-col flex-1 p-4',
 			{
-				'translate-x-full opacity-100': $isNavBarOpen,
-				'group-hover:translate-x-full group-hover:opacity-100': true
+				// 'translate-x-full opacity-100': $isNavBarOpen,
+				'-translate-x-full opacity-0': !$isNavBarOpen,
+				'group-hover:translate-x-0 group-hover:opacity-100': true
 			}
 		)}
 	>
 		<div class="flex flex-col flex-1 justify-center">
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div class={itemContainer(0, $focusIndex)} on:click={() => navigate('/')}>
 				<span
 					class={classNames('text-xl transition-opacity font-medium', {
@@ -87,6 +89,7 @@
 					Series</span
 				>
 			</div>
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div class={itemContainer(1, $focusIndex)} on:click={() => navigate('movies')}>
 				<span
 					class={classNames('text-xl transition-opacity font-medium', {
@@ -96,6 +99,7 @@
 					Movies</span
 				>
 			</div>
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div class={itemContainer(2, $focusIndex)} on:click={() => navigate('library')}>
 				<span
 					class={classNames('text-xl transition-opacity font-medium', {
@@ -105,6 +109,7 @@
 					Library</span
 				>
 			</div>
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div class={itemContainer(3, $focusIndex)} on:click={() => navigate('search')}>
 				<span
 					class={classNames('text-xl transition-opacity font-medium', {
@@ -116,6 +121,7 @@
 			</div>
 		</div>
 
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<div class={itemContainer(4, $focusIndex)} on:click={() => navigate('manage')}>
 			<span
 				class={classNames('text-xl transition-opacity font-medium', {

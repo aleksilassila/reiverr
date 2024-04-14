@@ -68,7 +68,7 @@
 							<DotFilled />
 							<p class="flex-shrink-0">
 								<a href={'https://www.themoviedb.org/movie/' + movie.id}
-									>{movie.vote_average} TMDB</a
+									>{movie.vote_average?.toFixed(1)} TMDB</a
 								>
 							</p>
 						</div>

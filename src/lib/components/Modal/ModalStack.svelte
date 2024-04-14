@@ -4,7 +4,7 @@
 
 	function handleShortcuts(event: KeyboardEvent) {
 		const top = $modalStackTop;
-		if (event.key === 'Escape' && top) {
+		if ((event.key === 'Escape' || event.key === 'Back' || event.key === 'XF86Back') && top) {
 			modalStack.close(top.id);
 		}
 	}
