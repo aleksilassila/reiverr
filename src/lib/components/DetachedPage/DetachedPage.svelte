@@ -6,7 +6,7 @@
 	on:navigate={({ detail }) => {
 		if (
 			detail.direction === 'left' &&
-			detail.options.willLeaveContainer &&
+			detail.willLeaveContainer &&
 			detail.selectable === detail.options.target
 		) {
 			history.back();

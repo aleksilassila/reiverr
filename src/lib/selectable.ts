@@ -296,56 +296,9 @@ export class Selectable {
 			return true;
 		}
 
-		return false;
+		if (navigationEventOptions.preventNavigation) return true;
 
-		// const focusIndex = get(this.focusIndex);
-		//
-		// const indexAddition = {
-		// 	up: this.direction === 'vertical' ? -1 : -this.gridColumns,
-		// 	down: this.direction === 'vertical' ? 1 : this.gridColumns,
-		// 	left:
-		// 		this.direction === 'horizontal'
-		// 			? (focusIndex % this.gridColumns) - 1 < 0
-		// 				? 0
-		// 				: -1
-		// 			: -this.gridColumns,
-		// 	right:
-		// 		this.direction === 'horizontal'
-		// 			? (focusIndex % this.gridColumns) + 1 >= this.gridColumns
-		// 				? 0
-		// 				: 1
-		// 			: this.gridColumns
-		// }[direction];
-		//
-		// // Cycle siblings
-		// if (indexAddition !== 0) {
-		// 	let index = focusIndex + indexAddition;
-		// 	while (index >= 0 && index < this.children.length) {
-		// 		const children = this.children[index];
-		// 		if (children && children.isFocusable()) {
-		// 			propagateNavigationEvent(this, navigationEventOptions);
-		// 			if (navigationEventOptions.preventNavigation) return true;
-		// 			children.focus();
-		// 			return true;
-		// 		}
-		// 		index += indexAddition;
-		// 	}
-		// }
-		//
-		// // About to leave this container (=coulnd't cycle siblings)
-		// navigationEventOptions.willLeaveContainer = true;
-		// if (!bypassActions) {
-		// 	propagateNavigationEvent(this, navigationEventOptions);
-		// 	if (navigationEventOptions.preventNavigation) return true;
-		// }
-		// if (this.neighbors[direction]?.isFocusable()) {
-		// 	this.neighbors[direction]?.focus();
-		// 	return true;
-		// } else if (!this.trapFocus) {
-		// 	return this.parent?.giveFocus(direction, bypassActions) || false;
-		// }
-		//
-		// return false;
+		return false;
 	}
 
 	static giveFocus(direction: Direction, fireActions?: boolean) {

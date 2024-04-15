@@ -43,6 +43,7 @@
 						.slice(0, 5) || []
 			)}
 		>
+			<Container />
 			<div class="h-full flex-1 flex flex-col justify-end">
 				{#await $movieDataP then movie}
 					{#if movie}

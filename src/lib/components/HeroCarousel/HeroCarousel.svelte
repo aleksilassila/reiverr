@@ -6,6 +6,7 @@
 	import { ChevronRight } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
 	import SidebarMargin from '../SidebarMargin.svelte';
+	import type { Readable, Writable } from 'svelte/store';
 
 	export let urls: Promise<string[]>;
 
@@ -37,22 +38,30 @@
 		index = i;
 		return true;
 	}
+
+	let hasFocusWithin: Readable<boolean>;
+	let focusIndex: Writable<number>;
+	$: backgroundHasFocus = $hasFocusWithin && $focusIndex === 0;
 </script>
 
-<Container class="flex-1 flex">
-	<HeroShowcaseBackground {urls} {index} />
-	<Container
-		on:navigate={({ detail }) => {
-			if (detail.options.direction === 'right') {
-				if (onNext()) detail.preventNavigation();
-			} else if (detail.options.direction === 'left') {
-				if (onPrevious()) detail.preventNavigation();
-			} else if (detail.options.direction === 'up') {
-				Selectable.giveFocus('left', false);
-				detail.preventNavigation();
-			}
-		}}
-	/>
+<Container
+	class="flex-1 flex"
+	on:enter
+	on:navigate={({ detail }) => {
+		if (!backgroundHasFocus) return;
+		if (detail.options.direction === 'right') {
+			if (onNext()) detail.preventNavigation();
+		} else if (detail.options.direction === 'left') {
+			if (onPrevious()) detail.preventNavigation();
+		} else if (detail.options.direction === 'up') {
+			Selectable.giveFocus('left', false);
+			detail.preventNavigation();
+		}
+	}}
+	bind:hasFocusWithin
+	bind:focusIndex
+>
+	<HeroShowcaseBackground {urls} {index} hasFocus={backgroundHasFocus} />
 	<div class="flex flex-1 z-10">
 		<slot />
 		<div class="flex flex-col justify-end ml-4">

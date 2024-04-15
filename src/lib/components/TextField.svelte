@@ -33,7 +33,7 @@
 		<slot>Label</slot>
 	</label>
 	<input
-		class={classNames('bg-highlight-background px-4 py-1.5 rounded-lg', {
+		class={classNames('bg-secondary-500 px-4 py-1.5 rounded-lg', {
 			selected: hasFocus,
 			unselected: !hasFocus
 		})}

@@ -27,7 +27,7 @@ a {
 /*}*/
 
 /*.selectable, .selectable-offset {*/
-/*    @apply outline outline-0 outline-highlight-foreground*/
+/*    @apply outline outline-0 outline-primary-500*/
 /*}*/
 
 /*.selectable {*/
@@ -39,19 +39,23 @@ a {
 /*}*/
 
 html:not([data-useragent*="Tizen"]) .selectable {
-	@apply outline-none outline-0 border-2 border-[#00000000] focus-visible:border-highlight-foreground;
+    @apply focus-visible:border-primary-500;
 }
 
 html[data-useragent*="Tizen"] .selectable {
-	@apply outline-none outline-0 border-2 border-[#00000000] focus-within:border-highlight-foreground;
+    @apply focus-within:border-primary-500;
+}
+
+.selectable {
+    @apply outline-none outline-0 border-2 border-[#00000000] transition-colors hover:border-primary-500;
 }
 
 .selectable:focus, .selectable:focus-within {
-	border-width: 2px;
+    border-width: 2px;
 }
 
 .selected {
-    @apply outline-none outline-0 border-2 border-highlight-foreground;
+    @apply outline-none outline-0 border-2 border-primary-500;
 }
 
 .unselected {

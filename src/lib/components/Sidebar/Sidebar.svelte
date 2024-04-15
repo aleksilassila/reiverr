@@ -1,135 +1,284 @@
 <script lang="ts">
 	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import type { Readable, Writable } from 'svelte/store';
+	import { type Readable, writable, type Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
 	import { useNavigate } from 'svelte-navigator';
-
-	let isNavBarOpen: Readable<boolean>;
-	let focusIndex: Writable<number>;
+	import type { Selectable } from '../../selectable';
 
 	const navigate = useNavigate();
+	let selectedIndex = 0;
+
+	let isNavBarOpen: Readable<boolean>;
+	let focusIndex: Writable<number> = writable(0);
+	let selectable: Selectable;
+
+	focusIndex.subscribe((v) => (selectedIndex = v));
+
 	const itemContainer = (index: number, _focusIndex: number) =>
 		classNames('h-12 flex items-center cursor-pointer', {
-			'text-amber-300': _focusIndex === index,
+			'text-primary-500': _focusIndex === index,
 			'text-stone-300': _focusIndex !== index
 		});
+
+	const selectIndex = (index: number) => () => {
+		selectable.focusChild(index);
+		const path =
+			{
+				0: '/',
+				1: 'movies',
+				2: 'library',
+				3: 'search',
+				4: 'manage'
+			}[index] || '/';
+		navigate(path);
+		selectedIndex = index;
+	};
 </script>
 
 <Container
-	class={classNames('flex items-stretch fixed z-20 left-0 inset-y-0 group', 'py-4 w-16', {
-		//'max-w-[64px]': !$isNavBarOpen,
-		//'max-w-64': $isNavBarOpen
-	})}
+	class={classNames(
+		'flex flex-col items-stretch fixed z-20 left-0 inset-y-0 group',
+		'py-4 w-16 select-none',
+		{
+			//'max-w-[64px]': !$isNavBarOpen,
+			//'max-w-64': $isNavBarOpen
+		}
+	)}
 	bind:hasFocusWithin={isNavBarOpen}
 	bind:focusIndex
+	bind:container={selectable}
 >
-	<!--	<div>-->
-	<!--		<Link to="" class="rounded-sm flex items-center">-->
-	<!--			<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />-->
-	<!--			<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>-->
-	<!--		</Link>-->
-	<!--	</div>-->
+	<!-- Background -->
+	<div
+		class={classNames(
+			'absolute inset-y-0 left-0 w-[25vw] transition-opacity bg-gradient-to-r from-secondary-500 to-transparent',
+			{
+				'opacity-0': !$isNavBarOpen,
+				'group-hover:opacity-100 pointer-events-none': true
+			}
+		)}
+	/>
+	<!-- Keep group hovered and sidebar open for width of this -->
+	<div
+		class={classNames('absolute inset-y-0 left-0 w-48 ', {
+			'pointer-events-none': !$isNavBarOpen,
+			'group-hover:pointer-events-auto': true
+		})}
+	/>
 
-	<div class={'flex flex-col flex-1 relative z-20 items-center'}>
-		<div class={'flex flex-col flex-1 justify-center self-stretch'}>
-			<Container
-				class={classNames(itemContainer(0, $focusIndex), 'w-full flex justify-center')}
-				on:clickOrSelect={() => navigate('/')}
+	<div class={'flex-1 flex flex-col justify-center self-stretch'}>
+		<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(0)} let:hasFocus>
+			<div
+				class={classNames('w-full h-full relative flex items-center justify-center', {
+					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 0),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!$isNavBarOpen && selectedIndex === 0)
+				})}
 			>
 				<Laptop class="w-8 h-8" />
-			</Container>
-			<Container
-				class={classNames(itemContainer(1, $focusIndex), 'w-full flex justify-center')}
-				on:clickOrSelect={() => navigate('movies')}
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						{
+							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Series
+				</span>
+			</div>
+		</Container>
+		<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(1)} let:hasFocus>
+			<div
+				class={classNames('w-full h-full relative flex items-center justify-center', {
+					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 1),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!$isNavBarOpen && selectedIndex === 1)
+				})}
 			>
 				<CardStack class="w-8 h-8" />
-			</Container>
-			<Container
-				class={classNames(itemContainer(2, $focusIndex), 'w-full flex justify-center')}
-				on:clickOrSelect={() => navigate('library')}
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						{
+							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Movies
+				</span>
+			</div>
+		</Container>
+		<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(2)} let:hasFocus>
+			<div
+				class={classNames('w-full h-full relative flex items-center justify-center', {
+					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 2),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!$isNavBarOpen && selectedIndex === 2)
+				})}
 			>
 				<Bookmark class="w-8 h-8" />
-			</Container>
-			<Container
-				class={classNames(itemContainer(3, $focusIndex), 'w-full flex justify-center')}
-				on:clickOrSelect={() => navigate('search')}
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						{
+							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Library
+				</span>
+			</div>
+		</Container>
+		<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(3)} let:hasFocus>
+			<div
+				class={classNames('w-full h-full relative flex items-center justify-center', {
+					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 3),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!$isNavBarOpen && selectedIndex === 3)
+				})}
 			>
 				<MagnifyingGlass class="w-8 h-8" />
-			</Container>
-		</div>
-
-		<Container
-			class={classNames(itemContainer(4, $focusIndex), 'w-full flex justify-center')}
-			on:clickOrSelect={() => navigate('manage')}
-		>
-			<Gear class="w-8 h-8" />
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						{
+							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Search
+				</span>
+			</div>
 		</Container>
 	</div>
 
-	<div
-		class={classNames(
-			'absolute inset-y-0 left-0 pl-[64px] pr-10 z-10 transition-all bg-stone-900/90',
-			'flex flex-col flex-1 p-4',
-			{
-				// 'translate-x-full opacity-100': $isNavBarOpen,
-				'-translate-x-full opacity-0': !$isNavBarOpen,
-				'group-hover:translate-x-0 group-hover:opacity-100': true
-			}
-		)}
-	>
-		<div class="flex flex-col flex-1 justify-center">
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<div class={itemContainer(0, $focusIndex)} on:click={() => navigate('/')}>
-				<span
-					class={classNames('text-xl transition-opacity font-medium', {
-						// 'opacity-0': $isNavBarOpen === false
-					})}
-				>
-					Series</span
-				>
-			</div>
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<div class={itemContainer(1, $focusIndex)} on:click={() => navigate('movies')}>
-				<span
-					class={classNames('text-xl transition-opacity font-medium', {
-						// 'opacity-0': $isNavBarOpen === false
-					})}
-				>
-					Movies</span
-				>
-			</div>
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<div class={itemContainer(2, $focusIndex)} on:click={() => navigate('library')}>
-				<span
-					class={classNames('text-xl transition-opacity font-medium', {
-						// 'opacity-0': $isNavBarOpen === false
-					})}
-				>
-					Library</span
-				>
-			</div>
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<div class={itemContainer(3, $focusIndex)} on:click={() => navigate('search')}>
-				<span
-					class={classNames('text-xl transition-opacity font-medium', {
-						// 'opacity-0': $isNavBarOpen === false
-					})}
-				>
-					Search</span
-				>
-			</div>
-		</div>
-
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<div class={itemContainer(4, $focusIndex)} on:click={() => navigate('manage')}>
+	<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(4)} let:hasFocus>
+		<div
+			class={classNames('w-full h-full relative flex items-center justify-center', {
+				'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 4),
+				'text-stone-300 hover:text-primary-500':
+					!hasFocus && !(!$isNavBarOpen && selectedIndex === 4)
+			})}
+		>
+			<Gear class="w-8 h-8" />
 			<span
-				class={classNames('text-xl transition-opacity font-medium', {
-					// 'opacity-0': $isNavBarOpen === false
-				})}
+				class={classNames(
+					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+					{
+						'opacity-0 pointer-events-none': $isNavBarOpen === false,
+						'group-hover:opacity-100 group-hover:pointer-events-auto': true
+					}
+				)}
 			>
-				Manage</span
-			>
+				Manage
+			</span>
 		</div>
-	</div>
+	</Container>
+	<!--	<div class={'flex flex-col flex-1 relative z-20 items-center'}>-->
+	<!--		<div class={'flex flex-col flex-1 justify-center self-stretch'}>-->
+	<!--			<Container-->
+	<!--				class={classNames(itemContainer(0, $focusIndex), 'w-full flex justify-center')}-->
+	<!--				on:clickOrSelect={selectIndex(0)}-->
+	<!--			>-->
+	<!--				<Laptop class="w-8 h-8" />-->
+	<!--			</Container>-->
+	<!--			<Container-->
+	<!--				class={classNames(itemContainer(1, $focusIndex), 'w-full flex justify-center')}-->
+	<!--				on:clickOrSelect={selectIndex(1)}-->
+	<!--			>-->
+	<!--				<CardStack class="w-8 h-8" />-->
+	<!--			</Container>-->
+	<!--			<Container-->
+	<!--				class={classNames(itemContainer(2, $focusIndex), 'w-full flex justify-center')}-->
+	<!--				on:clickOrSelect={selectIndex(2)}-->
+	<!--			>-->
+	<!--				<Bookmark class="w-8 h-8" />-->
+	<!--			</Container>-->
+	<!--			<Container-->
+	<!--				class={classNames(itemContainer(3, $focusIndex), 'w-full flex justify-center')}-->
+	<!--				on:clickOrSelect={selectIndex(3)}-->
+	<!--			>-->
+	<!--				<MagnifyingGlass class="w-8 h-8" />-->
+	<!--			</Container>-->
+	<!--		</div>-->
+
+	<!--		<Container-->
+	<!--			class={classNames(itemContainer(4, $focusIndex), 'w-full flex justify-center')}-->
+	<!--			on:clickOrSelect={selectIndex(4)}-->
+	<!--		>-->
+	<!--			<Gear class="w-8 h-8" />-->
+	<!--		</Container>-->
+	<!--	</div>-->
+
+	<!--	<div-->
+	<!--		class={classNames(-->
+	<!--			'absolute inset-y-0 left-0 pl-[64px] pr-96 z-10 transition-all bg-gradient-to-r from-secondary-500 to-transparent',-->
+	<!--			'flex flex-col flex-1 p-4',-->
+	<!--			{-->
+	<!--				// 'translate-x-full opacity-100': $isNavBarOpen,-->
+	<!--				'opacity-0 pointer-events-none': !$isNavBarOpen,-->
+	<!--				'group-hover:translate-x-0 group-hover:opacity-100 group-hover:pointer-events-auto': true-->
+	<!--			}-->
+	<!--		)}-->
+	<!--	>-->
+	<!--		<div class="flex flex-col flex-1 justify-center">-->
+	<!--			&lt;!&ndash; svelte-ignore a11y-click-events-have-key-events &ndash;&gt;-->
+	<!--			<div class={itemContainer(0, $focusIndex)} on:click={selectIndex(0)}>-->
+	<!--				<span-->
+	<!--					class={classNames('text-xl transition-opacity font-medium', {-->
+	<!--						// 'opacity-0': $isNavBarOpen === false-->
+	<!--					})}-->
+	<!--				>-->
+	<!--					Series</span-->
+	<!--				>-->
+	<!--			</div>-->
+	<!--			&lt;!&ndash; svelte-ignore a11y-click-events-have-key-events &ndash;&gt;-->
+	<!--			<div class={itemContainer(1, $focusIndex)} on:click={selectIndex(1)}>-->
+	<!--				<span-->
+	<!--					class={classNames('text-xl transition-opacity font-medium', {-->
+	<!--						// 'opacity-0': $isNavBarOpen === false-->
+	<!--					})}-->
+	<!--				>-->
+	<!--					Movies</span-->
+	<!--				>-->
+	<!--			</div>-->
+	<!--			&lt;!&ndash; svelte-ignore a11y-click-events-have-key-events &ndash;&gt;-->
+	<!--			<div class={itemContainer(2, $focusIndex)} on:click={selectIndex(2)}>-->
+	<!--				<span-->
+	<!--					class={classNames('text-xl transition-opacity font-medium', {-->
+	<!--						// 'opacity-0': $isNavBarOpen === false-->
+	<!--					})}-->
+	<!--				>-->
+	<!--					Library</span-->
+	<!--				>-->
+	<!--			</div>-->
+	<!--			&lt;!&ndash; svelte-ignore a11y-click-events-have-key-events &ndash;&gt;-->
+	<!--			<div class={itemContainer(3, $focusIndex)} on:click={selectIndex(3)}>-->
+	<!--				<span-->
+	<!--					class={classNames('text-xl transition-opacity font-medium', {-->
+	<!--						// 'opacity-0': $isNavBarOpen === false-->
+	<!--					})}-->
+	<!--				>-->
+	<!--					Search</span-->
+	<!--				>-->
+	<!--			</div>-->
+	<!--		</div>-->
+
+	<!--		&lt;!&ndash; svelte-ignore a11y-click-events-have-key-events &ndash;&gt;-->
+	<!--		<div class={itemContainer(4, $focusIndex)} on:click={selectIndex(4)}>-->
+	<!--			<span-->
+	<!--				class={classNames('text-xl transition-opacity font-medium', {-->
+	<!--					// 'opacity-0': $isNavBarOpen === false-->
+	<!--				})}-->
+	<!--			>-->
+	<!--				Manage</span-->
+	<!--			>-->
+	<!--		</div>-->
+	<!--	</div>-->
 </Container>

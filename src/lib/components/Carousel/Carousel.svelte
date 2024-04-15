@@ -5,7 +5,7 @@
 	import Container from '../../../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
 
-	export let gradientFromColor = 'from-stone-950';
+	export let gradientFromColor = 'from-secondary-500';
 	export let heading = '';
 
 	let carousel: HTMLDivElement | undefined;
@@ -45,7 +45,12 @@
 	</div>
 
 	<div class="relative">
-		<Container direction="horizontal" handleNavigateOut={{ left: () => true }} let:focusIndex>
+		<Container
+			direction="horizontal"
+			handleNavigateOut={{ left: () => true }}
+			let:focusIndex
+			on:enter
+		>
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',

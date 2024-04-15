@@ -54,6 +54,20 @@ export class JellyfinApi implements Api<paths> {
 			})
 			.then((r) => r.data?.Items || []);
 
+	getContinueWatchingSeries = async () => {
+		const seriesIds = [
+			...new Set(
+				await this.getContinueWatching('series')
+					.then((items) => items?.map((i) => i.SeriesId) || [])
+					.then((ids) => ids.filter((i) => !!i) as string[])
+			)
+		];
+
+		return Promise.all(seriesIds.map((id) => this.getLibraryItem(id))).then((is) =>
+			is.filter((i): i is JellyfinItem => !!i)
+		);
+	};
+
 	jellyfinItemsCache: JellyfinItem[] = [];
 	async getLibraryItems(refreshCache = false) {
 		if (refreshCache || !this.jellyfinItemsCache.length) {

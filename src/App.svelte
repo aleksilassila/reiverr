@@ -3,8 +3,8 @@
 	import { Route, Router } from 'svelte-navigator';
 	import { handleKeyboardNavigation } from './lib/selectable';
 	import Container from './Container.svelte';
-	import BrowseSeriesPage from './lib/pages/BrowseSeriesPage.svelte';
-	import MoviesPage from './lib/pages/MoviesPage.svelte';
+	import BrowseSeriesPage from './lib/pages/SeriesHomePage.svelte';
+	import MoviesPage from './lib/pages/MoviesHomePage.svelte';
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
@@ -16,12 +16,29 @@
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import PageNotFound from './lib/pages/PageNotFound.svelte';
 	import NavigationDebugger from './lib/components/NavigationDebugger.svelte';
+	import { onMount } from 'svelte';
+	import { isTizen } from './lib/utils/browser-detection';
 
 	appState.subscribe((s) => console.log('appState', s));
+
+	// onMount(() => {
+	// 	if (isTizen()) {
+	// 		var myMediaKeyChangeListener = {
+	// 			onpressed: function (key) {
+	// 				console.log('Pressed key: ' + key);
+	// 			},
+	// 			onreleased: function (key) {
+	// 				console.log('Released key: ' + key);
+	// 			}
+	// 		};
+	//
+	// 		tizen.mediakey.setMediaKeyEventListener(myMediaKeyChangeListener);
+	// 	}
+	// });
 </script>
 
 <I18n />
-<Container class="w-full h-full overflow-auto bg-stone-950 text-white">
+<Container class="w-full h-full overflow-auto text-white">
 	{#if $appState.user === undefined}
 		<div class="h-full w-full flex flex-col items-center justify-center">
 			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
@@ -34,7 +51,7 @@
 		<LoginPage />
 	{:else}
 		<Router>
-			<Container class="flex flex-col" direction="horizontal" trapFocus>
+			<Container class="flex flex-col relative" direction="horizontal" trapFocus>
 				<Sidebar />
 				<Route path="/">
 					<BrowseSeriesPage />

@@ -2,9 +2,11 @@
 	import { PLATFORM_TV } from '../../constants';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
+	import { isFirefox } from '../../utils/browser-detection';
 
 	export let urls: Promise<string[]>;
 	export let index: number;
+	export let hasFocus = true;
 	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
@@ -32,23 +34,25 @@
 	onDestroy(() => visibleIndexTimeout && clearTimeout(visibleIndexTimeout));
 </script>
 
-<div class="absolute inset-0">
-	{#if PLATFORM_TV}
+<div class="fixed inset-0 -z-10">
+	{#if !isFirefox()}
 		{#await urls then urls}
 			{#each urls as url, i}
 				<div
-					class={classNames('absolute inset-0 bg-center bg-cover transition-opacity duration-500', {
+					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
-						'opacity-0': visibleIndex !== i
+						'opacity-0': visibleIndex !== i,
+						'scale-125': !hasFocus
 					})}
-					style={`background-image: url('${url}');`}
+					style={`background-image: url('${url}'); transition: opacity 500ms, transform 500ms;`}
 				/>
 			{/each}
-			<div class="bg-gradient-to-t from-stone-950 to-transparent absolute inset-0" />
 		{/await}
 	{:else}
 		<div
-			class="flex overflow-hidden h-full w-full"
+			class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', {
+				'scale-125': !hasFocus
+			})}
 			style="perspective: 1px; -webkit-perspective: 1px;"
 		>
 			{#await urls then urls}
@@ -69,6 +73,9 @@
 				{/each}
 			{/await}
 		</div>
-		<div class="bg-gradient-to-t from-stone-950 to-transparent absolute inset-0" />
 	{/if}
+</div>
+<div class="absolute inset-0 flex flex-col -z-10">
+	<div class="h-screen bg-gradient-to-t from-secondary-500 to-transparent" />
+	<div class="flex-1 bg-secondary-500" />
 </div>

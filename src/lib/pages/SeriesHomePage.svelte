@@ -10,11 +10,9 @@
 	import { getShowcasePropsFromTmdbSeries } from '../components/HeroShowcase/HeroShowcase';
 	import { scrollIntoView } from '../selectable';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import JellyfinEpisodeCard from '../components/EpisodeCard/JellyfinEpisodeCard.svelte';
 
 	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
-		jellyfinApi.getContinueWatching,
-		'series'
+		jellyfinApi.getContinueWatchingSeries
 	);
 	const { data: recentlyAdded, isLoading: isLoadingRecentlyAdded } = useRequest(
 		jellyfinApi.getRecentlyAdded,
@@ -72,40 +70,41 @@
 	// }
 </script>
 
-<Container focusOnMount>
-	<div class="flex flex-col h-screen">
-		<div class="flex-1 flex relative px-20">
-			<HeroShowcase items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)} />
-		</div>
-		<div class="mt-8">
-			<Carousel scrollClass="px-20">
-				<div class="text-xl font-semibold text-zinc-300" slot="title">
-					{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
-						? 'Loading...'
-						: $continueWatching?.length
-						? 'Continue Watching'
-						: 'Recently Added'}
+<Container focusOnMount class="flex flex-col">
+	<div class="h-[calc(100vh-12rem)] flex px-20">
+		<HeroShowcase
+			items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)}
+			on:enter={scrollIntoView({ top: 0 })}
+		/>
+	</div>
+	<div class="mt-16">
+		<Carousel scrollClass="px-20" on:enter={scrollIntoView({ vertical: 64 })}>
+			<div class="text-xl font-semibold text-zinc-300" slot="title">
+				{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
+					? 'Loading...'
+					: $continueWatching?.length
+					? 'Continue Watching'
+					: 'Recently Added'}
+			</div>
+			{#if $isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)}
+				<CarouselPlaceholderItems />
+			{:else if $continueWatching?.length}
+				<div class="flex -mx-2">
+					{#each $continueWatching as item (item.Id)}
+						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
+							<JellyfinCard size="lg" {item} />
+						</Container>
+					{/each}
 				</div>
-				{#if $isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)}
-					<CarouselPlaceholderItems />
-				{:else if $continueWatching?.length}
-					<div class="flex -mx-2">
-						{#each $continueWatching as item (item.Id)}
-							<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
-								<JellyfinEpisodeCard episode={item} />
-							</Container>
-						{/each}
-					</div>
-				{:else if $recentlyAdded?.length}
-					<div class="flex -mx-2">
-						{#each $recentlyAdded as item (item.Id)}
-							<Container class="m-2" on:enter={scrollIntoView({ left: 64 + 16 })}>
-								<JellyfinCard {item} />
-							</Container>
-						{/each}
-					</div>
-				{/if}
-			</Carousel>
-		</div>
+			{:else if $recentlyAdded?.length}
+				<div class="flex -mx-4">
+					{#each $recentlyAdded as item (item.Id)}
+						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
+							<JellyfinCard size="lg" {item} />
+						</Container>
+					{/each}
+				</div>
+			{/if}
+		</Carousel>
 	</div>
 </Container>

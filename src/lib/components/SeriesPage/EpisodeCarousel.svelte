@@ -89,7 +89,7 @@
 	<Carousel
 		scrollClass="px-20"
 		class={classNames('transition-transform', {
-			'-translate-y-16': scrollTop < 140
+			'-translate-y-20': scrollTop < 140
 		})}
 	>
 		<svelte:fragment slot="title">
@@ -114,7 +114,7 @@
 								'px-3 py-1 cursor-pointer whitespace-nowrap text-xl tracking-wide font-medium rounded-lg',
 								'hover:font-semibold hover:tracking-wide hover:text-white',
 								{
-									'bg-highlight-foreground text-black': hasFocus,
+									'bg-primary-500 text-black': hasFocus,
 									//'bg-stone-800/50': hasFocus,
 									'text-zinc-400': !(focusIndex === i),
 									'text-white': focusIndex === i && !hasFocus
@@ -127,7 +127,7 @@
 				{/each}
 			</UICarousel>
 		</svelte:fragment>
-		<div class="flex -mx-2">
+		<div class="flex -mx-4">
 			{#each $tmdbSeasons as season}
 				{#each season?.episodes || [] as episode}
 					{@const jellyfinEpisodeId = $jellyfinEpisodes?.find(
@@ -135,10 +135,10 @@
 							i.IndexNumber === episode.episode_number &&
 							i.ParentIndexNumber === episode.season_number
 					)?.Id}
-					<div class="mx-2">
+					<div class="m-4">
 						<TmdbEpisodeCard
 							on:enter={(event) => {
-								scrollIntoView({ left: 64 + 16 })(event);
+								scrollIntoView({ horizontal: 64 + 32 })(event);
 								focusSeason(season);
 								selectedTmdbEpisode = episode;
 							}}

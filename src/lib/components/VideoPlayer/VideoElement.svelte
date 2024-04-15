@@ -45,8 +45,6 @@
 			video.src = playbackUrl;
 		}
 
-		muted = true; //TODO REMOVE
-
 		if (startTime) {
 			progressTime = startTime;
 		}

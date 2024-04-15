@@ -16,6 +16,7 @@
 <HeroCarousel
 	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
 	bind:index={showcaseIndex}
+	on:enter
 >
 	<div class="h-full flex-1 flex overflow-hidden z-10 relative">
 		{#await items}
@@ -30,13 +31,9 @@
 		{:then items}
 			{@const item = items[showcaseIndex]}
 			{#if item}
-				<div class="flex-1 flex items-end">
+				<div class="flex-1 flex items-end p-3">
 					<div class="mr-8">
-						<Card
-							focusable={false}
-							orientation="portrait"
-							backdropUrl={TMDB_POSTER_SMALL + item.posterUrl}
-						/>
+						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />
 					</div>
 					<div class="flex flex-col">
 						<div
