@@ -82,7 +82,6 @@
 	on:timeupdate={() => (progressTime = !seeking && videoDidLoad ? video.currentTime : progressTime)}
 	on:progress={handleProgress}
 	on:loadeddata={() => {
-		console.log('loadedData');
 		video.currentTime = progressTime;
 		videoDidLoad = true;
 	}}

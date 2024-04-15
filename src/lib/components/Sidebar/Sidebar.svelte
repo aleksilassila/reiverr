@@ -4,7 +4,7 @@
 	import { type Readable, writable, type Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
 	import { useNavigate } from 'svelte-navigator';
-	import type { Selectable } from '../../selectable';
+	import { type Selectable, sidebarSelectable } from '../../selectable';
 
 	const navigate = useNavigate();
 	let selectedIndex = 0;
@@ -47,7 +47,8 @@
 	)}
 	bind:hasFocusWithin={isNavBarOpen}
 	bind:focusIndex
-	bind:container={selectable}
+	bind:selectable
+	registrar={sidebarSelectable.registrar}
 >
 	<!-- Background -->
 	<div

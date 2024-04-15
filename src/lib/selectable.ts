@@ -2,15 +2,10 @@ import { derived, get, type Readable, type Writable, writable } from 'svelte/sto
 import { getScrollParent } from './utils';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
+export type Registrar = (selectable: Selectable) => void;
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
-export type NavigationActions = {
-	[direction in Direction]?: (selectable: Selectable) => boolean;
-} & {
-	back?: (selectable: Selectable) => boolean;
-	enter?: (selectable: Selectable) => boolean;
-};
 
 type FocusEventOptions = {
 	setFocusedElement: boolean | HTMLElement;
@@ -58,12 +53,30 @@ const createNavigateHandlerOptions = (
 	direction
 });
 
+type KeyEventOptions = {
+	propagate: boolean;
+	target: Selectable;
+};
+
+export type KeyEvent = {
+	selectable: Selectable;
+	options: KeyEventOptions;
+	stopPropagation: () => void;
+	bubble: () => void;
+};
+
+const createKeyEventOptions = (target: Selectable): KeyEventOptions => ({
+	propagate: true,
+	target
+});
+
 export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
 export type NavigationHandler = (
 	selectable: Selectable,
 	options: NavigateEventOptions,
 	willLeaveContainer: boolean
 ) => void;
+export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
 
 export class Selectable {
 	id: symbol;
@@ -79,10 +92,12 @@ export class Selectable {
 	};
 	private canFocusEmpty: boolean = true;
 	private trapFocus: boolean = false;
-	private navigationActions: NavigationActions = {};
-	private onNavigate: NavigationHandler = () => {};
 	private isActive: boolean = true;
+
+	private onNavigate: NavigationHandler = () => {};
 	private onFocus: FocusHandler = () => {};
+	private onBack: KeyEventHandler = () => {};
+	private onPlayPause: KeyEventHandler = () => {};
 	private onSelect?: () => void;
 
 	private direction: FlowDirection = 'vertical';
@@ -581,17 +596,20 @@ export class Selectable {
 		this.onSelect?.();
 	}
 
+	back(options?: KeyEventOptions) {
+		const _options = options || createKeyEventOptions(this);
+		this.onBack(this, _options);
+		if (this.parent && _options.propagate) this.parent.back(_options);
+	}
+
+	playPause(options?: KeyEventOptions) {
+		const _options = options || createKeyEventOptions(this);
+		this.onPlayPause(this, _options);
+		if (this.parent && _options.propagate) this.parent.playPause(_options);
+	}
+
 	getFocusedChild() {
 		return this.children[get(this.focusIndex)];
-	}
-
-	setNavigationActions(actions: NavigationActions) {
-		this.navigationActions = actions;
-		return this;
-	}
-
-	getNavigationActions(): NavigationActions {
-		return this.navigationActions;
 	}
 
 	setIsActive(isActive: boolean) {
@@ -636,6 +654,16 @@ export class Selectable {
 		this.onNavigate = onNavigate;
 		return this;
 	}
+
+	setOnBack(onBack: KeyEventHandler) {
+		this.onBack = onBack;
+		return this;
+	}
+
+	setOnPlayPause(onPlayPause: KeyEventHandler) {
+		this.onPlayPause = onPlayPause;
+		return this;
+	}
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
@@ -652,7 +680,6 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		return;
 	}
 
-	const navigationActions = currentlyFocusedObject.getNavigationActions();
 	if (event.key === 'ArrowUp') {
 		if (Selectable.giveFocus('up')) event.preventDefault();
 	} else if (event.key === 'ArrowDown') {
@@ -662,17 +689,15 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	} else if (event.key === 'ArrowRight') {
 		if (Selectable.giveFocus('right')) event.preventDefault();
 	} else if (event.key === 'Enter') {
-		if (navigationActions.enter && navigationActions.enter(currentlyFocusedObject))
-			event.preventDefault();
-		else {
-			currentlyFocusedObject.select();
-		}
+		currentlyFocusedObject.select();
 	} else if (event.key === 'Back' || event.key === 'XF86Back') {
+		currentlyFocusedObject.back();
 	} else if (event.key === 'MediaPlayPause') {
+		currentlyFocusedObject.playPause();
 	}
 }
 
-Selectable.focusedObject.subscribe(console.log);
+Selectable.focusedObject.subscribe(console.debug);
 
 type Offsets = Partial<
 	Record<
@@ -786,3 +811,18 @@ export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>
 			scrollElementIntoView(element, ...args);
 		}
 	};
+
+export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable> => {
+	const selectable = writable<Selectable>();
+
+	function registrar(_selectable: Selectable) {
+		selectable.set(_selectable);
+	}
+
+	return {
+		registrar,
+		subscribe: selectable.subscribe
+	};
+};
+
+export const sidebarSelectable = useRegistrar();

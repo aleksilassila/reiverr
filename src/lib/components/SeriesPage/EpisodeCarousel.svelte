@@ -63,8 +63,6 @@
 
 		// Handle focus next episode
 		nextJellyfinEpisode.subscribe(($jellyfinEpisode) => {
-			console.log('got next jellyfin episode', $jellyfinEpisode, tmdbEpisode, selectable);
-
 			const isNextEpisode =
 				$jellyfinEpisode?.IndexNumber === tmdbEpisode.episode_number &&
 				$jellyfinEpisode?.ParentIndexNumber === tmdbEpisode.season_number;

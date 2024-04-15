@@ -49,7 +49,7 @@
 	$: showEpisodeInfo = scrollTop > 140;
 </script>
 
-<DetachedPage>
+<DetachedPage let:handleGoBack let:registrar>
 	<ScrollHelper bind:scrollTop />
 	<div class="relative">
 		<Container
@@ -141,10 +141,17 @@
 						{/if}
 					{/await}
 					{#await Promise.all([$jellyfinItem, $sonarrItem]) then [jellyfinItem, sonarrItem]}
-						<Container direction="horizontal" class="flex mt-8" focusOnMount>
+						<Container
+							direction="horizontal"
+							class="flex mt-8"
+							focusOnMount
+							on:navigate={handleGoBack}
+							on:back={handleGoBack}
+							{registrar}
+						>
 							{#if $nextJellyfinEpisode}
 								<Button
-									class="mr-2"
+									class="mr-4"
 									on:clickOrSelect={() =>
 										$nextJellyfinEpisode?.Id &&
 										playerState.streamJellyfinId($nextJellyfinEpisode.Id)}
@@ -156,7 +163,7 @@
 							{/if}
 							{#if sonarrItem}
 								<Button
-									class="mr-2"
+									class="mr-4"
 									on:clickOrSelect={() =>
 										modalStack.create(SonarrMediaMangerModal, { id: sonarrItem.id || -1 })}
 								>
@@ -169,7 +176,7 @@
 								</Button>
 							{:else}
 								<Button
-									class="mr-2"
+									class="mr-4"
 									on:clickOrSelect={() => addSeriesToSonarr(Number(id))}
 									inactive={$addSeriesToSonarrFetching}
 								>
@@ -178,11 +185,11 @@
 								</Button>
 							{/if}
 							{#if PLATFORM_WEB}
-								<Button class="mr-2">
+								<Button class="mr-4">
 									Open In TMDB
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
-								<Button class="mr-2">
+								<Button class="mr-4">
 									Open In Jellyfin
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
@@ -192,7 +199,7 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<Container on:enter={scrollIntoView({ vertical: 64 })} bind:container={episodesSelectable}>
+		<Container on:enter={scrollIntoView({ vertical: 64 })} bind:selectable={episodesSelectable}>
 			<EpisodeCarousel
 				id={Number(id)}
 				tmdbSeries={tmdbSeriesData}

@@ -7,6 +7,8 @@
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
 	import SidebarMargin from '../SidebarMargin.svelte';
+	import { get } from 'svelte/store';
+	import { sidebarSelectable } from '../../selectable';
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
@@ -17,6 +19,11 @@
 	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
 	bind:index={showcaseIndex}
 	on:enter
+	on:navigate={({ detail }) => {
+		if (detail.direction === 'up') {
+			get(sidebarSelectable)?.focus();
+		}
+	}}
 >
 	<div class="h-full flex-1 flex overflow-hidden z-10 relative">
 		{#await items}

@@ -83,7 +83,6 @@
 
 	async function onJump(index: number) {
 		showcaseIndex = index;
-		console.log(showcaseIndex);
 	}
 
 	// Cycle movies every 5 seconds

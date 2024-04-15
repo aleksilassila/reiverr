@@ -82,7 +82,7 @@
 		class={classNames('absolute inset-x-12 bottom-8 transition-opacity flex flex-col', {
 			'opacity-0': !showInterface
 		})}
-		bind:container
+		bind:selectable={container}
 	>
 		<Container
 			direction="horizontal"

@@ -32,7 +32,7 @@
 	});
 </script>
 
-<DetachedPage>
+<DetachedPage let:handleGoBack let:registrar>
 	<div class="min-h-screen flex flex-col py-12 px-20 relative">
 		<HeroCarousel
 			urls={$movieDataP.then(
@@ -79,10 +79,17 @@
 					{/if}
 				{/await}
 				{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
-					<Container direction="horizontal" class="flex mt-8" focusOnMount>
+					<Container
+						direction="horizontal"
+						class="flex mt-8"
+						focusOnMount
+						on:navigate={handleGoBack}
+						on:back={handleGoBack}
+						{registrar}
+					>
 						{#if jellyfinItem}
 							<Button
-								class="mr-2"
+								class="mr-4"
 								on:clickOrSelect={() =>
 									jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
 							>
@@ -92,7 +99,7 @@
 						{/if}
 						{#if radarrItem}
 							<Button
-								class="mr-2"
+								class="mr-4"
 								on:clickOrSelect={() =>
 									modalStack.create(ManageMediaModal, { id: radarrItem.id || -1 })}
 							>
@@ -105,7 +112,7 @@
 							</Button>
 						{:else}
 							<Button
-								class="mr-2"
+								class="mr-4"
 								on:clickOrSelect={() => requests.handleAddToRadarr(Number(id))}
 								inactive={$isFetching.handleAddToRadarr}
 							>
@@ -114,11 +121,11 @@
 							</Button>
 						{/if}
 						{#if PLATFORM_WEB}
-							<Button class="mr-2">
+							<Button class="mr-4">
 								Open In TMDB
 								<ExternalLink size={19} slot="icon-after" />
 							</Button>
-							<Button class="mr-2">
+							<Button class="mr-4">
 								Open In Jellyfin
 								<ExternalLink size={19} slot="icon-after" />
 							</Button>

@@ -73,7 +73,6 @@
 				? item?.UserData?.PlaybackPositionTicks / 10_000_000
 				: undefined
 		};
-		console.log('startTime', playbackInfo.startTime);
 
 		if (mediaSourceId) reportPlaybackStarted(id, sessionId, mediaSourceId);
 

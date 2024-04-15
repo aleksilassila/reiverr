@@ -7,6 +7,9 @@
 	import PageDots from '../HeroShowcase/PageDots.svelte';
 	import SidebarMargin from '../SidebarMargin.svelte';
 	import type { Readable, Writable } from 'svelte/store';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	export let urls: Promise<string[]>;
 
@@ -47,15 +50,21 @@
 <Container
 	class="flex-1 flex"
 	on:enter
-	on:navigate={({ detail }) => {
+	on:navigate={(event) => {
+		const detail = event.detail;
 		if (!backgroundHasFocus) return;
-		if (detail.options.direction === 'right') {
-			if (onNext()) detail.preventNavigation();
-		} else if (detail.options.direction === 'left') {
-			if (onPrevious()) detail.preventNavigation();
-		} else if (detail.options.direction === 'up') {
-			Selectable.giveFocus('left', false);
-			detail.preventNavigation();
+		if (detail.direction === 'right') {
+			if (onNext()) {
+				detail.preventNavigation();
+				detail.stopPropagation();
+			}
+		} else if (detail.direction === 'left') {
+			if (onPrevious()) {
+				detail.preventNavigation();
+				detail.stopPropagation();
+			}
+		} else {
+			dispatch('navigate', detail);
 		}
 	}}
 	bind:hasFocusWithin

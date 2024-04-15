@@ -305,7 +305,6 @@
 	});
 
 	onDestroy(() => {
-		console.log('Video destroyed');
 		clearInterval(progressInterval);
 		if (fullscreen) exitFullscreen?.();
 	});

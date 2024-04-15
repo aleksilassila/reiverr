@@ -3,10 +3,11 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
 	import {
-		type NavigationActions,
 		Selectable,
 		type EnterEvent,
-		type NavigateEvent
+		type NavigateEvent,
+		type KeyEvent,
+		type Registrar
 	} from './lib/selectable';
 	import classNames from 'classnames';
 
@@ -17,6 +18,8 @@
 		enter: EnterEvent;
 		mount: Selectable;
 		navigate: NavigateEvent;
+		back: KeyEvent;
+		playPause: KeyEvent;
 	}>();
 
 	export let name: string = '';
@@ -28,14 +31,14 @@
 	export let debugOutline = false;
 	export let focusOnClick = false;
 
-	export let active = true;
+	export let registrars: Registrar[] = [];
+	export let registrar: Registrar = () => {};
 
-	export let handleNavigateOut: NavigationActions = {};
+	export let active = true;
 
 	const { registerer, ...rest } = new Selectable(name)
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
-		.setNavigationActions(handleNavigateOut)
 		.setTrapFocus(trapFocus)
 		.setCanFocusEmpty(canFocusEmpty)
 		.setOnFocus((selectable, options) => {
@@ -67,20 +70,46 @@
 			dispatch('select');
 			dispatch('clickOrSelect');
 		})
+		.setOnBack((selectable, options) => {
+			function stopPropagation() {
+				options.propagate = false;
+			}
+
+			function bubble() {
+				options.propagate = true;
+			}
+
+			dispatch('back', { selectable, options, stopPropagation, bubble });
+		})
+		.setOnPlayPause((selectable, options) => {
+			function stopPropagation() {
+				options.propagate = false;
+			}
+
+			function bubble() {
+				options.propagate = true;
+			}
+
+			dispatch('playPause', { selectable, options, stopPropagation, bubble });
+		})
 		.getStores();
-	export const container = rest.container;
+
+	$: registrars.forEach((r) => r(rest.container));
+	$: registrar(rest.container);
+
+	export const selectable = rest.container;
 	export const hasFocus = rest.hasFocus;
 	export const hasFocusWithin = rest.hasFocusWithin;
 	export const focusIndex = rest.focusIndex;
 
 	export let tag = 'div';
 
-	$: container.setIsActive(active);
-	$: container.setGridColumns(gridCols);
+	$: selectable.setIsActive(active);
+	$: selectable.setGridColumns(gridCols);
 
 	function handleClick(e: MouseEvent) {
 		if (focusOnClick) {
-			container.focus();
+			selectable.focus();
 		}
 
 		dispatch('click', e);
@@ -109,5 +138,10 @@
 	})}
 	use:registerer
 >
-	<slot hasFocus={$hasFocus} hasFocusWithin={$hasFocusWithin} focusIndex={$focusIndex} />
+	<slot
+		hasFocus={$hasFocus}
+		hasFocusWithin={$hasFocusWithin}
+		focusIndex={$focusIndex}
+		{selectable}
+	/>
 </svelte:element>

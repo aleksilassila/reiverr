@@ -45,12 +45,7 @@
 	</div>
 
 	<div class="relative">
-		<Container
-			direction="horizontal"
-			handleNavigateOut={{ left: () => true }}
-			let:focusIndex
-			on:enter
-		>
+		<Container direction="horizontal" let:focusIndex on:enter>
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',
