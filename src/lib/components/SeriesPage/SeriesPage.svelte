@@ -14,11 +14,10 @@
 	import { modalStack } from '../Modal/modal.store';
 	import { derived } from 'svelte/store';
 	import EpisodeCarousel from './EpisodeCarousel.svelte';
-	import { scrollIntoView, Selectable } from '../../selectable';
+	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import SonarrMediaMangerModal from '../MediaManager/sonarr/SonarrMediaMangerModal.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
-	import PersonCard from '../PersonCard/PersonCard.svelte';
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
 
@@ -48,7 +47,7 @@
 	);
 
 	let selectedTmdbEpisode: TmdbEpisode | undefined;
-	let episodesSelectable: Selectable;
+	const episodeCards = useRegistrar();
 
 	let scrollTop: number;
 	$: showEpisodeInfo = scrollTop > 140;
@@ -62,7 +61,8 @@
 			on:enter={scrollIntoView({ top: 0 })}
 			on:navigate={({ detail }) => {
 				if (detail.direction === 'down' && detail.willLeaveContainer) {
-					if (episodesSelectable?.focusChild(1)) detail.preventNavigation();
+					$episodeCards?.focus();
+					detail.preventNavigation();
 				}
 			}}
 		>
@@ -204,18 +204,18 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<Container on:enter={scrollIntoView({ bottom: 32 })} bind:selectable={episodesSelectable}>
-			<EpisodeCarousel
-				id={Number(id)}
-				tmdbSeries={tmdbSeriesData}
-				{jellyfinEpisodes}
-				{nextJellyfinEpisode}
-				bind:selectedTmdbEpisode
-			/>
-		</Container>
-		<Container on:enter={scrollIntoView({ top: 0 })} class="min-h-screen flex flex-col">
+		<EpisodeCarousel
+			on:enter={scrollIntoView({ bottom: 32 })}
+			id={Number(id)}
+			tmdbSeries={tmdbSeriesData}
+			{jellyfinEpisodes}
+			{nextJellyfinEpisode}
+			bind:selectedTmdbEpisode
+			registrar={episodeCards.registrar}
+		/>
+		<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 			{#await $tmdbSeries then series}
-				<Carousel scrollClass="px-20" class="mt-8">
+				<Carousel scrollClass="px-20" class="mb-8">
 					<div slot="header">Show Cast</div>
 					{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
 						<TmdbPersonCard
@@ -226,14 +226,42 @@
 				</Carousel>
 			{/await}
 			{#await $recommendations then recommendations}
-				<Carousel scrollClass="px-20" class="mt-8">
+				<Carousel scrollClass="px-20" class="mb-8">
 					<div slot="header">Recommendations</div>
 					{#each recommendations || [] as recommendation}
 						<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 64 + 30 })} />
 					{/each}
 				</Carousel>
 			{/await}
-			<Container class="flex-1 bg-secondary-950 mt-4 pt-4">More info</Container>
 		</Container>
+		{#await $tmdbSeries then series}
+			<Container class="flex-1 bg-secondary-950 pt-8 px-20" on:enter={scrollIntoView({ top: 0 })}>
+				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
+				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
+					<div class="flex-1">
+						<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Created By</h2>
+							{#each series?.created_by || [] as creator}
+								<div>{creator.name}</div>
+							{/each}
+						</div>
+						<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
+							<div>{series?.networks?.[0]?.name}</div>
+						</div>
+					</div>
+					<div class="flex-1">
+						<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Language</h2>
+							<div>{series?.spoken_languages?.[0]?.name}</div>
+						</div>
+						<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
+							<div>{series?.last_air_date}</div>
+						</div>
+					</div>
+				</div>
+			</Container>
+		{/await}
 	</div>
 </DetachedPage>

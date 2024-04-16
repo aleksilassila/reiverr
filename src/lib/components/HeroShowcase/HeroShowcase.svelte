@@ -8,7 +8,7 @@
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
 	import SidebarMargin from '../SidebarMargin.svelte';
 	import { get } from 'svelte/store';
-	import { sidebarSelectable } from '../../selectable';
+	import { registrars } from '../../selectable.js';
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 
@@ -21,7 +21,7 @@
 	on:enter
 	on:navigate={({ detail }) => {
 		if (detail.direction === 'up') {
-			get(sidebarSelectable)?.focus();
+			get(registrars.sidebar)?.focus();
 		}
 	}}
 >

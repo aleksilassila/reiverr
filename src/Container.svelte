@@ -31,8 +31,7 @@
 	export let debugOutline = false;
 	export let focusOnClick = false;
 
-	export let registrars: Registrar[] = [];
-	export let registrar: Registrar = () => {};
+	export let registrar: Registrar = () => () => {};
 
 	export let active = true;
 
@@ -94,8 +93,7 @@
 		})
 		.getStores();
 
-	$: registrars.forEach((r) => r(rest.container));
-	$: registrar(rest.container);
+	$: unregister = registrar(rest.container);
 
 	export const selectable = rest.container;
 	export const hasFocus = rest.hasFocus;
@@ -122,6 +120,7 @@
 		dispatch('mount', rest.container);
 
 		return () => {
+			unregister();
 			rest.container._unmountContainer();
 		};
 	});

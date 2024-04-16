@@ -15,7 +15,7 @@
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		<div class="font-medium tracking-wide text-2xl">
+		<div class="font-medium tracking-wide text-2xl text-zinc-200">
 			<slot name="header" />
 		</div>
 		<div
@@ -48,7 +48,7 @@
 	</div>
 
 	<div class="relative">
-		<Container direction="horizontal" let:focusIndex on:enter>
+		<Container direction="horizontal" let:focusIndex on:enter {...$$restProps} class="">
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',

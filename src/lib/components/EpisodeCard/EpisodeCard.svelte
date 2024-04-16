@@ -8,7 +8,7 @@
 	export let episodeNumber: number;
 	export let episodeName: string;
 	export let backdropUrl: string;
-	export let handlePlay: () => void = () => {};
+	export let handlePlay: (() => void) | undefined;
 
 	let hasFocus: Readable<boolean>;
 </script>

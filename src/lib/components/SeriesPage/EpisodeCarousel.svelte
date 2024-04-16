@@ -11,7 +11,7 @@
 	} from '../../apis/tmdb/tmdb-api';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import Container from '../../../Container.svelte';
-	import { scrollElementIntoView, scrollIntoView, Selectable } from '../../selectable';
+	import { registrars, scrollElementIntoView, scrollIntoView, Selectable } from '../../selectable';
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
@@ -23,6 +23,7 @@
 	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
 	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
 
+	// Exports
 	export let selectedTmdbEpisode: TmdbEpisode | undefined;
 
 	const containers = new Map<TmdbSeason | TmdbEpisode, Selectable>();
@@ -89,6 +90,9 @@
 		class={classNames('transition-transform', {
 			'-translate-y-20': scrollTop < 140
 		})}
+		hideControls={scrollTop < 140}
+		on:enter
+		{...$$restProps}
 	>
 		<svelte:fragment slot="header">
 			<UICarousel
@@ -125,30 +129,26 @@
 				{/each}
 			</UICarousel>
 		</svelte:fragment>
-		<div class="flex -mx-4">
-			{#each $tmdbSeasons as season}
-				{#each season?.episodes || [] as episode}
-					{@const jellyfinEpisodeId = $jellyfinEpisodes?.find(
-						(i) =>
-							i.IndexNumber === episode.episode_number &&
-							i.ParentIndexNumber === episode.season_number
-					)?.Id}
-					<div class="m-4">
-						<TmdbEpisodeCard
-							on:enter={(event) => {
-								scrollIntoView({ horizontal: 64 + 32 })(event);
-								focusSeason(season);
-								selectedTmdbEpisode = episode;
-							}}
-							on:mount={(e) => handleEpisodeMount(e, episode)}
-							{episode}
-							handlePlay={jellyfinEpisodeId
-								? () => playerState.streamJellyfinId(jellyfinEpisodeId)
-								: undefined}
-						/>
-					</div>
-				{/each}
+		{#each $tmdbSeasons as season}
+			{#each season?.episodes || [] as episode}
+				{@const jellyfinEpisodeId = $jellyfinEpisodes?.find(
+					(i) =>
+						i.IndexNumber === episode.episode_number &&
+						i.ParentIndexNumber === episode.season_number
+				)?.Id}
+				<TmdbEpisodeCard
+					on:enter={(event) => {
+						scrollIntoView({ horizontal: 64 + 32 })(event);
+						focusSeason(season);
+						selectedTmdbEpisode = episode;
+					}}
+					on:mount={(e) => handleEpisodeMount(e, episode)}
+					{episode}
+					handlePlay={jellyfinEpisodeId
+						? () => playerState.streamJellyfinId(jellyfinEpisodeId)
+						: undefined}
+				/>
 			{/each}
-		</div>
+		{/each}
 	</Carousel>
 {/if}

@@ -2,7 +2,7 @@ import { derived, get, type Readable, type Writable, writable } from 'svelte/sto
 import { getScrollParent } from './utils';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
-export type Registrar = (selectable: Selectable) => void;
+export type Registrar = (selectable: Selectable) => () => void;
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
@@ -812,11 +812,19 @@ export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>
 		}
 	};
 
-export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable> => {
-	const selectable = writable<Selectable>();
+export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable | undefined> => {
+	const selectable = writable<Selectable | undefined>();
 
 	function registrar(_selectable: Selectable) {
-		selectable.set(_selectable);
+		selectable.update((prev) => {
+			if (prev) {
+				console.warn('Overwriting existing selectable', prev, _selectable);
+			}
+
+			return _selectable;
+		});
+
+		return () => selectable.set(undefined);
 	}
 
 	return {
@@ -825,4 +833,12 @@ export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable> 
 	};
 };
 
-export const sidebarSelectable = useRegistrar();
+const sidebar = useRegistrar();
+const episodeCards = useRegistrar();
+
+export const registrars = {
+	sidebar: sidebar,
+	seriesPage: {
+		episodeCards
+	}
+};
