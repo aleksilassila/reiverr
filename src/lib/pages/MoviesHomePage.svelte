@@ -31,7 +31,7 @@
 	</div>
 	<div class="mt-16">
 		<Carousel scrollClass="px-20" on:enter={scrollIntoView({ vertical: 64 })}>
-			<div class="text-xl font-semibold text-zinc-300" slot="title">
+			<div slot="header">
 				{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
 					? 'Loading...'
 					: $continueWatching?.length
@@ -49,13 +49,11 @@
 					{/each}
 				</div>
 			{:else if $recentlyAdded?.length}
-				<div class="flex -mx-4">
-					{#each $recentlyAdded as item (item.Id)}
-						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
-							<JellyfinCard size="lg" {item} />
-						</Container>
-					{/each}
-				</div>
+				{#each $recentlyAdded as item (item.Id)}
+					<Container on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
+						<JellyfinCard size="lg" {item} />
+					</Container>
+				{/each}
 			{/if}
 		</Carousel>
 	</div>

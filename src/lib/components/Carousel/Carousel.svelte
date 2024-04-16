@@ -6,7 +6,7 @@
 	import { PLATFORM_TV } from '../../constants';
 
 	export let gradientFromColor = 'from-secondary-500';
-	export let heading = '';
+	export let hideControls = false;
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
@@ -15,15 +15,18 @@
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		<slot name="title">
-			<div class="font-semibold text-xl">{heading}</div>
-		</slot>
+		<div class="font-medium tracking-wide text-2xl">
+			<slot name="header" />
+		</div>
 		<div
 			class={classNames(
 				'flex gap-2 ml-4',
 				//'sm:opacity-0 transition-opacity sm:group-hover/carousel:opacity-100',
 				{
-					hidden: (carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0) || PLATFORM_TV
+					hidden:
+						(carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0) ||
+						PLATFORM_TV ||
+						hideControls
 				}
 			)}
 		>
@@ -49,6 +52,7 @@
 			<div
 				class={classNames(
 					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',
+					'[&>*]:p-4 -mx-4 w-full',
 					scrollClass
 				)}
 				bind:this={carousel}

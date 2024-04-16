@@ -37,7 +37,7 @@
 				<slot name="icon" />
 			</div>
 		{/if}
-		<div class="flex-1 text-center">
+		<div class="flex-1 text-center text-nowrap">
 			<slot {hasFocus} />
 		</div>
 		{#if $$slots['icon-after']}

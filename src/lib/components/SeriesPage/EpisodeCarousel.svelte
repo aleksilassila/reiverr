@@ -90,7 +90,7 @@
 			'-translate-y-20': scrollTop < 140
 		})}
 	>
-		<svelte:fragment slot="title">
+		<svelte:fragment slot="header">
 			<UICarousel
 				class={classNames('flex -mx-2 transition-opacity', {
 					'opacity-0': scrollTop < 140

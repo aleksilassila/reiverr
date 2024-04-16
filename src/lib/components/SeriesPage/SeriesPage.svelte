@@ -17,6 +17,10 @@
 	import { scrollIntoView, Selectable } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import SonarrMediaMangerModal from '../MediaManager/sonarr/SonarrMediaMangerModal.svelte';
+	import Carousel from '../Carousel/Carousel.svelte';
+	import PersonCard from '../PersonCard/PersonCard.svelte';
+	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
+	import TmdbCard from '../Card/TmdbCard.svelte';
 
 	export let id: string;
 
@@ -29,6 +33,7 @@
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
 		id
 	);
+	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
 	const { data: jellyfinEpisodes } = useDependantRequest(
 		jellyfinApi.getJellyfinEpisodes,
 		jellyfinItemData,
@@ -199,7 +204,7 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<Container on:enter={scrollIntoView({ vertical: 64 })} bind:selectable={episodesSelectable}>
+		<Container on:enter={scrollIntoView({ bottom: 32 })} bind:selectable={episodesSelectable}>
 			<EpisodeCarousel
 				id={Number(id)}
 				tmdbSeries={tmdbSeriesData}
@@ -207,6 +212,28 @@
 				{nextJellyfinEpisode}
 				bind:selectedTmdbEpisode
 			/>
+		</Container>
+		<Container on:enter={scrollIntoView({ top: 0 })} class="min-h-screen flex flex-col">
+			{#await $tmdbSeries then series}
+				<Carousel scrollClass="px-20" class="mt-8">
+					<div slot="header">Show Cast</div>
+					{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
+						<TmdbPersonCard
+							on:enter={scrollIntoView({ horizontal: 64 + 30 })}
+							tmdbCredit={credit}
+						/>
+					{/each}
+				</Carousel>
+			{/await}
+			{#await $recommendations then recommendations}
+				<Carousel scrollClass="px-20" class="mt-8">
+					<div slot="header">Recommendations</div>
+					{#each recommendations || [] as recommendation}
+						<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 64 + 30 })} />
+					{/each}
+				</Carousel>
+			{/await}
+			<Container class="flex-1 bg-secondary-950 mt-4 pt-4">More info</Container>
 		</Container>
 	</div>
 </DetachedPage>

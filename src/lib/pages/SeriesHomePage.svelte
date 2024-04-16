@@ -79,7 +79,7 @@
 	</div>
 	<div class="mt-16">
 		<Carousel scrollClass="px-20" on:enter={scrollIntoView({ vertical: 64 })}>
-			<div class="text-xl font-semibold text-zinc-300" slot="title">
+			<div class="text-xl font-semibold text-zinc-300" slot="header">
 				{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
 					? 'Loading...'
 					: $continueWatching?.length
