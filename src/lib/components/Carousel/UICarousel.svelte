@@ -28,7 +28,7 @@
 	direction="horizontal"
 	class={classNames(
 		$$restProps.class,
-		'overflow-x-scroll scrollbar-hide relative p-1 overflow-y-visible'
+		'overflow-x-auto scrollbar-hide relative p-1 overflow-y-visible'
 	)}
 	style={`mask-image: linear-gradient(to right, transparent 0%, ${
 		fadeLeft ? '' : 'black 0%, '

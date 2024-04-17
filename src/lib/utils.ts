@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { type Readable, writable } from 'svelte/store';
 
 export function formatMinutesToTime(minutes: number) {
 	const days = Math.floor(minutes / 60 / 24);
@@ -104,4 +104,12 @@ export function getScrollParent(
 			return getScrollParent(parent, direction);
 		}
 	}
+}
+
+export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean) {
+	const unsubscribe = store.subscribe((v) => {
+		if (fn(v)) {
+			unsubscribe();
+		}
+	});
 }

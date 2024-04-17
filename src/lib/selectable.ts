@@ -2,7 +2,7 @@ import { derived, get, type Readable, type Writable, writable } from 'svelte/sto
 import { getScrollParent } from './utils';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
-export type Registrar = (selectable: Selectable) => () => void;
+export type Registrar = (e: CustomEvent<Selectable>) => () => void;
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
@@ -815,21 +815,63 @@ export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>
 export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable | undefined> => {
 	const selectable = writable<Selectable | undefined>();
 
-	function registrar(_selectable: Selectable) {
+	const registrar: Registrar = (e) => {
 		selectable.update((prev) => {
 			if (prev) {
-				console.warn('Overwriting existing selectable', prev, _selectable);
+				console.warn('Overwriting existing selectable', prev, e.detail);
 			}
 
-			return _selectable;
+			return e.detail;
 		});
 
 		return () => selectable.set(undefined);
-	}
+	};
 
 	return {
 		registrar,
 		subscribe: selectable.subscribe
+	};
+};
+
+export const useRegistrars = <T extends string | number>(): {
+	registrar: (key: T) => Registrar;
+	get: (key: T) => Readable<Selectable | undefined>;
+} => {
+	const map = new Map<T, Writable<Selectable | undefined>>();
+
+	const registrar =
+		(key: T): Registrar =>
+		(e) => {
+			if (!map.has(key)) {
+				map.set(key, writable<Selectable | undefined>());
+			}
+
+			const store = map.get(key);
+			store?.update((prev) => {
+				if (prev) {
+					console.warn('Overwriting existing selectable', prev, e.detail);
+				}
+
+				return e.detail;
+			});
+
+			return () => store?.set(undefined);
+		};
+
+	const get = (key: T): Readable<Selectable | undefined> => {
+		const store = map.get(key);
+		if (!store) {
+			const newStore = writable<Selectable | undefined>();
+			map.set(key, newStore);
+			return newStore;
+		} else {
+			return store;
+		}
+	};
+
+	return {
+		registrar,
+		get
 	};
 };
 

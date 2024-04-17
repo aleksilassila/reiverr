@@ -13,13 +13,13 @@
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { modalStack } from '../Modal/modal.store';
 	import { derived } from 'svelte/store';
-	import EpisodeCarousel from './EpisodeCarousel.svelte';
 	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import SonarrMediaMangerModal from '../MediaManager/sonarr/SonarrMediaMangerModal.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
+	import EpisodeGrid from './EpisodeGrid.svelte';
 
 	export let id: string;
 
@@ -50,7 +50,7 @@
 	const episodeCards = useRegistrar();
 
 	let scrollTop: number;
-	$: showEpisodeInfo = scrollTop > 140;
+	$: showEpisodeInfo = false; // scrollTop > 140;
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -152,7 +152,7 @@
 							focusOnMount
 							on:navigate={handleGoBack}
 							on:back={handleGoBack}
-							{registrar}
+							on:mount={registrar}
 						>
 							{#if $nextJellyfinEpisode}
 								<Button
@@ -204,14 +204,13 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<EpisodeCarousel
-			on:enter={scrollIntoView({ bottom: 32 })}
+		<EpisodeGrid
+			on:enter={scrollIntoView({ top: 32 })}
 			id={Number(id)}
 			tmdbSeries={tmdbSeriesData}
 			{jellyfinEpisodes}
-			{nextJellyfinEpisode}
-			bind:selectedTmdbEpisode
-			registrar={episodeCards.registrar}
+			currentJellyfinEpisode={nextJellyfinEpisode}
+			on:mount={episodeCards.registrar}
 		/>
 		<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 			{#await $tmdbSeries then series}

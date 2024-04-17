@@ -16,9 +16,9 @@
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'w-[420px] h-[236.25px] ',
+			'w-full h-64',
 			'flex flex-col shrink-0',
-			'overflow-hidden rounded-xl cursor-pointer group relative px-4 py-3 selectable'
+			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable'
 		)}
 		on:select={handlePlay}
 		on:enter
@@ -35,7 +35,7 @@
 			style={`background-image: url('${backdropUrl}')`}
 		/>
 		<div
-			class="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent via-40% to-transparent"
+			class="absolute inset-0 bg-gradient-to-t from-secondary-900/75 from-10% via-transparent via-40% to-transparent"
 		/>
 		{#if handlePlay}
 			<div
