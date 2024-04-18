@@ -59,7 +59,6 @@
 					scrollIntoView({ horizontal: 64 })(event);
 					seasonIndex = i;
 				}}
-				registrar={seasonButtons.registrar(i)}
 				focusOnClick
 			>
 				<div
@@ -81,16 +80,19 @@
 	</UICarousel>
 	<CardGrid direction="horizontal" on:mount>
 		{#each $tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
-			{@const jellyfinEpisodeId = $jellyfinEpisodes?.find(
+			{@const jellyfinEpisode = $jellyfinEpisodes?.find(
 				(i) =>
 					i.IndexNumber === episode.episode_number && i.ParentIndexNumber === episode.season_number
-			)?.Id}
+			)}
+			{@const jellyfinEpisodeId = jellyfinEpisode?.Id}
 			<TmdbEpisodeCard
 				on:mount={episodeCards.registrar(`${episode.season_number}-${episode.episode_number}`)}
 				{episode}
 				handlePlay={jellyfinEpisodeId
 					? () => playerState.streamJellyfinId(jellyfinEpisodeId)
 					: undefined}
+				isWatched={jellyfinEpisode?.UserData?.Played || false}
+				playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
 			/>
 		{/each}
 	</CardGrid>

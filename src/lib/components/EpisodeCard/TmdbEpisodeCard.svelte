@@ -5,6 +5,8 @@
 
 	export let episode: TmdbEpisode;
 	export let handlePlay: (() => void) | undefined;
+	export let isWatched = false;
+	export let playbackProgress = 0;
 </script>
 
 <EpisodeCard
@@ -12,6 +14,8 @@
 	episodeName={episode.name || ''}
 	backdropUrl={TMDB_BACKDROP_SMALL + episode.still_path}
 	{handlePlay}
+	{isWatched}
+	{playbackProgress}
 	on:enter
 	on:mount
 />

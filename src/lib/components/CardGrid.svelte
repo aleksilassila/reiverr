@@ -40,7 +40,7 @@
 	direction="grid"
 	gridCols={cols}
 	class={classNames(
-		'grid gap-x-4 gap-y-8',
+		'grid gap-x-8 gap-y-8',
 		{
 			'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4': direction === 'horizontal',
 			'grid-cols-4 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6': direction === 'vertical'

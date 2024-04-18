@@ -48,7 +48,7 @@
 	bind:hasFocusWithin={isNavBarOpen}
 	bind:focusIndex
 	bind:selectable
-	registrar={registrars.sidebar.registrar}
+	on:mount={registrars.sidebar.registrar}
 >
 	<!-- Background -->
 	<div
