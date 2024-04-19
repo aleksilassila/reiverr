@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
-import * as proxy from 'express-http-proxy';
+// import * as proxy from 'express-http-proxy';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +20,6 @@ async function bootstrap() {
   SwaggerModule.setup('openapi', app, document);
   fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
 
-  await app.listen(3000);
+  await app.listen(9494);
 }
 bootstrap();

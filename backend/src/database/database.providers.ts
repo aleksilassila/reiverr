@@ -8,7 +8,7 @@ export const databaseProviders = [
     useFactory: async () => {
       const dataSource = new DataSource({
         type: 'sqlite',
-        database: './reiverr.sqlite',
+        database: './config/reiverr.sqlite',
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
         synchronize: true,
       });

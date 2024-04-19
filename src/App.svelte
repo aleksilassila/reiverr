@@ -38,7 +38,7 @@
 </script>
 
 <I18n />
-<Container class="w-full h-full overflow-auto text-white">
+<Container class="w-full h-full overflow-auto text-white scrollbar-hide">
 	{#if $appState.user === undefined}
 		<div class="h-full w-full flex flex-col items-center justify-center">
 			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
