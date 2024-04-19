@@ -51,7 +51,7 @@
 		<Container direction="horizontal" let:focusIndex on:enter {...$$restProps} class="">
 			<div
 				class={classNames(
-					'flex overflow-x-scroll items-center overflow-y-visible relative scrollbar-hide',
+					'flex overflow-x-scroll items-center overflow-y-hidden relative scrollbar-hide',
 					'[&>*]:p-4 -mx-4 w-full',
 					scrollClass
 				)}

@@ -10,22 +10,24 @@
 	import CardGrid from '../CardGrid.svelte';
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
+	import ScrollHelper from '../ScrollHelper.svelte';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
 	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
 	export let currentJellyfinEpisode: Readable<JellyfinItem | undefined>;
-	export let hideSeasons = false;
+
+	const seasonButtons = useRegistrars<number>();
+	const episodeCards = useRegistrars<string>();
+	let seasonIndex = 0;
+	let scrollTop: number;
+	$: translateUp = scrollTop < 140;
 
 	const { data: tmdbSeasons } = useDependantRequest(
 		(seasons: number) => tmdbApi.getTmdbSeriesSeasons(id, seasons),
 		tmdbSeries,
 		(series) => (series?.seasons?.length ? ([series.seasons.length] as const) : undefined)
 	);
-
-	const seasonButtons = useRegistrars<number>();
-	const episodeCards = useRegistrars<string>();
-	let seasonIndex = 0;
 
 	currentJellyfinEpisode.subscribe((episode) => {
 		if (!episode) return;
@@ -40,15 +42,17 @@
 	});
 </script>
 
+<ScrollHelper bind:scrollTop />
+
 <Container
 	on:enter
 	class={classNames('transition-transform mx-20', {
-		'-translate-y-20': hideSeasons
+		'-translate-y-24': translateUp
 	})}
 >
 	<UICarousel
 		class={classNames('flex -mx-2 transition-opacity mb-8', {
-			'opacity-0': hideSeasons
+			'opacity-0': translateUp
 		})}
 	>
 		{#each $tmdbSeasons || [] as season, i}
