@@ -51,7 +51,7 @@
 				'h-44 w-80': size === 'md' && orientation === 'landscape',
 				'w-60 h-96': size === 'lg' && orientation === 'portrait',
 				'h-60 w-96': size === 'lg' && orientation === 'landscape',
-				'w-full': size === 'dynamic',
+				'w-full h-96': size === 'dynamic',
 				'shadow-lg': shadow
 			}
 		)}

@@ -22,8 +22,10 @@
 	}));
 </script>
 
-<Container focusOnMount class="pl-20">
-	<div>LibraryPage</div>
+<Container focusOnMount class="px-20">
+	<div class="my-8">
+		<div class="font-medium tracking-wide text-2xl text-zinc-200">Library</div>
+	</div>
 	<CardGrid>
 		{#await libraryItemsP}
 			<CarouselPlaceholderItems />

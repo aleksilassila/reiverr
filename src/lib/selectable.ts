@@ -694,7 +694,11 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		currentlyFocusedObject.back();
 	} else if (event.key === 'MediaPlayPause') {
 		currentlyFocusedObject.playPause();
+	} else {
+		return;
 	}
+
+	event.preventDefault();
 }
 
 Selectable.focusedObject.subscribe(console.debug);
