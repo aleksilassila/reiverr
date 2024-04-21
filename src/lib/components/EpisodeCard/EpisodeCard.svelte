@@ -27,9 +27,10 @@
 				'opacity-75': !isOnDeck && !$hasFocus
 			}
 		)}
-		on:select={handlePlay}
+		on:clickOrSelect
 		on:enter
 		on:mount
+		on:playPause={handlePlay}
 		bind:hasFocus
 		focusOnClick
 	>

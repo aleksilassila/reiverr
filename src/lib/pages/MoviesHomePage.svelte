@@ -9,6 +9,8 @@
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { useRequest } from '../stores/data.store';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
+	import { Route } from 'svelte-navigator';
+	import MoviePage from './MoviePage.svelte';
 
 	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
 		jellyfinApi.getContinueWatching,
@@ -58,3 +60,5 @@
 		</Carousel>
 	</div>
 </Container>
+
+<Route path=":id/*" component={MoviePage} />

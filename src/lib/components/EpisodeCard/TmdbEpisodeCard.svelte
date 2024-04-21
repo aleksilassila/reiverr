@@ -18,4 +18,5 @@
 	{playbackProgress}
 	on:enter
 	on:mount
+	on:clickOrSelect
 />

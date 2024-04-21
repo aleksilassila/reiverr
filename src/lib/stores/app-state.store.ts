@@ -59,7 +59,8 @@ authenticationStore.subscribe((auth) => {
 		getReiverrApiClient(auth.serverBaseUrl, auth.token)
 			?.GET('/user', {})
 			.then((res) => res.data)
-			.then((user) => appState.setUser(user || null));
+			.then((user) => appState.setUser(user || null))
+			.catch((err) => appState.setUser(null));
 	} else {
 		appState.setUser(null);
 	}

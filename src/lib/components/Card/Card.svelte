@@ -26,6 +26,8 @@
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 
+	export let navigateWithType = false;
+
 	const navigate = useNavigate();
 	let hasFocus: Readable<boolean>;
 </script>
@@ -35,7 +37,7 @@
 		active={focusable}
 		on:clickOrSelect={() => {
 			if (tmdbId || tvdbId) {
-				navigate(`${type}/${tmdbId || tvdbId}`);
+				navigate(navigateWithType ? `${type}/${tmdbId || tvdbId}` : `${tmdbId || tvdbId}`);
 			}
 		}}
 		on:enter

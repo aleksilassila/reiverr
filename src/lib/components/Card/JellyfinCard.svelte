@@ -4,8 +4,7 @@
 
 	export let item: JellyfinItem;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' | undefined = undefined;
-
-	console.log(item, item.ProviderIds?.Tmdb);
+	export let navigateWithType = false;
 </script>
 
 <Card
@@ -18,5 +17,6 @@
 	{size}
 	orientation="portrait"
 	rating={item.CommunityRating || undefined}
+	{navigateWithType}
 	on:enter
 />

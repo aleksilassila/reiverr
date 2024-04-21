@@ -3,12 +3,11 @@
 	import { Route, Router } from 'svelte-navigator';
 	import { handleKeyboardNavigation } from './lib/selectable';
 	import Container from './Container.svelte';
-	import BrowseSeriesPage from './lib/pages/SeriesHomePage.svelte';
-	import MoviesPage from './lib/pages/MoviesHomePage.svelte';
+	import SeriesHomePage from './lib/pages/SeriesHomePage.svelte';
+	import MoviesHomePage from './lib/pages/MoviesHomePage.svelte';
 	import LibraryPage from './lib/pages/LibraryPage.svelte';
 	import ManagePage from './lib/pages/ManagePage.svelte';
 	import SearchPage from './lib/pages/SearchPage.svelte';
-	import SeriesPage from './lib/components/SeriesPage/SeriesPage.svelte';
 	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 	import LoginPage from './lib/pages/LoginPage.svelte';
 	import { appState } from './lib/stores/app-state.store';
@@ -16,8 +15,6 @@
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import PageNotFound from './lib/pages/PageNotFound.svelte';
 	import NavigationDebugger from './lib/components/NavigationDebugger.svelte';
-	import { onMount } from 'svelte';
-	import { isTizen } from './lib/utils/browser-detection';
 
 	appState.subscribe((s) => console.log('appState', s));
 
@@ -53,11 +50,11 @@
 		<Router>
 			<Container class="flex flex-col relative" direction="horizontal" trapFocus>
 				<Sidebar />
-				<Route path="/">
-					<BrowseSeriesPage />
+				<Route path="series/*">
+					<SeriesHomePage />
 				</Route>
 				<Route path="movies/*">
-					<MoviesPage />
+					<MoviesHomePage />
 				</Route>
 				<Route path="library/*">
 					<LibraryPage />
@@ -68,18 +65,10 @@
 				<Route path="search">
 					<SearchPage />
 				</Route>
-				<Route path="movie/:id" component={MoviePage} />
 				<Route path="*">
 					<PageNotFound />
 				</Route>
 			</Container>
-		</Router>
-
-		<Router>
-			<Route path="movies/movie/:id" component={MoviePage} />
-			<Route path="library/movie/:id" component={MoviePage} />
-			<Route path="series/:id" component={SeriesPage} />
-			<Route path="library/series/:id" component={SeriesPage} />
 		</Router>
 
 		<ModalStack />

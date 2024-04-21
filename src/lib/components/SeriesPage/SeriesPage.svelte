@@ -20,6 +20,8 @@
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
+	import { Route } from 'svelte-navigator';
+	import EpisodePage from '../../pages/EpisodePage.svelte';
 
 	export let id: string;
 
@@ -264,3 +266,5 @@
 		{/await}
 	</div>
 </DetachedPage>
+
+<Route path="/season/:season/episode/:episode/*" component={EpisodePage} />

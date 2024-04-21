@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type Readable } from 'svelte/store';
-	import { tmdbApi, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbEpisode, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
 	import Container from '../../../Container.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
@@ -11,6 +11,9 @@
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
+	import { useNavigate } from 'svelte-navigator';
+
+	const navigate = useNavigate();
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
@@ -40,6 +43,10 @@
 		seasonButton.subscribe((s) => s?.focus({ setFocusedElement: false, propagate: false }));
 		episodeCard.subscribe((e) => e?.focus({ setFocusedElement: false, propagate: false }));
 	});
+
+	function handleOpenEpisodePage(episode: TmdbEpisode) {
+		navigate(`season/${episode.season_number}/episode/${episode.episode_number}`);
+	}
 </script>
 
 <ScrollHelper bind:scrollTop />
@@ -97,6 +104,7 @@
 					: undefined}
 				isWatched={jellyfinEpisode?.UserData?.Played || false}
 				playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
+				on:clickOrSelect={() => handleOpenEpisodePage(episode)}
 			/>
 		{/each}
 	</CardGrid>

@@ -10,6 +10,8 @@
 	import { getShowcasePropsFromTmdbSeries } from '../components/HeroShowcase/HeroShowcase';
 	import { scrollIntoView } from '../selectable';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
+	import { Route } from 'svelte-navigator';
+	import SeriesPage from '../components/SeriesPage/SeriesPage.svelte';
 
 	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
 		jellyfinApi.getContinueWatchingSeries
@@ -108,3 +110,5 @@
 		</Carousel>
 	</div>
 </Container>
+
+<Route path=":id/*" component={SeriesPage} />

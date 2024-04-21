@@ -6,8 +6,11 @@
 	const navigate = useNavigate();
 
 	location.subscribe((l) => {
+		console.log('l', l.pathname);
 		if (l.pathname === '/dist/index.html') {
-			navigate('/');
+			navigate('/series');
+		} else if (l.pathname === '/') {
+			navigate('/series');
 		}
 	});
 </script>
