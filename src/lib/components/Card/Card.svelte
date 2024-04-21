@@ -43,7 +43,7 @@
 		on:enter
 		class={classNames(
 			'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
-			'transition-transform selectable',
+			'selectable',
 			{
 				'aspect-video': orientation === 'landscape',
 				'aspect-[2/3]': orientation === 'portrait',
@@ -63,54 +63,51 @@
 			src={backdropUrl}
 			class="absolute inset-0 group-hover:scale-105 transition-transform"
 		/>
-		<div
-			class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"
-			style="filter: blur(50px); transform: scale(3);"
-		>
-			<!-- This is the tinted and blurred hover overlay -->
-			<LazyImg src={backdropUrl} />
-		</div>
-		<!-- <div
-		style={`background-image: url(${backdropUrl}); background-size: cover; background-position: center; filter: blur(50px); transform: scale(3);`}
-		class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"
-	/> -->
-		<div
-			class={classNames(
-				'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',
-				{
-					'py-2 px-3': true
-				}
-			)}
-		>
-			<div class="flex justify-self-start justify-between">
-				<slot name="top-left">
-					<div>
-						<h1 class="text-zinc-100 font-bold line-clamp-2 text-lg">{title}</h1>
-						<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>
-					</div>
-				</slot>
-				<slot name="top-right">
-					<div />
-				</slot>
-			</div>
-			<div class="flex justify-self-end justify-between">
-				<slot name="bottom-left">
-					<div>
-						{#if rating}
-							<h2 class="flex items-center gap-1.5 text-sm text-zinc-300 font-medium">
-								<Star />{rating.toFixed(1)}
-							</h2>
-						{/if}
-					</div>
-				</slot>
-				<slot name="bottom-right">
-					<div />
-				</slot>
-			</div>
-		</div>
-		<!-- <div
-		class="absolute inset-0 bg-gradient-to-t from-darken group-hover:opacity-0 transition-opacity z-[1]"
-	/> -->
+		<!-- This is the tinted and blurred hover overlay -->
+		<!--		<div-->
+		<!--			class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"-->
+		<!--			style="filter: blur(50px); transform: scale(3);"-->
+		<!--		>-->
+		<!--			<LazyImg src={backdropUrl} />-->
+		<!--		</div>-->
+
+		<!-- Mouse hover details -->
+		<!--		<div-->
+		<!--			class={classNames(-->
+		<!--				'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',-->
+		<!--				{-->
+		<!--					'py-2 px-3': true-->
+		<!--				}-->
+		<!--			)}-->
+		<!--		>-->
+		<!--			<div class="flex justify-self-start justify-between">-->
+		<!--				<slot name="top-left">-->
+		<!--					<div>-->
+		<!--						<h1 class="text-zinc-100 font-bold line-clamp-2 text-lg">{title}</h1>-->
+		<!--						<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>-->
+		<!--					</div>-->
+		<!--				</slot>-->
+		<!--				<slot name="top-right">-->
+		<!--					<div />-->
+		<!--				</slot>-->
+		<!--			</div>-->
+		<!--			<div class="flex justify-self-end justify-between">-->
+		<!--				<slot name="bottom-left">-->
+		<!--					<div>-->
+		<!--						{#if rating}-->
+		<!--							<h2 class="flex items-center gap-1.5 text-sm text-zinc-300 font-medium">-->
+		<!--								<Star />{rating.toFixed(1)}-->
+		<!--							</h2>-->
+		<!--						{/if}-->
+		<!--					</div>-->
+		<!--				</slot>-->
+		<!--				<slot name="bottom-right">-->
+		<!--					<div />-->
+		<!--				</slot>-->
+		<!--			</div>-->
+		<!--		</div>-->
+
+		<!-- Play Button -->
 		{#if jellyfinId}
 			<div class="absolute inset-0 flex items-center justify-center z-[1]">
 				<PlayButton

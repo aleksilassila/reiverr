@@ -29,3 +29,10 @@ export const videoPlayerSettings = createLocalStorageStore<{
 	muted: false,
 	volume: 1
 });
+export const localSettings = createLocalStorageStore<{
+	animateScrolling: boolean;
+	useCssTransitions: boolean;
+}>('settings', {
+	animateScrolling: true,
+	useCssTransitions: true
+});

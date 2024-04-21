@@ -1,5 +1,6 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
 import { getScrollParent } from './utils';
+import { localSettings } from './stores/localstorage.store';
 
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 export type Registrar = (e: CustomEvent<Selectable>) => () => void;
@@ -727,6 +728,8 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		offsets.right = offsets.all;
 	}
 
+	const scrollBehavior: ScrollBehavior = get(localSettings).animateScrolling ? 'smooth' : 'instant';
+
 	const boundingRect = htmlElement.getBoundingClientRect();
 	const verticalParent = getScrollParent(htmlElement, 'vertical');
 	const horizontalParent = getScrollParent(htmlElement, 'horizontal');
@@ -763,7 +766,7 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 
 		if (top !== -1) {
 			verticalParent.scrollTo({
-				behavior: 'smooth',
+				behavior: scrollBehavior,
 				top
 			});
 		}
@@ -800,7 +803,7 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 
 		if (left !== -1) {
 			horizontalParent.scrollTo({
-				behavior: 'smooth',
+				behavior: scrollBehavior,
 				left
 			});
 		}
