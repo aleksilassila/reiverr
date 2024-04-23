@@ -5,6 +5,7 @@ import type { Api } from '../api.interface';
 import { appState } from '../../stores/app-state.store';
 import type { DeviceProfile } from './playback-profiles';
 import axios from 'axios';
+import { log } from '../../utils';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
 
@@ -82,7 +83,13 @@ export class JellyfinApi implements Api<paths> {
 								hasTmdbId: true,
 								recursive: true,
 								includeItemTypes: ['Movie', 'Series'],
-								fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated']
+								fields: [
+									'ProviderIds',
+									'Genres',
+									'DateLastMediaAdded',
+									'DateCreated',
+									'MediaSources'
+								]
 							}
 						}
 					})
@@ -265,6 +272,39 @@ export class JellyfinApi implements Api<paths> {
 	// 		}
 	// 	}).then((r) => r.data?.Items || []);
 
+	episodesCache: JellyfinItem[] = [];
+	getEpisode = async (
+		seriesId: string,
+		season: number,
+		episode: number,
+		refreshCache = false
+	): Promise<JellyfinItem | undefined> =>
+		this.getClient()
+			.GET('/Users/{userId}/Items', {
+				params: {
+					path: {
+						userId: this.getUserId()
+					},
+					query: {
+						// @ts-ignore
+						seriesId,
+						parentIndexNumber: season,
+						indexNumber: episode,
+						recursive: true,
+						includeItemTypes: ['Episode'],
+						fields: ['ProviderIds', 'Genres', 'DateLastMediaAdded', 'DateCreated', 'MediaSources']
+					}
+				}
+			})
+			.then((r) =>
+				r.data?.Items?.find(
+					(i) =>
+						i?.ParentIndexNumber === season &&
+						i?.IndexNumber === episode &&
+						i?.SeriesId === seriesId
+				)
+			);
+
 	getJellyfinEpisodes = async (parentId = '') =>
 		this.getClient()
 			?.GET('/Users/{userId}/Items', {
@@ -415,28 +455,33 @@ export class JellyfinApi implements Api<paths> {
 			}
 		});
 
-	setJellyfinItemWatched = async (jellyfinId: string) =>
-		this.getClient()?.POST('/Users/{userId}/PlayedItems/{itemId}', {
-			params: {
-				path: {
-					userId: this.getUserId(),
-					itemId: jellyfinId
-				},
-				query: {
-					datePlayed: new Date().toISOString()
+	markAsWatched = async (jellyfinId: string) =>
+		this.getClient()
+			?.POST('/Users/{userId}/PlayedItems/{itemId}', {
+				params: {
+					path: {
+						userId: this.getUserId(),
+						itemId: jellyfinId
+					},
+					query: {
+						datePlayed: new Date().toISOString()
+					}
 				}
-			}
-		});
+			})
 
-	setJellyfinItemUnwatched = async (jellyfinId: string) =>
-		this.getClient()?.DELETE('/Users/{userId}/PlayedItems/{itemId}', {
-			params: {
-				path: {
-					userId: this.getUserId(),
-					itemId: jellyfinId
+			.then((res) => res.response.status === 200);
+
+	markAsUnwatched = async (jellyfinId: string) =>
+		this.getClient()
+			?.DELETE('/Users/{userId}/PlayedItems/{itemId}', {
+				params: {
+					path: {
+						userId: this.getUserId(),
+						itemId: jellyfinId
+					}
 				}
-			}
-		});
+			})
+			.then((res) => res.response.status === 200);
 
 	getJellyfinHealth = async (
 		baseUrl: string | undefined = undefined,

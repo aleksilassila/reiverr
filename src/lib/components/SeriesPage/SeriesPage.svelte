@@ -3,7 +3,7 @@
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
 	import DetachedPage from '../DetachedPage/DetachedPage.svelte';
 	import { useActionRequest, useDependantRequest, useRequest } from '../../stores/data.store';
-	import { tmdbApi, type TmdbEpisode } from '../../apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbSeasonEpisode } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
 	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
@@ -48,7 +48,7 @@
 		sonarrApi.addSeriesToSonarr
 	);
 
-	let selectedTmdbEpisode: TmdbEpisode | undefined;
+	let selectedTmdbEpisode: TmdbSeasonEpisode | undefined;
 	const episodeCards = useRegistrar();
 
 	let scrollTop: number;
@@ -267,4 +267,4 @@
 	</div>
 </DetachedPage>
 
-<Route path="/season/:season/episode/:episode/*" component={EpisodePage} />
+<Route path="/season/:season/episode/:episode/*" component={EpisodePage} {id} />

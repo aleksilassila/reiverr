@@ -5,7 +5,7 @@
 	import { derived, get, type Readable } from 'svelte/store';
 	import {
 		tmdbApi,
-		type TmdbEpisode,
+		type TmdbSeasonEpisode,
 		type TmdbSeason,
 		type TmdbSeriesFull2
 	} from '../../apis/tmdb/tmdb-api';
@@ -24,9 +24,9 @@
 	export let nextJellyfinEpisode: Readable<JellyfinItem | undefined>;
 
 	// Exports
-	export let selectedTmdbEpisode: TmdbEpisode | undefined;
+	export let selectedTmdbEpisode: TmdbSeasonEpisode | undefined;
 
-	const containers = new Map<TmdbSeason | TmdbEpisode, Selectable>();
+	const containers = new Map<TmdbSeason | TmdbSeasonEpisode, Selectable>();
 	let scrollTop: number;
 
 	const { data: tmdbSeasons, isLoading: isTmdbSeasonsLoading } = useDependantRequest(
@@ -58,7 +58,7 @@
 		if (seasonSelectable) seasonSelectable.focus({ setFocusedElement: false });
 	}
 
-	function handleEpisodeMount(event: CustomEvent<Selectable>, tmdbEpisode: TmdbEpisode) {
+	function handleEpisodeMount(event: CustomEvent<Selectable>, tmdbEpisode: TmdbSeasonEpisode) {
 		containers.set(tmdbEpisode, event.detail);
 		const selectable = event.detail;
 

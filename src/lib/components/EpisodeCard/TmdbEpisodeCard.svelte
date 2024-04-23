@@ -1,9 +1,9 @@
 <script lang="ts">
 	import EpisodeCard from './EpisodeCard.svelte';
-	import type { TmdbEpisode } from '../../apis/tmdb/tmdb-api';
+	import type { TmdbSeasonEpisode } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 
-	export let episode: TmdbEpisode;
+	export let episode: TmdbSeasonEpisode;
 	export let handlePlay: (() => void) | undefined;
 	export let isWatched = false;
 	export let playbackProgress = 0;

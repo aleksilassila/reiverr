@@ -702,7 +702,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	event.preventDefault();
 }
 
-Selectable.focusedObject.subscribe(console.debug);
+Selectable.focusedObject.subscribe((e) => console.debug('Focused object', e));
 
 type Offsets = Partial<
 	Record<

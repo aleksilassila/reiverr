@@ -6,6 +6,7 @@
 
 	export let inactive: boolean = false;
 	export let focusOnMount: boolean = false;
+	export let style: 'primary' | 'secondary' = 'primary';
 
 	let hasFocus: Readable<boolean>;
 </script>
@@ -14,12 +15,9 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'px-6 py-2 rounded-lg font-medium tracking-wide flex items-center',
+			'px-6 py-2 rounded-lg font-medium tracking-wide flex items-center selectable',
 			{
-				// 'bg-primary-500 text-secondary-700': $hasFocus,
-				// 'bg-secondary-700': !$hasFocus,
-				// 'hover:bg-primary-500 hover:text-secondary-700': true,
-				'bg-secondary-700 selectable': true,
+				'bg-secondary-700': style === 'primary',
 				'cursor-pointer': !inactive,
 				'cursor-not-allowed pointer-events-none opacity-40': inactive
 			},

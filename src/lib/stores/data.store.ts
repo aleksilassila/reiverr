@@ -328,3 +328,39 @@ export const useActionRequest = <P extends (...args: A) => Promise<any>, A exten
 		send
 	};
 };
+
+export const useActionRequest2 = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P
+) => {
+	const request = writable<ReturnType<P>>(undefined);
+	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
+	const isFetching = writable(false);
+
+	function send(...args: Parameters<P>): ReturnType<P> {
+		isFetching.set(true);
+		// @ts-ignore
+		const p: ReturnType<P> = fn(...args)
+			.then((res) => {
+				data.set(res);
+				return res;
+			})
+			.finally(() => {
+				isFetching.set(false);
+			});
+
+		request.set(p);
+		return p;
+	}
+
+	return {
+		promise: request,
+		data: {
+			subscribe: data.subscribe
+		},
+
+		isFetching: {
+			subscribe: isFetching.subscribe
+		},
+		send
+	};
+};

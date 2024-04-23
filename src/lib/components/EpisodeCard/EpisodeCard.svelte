@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
 	import classNames from 'classnames';
-	import { Check, CheckCircled, TriangleRight } from 'radix-icons-svelte';
+	import { ArrowDown, Check, TriangleRight } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
 	import AnimateScale from '../AnimateScale.svelte';
 
@@ -22,10 +22,7 @@
 		class={classNames(
 			'w-full h-64',
 			'flex flex-col shrink-0',
-			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable transition-opacity',
-			{
-				'opacity-75': !isOnDeck && !$hasFocus
-			}
+			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable transition-opacity'
 		)}
 		on:clickOrSelect
 		on:enter
@@ -55,24 +52,28 @@
 		</div>
 		<!-- Background Image -->
 		<div
-			class="absolute inset-0 bg-center bg-cover"
+			class={classNames('absolute inset-0 bg-center bg-cover', {
+				// 'opacity-75': !isOnDeck && !$hasFocus
+			})}
 			style={`background-image: url('${backdropUrl}')`}
 		/>
 		<!-- Background Overlay / Tint -->
 		<div
 			class={classNames('absolute inset-0', {
-				'bg-gradient-to-t from-secondary-900/75 from-10% to-40% to-transparent': true
+				'bg-gradient-to-t from-secondary-900/75 from-10% to-40% ': true,
+				'to-secondary-900/25': !isOnDeck && !$hasFocus
+
 				// isOnDeck || $hasFocus,
 				// 'bg-gradient-to-t from-secondary-900/75 from-10% to-40% to-secondary-900/25':
 				// 	!isOnDeck && !$hasFocus
 			})}
 		/>
-		{#if handlePlay}
-			<div
-				class={classNames(
-					'group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'
-				)}
-			>
+		<div
+			class={classNames(
+				'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'
+			)}
+		>
+			{#if handlePlay}
 				<!-- svelte-ignore a11y-click-events-have-key-events -->
 				<div
 					class={classNames(
@@ -84,7 +85,17 @@
 				>
 					<TriangleRight size={32} />
 				</div>
-			</div>
-		{/if}
+			{:else if !isOnDeck}
+				<div
+					class={classNames(
+						'rounded-full p-4 cursor-pointer',
+						'bg-zinc-900/90 text-zinc-200',
+						'hover:bg-primary-500 hover:text-secondary-800' // group-focus-within:text-secondary-800 group-focus-within:bg-primary-500
+					)}
+				>
+					<ArrowDown size={19} />
+				</div>
+			{/if}
+		</div>
 	</Container>
 </AnimateScale>

@@ -15,12 +15,14 @@ export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
-export type TmdbEpisode = NonNullable<TmdbSeason['episodes']>[0];
+export type TmdbSeasonEpisode = NonNullable<TmdbSeason['episodes']>[0];
 export type TmdbPerson =
 	operations['person-details']['responses']['200']['content']['application/json'];
 export type TmdbCredit =
 	| NonNullable<TmdbSeriesFull2['aggregate_credits']['cast']>[0]
 	| NonNullable<TmdbMovieFull2['credits']['cast']>[0];
+export type TmdbEpisode =
+	operations['tv-episode-details']['responses']['200']['content']['application/json'];
 
 export interface TmdbPersonFull extends TmdbPerson {
 	images: operations['person-images']['responses']['200']['content']['application/json'];
@@ -175,6 +177,26 @@ export class TmdbApi implements Api<paths> {
 				}
 			}
 		}).then((res) => res.data?.results || []);
+
+	getEpisode = (
+		seriesId: number,
+		season: number,
+		episode: number
+	): Promise<TmdbEpisode | undefined> =>
+		this.getClient()
+			.GET('/3/tv/{series_id}/season/{season_number}/episode/{episode_number}', {
+				params: {
+					path: {
+						series_id: seriesId,
+						season_number: season,
+						episode_number: episode
+					},
+					query: {
+						append_to_response: 'credits,external_ids,images'
+					}
+				}
+			})
+			.then((res) => res.data);
 
 	// OTHER
 }

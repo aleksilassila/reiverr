@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type Readable } from 'svelte/store';
-	import { tmdbApi, type TmdbEpisode, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbSeasonEpisode, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
 	import Container from '../../../Container.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
@@ -44,7 +44,7 @@
 		episodeCard.subscribe((e) => e?.focus({ setFocusedElement: false, propagate: false }));
 	});
 
-	function handleOpenEpisodePage(episode: TmdbEpisode) {
+	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
 		navigate(`season/${episode.season_number}/episode/${episode.episode_number}`);
 	}
 </script>
