@@ -5,13 +5,14 @@
 	import { useActionRequest, useDependantRequest, useRequest } from '../stores/data.store';
 	import { TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
-	import { Check, DotFilled, Download, Play, Trash } from 'radix-icons-svelte';
+	import { Check, DotFilled, Download, File, Play, Trash } from 'radix-icons-svelte';
 	import HeroInfoTitle from '../components/HeroInfo/HeroInfoTitle.svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 	import { formatSize } from '../utils';
 	import { tick } from 'svelte';
+	import { openEpisodeMediaManager } from '../components/Modal/modal.store';
 
 	export let id: string; // Series ID
 	export let season: string;
@@ -44,10 +45,10 @@
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
-	{#await tmdbEpisode then episode}
+	{#await tmdbEpisode then tmdbEpisode}
 		<div
 			class="bg-center bg-cover absolute inset-x-0 h-screen -z-10"
-			style={`background-image: url('${TMDB_IMAGES_ORIGINAL + episode?.still_path}')`}
+			style={`background-image: url('${TMDB_IMAGES_ORIGINAL + tmdbEpisode?.still_path}')`}
 		/>
 		<div class="absolute inset-0 flex flex-col -z-10">
 			<div class="h-screen bg-gradient-to-t from-secondary-500 to-transparent" />
@@ -63,9 +64,9 @@
 			class="h-screen flex flex-col justify-end mx-20 py-16"
 		>
 			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
-				Season {episode?.season_number} Episode {episode?.episode_number}
+				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
 			</div>
-			<HeroInfoTitle title={episode?.name} />
+			<HeroInfoTitle title={tmdbEpisode?.name} />
 			<div
 				class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
 			>
@@ -78,12 +79,12 @@
 				<!--				</p>-->
 				<!-- <DotFilled /> -->
 				<p class="flex-shrink-0">
-					<a href={'https://www.themoviedb.org/movie/' + episode?.id}>
-						{episode?.vote_average} TMDB
+					<a href={'https://www.themoviedb.org/movie/' + tmdbEpisode?.id}>
+						{tmdbEpisode?.vote_average} TMDB
 					</a>
 				</p>
 				<DotFilled />
-				<p class="flex-shrink-0">{episode?.runtime} Minutes</p>
+				<p class="flex-shrink-0">{tmdbEpisode?.runtime} Minutes</p>
 
 				{#await jellyfinEpisode then episode}
 					{#if episode?.MediaSources?.[0]?.Size}
@@ -99,13 +100,13 @@
 				{/await}
 			</div>
 			<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
-				{episode?.overview}
+				{tmdbEpisode?.overview}
 			</div>
 			<Container direction="horizontal" class="flex mt-8">
-				{#await jellyfinEpisode then episode}
+				{#await jellyfinEpisode then jEpisode}
 					<Button
 						class="mr-4"
-						on:clickOrSelect={() => episode?.Id && playerState.streamJellyfinId(episode.Id)}
+						on:clickOrSelect={() => jEpisode?.Id && playerState.streamJellyfinId(jEpisode.Id)}
 					>
 						Play
 						<Play size={19} slot="icon" />
@@ -119,7 +120,12 @@
 						<Check slot="icon" size={19} />
 					</Button>
 				{/await}
-				<Button class="mr-4">Request <Download slot="icon" size={19} /></Button>
+				<Button
+					class="mr-4"
+					on:clickOrSelect={() =>
+						openEpisodeMediaManager(Number(id), Number(season), Number(episode))}
+					>Manage Media <File slot="icon" size={19} /></Button
+				>
 				<Button class="mr-4">Delete Files <Trash slot="icon" size={19} /></Button>
 			</Container>
 		</Container>

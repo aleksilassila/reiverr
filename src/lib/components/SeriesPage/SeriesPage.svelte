@@ -15,13 +15,13 @@
 	import { derived } from 'svelte/store';
 	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
-	import SonarrMediaMangerModal from '../MediaManager/sonarr/SonarrMediaMangerModal.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
 	import { Route } from 'svelte-navigator';
 	import EpisodePage from '../../pages/EpisodePage.svelte';
+	import SeriesMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
 
 	export let id: string;
 
@@ -168,29 +168,18 @@
 									<Play size={19} slot="icon" />
 								</Button>
 							{/if}
-							{#if sonarrItem}
-								<Button
-									class="mr-4"
-									on:clickOrSelect={() =>
-										modalStack.create(SonarrMediaMangerModal, { id: sonarrItem.id || -1 })}
-								>
-									{#if jellyfinItem}
-										Manage Files
-									{:else}
-										Request
-									{/if}
-									<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />
-								</Button>
-							{:else}
-								<Button
-									class="mr-4"
-									on:clickOrSelect={() => addSeriesToSonarr(Number(id))}
-									inactive={$addSeriesToSonarrFetching}
-								>
-									Add to Sonarr
-									<Plus slot="icon" size={19} />
-								</Button>
-							{/if}
+							<Button
+								class="mr-4"
+								on:clickOrSelect={() =>
+									modalStack.create(SeriesMediaManagerModal, { id: Number(id) })}
+							>
+								{#if jellyfinItem}
+									Manage Media
+								{:else}
+									Request
+								{/if}
+								<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />
+							</Button>
 							{#if PLATFORM_WEB}
 								<Button class="mr-4">
 									Open In TMDB

@@ -1,11 +1,9 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
 	import HeroShowcaseBackground from './HeroBackground.svelte';
-	import { scrollIntoView, Selectable } from '../../selectable';
 	import IconButton from '../IconButton.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
-	import SidebarMargin from '../SidebarMargin.svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import { createEventDispatcher } from 'svelte';
 

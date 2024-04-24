@@ -12,6 +12,9 @@
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import { useNavigate } from 'svelte-navigator';
+	import ManageSeasonCard from './ManageSeasonCard.svelte';
+	import { TMDB_BACKDROP_SMALL } from '../../constants';
+	import { modalStack, openSeasonMediaManager } from '../Modal/modal.store';
 
 	const navigate = useNavigate();
 
@@ -107,5 +110,9 @@
 				on:clickOrSelect={() => handleOpenEpisodePage(episode)}
 			/>
 		{/each}
+		<ManageSeasonCard
+			backdropUrl={TMDB_BACKDROP_SMALL + $tmdbSeries?.backdrop_path}
+			on:clickOrSelect={() => openSeasonMediaManager(id, seasonIndex + 1)}
+		/>
 	</CardGrid>
 </Container>

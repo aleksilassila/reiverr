@@ -10,7 +10,7 @@
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { modalStack } from '../components/Modal/modal.store';
+	import { modalStack, openMovieMediaManager } from '../components/Modal/modal.store';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 	import ManageMediaModal from '../components/MediaManager/radarr/RadarrMediaMangerModal.svelte';
 
@@ -98,13 +98,9 @@
 							</Button>
 						{/if}
 						{#if radarrItem}
-							<Button
-								class="mr-4"
-								on:clickOrSelect={() =>
-									modalStack.create(ManageMediaModal, { id: radarrItem.id || -1 })}
-							>
+							<Button class="mr-4" on:clickOrSelect={() => openMovieMediaManager(Number(id))}>
 								{#if jellyfinItem}
-									Manage Files
+									Manage Media
 								{:else}
 									Request
 								{/if}

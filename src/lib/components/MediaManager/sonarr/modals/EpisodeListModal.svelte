@@ -36,7 +36,7 @@
 		modalStack.create(
 			ReleaseListModal,
 			{
-				getReleases: () => sonarrApi.fetchSonarrReleases(id),
+				getReleases: () => sonarrApi.getEpisodeReleases(id),
 				selectRelease: handleSelectRelease
 			},
 			groupId
@@ -47,7 +47,7 @@
 		modalStack.create(
 			ReleaseListModal,
 			{
-				getReleases: () => sonarrApi.fetchSonarrSeasonReleases(seriesId, seasonNumber),
+				getReleases: () => sonarrApi.getSeasonReleases(seriesId, seasonNumber),
 				selectRelease: handleSelectRelease
 			},
 			groupId

@@ -8,6 +8,7 @@
 	import { derived } from 'svelte/store';
 	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
 	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
+	import Container from '../../../Container.svelte';
 
 	type Release = RadarrRelease | SonarrRelease;
 
@@ -33,16 +34,16 @@
 	});
 </script>
 
-<div class="flex flex-col -my-1">
+<Container class="flex flex-col -my-2">
 	{#if $isLoading}
 		{#each new Array(5) as _, index}
-			<div class="flex-1 my-1">
+			<div class="flex-1 my-2">
 				<ButtonGhost />
 			</div>
 		{/each}
 	{:else}
 		{#each (showAll ? $releases : $filteredReleases)?.filter((r) => r.guid && r.indexerId) || [] as release, index}
-			<div class="flex-1 my-1">
+			<div class="flex-1 my-2">
 				<Button
 					on:clickOrSelect={() => selectRelease(release)}
 					let:hasFocus
@@ -118,4 +119,4 @@
 			</div>
 		{/if}
 	{/if}
-</div>
+</Container>

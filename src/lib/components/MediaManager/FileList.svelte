@@ -5,21 +5,22 @@
 	import { formatSize } from '../../utils.js';
 	import type { FileResource } from '../../apis/combined-types';
 	import { scrollIntoView } from '../../selectable';
+	import Container from '../../../Container.svelte';
 
 	export let files: Promise<FileResource[]>;
 	export let handleSelectFile: (file: FileResource) => void;
 </script>
 
-<div class="-my-1">
+<Container class="flex flex-col -my-2">
 	{#await files}
 		{#each new Array(5) as _, index}
-			<div class="flex-1 my-1">
+			<div class="flex-1 my-2">
 				<ButtonGhost />
 			</div>
 		{/each}
 	{:then files}
 		{#each files as file, index}
-			<div class="flex-1 my-1">
+			<div class="flex-1 my-2">
 				<Button
 					on:clickOrSelect={() => handleSelectFile(file)}
 					let:hasFocus
@@ -46,4 +47,4 @@
 			<div class="text-sm text-zinc-400">No local files found</div>
 		{/each}
 	{/await}
-</div>
+</Container>

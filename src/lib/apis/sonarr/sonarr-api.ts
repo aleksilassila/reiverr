@@ -207,7 +207,7 @@ export class SonarrApi implements Api<paths> {
 					) as EpisodeDownload[]) || []
 			) || Promise.resolve([]);
 
-	getSonarrDownloadsById = (sonarrId: number) =>
+	getDownloadsBySeriesId = (sonarrId: number) =>
 		this.getSonarrDownloads().then((downloads) =>
 			downloads.filter((d) => d.seriesId === sonarrId)
 		) || Promise.resolve([]);
@@ -266,7 +266,7 @@ export class SonarrApi implements Api<paths> {
 	// 	}));
 	// };
 
-	fetchSonarrReleases = async (episodeId: number) =>
+	getEpisodeReleases = async (episodeId: number) =>
 		this.getClient()
 			?.GET('/api/v3/release', {
 				params: {
@@ -277,7 +277,7 @@ export class SonarrApi implements Api<paths> {
 			})
 			.then((r) => r.data || []) || Promise.resolve([]);
 
-	fetchSonarrSeasonReleases = async (seriesId: number, seasonNumber: number) =>
+	getSeasonReleases = async (seriesId: number, seasonNumber: number) =>
 		this.getClient()
 			?.GET('/api/v3/release', {
 				params: {

@@ -22,7 +22,7 @@
 		promise: downloads,
 		data: downloadsData,
 		refresh: refreshDownloads
-	} = useRequest(sonarrApi.getSonarrDownloadsById, id);
+	} = useRequest(sonarrApi.getDownloadsBySeriesId, id);
 
 	const handleGrabRelease = (guid: string, indexerId: number) =>
 		sonarrApi

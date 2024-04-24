@@ -1,5 +1,8 @@
 import type { ComponentType, SvelteComponentTyped } from 'svelte';
 import { derived, writable } from 'svelte/store';
+import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
+import EpisodeMediaManagerModal from '../MediaManagerModal/EpisodeMediaManagerModal.svelte';
+import MovieMediaManagerModal from '../MediaManagerModal/MovieMediaManagerModal.svelte';
 
 type ModalItem = {
 	id: symbol;
@@ -48,6 +51,15 @@ function createModalStack() {
 
 export const modalStack = createModalStack();
 export const modalStackTop = modalStack.top;
+
+export const openSeasonMediaManager = (tmdbId: number, season: number) =>
+	modalStack.create(SeasonMediaManagerModal, { id: tmdbId, season });
+
+export const openEpisodeMediaManager = (tmdbId: number, season: number, episode: number) =>
+	modalStack.create(EpisodeMediaManagerModal, { id: tmdbId, season, episode });
+
+export const openMovieMediaManager = (tmdbId: number) =>
+	modalStack.create(MovieMediaManagerModal, { id: tmdbId });
 
 // let lastTitleModal: symbol | undefined = undefined;
 // export function openTitleModal(titleId: TitleId) {
