@@ -7,6 +7,7 @@
 	export let urls: Promise<string[]>;
 	export let index: number;
 	export let hasFocus = true;
+	export let hideInterface = false;
 	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
@@ -75,7 +76,11 @@
 		</div>
 	{/if}
 </div>
-<div class="absolute inset-0 flex flex-col -z-10">
-	<div class="h-screen bg-gradient-to-t from-secondary-500 to-transparent" />
-	<div class="flex-1 bg-secondary-500" />
+<div
+	class={classNames('absolute inset-0 flex flex-col -z-10 transition-opacity', {
+		'opacity-0': hideInterface
+	})}
+>
+	<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
+	<div class="flex-1 bg-secondary-900" />
 </div>

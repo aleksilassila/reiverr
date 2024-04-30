@@ -6,12 +6,14 @@
 	import PageDots from '../HeroShowcase/PageDots.svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import { createEventDispatcher } from 'svelte';
+	import classNames from 'classnames';
 
 	const dispatch = createEventDispatcher();
 
 	export let urls: Promise<string[]>;
-
 	export let index = 0;
+	export let hideInterface = false;
+
 	let length = 0;
 
 	$: urls.then((urls) => (length = urls.length));
@@ -68,8 +70,12 @@
 	bind:hasFocusWithin
 	bind:focusIndex
 >
-	<HeroShowcaseBackground {urls} {index} hasFocus={backgroundHasFocus} />
-	<div class="flex flex-1 z-10">
+	<HeroShowcaseBackground {urls} {index} hasFocus={backgroundHasFocus} {hideInterface} />
+	<div
+		class={classNames('flex flex-1 z-10 transition-opacity', {
+			'opacity-0': hideInterface
+		})}
+	>
 		<slot />
 		<div class="flex flex-col justify-end ml-4">
 			<div class="flex flex-1 justify-end items-center">

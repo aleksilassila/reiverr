@@ -28,7 +28,11 @@
 	}
 </script>
 
-<Container class="fixed inset-0 z-20 bg-stone-950 overflow-y-auto" trapFocus direction="horizontal">
+<Container
+	class="fixed inset-0 z-20 bg-secondary-800 overflow-y-auto"
+	trapFocus
+	direction="horizontal"
+>
 	<Container />
 	<Container on:navigate={handleGoToTop} on:back={handleGoToTop} focusOnMount>
 		<slot {handleGoBack} registrar={selectable.registrar} />
