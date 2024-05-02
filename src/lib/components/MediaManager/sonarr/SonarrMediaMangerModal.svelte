@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
 	import ManageMediaMenuLayout from '../MediaManagerMenuLayout.svelte';
-	import FilesList from '../FileList.svelte';
+	import FilesList from '../../MediaManagerModal/LocalFiles/MMLocalFilesTab.svelte';
 	import { modalStack } from '../../Modal/modal.store';
 	import FileActionsModal from '../modals/FileActionsModal.svelte';
 	import DownloadsList from '../DownloadList.svelte';
@@ -39,7 +39,7 @@
 				setTimeout(() => refreshDownloads(id), 8000);
 			});
 	const handleCancelDownload = (id: number) =>
-		sonarrApi.cancelDownloadSonarrEpisode(id).then(() => refreshDownloads(id));
+		sonarrApi.cancelDownload(id).then(() => refreshDownloads(id));
 
 	const grabbedReleases: Readable<Record<string, boolean>> = derived(downloadsData, ($downloads) =>
 		($downloads || []).reduce((acc: Record<string, boolean>, download) => {

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { formatMinutesToTime, formatSize } from '../../utils.js';
-	import type { RadarrRelease } from '../../apis/radarr/radarr-api';
-	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
-	import { scrollIntoView } from '../../selectable';
+	import { formatMinutesToTime, formatSize } from '../../../utils.js';
+	import type { RadarrRelease } from '../../../apis/radarr/radarr-api';
+	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import { scrollIntoView } from '../../../selectable';
 	import { Check, Download } from 'radix-icons-svelte';
-	import TableRow from '../Table/TableRow.svelte';
-	import type { GrabRelease } from './MediaManagerModal';
-	import TableButton from '../Table/TableButton.svelte';
-	import TableCell from '../Table/TableCell.svelte';
+	import TableRow from '../../Table/TableRow.svelte';
+	import type { GrabReleaseFn } from '../MediaManagerModal';
+	import TableButton from '../../Table/TableButton.svelte';
+	import TableCell from '../../Table/TableCell.svelte';
 	export let release: RadarrRelease | SonarrRelease;
 
-	export let grabRelease: GrabRelease;
+	export let grabRelease: GrabReleaseFn;
 	let fetching = false;
 	let didGrab = false;
 

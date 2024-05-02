@@ -150,7 +150,7 @@ export class SonarrApi implements Api<paths> {
 			.then((r) => r.data);
 	};
 
-	cancelDownloadSonarrEpisode = async (downloadId: number) => {
+	cancelDownload = async (downloadId: number) => {
 		const deleteResponse = await this.getClient()
 			?.DELETE('/api/v3/queue/{id}', {
 				params: {
@@ -167,6 +167,15 @@ export class SonarrApi implements Api<paths> {
 
 		return !!deleteResponse?.response.ok;
 	};
+
+	cancelDownloads = async (downloadIds: number[]) =>
+		this.getClient()
+			?.DELETE('/api/v3/queue/bulk', {
+				body: {
+					ids: downloadIds
+				}
+			})
+			.then((r) => r.response.ok) || Promise.resolve(false);
 
 	downloadSonarrRelease = (guid: string, indexerId: number) =>
 		this.getClient()

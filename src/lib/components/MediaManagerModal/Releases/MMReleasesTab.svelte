@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { type RadarrRelease } from '../../apis/radarr/radarr-api';
-	import ButtonGhost from '../Ghosts/ButtonGhost.svelte';
-	import type { SonarrRelease } from '../../apis/sonarr/sonarr-api';
-	import MMReleaseListRow from '../MediaManagerModal/MMReleaseListRow.svelte';
-	import Table from '../Table/Table.svelte';
-	import TableHeaderRow from '../Table/TableHeaderRow.svelte';
-	import TableHeaderSortBy from '../Table/TableHeaderSortBy.svelte';
-	import type { GrabRelease } from '../MediaManagerModal/MediaManagerModal';
-	import Container from '../../../Container.svelte';
-	import TableHeaderCell from '../Table/TableHeaderCell.svelte';
+	import { type RadarrRelease } from '../../../apis/radarr/radarr-api';
+	import ButtonGhost from '../../Ghosts/ButtonGhost.svelte';
+	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import MMReleaseListRow from './MMReleaseListRow.svelte';
+	import TableHeaderRow from '../../Table/TableHeaderRow.svelte';
+	import TableHeaderSortBy from '../../Table/TableHeaderSortBy.svelte';
+	import type { GrabReleaseFn } from '../MediaManagerModal';
+	import Container from '../../../../Container.svelte';
+	import TableHeaderCell from '../../Table/TableHeaderCell.svelte';
 
 	type Release = RadarrRelease | SonarrRelease;
 
 	export let releases: Promise<Release[]>;
-	export let grabRelease: GrabRelease;
+	export let grabRelease: GrabReleaseFn;
 
 	let sortBy: 'size' | 'quality' | 'seeders' | 'age' | undefined = 'seeders';
 	let sortDirection: 'asc' | 'desc' = 'desc';

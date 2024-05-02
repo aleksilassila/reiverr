@@ -1,10 +1,10 @@
 <script lang="ts">
 	import MMMainLayout from './MMMainLayout.svelte';
 	import MMAddToSonarr from './MMAddToSonarr.svelte';
-	import MMModal from '../MediaManager/MMModal.svelte';
-	import ReleaseList from '../MediaManager/ReleaseList.svelte';
+	import MMModal from './MMModal.svelte';
+	import ReleaseList from './Releases/MMReleasesTab.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
-	import FileList from '../MediaManager/FileList.svelte';
+	import FileList from './LocalFiles/MMLocalFilesTab.svelte';
 	import { radarrApi } from '../../apis/radarr/radarr-api';
 
 	export let id: number; // Tmdb ID

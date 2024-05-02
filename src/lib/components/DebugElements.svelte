@@ -27,12 +27,12 @@
 
 	const handleKeydown = (event: KeyboardEvent) => {
 		if (event.repeat) return;
-		if (event.key === 'Shift') showOverlay = !showOverlay;
+		if (event.key === 'Shift') showOverlay = true;
 	};
 
 	const handleKeyup = (event: KeyboardEvent) => {
 		if (event.repeat) return;
-		if (event.key === 'Shift') showOverlay = !showOverlay;
+		if (event.key === 'Shift') showOverlay = false;
 	};
 
 	onMount(() => {

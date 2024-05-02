@@ -17,7 +17,7 @@
 	focusOnMount
 	trapFocus
 	class={classNames(
-		'fixed inset-0 overflow-x-hidden overflow-y-auto',
+		'fixed inset-0 overflow-hidden',
 		{
 			'opacity-0': hidden
 		},

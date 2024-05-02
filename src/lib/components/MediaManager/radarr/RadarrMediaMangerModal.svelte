@@ -6,8 +6,8 @@
 		radarrApi,
 		type RadarrRelease
 	} from '../../../apis/radarr/radarr-api';
-	import ReleaseList from '../ReleaseList.svelte';
-	import FilesList from '../FileList.svelte';
+	import ReleaseList from '../../MediaManagerModal/Releases/MMReleasesTab.svelte';
+	import FilesList from '../../MediaManagerModal/LocalFiles/MMLocalFilesTab.svelte';
 	import { modalStack } from '../../Modal/modal.store';
 	import FileActionsModal from '../modals/FileActionsModal.svelte';
 	import DownloadsList from '../DownloadList.svelte';

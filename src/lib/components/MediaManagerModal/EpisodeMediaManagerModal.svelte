@@ -2,10 +2,10 @@
 	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
 	import MMMainLayout from './MMMainLayout.svelte';
 	import MMAddToSonarr from './MMAddToSonarr.svelte';
-	import MMModal from '../MediaManager/MMModal.svelte';
-	import ReleaseList from '../MediaManager/ReleaseList.svelte';
+	import MMModal from './MMModal.svelte';
+	import ReleaseList from './Releases/MMReleasesTab.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
-	import FileList from '../MediaManager/FileList.svelte';
+	import FileList from './LocalFiles/MMLocalFilesTab.svelte';
 	import { log } from '../../utils';
 
 	export let id: number; // Tmdb ID
@@ -32,7 +32,7 @@
 	const getReleases = () => sonarrEpisode.then((se) => sonarrApi.getEpisodeReleases(se?.id || -1));
 	const selectRelease = () => {};
 
-	const cancelDownload = sonarrApi.cancelDownloadSonarrEpisode;
+	const cancelDownload = sonarrApi.cancelDownload;
 	const handleSelectFile = () => {};
 </script>
 

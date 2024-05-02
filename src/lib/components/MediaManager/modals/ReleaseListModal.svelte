@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';
-	import ReleaseList from '../ReleaseList.svelte';
+	import ReleaseList from '../../MediaManagerModal/Releases/MMReleasesTab.svelte';
 	import type { Release } from '../../../apis/combined-types';
 
 	export let modalId: symbol;

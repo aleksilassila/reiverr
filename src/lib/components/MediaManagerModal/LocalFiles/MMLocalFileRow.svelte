@@ -1,18 +1,17 @@
 <script lang="ts">
-	import TableRow from '../Table/TableRow.svelte';
-	import { scrollIntoView } from '../../selectable';
-	import type { FileResource } from '../../apis/combined-types';
-	import { formatSize } from '../../utils';
-	import TableButton from '../Table/TableButton.svelte';
+	import TableRow from '../../Table/TableRow.svelte';
+	import { scrollIntoView } from '../../../selectable';
+	import type { FileResource } from '../../../apis/combined-types';
+	import { formatSize } from '../../../utils';
+	import TableButton from '../../Table/TableButton.svelte';
 	import { Trash } from 'radix-icons-svelte';
-	import TableCell from '../Table/TableCell.svelte';
-	import type { DeleteFile } from './MediaManagerModal';
-	import { modalStack } from '../Modal/modal.store';
-	import MMConfirmDeleteFileDialog from './Dialogs/MMConfirmDeleteFileDialog.svelte';
+	import TableCell from '../../Table/TableCell.svelte';
+	import type { DeleteFileFn } from '../MediaManagerModal';
+	import { modalStack } from '../../Modal/modal.store';
+	import MMConfirmDeleteFileDialog from '../Dialogs/MMConfirmDeleteFileDialog.svelte';
 
 	export let file: FileResource;
-	export let deleteFile: DeleteFile;
-	console.log(file);
+	export let deleteFile: DeleteFileFn;
 </script>
 
 <TableRow class="font-medium">

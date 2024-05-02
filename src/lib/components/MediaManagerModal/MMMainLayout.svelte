@@ -6,7 +6,7 @@
 </script>
 
 <div class="flex flex-col h-screen">
-	<div class="flex items-center pb-8 mb-8 pt-16 px-28">
+	<div class="flex items-center pb-8 mb-8 pt-16 px-32">
 		<div class="flex-1">
 			<div class="text-4xl font-semibold">
 				<slot name="title" />
@@ -20,30 +20,30 @@
 			<slot name="downloads" />
 		</div>
 	</div>
-	<div class="flex mb-8 mx-28">
-		<h1
+	<div class="flex mb-8 mx-32">
+		<button
 			class={classNames('text-2xl font-semibold mr-8 transition-opacity cursor-pointer', {
 				'opacity-40': activeTab !== 'releases'
 			})}
 			on:click={() => (activeTab = 'releases')}
 		>
 			Releases
-		</h1>
-		<h1
+		</button>
+		<button
 			class={classNames('text-2xl font-semibold mr-8 transition-opacity cursor-pointer', {
 				'opacity-40': activeTab !== 'local-files'
 			})}
 			on:click={() => (activeTab = 'local-files')}
 		>
 			Local Files
-		</h1>
+		</button>
 	</div>
 	<Container focusOnMount direction="horizontal" class="flex-1 grid grid-cols-1 min-h-0">
 		<Container
 			focusOnMount
 			on:enter={() => (activeTab = 'releases')}
 			class={classNames(
-				'row-start-1 col-start-1 pb-16 mx-16',
+				'row-start-1 col-start-1 pb-16 mx-20',
 				'transition-all overflow-y-auto overflow-x-hidden scrollbar-hide',
 				{
 					'opacity-30 -translate-x-full': activeTab !== 'releases'
@@ -55,7 +55,7 @@
 		<Container
 			on:enter={() => (activeTab = 'local-files')}
 			class={classNames(
-				'row-start-1 col-start-1 pb-16 mx-16',
+				'row-start-1 col-start-1 pb-16 mx-20',
 				'transition-all overflow-y-auto overflow-x-hidden scrollbar-hide',
 				{
 					'opacity-30 translate-x-full': activeTab !== 'local-files'
