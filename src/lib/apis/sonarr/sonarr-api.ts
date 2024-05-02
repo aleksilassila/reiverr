@@ -168,7 +168,7 @@ export class SonarrApi implements Api<paths> {
 		return !!deleteResponse?.response.ok;
 	};
 
-	downloadSonarrEpisode = (guid: string, indexerId: number) =>
+	downloadSonarrRelease = (guid: string, indexerId: number) =>
 		this.getClient()
 			?.POST('/api/v3/release', {
 				params: {},
@@ -186,6 +186,15 @@ export class SonarrApi implements Api<paths> {
 					path: {
 						id
 					}
+				}
+			})
+			.then((res) => res.response.ok) || Promise.resolve(false);
+
+	deleteSonarrEpisodes = (ids: number[]) =>
+		this.getClient()
+			?.DELETE('/api/v3/episodefile/bulk', {
+				body: {
+					episodeFileIds: ids
 				}
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);

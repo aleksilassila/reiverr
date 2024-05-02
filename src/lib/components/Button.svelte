@@ -6,7 +6,7 @@
 
 	export let inactive: boolean = false;
 	export let focusOnMount: boolean = false;
-	export let style: 'primary' | 'secondary' = 'primary';
+	export let type: 'primary' | 'secondary' = 'primary';
 
 	let hasFocus: Readable<boolean>;
 </script>
@@ -15,9 +15,11 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'px-6 py-2 rounded-lg font-medium tracking-wide flex items-center selectable',
+			'h-12 rounded-lg font-medium tracking-wide flex items-center group',
 			{
-				'bg-secondary-700': style === 'primary',
+				'selectable bg-secondary-800 px-6': type === 'primary',
+				'border-2 p-1 hover:border-primary-500': type === 'secondary',
+				'border-primary-500': type === 'secondary' && $hasFocus,
 				'cursor-pointer': !inactive,
 				'cursor-not-allowed pointer-events-none opacity-40': inactive
 			},
@@ -27,21 +29,30 @@
 		on:select
 		on:clickOrSelect
 		on:enter
-		let:hasFocus
 		{focusOnMount}
 	>
-		{#if $$slots.icon}
-			<div class="mr-2">
-				<slot name="icon" />
+		<div
+			class={classNames({
+				contents: type === 'primary',
+				'border-2 border-transparent h-full w-full rounded-md flex items-center px-6':
+					type === 'secondary',
+				'bg-primary-500 text-secondary-950': type === 'secondary' && $hasFocus,
+				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary'
+			})}
+		>
+			{#if $$slots.icon}
+				<div class="mr-2">
+					<slot name="icon" />
+				</div>
+			{/if}
+			<div class="flex-1 text-center text-nowrap">
+				<slot {hasFocus} />
 			</div>
-		{/if}
-		<div class="flex-1 text-center text-nowrap">
-			<slot {hasFocus} />
+			{#if $$slots['icon-after']}
+				<div class="ml-2">
+					<slot name="icon-after" />
+				</div>
+			{/if}
 		</div>
-		{#if $$slots['icon-after']}
-			<div class="ml-2">
-				<slot name="icon-after" />
-			</div>
-		{/if}
 	</Container>
 </AnimatedSelection>

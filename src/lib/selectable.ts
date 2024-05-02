@@ -450,13 +450,15 @@ export class Selectable {
 	 * have to wait until every element has htmlElement and then later (here) deduce
 	 * the parent-child relationships.
 	 */
-	_mountSelectable(focusOnMount: boolean = false) {
+	_mountSelectable(focusOnMount: boolean = false, focusChildOnMount = false) {
 		console.debug('Mounting', this, Selectable._initializationStack.slice());
 
 		Selectable.finalizeTreeStructure();
 
 		if (!get(this.hasFocusWithin) && this.isFocusable(true) && focusOnMount) {
 			this.focus(); // TODO: CLEAN UP
+		} else if (!get(this.hasFocusWithin) && focusChildOnMount) {
+			this.focus({ setFocusedElement: false, propagate: false });
 		}
 
 		if (!this.htmlElement) {

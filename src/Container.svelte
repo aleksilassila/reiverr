@@ -2,13 +2,7 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import {
-		Selectable,
-		type EnterEvent,
-		type NavigateEvent,
-		type KeyEvent,
-		type Registrar
-	} from './lib/selectable';
+	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from './lib/selectable';
 	import classNames from 'classnames';
 
 	const dispatch = createEventDispatcher<{
@@ -30,6 +24,7 @@
 	export let trapFocus = false;
 	export let debugOutline = false;
 	export let focusOnClick = false;
+	export let focusChildOnMount = false;
 
 	export let active = true;
 
@@ -111,7 +106,7 @@
 	}
 
 	onMount(() => {
-		rest.container._mountSelectable(focusOnMount);
+		rest.container._mountSelectable(focusOnMount, focusChildOnMount);
 
 		dispatch('mount', rest.container);
 

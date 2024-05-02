@@ -54,6 +54,20 @@ html[data-useragent*="Tizen"] .selectable {
     border-width: 2px;
 }
 
+
+
+.selectable-secondary {
+    @apply outline-none outline-0 border-2 transition-colors hover:border-primary-500;
+}
+
+html:not([data-useragent*="Tizen"]) .selectable-secondary {
+    @apply focus-visible:border-primary-500;
+}
+
+html[data-useragent*="Tizen"] .selectable-secondary {
+    @apply focus-within:border-primary-500;
+}
+
 .selected {
     @apply outline-none outline-0 border-2 border-primary-500;
 }

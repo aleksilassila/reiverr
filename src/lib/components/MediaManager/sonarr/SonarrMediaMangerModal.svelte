@@ -26,7 +26,7 @@
 
 	const handleGrabRelease = (guid: string, indexerId: number) =>
 		sonarrApi
-			.downloadSonarrEpisode(guid, indexerId)
+			.downloadSonarrRelease(guid, indexerId)
 			.then((ok) => {
 				if (!ok) {
 					// TODO: Show error

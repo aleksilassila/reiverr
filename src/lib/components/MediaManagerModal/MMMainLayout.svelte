@@ -6,7 +6,7 @@
 </script>
 
 <div class="flex flex-col h-screen">
-	<div class="flex items-center pb-8 mb-8 pt-16 px-20">
+	<div class="flex items-center pb-8 mb-8 pt-16 px-28">
 		<div class="flex-1">
 			<div class="text-4xl font-semibold">
 				<slot name="title" />
@@ -20,40 +20,47 @@
 			<slot name="downloads" />
 		</div>
 	</div>
-	<div class="flex mb-8 mx-20">
+	<div class="flex mb-8 mx-28">
 		<h1
-			class={classNames('text-2xl font-semibold mr-8 transition-opacity', {
+			class={classNames('text-2xl font-semibold mr-8 transition-opacity cursor-pointer', {
 				'opacity-40': activeTab !== 'releases'
 			})}
+			on:click={() => (activeTab = 'releases')}
 		>
 			Releases
 		</h1>
 		<h1
-			class={classNames('text-2xl font-semibold mr-8 transition-opacity', {
+			class={classNames('text-2xl font-semibold mr-8 transition-opacity cursor-pointer', {
 				'opacity-40': activeTab !== 'local-files'
 			})}
+			on:click={() => (activeTab = 'local-files')}
 		>
 			Local Files
 		</h1>
 	</div>
-	<Container
-		focusOnMount
-		direction="horizontal"
-		class="flex-1 grid grid-cols-1 overflow-y-auto overflow-x-hidden px-20 pb-16 scrollbar-hide"
-	>
+	<Container focusOnMount direction="horizontal" class="flex-1 grid grid-cols-1 min-h-0">
 		<Container
+			focusOnMount
 			on:enter={() => (activeTab = 'releases')}
-			class={classNames('transition-all row-start-1 col-start-1 px-6 -mx-6', {
-				'opacity-50 -translate-x-full': activeTab !== 'releases'
-			})}
+			class={classNames(
+				'row-start-1 col-start-1 pb-16 mx-16',
+				'transition-all overflow-y-auto overflow-x-hidden scrollbar-hide',
+				{
+					'opacity-30 -translate-x-full': activeTab !== 'releases'
+				}
+			)}
 		>
 			<slot name="releases" />
 		</Container>
 		<Container
 			on:enter={() => (activeTab = 'local-files')}
-			class={classNames('transition-all row-start-1 col-start-1 px-6 -mx-6', {
-				'opacity-50 translate-x-full': activeTab !== 'local-files'
-			})}
+			class={classNames(
+				'row-start-1 col-start-1 pb-16 mx-16',
+				'transition-all overflow-y-auto overflow-x-hidden scrollbar-hide',
+				{
+					'opacity-30 translate-x-full': activeTab !== 'local-files'
+				}
+			)}
 		>
 			<slot name="local-files" />
 		</Container>

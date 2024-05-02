@@ -6,6 +6,8 @@
 	import ReleaseList from '../MediaManager/ReleaseList.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
 	import FileList from '../MediaManager/FileList.svelte';
+	import type { DeleteFile, GrabRelease } from './MediaManagerModal';
+	import type { Release } from '../../apis/combined-types';
 
 	export let id: number; // Tmdb ID
 	export let season: number;
@@ -16,12 +18,15 @@
 	const downloads = sonarrItem.then((si) => sonarrApi.getDownloadsBySeriesId(si?.id || -1));
 	const files = sonarrItem.then((si) => sonarrApi.getFilesBySeriesId(si?.id || -1));
 
-	const getReleases = () =>
-		sonarrItem.then((si) => sonarrApi.getSeasonReleases(si?.id || -1, season));
-	const selectRelease = () => {};
+	// Releases
+	const releases: Promise<Release[]> = sonarrItem.then((si) =>
+		sonarrApi.getSeasonReleases(si?.id || -1, season)
+	);
+	const grabRelease: GrabRelease = (release) =>
+		sonarrApi.downloadSonarrRelease(release.guid || '', release.indexerId || -1);
 
 	const cancelDownload = sonarrApi.cancelDownloadSonarrEpisode;
-	const handleSelectFile = () => {};
+	const deleteFile: DeleteFile = sonarrApi.deleteSonarrEpisode;
 </script>
 
 <MMModal {modalId} {hidden}>
@@ -32,9 +37,9 @@
 			<MMMainLayout>
 				<h1 slot="title">{series?.title}</h1>
 				<h2 slot="subtitle">Season {season} Packs</h2>
-				<ReleaseList slot="releases" {getReleases} {selectRelease} />
+				<ReleaseList slot="releases" {releases} {grabRelease} />
+				<FileList slot="local-files" {files} {deleteFile} />
 				<DownloadList slot="downloads" {downloads} {cancelDownload} />
-				<FileList slot="local-files" {files} {handleSelectFile} />
 			</MMMainLayout>
 		{/if}
 	{/await}

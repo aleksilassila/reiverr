@@ -14,7 +14,7 @@
 	import MoviePage from './lib/pages/MoviePage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import PageNotFound from './lib/pages/PageNotFound.svelte';
-	import NavigationDebugger from './lib/components/NavigationDebugger.svelte';
+	import NavigationDebugger from './lib/components/DebugElements.svelte';
 
 	appState.subscribe((s) => console.log('appState', s));
 
