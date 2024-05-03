@@ -698,6 +698,8 @@ export class Selectable {
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
+	// console.time('handleKeyboardNavigation');
+
 	const currentlyFocusedObject = get(Selectable.focusedObject);
 
 	if (!currentlyFocusedObject) {
@@ -730,6 +732,8 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	}
 
 	event.preventDefault();
+
+	// console.timeEnd('handleKeyboardNavigation');
 }
 
 Selectable.focusedObject.subscribe((e) => console.debug('Focused object', e));

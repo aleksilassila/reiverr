@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
 	import classNames from 'classnames';
+	import MMTitle from './MMTitle.svelte';
 
 	let activeTab: 'releases' | 'local-files' = 'releases';
 </script>
@@ -8,15 +9,13 @@
 <div class="flex flex-col h-screen">
 	<div class="flex items-center pb-8 mb-8 pt-16 px-32">
 		<div class="flex-1">
-			<div class="text-4xl font-semibold">
-				<slot name="title" />
-			</div>
-			<div class="text-zinc-300 font-medium text-lg mt-2">
-				<slot name="subtitle" />
-			</div>
+			<MMTitle>
+				<slot name="title" slot="title" />
+				<slot name="subtitle" slot="subtitle" />
+			</MMTitle>
 		</div>
 		<div class="mx-20">
-			<h1 class="mb-2">Downloads</h1>
+			<!--			<h1 class="mb-2">Downloads</h1>-->
 			<slot name="downloads" />
 		</div>
 	</div>

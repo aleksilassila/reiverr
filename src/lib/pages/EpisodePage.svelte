@@ -51,7 +51,7 @@
 			style={`background-image: url('${TMDB_IMAGES_ORIGINAL + tmdbEpisode?.still_path}')`}
 		/>
 		<div class="absolute inset-0 flex flex-col -z-10">
-			<div class="h-screen bg-gradient-to-t from-secondary-500 to-transparent" />
+			<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 			<div class="flex-1 bg-secondary-500" />
 		</div>
 
