@@ -111,7 +111,7 @@
 						Play
 						<Play size={19} slot="icon" />
 					</Button>
-					<Button class="mr-4" inactive={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
+					<Button class="mr-4" disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
 						{#if isWatched}
 							Mark as Unwatched
 						{:else}

@@ -51,7 +51,7 @@
 	</TableCell>
 	<TableCell>
 		<TableButton
-			active={!didGrab && !fetching}
+			disabled={didGrab || fetching}
 			on:clickOrSelect={handleGrabRelease}
 			on:enter={scrollIntoView({ vertical: 128 })}
 		>

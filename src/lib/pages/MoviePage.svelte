@@ -110,7 +110,7 @@
 							<Button
 								class="mr-4"
 								on:clickOrSelect={() => requests.handleAddToRadarr(Number(id))}
-								inactive={$isFetching.handleAddToRadarr}
+								disabled={$isFetching.handleAddToRadarr}
 							>
 								Add to Radarr
 								<Plus slot="icon" size={19} />

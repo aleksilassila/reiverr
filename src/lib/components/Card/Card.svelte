@@ -21,7 +21,7 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
-	export let focusable = true;
+	export let disabled = false;
 	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
@@ -34,7 +34,7 @@
 
 <AnimatedSelection hasFocus={$hasFocus}>
 	<Container
-		active={focusable}
+		{disabled}
 		on:clickOrSelect={() => {
 			if (tmdbId || tvdbId) {
 				navigate(navigateWithType ? `${type}/${tmdbId || tvdbId}` : `${tmdbId || tvdbId}`);

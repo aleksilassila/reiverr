@@ -89,7 +89,8 @@
 			>
 			<TableHeaderCell />
 		</TableHeaderRow>
-		<Container class="contents" focusOnMount>
+
+		<Container class="contents" focusedChild>
 			{#each getRecommendedReleases(releases).sort(getSortFn(sortBy, sortDirection)) as release, index}
 				<MMReleaseListRow {release} {grabRelease} />
 			{/each}

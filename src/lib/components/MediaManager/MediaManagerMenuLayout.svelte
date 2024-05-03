@@ -4,7 +4,7 @@
 	export let focusOnMount = false;
 </script>
 
-<Container class="flex flex-col my-16" canFocusEmpty={false} {focusOnMount}>
+<Container class="flex flex-col my-16" {focusOnMount}>
 	<h1 class="tracking-wide text-2xl font-semibold mb-4">
 		<slot name="header">Header is missing</slot>
 	</h1>

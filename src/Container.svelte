@@ -20,19 +20,17 @@
 	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
 	export let gridCols: number = 0;
 	export let focusOnMount = false;
-	export let canFocusEmpty = true;
 	export let trapFocus = false;
 	export let debugOutline = false;
 	export let focusOnClick = false;
-	export let focusChildOnMount = false;
+	export let focusedChild = false;
 
-	export let active = true;
+	export let disabled = false;
 
 	const { registerer, ...rest } = new Selectable(name)
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
 		.setTrapFocus(trapFocus)
-		.setCanFocusEmpty(canFocusEmpty)
 		.setOnFocus((selectable, options) => {
 			function stopPropagation() {
 				options.propagate = false;
@@ -84,6 +82,7 @@
 
 			dispatch('playPause', { selectable, options, stopPropagation, bubble });
 		})
+		.setAsFocusedChild(focusedChild)
 		.getStores();
 
 	export const selectable = rest.container;
@@ -93,7 +92,7 @@
 
 	export let tag = 'div';
 
-	$: selectable.setIsActive(active);
+	$: selectable.setIsDisabled(disabled);
 	$: selectable.setGridColumns(gridCols);
 
 	function handleClick(e: MouseEvent) {
@@ -106,7 +105,7 @@
 	}
 
 	onMount(() => {
-		rest.container._mountSelectable(focusOnMount, focusChildOnMount);
+		rest.container._mountSelectable(focusOnMount);
 
 		dispatch('mount', rest.container);
 
@@ -120,7 +119,7 @@
 	this={tag}
 	on:click={handleClick}
 	on:mousemove
-	tabindex={active ? 0 : -1}
+	tabindex={disabled ? -1 : 0}
 	{...$$restProps}
 	class={classNames($$restProps.class, {
 		'outline-none': debugOutline === false

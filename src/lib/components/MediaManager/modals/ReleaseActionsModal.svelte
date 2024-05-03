@@ -33,7 +33,7 @@
 				<Button
 					focusOnMount
 					on:clickOrSelect={() => handleGrabRelease(release.guid || '', release.indexerId || -1)}
-					inactive={!!($data || $isFetching || status)}
+					disabled={!!($data || $isFetching || status)}
 				>
 					{#if $data || status === 'downloading'}
 						Downloading...

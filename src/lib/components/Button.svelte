@@ -4,7 +4,7 @@
 	import classNames from 'classnames';
 	import AnimatedSelection from './AnimateScale.svelte';
 
-	export let inactive: boolean = false;
+	export let disabled: boolean = false;
 	export let focusOnMount: boolean = false;
 	export let type: 'primary' | 'secondary' = 'primary';
 
@@ -20,8 +20,8 @@
 				'selectable bg-secondary-800 px-6': type === 'primary',
 				'border-2 p-1 hover:border-primary-500': type === 'secondary',
 				'border-primary-500': type === 'secondary' && $hasFocus,
-				'cursor-pointer': !inactive,
-				'cursor-not-allowed pointer-events-none opacity-40': inactive
+				'cursor-pointer': !disabled,
+				'cursor-not-allowed pointer-events-none opacity-40': disabled
 			},
 			$$restProps.class
 		)}

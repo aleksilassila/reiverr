@@ -104,9 +104,11 @@
 			>
 			<TableHeaderCell />
 		</TableHeaderRow>
-		{#each files as file}
-			<MMLocalFileRow {file} {deleteFile} />
-		{/each}
+		<Container class="contents" focusedChild>
+			{#each files as file}
+				<MMLocalFileRow {file} {deleteFile} />
+			{/each}
+		</Container>
 	</div>
 	{#if files?.length}
 		<Container
