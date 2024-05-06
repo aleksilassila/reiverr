@@ -30,18 +30,16 @@
 		Number(id)
 	);
 	const { promise: sonarrItem } = useRequest(sonarrApi.getSeriesByTmdbId, Number(id));
-	const { promise: jellyfinItem, data: jellyfinItemData } = useRequest(
-		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
-		id
-	);
+	const jellyfinSeries = getJellyfinSeries(id);
+
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
-	const { data: jellyfinEpisodes } = useDependantRequest(
-		jellyfinApi.getJellyfinEpisodes,
-		jellyfinItemData,
-		(data) => (data?.Id ? ([data.Id] as const) : undefined)
+
+	const jellyfinEpisodes = jellyfinSeries.then(
+		(s) => (s && jellyfinApi.getJellyfinEpisodes(s.Id)) || []
 	);
-	const nextJellyfinEpisode = derived(jellyfinEpisodes, ($items) =>
-		($items || []).find((i) => i.UserData?.Played === false)
+
+	const nextJellyfinEpisode = jellyfinEpisodes.then((items) =>
+		items.find((i) => i.UserData?.Played === false)
 	);
 
 	let hideInterface = false;
@@ -51,6 +49,10 @@
 	modalStack.top.subscribe((modal) => {
 		hideInterface = !!modal;
 	});
+
+	function getJellyfinSeries(id: string) {
+		return jellyfinApi.getLibraryItemFromTmdbId(id);
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -115,7 +117,7 @@
 							</div>
 						{/if}
 					{/await}
-					{#await Promise.all([$jellyfinItem, $sonarrItem]) then [jellyfinItem, sonarrItem]}
+					{#await Promise.all( [$sonarrItem, jellyfinSeries, jellyfinEpisodes, nextJellyfinEpisode] ) then [sonarrItem, jellyfinItem, jellyfinEpisodes, nextJellyfinEpisode]}
 						<Container
 							direction="horizontal"
 							class="flex mt-8"
@@ -124,15 +126,14 @@
 							on:back={handleGoBack}
 							on:mount={registrar}
 						>
-							{#if $nextJellyfinEpisode}
+							{#if nextJellyfinEpisode}
 								<Button
 									class="mr-4"
 									on:clickOrSelect={() =>
-										$nextJellyfinEpisode?.Id &&
-										playerState.streamJellyfinId($nextJellyfinEpisode.Id)}
+										nextJellyfinEpisode?.Id && playerState.streamJellyfinId(nextJellyfinEpisode.Id)}
 								>
-									Play Season {$nextJellyfinEpisode?.ParentIndexNumber} Episode
-									{$nextJellyfinEpisode?.IndexNumber}
+									Play Season {nextJellyfinEpisode?.ParentIndexNumber} Episode
+									{nextJellyfinEpisode?.IndexNumber}
 									<Play size={19} slot="icon" />
 								</Button>
 							{/if}

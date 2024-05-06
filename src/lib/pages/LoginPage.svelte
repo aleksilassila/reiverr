@@ -9,7 +9,11 @@
 	let password: string = 'test';
 	let error: string | undefined = undefined;
 
+	let loading = false;
+
 	function handleLogin() {
+		loading = true;
+
 		reiverrApi
 			.authenticate(name, password)
 			.then((res) => {
@@ -25,6 +29,9 @@
 			})
 			.catch((err: Error) => {
 				error = err.name + ': ' + err.message;
+			})
+			.finally(() => {
+				loading = false;
 			});
 	}
 </script>
@@ -33,22 +40,22 @@
 	class="w-full h-full max-w-xs mx-auto flex flex-col items-center justify-center"
 	focusOnMount
 >
-	<h1 class="font-semibold tracking-wide text-xl w-full">Login to Reiverr</h1>
+	<h1 class="font-semibold tracking-wide text-xl w-full mb-4">Login to Reiverr</h1>
 
 	<TextField
 		value={$appState.serverBaseUrl}
 		on:change={(e) => appState.setBaseUrl(e.detail)}
-		class="mt-4 w-full"
+		class="mb-4 w-full"
 	>
 		Server
 	</TextField>
 
-	<TextField bind:value={name} class="mt-4 w-full">Name</TextField>
-	<TextField bind:value={password} type="password" class="mt-4 w-full">Name</TextField>
+	<TextField bind:value={name} class="mb-4 w-full">Name</TextField>
+	<TextField bind:value={password} type="password" class="mb-8 w-full">Name</TextField>
 
-	<Button on:clickOrSelect={handleLogin} class="mt-8 w-full">Submit</Button>
+	<Button disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full">Submit</Button>
 
 	{#if error}
-		<div class="text-red-300">{error}</div>
+		<div class="text-red-300 text-center">{error}</div>
 	{/if}
 </Container>

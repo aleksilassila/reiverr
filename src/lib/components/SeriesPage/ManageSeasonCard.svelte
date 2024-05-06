@@ -18,6 +18,7 @@
 			'overflow-hidden rounded-2xl cursor-pointer group relative selectable transition-opacity'
 		)}
 		on:clickOrSelect
+		on:enter
 		bind:hasFocus
 	>
 		<div

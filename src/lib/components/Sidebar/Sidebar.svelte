@@ -53,7 +53,7 @@
 	<!-- Background -->
 	<div
 		class={classNames(
-			'absolute inset-y-0 left-0 w-[25vw] transition-opacity bg-gradient-to-r from-secondary-500 to-transparent',
+			'absolute inset-y-0 left-0 w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
 			{
 				'opacity-0': !$isNavBarOpen,
 				'group-hover:opacity-100 pointer-events-none': true

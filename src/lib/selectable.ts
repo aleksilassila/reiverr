@@ -148,9 +148,7 @@ export class Selectable {
 			const parent = selectable.parent;
 
 			if (parent) {
-				const updateParentFocusIndex = options.setFocusedElement
-					? true
-					: !get(parent?.hasFocusWithin);
+				const updateParentFocusIndex = options.setFocusedElement || !get(parent?.hasFocusWithin);
 				if (updateParentFocusIndex) {
 					const index = parent.children.indexOf(selectable);
 					parent.focusIndex.update((prev) => (index === -1 ? prev : index));
@@ -357,11 +355,11 @@ export class Selectable {
 			else return undefined;
 		};
 
-		const getSiblingSelectable = (
+		const getPreviousSibling = (
 			parent: Selectable,
-			child: Selectable
+			newChild: Selectable
 		): Selectable | undefined => {
-			const getElementTree = (start: HTMLElement, end: HTMLElement): HTMLElement[] => {
+			const getAncestors = (start: HTMLElement, end: HTMLElement): HTMLElement[] => {
 				let element = start;
 				const elements: HTMLElement[] = [start];
 
@@ -374,16 +372,16 @@ export class Selectable {
 				return elements;
 			};
 
-			const htmlElement = child.htmlElement;
-			if (!htmlElement) return undefined;
+			const newHtmlElement = newChild.htmlElement;
+			if (!newHtmlElement) return undefined;
 
 			const parentHtmlElement = parent.htmlElement;
 
 			if (!parentHtmlElement) return undefined;
 
-			const thisElementTree = getElementTree(htmlElement, parentHtmlElement);
+			const newElementAncestors = getAncestors(newHtmlElement, parentHtmlElement);
 
-			let aboveSibling: Selectable | undefined = undefined;
+			let previousSibling: Selectable | undefined = undefined;
 
 			for (const existingSibling of parent.children) {
 				// Does not contain this yet
@@ -391,24 +389,24 @@ export class Selectable {
 					console.error('No html element found for', existingSibling);
 					continue;
 				}
-				const siblingElementTree: HTMLElement[] = getElementTree(
+				const siblingElementTree: HTMLElement[] = getAncestors(
 					existingSibling.htmlElement,
 					parentHtmlElement
 				);
 
-				const commonParentElement = thisElementTree.find((element) =>
+				const commonParentElement = newElementAncestors.find((element) =>
 					siblingElementTree.includes(element)
 				);
-				const thisSibling = thisElementTree.find(
+				const newSibling = newElementAncestors.find(
 					(element) => element.parentElement && siblingElementTree.includes(element.parentElement)
 				);
 				const targetSibling = siblingElementTree.find(
-					(element) => element.parentElement && thisElementTree.includes(element.parentElement)
+					(element) => element.parentElement && newElementAncestors.includes(element.parentElement)
 				);
-				if (!thisSibling || !targetSibling || !commonParentElement) {
+				if (!newSibling || !targetSibling || !commonParentElement) {
 					console.warn(
 						"Couldn't find common parent element",
-						thisSibling,
+						newSibling,
 						targetSibling,
 						commonParentElement
 					);
@@ -416,12 +414,12 @@ export class Selectable {
 				}
 				const allSiblingElements = Array.from(commonParentElement.children);
 
-				if (allSiblingElements.indexOf(targetSibling) < allSiblingElements.indexOf(thisSibling)) {
-					aboveSibling = existingSibling;
+				if (allSiblingElements.indexOf(targetSibling) < allSiblingElements.indexOf(newSibling)) {
+					previousSibling = existingSibling;
 				} else break;
 			}
 
-			return aboveSibling;
+			return previousSibling;
 		};
 
 		let childToFocus: Selectable | undefined = undefined;
@@ -433,8 +431,10 @@ export class Selectable {
 				: undefined;
 
 			if (parentSelectable) {
-				const aboveSibling = getSiblingSelectable(parentSelectable, child);
-				const index = aboveSibling ? parentSelectable.children.indexOf(aboveSibling) : undefined;
+				const previousSibling = getPreviousSibling(parentSelectable, child);
+				const index = previousSibling
+					? parentSelectable.children.indexOf(previousSibling)
+					: undefined;
 
 				// If parent has focus, focus the child if it's the first child to be added or if the child
 				// should have focus when user navigates to the container (makeFocusedChild)
@@ -445,6 +445,19 @@ export class Selectable {
 						childToFocus = child;
 					}
 				}
+				// else if (
+				// 	get(parentSelectable.hasFocusWithin) &&
+				// 	index === get(parentSelectable.focusIndex)
+				// ) {
+				// 	childToFocus = child;
+				// }
+
+				// console.log(
+				// 	'Attaching child to parent',
+				// 	child,
+				// 	parentSelectable,
+				// 	index === undefined ? 0 : index + 1
+				// );
 
 				parentSelectable.addChild(child, index === undefined ? 0 : index + 1);
 
@@ -455,6 +468,7 @@ export class Selectable {
 			}
 		}
 
+		if (childToFocus) console.log("Focusing child that's being added", childToFocus);
 		childToFocus?.focus();
 
 		Selectable._initializationStack = [];
@@ -471,7 +485,6 @@ export class Selectable {
 
 		if (!get(this.hasFocusWithin) && this.isFocusable() && focusOnMount) {
 			this.focus(); // TODO: CLEAN UP
-			console.log('FOCUS ON MOUNT', this);
 		}
 
 		if (!this.htmlElement) {
@@ -513,8 +526,8 @@ export class Selectable {
 
 			return {
 				destroy: () => {
-					selectable.parent?.removeChild(selectable);
-					Selectable.objects.delete(htmlElement);
+					// selectable.parent?.removeChild(selectable);
+					// Selectable.objects.delete(htmlElement);
 				}
 			};
 		};
@@ -558,10 +571,14 @@ export class Selectable {
 			return;
 		}
 
-		const firstChild = this.children.length === 0;
-
 		if (index !== undefined) {
 			if (this.children.length && index < get(this.focusIndex)) {
+				console.log(
+					'Incrementing focus index',
+					get(this.focusIndex),
+					'to',
+					get(this.focusIndex) + 1
+				);
 				this.focusIndex.update((prev) => prev + 1);
 			}
 			this.children.splice(index, 0, child);
@@ -571,18 +588,10 @@ export class Selectable {
 
 		child.parent = this;
 
-		// console.log('added child', child, 'to', this, 'at index', index, 'children', this.children);
-
 		if (child.makeFocusedChild) {
-			console.log('This should be focused', child);
 			let el = child;
 			let parent = el.parent;
-			console.log(
-				'Currently focused',
-				get(Selectable.focusedObject),
-				'parent has focus',
-				parent && get(parent.hasFocusWithin)
-			);
+
 			while (parent && !get(parent.hasFocusWithin)) {
 				parent.focusIndex.update((prev) => parent?.children?.indexOf(el) || prev);
 
@@ -614,6 +623,18 @@ export class Selectable {
 	}
 
 	private removeChild(child: Selectable) {
+		console.log(
+			'Removing child',
+			child,
+			'index',
+			this.children.indexOf(child),
+			'from',
+			this,
+			'children',
+			this.children.length,
+			'focus index',
+			get(this.focusIndex)
+		);
 		if (this.children.indexOf(child) <= get(this.focusIndex)) {
 			this.focusIndex.update((prev) => prev - 1);
 		}
@@ -641,6 +662,10 @@ export class Selectable {
 
 	getFocusedChild() {
 		return this.children[get(this.focusIndex)];
+	}
+
+	getParent() {
+		return this.parent;
 	}
 
 	setIsDisabled(disabled: boolean) {

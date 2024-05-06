@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { type Readable } from 'svelte/store';
-	import { tmdbApi, type TmdbSeasonEpisode, type TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
+	import {
+		tmdbApi,
+		type TmdbEpisode,
+		type TmdbSeasonEpisode,
+		type TmdbSeriesFull2
+	} from '../../apis/tmdb/tmdb-api';
 	import Container from '../../../Container.svelte';
 	import { useDependantRequest } from '../../stores/data.store';
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
 	import TmdbEpisodeCard from '../EpisodeCard/TmdbEpisodeCard.svelte';
-	import { scrollIntoView, useRegistrars } from '../../selectable';
+	import { scrollIntoView, Selectable, useRegistrars } from '../../selectable';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import CardGrid from '../CardGrid.svelte';
 	import UICarousel from '../Carousel/UICarousel.svelte';
@@ -20,11 +25,14 @@
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
-	export let jellyfinEpisodes: Readable<JellyfinItem[] | undefined>;
-	export let currentJellyfinEpisode: Readable<JellyfinItem | undefined>;
+	export let jellyfinEpisodes: Promise<JellyfinItem[]>;
+	export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 
-	const seasonButtons = useRegistrars<number>();
-	const episodeCards = useRegistrars<string>();
+	let awaitedJellyfinEpisodes: JellyfinItem[] = [];
+	jellyfinEpisodes.then((episodes) => {
+		awaitedJellyfinEpisodes = episodes;
+	});
+
 	let seasonIndex = 0;
 	let scrollTop: number;
 	$: translateUp = scrollTop < 140;
@@ -35,20 +43,33 @@
 		(series) => (series?.seasons?.length ? ([series.seasons.length] as const) : undefined)
 	);
 
-	currentJellyfinEpisode.subscribe((episode) => {
-		if (!episode) return;
-
-		seasonIndex = episode.ParentIndexNumber ? episode.ParentIndexNumber - 1 : seasonIndex;
-
-		const seasonButton = seasonButtons.get(episode?.ParentIndexNumber || -1);
-		const episodeCard = episodeCards.get(`${episode?.ParentIndexNumber}-${episode?.IndexNumber}`);
-
-		seasonButton.subscribe((s) => s?.focus({ setFocusedElement: false, propagate: false }));
-		episodeCard.subscribe((e) => e?.focus({ setFocusedElement: false, propagate: false }));
-	});
-
 	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
 		navigate(`season/${episode.season_number}/episode/${episode.episode_number}`);
+	}
+
+	function handleMountSeasonButton(s: Selectable, seasonNumber: number) {
+		currentJellyfinEpisode.then((currentEpisode) => {
+			if (currentEpisode?.ParentIndexNumber === seasonNumber) {
+				seasonIndex = currentEpisode?.ParentIndexNumber
+					? currentEpisode?.ParentIndexNumber - 1
+					: seasonIndex;
+
+				s.focus({ setFocusedElement: false, propagate: false });
+			}
+		});
+	}
+
+	function handleMountCard(s: Selectable, episode: TmdbEpisode) {
+		currentJellyfinEpisode.then((currentEpisode) => {
+			console.log('currentEpisode', currentEpisode, episode);
+			if (
+				currentEpisode?.IndexNumber === episode.episode_number &&
+				currentEpisode?.ParentIndexNumber === episode.season_number
+			) {
+				console.log('MATCHED', currentEpisode, episode);
+				s.focus({ setFocusedElement: false, propagate: false });
+			}
+		});
 	}
 </script>
 
@@ -67,7 +88,7 @@
 	>
 		{#each $tmdbSeasons || [] as season, i}
 			<Container
-				on:mount={seasonButtons.registrar(season.season_number || -1)}
+				on:mount={(e) => handleMountSeasonButton(e.detail, season?.season_number || 0)}
 				let:hasFocus
 				on:enter={(event) => {
 					scrollIntoView({ horizontal: 64 })(event);
@@ -93,26 +114,33 @@
 		{/each}
 	</UICarousel>
 	<CardGrid direction="horizontal" on:mount>
-		{#each $tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
-			{@const jellyfinEpisode = $jellyfinEpisodes?.find(
-				(i) =>
-					i.IndexNumber === episode.episode_number && i.ParentIndexNumber === episode.season_number
-			)}
-			{@const jellyfinEpisodeId = jellyfinEpisode?.Id}
-			<TmdbEpisodeCard
-				on:mount={episodeCards.registrar(`${episode.season_number}-${episode.episode_number}`)}
-				{episode}
-				handlePlay={jellyfinEpisodeId
-					? () => playerState.streamJellyfinId(jellyfinEpisodeId)
-					: undefined}
-				isWatched={jellyfinEpisode?.UserData?.Played || false}
-				playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
-				on:clickOrSelect={() => handleOpenEpisodePage(episode)}
+		{#if $tmdbSeasons?.[seasonIndex]?.episodes?.length}
+			{#each $tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
+				{@const jellyfinEpisode = awaitedJellyfinEpisodes?.find(
+					(i) =>
+						i.IndexNumber === episode.episode_number &&
+						i.ParentIndexNumber === episode.season_number
+				)}
+				{@const jellyfinEpisodeId = jellyfinEpisode?.Id}
+				{#key episode.id}
+					<TmdbEpisodeCard
+						on:mount={(e) => handleMountCard(e.detail, episode)}
+						on:enter={scrollIntoView({ vertical: 64 })}
+						{episode}
+						handlePlay={jellyfinEpisodeId
+							? () => playerState.streamJellyfinId(jellyfinEpisodeId)
+							: undefined}
+						isWatched={jellyfinEpisode?.UserData?.Played || false}
+						playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
+						on:clickOrSelect={() => handleOpenEpisodePage(episode)}
+					/>
+				{/key}
+			{/each}
+			<ManageSeasonCard
+				backdropUrl={TMDB_BACKDROP_SMALL + $tmdbSeries?.backdrop_path}
+				on:clickOrSelect={() => openSeasonMediaManager(id, seasonIndex + 1)}
+				on:enter={scrollIntoView({ vertical: 64 })}
 			/>
-		{/each}
-		<ManageSeasonCard
-			backdropUrl={TMDB_BACKDROP_SMALL + $tmdbSeries?.backdrop_path}
-			on:clickOrSelect={() => openSeasonMediaManager(id, seasonIndex + 1)}
-		/>
+		{/if}
 	</CardGrid>
 </Container>
