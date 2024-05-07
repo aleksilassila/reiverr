@@ -170,7 +170,7 @@
 			})}
 		>
 			<EpisodeGrid
-				on:enter={scrollIntoView({ top: 32 })}
+				on:enter={scrollIntoView({ vertical: 32 })}
 				id={Number(id)}
 				tmdbSeries={tmdbSeriesData}
 				{jellyfinEpisodes}

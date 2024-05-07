@@ -3,7 +3,8 @@
 	import { type KeyEvent, type NavigateEvent, useRegistrar } from '../../selectable.js';
 	import { get } from 'svelte/store';
 
-	const selectable = useRegistrar();
+	// Top element, that when focused and back is pressed, will exit the modal
+	const topSelectable = useRegistrar();
 
 	function handleGoBack({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
 		if ('willLeaveContainer' in detail) {
@@ -11,7 +12,12 @@
 			detail.preventNavigation();
 		}
 
-		history.back();
+		const selectable = get(topSelectable);
+		if (selectable && get(selectable.focusIndex) === 0) {
+			history.back();
+		} else {
+			selectable?.focusChild(0) || selectable?.focus();
+		}
 	}
 
 	function handleGoToTop({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
@@ -19,11 +25,12 @@
 			// Navigate event
 			if (detail.direction === 'left' && detail.willLeaveContainer) {
 				detail.preventNavigation();
-				get(selectable)?.focus();
+				get(topSelectable)?.focus();
 			}
 		} else {
 			// Back event
-			get(selectable)?.focus();
+			const selectable = get(topSelectable);
+			selectable?.focusChild(0) || selectable?.focus();
 		}
 	}
 </script>
@@ -35,6 +42,6 @@
 >
 	<Container />
 	<Container on:navigate={handleGoToTop} on:back={handleGoToTop} focusOnMount>
-		<slot {handleGoBack} registrar={selectable.registrar} />
+		<slot {handleGoBack} registrar={topSelectable.registrar} />
 	</Container>
 </Container>

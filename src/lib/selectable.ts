@@ -748,7 +748,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		if (Selectable.giveFocus('right')) event.preventDefault();
 	} else if (event.key === 'Enter') {
 		currentlyFocusedObject.select();
-	} else if (event.key === 'Back' || event.key === 'XF86Back') {
+	} else if (event.key === 'Back' || event.key === 'XF86Back' || event.key === 'Escape') {
 		currentlyFocusedObject.back();
 	} else if (event.key === 'MediaPlayPause') {
 		currentlyFocusedObject.playPause();
