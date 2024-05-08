@@ -8,9 +8,10 @@
 	import type { Selectable } from '../../selectable';
 	import { modalStack } from '../Modal/modal.store';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
-	import { ChatBubble, TextAlignLeft } from 'radix-icons-svelte';
+	import { ChatBubble, TextAlignLeft, Update } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
+	import Spinner from '../Utils/Spinner.svelte';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -26,6 +27,7 @@
 	export let muted = false;
 	export let volume = 1;
 	export let videoDidLoad = false;
+	let buffering = false;
 
 	export let video: HTMLVideoElement;
 
@@ -76,6 +78,27 @@
 		else console.error('No playback info when selecting audio stream');
 	}
 
+	function handleShortcuts(e: KeyboardEvent) {
+		if (e.key === ' ' || e.key === 'k') {
+			e.preventDefault();
+			if (paused) video.play();
+			else video.pause();
+		} else if (e.key === 'm') {
+			e.preventDefault();
+			video.muted = !video.muted;
+		} else if (e.key === 'f') {
+			e.preventDefault();
+			if (document.fullscreenElement) document.exitFullscreen();
+			else video.requestFullscreen();
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			video.volume = Math.min(video.volume + 0.1, 1);
+		} else if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			video.volume = Math.max(video.volume - 0.1, 0);
+		}
+	}
+
 	onDestroy(() => {
 		clearTimeout(showInterfaceTimeout);
 		clearTimeout(hideInterfaceTimeout);
@@ -105,6 +128,7 @@
 		bind:volume
 		bind:videoDidLoad
 		bind:video
+		bind:buffering
 	/>
 	<Container
 		class={classNames('absolute inset-x-12 top-8 transition-opacity', {
@@ -113,6 +137,11 @@
 	>
 		Title
 	</Container>
+	{#if buffering || !videoDidLoad}
+		<div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+			<Spinner class="w-12 h-12" />
+		</div>
+	{/if}
 	<Container
 		class={classNames('absolute inset-x-12 bottom-8 transition-opacity flex flex-col', {
 			'opacity-0': !showInterface
@@ -170,3 +199,5 @@
 		/>
 	</Container>
 </Container>
+
+<svelte:window on:keypress={handleShortcuts} />

@@ -14,13 +14,19 @@
 	export let muted = false;
 	export let volume = 1;
 	export let videoDidLoad = false;
+	export let buffering = false;
 
 	export let video: HTMLVideoElement;
+
+	// let hls: Hls | undefined;
 
 	$: playbackInfo && loadPlaybackInfo(playbackInfo);
 
 	function loadPlaybackInfo(playbackInfo: PlaybackInfo) {
 		videoDidLoad = false;
+		// video.src = '';
+		// video.srcObject = null;
+		// hls?.destroy();
 
 		const { playbackUrl, directPlay, backdrop, startTime } = playbackInfo;
 
@@ -30,6 +36,7 @@
 
 		if (!directPlay) {
 			if (Hls.isSupported()) {
+				console.log('HLS is supported, loading HLS.js');
 				const hls = new Hls();
 
 				hls.loadSource(playbackUrl);
@@ -94,6 +101,8 @@
 		videoDidLoad = true;
 		console.log('Video loaded');
 	}}
+	on:waiting={() => (buffering = true)}
+	on:playing={() => (buffering = false)}
 	on:dblclick
 	on:click={togglePlay}
 	autoplay
