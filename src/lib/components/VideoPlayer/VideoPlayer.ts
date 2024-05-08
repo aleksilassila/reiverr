@@ -3,11 +3,32 @@ import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
 import VideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
 
+export type SubtitleInfo = {
+	subtitles?: Subtitles;
+	availableSubtitles: Subtitles[];
+};
+
+export type Subtitles = {
+	url: string;
+	srclang: string;
+	kind: 'subtitles' | 'captions' | 'descriptions';
+	language: string;
+};
+
+export type AudioTrack = {
+	language: string;
+	index: number;
+};
+
 export type PlaybackInfo = {
 	playbackUrl: string;
 	directPlay: boolean;
 	backdrop?: string;
 	startTime?: number;
+
+	audioStreamIndex: number;
+	audioTracks: AudioTrack[];
+	selectAudioTrack: (index: number) => void;
 };
 
 const initialValue = { visible: false, jellyfinId: '' };

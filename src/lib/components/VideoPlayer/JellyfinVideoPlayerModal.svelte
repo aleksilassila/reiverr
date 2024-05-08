@@ -2,13 +2,13 @@
 	import classNames from 'classnames';
 	import Container from '../../../Container.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
-	import type { PlaybackInfo } from './VideoPlayer';
+	import type { PlaybackInfo, Subtitles, SubtitleInfo, AudioTrack } from './VideoPlayer';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
 	import { appState } from '../../stores/app-state.store';
 	import { onDestroy } from 'svelte';
-	import { modalStack } from '../Modal/modal.store';
+	import { modalStack, modalStackTop } from '../Modal/modal.store';
 
 	export let id: string;
 	export let modalId: symbol;
@@ -19,6 +19,7 @@
 	let progressTime: number;
 
 	let playbackInfo: PlaybackInfo | undefined;
+	let subtitleInfo: SubtitleInfo | undefined;
 	let sessionId: string | undefined;
 
 	let reportProgressInterval: ReturnType<typeof setInterval>;
@@ -36,14 +37,18 @@
 		deleteEncoding(sessionId);
 	};
 
-	async function loadPlaybackInfo(id: string, bitrate?: number) {
+	async function loadPlaybackInfo(
+		id: string,
+		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}
+	) {
 		const itemP = jellyfinApi.getLibraryItem(id);
 		const jellyfinPlaybackInfoP = itemP.then((item) =>
 			jellyfinApi.getPlaybackInfo(
 				id,
 				getDeviceProfile(),
-				item?.UserData?.PlaybackPositionTicks || 0,
-				bitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate
+				options.playbackPosition || item?.UserData?.PlaybackPositionTicks || 0,
+				options.bitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate,
+				options.audioStreamIndex || undefined
 			)
 		);
 		const item = await itemP;
@@ -63,15 +68,55 @@
 
 		sessionId = playSessionId;
 
+		const mediaSource = jellyfinPlaybackInfo.MediaSources?.[0];
+
+		let subtitles: Subtitles | undefined;
+		for (const stream of mediaSource?.MediaStreams || []) {
+			if (stream.Type === 'Subtitle' && stream.IsDefault) {
+				subtitles = {
+					kind: 'subtitles',
+					srclang: stream.Language || '',
+					url: `${$appState.user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${stream.Index}/${stream.Level}/Stream.vtt`,
+					language: 'English'
+				};
+			}
+		}
+
+		const availableSubtitles =
+			mediaSource?.MediaStreams?.filter((s) => s.Type === 'Subtitle').map((s) => ({
+				kind: 'subtitles' as const,
+				srclang: s.Language || '',
+				url: `${$appState.user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${s.Index}/${s.Level}/Stream.vtt`,
+				language: 'English'
+			})) || [];
+
+		subtitleInfo = {
+			subtitles,
+			availableSubtitles
+		};
+
 		playbackInfo = {
+			audioStreamIndex: options.audioStreamIndex || mediaSource?.DefaultAudioStreamIndex || -1,
+			audioTracks:
+				mediaSource?.MediaStreams?.filter((s) => s.Type === 'Audio').map((s) => ({
+					index: s.Index || -1,
+					language: s.Language || ''
+				})) || [],
+			selectAudioTrack: (index: number) =>
+				loadPlaybackInfo(id, {
+					...options,
+					audioStreamIndex: index,
+					playbackPosition: progressTime * 10_000_000
+				}),
 			directPlay,
 			playbackUrl: $appState.user?.settings.jellyfin.baseUrl + playbackUri,
 			backdrop: item?.BackdropImageTags?.length
 				? `${$appState.user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 				: '',
-			startTime: item?.UserData?.PlaybackPositionTicks
-				? item?.UserData?.PlaybackPositionTicks / 10_000_000
-				: undefined
+			startTime:
+				(options.playbackPosition || 0) / 10_000_000 ||
+				(item?.UserData?.PlaybackPositionTicks || 0) / 10_000_000 ||
+				undefined
 		};
 
 		if (mediaSourceId) reportPlaybackStarted(id, sessionId, mediaSourceId);
@@ -98,5 +143,12 @@
 		'opacity-0': hidden
 	})}
 >
-	<VideoPlayer {playbackInfo} bind:paused bind:progressTime bind:video />
+	<VideoPlayer
+		{playbackInfo}
+		modalHidden={$modalStackTop?.id !== modalId}
+		bind:paused
+		bind:progressTime
+		bind:video
+		bind:subtitleInfo
+	/>
 </Container>

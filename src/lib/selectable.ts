@@ -623,18 +623,6 @@ export class Selectable {
 	}
 
 	private removeChild(child: Selectable) {
-		console.log(
-			'Removing child',
-			child,
-			'index',
-			this.children.indexOf(child),
-			'from',
-			this,
-			'children',
-			this.children.length,
-			'focus index',
-			get(this.focusIndex)
-		);
 		if (this.children.indexOf(child) <= get(this.focusIndex)) {
 			this.focusIndex.update((prev) => prev - 1);
 		}

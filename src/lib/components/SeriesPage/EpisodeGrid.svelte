@@ -61,12 +61,10 @@
 
 	function handleMountCard(s: Selectable, episode: TmdbEpisode) {
 		currentJellyfinEpisode.then((currentEpisode) => {
-			console.log('currentEpisode', currentEpisode, episode);
 			if (
 				currentEpisode?.IndexNumber === episode.episode_number &&
 				currentEpisode?.ParentIndexNumber === episode.season_number
 			) {
-				console.log('MATCHED', currentEpisode, episode);
 				s.focus({ setFocusedElement: false, propagate: false });
 			}
 		});

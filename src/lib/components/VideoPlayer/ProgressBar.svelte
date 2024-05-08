@@ -46,7 +46,7 @@
 
 	<!-- Primary progress -->
 	<div
-		class="absolute inset-y-1 inset-x-2 rounded-full bg-white transition-transform"
+		class="absolute inset-y-1 inset-x-2 rounded-full bg-secondary-100 transition-transform"
 		style={`left: 0.5rem; right: calc(${(1 - progressTime / totalTime) * 100}% - 0.5rem + ${
 			progressTime / totalTime
 		}rem);`}
@@ -54,7 +54,7 @@
 
 	<div
 		class={classNames(
-			'absolute inset-y-0 w-4 h-4 bg-white rounded-full drop-shadow-2xl transition-opacity',
+			'absolute inset-y-0 w-4 h-4 bg-primary-500 rounded-full drop-shadow-2xl transition-opacity',
 			{
 				'opacity-0 group-hover:opacity-100': !hasFocus
 			}

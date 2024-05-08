@@ -140,7 +140,8 @@ export class JellyfinApi implements Api<paths> {
 		itemId: string,
 		playbackProfile: DeviceProfile,
 		startTimeTicks = 0,
-		maxStreamingBitrate = 140000000
+		maxStreamingBitrate = 140000000,
+		audioStreamIndex?: number
 	) =>
 		this.getClient()
 			?.POST('/Items/{itemId}/PlaybackInfo', {
@@ -152,7 +153,8 @@ export class JellyfinApi implements Api<paths> {
 						userId: this.getUserId(),
 						startTimeTicks,
 						autoOpenLiveStream: true,
-						maxStreamingBitrate
+						maxStreamingBitrate,
+						...(audioStreamIndex ? { audioStreamIndex } : {})
 					}
 				},
 				body: {
@@ -160,6 +162,7 @@ export class JellyfinApi implements Api<paths> {
 				}
 			})
 			.then((r) => ({
+				...r.data,
 				playbackUri:
 					r.data?.MediaSources?.[0]?.TranscodingUrl ||
 					`/Videos/${r.data?.MediaSources?.[0]?.Id}/stream.mp4?Static=true&mediaSourceId=${

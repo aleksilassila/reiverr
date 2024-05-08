@@ -3,6 +3,7 @@
 	import Button from '../Button.svelte';
 	import Modal from '../Modal/Modal.svelte';
 	import { modalStack } from '../Modal/modal.store';
+	import Dialog from './Dialog.svelte';
 
 	export let modalId: symbol;
 
@@ -26,28 +27,24 @@
 	}
 </script>
 
-<Modal {modalId}>
-	<div class="h-full flex items-center justify-center bg-secondary-950/75">
-		<div class="bg-secondary-800 rounded-2xl max-w-lg p-10">
-			<div class="text-2xl font-semibold tracking-wide mb-2 text-secondary-100">
-				<slot name="header" />
-			</div>
-			<div class="font-medium text-secondary-300 mb-8">
-				<slot />
-			</div>
-			<Container direction="horizontal" class="flex">
-				<Button
-					type="secondary"
-					disabled={fetching}
-					on:clickOrSelect={() => handleAction(confirm)}
-					class="mr-4"
-				>
-					Confirm
-				</Button>
-				<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}
-					>Cancel</Button
-				>
-			</Container>
-		</div>
+<Dialog {modalId}>
+	<div class="text-2xl font-semibold tracking-wide mb-2 text-secondary-100">
+		<slot name="header" />
 	</div>
-</Modal>
+	<div class="font-medium text-secondary-300 mb-8">
+		<slot />
+	</div>
+	<Container direction="horizontal" class="flex">
+		<Button
+			type="secondary"
+			disabled={fetching}
+			on:clickOrSelect={() => handleAction(confirm)}
+			class="mr-4"
+		>
+			Confirm
+		</Button>
+		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}
+			>Cancel</Button
+		>
+	</Container>
+</Dialog>

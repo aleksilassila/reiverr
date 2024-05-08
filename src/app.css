@@ -84,6 +84,12 @@ html[data-useragent*="Tizen"] .selectable-secondary {
     @apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }
 
+
+
+.header2 {
+    @apply font-semibold text-2xl text-secondary-100;
+}
+
 @media tv {
     html {
         font-size: 24px;

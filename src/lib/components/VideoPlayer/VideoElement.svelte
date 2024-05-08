@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Hls from 'hls.js';
 	import { isTizen } from '../../utils/browser-detection';
-	import type { PlaybackInfo } from './VideoPlayer';
+	import type { PlaybackInfo, SubtitleInfo } from './VideoPlayer';
 
 	export let playbackInfo: PlaybackInfo | undefined;
+	export let subtitleInfo: SubtitleInfo | undefined;
 
 	export let paused = false;
 	export let seeking = false;
@@ -19,6 +20,8 @@
 	$: playbackInfo && loadPlaybackInfo(playbackInfo);
 
 	function loadPlaybackInfo(playbackInfo: PlaybackInfo) {
+		videoDidLoad = false;
+
 		const { playbackUrl, directPlay, backdrop, startTime } = playbackInfo;
 
 		if (backdrop) {
@@ -70,6 +73,11 @@
 			video.pause();
 		}
 	}
+
+	$: if (subtitleInfo?.subtitles) {
+		console.log('Unpausing because subtitles were set');
+		video.play();
+	}
 </script>
 
 <!-- svelte-ignore a11y-media-has-caption -->
@@ -84,10 +92,22 @@
 	on:loadeddata={() => {
 		video.currentTime = progressTime;
 		videoDidLoad = true;
+		console.log('Video loaded');
 	}}
 	on:dblclick
 	on:click={togglePlay}
 	autoplay
 	playsinline
+	crossorigin="anonymous"
 	class="w-full h-full"
-/>
+>
+	{#if subtitleInfo?.subtitles}
+		<track
+			src={subtitleInfo.subtitles.url}
+			kind={subtitleInfo.subtitles.kind}
+			srclang={subtitleInfo.subtitles.srclang}
+			default={true}
+			label={subtitleInfo.subtitles.language}
+		/>
+	{/if}
+</video>
