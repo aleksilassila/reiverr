@@ -154,7 +154,8 @@ export class JellyfinApi implements Api<paths> {
 						startTimeTicks,
 						autoOpenLiveStream: true,
 						maxStreamingBitrate,
-						...(audioStreamIndex ? { audioStreamIndex } : {})
+						...(audioStreamIndex ? { audioStreamIndex } : {}),
+						mediaSourceId: itemId
 					}
 				},
 				body: {
