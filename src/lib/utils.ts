@@ -75,8 +75,8 @@ export function log<T>(arg: T): T {
 	return arg;
 }
 
-export function timeout(ms: number) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+export function timeout<T>(ms: number, ret?: T) {
+	return new Promise<T | void>((resolve) => setTimeout(() => resolve(ret), ms));
 }
 
 export function formatDateToYearMonthDay(date: Date) {

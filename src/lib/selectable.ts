@@ -80,7 +80,7 @@ export type NavigationHandler = (
 export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
 
 export class Selectable {
-	id: symbol;
+	id: number;
 	name: string;
 	private parent?: Selectable;
 	private children: Selectable[] = [];
@@ -98,8 +98,11 @@ export class Selectable {
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
+	private _removedChildrenCount: number = 0;
+	private _addChildCount = 0;
 
 	private static _initializationStack: Selectable[] = [];
+	private static _childrenToRemove: Selectable[] = [];
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
@@ -121,9 +124,10 @@ export class Selectable {
 	});
 
 	static objects = new Map<HTMLElement, Selectable>();
+	static rootObjectsStack: Selectable[] = [];
 
 	constructor(name: string = '') {
-		this.id = Symbol();
+		this.id = Math.floor(Math.random() * 1000000);
 		this.name = name;
 	}
 
@@ -324,7 +328,7 @@ export class Selectable {
 				for (let j = i - 1; j >= 0; j--) {
 					const potentialChild = Selectable._initializationStack[j];
 					if (potentialChild && htmlElement.contains(potentialChild.htmlElement || null)) {
-						selectable.addChild(potentialChild, 0);
+						selectable.addChild(potentialChild, undefined, true);
 						Selectable._initializationStack.splice(j, 1);
 						i = j;
 					} else break;
@@ -432,23 +436,36 @@ export class Selectable {
 
 			if (parentSelectable) {
 				const previousSibling = getPreviousSibling(parentSelectable, child);
-				const index = previousSibling
-					? parentSelectable.children.indexOf(previousSibling)
-					: undefined;
 
 				// If parent has focus, focus the child if it's the first child to be added or if the child
 				// should have focus when user navigates to the container (makeFocusedChild)
-				if (get(parentSelectable.hasFocus)) {
-					if (parentSelectable.children.length === 0) {
-						childToFocus = child;
-					} else if (child.makeFocusedChild) {
-						childToFocus = child;
-					}
-				}
+				// if (get(parentSelectable.hasFocus)) {
+				// 	if (parentSelectable.children.length === 0) {
+				// 		console.log('Focusing first child');
+				// 		childToFocus = child;
+				// 	} else if (child.makeFocusedChild) {
+				// 		console.log('Focusing child that should be focused');
+				// 		childToFocus = child;
+				// 	}
+				// } else if (
+				// 	get(parentSelectable.hasFocusWithin) &&
+				// 	(index === undefined ? 0 : index + 1) === get(parentSelectable.focusIndex) + 1
+				// ) {
+				// 	if (parentSelectable._removedChildrenCount > 0) {
+				// 		childToFocus = child;
+				// 		parentSelectable._removedChildrenCount--;
+				// 	}
+				// }
 				// else if (
 				// 	get(parentSelectable.hasFocusWithin) &&
-				// 	index === get(parentSelectable.focusIndex)
+				// 	(index === undefined ? 0 : index + 1) === get(parentSelectable.focusIndex)
 				// ) {
+				// 	console.log(
+				// 		"Focusing child that's being added at focusIndex",
+				// 		child,
+				// 		index,
+				// 		get(parentSelectable.focusIndex)
+				// 	);
 				// 	childToFocus = child;
 				// }
 
@@ -459,11 +476,13 @@ export class Selectable {
 				// 	index === undefined ? 0 : index + 1
 				// );
 
-				parentSelectable.addChild(child, index === undefined ? 0 : index + 1);
+				const toFocus = parentSelectable.addChild(child, previousSibling);
+				if (toFocus) childToFocus = toFocus;
 
 				console.debug('Attached child tree to parent', child, parentSelectable);
 			} else {
 				console.warn('Could not attach child (probably root)', child);
+				Selectable.rootObjectsStack.push(child);
 				child.focus();
 			}
 		}
@@ -494,19 +513,11 @@ export class Selectable {
 	}
 
 	_unmountContainer() {
-		const isFocusedWithin = get(this.hasFocusWithin);
-
-		if (this.htmlElement) {
-			Selectable.objects.delete(this.htmlElement);
-		}
-
-		const parent = this.parent;
-		if (parent) {
-			parent.removeChild(this);
-			if (isFocusedWithin) {
-				parent.focus();
-			}
-		}
+		// This is called before the registrars are destroyed,
+		// though the initialization finalization process doesn't
+		// work because unmount and destroy are both called
+		// before the next element unmounts :(
+		Selectable._childrenToRemove.push(this);
 	}
 
 	/**
@@ -526,8 +537,36 @@ export class Selectable {
 
 			return {
 				destroy: () => {
-					// selectable.parent?.removeChild(selectable);
-					// Selectable.objects.delete(htmlElement);
+					let elementToFocus: Selectable | undefined = undefined;
+					for (const child of Selectable._childrenToRemove) {
+						const toFocus = child.parent?.removeChild(child);
+
+						if (child.htmlElement) {
+							Selectable.objects.delete(child.htmlElement);
+						}
+
+						if (toFocus) elementToFocus = toFocus;
+					}
+
+					let topRoot = Selectable.rootObjectsStack[this.rootObjectsStack.length - 1];
+					while (
+						topRoot &&
+						Selectable._childrenToRemove.indexOf(topRoot) !== -1 &&
+						Selectable.rootObjectsStack.length > 0
+					) {
+						console.warn('REMOVED TOP ROOT');
+						Selectable.rootObjectsStack.pop();
+						topRoot = Selectable.rootObjectsStack[this.rootObjectsStack.length - 1];
+						topRoot?.focus();
+					}
+
+					Selectable._childrenToRemove = [];
+
+					if (elementToFocus) {
+						if (elementToFocus.parent && get(elementToFocus.parent.hasFocusWithin))
+							elementToFocus.focus();
+						console.log('Focusing element after unmount', elementToFocus);
+					}
 				}
 			};
 		};
@@ -562,30 +601,53 @@ export class Selectable {
 		};
 	}
 
+	private _addChildCountTemp = 0;
 	/**
 	 * TODO: Adding children to focusIndex does not modify focusIndex.
+	 * @return {Selectable | undefined} child to be focused
 	 */
-	private addChild(child: Selectable, index?: number) {
+	private addChild(
+		child: Selectable,
+		previousSibling?: Selectable,
+		initialization = false
+	): Selectable | undefined {
+		const index: number = previousSibling ? this.children.indexOf(previousSibling) + 1 : 0;
+		const focusIndex = get(this.focusIndex);
+		let childToFocus: Selectable | undefined = undefined;
+
+		// console.log('Adding child to parent', child, this, index, this.children.slice());
 		if (child === this) {
 			console.error('TRYING TO ADD SELF AS A CHILD', this);
 			return;
 		}
 
-		if (index !== undefined) {
-			if (this.children.length && index < get(this.focusIndex)) {
-				console.log(
-					'Incrementing focus index',
-					get(this.focusIndex),
-					'to',
-					get(this.focusIndex) + 1
-				);
+		if (index === focusIndex) {
+			// console.log('Adding to focusIndex', index, this._removedChildrenCount);
+
+			// Increment
+			// Do not refocus
+			if (this._removedChildrenCount === 1) {
+				childToFocus = child;
+			} else if (this.children.length > 0 && !initialization) {
+				this._addChildCount++;
+				// console.log('Incremented addChildCount to', this._addChildCount);
 				this.focusIndex.update((prev) => prev + 1);
 			}
-			this.children.splice(index, 0, child);
-		} else {
-			this.children.push(child);
+
+			if (this._removedChildrenCount > 1) {
+				this._removedChildrenCount--;
+			}
+		} else if (index < focusIndex) {
+			// Increment
+			// Do not refocus
+			this._addChildCount++;
+			// console.log('Incremented addChildCount to', this._addChildCount);
+			this.focusIndex.update((prev) => prev + 1);
+		} else if (index > focusIndex) {
+			// Do nothing
 		}
 
+		this.children.splice(index, 0, child);
 		child.parent = this;
 
 		if (child.makeFocusedChild) {
@@ -600,36 +662,82 @@ export class Selectable {
 			}
 		}
 
-		// 1. If parent has focus but also has child(ren), focus the child instead
-		// 2. If adding to container that doesn't have focus because being empty
-		// prevented receiving it, check if 1. applies to the parent
-
-		// eslint-disable-next-line @typescript-eslint/no-this-alias
-		// let el: Selectable = this;
-		// while (firstChild) {
-		// 	if (get(el.hasFocus) && el.children.length) {
-		// 		el.focus();
-		// 		break;
-		// 	}
-		//
-		// 	if (!el.canFocusEmpty && el.parent) {
-		// 		el = el.parent;
-		// 	} else {
-		// 		break;
-		// 	}
-		// }
-
-		return this;
+		return childToFocus;
 	}
 
-	private removeChild(child: Selectable) {
-		if (this.children.indexOf(child) <= get(this.focusIndex)) {
-			this.focusIndex.update((prev) => prev - 1);
+	private _removedChildCountTemp = 0;
+	/**
+	 * @return {Selectable | undefined} child to be focused
+	 */
+	private removeChild(child: Selectable): Selectable | undefined {
+		const index = this.children.indexOf(child);
+		const focusIndex = get(this.focusIndex);
+		let childToFocus: Selectable | undefined = undefined;
+
+		// console.log(
+		// 	'Removing child from parent at index',
+		// 	this.children.indexOf(child),
+		// 	child,
+		// 	this,
+		// 	this.children.slice()
+		// );
+
+		if (index === focusIndex) {
+			// console.log('Removing at focusIndex', index, this._addChildCount);
+			if (this._addChildCount > 0) {
+				this._addChildCount--;
+				this.focusIndex.update((prev) => prev - 1);
+				childToFocus = this.children[focusIndex - 1];
+			} else {
+				// Do not decrement
+				// Refocus
+				childToFocus = this.children[focusIndex + 1] || this.children[focusIndex - 1];
+			}
+
+			if (!this._removedChildrenCount) this._removedChildrenCount = this._removedChildCountTemp + 1;
+		} else if (index < focusIndex) {
+			// console.log(
+			// 	'Removing before focusIndex',
+			// 	focusIndex,
+			// 	'at index',
+			// 	index,
+			// 	'addChildCount',
+			// 	this._addChildCount
+			// );
+
+			// Decrement
+			// Do not refocus
+			if (this._addChildCount > 1) {
+				this._addChildCount--;
+				this.focusIndex.update((prev) => prev - 1);
+			} else {
+				this.focusIndex.update((prev) => prev - 1);
+			}
+
+			this._removedChildCountTemp++;
+		} else if (index > focusIndex) {
+			// console.log(
+			// 	'Removing after focusIndex',
+			// 	focusIndex,
+			// 	'at index',
+			// 	index,
+			// 	'addChildCount',
+			// 	this._addChildCount
+			// );
+			if (this._addChildCount > 0) {
+				this._addChildCount--;
+				this.focusIndex.update((prev) => prev - 1);
+				childToFocus = this.children[focusIndex - 1];
+				// console.log('Decreased focusIndex to', get(this.focusIndex));
+			} else {
+				// Do nothing
+			}
 		}
 
 		this.children = this.children.filter((c) => c !== child);
 		child.parent = undefined;
-		return this;
+
+		return childToFocus;
 	}
 
 	select() {

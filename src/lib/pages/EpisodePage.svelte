@@ -10,9 +10,10 @@
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { formatSize } from '../utils';
+	import { formatSize, timeout } from '../utils';
 	import { tick } from 'svelte';
 	import { openEpisodeMediaManager } from '../components/Modal/modal.store';
+	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
 
 	export let id: string; // Series ID
 	export let season: string;
@@ -103,7 +104,10 @@
 				{tmdbEpisode?.overview}
 			</div>
 			<Container direction="horizontal" class="flex mt-8">
-				{#await jellyfinEpisode then jEpisode}
+				{#await jellyfinEpisode}
+					<ButtonGhost>Play</ButtonGhost>
+					<ButtonGhost>Play</ButtonGhost>
+				{:then jEpisode}
 					<Button
 						class="mr-4"
 						on:clickOrSelect={() => jEpisode?.Id && playerState.streamJellyfinId(jEpisode.Id)}
