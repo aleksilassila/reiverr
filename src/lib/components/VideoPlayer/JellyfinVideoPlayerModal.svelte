@@ -9,6 +9,14 @@
 	import { appState } from '../../stores/app-state.store';
 	import { onDestroy } from 'svelte';
 	import { modalStack, modalStackTop } from '../Modal/modal.store';
+	import { createLocalStorageStore } from '../../stores/localstorage.store';
+	import { get } from 'svelte/store';
+	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
+
+	type MediaLanguageStore = {
+		subtitles?: string;
+		audio?: string;
+	};
 
 	export let id: string;
 	export let modalId: symbol;
@@ -41,18 +49,24 @@
 		id: string,
 		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}
 	) {
-		const itemP = jellyfinApi.getLibraryItem(id);
-		const jellyfinPlaybackInfoP = itemP.then((item) =>
-			jellyfinApi.getPlaybackInfo(
-				id,
-				getDeviceProfile(),
-				options.playbackPosition || item?.UserData?.PlaybackPositionTicks || 0,
-				options.bitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate,
-				options.audioStreamIndex || undefined
-			)
+		const item = await jellyfinApi.getLibraryItem(id);
+
+		const mediaLanguagesStore = createLocalStorageStore<MediaLanguageStore>(
+			'media-tracks-' + (item?.SeriesName || id),
+			{}
 		);
-		const item = await itemP;
-		const jellyfinPlaybackInfo = await jellyfinPlaybackInfoP;
+		const storedAudioStreamIndex = item?.MediaStreams?.find(
+			(s) => s.Type === 'Audio' && s.Language === mediaLanguagesStore.get().audio
+		)?.Index;
+		const audioStreamIndex = options.audioStreamIndex ?? storedAudioStreamIndex ?? undefined;
+
+		const jellyfinPlaybackInfo = await jellyfinApi.getPlaybackInfo(
+			id,
+			getDeviceProfile(),
+			options.playbackPosition || item?.UserData?.PlaybackPositionTicks || 0,
+			options.bitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate,
+			audioStreamIndex
+		);
 
 		if (!item || !jellyfinPlaybackInfo) {
 			console.error('No item or playback info', item, jellyfinPlaybackInfo);
@@ -70,14 +84,30 @@
 
 		const mediaSource = jellyfinPlaybackInfo.MediaSources?.[0];
 
+		const storedSubtitlesLang = mediaLanguagesStore.get().subtitles;
+
+		if (options.audioStreamIndex) {
+			const audioLang = mediaSource?.MediaStreams?.[options.audioStreamIndex]?.Language;
+			mediaLanguagesStore.update((prev) => ({
+				...prev,
+				audio: audioLang || undefined
+			}));
+		}
+
 		let subtitles: Subtitles | undefined;
 		for (const stream of mediaSource?.MediaStreams || []) {
-			if (stream.Type === 'Subtitle' && stream.IsDefault) {
+			if (
+				stream.Type === 'Subtitle' &&
+				(storedSubtitlesLang !== undefined
+					? stream.Language === storedSubtitlesLang
+					: stream.IsDefault)
+			) {
 				subtitles = {
 					kind: 'subtitles',
 					srclang: stream.Language || '',
 					url: `${$appState.user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${stream.Index}/${stream.Level}/Stream.vtt`,
-					language: 'English'
+					// @ts-ignore
+					language: ISO_2_LANGUAGES[stream?.Language || '']?.name || 'English'
 				};
 			}
 		}
@@ -90,13 +120,34 @@
 				language: 'English'
 			})) || [];
 
+		const selectSubtitles = (subtitles?: Subtitles) => {
+			mediaLanguagesStore.update((prev) => ({
+				...prev,
+				subtitles: subtitles?.srclang || ''
+			}));
+
+			if (subtitleInfo) {
+				if (subtitles)
+					subtitleInfo = {
+						...subtitleInfo,
+						subtitles
+					};
+				else
+					subtitleInfo = {
+						...subtitleInfo,
+						subtitles: undefined
+					};
+			}
+		};
+
 		subtitleInfo = {
 			subtitles,
-			availableSubtitles
+			availableSubtitles,
+			selectSubtitles
 		};
 
 		playbackInfo = {
-			audioStreamIndex: options.audioStreamIndex || mediaSource?.DefaultAudioStreamIndex || -1,
+			audioStreamIndex: audioStreamIndex ?? mediaSource?.DefaultAudioStreamIndex ?? -1,
 			audioTracks:
 				mediaSource?.MediaStreams?.filter((s) => s.Type === 'Audio').map((s) => ({
 					index: s.Index || -1,

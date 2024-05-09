@@ -6,6 +6,7 @@ import VideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
 	availableSubtitles: Subtitles[];
+	selectSubtitles: (subtitles?: Subtitles) => void;
 };
 
 export type Subtitles = {

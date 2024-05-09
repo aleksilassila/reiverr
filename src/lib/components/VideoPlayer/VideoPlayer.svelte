@@ -8,7 +8,7 @@
 	import type { Selectable } from '../../selectable';
 	import { modalStack } from '../Modal/modal.store';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
-	import { ChatBubble, TextAlignLeft, Update } from 'radix-icons-svelte';
+	import { ChatBubble, TextAlignLeft } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
@@ -58,16 +58,7 @@
 
 	function selectSubtitles(subtitles?: Subtitles) {
 		if (subtitleInfo) {
-			if (subtitles)
-				subtitleInfo = {
-					...subtitleInfo,
-					subtitles
-				};
-			else
-				subtitleInfo = {
-					...subtitleInfo,
-					subtitles: undefined
-				};
+			subtitleInfo.selectSubtitles(subtitles);
 		} else {
 			console.error('No subtitle info when selecting subtitles');
 		}

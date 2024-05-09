@@ -81,10 +81,17 @@
 		}
 	}
 
-	$: if (subtitleInfo?.subtitles) {
-		console.log('Unpausing because subtitles were set');
-		video.play();
-	}
+	$: subtitleInfo && updateSubtitlesVisibility();
+	const updateSubtitlesVisibility = () => {
+		const tracks = video?.textTracks;
+		for (const track of tracks) {
+			track.mode = track.id === subtitleInfo?.subtitles?.url ? 'showing' : 'disabled';
+		}
+	};
+	// $: if (subtitleInfo?.subtitles) {
+	// 	console.log('Unpausing because subtitles were set');
+	// 	video.play();
+	// }
 </script>
 
 <!-- svelte-ignore a11y-media-has-caption -->
@@ -110,13 +117,18 @@
 	crossorigin="anonymous"
 	class="w-full h-full"
 >
-	{#if subtitleInfo?.subtitles}
-		<track
-			src={subtitleInfo.subtitles.url}
-			kind={subtitleInfo.subtitles.kind}
-			srclang={subtitleInfo.subtitles.srclang}
-			default={true}
-			label={subtitleInfo.subtitles.language}
-		/>
+	{#if subtitleInfo?.availableSubtitles}
+		{#each subtitleInfo.availableSubtitles as subtitle}
+			<track
+				default={subtitle.url === subtitleInfo.subtitles?.url}
+				id={subtitle.url}
+				src={subtitle.url}
+				kind={subtitle.kind}
+				srclang={subtitle.srclang}
+				label={subtitle.language}
+			/>
+		{/each}
+		<!--{:else}-->
+		<!--	<track kind="subtitles" src="" />-->
 	{/if}
 </video>

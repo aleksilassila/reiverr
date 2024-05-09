@@ -5,6 +5,7 @@ export function createLocalStorageStore<T>(key: string, defaultValue: T) {
 
 	return {
 		subscribe: store.subscribe,
+		get: () => get(store),
 		set: (value: T) => {
 			localStorage.setItem(key, JSON.stringify(value));
 			store.set(value);
