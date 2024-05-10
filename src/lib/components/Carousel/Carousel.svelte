@@ -5,7 +5,6 @@
 	import Container from '../../../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
 
-	export let gradientFromColor = 'from-secondary-500';
 	export let hideControls = false;
 
 	let carousel: HTMLDivElement | undefined;
@@ -51,10 +50,11 @@
 		<Container direction="horizontal" let:focusIndex on:enter {...$$restProps} class="">
 			<div
 				class={classNames(
-					'flex overflow-x-scroll items-center overflow-y-hidden relative scrollbar-hide',
-					'[&>*]:p-4 -mx-4 w-full',
+					'flex overflow-x-auto items-center overflow-y-hidden relative scrollbar-hide',
+					'space-x-8 py-4 w-full',
 					scrollClass
 				)}
+				style="-webkit-mask-image: linear-gradient(to right, transparent, black 6rem, black calc(100% - 6rem), transparent);"
 				bind:this={carousel}
 				tabindex="-1"
 				on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
@@ -62,17 +62,5 @@
 				<slot {focusIndex} />
 			</div>
 		</Container>
-		{#if scrollX > 50}
-			<div
-				class={'absolute inset-y-0 left-0 w-0 sm:w-16 md:w-24 bg-gradient-to-r ' +
-					gradientFromColor}
-			/>
-		{/if}
-		{#if carousel && scrollX < carousel?.scrollWidth - carousel?.clientWidth - 50}
-			<div
-				class={'absolute inset-y-0 right-0 w-0 sm:w-16 md:w-24 bg-gradient-to-l ' +
-					gradientFromColor}
-			/>
-		{/if}
 	</div>
 </div>

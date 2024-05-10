@@ -487,8 +487,9 @@ export class Selectable {
 			}
 		}
 
-		if (childToFocus) console.log("Focusing child that's being added", childToFocus);
-		childToFocus?.focus();
+		if (childToFocus?.parent && get(childToFocus.parent.hasFocusWithin)) childToFocus.focus();
+		// if (childToFocus) console.log("Focusing child that's being added", childToFocus);
+		// childToFocus?.focus();
 
 		Selectable._initializationStack = [];
 	}
