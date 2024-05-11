@@ -10,10 +10,12 @@
 	import { getShowcasePropsFromTmdbSeries } from '../components/HeroShowcase/HeroShowcase';
 	import { scrollIntoView } from '../selectable';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { Route } from 'svelte-navigator';
+	import { Route, useNavigate } from 'svelte-navigator';
 	import SeriesPage from '../components/SeriesPage/SeriesPage.svelte';
 	import { formatDateToYearMonthDay } from '../utils';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
+
+	const navigate = useNavigate();
 
 	const continueWatching = jellyfinApi.getContinueWatchingSeries();
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
@@ -58,6 +60,9 @@
 		<HeroShowcase
 			items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)}
 			on:enter={scrollIntoView({ top: 0 })}
+			on:select={({ detail }) => {
+				navigate(`${detail?.id}`);
+			}}
 		/>
 	</div>
 	<div class="my-16 space-y-8">

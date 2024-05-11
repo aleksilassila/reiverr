@@ -9,8 +9,19 @@
 	import SidebarMargin from '../SidebarMargin.svelte';
 	import { get } from 'svelte/store';
 	import { registrars } from '../../selectable.js';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher<{
+		select: ShowcaseItemProps | undefined;
+	}>();
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
+	let awaitedItems: undefined | ShowcaseItemProps[];
+	items.then((items) => (awaitedItems = items));
+
+	function openItem() {
+		if (awaitedItems) dispatch('select', awaitedItems[showcaseIndex]);
+	}
 
 	let showcaseIndex = 0;
 </script>
@@ -24,23 +35,29 @@
 			get(registrars.sidebar)?.focus();
 		}
 	}}
+	on:select={openItem}
 >
 	<div class="h-full flex-1 flex overflow-hidden z-10 relative">
 		{#await items}
-			<div class="flex-1 flex items-end">
-				<CardPlaceholder orientation="portrait" />
-				<div class="flex flex-col">
-					<div>stats</div>
-					<div>title</div>
-					<div>genres</div>
-				</div>
-			</div>
+			<!--			<div class="flex-1 flex items-end">-->
+			<!--				<CardPlaceholder orientation="portrait" />-->
+			<!--				<div class="flex flex-col">-->
+			<!--					<div>stats</div>-->
+			<!--					<div>title</div>-->
+			<!--					<div>genres</div>-->
+			<!--				</div>-->
+			<!--			</div>-->
 		{:then items}
 			{@const item = items[showcaseIndex]}
 			{#if item}
-				<div class="flex-1 flex items-end p-3">
+				<div class="flex-1 flex items-end">
 					<div class="mr-8">
-						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />
+						<!--						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />-->
+						<div
+							class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
+							style={`background-image: url("${TMDB_POSTER_SMALL + item.posterUrl}")`}
+							on:click={openItem}
+						/>
 					</div>
 					<div class="flex flex-col">
 						<div
@@ -51,6 +68,7 @@
 									'text-3xl sm:text-4xl 2xl:text-5xl': item?.title.length >= 15
 								}
 							)}
+							on:click={openItem}
 						>
 							{item?.title}
 						</div>

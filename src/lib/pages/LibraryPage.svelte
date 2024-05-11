@@ -25,9 +25,9 @@
 	}));
 </script>
 
-<Container focusOnMount class="px-20">
-	<div class="my-8">
-		<div class="font-medium tracking-wide text-2xl text-zinc-200">Library</div>
+<Container focusOnMount class="px-32 py-16">
+	<div class="mb-6">
+		<div class="header2">Library</div>
 	</div>
 	<CardGrid>
 		{#await libraryItemsP}

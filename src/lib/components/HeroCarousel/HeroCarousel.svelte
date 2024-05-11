@@ -50,6 +50,7 @@
 <Container
 	class="flex-1 flex"
 	on:enter
+	on:select
 	on:navigate={(event) => {
 		const detail = event.detail;
 		if (!backgroundHasFocus) return;
