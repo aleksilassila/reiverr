@@ -14,7 +14,7 @@
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		<div class="font-medium tracking-wide text-2xl text-zinc-200">
+		<div class="header2">
 			<slot name="header" />
 		</div>
 		<div

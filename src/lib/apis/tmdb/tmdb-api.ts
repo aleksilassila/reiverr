@@ -46,13 +46,17 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 }
 
 export class TmdbApi implements Api<paths> {
-	getClient() {
+	static getClient() {
 		return createClient<paths>({
 			baseUrl: 'https://api.themoviedb.org',
 			headers: {
 				Authorization: `Bearer ${TMDB_API_KEY}`
 			}
 		});
+	}
+
+	getClient() {
+		return TmdbApi.getClient();
 	}
 
 	// MOVIES

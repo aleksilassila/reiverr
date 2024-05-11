@@ -53,8 +53,12 @@
 		style={`left: ${x}px; top: ${y}px; width: ${width}px; height: ${height}px;`}
 	/>
 
-	<div class="fixed inset-0 border-x-[96px] border-y-[48px] border-green-500/10 z-50" />
-	<div class="fixed inset-0 px-32 grid grid-cols-12 gap-x-16 *:bg-purple-500/10 items-stretch z-50">
+	<div
+		class="fixed inset-0 border-x-[96px] border-y-[48px] border-green-500/10 z-50 pointer-events-none"
+	/>
+	<div
+		class="fixed inset-0 px-32 grid grid-cols-12 gap-x-16 *:bg-purple-500/10 items-stretch z-50 pointer-events-none"
+	>
 		<div />
 		<div />
 		<div />

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { useRequest } from '../stores/data.store';
@@ -12,102 +12,94 @@
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
 	import { Route } from 'svelte-navigator';
 	import SeriesPage from '../components/SeriesPage/SeriesPage.svelte';
+	import { formatDateToYearMonthDay } from '../utils';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
 
-	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
-		jellyfinApi.getContinueWatchingSeries
-	);
-	const { data: recentlyAdded, isLoading: isLoadingRecentlyAdded } = useRequest(
-		jellyfinApi.getRecentlyAdded,
-		'series'
-	);
+	const continueWatching = jellyfinApi.getContinueWatchingSeries();
+	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
 
-	// const jellyfinItemsPromise = new Promise<JellyfinItem[]>((resolve) => {
-	// 	jellyfinItemsStore.subscribe((data) => {
-	// 		if (data.loading) return;
-	// 		resolve(data.data || []);
-	// 	});
-	// });
+	const nowStreaming = getNowStreaming();
+	const upcomingSeries = fetchUpcomingSeries();
 
-	// const fetchCardProps = async (
-	// 	items: {
-	// 		name?: string;
-	// 		title?: string;
-	// 		id?: number;
-	// 		vote_average?: number;
-	// 		number_of_seasons?: number;
-	// 		first_air_date?: string;
-	// 		poster_path?: string;
-	// 	}[],
-	// 	type: TitleType | undefined = undefined
-	// ): Promise<ComponentProps<Card>[]> => {
-	// 	const filtered = $settings.discover.excludeLibraryItems
-	// 		? items.filter(
-	// 				async (item) =>
-	// 					!(await jellyfinItemsPromise).find((i) => i.ProviderIds?.Tmdb === String(item.id))
-	// 		  )
-	// 		: items;
-	//
-	// 	return Promise.all(filtered.map(async (item) => getPosterProps(item, type))).then((props) =>
-	// 		props.filter((p) => p.backdropUrl).map((i) => ({ ...i, openInModal: false }))
-	// 	);
-	// };
-	//
-	// const fetchNowStreaming = () =>
-	// 	TmdbApiOpen.GET('/3/discover/tv', {
-	// 		params: {
-	// 			query: {
-	// 				'air_date.gte': formatDateToYearMonthDay(new Date()),
-	// 				'first_air_date.lte': formatDateToYearMonthDay(new Date()),
-	// 				sort_by: 'popularity.desc',
-	// 				language: $settings.language,
-	// 				with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
-	// 			}
-	// 		}
-	// 	})
-	// 		.then((res) => res.data?.results || [])
-	// 		.then((i) => fetchCardProps(i, 'series'));
-	//
-	// function parseIncludedLanguages(includedLanguages: string) {
-	// 	return includedLanguages.replace(' ', '').split(',').join('|');
-	// }
+	function getNowStreaming() {
+		return TmdbApi.getClient()
+			.GET('/3/discover/tv', {
+				params: {
+					query: {
+						'air_date.gte': formatDateToYearMonthDay(new Date()),
+						'first_air_date.lte': formatDateToYearMonthDay(new Date()),
+						sort_by: 'popularity.desc'
+						// language: $settings.language,
+						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	}
+
+	function fetchUpcomingSeries() {
+		return TmdbApi.getClient()
+			.GET('/3/discover/tv', {
+				params: {
+					query: {
+						'first_air_date.gte': formatDateToYearMonthDay(new Date()),
+						sort_by: 'popularity.desc'
+						// language: $settings.language,
+						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	}
 </script>
 
 <Container focusOnMount class="flex flex-col">
-	<div class="h-[calc(100vh-12rem)] flex px-20">
+	<div class="h-[calc(100vh-12rem)] flex px-32">
 		<HeroShowcase
 			items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)}
 			on:enter={scrollIntoView({ top: 0 })}
 		/>
 	</div>
-	<div class="mt-16">
-		<Carousel scrollClass="px-20" on:enter={scrollIntoView({ vertical: 64 })}>
-			<div class="text-xl font-semibold text-zinc-300" slot="header">
-				{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
-					? 'Loading...'
-					: $continueWatching?.length
-					? 'Continue Watching'
-					: 'Recently Added'}
-			</div>
-			{#if $isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)}
-				<CarouselPlaceholderItems />
-			{:else if $continueWatching?.length}
-				<div class="flex -mx-2">
-					{#each $continueWatching as item (item.Id)}
-						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
-							<JellyfinCard size="lg" {item} />
-						</Container>
+	<div class="my-16 space-y-8">
+		{#await continueWatching then continueWatching}
+			{#if continueWatching?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">Continue Watching</span>
+					{#each continueWatching as item (item.Id)}
+						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
-				</div>
-			{:else if $recentlyAdded?.length}
-				<div class="flex -mx-4">
-					{#each $recentlyAdded as item (item.Id)}
-						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
-							<JellyfinCard size="lg" {item} />
-						</Container>
-					{/each}
-				</div>
+				</Carousel>
+			{:else}
+				{#await recentlyAdded then recentlyAdded}
+					{#if recentlyAdded?.length}
+						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+							<span slot="header">Recently Added</span>
+							{#each recentlyAdded as item (item.Id)}
+								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+							{/each}
+						</Carousel>
+					{/if}
+				{/await}
 			{/if}
-		</Carousel>
+		{/await}
+
+		{#await nowStreaming then nowStreaming}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Now Streaming</span>
+				{#each nowStreaming as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/await}
+
+		{#await upcomingSeries then upcomingSeries}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Upcoming Series</span>
+				{#each upcomingSeries as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/await}
 	</div>
 </Container>
 

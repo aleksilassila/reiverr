@@ -1,27 +1,43 @@
 <script lang="ts">
-	import { Bookmark, CardStack, Gear, Laptop, MagnifyingGlass } from 'radix-icons-svelte';
+	import {
+		Bookmark,
+		CardStack,
+		DotFilled,
+		Gear,
+		Laptop,
+		MagnifyingGlass
+	} from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { type Readable, writable, type Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
-	import { useNavigate } from 'svelte-navigator';
-	import { registrars, type Selectable } from '../../selectable';
+	import { useLocation, useNavigate } from 'svelte-navigator';
+	import { registrars, Selectable } from '../../selectable';
 
+	const location = useLocation();
 	const navigate = useNavigate();
 	let selectedIndex = 0;
+	$: activeIndex = {
+		'': 0,
+		series: 0,
+		movies: 1,
+		library: 2,
+		search: 3,
+		manage: 4
+	}[$location.pathname.split('/')[1] || '/'];
 
+	$: console.log('activeIndex', activeIndex);
+	$: console.log($location.pathname.split('/')[1] || '/');
 	let isNavBarOpen: Readable<boolean>;
 	let focusIndex: Writable<number> = writable(0);
 	let selectable: Selectable;
 
 	focusIndex.subscribe((v) => (selectedIndex = v));
 
-	const itemContainer = (index: number, _focusIndex: number) =>
-		classNames('h-12 flex items-center cursor-pointer', {
-			'text-primary-500': _focusIndex === index,
-			'text-stone-300': _focusIndex !== index
-		});
-
 	const selectIndex = (index: number) => () => {
+		if (index === activeIndex) {
+			Selectable.giveFocus('right');
+			return;
+		}
 		selectable.focusChild(index);
 		const path =
 			{
@@ -39,7 +55,7 @@
 <Container
 	class={classNames(
 		'flex flex-col items-stretch fixed z-20 left-0 inset-y-0 group',
-		'py-4 w-16 select-none',
+		'py-8 w-24 select-none',
 		{
 			//'max-w-[64px]': !$isNavBarOpen,
 			//'max-w-64': $isNavBarOpen
@@ -77,10 +93,16 @@
 						!hasFocus && !(!$isNavBarOpen && selectedIndex === 0)
 				})}
 			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== 0 })}
+						size={19}
+					/>
+				</div>
 				<Laptop class="w-8 h-8" />
 				<span
 					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
 							'opacity-0 pointer-events-none': $isNavBarOpen === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
@@ -99,10 +121,16 @@
 						!hasFocus && !(!$isNavBarOpen && selectedIndex === 1)
 				})}
 			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== 1 })}
+						size={19}
+					/>
+				</div>
 				<CardStack class="w-8 h-8" />
 				<span
 					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
 							'opacity-0 pointer-events-none': $isNavBarOpen === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
@@ -121,10 +149,16 @@
 						!hasFocus && !(!$isNavBarOpen && selectedIndex === 2)
 				})}
 			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== 2 })}
+						size={19}
+					/>
+				</div>
 				<Bookmark class="w-8 h-8" />
 				<span
 					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
 							'opacity-0 pointer-events-none': $isNavBarOpen === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
@@ -143,10 +177,16 @@
 						!hasFocus && !(!$isNavBarOpen && selectedIndex === 3)
 				})}
 			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== 3 })}
+						size={19}
+					/>
+				</div>
 				<MagnifyingGlass class="w-8 h-8" />
 				<span
 					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
 							'opacity-0 pointer-events-none': $isNavBarOpen === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
@@ -161,16 +201,27 @@
 
 	<Container class="w-full h-12 cursor-pointer" on:clickOrSelect={selectIndex(4)} let:hasFocus>
 		<div
-			class={classNames('w-full h-full relative flex items-center justify-center', {
-				'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 4),
-				'text-stone-300 hover:text-primary-500':
-					!hasFocus && !(!$isNavBarOpen && selectedIndex === 4)
-			})}
+			class={classNames(
+				'w-full h-full relative flex items-center justify-center transition-opacity',
+				{
+					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === 4),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!$isNavBarOpen && selectedIndex === 4),
+					'opacity-0 pointer-events-none': $isNavBarOpen === false,
+					'group-hover:opacity-100 group-hover:pointer-events-auto': true
+				}
+			)}
 		>
+			<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+				<DotFilled
+					class={classNames('text-primary-500', { 'opacity-0': activeIndex !== 4 })}
+					size={19}
+				/>
+			</div>
 			<Gear class="w-8 h-8" />
 			<span
 				class={classNames(
-					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-16',
+					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 					{
 						'opacity-0 pointer-events-none': $isNavBarOpen === false,
 						'group-hover:opacity-100 group-hover:pointer-events-auto': true

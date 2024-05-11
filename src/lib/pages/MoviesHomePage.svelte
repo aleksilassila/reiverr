@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
@@ -11,53 +11,98 @@
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
 	import { Route } from 'svelte-navigator';
 	import MoviePage from './MoviePage.svelte';
+	import { formatDateToYearMonthDay } from '../utils';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
 
-	const { data: continueWatching, isLoading: isLoadingContinueWatching } = useRequest(
-		jellyfinApi.getContinueWatching,
-		'movie'
-	);
-	const { data: recentlyAdded, isLoading: isLoadingRecentlyAdded } = useRequest(
-		jellyfinApi.getRecentlyAdded,
-		'movie'
-	);
+	const continueWatching = jellyfinApi.getContinueWatching('movie');
+	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
 
 	const popularMovies = tmdbApi.getPopularMovies();
+
+	const newDigitalReleases = getDigitalReleases();
+	const upcomingMovies = getUpcomingMovies();
+
+	function getUpcomingMovies() {
+		return TmdbApi.getClient()
+			.GET('/3/discover/movie', {
+				params: {
+					query: {
+						'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
+						sort_by: 'popularity.desc'
+						// language: $settings.language,
+						// region: $settings.discover.region,
+						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	}
+
+	function getDigitalReleases() {
+		return TmdbApi.getClient()
+			.GET('/3/discover/movie', {
+				params: {
+					query: {
+						with_release_type: 4,
+						sort_by: 'popularity.desc',
+						'release_date.lte': formatDateToYearMonthDay(new Date())
+						// language: $settings.language,
+						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
+						// region: $settings.discover.region
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	}
 </script>
 
 <Container focusOnMount class="flex flex-col">
-	<div class="h-[calc(100vh-12rem)] flex px-20">
+	<div class="h-[calc(100vh-12rem)] flex px-32">
 		<HeroShowcase
 			items={popularMovies.then(getShowcasePropsFromTmdbMovie)}
 			on:enter={scrollIntoView({ top: 0 })}
 		/>
 	</div>
-	<div class="mt-16">
-		<Carousel scrollClass="px-20" on:enter={scrollIntoView({ vertical: 64 })}>
-			<div slot="header">
-				{$isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)
-					? 'Loading...'
-					: $continueWatching?.length
-					? 'Continue Watching'
-					: 'Recently Added'}
-			</div>
-			{#if $isLoadingContinueWatching || ($isLoadingRecentlyAdded && !$continueWatching?.length)}
-				<CarouselPlaceholderItems />
-			{:else if $continueWatching?.length}
-				<div class="flex -mx-4">
-					{#each $continueWatching as item (item.Id)}
-						<Container class="m-4" on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
-							<JellyfinCard size="lg" {item} />
-						</Container>
+	<div class="my-16 space-y-8">
+		{#await continueWatching then continueWatching}
+			{#if continueWatching?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">Continue Watching</span>
+					{#each continueWatching as item (item.Id)}
+						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
-				</div>
-			{:else if $recentlyAdded?.length}
-				{#each $recentlyAdded as item (item.Id)}
-					<Container on:enter={scrollIntoView({ horizontal: 64 + 20 })}>
-						<JellyfinCard size="lg" {item} />
-					</Container>
-				{/each}
+				</Carousel>
+			{:else}
+				{#await recentlyAdded then recentlyAdded}
+					{#if recentlyAdded?.length}
+						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+							<span slot="header">Recently Added</span>
+							{#each recentlyAdded as item (item.Id)}
+								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+							{/each}
+						</Carousel>
+					{/if}
+				{/await}
 			{/if}
-		</Carousel>
+		{/await}
+
+		{#await newDigitalReleases then nowStreaming}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">New Digital Releases</span>
+				{#each nowStreaming as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/await}
+
+		{#await upcomingMovies then upcomingSeries}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Upcoming Movies</span>
+				{#each upcomingSeries as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/await}
 	</div>
 </Container>
 
