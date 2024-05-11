@@ -15,6 +15,8 @@
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
+	export let title: string;
+	export let subtitle: string;
 
 	export let modalHidden = false;
 
@@ -121,12 +123,22 @@
 		bind:video
 		bind:buffering
 	/>
+
+	<!-- Overlay -->
+	<div
+		class={classNames(
+			'absolute inset-0 bg-gradient-to-b from-transparent from-60% to-secondary-950/75 transition-opacity pointer-events-none',
+			{
+				'opacity-0': !showInterface
+			}
+		)}
+	/>
 	<Container
 		class={classNames('absolute inset-x-12 top-8 transition-opacity', {
 			'opacity-0': !showInterface
 		})}
 	>
-		Title
+		<!--		Title-->
 	</Container>
 	{#if buffering || !videoDidLoad}
 		<div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -148,9 +160,12 @@
 					handleHideInterface();
 				}
 			}}
-			class="flex justify-between p-2"
+			class="flex justify-between px-2 py-4 items-end"
 		>
-			<div />
+			<div>
+				<div class="text-secondary-300 font-medium text-wider text-lg">{subtitle}</div>
+				<h1 class="header4">{title}</h1>
+			</div>
 			<div class="flex space-x-2">
 				<IconButton
 					on:clickOrSelect={() => {
@@ -182,6 +197,10 @@
 			bind:seeking
 			on:jumpTo={(e) => {
 				video.currentTime = e.detail;
+			}}
+			on:playPause={() => {
+				if (paused) video.play();
+				else video.pause();
 			}}
 			bind:totalTime
 			bind:progressTime

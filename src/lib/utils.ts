@@ -1,5 +1,16 @@
 import { type Readable, writable } from 'svelte/store';
 
+export function formatSecondsToTime(seconds: number) {
+	const days = Math.floor(seconds / 60 / 60 / 24);
+	const hours = Math.floor((seconds / 60 / 60) % 24);
+	const minutes = Math.floor((seconds / 60) % 60);
+	const secondsLeft = Math.floor(seconds % 60);
+
+	return `${days > 0 ? days + ':' : ''}${hours > 0 ? hours + ':' : ''}${
+		days > 0 || hours > 0 ? minutes.toString().padStart(2, '0') : minutes
+	}:${secondsLeft.toString().padStart(2, '0')}`;
+}
+
 export function formatMinutesToTime(minutes: number) {
 	const days = Math.floor(minutes / 60 / 24);
 	const hours = Math.floor((minutes / 60) % 24);

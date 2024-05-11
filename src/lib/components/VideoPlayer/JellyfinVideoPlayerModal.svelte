@@ -22,6 +22,17 @@
 	export let modalId: symbol;
 	export let hidden: boolean = false;
 
+	const itemP = jellyfinApi.getLibraryItem(id);
+
+	let title: string = '';
+	let subtitle: string = '';
+	itemP.then((item) => {
+		title = item?.Name || '';
+		subtitle = `${item?.SeriesName || ''} S${item?.ParentIndexNumber || ''}E${
+			item?.IndexNumber || ''
+		}`;
+	});
+
 	let video: HTMLVideoElement;
 	let paused: boolean;
 	let progressTime: number;
@@ -46,11 +57,9 @@
 	};
 
 	async function loadPlaybackInfo(
-		id: string,
 		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}
 	) {
-		const item = await jellyfinApi.getLibraryItem(id);
-
+		const item = await itemP;
 		const mediaLanguagesStore = createLocalStorageStore<MediaLanguageStore>(
 			'media-tracks-' + (item?.SeriesName || id),
 			{}
@@ -154,7 +163,7 @@
 					language: s.Language || ''
 				})) || [],
 			selectAudioTrack: (index: number) =>
-				loadPlaybackInfo(id, {
+				loadPlaybackInfo({
 					...options,
 					audioStreamIndex: index,
 					playbackPosition: progressTime * 10_000_000
@@ -179,7 +188,7 @@
 		}, 10_000);
 	}
 
-	loadPlaybackInfo(id);
+	loadPlaybackInfo();
 
 	onDestroy(() => {
 		if (reportProgressInterval) clearInterval(reportProgressInterval);
@@ -197,6 +206,8 @@
 	<VideoPlayer
 		{playbackInfo}
 		modalHidden={$modalStackTop?.id !== modalId}
+		{title}
+		{subtitle}
 		bind:paused
 		bind:progressTime
 		bind:video
