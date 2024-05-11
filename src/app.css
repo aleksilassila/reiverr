@@ -39,11 +39,11 @@ a {
 /*}*/
 
 html:not([data-useragent*="Tizen"]) .selectable {
-    @apply focus-visible:border-primary-500;
+    @apply focus:border-primary-500 focus-visible:border-primary-500;
 }
 
 html[data-useragent*="Tizen"] .selectable {
-    @apply focus-within:border-primary-500;
+    @apply focus:border-primary-500 focus-within:border-primary-500;
 }
 
 .selectable {

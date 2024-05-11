@@ -540,13 +540,34 @@ export class Selectable {
 				destroy: () => {
 					let elementToFocus: Selectable | undefined = undefined;
 					for (const child of Selectable._childrenToRemove) {
-						const toFocus = child.parent?.removeChild(child);
+						console.warn('Removing child', child);
+						const parent = child.parent;
+
+						if (parent) {
+							const childToFocus = child.parent?.removeChild(child);
+
+							if (get(parent.hasFocusWithin) && childToFocus) elementToFocus = childToFocus;
+							else if (childToFocus) {
+								const index = parent.children.indexOf(childToFocus);
+
+								if (index !== -1) {
+									parent.focusIndex.update((prev) => index);
+								} else {
+									console.error(
+										"Couldn't find index of child to focus",
+										childToFocus,
+										parent.children
+									);
+								}
+							} else if (parent.children.length === 0 && get(parent.hasFocusWithin)) {
+								elementToFocus = parent;
+								console.warn('Focusing parent after last child unmount', parent);
+							}
+						}
 
 						if (child.htmlElement) {
 							Selectable.objects.delete(child.htmlElement);
 						}
-
-						if (toFocus) elementToFocus = toFocus;
 					}
 
 					let topRoot = Selectable.rootObjectsStack[this.rootObjectsStack.length - 1];
@@ -675,16 +696,7 @@ export class Selectable {
 		const focusIndex = get(this.focusIndex);
 		let childToFocus: Selectable | undefined = undefined;
 
-		// console.log(
-		// 	'Removing child from parent at index',
-		// 	this.children.indexOf(child),
-		// 	child,
-		// 	this,
-		// 	this.children.slice()
-		// );
-
 		if (index === focusIndex) {
-			// console.log('Removing at focusIndex', index, this._addChildCount);
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
 				this.focusIndex.update((prev) => prev - 1);
@@ -697,15 +709,6 @@ export class Selectable {
 
 			if (!this._removedChildrenCount) this._removedChildrenCount = this._removedChildCountTemp + 1;
 		} else if (index < focusIndex) {
-			// console.log(
-			// 	'Removing before focusIndex',
-			// 	focusIndex,
-			// 	'at index',
-			// 	index,
-			// 	'addChildCount',
-			// 	this._addChildCount
-			// );
-
 			// Decrement
 			// Do not refocus
 			if (this._addChildCount > 1) {
@@ -717,19 +720,10 @@ export class Selectable {
 
 			this._removedChildCountTemp++;
 		} else if (index > focusIndex) {
-			// console.log(
-			// 	'Removing after focusIndex',
-			// 	focusIndex,
-			// 	'at index',
-			// 	index,
-			// 	'addChildCount',
-			// 	this._addChildCount
-			// );
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
 				this.focusIndex.update((prev) => prev - 1);
 				childToFocus = this.children[focusIndex - 1];
-				// console.log('Decreased focusIndex to', get(this.focusIndex));
 			} else {
 				// Do nothing
 			}
