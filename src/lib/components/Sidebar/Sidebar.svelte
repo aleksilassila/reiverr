@@ -8,7 +8,7 @@
 		MagnifyingGlass
 	} from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import { type Readable, writable, type Writable } from 'svelte/store';
+	import { get, type Readable, writable, type Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
 	import { useLocation, useNavigate } from 'svelte-navigator';
 	import { registrars, Selectable } from '../../selectable';
@@ -35,7 +35,7 @@
 
 	const selectIndex = (index: number) => () => {
 		if (index === activeIndex) {
-			Selectable.giveFocus('right');
+			if (get(selectable.hasFocusWithin)) Selectable.giveFocus('right');
 			return;
 		}
 		selectable.focusChild(index);
