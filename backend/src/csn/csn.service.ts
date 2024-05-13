@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { CsnInstance, CsnInvite, CsnPeer } from './csn.entity';
 import {
@@ -6,7 +6,6 @@ import {
   CSN_INVITE_REPOSITORY,
   CSN_PEER_REPOSITORY,
 } from './csn.providers';
-import axios from 'axios';
 
 @Injectable()
 export class CsnService {
@@ -21,6 +20,10 @@ export class CsnService {
     private csnInstanceRepository: Repository<CsnInstance>,
   ) {}
 
+  async getPeerByApiKey(apiKey: string) {
+    return this.csnPeerRepository.findOneBy({ apiKey });
+  }
+
   async getInstance() {
     const instances = await this.csnInstanceRepository.find({});
 
@@ -29,6 +32,8 @@ export class CsnService {
     }
 
     const instance = this.csnInstanceRepository.create();
+    instance.host = 'localhost';
+    instance.port = 9495;
     return this.csnInstanceRepository.save(instance);
   }
 
@@ -43,44 +48,72 @@ export class CsnService {
     return this.csnInviteRepository.findOneBy({ id: inviteId });
   }
 
-  async joinInvite(baseUrl: string, inviteId: string) {
-    const instance = await this.getInstance();
+  // async joinInvite(host: string, port: number, inviteId: string) {
+  //   const instance = await this.getInstance();
+  //
+  //   const client = ClientProxyFactory.create({
+  //     transport: Transport.TCP,
+  //     options: {
+  //       host,
+  //       port,
+  //     },
+  //   });
+  //
+  //   await client.connect();
+  //
+  //   if (!instance) {
+  //     throw new NotFoundException();
+  //   }
+  //
+  //   const apiKey: string | undefined = await axios
+  //     .get<string>(`${baseUrl}/csn/peer`, {
+  //       params: {
+  //         inviteId,
+  //         baseUrl: instance.baseUrl,
+  //       },
+  //     })
+  //     .then((res) => res.data)
+  //     .catch(() => undefined);
+  //
+  //   if (!apiKey) {
+  //     return;
+  //   }
+  //
+  //   const peer = this.csnPeerRepository.create();
+  //   peer.baseUrl = baseUrl;
+  //   peer.apiKey = apiKey;
+  //   peer.instance = instance;
+  //
+  //   return this.csnPeerRepository.save(peer);
+  // }
 
-    if (!instance) {
-      throw new NotFoundException();
-    }
+  // Someone accepted our invite
+  // async acceptInvite(inviteId: string, baseUrl: string) {
+  //   const instance = await this.getInstance();
+  //
+  //   const peer = this.csnPeerRepository.create();
+  //   peer.baseUrl = baseUrl;
+  //   peer.apiKey = Math.random().toString(36).substring(2, 15);
+  //   peer.instance = instance;
+  //
+  //   return this.csnPeerRepository.save(peer);
+  // }
 
-    const apiKey: string | undefined = await axios
-      .get<string>(`${baseUrl}/csn/peer`, {
-        params: {
-          inviteId,
-          baseUrl: instance.baseUrl,
-        },
-      })
-      .then((res) => res.data)
-      .catch(() => undefined);
-
-    if (!apiKey) {
-      return;
-    }
-
+  async createPeer(host: string, port: number, apiKey: string) {
     const peer = this.csnPeerRepository.create();
-    peer.baseUrl = baseUrl;
+    peer.host = host;
+    peer.port = port;
     peer.apiKey = apiKey;
-    peer.instance = instance;
 
     return this.csnPeerRepository.save(peer);
   }
 
-  // Someone accepted our invite
-  async acceptInvite(inviteId: string, baseUrl: string) {
+  async updateInstance(host: string, port: number) {
     const instance = await this.getInstance();
 
-    const peer = this.csnPeerRepository.create();
-    peer.baseUrl = baseUrl;
-    peer.apiKey = Math.random().toString(36).substring(2, 15);
-    peer.instance = instance;
+    instance.host = host;
+    instance.port = port;
 
-    return this.csnPeerRepository.save(peer);
+    return this.csnInstanceRepository.save(instance);
   }
 }

@@ -30,10 +30,14 @@ export class CsnPeer {
 
   @ApiProperty({ required: true })
   @Column()
-  baseUrl: string;
+  host: string;
 
   @ApiProperty({ required: true })
   @Column()
+  port: number;
+
+  @ApiProperty({})
+  @Column({ unique: true, generated: 'uuid' })
   apiKey: string;
 }
 
@@ -45,7 +49,11 @@ export class CsnInstance {
 
   @ApiProperty({ required: true })
   @Column()
-  baseUrl: string;
+  host: string;
+
+  @ApiProperty({ required: true })
+  @Column()
+  port: number;
 
   @OneToMany(() => CsnPeer, (peer) => peer.instance)
   peers: Relation<CsnPeer[]>;
