@@ -1,0 +1,86 @@
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { CsnInstance, CsnInvite, CsnPeer } from './csn.entity';
+import {
+  CSN_INSTANCE_REPOSITORY,
+  CSN_INVITE_REPOSITORY,
+  CSN_PEER_REPOSITORY,
+} from './csn.providers';
+import axios from 'axios';
+
+@Injectable()
+export class CsnService {
+  constructor(
+    @Inject(CSN_INVITE_REPOSITORY)
+    private csnInviteRepository: Repository<CsnInvite>,
+
+    @Inject(CSN_PEER_REPOSITORY)
+    private csnPeerRepository: Repository<CsnPeer>,
+
+    @Inject(CSN_INSTANCE_REPOSITORY)
+    private csnInstanceRepository: Repository<CsnInstance>,
+  ) {}
+
+  async getInstance() {
+    const instances = await this.csnInstanceRepository.find({});
+
+    if (instances.length > 0) {
+      return instances[0];
+    }
+
+    const instance = this.csnInstanceRepository.create();
+    return this.csnInstanceRepository.save(instance);
+  }
+
+  async createInvite() {
+    const invite = this.csnInviteRepository.create();
+    invite.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+
+    return this.csnInviteRepository.save(invite);
+  }
+
+  private async getInvite(inviteId: string) {
+    return this.csnInviteRepository.findOneBy({ id: inviteId });
+  }
+
+  async joinInvite(baseUrl: string, inviteId: string) {
+    const instance = await this.getInstance();
+
+    if (!instance) {
+      throw new NotFoundException();
+    }
+
+    const apiKey: string | undefined = await axios
+      .get<string>(`${baseUrl}/csn/peer`, {
+        params: {
+          inviteId,
+          baseUrl: instance.baseUrl,
+        },
+      })
+      .then((res) => res.data)
+      .catch(() => undefined);
+
+    if (!apiKey) {
+      return;
+    }
+
+    const peer = this.csnPeerRepository.create();
+    peer.baseUrl = baseUrl;
+    peer.apiKey = apiKey;
+    peer.instance = instance;
+
+    return this.csnPeerRepository.save(peer);
+  }
+
+  // Someone accepted our invite
+  async acceptInvite(inviteId: string, baseUrl: string) {
+    const instance = await this.getInstance();
+
+    const peer = this.csnPeerRepository.create();
+    peer.baseUrl = baseUrl;
+    peer.apiKey = Math.random().toString(36).substring(2, 15);
+    peer.instance = instance;
+
+    return this.csnPeerRepository.save(peer);
+  }
+}

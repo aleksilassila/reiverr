@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CsnModule } from './csn/csn.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, 'dist'),
     }),
+    CsnModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard, GetUser } from '../auth/auth.guard';
-import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
