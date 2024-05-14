@@ -1,12 +1,15 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   Relation,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { User } from '../user/user.entity';
 
 @Entity()
 export class CsnInvite {
@@ -57,4 +60,8 @@ export class CsnInstance {
 
   @OneToMany(() => CsnPeer, (peer) => peer.instance)
   peers: Relation<CsnPeer[]>;
+
+  @OneToOne(() => User, (user) => user.instance)
+  @JoinColumn()
+  user: Relation<User>;
 }

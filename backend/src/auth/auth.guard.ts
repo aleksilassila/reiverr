@@ -10,6 +10,7 @@ import { JWT_SECRET } from '../consts';
 import { AccessTokenPayload } from './auth.service';
 import { User } from '../user/user.entity';
 import { UserService } from '../user/user.service';
+import { Request } from 'express';
 
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {
@@ -27,6 +28,10 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+    return this.canActivateWithRequest(request);
+  }
+
+  async canActivateWithRequest(request: Request) {
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();

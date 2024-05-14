@@ -1,12 +1,13 @@
 import { Controller, Get, Post, Query } from '@nestjs/common';
-import { CsnService } from './csn.service';
-import { CsnPeer } from './csn.entity';
+import { CsnService, PeerConnection } from './csn.service';
+import { JellyfinItem } from '../types';
 
 @Controller('csn')
 export class CsnController {
   constructor(private csnService: CsnService) {
     csnService.emitter.on('connect', this.handleConnect);
     csnService.emitter.on('disconnect', this.handleDisconnect);
+    csnService.emitter.on('library-items', this.handleLibraryItems);
   }
 
   // @UseGuards(AuthGuard)
@@ -25,17 +26,40 @@ export class CsnController {
   }
 
   @Get('peers')
-  async getPeerIds() {
-    return Array.from(this.csnService.connections.keys()).map(
-      (peer) => peer.id,
+  async getPeers() {
+    const out = {};
+    Array.from(this.csnService.connections.keys()).forEach((key) => {
+      out[key] = this.csnService.connections.get(key).peer;
+    });
+    return out;
+  }
+
+  @Get('peers/library-items')
+  async getPeerLibraryItems() {
+    return Array.from(this.csnService.peerJellyfinItems.entries()).map(
+      ([id, items]) => ({
+        peerId: id,
+        items,
+      }),
     );
   }
 
-  async handleConnect(peer: CsnPeer) {
-    console.log('Connected to peer', peer.id);
-  }
+  handleConnect = async (connection: PeerConnection) => {
+    console.log('Connected to peer', connection.peer.id);
 
-  async handleDisconnect(peer: CsnPeer) {
-    console.log('Disconnected from peer', peer.id);
-  }
+    const libraryItems = await this.csnService.getLibraryItems(connection.peer);
+    await connection.send('library-items', libraryItems);
+  };
+
+  handleDisconnect = async (connection: PeerConnection) => {
+    console.log('Disconnected from', connection.peer.id);
+  };
+
+  handleLibraryItems = async (
+    connection: PeerConnection,
+    items: JellyfinItem[],
+  ) => {
+    console.log('Peer has following items', connection.peer.id, items.length);
+    this.csnService.peerJellyfinItems.set(connection.peer.id, items || []);
+  };
 }

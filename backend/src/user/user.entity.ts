@@ -1,5 +1,13 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  Relation,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { CsnInstance, CsnPeer } from '../csn/csn.entity';
 
 export class SonarrSettings {
   @ApiProperty({ required: true })
@@ -64,22 +72,22 @@ const DEFAULT_SETTINGS: Settings = {
   // 	includedLanguages: 'en'
   // },
   sonarr: {
-    apiKey: '',
-    baseUrl: '',
-    qualityProfileId: 0,
+    apiKey: '9dc754ad59244fcdb9be171efd49bd23',
+    baseUrl: 'http://192.168.0.129:8989',
+    qualityProfileId: 4,
     rootFolderPath: '',
-    languageProfileId: 0,
+    languageProfileId: 1,
   },
   radarr: {
-    apiKey: '',
-    baseUrl: '',
+    apiKey: 'b3d4dedb30f847a0a7ddcf47c9692b37',
+    baseUrl: 'http://192.168.0.129:7878',
     qualityProfileId: 0,
     rootFolderPath: '',
   },
   jellyfin: {
-    apiKey: '',
-    baseUrl: '',
-    userId: '',
+    apiKey: 'ff526980723144a095f560fc2975657b',
+    baseUrl: 'http://192.168.0.129:8096',
+    userId: '75dcb061c9404115a7acdc893ea6bbbc',
   },
 };
 
@@ -104,4 +112,7 @@ export class User {
   @ApiProperty({ required: true, type: Settings })
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
   settings = DEFAULT_SETTINGS;
+
+  @OneToOne(() => CsnInstance, (instance) => instance.user)
+  instance: Relation<CsnInstance>;
 }

@@ -8,6 +8,7 @@ export class UserDto extends OmitType(User, ['password'] as const) {
       name: entity.name,
       isAdmin: entity.isAdmin,
       settings: entity.settings,
+      instance: entity.instance,
     };
   }
 }

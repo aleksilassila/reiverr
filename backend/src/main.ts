@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import * as proxy from 'express-http-proxy';
 import { NextFunction, Request, Response } from 'express';
 import { CsnService } from './csn/csn.service';
+import { AuthGuard } from './auth/auth.guard';
+import { User } from './user/user.entity';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,7 +24,9 @@ async function bootstrap() {
     (req: Request, res: Response, next: NextFunction) => {
       const id = req.params.peerId;
       const csnService = app.get(CsnService);
-      const connectedPeers = Array.from(csnService.connections.keys());
+      const connectedPeers = Array.from(csnService.connections.values()).map(
+        (c) => c.peer,
+      );
 
       const peer = connectedPeers.find((peer) => peer.id === id);
 
@@ -38,10 +42,61 @@ async function bootstrap() {
   );
 
   app.use(
-    '/api/proxy/jellyfin',
+    '/api/peers/proxy/jellyfin',
     (req: Request, res: Response, next: NextFunction) => {
+      const authGuard = app.get(AuthGuard);
+      const csnService = app.get(CsnService);
+
+      // if (!authGuard.canActivateWithRequest(req) || !req['user']) {
+      //   return;
+      // }
+      //
+      // const user = req['user'] as User;
+      const user = { id: undefined };
+
+      const peers = Array.from(csnService.connections.values())
+        .map((c) => c.peer)
+        .filter(
+          (peer) =>
+            peer.instance?.user?.id === user.id || !peer.instance?.user?.id,
+        );
+
+      const requests = peers.map((peer) =>
+        proxyRequest(
+          req,
+          (uri) => `http://${peer.host}:9494/api/proxy/jellyfin${uri}`,
+        ).then(async (response) => {
+          const isJson = response.headers
+            .get('content-type')
+            ?.includes('application/json');
+
+          const data = isJson ? await response.json() : await response.text();
+
+          return { peer, data };
+        }),
+      );
+
+      Promise.all(requests)
+        .then((data) => res.json(data))
+        .catch((e) => {
+          console.error('Error proxying to peers', e);
+          res.status(500).send(e);
+        });
+    },
+  );
+
+  app.use(
+    '/api/proxy/jellyfin',
+    async (req: Request, res: Response, next: NextFunction) => {
       // console.log('Proxying for jellyfin', req.url, req);
       proxy('http://192.168.0.129:8096')(req, res, next);
+      //   const r = await proxyRequest(req, (u) => {
+      //     return 'http://192.168.0.129:8096' + u;
+      //   });
+      //
+      //   console.log('Result from proxy', r);
+      //   res.send(r);
+      //   // console.log('Result from proxy', r, res);
     },
   );
 
@@ -65,3 +120,14 @@ async function bootstrap() {
   await app.listen(9494);
 }
 bootstrap();
+
+function proxyRequest(req: Request, getUrl: (url: string) => string) {
+  const url = getUrl(req.url);
+  console.log('Proxying for jellyfin', req.url, url);
+  console.log(req.method, req.headers, req.body);
+  return fetch(url, {
+    method: req.method,
+    headers: req.headers,
+    body: req.body,
+  });
+}

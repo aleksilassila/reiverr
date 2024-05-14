@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { Settings, User } from './user.entity';
 import { USER_REPOSITORY } from './user.providers';
 
 @Injectable()
@@ -22,12 +22,19 @@ export class UserService {
     return this.userRepository.findOne({ where: { name } });
   }
 
-  async create(name: string, password: string, isAdmin = false): Promise<User> {
+  async create(
+    name: string,
+    password: string,
+    isAdmin = false,
+    settings: Settings = undefined,
+  ): Promise<User> {
     const user = this.userRepository.create();
     user.name = name;
     // TODO: Hash password
     user.password = password;
     user.isAdmin = isAdmin;
+    user.settings = settings;
+    user.settings = settings;
     return this.userRepository.save(user);
   }
 

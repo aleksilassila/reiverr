@@ -8,8 +8,16 @@ import {
 } from './csn.providers';
 import { EventEmitter } from 'events';
 import * as net from 'node:net';
+import { JellyfinItem } from '../types';
+import axios from 'axios';
+import { JellyfinApi } from '../jellyfin.api';
 
-type SendFn = (event: string, payload: any) => void;
+type SendFn = <P, R>(event: string, payload: P) => Promise<R>;
+export type PeerConnection = {
+  send: SendFn;
+  peer: CsnPeer;
+  socket: net.Socket;
+};
 
 @Injectable()
 export class CsnService {
@@ -35,15 +43,14 @@ export class CsnService {
       // const closeTimeout = setTimeout(() => socket.end(), 5000);
       //
       // socket.on('data', () => clearTimeout(closeTimeout));
-      this.addSocketListeners(socket)
-        // .then(async ({ send }) => {
-        //   console.log('Connection ready');
-        //   setInterval(() => {
-        //     console.log('ping');
-        //     send('ping', {});
-        //   }, 2000);
-        // })
-        .catch(console.error);
+      this.addSocketListeners(socket);
+      // .then(async ({ send }) => {
+      //   console.log('Connection ready');
+      //   setInterval(() => {
+      //     console.log('ping');
+      //     send('ping', {});
+      //   }, 2000);
+      // })
     });
 
     this.server.listen(9495, '0.0.0.0');
@@ -53,7 +60,7 @@ export class CsnService {
 
       for (const peer of peers) {
         // new Promise((res, rej) => rej()).catch(console.error);
-        if (!this.connections.has(peer)) {
+        if (!this.connections.has(peer.id)) {
           this.connectPeer(peer).catch(console.error);
         }
       }
@@ -62,7 +69,8 @@ export class CsnService {
 
   emitter: EventEmitter;
   server: net.Server;
-  connections = new Map<CsnPeer, net.Socket>();
+  connections = new Map<string, PeerConnection>();
+  peerJellyfinItems = new Map<string, JellyfinItem[]>();
   connectionAttempts = new Map<
     string,
     {
@@ -73,10 +81,11 @@ export class CsnService {
 
   async confirmJoin(host: string, port: number, apiKey: string) {
     return this.createConnection(host, port).then(async ({ send, socket }) => {
-      send('confirm-join', { apiKey });
+      await send('confirm-join', { apiKey });
       const peer = await this.createPeer(host, port, apiKey);
-      this.connections.set(peer, socket);
-      this.emitter.emit('connect', peer);
+      const peerConnection = { send, peer, socket };
+      this.connections.set(peer.id, peerConnection);
+      this.emitter.emit('connect', peerConnection);
       return peer;
     });
   }
@@ -89,7 +98,7 @@ export class CsnService {
 
         this.connectionAttempts.set(apiKey, { host, port });
 
-        send('join', {
+        await send('join', {
           host: instance.host,
           port: instance.port,
           apiKey,
@@ -101,9 +110,10 @@ export class CsnService {
   async connectPeer(peer: CsnPeer) {
     return this.createConnection(peer.host, peer.port, peer)
       .then(async ({ send, socket }) => {
-        send('authenticate', peer.apiKey);
-        this.connections.set(peer, socket);
-        this.emitter.emit('connect', peer);
+        await send('authenticate', peer.apiKey);
+        const peerConnection = { send, peer, socket };
+        this.connections.set(peer.id, peerConnection);
+        this.emitter.emit('connect', peerConnection);
         return peer;
       })
       .catch(console.error);
@@ -123,135 +133,174 @@ export class CsnService {
       }
       const socket = new net.Socket();
 
-      const send: SendFn = (event, payload) => {
-        try {
-          socket.write(JSON.stringify({ event, payload }));
-        } catch (e) {
-          console.error('Cannot send message', e);
-        }
-      };
-
-      this.addSocketListeners(socket, peer).catch(console.error);
+      await this.addSocketListeners(socket, peer);
 
       console.log('initializing connection to', host, port);
       socket.connect(port, host, async () => {
         console.log('connected to', host, port);
 
-        resolve({ socket, send, instance });
+        resolve({ socket, send: this.send(socket), instance });
       });
     });
   }
 
   private async addSocketListeners(socket: net.Socket, _peer?: CsnPeer) {
-    return new Promise<{
-      peer: CsnPeer;
-    }>(async (resolve, reject) => {
-      const instance = await this.getInstance();
-      let peer: CsnPeer | undefined = _peer;
+    const instance = await this.getInstance();
+    let peer: CsnPeer | undefined = _peer;
 
-      if (!instance) {
-        console.error('Cannot find CSN instance');
-        socket.end();
+    if (!instance) {
+      console.error('Cannot find CSN instance');
+      socket.end();
+      return;
+    }
+
+    socket.on('error', (e) => {
+      console.error('connection error', e);
+      socket.end();
+    });
+
+    socket.on('close', () => {
+      console.log('connection closed');
+      const peerConnection = this.connections.get(peer?.id);
+      if (peerConnection) {
+        this.connections.delete(peer.id);
+        this.emitter.emit('disconnect', peerConnection);
+      }
+    });
+
+    const onJsonData = async (data) => {
+      try {
+        const { event, payload, id } = data;
+
+        if (event === 'ack') {
+          const resolve = CsnService.waitingResponses.get(payload.id);
+          if (resolve) resolve();
+          return;
+        } else {
+          console.log('acknowledged', event, payload, id);
+          await this.send(socket)('ack', { id });
+        }
+
+        const peerConnection = peer && this.connections.get(peer.id);
+        if (peerConnection) {
+          console.log('Received event, emitting', event, payload);
+          this.emitter.emit(event, peerConnection, payload);
+          return;
+        }
+      } catch (e) {
+        console.error('Cannot parse message from peer', data, e);
         return;
       }
 
-      socket.on('error', (e) => {
-        console.error('connection error', e);
-        socket.end();
-        reject(e);
-      });
+      // Initialize connection
 
-      socket.on('close', () => {
-        console.log('connection closed');
-        if (peer) {
-          this.connections.delete(peer);
-          this.emitter.emit('disconnect', peer);
-        }
-      });
+      try {
+        const { event, payload } = data;
 
-      socket.on('data', async (data) => {
-        console.log('data', data.toString());
+        if (event === 'authenticate') {
+          console.log('authenticating', payload);
+          peer = await this.getPeerByApiKey(payload);
 
-        if (!peer) {
-          try {
-            const { event, payload } = JSON.parse(data.toString());
-
-            if (event === 'authenticate') {
-              console.log('authenticating', payload);
-              peer = await this.getPeerByApiKey(payload);
-
-              if (!peer) {
-                console.error(
-                  `Cannot authenticate peer: Invalid credentials`,
-                  data.toString(),
-                );
-                socket.end();
-                return;
-              } else {
-                this.connections.set(peer, socket);
-                this.emitter.emit('connect', peer);
-                resolve({ peer });
-              }
-            } else if (event === 'join') {
-              const { host, port, apiKey } = payload;
-              console.log('got join request', host, port, apiKey);
-
-              // TODO: User has to confirm the new connection
-
-              socket.end(() =>
-                this.confirmJoin(host, port, apiKey)
-                  .then((peer) => {
-                    resolve({ peer });
-                  })
-                  .catch(reject),
-              );
-              return;
-            } else if (event === 'confirm-join') {
-              console.log('confirm-join', payload);
-              const { apiKey } = payload;
-              const { host, port } = this.connectionAttempts.get(apiKey);
-
-              if (!host || !port) {
-                console.error(
-                  `Cannot confirm connection: Invalid apiKey`,
-                  apiKey,
-                );
-                socket.end();
-                reject();
-                return;
-              }
-
-              this.connectionAttempts.delete(apiKey);
-              peer = await this.createPeer(host, port, apiKey);
-              this.connections.set(peer, socket);
-              this.emitter.emit('connect', peer);
-              resolve({ peer });
-            } else {
-              console.log('Unknown event', event, payload);
-              socket.end();
-              reject();
-            }
-          } catch (e) {
-            console.error(`Cannot authenticate peer`, data.toString());
+          if (!peer) {
+            console.error(
+              `Cannot authenticate peer: Invalid credentials`,
+              data.toString(),
+            );
             socket.end();
-            reject(e);
+            return;
+          } else {
+            const peerConnection = {
+              send: this.send(socket),
+              peer,
+              socket,
+            };
+            this.connections.set(peer.id, peerConnection);
+            this.emitter.emit('connect', peerConnection);
           }
+        } else if (event === 'join') {
+          const { host, port, apiKey } = payload;
+          console.log('got join request', host, port, apiKey);
+
+          // TODO: User has to confirm the new connection
+
+          socket.end(() => this.confirmJoin(host, port, apiKey));
+          return;
+        } else if (event === 'confirm-join') {
+          console.log('confirm-join', payload);
+          const { apiKey } = payload;
+          const { host, port } = this.connectionAttempts.get(apiKey);
+
+          if (!host || !port) {
+            console.error(`Cannot confirm connection: Invalid apiKey`, apiKey);
+            socket.end();
+            return;
+          }
+
+          this.connectionAttempts.delete(apiKey);
+          peer = await this.createPeer(host, port, apiKey);
+          const peerConnection = { send: this.send(socket), peer, socket };
+          this.connections.set(peer.id, peerConnection);
+          this.emitter.emit('connect', peerConnection);
         } else {
-          try {
-            const { event, payload } = JSON.parse(data.toString());
-            this.emitter.emit(event, peer, payload);
-          } catch (e) {
-            console.error(`Cannot parse message from peer`, data.toString());
-            reject(e);
-            // console.error(`Cannot parse message from peer`, data.toString())
-          }
+          console.log('Unknown event', event, payload);
+          socket.end();
         }
-      });
+      } catch (e) {
+        console.error(`Cannot authenticate peer`, data.toString());
+        socket.end();
+      }
+    };
+
+    socket.on('data', async (data) => {
+      try {
+        const text = data.toString();
+        const parts = text.split('\n');
+        parts
+          .filter((p) => p)
+          .map((p) => JSON.parse(p))
+          .forEach((json) => onJsonData(json));
+      } catch (e) {
+        console.error(e);
+        console.log('data', data.toString(), 'end');
+      }
     });
   }
 
+  static waitingResponses: Map<string, (data?: any) => void> = new Map();
+  send =
+    (socket: net.Socket): SendFn =>
+    (event, payload) => {
+      try {
+        const id = Math.random().toString(36).substr(2, 9);
+        socket.write(JSON.stringify({ event, payload, id }) + '\n');
+
+        if (event === 'ack') {
+          return Promise.resolve();
+        } else {
+          return new Promise<any>((res) => {
+            const timeout = setTimeout(() => {
+              res(undefined);
+              console.error(`Could not get response for ${event} ${id}`);
+              CsnService.waitingResponses.delete(id);
+            }, 5000);
+
+            CsnService.waitingResponses.set(id, (data) => {
+              clearTimeout(timeout);
+              res(data);
+              CsnService.waitingResponses.delete(id);
+            });
+          });
+        }
+      } catch (e) {
+        console.error('Cannot send message', e);
+      }
+    };
+
   async getPeerByApiKey(apiKey: string) {
-    return this.csnPeerRepository.findOneBy({ apiKey });
+    return this.csnPeerRepository.findOne({
+      where: { apiKey },
+      relations: { instance: true },
+    });
   }
 
   async getInstance() {
@@ -283,5 +332,26 @@ export class CsnService {
     instance.port = port;
 
     return this.csnInstanceRepository.save(instance);
+  }
+
+  async getLibraryItems(peer: CsnPeer): Promise<JellyfinItem[]> {
+    const instance = await this.csnInstanceRepository.findOne({
+      where: { id: peer.instance?.id },
+      relations: {
+        user: true,
+      },
+    });
+
+    const user = instance?.user;
+
+    if (!user) return [];
+
+    const jellyfinApi = new JellyfinApi(user);
+
+    const items = await jellyfinApi.getLibraryItems();
+
+    console.log('jellyfinItems', items.length);
+
+    return items;
   }
 }

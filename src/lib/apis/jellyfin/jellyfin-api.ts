@@ -11,6 +11,11 @@ export type JellyfinItem = components['schemas']['BaseItemDto'];
 
 type Type = 'movie' | 'series';
 
+type BroadcastFn = <T extends (...args: A) => Promise<R>, A extends any[], R>() => {
+	peer: any;
+	data: Awaited<ReturnType<T>>;
+}[];
+
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
 export class JellyfinApi implements Api<paths> {
