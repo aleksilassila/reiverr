@@ -28,12 +28,13 @@
 	direction="horizontal"
 	class={classNames(
 		$$restProps.class,
-		'overflow-x-auto scrollbar-hide relative p-1 overflow-y-visible'
+		'overflow-x-auto scrollbar-hide relative overflow-y-visible'
 	)}
 	style={`mask-image: linear-gradient(to right, transparent 0%, ${
 		fadeLeft ? '' : 'black 0%, '
 	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}
 	on:scroll={updateScrollPosition}
+	on:enter
 	bind:this={element}
 	let:focusIndex
 >

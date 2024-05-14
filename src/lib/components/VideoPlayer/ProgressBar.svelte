@@ -97,7 +97,7 @@
 			on:touchend={handleStopSeeking}
 		/>
 	</Container>
-	<div class="flex justify-between px-2 pt-4">
+	<div class="flex justify-between px-2 pt-4 text-lg">
 		<span>{formatSecondsToTime(progressTime)}</span>
 		<span>-{formatSecondsToTime(totalTime - progressTime)}</span>
 	</div>

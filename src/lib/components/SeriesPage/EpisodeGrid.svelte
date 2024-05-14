@@ -75,14 +75,15 @@
 
 <Container
 	on:enter
-	class={classNames('transition-transform mx-20', {
-		'-translate-y-24': translateUp
+	class={classNames('transition-transform mx-32', {
+		'-translate-y-16': translateUp
 	})}
 >
 	<UICarousel
-		class={classNames('flex -mx-2 transition-opacity mb-8', {
+		class={classNames('flex transition-opacity mb-8', {
 			'opacity-0': translateUp
 		})}
+		on:enter={scrollIntoView({ horizontal: 64 })}
 	>
 		{#each $tmdbSeasons || [] as season, i}
 			<Container
@@ -97,7 +98,7 @@
 				<div
 					class={classNames(
 						'px-3 py-1 cursor-pointer whitespace-nowrap text-xl tracking-wide font-medium rounded-lg',
-						'hover:font-semibold hover:tracking-wide hover:text-white',
+						'hover:tracking-wide hover:text-white',
 						{
 							'bg-primary-500 text-black': hasFocus,
 							//'bg-stone-800/50': hasFocus,
@@ -123,7 +124,7 @@
 				{#key episode.id}
 					<TmdbEpisodeCard
 						on:mount={(e) => handleMountCard(e.detail, episode)}
-						on:enter={scrollIntoView({ vertical: 64 })}
+						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
 						{episode}
 						handlePlay={jellyfinEpisodeId
 							? () => playerState.streamJellyfinId(jellyfinEpisodeId)
@@ -137,7 +138,7 @@
 			<ManageSeasonCard
 				backdropUrl={TMDB_BACKDROP_SMALL + $tmdbSeries?.backdrop_path}
 				on:clickOrSelect={() => openSeasonMediaManager(id, seasonIndex + 1)}
-				on:enter={scrollIntoView({ vertical: 64 })}
+				on:enter={scrollIntoView({ top: 92, bottom: 128 })}
 			/>
 		{/if}
 	</CardGrid>

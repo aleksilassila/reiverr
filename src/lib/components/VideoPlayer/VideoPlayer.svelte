@@ -163,7 +163,9 @@
 			class="flex justify-between px-2 py-4 items-end"
 		>
 			<div>
-				<div class="text-secondary-300 font-medium text-wider text-lg">{subtitle}</div>
+				<div class="text-secondary-300 font-medium text-wider text-xl mb-1 tracking-wide">
+					{subtitle}
+				</div>
 				<h1 class="header4">{title}</h1>
 			</div>
 			<div class="flex space-x-2">
@@ -176,7 +178,7 @@
 						});
 					}}
 				>
-					<TextAlignLeft size={19} />
+					<TextAlignLeft size={24} />
 				</IconButton>
 				<IconButton
 					on:clickOrSelect={() => {
@@ -189,7 +191,7 @@
 						});
 					}}
 				>
-					<ChatBubble size={19} />
+					<ChatBubble size={24} />
 				</IconButton>
 			</div>
 		</Container>

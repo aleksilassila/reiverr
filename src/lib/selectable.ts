@@ -250,7 +250,10 @@ export class Selectable {
 
 			// Cycle siblings
 			if (indexAddition !== 0) {
-				let index = focusIndex + indexAddition;
+				let index =
+					focusIndex === selectable.children.length - 1
+						? focusIndex + indexAddition
+						: Math.min(focusIndex + indexAddition, selectable.children.length - 1);
 				while (index >= 0 && index < selectable.children.length) {
 					const child = selectable.children[index];
 					if (child && child.isFocusable()) {
@@ -890,18 +893,36 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		let top = -1;
 
 		if (offsets.top !== undefined && offsets.bottom !== undefined) {
-			top =
-				boundingRect.y - parentBoundingRect.y < offsets.top
-					? boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top
-					: boundingRect.y - parentBoundingRect.y + htmlElement.clientHeight >
-					  verticalParent.clientHeight - offsets.bottom
-					? boundingRect.y -
-					  parentBoundingRect.y +
-					  htmlElement.clientHeight +
-					  verticalParent.scrollTop +
-					  offsets.bottom -
-					  verticalParent.clientHeight
-					: -1;
+			const topClipsAbove = boundingRect.y - parentBoundingRect.y < offsets.top;
+			const bottomClipsBelow =
+				boundingRect.y + boundingRect.height >
+				parentBoundingRect.y + parentBoundingRect.height - offsets.bottom;
+
+			const distanceToParentTop = verticalParent.scrollTop + boundingRect.y - parentBoundingRect.y;
+			const distanceToParentBottom =
+				verticalParent.scrollHeight -
+				verticalParent.scrollTop -
+				(boundingRect.y - parentBoundingRect.y) -
+				boundingRect.height;
+
+			const reverse =
+				boundingRect.height > verticalParent.clientHeight - offsets.top - offsets.bottom;
+
+			if (
+				(topClipsAbove && !bottomClipsBelow && !reverse) ||
+				(!topClipsAbove && bottomClipsBelow && reverse)
+			) {
+				top = distanceToParentTop - offsets.top;
+			} else if (
+				(!topClipsAbove && bottomClipsBelow && !reverse) ||
+				(topClipsAbove && !bottomClipsBelow && reverse)
+			) {
+				top =
+					verticalParent.scrollHeight -
+					verticalParent.clientHeight -
+					distanceToParentBottom +
+					offsets.bottom;
+			}
 		} else if (offsets.top !== undefined) {
 			top = boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top;
 		} else if (offsets.bottom !== undefined) {

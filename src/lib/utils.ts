@@ -1,4 +1,5 @@
 import { type Readable, writable } from 'svelte/store';
+import type { Selectable } from './selectable';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -110,10 +111,14 @@ export function getScrollParent(
 	const parent = node.parentElement;
 
 	if (parent) {
+		const { overflow } = window.getComputedStyle(parent);
+
 		if (
 			(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
 			(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
 		) {
+			return parent;
+		} else if (overflow.split(' ').every((o) => o === 'auto' || o === 'scroll')) {
 			return parent;
 		} else {
 			return getScrollParent(parent, direction);

@@ -59,7 +59,7 @@
 	<ScrollHelper bind:scrollTop />
 	<div class="relative">
 		<Container
-			class="h-screen flex flex-col py-12 px-20"
+			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 0 })}
 			on:navigate={({ detail }) => {
 				if (detail.direction === 'down' && detail.willLeaveContainer) {
@@ -112,7 +112,9 @@
 									>
 								</p>
 							</div>
-							<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
+							<div
+								class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4 text-lg"
+							>
 								{series.overview}
 							</div>
 						{/if}
@@ -170,7 +172,7 @@
 			})}
 		>
 			<EpisodeGrid
-				on:enter={scrollIntoView({ vertical: 32 })}
+				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				id={Number(id)}
 				tmdbSeries={tmdbSeriesData}
 				{jellyfinEpisodes}
@@ -179,7 +181,7 @@
 			/>
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 				{#await $tmdbSeries then series}
-					<Carousel scrollClass="px-20" class="mb-8">
+					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Show Cast</div>
 						{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
 							<TmdbPersonCard
@@ -190,7 +192,7 @@
 					</Carousel>
 				{/await}
 				{#await $recommendations then recommendations}
-					<Carousel scrollClass="px-20" class="mb-8">
+					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Recommendations</div>
 						{#each recommendations || [] as recommendation}
 							<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 64 + 30 })} />
@@ -199,7 +201,7 @@
 				{/await}
 			</Container>
 			{#await $tmdbSeries then series}
-				<Container class="flex-1 bg-secondary-950 pt-8 px-20" on:enter={scrollIntoView({ top: 0 })}>
+				<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
 					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 						<div class="flex-1">

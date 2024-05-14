@@ -36,9 +36,10 @@
 </script>
 
 <Container
-	class="fixed inset-0 z-20 bg-secondary-800 overflow-y-auto"
+	class="fixed inset-0 z-20 bg-secondary-800 overflow-y-auto scrollbar-hide"
 	trapFocus
 	direction="horizontal"
+	on:mount
 >
 	<Container />
 	<Container on:navigate={handleGoToTop} on:back={handleGoToTop} focusOnMount>
