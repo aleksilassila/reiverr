@@ -25,8 +25,6 @@
 		manage: 4
 	}[$location.pathname.split('/')[1] || '/'];
 
-	$: console.log('activeIndex', activeIndex);
-	$: console.log($location.pathname.split('/')[1] || '/');
 	let isNavBarOpen: Readable<boolean>;
 	let focusIndex: Writable<number> = writable(0);
 	let selectable: Selectable;

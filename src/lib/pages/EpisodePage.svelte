@@ -60,9 +60,10 @@
 
 		<Container
 			on:navigate={handleGoBack}
+			on:back={handleGoBack}
 			on:mount={registrar}
 			focusOnMount
-			class="h-screen flex flex-col justify-end mx-20 py-16"
+			class="h-screen flex flex-col justify-end mx-32 py-16"
 		>
 			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}

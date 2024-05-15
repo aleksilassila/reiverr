@@ -4,12 +4,24 @@
 	import classNames from 'classnames';
 	import Container from '../../../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
+	import type { BackEvent } from '../../selectable';
+	import { get } from 'svelte/store';
 
 	export let hideControls = false;
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
 	export let scrollClass = '';
+
+	function handleOnBack({ detail }: BackEvent) {
+		const focusIndex = get(detail.selectable.focusIndex);
+
+		if (focusIndex !== 0) {
+			const didFocus = detail.selectable.focusChild(0);
+
+			if (didFocus) detail.stopPropagation();
+		}
+	}
 </script>
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
@@ -47,7 +59,13 @@
 	</div>
 
 	<div class="relative">
-		<Container direction="horizontal" let:focusIndex on:enter {...$$restProps} class="">
+		<Container
+			direction="horizontal"
+			let:focusIndex
+			on:enter
+			{...$$restProps}
+			on:back={handleOnBack}
+		>
 			<div
 				class={classNames(
 					'flex overflow-x-auto items-center overflow-y-hidden relative scrollbar-hide',

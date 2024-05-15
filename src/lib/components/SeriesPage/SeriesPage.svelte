@@ -184,10 +184,7 @@
 					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Show Cast</div>
 						{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
-							<TmdbPersonCard
-								on:enter={scrollIntoView({ horizontal: 64 + 30 })}
-								tmdbCredit={credit}
-							/>
+							<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
 						{/each}
 					</Carousel>
 				{/await}
@@ -195,7 +192,7 @@
 					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Recommendations</div>
 						{#each recommendations || [] as recommendation}
-							<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 64 + 30 })} />
+							<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />
 						{/each}
 					</Carousel>
 				{/await}

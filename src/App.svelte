@@ -47,7 +47,7 @@
 	{:else if $appState.user === null}
 		<LoginPage />
 	{:else}
-		<Router>
+		<Router primary={false}>
 			<Container class="flex flex-col relative" direction="horizontal" trapFocus>
 				<Sidebar />
 				<Route path="series/*">

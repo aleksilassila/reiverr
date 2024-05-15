@@ -108,4 +108,6 @@
 	</div>
 </Container>
 
-<Route path=":id/*" component={SeriesPage} />
+<Route path=":id/*" let:params>
+	<SeriesPage id={params.id} />
+</Route>

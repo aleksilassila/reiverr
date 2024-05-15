@@ -2,6 +2,8 @@ import { derived, get, type Readable, type Writable, writable } from 'svelte/sto
 import { getScrollParent } from './utils';
 import { localSettings } from './stores/localstorage.store';
 
+export type BackEvent = CustomEvent<KeyEvent>;
+
 export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
 export type Registrar = (e: CustomEvent<Selectable>) => () => void;
 
@@ -588,9 +590,12 @@ export class Selectable {
 					Selectable._childrenToRemove = [];
 
 					if (elementToFocus) {
-						if (elementToFocus.parent && get(elementToFocus.parent.hasFocusWithin))
-							elementToFocus.focus();
 						console.log('Focusing element after unmount', elementToFocus);
+						if (elementToFocus.parent && get(elementToFocus.parent.hasFocusWithin)) {
+							console.log('executing focus after unmount');
+							elementToFocus.focus();
+							console.log('activeElement', document.activeElement);
+						}
 					}
 				}
 			};
