@@ -42,6 +42,10 @@ export interface components {
       baseUrl: string;
       userId: string;
     };
+    TmdbSettings: {
+      sessionId: string;
+      userId: string;
+    };
     Settings: {
       autoplayTrailers: boolean;
       language: string;
@@ -49,6 +53,7 @@ export interface components {
       sonarr: components["schemas"]["SonarrSettings"];
       radarr: components["schemas"]["RadarrSettings"];
       jellyfin: components["schemas"]["JellyfinSettings"];
+      tmdb: components["schemas"]["TmdbSettings"];
     };
     UserDto: {
       id: string;

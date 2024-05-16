@@ -34,6 +34,14 @@ export class JellyfinSettings {
   userId: string;
 }
 
+export class TmdbSettings {
+  @ApiProperty({ required: true })
+  sessionId: string;
+
+  @ApiProperty({ required: true })
+  userId: string;
+}
+
 export class Settings {
   @ApiProperty({ required: true })
   autoplayTrailers: boolean;
@@ -52,6 +60,8 @@ export class Settings {
   radarr: RadarrSettings;
   @ApiProperty({ required: true, type: JellyfinSettings })
   jellyfin: JellyfinSettings;
+  @ApiProperty({ required: true, type: TmdbSettings })
+  tmdb: TmdbSettings;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -79,6 +89,10 @@ const DEFAULT_SETTINGS: Settings = {
   jellyfin: {
     apiKey: '',
     baseUrl: '',
+    userId: '',
+  },
+  tmdb: {
+    sessionId: '',
     userId: '',
   },
 };

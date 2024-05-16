@@ -21,6 +21,8 @@
 
 	const newDigitalReleases = getDigitalReleases();
 	const upcomingMovies = getUpcomingMovies();
+	const recommendedMovies = tmdbApi.getRecommendedMovies();
+	recommendedMovies.then((res) => console.log('Recommended Movies', res));
 
 	function getUpcomingMovies() {
 		return TmdbApi.getClient()
@@ -86,6 +88,17 @@
 						</Carousel>
 					{/if}
 				{/await}
+			{/if}
+		{/await}
+
+		{#await recommendedMovies then recommendedMovies}
+			{#if recommendedMovies?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">Recommended Movies</span>
+					{#each recommendedMovies as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
 			{/if}
 		{/await}
 

@@ -5,6 +5,7 @@ import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '../../constants';
 import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
 import type { Api } from '../api.interface';
+import { appState } from '../../stores/app-state.store';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -57,6 +58,14 @@ export class TmdbApi implements Api<paths> {
 
 	getClient() {
 		return TmdbApi.getClient();
+	}
+
+	getSessionId() {
+		return get(appState)?.user?.settings.tmdb.sessionId;
+	}
+
+	getUserId() {
+		return get(appState)?.user?.settings.tmdb.userId;
 	}
 
 	// MOVIES
@@ -203,6 +212,46 @@ export class TmdbApi implements Api<paths> {
 			.then((res) => res.data);
 
 	// OTHER
+
+	// USER
+
+	getRecommendedMovies = async (): Promise<TmdbMovie2[]> => {
+		const userId = this.getUserId();
+		if (!userId) return [];
+
+		return (
+			this.getClient()
+				// @ts-ignore
+				?.GET('/4/account/{account_object_id}/movie/recommendations', {
+					params: {
+						path: {
+							account_object_id: userId
+						}
+					}
+				})
+				.then((res: any) => res.data?.results || [])
+		);
+	};
+
+	getRecommendedSeries = async (): Promise<TmdbSeries2[]> => {
+		const userId = this.getUserId();
+		console.log('userId recommended series', userId);
+
+		if (!userId) return [];
+
+		return (
+			this.getClient()
+				// @ts-ignore
+				?.GET('/4/account/{account_object_id}/tv/recommendations', {
+					params: {
+						path: {
+							account_object_id: userId
+						}
+					}
+				})
+				.then((res: any) => res.data?.results || [])
+		);
+	};
 }
 
 export const tmdbApi = new TmdbApi();

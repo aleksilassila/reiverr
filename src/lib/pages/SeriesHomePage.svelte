@@ -17,6 +17,7 @@
 
 	const nowStreaming = getNowStreaming();
 	const upcomingSeries = fetchUpcomingSeries();
+	const recommendedSeries = tmdbApi.getRecommendedSeries();
 
 	function getNowStreaming() {
 		return TmdbApi.getClient()
@@ -80,6 +81,17 @@
 						</Carousel>
 					{/if}
 				{/await}
+			{/if}
+		{/await}
+
+		{#await recommendedSeries then recommendedSeries}
+			{#if recommendedSeries?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">Recommended</span>
+					{#each recommendedSeries as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
 			{/if}
 		{/await}
 
