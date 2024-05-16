@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { useLocation, useNavigate } from 'svelte-navigator';
 	import Container from '../../Container.svelte';
+	import { navigate } from '../components/StackRouter/StackRouter';
+	import { onMount } from 'svelte';
 
-	const location = useLocation();
-	const navigate = useNavigate();
-
-	location.subscribe((l) => {
-		console.log('l', l.pathname);
+	onMount(() => {
+		const l = window.location;
 		if (l.pathname === '/dist/index.html') {
 			navigate('/series');
 		} else if (l.pathname === '/') {
@@ -16,5 +15,5 @@
 </script>
 
 <Container class="pl-24 flex flex-col items-start" focusOnMount>
-	<div>404 {$location.pathname}</div>
+	<div>404 {window.location.pathname}</div>
 </Container>

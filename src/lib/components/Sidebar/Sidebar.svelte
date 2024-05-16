@@ -10,26 +10,28 @@
 	import classNames from 'classnames';
 	import { get, type Readable, writable, type Writable } from 'svelte/store';
 	import Container from '../../../Container.svelte';
-	import { useLocation, useNavigate } from 'svelte-navigator';
 	import { registrars, Selectable } from '../../selectable';
+	import { defaultStackRouter, navigate } from '../StackRouter/StackRouter';
+	import { onMount } from 'svelte';
 
-	const location = useLocation();
-	const navigate = useNavigate();
 	let selectedIndex = 0;
-	$: activeIndex = {
-		'': 0,
-		series: 0,
-		movies: 1,
-		library: 2,
-		search: 3,
-		manage: 4
-	}[$location.pathname.split('/')[1] || '/'];
+	let activeIndex = -1;
+
+	// 	'': 0,
+	// 	series: 0,
+	// 	movies: 1,
+	// 	library: 2,
+	// 	search: 3,
+	// 	manage: 4
+	// }[$location.pathname.split('/')[1] || '/'];
 
 	let isNavBarOpen: Readable<boolean>;
 	let focusIndex: Writable<number> = writable(0);
 	let selectable: Selectable;
 
-	focusIndex.subscribe((v) => (selectedIndex = v));
+	focusIndex.subscribe((v) => {
+		selectedIndex = v;
+	});
 
 	const selectIndex = (index: number) => () => {
 		if (index === activeIndex) {
@@ -40,14 +42,34 @@
 		const path =
 			{
 				0: '/',
-				1: 'movies',
-				2: 'library',
-				3: 'search',
-				4: 'manage'
+				1: '/movies',
+				2: '/library',
+				3: '/search',
+				4: '/manage'
 			}[index] || '/';
 		navigate(path);
 		selectedIndex = index;
 	};
+
+	onMount(() => {
+		defaultStackRouter.subscribe((r) => {
+			const bottomPage = r[0];
+			console.log('bottomPage', bottomPage);
+			if (bottomPage) {
+				activeIndex =
+					{
+						'/': 0,
+						'/series': 0,
+						'/movies': 1,
+						'/library': 2,
+						'/search': 3,
+						'/manage': 4
+					}[bottomPage.route.path] ?? -1;
+				selectable.focusIndex.set(activeIndex);
+				selectedIndex = activeIndex;
+			}
+		});
+	});
 </script>
 
 <Container

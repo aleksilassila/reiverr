@@ -16,17 +16,17 @@
 	import UICarousel from '../Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
 	import ScrollHelper from '../ScrollHelper.svelte';
-	import { useNavigate } from 'svelte-navigator';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 	import { modalStack, openSeasonMediaManager } from '../Modal/modal.store';
-
-	const navigate = useNavigate();
+	import { navigate } from '../StackRouter/StackRouter';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
 	export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
+
+	console.log('ID IS: ', id);
 
 	let awaitedJellyfinEpisodes: JellyfinItem[] = [];
 	jellyfinEpisodes.then((episodes) => {
@@ -44,7 +44,7 @@
 	);
 
 	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
-		navigate(`season/${episode.season_number}/episode/${episode.episode_number}`);
+		navigate(`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`);
 	}
 
 	function handleMountSeasonButton(s: Selectable, seasonNumber: number) {

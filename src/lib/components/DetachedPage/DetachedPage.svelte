@@ -2,15 +2,19 @@
 	import Container from '../../../Container.svelte';
 	import { type KeyEvent, type NavigateEvent, useRegistrar } from '../../selectable.js';
 	import { get } from 'svelte/store';
+	import Sidebar from '../Sidebar/Sidebar.svelte';
+	import classNames from 'classnames';
+
+	export let topmost = true;
 
 	// Top element, that when focused and back is pressed, will exit the modal
 	const topSelectable = useRegistrar();
 
 	function handleGoBack({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
-		if ('willLeaveContainer' in detail) {
-			if (detail.direction !== 'left' || !detail.willLeaveContainer) return;
-			detail.preventNavigation();
-		}
+		// if ('willLeaveContainer' in detail) {
+		// 	if (detail.direction !== 'left' || !detail.willLeaveContainer) return;
+		// 	detail.preventNavigation();
+		// }
 
 		const selectable = get(topSelectable);
 		if (selectable && get(selectable.focusIndex) === 0) {
@@ -23,10 +27,10 @@
 	function handleGoToTop({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
 		if ('willLeaveContainer' in detail) {
 			// Navigate event
-			if (detail.direction === 'left' && detail.willLeaveContainer) {
-				detail.preventNavigation();
-				get(topSelectable)?.focus();
-			}
+			// if (detail.direction === 'left' && detail.willLeaveContainer) {
+			// 	detail.preventNavigation();
+			// 	get(topSelectable)?.focus();
+			// }
 		} else {
 			// Back event
 			const selectable = get(topSelectable);
@@ -36,13 +40,15 @@
 </script>
 
 <Container
-	class="fixed inset-0 z-20 bg-secondary-800 overflow-y-auto scrollbar-hide"
+	class={classNames('fixed inset-0 z-20 bg-secondary-800 overflow-y-auto scrollbar-hide', {
+		hidden: !topmost
+	})}
 	trapFocus
 	direction="horizontal"
 	on:mount
 >
-	<Container />
-	<Container on:navigate={handleGoToTop} on:back={handleGoToTop} focusOnMount>
+	<Sidebar />
+	<Container on:back={handleGoToTop} focusOnMount>
 		<slot {handleGoBack} registrar={topSelectable.registrar} />
 	</Container>
 </Container>

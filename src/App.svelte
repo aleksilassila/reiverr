@@ -1,20 +1,14 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
-	import { Route, Router } from 'svelte-navigator';
+	import { appState } from './lib/stores/app-state.store';
 	import { handleKeyboardNavigation } from './lib/selectable';
 	import Container from './Container.svelte';
-	import SeriesHomePage from './lib/pages/SeriesHomePage.svelte';
-	import MoviesHomePage from './lib/pages/MoviesHomePage.svelte';
-	import LibraryPage from './lib/pages/LibraryPage.svelte';
-	import ManagePage from './lib/pages/ManagePage.svelte';
-	import SearchPage from './lib/pages/SearchPage.svelte';
-	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 	import LoginPage from './lib/pages/LoginPage.svelte';
-	import { appState } from './lib/stores/app-state.store';
-	import MoviePage from './lib/pages/MoviePage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
-	import PageNotFound from './lib/pages/PageNotFound.svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
+	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
+	import { defaultStackRouter } from './lib/components/StackRouter/StackRouter';
+	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 
 	appState.subscribe((s) => console.log('appState', s));
 
@@ -47,29 +41,30 @@
 	{:else if $appState.user === null}
 		<LoginPage />
 	{:else}
-		<Router primary={false}>
-			<Container class="flex flex-col relative" direction="horizontal" trapFocus>
-				<Sidebar />
-				<Route path="series/*">
-					<SeriesHomePage />
-				</Route>
-				<Route path="movies/*">
-					<MoviesHomePage />
-				</Route>
-				<Route path="library/*">
-					<LibraryPage />
-				</Route>
-				<Route path="manage">
-					<ManagePage />
-				</Route>
-				<Route path="search">
-					<SearchPage />
-				</Route>
-				<Route path="*">
-					<PageNotFound />
-				</Route>
-			</Container>
-		</Router>
+		<!--		<Router primary={false}>-->
+		<Container class="flex flex-col relative" direction="horizontal" trapFocus>
+			<Sidebar />
+			<!--				<Route path="series/*">-->
+			<!--					<SeriesHomePage />-->
+			<!--				</Route>-->
+			<!--				<Route path="movies/*">-->
+			<!--					<MoviesHomePage />-->
+			<!--				</Route>-->
+			<!--				<Route path="library/*">-->
+			<!--					<LibraryPage />-->
+			<!--				</Route>-->
+			<!--				<Route path="manage">-->
+			<!--					<ManagePage />-->
+			<!--				</Route>-->
+			<!--				<Route path="search">-->
+			<!--					<SearchPage />-->
+			<!--				</Route>-->
+			<!--				<Route path="*">-->
+			<!--					<PageNotFound />-->
+			<!--				</Route>-->
+			<StackRouter stack={defaultStackRouter} />
+		</Container>
+		<!--		</Router>-->
 
 		<ModalStack />
 	{/if}

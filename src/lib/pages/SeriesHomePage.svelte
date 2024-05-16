@@ -3,19 +3,14 @@
 	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import { useRequest } from '../stores/data.store';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
 	import { getShowcasePropsFromTmdbSeries } from '../components/HeroShowcase/HeroShowcase';
 	import { scrollIntoView } from '../selectable';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { Route, useNavigate } from 'svelte-navigator';
-	import SeriesPage from '../components/SeriesPage/SeriesPage.svelte';
 	import { formatDateToYearMonthDay } from '../utils';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-
-	const navigate = useNavigate();
+	import { navigate } from '../components/StackRouter/StackRouter';
 
 	const continueWatching = jellyfinApi.getContinueWatchingSeries();
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
@@ -61,7 +56,7 @@
 			items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)}
 			on:enter={scrollIntoView({ top: 0 })}
 			on:select={({ detail }) => {
-				navigate(`${detail?.id}`);
+				if (detail) navigate(`/series/:id`, { params: { id: detail?.id.toString() } });
 			}}
 		/>
 	</div>
@@ -107,7 +102,3 @@
 		{/await}
 	</div>
 </Container>
-
-<Route path=":id/*" let:params>
-	<SeriesPage id={params.id} />
-</Route>

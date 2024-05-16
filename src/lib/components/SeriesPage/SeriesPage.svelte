@@ -19,7 +19,6 @@
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
-	import { Route } from 'svelte-navigator';
 	import EpisodePage from '../../pages/EpisodePage.svelte';
 	import SeriesMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
 
@@ -124,7 +123,6 @@
 							direction="horizontal"
 							class="flex mt-8"
 							focusOnMount
-							on:navigate={handleGoBack}
 							on:back={handleGoBack}
 							on:mount={registrar}
 						>
@@ -229,5 +227,3 @@
 		</div>
 	</div>
 </DetachedPage>
-
-<Route path="/season/:season/episode/:episode/*" component={EpisodePage} {id} />

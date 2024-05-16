@@ -7,9 +7,6 @@
 	import CardGrid from '../components/CardGrid.svelte';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
 	import { scrollIntoView } from '../selectable';
-	import { Route } from 'svelte-navigator';
-	import MoviePage from './MoviePage.svelte';
-	import SeriesPage from '../components/SeriesPage/SeriesPage.svelte';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 
@@ -44,6 +41,3 @@
 		{/await}
 	</CardGrid>
 </Container>
-
-<Route path="movie/:id/*" component={MoviePage} />
-<Route path="series/:id/*" component={SeriesPage} />

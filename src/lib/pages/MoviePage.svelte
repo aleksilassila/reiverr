@@ -10,9 +10,8 @@
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { modalStack, openMovieMediaManager } from '../components/Modal/modal.store';
+	import { openMovieMediaManager } from '../components/Modal/modal.store';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import ManageMediaModal from '../components/MediaManager/radarr/RadarrMediaMangerModal.svelte';
 
 	export let id: string;
 

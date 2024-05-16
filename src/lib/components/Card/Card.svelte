@@ -9,6 +9,7 @@
 	import { useNavigate } from 'svelte-navigator';
 	import type { Readable } from 'svelte/store';
 	import AnimatedSelection from '../AnimateScale.svelte';
+	import { navigate } from '../StackRouter/StackRouter';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
@@ -26,9 +27,6 @@
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 
-	export let navigateWithType = false;
-
-	const navigate = useNavigate();
 	let hasFocus: Readable<boolean>;
 </script>
 
@@ -37,7 +35,8 @@
 		{disabled}
 		on:clickOrSelect={() => {
 			if (tmdbId || tvdbId) {
-				navigate(navigateWithType ? `${type}/${tmdbId || tvdbId}` : `${tmdbId || tvdbId}`);
+				// navigate(navigateWithType ? `${type}/${tmdbId || tvdbId}` : `${tmdbId || tvdbId}`);
+				navigate(`/${type}/${tmdbId || tvdbId}`);
 			}
 		}}
 		on:enter

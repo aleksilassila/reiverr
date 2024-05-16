@@ -252,8 +252,10 @@ export class Selectable {
 
 			// Cycle siblings
 			if (indexAddition !== 0) {
+				const totalRows = Math.ceil(selectable.children.length / indexAddition);
+				const currentRow = Math.floor(focusIndex / indexAddition);
 				let index =
-					focusIndex === selectable.children.length - 1
+					currentRow === totalRows - 1
 						? focusIndex + indexAddition
 						: Math.min(focusIndex + indexAddition, selectable.children.length - 1);
 				while (index >= 0 && index < selectable.children.length) {

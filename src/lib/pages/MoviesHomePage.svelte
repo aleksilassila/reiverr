@@ -9,12 +9,10 @@
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { useRequest } from '../stores/data.store';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { Route, useNavigate } from 'svelte-navigator';
 	import MoviePage from './MoviePage.svelte';
 	import { formatDateToYearMonthDay } from '../utils';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-
-	const navigate = useNavigate();
+	import { navigate } from '../components/StackRouter/StackRouter';
 
 	const continueWatching = jellyfinApi.getContinueWatching('movie');
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
@@ -64,7 +62,7 @@
 			items={popularMovies.then(getShowcasePropsFromTmdbMovie)}
 			on:enter={scrollIntoView({ top: 0 })}
 			on:select={({ detail }) => {
-				navigate(`${detail?.id}`);
+				navigate(`/movie/${detail?.id}`);
 			}}
 		/>
 	</div>
@@ -110,5 +108,3 @@
 		{/await}
 	</div>
 </Container>
-
-<Route path=":id/*" component={MoviePage} />
