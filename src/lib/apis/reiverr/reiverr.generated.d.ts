@@ -5,17 +5,17 @@
 
 
 export interface paths {
-  "/user": {
+  "/api/user": {
     get: operations["UserController_getProfile"];
     post: operations["UserController_create"];
   };
-  "/user/{id}": {
+  "/api/user/{id}": {
     get: operations["UserController_findById"];
   };
-  "/auth": {
+  "/api/auth": {
     post: operations["AuthController_signIn"];
   };
-  "/": {
+  "/api": {
     get: operations["AppController_getHello"];
   };
 }

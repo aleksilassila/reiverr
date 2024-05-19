@@ -18,13 +18,17 @@
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
-	import { modalStack, openSeasonMediaManager } from '../Modal/modal.store';
+	import { createModal, modalStack, openSeasonMediaManager } from '../Modal/modal.store';
 	import { navigate } from '../StackRouter/StackRouter';
+	import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import type { SonarrSeries } from '../../apis/sonarr/sonarr-api';
+	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
 	export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
+	export let handleRequestSeason: (season: number) => Promise<any>;
 
 	console.log('ID IS: ', id);
 
@@ -60,14 +64,14 @@
 	}
 
 	function handleMountCard(s: Selectable, episode: TmdbEpisode) {
-		currentJellyfinEpisode.then((currentEpisode) => {
-			if (
-				currentEpisode?.IndexNumber === episode.episode_number &&
-				currentEpisode?.ParentIndexNumber === episode.season_number
-			) {
-				s.focus({ setFocusedElement: false, propagate: false });
-			}
-		});
+		// currentJellyfinEpisode.then((currentEpisode) => {
+		// 	if (
+		// 		currentEpisode?.IndexNumber === episode.episode_number &&
+		// 		currentEpisode?.ParentIndexNumber === episode.season_number
+		// 	) {
+		// 		s.focus({ setFocusedElement: false, propagate: false });
+		// 	}
+		// });
 	}
 </script>
 
@@ -137,7 +141,7 @@
 			{/each}
 			<ManageSeasonCard
 				backdropUrl={TMDB_BACKDROP_SMALL + $tmdbSeries?.backdrop_path}
-				on:clickOrSelect={() => openSeasonMediaManager(id, seasonIndex + 1)}
+				on:clickOrSelect={() => handleRequestSeason(seasonIndex + 1)}
 				on:enter={scrollIntoView({ top: 92, bottom: 128 })}
 			/>
 		{/if}

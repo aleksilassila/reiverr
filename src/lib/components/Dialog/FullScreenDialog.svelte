@@ -2,8 +2,6 @@
 	import Modal from '../Modal/Modal.svelte';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
-
-	export let size: 'sm' | 'full' = 'sm';
 </script>
 
 <Modal on:back>
@@ -13,11 +11,7 @@
 	>
 		<div
 			class={classNames(
-				'flex-1 bg-primary-800 rounded-2xl p-10 relative shadow-xl flex flex-col',
-				{
-					'max-w-lg min-h-0 overflow-y-auto scrollbar-hide': size === 'sm',
-					'h-full overflow-hidden': size === 'full'
-				},
+				'flex-1 bg-primary-800 rounded-2xl p-10 overflow-y-auto min-h-0 max-h-full scrollbar-hide relative shadow-xl',
 				$$restProps.class
 			)}
 		>

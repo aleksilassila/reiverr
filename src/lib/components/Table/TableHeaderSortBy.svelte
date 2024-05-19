@@ -15,9 +15,9 @@
 		on:clickOrSelect
 		focusOnClick
 		class={classNames(
-			'flex items-center rounded-full py-1 px-3 -mx-3 cursor-pointer select-none font-semibold float-left',
+			'flex items-center rounded-full py-1 cursor-pointer select-none font-semibold float-left',
 			{
-				'bg-primary-500 text-secondary-800': $hasFocus
+				'bg-primary-500 text-secondary-800 px-3': $hasFocus
 			}
 		)}
 	>

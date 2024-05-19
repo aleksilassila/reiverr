@@ -12,7 +12,7 @@
 	}
 
 	:global(.row-wrapper-selected > ._table-cell) {
-		@apply bg-secondary-800;
+		@apply bg-primary-900;
 	}
 
 	:global(.row-wrapper > ._table-cell:first-child) {

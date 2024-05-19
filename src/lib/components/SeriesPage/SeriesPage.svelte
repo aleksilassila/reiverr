@@ -6,21 +6,24 @@
 	import { tmdbApi, type TmdbSeasonEpisode } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
-	import { DotFilled, Download, ExternalLink, File, Play, Plus } from 'radix-icons-svelte';
+	import { DotFilled, Download, ExternalLink, File, Play, Plus, Trash } from 'radix-icons-svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
-	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
+	import { type EpisodeFileResource, sonarrApi } from '../../apis/sonarr/sonarr-api';
 	import Button from '../Button.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
-	import { modalStack } from '../Modal/modal.store';
-	import { derived } from 'svelte/store';
+	import { createModal, modalStack } from '../Modal/modal.store';
+	import { derived, get, writable } from 'svelte/store';
 	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
 	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../Card/TmdbCard.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
-	import EpisodePage from '../../pages/EpisodePage.svelte';
-	import SeriesMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import { formatSize } from '../../utils';
+	import FileDetailsDialog from './FileDetailsDialog.svelte';
+	import ConfirmDeleteSeasonDialog from './ConfirmDeleteSeasonDialog.svelte';
+	import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 
 	export let id: string;
 
@@ -28,10 +31,25 @@
 		tmdbApi.getTmdbSeries,
 		Number(id)
 	);
-	const { promise: sonarrItem } = useRequest(sonarrApi.getSeriesByTmdbId, Number(id));
-	const jellyfinSeries = getJellyfinSeries(id);
-
+	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
+
+	// @ts-ignore
+	$: localFilesP = sonarrItem && getLocalFiles();
+	$: localFileSeasons = localFilesP.then((files) => [
+		...new Set(files.map((item) => item.seasonNumber || -1))
+	]);
+	$: sonarrEpisodes = Promise.all([sonarrItem, localFileSeasons])
+		.then(([item, seasons]) =>
+			Promise.all(seasons.map((s) => sonarrApi.getEpisodes(item?.id || -1, s)))
+		)
+		.then((items) => items.flat());
+	$: localFilesP.then(console.log);
+	$: sonarrEpisodes.then(console.log);
+	$: sonarrItem.then(console.log);
+	$: localFileSeasons.then(console.log);
+
+	const jellyfinSeries = getJellyfinSeries(id);
 
 	const jellyfinEpisodes = jellyfinSeries.then(
 		(s) => (s && jellyfinApi.getJellyfinEpisodes(s.Id)) || []
@@ -41,16 +59,53 @@
 		items.find((i) => i.UserData?.Played === false)
 	);
 
-	let hideInterface = false;
 	const episodeCards = useRegistrar();
 	let scrollTop: number;
 
-	modalStack.top.subscribe((modal) => {
-		hideInterface = !!modal;
-	});
+	// let hideInterface = false;
+	// modalStack.top.subscribe((modal) => {
+	// 	hideInterface = !!modal;
+	// });
 
 	function getJellyfinSeries(id: string) {
 		return jellyfinApi.getLibraryItemFromTmdbId(id);
+	}
+
+	function getLocalFiles() {
+		return sonarrItem.then((item) =>
+			item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : Promise.resolve([])
+		);
+	}
+
+	function handleAddedToSonarr() {
+		sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+		sonarrItem.then(
+			(sonarrItem) =>
+				sonarrItem &&
+				createModal(SeasonMediaManagerModal, {
+					season: 1,
+					sonarrItem
+				})
+		);
+	}
+
+	async function handleRequestSeason(season: number) {
+		return sonarrItem.then((sonarrItem) => {
+			const tmdbSeries = get(tmdbSeriesData);
+			if (sonarrItem) {
+				createModal(SeasonMediaManagerModal, {
+					season,
+					sonarrItem
+				});
+			} else if (tmdbSeries) {
+				createModal(MMAddToSonarrDialog, {
+					series: tmdbSeries,
+					onComplete: handleAddedToSonarr
+				});
+			} else {
+				console.error('No series found');
+			}
+		});
 	}
 </script>
 
@@ -75,7 +130,6 @@
 							?.map((i) => TMDB_IMAGES_ORIGINAL + i.file_path)
 							.slice(0, 5) || []
 				)}
-				{hideInterface}
 			>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
@@ -118,7 +172,7 @@
 							</div>
 						{/if}
 					{/await}
-					{#await Promise.all( [$sonarrItem, jellyfinSeries, jellyfinEpisodes, nextJellyfinEpisode] ) then [sonarrItem, jellyfinItem, jellyfinEpisodes, nextJellyfinEpisode]}
+					{#await nextJellyfinEpisode then nextJellyfinEpisode}
 						<Container
 							direction="horizontal"
 							class="flex mt-8"
@@ -136,19 +190,13 @@
 									{nextJellyfinEpisode?.IndexNumber}
 									<Play size={19} slot="icon" />
 								</Button>
-							{/if}
-							<Button
-								class="mr-4"
-								on:clickOrSelect={() =>
-									modalStack.create(SeriesMediaManagerModal, { id: Number(id) })}
-							>
-								{#if jellyfinItem}
-									Manage Media
-								{:else}
+							{:else}
+								<Button class="mr-4" action={() => handleRequestSeason(1)}>
 									Request
-								{/if}
-								<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />
-							</Button>
+									<Plus size={19} slot="icon" />
+								</Button>
+							{/if}
+
 							{#if PLATFORM_WEB}
 								<Button class="mr-4">
 									Open In TMDB
@@ -166,16 +214,17 @@
 		</Container>
 		<div
 			class={classNames('transition-opacity', {
-				'opacity-0': hideInterface
+				// 'opacity-0': hideInterface
 			})}
 		>
 			<EpisodeGrid
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
+				on:mount={episodeCards.registrar}
 				id={Number(id)}
 				tmdbSeries={tmdbSeriesData}
 				{jellyfinEpisodes}
 				currentJellyfinEpisode={nextJellyfinEpisode}
-				on:mount={episodeCards.registrar}
+				{handleRequestSeason}
 			/>
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 				{#await $tmdbSeries then series}
@@ -200,29 +249,119 @@
 					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 						<div class="flex-1">
-							<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Created By</h2>
 								{#each series?.created_by || [] as creator}
 									<div>{creator.name}</div>
 								{/each}
 							</div>
-							<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
 								<div>{series?.networks?.[0]?.name}</div>
 							</div>
 						</div>
 						<div class="flex-1">
-							<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Language</h2>
 								<div>{series?.spoken_languages?.[0]?.name}</div>
 							</div>
-							<div class="border-l-2 border-zinc-300 pl-4 mb-8">
+							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
 								<div>{series?.last_air_date}</div>
 							</div>
 						</div>
 					</div>
 				</Container>
+			{/await}
+			{#await Promise.all( [localFilesP, localFileSeasons, sonarrEpisodes] ) then [localFiles, seasons, episodes]}
+				{#if localFiles?.length}
+					<Container
+						class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
+						on:enter={scrollIntoView({ top: 0 })}
+					>
+						<!--						<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">Local Files</h1>-->
+						<div class="space-y-16">
+							{#each seasons as season}
+								{@const files = localFiles.filter((f) => f.seasonNumber === season)}
+								<div class="">
+									<div class="flex justify-between">
+										<h2 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">
+											Season {season} Files
+										</h2>
+										<!--										<Checkbox-->
+										<!--											checked={Object.keys(selectedFiles).length-->
+										<!--												? Object.values(selectedFiles).every(({ file, selected }) => {-->
+										<!--														return file.seasonNumber === season ? selected : true;-->
+										<!--												  })-->
+										<!--												: false}-->
+										<!--											on:change={({ detail }) => {-->
+										<!--												selectedFiles = Object.fromEntries(-->
+										<!--													Object.entries(selectedFiles).map(([key, value]) => {-->
+										<!--														if (value.file.seasonNumber === season) {-->
+										<!--															value.selected = detail;-->
+										<!--														}-->
+										<!--														return [key, value];-->
+										<!--													})-->
+										<!--												);-->
+										<!--											}}-->
+										<!--										/>-->
+									</div>
+
+									<div class="grid grid-cols-2 gap-8">
+										{#each files as file}
+											{@const episode = episodes.find(
+												(e) => e.episodeFileId !== undefined && e.episodeFileId === file.id
+											)}
+
+											<Container
+												class={classNames(
+													'flex space-x-8  items-center text-zinc-300 font-medium',
+													'px-8 py-4 border-2 border-transparent rounded-xl',
+													{
+														'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
+														'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
+														// 'bg-primary-700 focus-within:border-primary-500': selected,
+														// 'bg-secondary-800 focus-within:border-zinc-300': !selected
+													}
+												)}
+												on:clickOrSelect={() =>
+													modalStack.create(FileDetailsDialog, { file, episode })}
+												focusOnClick
+											>
+												<div class="flex-1">
+													<h1 class="text-lg">
+														{episode?.episodeNumber}. {episode?.title}
+													</h1>
+												</div>
+												<div>
+													{file.mediaInfo?.runTime}
+												</div>
+												<div>
+													{formatSize(file.size || 0)}
+												</div>
+												<div>
+													{file.quality?.quality?.name}
+												</div>
+											</Container>
+										{/each}
+									</div>
+									<Container direction="horizontal" class="flex mt-8">
+										<Button
+											on:clickOrSelect={() =>
+												createModal(ConfirmDeleteSeasonDialog, {
+													files: files,
+													onComplete: () => (localFilesP = getLocalFiles())
+												})}
+										>
+											<Trash size={19} slot="icon" />
+											Delete Season Files
+										</Button>
+									</Container>
+								</div>
+							{/each}
+						</div>
+					</Container>
+				{/if}
 			{/await}
 		</div>
 	</div>

@@ -34,10 +34,9 @@
 	});
 
 	const selectIndex = (index: number) => () => {
-		if (index === activeIndex) {
-			if (get(selectable.hasFocusWithin)) Selectable.giveFocus('right');
-			return;
-		}
+		// if (index === activeIndex) {
+		// 	if (get(selectable.hasFocusWithin)) Selectable.giveFocus('right');
+		// }
 		selectable.focusChild(index);
 		const path =
 			{

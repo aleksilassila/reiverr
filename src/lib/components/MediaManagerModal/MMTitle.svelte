@@ -1,8 +1,8 @@
 <div {...$$restProps}>
-	<div class="text-4xl font-semibold mb-2">
+	<div class="header4">
 		<slot name="title" />
 	</div>
-	<div class="text-zinc-300 font-medium text-xl">
+	<div class="header1">
 		<slot name="subtitle" />
 	</div>
 </div>

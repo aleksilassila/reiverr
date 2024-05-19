@@ -4,9 +4,23 @@ import { get } from 'svelte/store';
 import { getTmdbSeries, tmdbApi } from '../tmdb/tmdb-api';
 import type { components, paths } from './sonarr.generated';
 import { log } from '../../utils';
-import type { Api } from '../api.interface';
+import type { Api, ApiAsync } from '../api.interface';
 import { appState } from '../../stores/app-state.store';
 import { createLocalStorageStore } from '../../stores/localstorage.store';
+
+export const sonarrMonitorOptions = [
+	'unknown',
+	'all',
+	'future',
+	'missing',
+	'existing',
+	'firstSeason',
+	'latestSeason',
+	'pilot',
+	'monitorSpecials',
+	'unmonitorSpecials',
+	'none'
+] as const;
 
 export type SonarrSeries = components['schemas']['SeriesResource'];
 export type SonarrSeason = components['schemas']['SeasonResource'];
@@ -15,6 +29,9 @@ export type EpisodeDownload = components['schemas']['QueueResource'] & { series:
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 export type SonarrEpisode = components['schemas']['EpisodeResource'];
 export type EpisodeFileResource = components['schemas']['EpisodeFileResource'];
+export type SonarrRootFolder = components['schemas']['RootFolderResource'];
+export type SonarrQualityProfile = components['schemas']['QualityProfileResource'];
+export type SonarrMonitorOptions = (typeof sonarrMonitorOptions)[number];
 
 export interface SonarrSeriesOptions {
 	title: string;
@@ -25,18 +42,7 @@ export interface SonarrSeriesOptions {
 	tvdbId: number;
 	rootFolderPath: string;
 	addOptions: {
-		monitor:
-			| 'unknown'
-			| 'all'
-			| 'future'
-			| 'missing'
-			| 'existing'
-			| 'firstSeason'
-			| 'latestSeason'
-			| 'pilot'
-			| 'monitorSpecials'
-			| 'unmonitorSpecials'
-			| 'none';
+		monitor: SonarrMonitorOptions;
 		searchForMissingEpisodes: boolean;
 		searchForCutoffUnmetEpisodes: boolean;
 	};
@@ -44,8 +50,9 @@ export interface SonarrSeriesOptions {
 
 const tmdbToTvdbCache = createLocalStorageStore<Record<number, number>>('tmdb-to-tvdb-cache', {});
 
-export class SonarrApi implements Api<paths> {
-	getClient() {
+export class SonarrApi implements ApiAsync<paths> {
+	async getClient() {
+		await appState.ready;
 		const sonarrSettings = this.getSettings();
 		const baseUrl = this.getBaseUrl();
 		const apiKey = sonarrSettings?.apiKey;
@@ -83,33 +90,42 @@ export class SonarrApi implements Api<paths> {
 	};
 
 	getSeriesById = (id: number): Promise<SonarrSeries | undefined> =>
-		this.getClient()
-			?.GET('/api/v3/series/{id}', {
-				params: {
-					path: {
-						id
-					}
-				}
-			})
-			.then((r) => r.data) || Promise.resolve(undefined);
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/series/{id}', {
+						params: {
+							path: {
+								id
+							}
+						}
+					})
+					.then((r) => r.data) || Promise.resolve(undefined)
+		);
 
 	getAllSeries = (): Promise<SonarrSeries[]> =>
-		this.getClient()
-			?.GET('/api/v3/series', {
-				params: {}
-			})
-			.then((r) => r.data || []) || Promise.resolve([]);
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/series', {
+						params: {}
+					})
+					.then((r) => r.data || []) || Promise.resolve([])
+		);
 
 	getSonarrSeriesByTvdbId = (tvdbId: number): Promise<SonarrSeries | undefined> =>
-		this.getClient()
-			?.GET('/api/v3/series', {
-				params: {
-					query: {
-						tvdbId: tvdbId
-					}
-				}
-			})
-			.then((r) => r.data?.find((m) => m.tvdbId === tvdbId)) || Promise.resolve(undefined);
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/series', {
+						params: {
+							query: {
+								tvdbId: tvdbId
+							}
+						}
+					})
+					.then((r) => r.data?.find((m) => m.tvdbId === tvdbId)) || Promise.resolve(undefined)
+		);
 
 	getSeriesByTmdbId = async (tmdbId: number) =>
 		this.tmdbToTvdb(tmdbId).then((tvdbId) =>
@@ -117,11 +133,19 @@ export class SonarrApi implements Api<paths> {
 		);
 
 	getDiskSpace = (): Promise<DiskSpaceInfo[]> =>
-		this.getClient()
-			?.GET('/api/v3/diskspace', {})
-			.then((d) => d.data || []) || Promise.resolve([]);
+		this.getClient().then(
+			(client) =>
+				client?.GET('/api/v3/diskspace', {}).then((d) => d.data || []) || Promise.resolve([])
+		);
 
-	addSeriesToSonarr = async (tmdbId: number) => {
+	addToSonarr = async (
+		tmdbId: number,
+		_options: {
+			qualityProfileId?: number;
+			rootFolderPath?: string;
+			monitorOptions?: SonarrMonitorOptions;
+		} = {}
+	): Promise<SonarrSeries | undefined> => {
 		const tmdbSeries = await getTmdbSeries(tmdbId);
 
 		if (!tmdbSeries || !tmdbSeries.external_ids.tvdb_id || !tmdbSeries.name)
@@ -130,100 +154,119 @@ export class SonarrApi implements Api<paths> {
 		const options: SonarrSeriesOptions = {
 			title: tmdbSeries.name,
 			tvdbId: tmdbSeries.external_ids.tvdb_id,
-			qualityProfileId: this.getSettings()?.qualityProfileId || 0,
+			qualityProfileId: _options.qualityProfileId || this.getSettings()?.qualityProfileId || 0,
 			monitored: false,
 			addOptions: {
-				monitor: 'none',
+				monitor: _options.monitorOptions || 'none',
 				searchForMissingEpisodes: false,
 				searchForCutoffUnmetEpisodes: false
 			},
-			rootFolderPath: this.getSettings()?.rootFolderPath || '',
+			rootFolderPath: _options.rootFolderPath || this.getSettings()?.rootFolderPath || '',
 			languageProfileId: this.getSettings()?.languageProfileId || 0,
 			seasonFolder: true
 		};
 
-		return this.getClient()
-			?.POST('/api/v3/series', {
-				params: {},
-				body: options
-			})
-			.then((r) => r.data);
+		return this.getClient().then((client) =>
+			client
+				?.POST('/api/v3/series', {
+					params: {},
+					body: options
+				})
+				.then((r) => r.data)
+		);
 	};
 
 	cancelDownload = async (downloadId: number) => {
-		const deleteResponse = await this.getClient()
-			?.DELETE('/api/v3/queue/{id}', {
-				params: {
-					path: {
-						id: downloadId
-					},
-					query: {
-						blocklist: false,
-						removeFromClient: true
+		const deleteResponse = await this.getClient().then((client) =>
+			client
+				?.DELETE('/api/v3/queue/{id}', {
+					params: {
+						path: {
+							id: downloadId
+						},
+						query: {
+							blocklist: false,
+							removeFromClient: true
+						}
 					}
-				}
-			})
-			.then((r) => log(r));
+				})
+				.then((r) => log(r))
+		);
 
 		return !!deleteResponse?.response.ok;
 	};
 
 	cancelDownloads = async (downloadIds: number[]) =>
-		this.getClient()
-			?.DELETE('/api/v3/queue/bulk', {
-				body: {
-					ids: downloadIds
-				}
-			})
-			.then((r) => r.response.ok) || Promise.resolve(false);
+		this.getClient().then(
+			(client) =>
+				client
+					?.DELETE('/api/v3/queue/bulk', {
+						body: {
+							ids: downloadIds
+						}
+					})
+					.then((r) => r.response.ok) || Promise.resolve(false)
+		);
 
 	downloadSonarrRelease = (guid: string, indexerId: number) =>
-		this.getClient()
-			?.POST('/api/v3/release', {
-				params: {},
-				body: {
-					indexerId,
-					guid
-				}
-			})
-			.then((res) => res.response.ok) || Promise.resolve(false);
+		this.getClient().then(
+			(client) =>
+				client
+					?.POST('/api/v3/release', {
+						params: {},
+						body: {
+							indexerId,
+							guid
+						}
+					})
+					.then((res) => res.response.ok) || Promise.resolve(false)
+		);
 
 	deleteSonarrEpisode = (id: number) =>
-		this.getClient()
-			?.DELETE('/api/v3/episodefile/{id}', {
-				params: {
-					path: {
-						id
-					}
-				}
-			})
-			.then((res) => res.response.ok) || Promise.resolve(false);
+		this.getClient().then(
+			(client) =>
+				client
+					?.DELETE('/api/v3/episodefile/{id}', {
+						params: {
+							path: {
+								id
+							}
+						}
+					})
+					.then((res) => res.response.ok) || Promise.resolve(false)
+		);
 
 	deleteSonarrEpisodes = (ids: number[]) =>
-		this.getClient()
-			?.DELETE('/api/v3/episodefile/bulk', {
-				body: {
-					episodeFileIds: ids
-				}
-			})
-			.then((res) => res.response.ok) || Promise.resolve(false);
+		this.getClient().then(
+			(client) =>
+				client
+					?.DELETE('/api/v3/episodefile/bulk', {
+						body: {
+							episodeFileIds: ids
+						}
+					})
+					.then((res) => res.response.ok) || Promise.resolve(false)
+		);
 
 	getSonarrDownloads = (): Promise<EpisodeDownload[]> =>
-		this.getClient()
-			?.GET('/api/v3/queue', {
-				params: {
-					query: {
-						includeEpisode: true,
-						includeSeries: true
-					}
-				}
-			})
-			.then(
-				(r) =>
-					(r.data?.records?.filter(
-						(record) => record.episode && record.series
-					) as EpisodeDownload[]) || []
-			) || Promise.resolve([]);
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/queue', {
+						params: {
+							query: {
+								includeEpisode: true,
+								includeSeries: true
+							}
+						}
+					})
+					.then(
+						(r) =>
+							(r.data?.records?.filter(
+								(record) => record.episode && record.series
+							) as EpisodeDownload[]) || []
+					) || Promise.resolve([])
+		);
 
 	getDownloadsBySeriesId = (sonarrId: number) =>
 		this.getSonarrDownloads().then((downloads) =>
@@ -231,26 +274,90 @@ export class SonarrApi implements Api<paths> {
 		) || Promise.resolve([]);
 
 	removeFromSonarr = (id: number): Promise<boolean> =>
-		this.getClient()
-			?.DELETE('/api/v3/series/{id}', {
-				params: {
-					path: {
-						id
-					}
-				}
-			})
-			.then((res) => res.response.ok) || Promise.resolve(false);
+		this.getClient().then(
+			(client) =>
+				client
+					?.DELETE('/api/v3/series/{id}', {
+						params: {
+							path: {
+								id
+							}
+						}
+					})
+					.then((res) => res.response.ok) || Promise.resolve(false)
+		);
 
 	getFilesBySeriesId = (seriesId: number): Promise<EpisodeFileResource[]> =>
-		this.getClient()
-			?.GET('/api/v3/episodefile', {
-				params: {
-					query: {
-						seriesId
-					}
-				}
-			})
-			.then((r) => r.data || []) || Promise.resolve([]);
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/episodefile', {
+						params: {
+							query: {
+								seriesId
+							}
+						}
+					})
+					.then((r) => r.data || []) || Promise.resolve([])
+		);
+
+	getEpisodeReleases = async (episodeId: number) =>
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/release', {
+						params: {
+							query: {
+								episodeId
+							}
+						}
+					})
+					.then((r) => r.data || []) || Promise.resolve([])
+		);
+
+	getSeasonReleases = async (seriesId: number, seasonNumber: number) =>
+		this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/release', {
+						params: {
+							query: {
+								seriesId,
+								seasonNumber
+							}
+						}
+					})
+					.then((r) => r.data || []) || Promise.resolve([])
+		);
+
+	getEpisodes = async (seriesId: number, seasonNumber?: number): Promise<SonarrEpisode[]> => {
+		return this.getClient().then(
+			(client) =>
+				client
+					?.GET('/api/v3/episode', {
+						params: {
+							query: {
+								seriesId,
+								seasonNumber,
+								includeImages: true
+							}
+						}
+					})
+					.then((r) => r.data || []) || Promise.resolve([])
+		);
+	};
+
+	getRootFolders = (): Promise<SonarrRootFolder[]> =>
+		this.getClient().then(
+			(client) =>
+				client?.GET('/api/v3/rootfolder', {}).then((r) => r.data || []) || Promise.resolve([])
+		);
+
+	getQualityProfiles = (): Promise<SonarrQualityProfile[]> =>
+		this.getClient().then(
+			(client) =>
+				client?.GET('/api/v3/qualityprofile', {}).then((r) => r.data || []) || Promise.resolve([])
+		);
 
 	// getSonarrEpisodes = async (seriesId: number) => {
 	// 	const episodesPromise =
@@ -284,44 +391,6 @@ export class SonarrApi implements Api<paths> {
 	// 	}));
 	// };
 
-	getEpisodeReleases = async (episodeId: number) =>
-		this.getClient()
-			?.GET('/api/v3/release', {
-				params: {
-					query: {
-						episodeId
-					}
-				}
-			})
-			.then((r) => r.data || []) || Promise.resolve([]);
-
-	getSeasonReleases = async (seriesId: number, seasonNumber: number) =>
-		this.getClient()
-			?.GET('/api/v3/release', {
-				params: {
-					query: {
-						seriesId,
-						seasonNumber
-					}
-				}
-			})
-			.then((r) => r.data || []) || Promise.resolve([]);
-
-	getEpisodes = async (seriesId: number, seasonNumber?: number): Promise<SonarrEpisode[]> => {
-		return (
-			this.getClient()
-				?.GET('/api/v3/episode', {
-					params: {
-						query: {
-							seriesId,
-							seasonNumber
-						}
-					}
-				})
-				.then((r) => r.data || []) || Promise.resolve([])
-		);
-	};
-
 	getSonarrHealth = async (
 		baseUrl: string | undefined = undefined,
 		apiKey: string | undefined = undefined
@@ -335,19 +404,16 @@ export class SonarrApi implements Api<paths> {
 			.then((res) => res.status === 200)
 			.catch(() => false);
 
-	getSonarrRootFolders = async (
+	_getSonarrRootFolders = async (
 		baseUrl: string | undefined = undefined,
 		apiKey: string | undefined = undefined
 	) =>
 		axios
-			.get<components['schemas']['RootFolderResource'][]>(
-				(baseUrl || this.getBaseUrl()) + '/api/v3/rootFolder',
-				{
-					headers: {
-						'X-Api-Key': apiKey || this.getApiKey()
-					}
+			.get<SonarrRootFolder[]>((baseUrl || this.getBaseUrl()) + '/api/v3/rootFolder', {
+				headers: {
+					'X-Api-Key': apiKey || this.getApiKey()
 				}
-			)
+			})
 			.then((res) => res.data || []);
 
 	getSonarrQualityProfiles = async (

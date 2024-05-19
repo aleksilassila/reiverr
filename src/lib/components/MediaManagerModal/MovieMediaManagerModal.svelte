@@ -1,6 +1,6 @@
 <script lang="ts">
 	import MMMainLayout from './MMMainLayout.svelte';
-	import MMAddToSonarr from './MMAddToSonarr.svelte';
+	// import MMAddToSonarr from './MMAddToSonarr.svelte';
 	import MMModal from './MMModal.svelte';
 	import ReleaseList from './Releases/MMReleasesTab.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
@@ -25,7 +25,7 @@
 <MMModal {modalId} {hidden}>
 	{#await radarrItem then movie}
 		{#if !movie}
-			<MMAddToSonarr />
+			<!--			<MMAddToSonarr />-->
 		{:else}
 			<MMMainLayout>
 				<h1 slot="title">{movie?.title}</h1>

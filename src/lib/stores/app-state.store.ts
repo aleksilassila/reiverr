@@ -6,6 +6,15 @@ interface AuthenticationStoreData {
 	token?: string;
 	serverBaseUrl?: string;
 }
+
+interface UserStoreData {
+	user: ReiverrUser | null;
+}
+
+interface AppStateData extends AuthenticationStoreData {
+	user: ReiverrUser | null;
+}
+
 const authenticationStore = createLocalStorageStore<AuthenticationStoreData>(
 	'authentication-token',
 	{
@@ -15,15 +24,17 @@ const authenticationStore = createLocalStorageStore<AuthenticationStoreData>(
 );
 
 function createAppState() {
-	const userStore = writable<ReiverrUser | null>(undefined);
+	const userStore = writable<UserStoreData>(undefined);
 
-	const combinedStore = derived([userStore, authenticationStore], ([$user, $auth]) => {
-		return {
-			user: $user,
-			token: $auth.token,
-			serverBaseUrl: $auth.serverBaseUrl
-		};
-	});
+	const combinedStore = derived<[typeof userStore, typeof authenticationStore], AppStateData>(
+		[userStore, authenticationStore],
+		([user, auth]) => {
+			return {
+				...user,
+				...auth
+			};
+		}
+	);
 
 	function setBaseUrl(serverBaseUrl: string | undefined = undefined) {
 		authenticationStore.update((p) => ({ ...p, serverBaseUrl }));
@@ -34,7 +45,7 @@ function createAppState() {
 	}
 
 	function setUser(user: ReiverrUser | null) {
-		userStore.set(user);
+		userStore.set({ user });
 	}
 
 	function logOut() {
@@ -42,12 +53,21 @@ function createAppState() {
 		setToken(undefined);
 	}
 
+	const ready = new Promise<AppStateData>((resolve) => {
+		combinedStore.subscribe((state) => {
+			if (state.token && state.serverBaseUrl && state.user !== undefined) {
+				resolve(state);
+			}
+		});
+	});
+
 	return {
 		subscribe: combinedStore.subscribe,
 		setBaseUrl,
 		setToken,
 		setUser,
-		logOut
+		logOut,
+		ready
 	};
 }
 

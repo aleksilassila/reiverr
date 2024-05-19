@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
 	import MMMainLayout from './MMMainLayout.svelte';
-	import MMAddToSonarr from './MMAddToSonarr.svelte';
 	import MMModal from './MMModal.svelte';
 	import ReleaseList from './Releases/MMReleasesTab.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
@@ -93,7 +92,7 @@
 <MMModal {modalId} {hidden}>
 	{#await sonarrEpisode then sonarrEpisode}
 		{#if !sonarrEpisode}
-			<MMAddToSonarr />
+			<!--			<MMAddToSonarr />-->
 		{:else}
 			<div class="pt-20 h-screen flex flex-col">
 				<MMTitle class="mb-32 mx-32">

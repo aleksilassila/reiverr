@@ -2,19 +2,19 @@
 	import { modalStack, modalStackTop } from './modal.store';
 	import { onDestroy } from 'svelte';
 
-	function handleShortcuts(event: KeyboardEvent) {
-		const top = $modalStackTop;
-		if ((event.key === 'Escape' || event.key === 'Back' || event.key === 'XF86Back') && top) {
-			modalStack.close(top.id);
-		}
-	}
+	// function handleShortcuts(event: KeyboardEvent) {
+	// 	const top = $modalStackTop;
+	// 	if ((event.key === 'Escape' || event.key === 'Back' || event.key === 'XF86Back') && top) {
+	// 		modalStack.close(top.id);
+	// 	}
+	// }
 
 	onDestroy(() => {
 		modalStack.reset();
 	});
 </script>
 
-<svelte:window on:keydown={handleShortcuts} />
+<!--<svelte:window on:keydown={handleShortcuts} />-->
 
 <svelte:head>
 	{#if $modalStackTop}

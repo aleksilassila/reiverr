@@ -59,7 +59,6 @@
 		<!-- <HeroCarousel /> -->
 
 		<Container
-			on:navigate={handleGoBack}
 			on:back={handleGoBack}
 			on:mount={registrar}
 			focusOnMount

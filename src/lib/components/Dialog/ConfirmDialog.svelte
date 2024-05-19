@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
 	import Button from '../Button.svelte';
-	import Modal from '../Modal/Modal.svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import Dialog from './Dialog.svelte';
 
@@ -27,20 +26,15 @@
 	}
 </script>
 
-<Dialog {modalId}>
-	<div class="text-2xl font-semibold tracking-wide mb-2 text-secondary-100">
+<Dialog>
+	<div class="header2 mb-4">
 		<slot name="header" />
 	</div>
 	<div class="font-medium text-secondary-300 mb-8">
 		<slot />
 	</div>
-	<Container direction="horizontal" class="flex">
-		<Button
-			type="secondary"
-			disabled={fetching}
-			on:clickOrSelect={() => handleAction(confirm)}
-			class="mr-4"
-		>
+	<Container class="flex flex-col space-y-4">
+		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(confirm)}>
 			Confirm
 		</Button>
 		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}

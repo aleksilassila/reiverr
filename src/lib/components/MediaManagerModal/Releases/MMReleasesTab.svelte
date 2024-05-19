@@ -8,6 +8,7 @@
 	import type { GrabReleaseFn } from '../MediaManagerModal';
 	import Container from '../../../../Container.svelte';
 	import TableHeaderCell from '../../Table/TableHeaderCell.svelte';
+	import MMTitle from '../MMTitle.svelte';
 
 	type Release = RadarrRelease | SonarrRelease;
 
@@ -62,46 +63,57 @@
 	}
 </script>
 
-{#await releases}
-	{#each new Array(5) as _, index}
-		<div class="flex-1 my-2">
-			<ButtonGhost />
-		</div>
-	{/each}
-{:then releases}
-	<div class="grid grid-cols-[1fr_max-content_max-content_max-content_max-content] gap-y-4">
-		<TableHeaderRow>
-			<TableHeaderSortBy
-				icon={sortBy === 'age' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('age')}>Age</TableHeaderSortBy
-			>
-			<TableHeaderSortBy
-				icon={sortBy === 'size' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('size')}>Size</TableHeaderSortBy
-			>
-			<TableHeaderSortBy
-				icon={sortBy === 'seeders' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('seeders')}>Peers</TableHeaderSortBy
-			>
-			<TableHeaderSortBy
-				icon={sortBy === 'quality' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('quality')}>Quality</TableHeaderSortBy
-			>
-			<TableHeaderCell />
-		</TableHeaderRow>
+<Container trapFocus class="py-8 h-full flex flex-col">
+	<h1 class="header4 mx-12">
+		<slot name="title" />
+	</h1>
+	<h2 class="header1 mx-12 mb-8">
+		<slot name="subtitle" />
+	</h2>
 
-		<Container class="contents" focusedChild>
-			{#each getRecommendedReleases(releases).sort(getSortFn(sortBy, sortDirection)) as release, index}
-				<MMReleaseListRow {release} {grabRelease} />
+	<div class="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+		{#await releases}
+			{#each new Array(5) as _, index}
+				<div class="flex-1 my-2">
+					<ButtonGhost />
+				</div>
 			{/each}
-		</Container>
+		{:then releases}
+			<div class="grid grid-cols-[1fr_max-content_max-content_max-content_max-content] gap-y-4">
+				<TableHeaderRow>
+					<TableHeaderSortBy
+						icon={sortBy === 'age' ? sortDirection : undefined}
+						on:clickOrSelect={toggleSortBy('age')}>Age</TableHeaderSortBy
+					>
+					<TableHeaderSortBy
+						icon={sortBy === 'size' ? sortDirection : undefined}
+						on:clickOrSelect={toggleSortBy('size')}>Size</TableHeaderSortBy
+					>
+					<TableHeaderSortBy
+						icon={sortBy === 'seeders' ? sortDirection : undefined}
+						on:clickOrSelect={toggleSortBy('seeders')}>Peers</TableHeaderSortBy
+					>
+					<TableHeaderSortBy
+						icon={sortBy === 'quality' ? sortDirection : undefined}
+						on:clickOrSelect={toggleSortBy('quality')}>Quality</TableHeaderSortBy
+					>
+					<TableHeaderCell />
+				</TableHeaderRow>
 
-		<h1 class="text-2xl font-semibold mb-4 mt-8 col-span-5 mx-12">All Releases</h1>
+				<Container class="contents" focusOnMount>
+					{#each getRecommendedReleases(releases).sort(getSortFn(sortBy, sortDirection)) as release, index}
+						<MMReleaseListRow {release} {grabRelease} />
+					{/each}
+				</Container>
 
-		{#each releases
-			.filter((r) => r.guid && r.indexerId)
-			.sort(getSortFn(sortBy, sortDirection)) as release, index}
-			<MMReleaseListRow {release} {grabRelease} />
-		{/each}
+				<h1 class="text-2xl font-semibold mb-4 mt-8 col-span-5 mx-12">All Releases</h1>
+
+				{#each releases
+					.filter((r) => r.guid && r.indexerId)
+					.sort(getSortFn(sortBy, sortDirection)) as release, index}
+					<MMReleaseListRow {release} {grabRelease} />
+				{/each}
+			</div>
+		{/await}
 	</div>
-{/await}
+</Container>
