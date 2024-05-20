@@ -2,17 +2,21 @@
 	import Container from '../../../Container.svelte';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
 	import DetachedPage from '../DetachedPage/DetachedPage.svelte';
-	import { useActionRequest, useDependantRequest, useRequest } from '../../stores/data.store';
-	import { tmdbApi, type TmdbSeasonEpisode } from '../../apis/tmdb/tmdb-api';
+	import { useRequest } from '../../stores/data.store';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
-	import { DotFilled, Download, ExternalLink, File, Play, Plus, Trash } from 'radix-icons-svelte';
+	import { Cross1, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
-	import { type EpisodeFileResource, sonarrApi } from '../../apis/sonarr/sonarr-api';
+	import {
+		type EpisodeDownload,
+		type EpisodeFileResource,
+		sonarrApi
+	} from '../../apis/sonarr/sonarr-api';
 	import Button from '../Button.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { createModal, modalStack } from '../Modal/modal.store';
-	import { derived, get, writable } from 'svelte/store';
+	import { get } from 'svelte/store';
 	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
@@ -21,9 +25,10 @@
 	import EpisodeGrid from './EpisodeGrid.svelte';
 	import { formatSize } from '../../utils';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
-	import ConfirmDeleteSeasonDialog from './ConfirmDeleteSeasonDialog.svelte';
 	import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
+	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
+	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
 
 	export let id: string;
 
@@ -34,20 +39,19 @@
 	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
 
-	// @ts-ignore
-	$: localFilesP = sonarrItem && getLocalFiles();
-	$: localFileSeasons = localFilesP.then((files) => [
-		...new Set(files.map((item) => item.seasonNumber || -1))
-	]);
-	$: sonarrEpisodes = Promise.all([sonarrItem, localFileSeasons])
+	$: sonarrDownloads = getDownloads(sonarrItem);
+	$: sonarrFiles = getFiles(sonarrItem);
+	$: sonarrSeasonNumbers = Promise.all([sonarrFiles, sonarrDownloads]).then(
+		([files, downloads]) => [
+			...new Set(files.map((item) => item.seasonNumber || -1)),
+			...new Set(downloads.map((item) => item.seasonNumber || -1))
+		]
+	);
+	$: sonarrEpisodes = Promise.all([sonarrItem, sonarrSeasonNumbers])
 		.then(([item, seasons]) =>
 			Promise.all(seasons.map((s) => sonarrApi.getEpisodes(item?.id || -1, s)))
 		)
 		.then((items) => items.flat());
-	$: localFilesP.then(console.log);
-	$: sonarrEpisodes.then(console.log);
-	$: sonarrItem.then(console.log);
-	$: localFileSeasons.then(console.log);
 
 	const jellyfinSeries = getJellyfinSeries(id);
 
@@ -71,11 +75,7 @@
 		return jellyfinApi.getLibraryItemFromTmdbId(id);
 	}
 
-	function getLocalFiles() {
-		return sonarrItem.then((item) =>
-			item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : Promise.resolve([])
-		);
-	}
+	const onGrabRelease = () => setTimeout(() => (sonarrDownloads = getDownloads(sonarrItem)), 8000);
 
 	function handleAddedToSonarr() {
 		sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
@@ -84,7 +84,8 @@
 				sonarrItem &&
 				createModal(SeasonMediaManagerModal, {
 					season: 1,
-					sonarrItem
+					sonarrItem,
+					onGrabRelease
 				})
 		);
 	}
@@ -95,7 +96,8 @@
 			if (sonarrItem) {
 				createModal(SeasonMediaManagerModal, {
 					season,
-					sonarrItem
+					sonarrItem,
+					onGrabRelease
 				});
 			} else if (tmdbSeries) {
 				createModal(MMAddToSonarrDialog, {
@@ -105,6 +107,36 @@
 			} else {
 				console.error('No series found');
 			}
+		});
+	}
+
+	async function getFiles(item: typeof sonarrItem) {
+		return item.then((item) => (item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : []));
+	}
+
+	async function getDownloads(item: typeof sonarrItem) {
+		return item.then((item) => (item ? sonarrApi.getDownloadsBySeriesId(item?.id || -1) : []));
+	}
+
+	function createConfirmDeleteSeasonDialog(files: EpisodeFileResource[]) {
+		createModal(ConfirmDialog, {
+			header: 'Delete Season Files?',
+			body: `Are you sure you want to delete all ${files.length} file(s) from season ${files[0]?.seasonNumber}?`,
+			confirm: () =>
+				sonarrApi
+					.deleteSonarrEpisodes(files.map((f) => f.id || -1))
+					.then(() => (sonarrFiles = getFiles(sonarrItem)))
+		});
+	}
+
+	function createConfirmCancelDownloadsDialog(downloads: EpisodeDownload[]) {
+		createModal(ConfirmDialog, {
+			header: 'Cancel Season Downloads?',
+			body: `Are you sure you want to cancel all ${downloads.length} download(s) from season ${downloads[0]?.seasonNumber}?`,
+			confirm: () =>
+				sonarrApi
+					.cancelDownloads(downloads.map((f) => f.id || -1))
+					.then(() => (sonarrDownloads = getDownloads(sonarrItem)))
 		});
 	}
 </script>
@@ -273,49 +305,34 @@
 					</div>
 				</Container>
 			{/await}
-			{#await Promise.all( [localFilesP, localFileSeasons, sonarrEpisodes] ) then [localFiles, seasons, episodes]}
-				{#if localFiles?.length}
+			{#await Promise.all( [sonarrSeasonNumbers, sonarrFiles, sonarrEpisodes, sonarrDownloads] ) then [seasons, files, episodes, downloads]}
+				{#if files?.length}
 					<Container
 						class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
-						on:enter={scrollIntoView({ top: 0 })}
+						on:enter={scrollIntoView({ top: 32 })}
 					>
 						<!--						<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">Local Files</h1>-->
 						<div class="space-y-16">
 							{#each seasons as season}
-								{@const files = localFiles.filter((f) => f.seasonNumber === season)}
-								<div class="">
+								{@const seasonEpisodes = episodes.filter((e) => e.seasonNumber === season)}
+								{@const seasonFiles = files.filter((f) => f.seasonNumber === season)}
+								{@const seasonDownloads = downloads.filter((d) => d.seasonNumber === season)}
+
+								<div>
 									<div class="flex justify-between">
 										<h2 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">
 											Season {season} Files
 										</h2>
-										<!--										<Checkbox-->
-										<!--											checked={Object.keys(selectedFiles).length-->
-										<!--												? Object.values(selectedFiles).every(({ file, selected }) => {-->
-										<!--														return file.seasonNumber === season ? selected : true;-->
-										<!--												  })-->
-										<!--												: false}-->
-										<!--											on:change={({ detail }) => {-->
-										<!--												selectedFiles = Object.fromEntries(-->
-										<!--													Object.entries(selectedFiles).map(([key, value]) => {-->
-										<!--														if (value.file.seasonNumber === season) {-->
-										<!--															value.selected = detail;-->
-										<!--														}-->
-										<!--														return [key, value];-->
-										<!--													})-->
-										<!--												);-->
-										<!--											}}-->
-										<!--										/>-->
 									</div>
 
-									<div class="grid grid-cols-2 gap-8">
-										{#each files as file}
-											{@const episode = episodes.find(
-												(e) => e.episodeFileId !== undefined && e.episodeFileId === file.id
-											)}
+									<Container direction="grid" gridCols={2} class="grid grid-cols-2 gap-8">
+										{#each seasonEpisodes as episode}
+											{@const file = seasonFiles.find((f) => f.id === episode.episodeFileId)}
+											{@const download = seasonDownloads.find((d) => d.episodeId === episode.id)}
 
 											<Container
 												class={classNames(
-													'flex space-x-8  items-center text-zinc-300 font-medium',
+													'flex space-x-8 items-center text-zinc-300 font-medium relative overflow-hidden',
 													'px-8 py-4 border-2 border-transparent rounded-xl',
 													{
 														'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
@@ -324,38 +341,76 @@
 														// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 													}
 												)}
-												on:clickOrSelect={() =>
-													modalStack.create(FileDetailsDialog, { file, episode })}
+												on:clickOrSelect={() => {
+													if (file)
+														modalStack.create(FileDetailsDialog, {
+															file,
+															episode,
+															onDelete: () => (sonarrFiles = getFiles(sonarrItem))
+														});
+													else if (download)
+														modalStack.create(DownloadDetailsDialog, {
+															download,
+															episode,
+															onCancel: () => (sonarrDownloads = getDownloads(sonarrItem))
+														});
+												}}
+												on:enter={scrollIntoView({ vertical: 128 })}
 												focusOnClick
 											>
+												{#if download}
+													<div
+														class="absolute inset-0 bg-secondary-50/10"
+														style={`width: ${
+															(((download.size || 0) - (download.sizeleft || 0)) /
+																(download.size || 1)) *
+															100
+														}%`}
+													/>
+												{/if}
 												<div class="flex-1">
 													<h1 class="text-lg">
 														{episode?.episodeNumber}. {episode?.title}
 													</h1>
 												</div>
-												<div>
-													{file.mediaInfo?.runTime}
-												</div>
-												<div>
-													{formatSize(file.size || 0)}
-												</div>
-												<div>
-													{file.quality?.quality?.name}
-												</div>
+												{#if file}
+													<div>
+														{file?.mediaInfo?.runTime}
+													</div>
+													<div>
+														{formatSize(file?.size || 0)}
+													</div>
+													<div>
+														{file?.quality?.quality?.name}
+													</div>
+												{:else if download}
+													<div>
+														{formatSize((download?.size || 0) - (download?.sizeleft || 1))} / {formatSize(
+															download?.size || 0
+														)}
+													</div>
+													<div>
+														{download?.quality?.quality?.name}
+													</div>
+												{/if}
 											</Container>
 										{/each}
-									</div>
+									</Container>
 									<Container direction="horizontal" class="flex mt-8">
-										<Button
-											on:clickOrSelect={() =>
-												createModal(ConfirmDeleteSeasonDialog, {
-													files: files,
-													onComplete: () => (localFilesP = getLocalFiles())
-												})}
-										>
-											<Trash size={19} slot="icon" />
-											Delete Season Files
-										</Button>
+										{#if seasonFiles?.length}
+											<Button on:clickOrSelect={() => createConfirmDeleteSeasonDialog(seasonFiles)}>
+												<Trash size={19} slot="icon" />
+												Delete Season Files
+											</Button>
+										{/if}
+										{#if seasonDownloads?.length}
+											<Button
+												on:clickOrSelect={() => createConfirmCancelDownloadsDialog(seasonDownloads)}
+											>
+												<Cross1 size={19} slot="icon" />
+												Cancel Season Downloads
+											</Button>
+										{/if}
 									</Container>
 								</div>
 							{/each}

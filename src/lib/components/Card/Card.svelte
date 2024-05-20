@@ -3,10 +3,8 @@
 	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
 	import LazyImg from '../LazyImg.svelte';
-	import { Star } from 'radix-icons-svelte';
 	import type { TitleType } from '../../types';
 	import Container from '../../../Container.svelte';
-	import { useNavigate } from 'svelte-navigator';
 	import type { Readable } from 'svelte/store';
 	import AnimatedSelection from '../AnimateScale.svelte';
 	import { navigate } from '../StackRouter/StackRouter';
@@ -28,7 +26,29 @@
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 
 	let hasFocus: Readable<boolean>;
+
+	let dimensions = getDimensions(window.innerWidth);
+
+	function getDimensions(viewportWidth: number) {
+		const minWidth = 240;
+
+		const margin = 128;
+		const gap = 32;
+
+		const cols = Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap));
+		const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
+
+		const newWidth = minWidth * scale;
+		const newHeight = (3 / 2) * newWidth;
+
+		return {
+			width: newWidth,
+			height: newHeight
+		};
+	}
 </script>
+
+<svelte:window on:resize={(e) => (dimensions = getDimensions(e.currentTarget.innerWidth))} />
 
 <AnimatedSelection hasFocus={$hasFocus}>
 	<Container
@@ -50,12 +70,13 @@
 				'h-32 w-56': size === 'sm' && orientation === 'landscape',
 				'w-44 h-64': size === 'md' && orientation === 'portrait',
 				'h-44 w-80': size === 'md' && orientation === 'landscape',
-				'w-60 h-96': size === 'lg' && orientation === 'portrait',
+				// 'w-60 h-96': size === 'lg' && orientation === 'portrait',
 				'h-60 w-96': size === 'lg' && orientation === 'landscape',
 				'w-full h-96': size === 'dynamic',
 				'shadow-lg': shadow
 			}
 		)}
+		style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
 		bind:hasFocus
 	>
 		<LazyImg

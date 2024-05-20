@@ -256,7 +256,9 @@ export class SonarrApi implements ApiAsync<paths> {
 						params: {
 							query: {
 								includeEpisode: true,
-								includeSeries: true
+								includeSeries: true,
+								// @ts-ignore
+								pageSize: 1000
 							}
 						}
 					})

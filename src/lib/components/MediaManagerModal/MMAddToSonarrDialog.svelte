@@ -7,11 +7,8 @@
 	import {
 		sonarrApi,
 		type SonarrMonitorOptions,
-		sonarrMonitorOptions,
-		type SonarrQualityProfile,
-		type SonarrRootFolder
+		sonarrMonitorOptions
 	} from '../../apis/sonarr/sonarr-api';
-	import type { TmdbSeries2 } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 	import classNames from 'classnames';
 	import { type BackEvent, scrollIntoView, Selectable } from '../../selectable';
@@ -27,10 +24,13 @@
 		monitorOptions: SonarrMonitorOptions | null;
 	};
 
+	export let backdropUri: string;
+	export let tmdbId: number;
+	export let title: string;
+
 	export let modalId: symbol;
-	export let series: TmdbSeries2;
 	export let onComplete: () => void = () => {};
-	$: backgroundUrl = TMDB_BACKDROP_SMALL + series.backdrop_path;
+	$: backgroundUrl = TMDB_BACKDROP_SMALL + backdropUri;
 
 	let tab: 'add-to-sonarr' | 'root-folders' | 'quality-profiles' | 'monitor-settings' =
 		'add-to-sonarr';
@@ -61,7 +61,7 @@
 
 	function handleAddToSonarr() {
 		return sonarrApi
-			.addToSonarr(series.id as number, {
+			.addToSonarr(tmdbId as number, {
 				rootFolderPath: $addOptionsStore.rootFolderPath || undefined,
 				monitorOptions: $addOptionsStore.monitorOptions || undefined,
 				qualityProfileId: $addOptionsStore.qualityProfileId || undefined
@@ -123,7 +123,7 @@
 			>
 				<div class="z-10 mb-8">
 					<div class="h-24" />
-					<h1 class="header2">Add {series?.name} to Sonarr?</h1>
+					<h1 class="header2">Add {title} to Sonarr?</h1>
 					<div class="font-medium text-secondary-300 mb-8">
 						Before you can fetch episodes, you need to add this series to Sonarr.
 					</div>

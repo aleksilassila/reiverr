@@ -3,17 +3,35 @@
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { useActionRequest, useDependantRequest, useRequest } from '../stores/data.store';
-	import { TMDB_IMAGES_ORIGINAL } from '../constants';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
 	import classNames from 'classnames';
-	import { Check, DotFilled, Download, File, Play, Trash } from 'radix-icons-svelte';
+	import {
+		Check,
+		DotFilled,
+		Download,
+		ExternalLink,
+		File,
+		Play,
+		Plus,
+		Trash
+	} from 'radix-icons-svelte';
 	import HeroInfoTitle from '../components/HeroInfo/HeroInfoTitle.svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 	import { formatSize, timeout } from '../utils';
 	import { tick } from 'svelte';
-	import { openEpisodeMediaManager } from '../components/Modal/modal.store';
+	import { createModal, openEpisodeMediaManager } from '../components/Modal/modal.store';
 	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
+	import {
+		type EpisodeFileResource,
+		sonarrApi,
+		type SonarrEpisode,
+		type SonarrSeries
+	} from '../apis/sonarr/sonarr-api';
+	import MMAddToSonarrDialog from '../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
+	import SeasonMediaManagerModal from '../components/MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
 
 	export let id: string; // Series ID
 	export let season: string;
@@ -22,6 +40,10 @@
 	let isWatched = false;
 
 	const tmdbEpisode = tmdbApi.getEpisode(Number(id), Number(season), Number(episode));
+	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+	$: sonarrEpisode = getSonarrEpisode(sonarrItem);
+	let sonarrFiles = getFiles(sonarrItem, sonarrEpisode);
+
 	const jellyfinSeries = jellyfinApi.getLibraryItemFromTmdbId(id);
 	let jellyfinEpisode = jellyfinSeries.then((series) =>
 		jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
@@ -43,6 +65,59 @@
 	jellyfinEpisode.then((e) => {
 		isWatched = e?.UserData?.Played || false;
 	});
+
+	async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
+		return sonarrItem.then((sonarrItem) => {
+			if (!sonarrItem?.id) return;
+
+			return sonarrApi
+				.getEpisodes(sonarrItem.id, Number(season))
+				.then((episodes) => episodes.find((e) => e.episodeNumber === Number(episode)));
+		});
+	}
+
+	function handleRequestEpisode() {
+		return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
+			if (sonarrEpisode) {
+				createModal(SeasonMediaManagerModal, {
+					sonarrItem: sonarrEpisode,
+					onGrabRelease: () => {} // TODO
+				});
+			} else if (tmdbEpisode) {
+				createModal(MMAddToSonarrDialog, {
+					tmdbId: Number(id),
+					backdropUri: tmdbEpisode.still_path || '',
+					title: tmdbEpisode.name || '',
+					onComplete: () => (sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id)))
+				});
+			} else {
+				console.error('No series found');
+			}
+		});
+	}
+
+	function createConfirmDeleteFiles(files: EpisodeFileResource[]) {
+		createModal(ConfirmDialog, {
+			header: 'Delete Season Files?',
+			body: `Are you sure you want to delete all ${files.length} file(s)?`,
+			confirm: () =>
+				sonarrApi
+					.deleteSonarrEpisodes(files.map((f) => f.id || -1))
+					.then(() => (sonarrFiles = getFiles(sonarrItem, sonarrEpisode)))
+		});
+	}
+
+	function getFiles(
+		sonarrItem: Promise<SonarrSeries | undefined>,
+		sonarrEpisode: Promise<SonarrEpisode | undefined>
+	) {
+		return Promise.all([sonarrItem, sonarrEpisode]).then(([sonarrItem, sonarrEpisode]) => {
+			if (!sonarrItem?.id) return [];
+			return sonarrApi
+				.getFilesBySeriesId(sonarrItem.id)
+				.then((files) => files.filter((f) => sonarrEpisode?.episodeFileId === f.id));
+		});
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -103,34 +178,58 @@
 			<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
 				{tmdbEpisode?.overview}
 			</div>
-			<Container direction="horizontal" class="flex mt-8">
-				{#await jellyfinEpisode}
+			<Container direction="horizontal" class="flex mt-8 space-x-4">
+				{#await Promise.all([jellyfinEpisode, sonarrEpisode])}
 					<ButtonGhost>Play</ButtonGhost>
-					<ButtonGhost>Play</ButtonGhost>
-				{:then jEpisode}
-					<Button
-						class="mr-4"
-						on:clickOrSelect={() => jEpisode?.Id && playerState.streamJellyfinId(jEpisode.Id)}
-					>
-						Play
-						<Play size={19} slot="icon" />
-					</Button>
-					<Button class="mr-4" disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
-						{#if isWatched}
-							Mark as Unwatched
-						{:else}
-							Mark as Watched
-						{/if}
-						<Check slot="icon" size={19} />
-					</Button>
+					<ButtonGhost>Manage Media</ButtonGhost>
+					<ButtonGhost>Delete Files</ButtonGhost>
+				{:then [jellyfinEpisode]}
+					{#if jellyfinEpisode?.MediaSources?.length}
+						<Button
+							on:clickOrSelect={() =>
+								jellyfinEpisode?.Id && playerState.streamJellyfinId(jellyfinEpisode.Id)}
+						>
+							Play
+							<Play size={19} slot="icon" />
+						</Button>
+						<Button disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
+							{#if isWatched}
+								Mark as Unwatched
+							{:else}
+								Mark as Watched
+							{/if}
+							<Check slot="icon" size={19} />
+						</Button>
+					{:else}
+						<Button action={handleRequestEpisode}>
+							Request
+							<Plus size={19} slot="icon" />
+						</Button>
+					{/if}
 				{/await}
-				<Button
-					class="mr-4"
-					on:clickOrSelect={() =>
-						openEpisodeMediaManager(Number(id), Number(season), Number(episode))}
-					>Manage Media <File slot="icon" size={19} /></Button
-				>
-				<Button class="mr-4">Delete Files <Trash slot="icon" size={19} /></Button>
+				<!--				<Button-->
+				<!--					on:clickOrSelect={() =>-->
+				<!--						openEpisodeMediaManager(Number(id), Number(season), Number(episode))}-->
+				<!--					>Manage Media <File slot="icon" size={19} /></Button-->
+				<!--				>-->
+				{#await sonarrFiles then files}
+					{#if files?.length}
+						<Button on:clickOrSelect={() => createConfirmDeleteFiles(files)}
+							>Delete Files <Trash slot="icon" size={19} /></Button
+						>
+					{/if}
+				{/await}
+
+				{#if PLATFORM_WEB}
+					<Button>
+						Open In TMDB
+						<ExternalLink size={19} slot="icon-after" />
+					</Button>
+					<Button>
+						Open In Jellyfin
+						<ExternalLink size={19} slot="icon-after" />
+					</Button>
+				{/if}
 			</Container>
 		</Container>
 	{/await}

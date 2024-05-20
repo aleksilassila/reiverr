@@ -5,25 +5,33 @@
 	import AnimatedSelection from './AnimateScale.svelte';
 	import { createEventDispatcher } from 'svelte';
 
+	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
+
 	export let disabled: boolean = false;
 	export let focusOnMount: boolean = false;
 	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
-
+	export let confirmDanger = false;
 	export let action: (() => Promise<any>) | null = null;
+
 	let actionIsFetching = false;
 	$: _disabled = disabled || actionIsFetching;
-
+	let armed = false;
 	let hasFocus: Readable<boolean>;
-
-	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
+	$: if (!$hasFocus && armed) armed = false;
 
 	function handleClickOrSelect() {
+		if (confirmDanger && !armed) {
+			armed = true;
+			return;
+		}
+
 		if (action) {
 			actionIsFetching = true;
 			action().then(() => (actionIsFetching = false));
 		}
 
 		dispatch('clickOrSelect');
+		armed = false;
 	}
 </script>
 
@@ -38,6 +46,7 @@
 				'selectable px-6': type === 'primary' || type === 'primary-dark',
 				'border-2 p-1 hover:border-primary-500': type === 'secondary',
 				'border-primary-500': type === 'secondary' && $hasFocus,
+				'!border-red-500': confirmDanger && armed,
 				'cursor-pointer': !_disabled,
 				'cursor-not-allowed pointer-events-none opacity-40': _disabled
 			},
@@ -55,7 +64,8 @@
 				'border-2 border-transparent h-full w-full rounded-md flex items-center px-6':
 					type === 'secondary',
 				'bg-primary-500 text-secondary-950': type === 'secondary' && $hasFocus,
-				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary'
+				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary',
+				'!bg-red-500': confirmDanger && armed
 			})}
 		>
 			<div class="flex-1 text-center text-nowrap flex items-center justify-center">

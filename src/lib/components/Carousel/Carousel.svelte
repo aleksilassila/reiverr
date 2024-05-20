@@ -43,14 +43,20 @@
 		>
 			<IconButton
 				on:click={() => {
-					carousel?.scrollTo({ left: scrollX - carousel?.clientWidth * 0.8, behavior: 'smooth' });
+					carousel?.scrollTo({
+						left: scrollX - (carousel?.clientWidth - 2 * 128 + 32),
+						behavior: 'smooth'
+					});
 				}}
 			>
 				<ChevronLeft size={20} />
 			</IconButton>
 			<IconButton
 				on:click={() => {
-					carousel?.scrollTo({ left: scrollX + carousel?.clientWidth * 0.8, behavior: 'smooth' });
+					carousel?.scrollTo({
+						left: scrollX + (carousel?.clientWidth - 2 * 128) + 32,
+						behavior: 'smooth'
+					});
 				}}
 			>
 				<ChevronRight size={20} />

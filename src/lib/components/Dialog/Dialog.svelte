@@ -2,14 +2,20 @@
 	import Modal from '../Modal/Modal.svelte';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
+	import { modalStack } from '../Modal/modal.store';
 
 	export let size: 'sm' | 'full' = 'sm';
+
+	function handleClose() {
+		modalStack.closeTopmost();
+	}
 </script>
 
 <Modal on:back>
 	<div
 		class="h-full flex items-center justify-center bg-primary-900/75 py-20 px-32"
 		transition:fade={{ duration: 100 }}
+		on:click|self={() => handleClose()}
 	>
 		<div
 			class={classNames(

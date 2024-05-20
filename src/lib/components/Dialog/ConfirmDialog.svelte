@@ -4,9 +4,12 @@
 	import { modalStack } from '../Modal/modal.store';
 	import Dialog from './Dialog.svelte';
 
+	type ActionFn = (() => Promise<any>) | (() => any);
+
 	export let modalId: symbol;
 
-	type ActionFn = (() => Promise<any>) | (() => any);
+	export let header: string;
+	export let body: string;
 	export let confirm: ActionFn;
 	export let cancel: ActionFn = () => {};
 
@@ -28,10 +31,10 @@
 
 <Dialog>
 	<div class="header2 mb-4">
-		<slot name="header" />
+		{header}
 	</div>
 	<div class="font-medium text-secondary-300 mb-8">
-		<slot />
+		{body}
 	</div>
 	<Container class="flex flex-col space-y-4">
 		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(confirm)}>

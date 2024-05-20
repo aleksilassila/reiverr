@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { sonarrApi, type SonarrRelease, type SonarrSeries } from '../../apis/sonarr/sonarr-api';
-	import MMMainLayout from './MMMainLayout.svelte';
+	import { sonarrApi, type SonarrEpisode, type SonarrSeries } from '../../apis/sonarr/sonarr-api';
 	import MMReleasesTab from './Releases/MMReleasesTab.svelte';
 	import type { GrabReleaseFn } from './MediaManagerModal';
 	import { onDestroy } from 'svelte';
@@ -8,13 +7,13 @@
 	import type { Release } from '../../apis/combined-types';
 	import MMSeasonSelectTab from './MMSeasonSelectTab.svelte';
 
-	export let season: number | null = null;
-	export let sonarrItem: SonarrSeries;
+	export let season: number | undefined = undefined;
+	export let sonarrItem: SonarrSeries | SonarrEpisode;
 	export let modalId: symbol;
 	export let hidden: boolean;
 	export let onGrabRelease: (release: Release) => void = () => {};
 
-	$: releases = season !== null ? getReleases(season) : null;
+	$: releases = getReleases(season);
 
 	let refreshDownloadsTimeout: ReturnType<typeof setTimeout>;
 
@@ -24,14 +23,9 @@
 			return r;
 		});
 
-	function getReleases(season: number) {
-		return sonarrApi.getSeasonReleases(sonarrItem.id || -1, season);
-	}
-
-	function getDownloads(season: number) {
-		return sonarrApi
-			.getDownloadsBySeriesId(sonarrItem.id || -1)
-			.then((ds) => ds.filter((d) => d.episode?.seasonNumber === season));
+	function getReleases(season?: number) {
+		if (season) return sonarrApi.getSeasonReleases(sonarrItem.id || -1, season);
+		else return sonarrApi.getEpisodeReleases(sonarrItem.id || -1);
 	}
 
 	onDestroy(() => {
@@ -40,12 +34,18 @@
 </script>
 
 <Dialog size="full" {modalId} {hidden}>
-	{#if !season}
+	{#if 'seasons' in sonarrItem && !season}
 		<MMSeasonSelectTab />
-	{:else if releases}
+	{:else}
 		<MMReleasesTab {releases} {grabRelease}>
 			<h1 slot="title">{sonarrItem?.title}</h1>
-			<h2 slot="subtitle">Season {season} Releases</h2>
+			<h2 slot="subtitle">
+				{#if season}
+					Season {season} Releases
+				{:else if 'episodeNumber' in sonarrItem}
+					Episode {sonarrItem.episodeNumber} Releases
+				{/if}
+			</h2>
 		</MMReleasesTab>
 	{/if}
 </Dialog>
