@@ -12,6 +12,7 @@
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { get } from 'svelte/store';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
+	import Modal from '../Modal/Modal.svelte';
 
 	type MediaLanguageStore = {
 		subtitles?: string;
@@ -196,13 +197,7 @@
 	});
 </script>
 
-<Container
-	focusOnMount
-	trapFocus
-	class={classNames('fixed inset-0 bg-black overflow-auto', {
-		'opacity-0': hidden
-	})}
->
+<Modal class="bg-black">
 	<VideoPlayer
 		{playbackInfo}
 		modalHidden={$modalStackTop?.id !== modalId}
@@ -213,4 +208,4 @@
 		bind:video
 		bind:subtitleInfo
 	/>
-</Container>
+</Modal>

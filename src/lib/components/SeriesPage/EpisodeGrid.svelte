@@ -10,7 +10,7 @@
 	import { useDependantRequest } from '../../stores/data.store';
 	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
 	import TmdbEpisodeCard from '../EpisodeCard/TmdbEpisodeCard.svelte';
-	import { scrollIntoView, Selectable, useRegistrars } from '../../selectable';
+	import { scrollIntoView, Selectable } from '../../selectable';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import CardGrid from '../CardGrid.svelte';
 	import UICarousel from '../Carousel/UICarousel.svelte';
@@ -18,11 +18,7 @@
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
-	import { createModal, modalStack, openSeasonMediaManager } from '../Modal/modal.store';
 	import { navigate } from '../StackRouter/StackRouter';
-	import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
-	import type { SonarrSeries } from '../../apis/sonarr/sonarr-api';
-	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;
@@ -101,8 +97,9 @@
 			>
 				<div
 					class={classNames(
-						'px-3 py-1 cursor-pointer whitespace-nowrap text-xl tracking-wide font-medium rounded-lg',
-						'hover:tracking-wide hover:text-white',
+						'font-semibold text-2xl',
+						'px-3 py-1 cursor-pointer whitespace-nowrap rounded-lg',
+						'hover:text-white',
 						{
 							'bg-primary-500 text-black': hasFocus,
 							//'bg-stone-800/50': hasFocus,

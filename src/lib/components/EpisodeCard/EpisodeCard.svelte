@@ -15,12 +15,34 @@
 	$: isOnDeck = handlePlay !== undefined;
 
 	let hasFocus: Readable<boolean>;
+
+	let dimensions = getDimensions(window.innerWidth);
+
+	function getDimensions(viewportWidth: number) {
+		const minWidth = 240;
+
+		const margin = 128;
+		const gap = 32;
+
+		const cols = Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap));
+		const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
+
+		const newWidth = minWidth * scale;
+		const newHeight = (3 / 2) * newWidth;
+
+		return {
+			width: newWidth,
+			height: newHeight
+		};
+	}
 </script>
+
+<svelte:window on:resize={(e) => (dimensions = getDimensions(e.currentTarget.innerWidth))} />
 
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'w-full h-64',
+			'w-full h-72',
 			'flex flex-col shrink-0',
 			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable transition-opacity'
 		)}
@@ -33,15 +55,15 @@
 	>
 		<div class="flex-1 flex flex-col z-10">
 			<div class="flex-1 flex flex-col">
-				{#if isWatched}
-					<div class="rounded-full p-1 bg-primary-500 self-start">
-						<Check class="text-secondary-800" size={19} />
-					</div>
-				{/if}
+				<!--{#if isWatched}-->
+				<!--	<div class="rounded-full p-1 bg-primary-500 self-start">-->
+				<!--		<Check class="text-secondary-800" size={19} />-->
+				<!--	</div>-->
+				<!--{/if}-->
 			</div>
 			<div class="flex-1 flex flex-col justify-end">
-				<h2 class="text-zinc-300 font-medium">Episode {episodeNumber}</h2>
-				<h1 class="text-zinc-100 text-lg font-medium line-clamp-2">{episodeName}</h1>
+				<!--				<h2 class="text-zinc-300 font-medium">Episode {episodeNumber}</h2>-->
+				<!--				<h1 class="text-zinc-100 text-lg font-medium line-clamp-2">{episodeName}</h1>-->
 				<!-- Progress Bar -->
 				{#if playbackProgress !== 0}
 					<div class="relative bg-zinc-300/50 rounded-full h-1 overflow-hidden mt-2">
@@ -60,8 +82,9 @@
 		<!-- Background Overlay / Tint -->
 		<div
 			class={classNames('absolute inset-0', {
-				'bg-gradient-to-t from-secondary-900/75 from-10% to-40% ': true,
-				'to-secondary-900/25': !isOnDeck && !$hasFocus
+				// 'bg-gradient-to-t from-secondary-900/75 from-10% to-40%': isOnDeck,
+				'bg-primary-950/50': !isOnDeck
+				// 'to-secondary-900/25': !isOnDeck && $hasFocus
 
 				// isOnDeck || $hasFocus,
 				// 'bg-gradient-to-t from-secondary-900/75 from-10% to-40% to-secondary-900/25':
@@ -70,7 +93,7 @@
 		/>
 		<div
 			class={classNames(
-				'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'
+				'opacity-0 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'
 			)}
 		>
 			{#if handlePlay}
@@ -98,4 +121,20 @@
 			{/if}
 		</div>
 	</Container>
+	<div class="mt-2 flex items-center justify-between">
+		<div class="">
+			<div class="flex items-center space-x-2">
+				{#if isWatched}
+					<div class="rounded-full p-0.5 bg-primary-500">
+						<Check class="text-secondary-800" size={15} />
+					</div>
+				{/if}
+				<h1 class="text-secondary-100 text-lg font-medium line-clamp-2">{episodeName}</h1>
+			</div>
+			<h2 class="text-secondary-300 font-medium">Episode {episodeNumber}</h2>
+		</div>
+		<div class="self-start">
+			<div class="text-secondary-300 font-medium">58 Min</div>
+		</div>
+	</div>
 </AnimateScale>
