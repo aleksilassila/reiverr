@@ -11,13 +11,15 @@
 	import { formatDateToYearMonthDay } from '../utils';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
+	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
 
 	const continueWatching = jellyfinApi.getContinueWatchingSeries();
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
 
 	const nowStreaming = getNowStreaming();
 	const upcomingSeries = fetchUpcomingSeries();
-	const recommendedSeries = tmdbApi.getRecommendedSeries();
+	const popular = tmdbApi.getPopularSeries();
+	const recommendations = tmdbApi.getRecommendedSeries();
 
 	function getNowStreaming() {
 		return TmdbApi.getClient()
@@ -54,11 +56,9 @@
 <Container focusOnMount class="flex flex-col">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
 		<HeroShowcase
-			items={tmdbApi.getPopularSeries().then(getShowcasePropsFromTmdbSeries)}
+			items={recommendations.then(({ top10 }) => getShowcasePropsFromTmdbSeries(top10))}
 			on:enter={scrollIntoView({ top: 0 })}
-			on:select={({ detail }) => {
-				if (detail) navigate(`/series/:id`, { params: { id: detail?.id.toString() } });
-			}}
+			on:select={({ detail }) => navigate(`/series/${detail?.id}`)}
 		/>
 	</div>
 	<div class="my-16 space-y-8">
@@ -84,11 +84,22 @@
 			{/if}
 		{/await}
 
-		{#await recommendedSeries then recommendedSeries}
-			{#if recommendedSeries?.length}
+		{#await popular then popular}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Popular</span>
+				{#each popular as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/await}
+
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[0]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">Recommended</span>
-					{#each recommendedSeries as item}
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
@@ -104,6 +115,19 @@
 			</Carousel>
 		{/await}
 
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[1]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
+			{/if}
+		{/await}
+
 		{#await upcomingSeries then upcomingSeries}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Upcoming Series</span>
@@ -112,5 +136,64 @@
 				{/each}
 			</Carousel>
 		{/await}
+
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[2]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
+			{/if}
+		{/await}
+
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[3]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
+			{/if}
+		{/await}
+
+		<!-- NETWORKS -->
+
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[4]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
+			{/if}
+		{/await}
+
+		{#await recommendations then { genreIdToMovie, topGenres }}
+			{@const genre = topGenres[5]}
+			{@const genreItems = genreIdToMovie[genre || '']}
+			{#if genreItems?.length}
+				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					{#each genreItems || [] as item}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				</Carousel>
+			{/if}
+		{/await}
+
+		<!-- GENRES -->
+		<!-- TOP RATED -->
+		<!-- TRENDING PEOPLE -->
+		<!-- Watchlist -->
 	</div>
 </Container>

@@ -12,8 +12,14 @@ const CACHE_FOUR_DAYS = 'max-age=345600';
 
 export type TmdbMovie2 =
 	operations['movie-details']['responses']['200']['content']['application/json'];
+export type TmdbMovieSmall = NonNullable<
+	operations['discover-movie']['responses']['200']['content']['application/json']['results']
+>[0];
 export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
+export type TmdbSeriesSmall = NonNullable<
+	operations['discover-tv']['responses']['200']['content']['application/json']['results']
+>[0];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
 export type TmdbSeasonEpisode = NonNullable<TmdbSeason['episodes']>[0];
@@ -215,42 +221,161 @@ export class TmdbApi implements Api<paths> {
 
 	// USER
 
-	getRecommendedMovies = async (): Promise<TmdbMovie2[]> => {
+	getRecommendedMovies = async (): Promise<{
+		top10: TmdbMovieSmall[];
+		top20: TmdbMovieSmall[];
+		genreIdToMovie: Record<number, TmdbMovieSmall[]>;
+		action: TmdbMovieSmall[];
+		adventure: TmdbMovieSmall[];
+		drama: TmdbMovieSmall[];
+		comedy: TmdbMovieSmall[];
+		topRated: TmdbMovieSmall[];
+		mostPopular: TmdbMovieSmall[];
+	}> => {
 		const userId = this.getUserId();
-		if (!userId) return [];
+		if (!userId)
+			return {
+				top10: [],
+				top20: [],
+				genreIdToMovie: {},
+				action: [],
+				adventure: [],
+				drama: [],
+				comedy: [],
+				topRated: [],
+				mostPopular: []
+			};
 
-		return (
-			this.getClient()
-				// @ts-ignore
-				?.GET('/4/account/{account_object_id}/movie/recommendations', {
-					params: {
-						path: {
-							account_object_id: userId
+		const top100: TmdbMovieSmall[] = await Promise.all(
+			[...Array(5).keys()].map((i) =>
+				this.getClient()
+					// @ts-ignore
+					?.GET('/4/account/{account_object_id}/movie/recommendations', {
+						params: {
+							path: {
+								account_object_id: userId
+							},
+							query: {
+								page: i + 1
+							}
 						}
-					}
-				})
-				.then((res: any) => res.data?.results || [])
-		);
+					})
+					.then((res: any) => res.data?.results || [])
+			)
+		).then((r) => r.flat());
+
+		const top10 = top100.slice(0, 10);
+		const top20 = top100.slice(0, 20);
+
+		const genreIdToMovie: Record<number, TmdbMovieSmall[]> = {};
+
+		top100.forEach((m) => {
+			m.genre_ids?.forEach((genreId) => {
+				if (!genreIdToMovie[genreId]) genreIdToMovie[genreId] = [];
+				if (top10.includes(m)) return;
+				const l = genreIdToMovie[genreId]?.length || 0;
+				genreIdToMovie[genreId]?.splice(Math.floor(Math.random() * (l + 1)), 0, m);
+			});
+		});
+
+		const topRated = top100
+			.slice()
+			.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+			.filter((m) => !top20.includes(m));
+
+		const mostPopular = top100
+			.slice()
+			.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+			.filter((m) => !top20.includes(m));
+
+		return {
+			top10,
+			top20,
+			genreIdToMovie,
+			action: (genreIdToMovie[28] || []).filter((m) => !top10.includes(m)),
+			adventure: (genreIdToMovie[12] || []).filter((m) => !top10.includes(m)),
+			drama: (genreIdToMovie[18] || []).filter((m) => !top10.includes(m)),
+			comedy: (genreIdToMovie[35] || []).filter((m) => !top10.includes(m)),
+			topRated,
+			mostPopular
+		};
 	};
 
-	getRecommendedSeries = async (): Promise<TmdbSeries2[]> => {
+	getRecommendedSeries = async (): Promise<{
+		top10: TmdbSeriesSmall[];
+		top20: TmdbSeriesSmall[];
+		genreIdToMovie: Record<string, TmdbSeriesSmall[]>;
+		topGenres: string[];
+		topRated: TmdbSeriesSmall[];
+		mostPopular: TmdbSeriesSmall[];
+	}> => {
 		const userId = this.getUserId();
 		console.log('userId recommended series', userId);
 
-		if (!userId) return [];
+		if (!userId)
+			return {
+				top10: [],
+				top20: [],
+				genreIdToMovie: {},
+				topGenres: [],
+				topRated: [],
+				mostPopular: []
+			};
 
-		return (
-			this.getClient()
-				// @ts-ignore
-				?.GET('/4/account/{account_object_id}/tv/recommendations', {
-					params: {
-						path: {
-							account_object_id: userId
+		const top100: TmdbSeriesSmall[] = await Promise.all(
+			[...Array(5).keys()].map((i) =>
+				this.getClient()
+					// @ts-ignore
+					?.GET('/4/account/{account_object_id}/tv/recommendations', {
+						params: {
+							path: {
+								account_object_id: userId
+							},
+							query: {
+								page: i + 1
+							}
 						}
-					}
-				})
-				.then((res: any) => res.data?.results || [])
+					})
+					.then((res: any) => res.data?.results || [])
+			)
+		).then((r) => r.flat());
+
+		const top10 = top100.slice(0, 10);
+		const top20 = top100.slice(0, 20);
+
+		const genreIdToMovie: Record<string, TmdbMovieSmall[]> = {};
+
+		top100.forEach((m) => {
+			m.genre_ids?.forEach((genreId) => {
+				if (!genreIdToMovie[genreId]) genreIdToMovie[genreId] = [];
+				if (top10.includes(m)) return;
+				const l = genreIdToMovie[genreId]?.length || 0;
+				genreIdToMovie[genreId]?.splice(Math.floor(Math.random() * (l + 1)), 0, m);
+			});
+		});
+
+		const topGenres = Object.keys(genreIdToMovie).sort(
+			(a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0)
 		);
+
+		const topRated = top100
+			.slice()
+			.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+			.filter((m) => !top10.includes(m));
+
+		const mostPopular = top100
+			.slice()
+			.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+			.filter((m) => !top10.includes(m));
+
+		return {
+			top10,
+			top20,
+			genreIdToMovie,
+			topGenres,
+			topRated,
+			mostPopular
+		};
 	};
 }
 
