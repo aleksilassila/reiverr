@@ -101,7 +101,9 @@
 				});
 			} else if (tmdbSeries) {
 				createModal(MMAddToSonarrDialog, {
-					series: tmdbSeries,
+					title: tmdbSeries.name || '',
+					tmdbId: tmdbSeries.id || -1,
+					backdropUri: tmdbSeries.backdrop_path || '',
 					onComplete: handleAddedToSonarr
 				});
 			} else {
