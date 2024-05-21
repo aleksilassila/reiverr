@@ -1,10 +1,10 @@
 import { browser } from '$app/environment';
-import { TMDB_API_KEY } from '$lib/constants';
-import { getIncludedLanguagesQuery, settings } from '$lib/stores/settings.store';
-import { formatDateToYearMonthDay } from '$lib/utils';
+import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '$lib/constants';
+import { settings } from '$lib/stores/settings.store';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
+import type { TitleType } from '$lib/types';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -15,6 +15,15 @@ export type TmdbSeries2 =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeason =
 	operations['tv-season-details']['responses']['200']['content']['application/json'];
+export type TmdbPerson =
+	operations['person-details']['responses']['200']['content']['application/json'];
+
+export interface TmdbPersonFull extends TmdbPerson {
+	images: operations['person-images']['responses']['200']['content']['application/json'];
+	movie_credits: operations['person-tv-credits']['responses']['200']['content']['application/json'];
+	tv_credits: operations['person-movie-credits']['responses']['200']['content']['application/json'];
+	external_ids: operations['person-external-ids']['responses']['200']['content']['application/json'];
+}
 
 export interface TmdbMovieFull2 extends TmdbMovie2 {
 	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
@@ -70,16 +79,16 @@ export const getTmdbMovie = async (tmdbId: number) =>
 			},
 			query: {
 				append_to_response: 'videos,credits,external_ids,images',
-				...({ include_image_language: get(settings).language + ',en,null' } as any)
+				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
 		}
 	}).then((res) => res.data as TmdbMovieFull2 | undefined);
 
-export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
+export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	TmdbApiOpen.get('/3/find/{external_id}', {
 		params: {
 			path: {
-				external_id: String(tvdbId)
+				external_id: tvdbId
 			},
 			query: {
 				external_source: 'tvdb_id'
@@ -91,7 +100,11 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: number) =>
 	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
-	getTmdbSeriesFromTvdbId(tvdbId).then((res: any) => res?.id as number | undefined);
+	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
+		const id = res?.id as number | undefined;
+		if (!id) return Promise.reject();
+		return id;
+	});
 
 export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
 	await TmdbApiOpen.get('/3/tv/{series_id}', {
@@ -101,7 +114,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 			},
 			query: {
 				append_to_response: 'videos,aggregate_credits,external_ids,images',
-				...({ include_image_language: get(settings).language + ',en,null' } as any)
+				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
 		},
 		headers: {
@@ -122,10 +135,8 @@ export const getTmdbSeriesSeason = async (
 		}
 	}).then((res) => res.data);
 
-export const getTmdbSeriesSeasons = async (tmdbId: number, seasons: number) =>
-	Promise.all([...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1))).then(
-		(r) => r.filter((s) => s) as TmdbSeason[]
-	);
+export const getTmdbSeriesSeasons = (tmdbId: number, seasons: number) =>
+	[...Array(seasons).keys()].map((i) => getTmdbSeriesSeason(tmdbId, i + 1));
 
 export const getTmdbSeriesImages = async (tmdbId: number) =>
 	TmdbApiOpen.get('/3/tv/{series_id}/images', {
@@ -158,7 +169,7 @@ export const getTmdbSeriesBackdrop = async (tmdbId: number) =>
 			.then(
 				(r) =>
 					(
-						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
 						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
 						r?.backdrops?.find((b) => b.iso_639_1) ||
 						r?.backdrops?.[0]
@@ -173,7 +184,7 @@ export const getTmdbMovieBackdrop = async (tmdbId: number) =>
 			.then(
 				(r) =>
 					(
-						r?.backdrops?.find((b) => b.iso_639_1 === get(settings).language) ||
+						r?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
 						r?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
 						r?.backdrops?.find((b) => b.iso_639_1) ||
 						r?.backdrops?.[0]
@@ -193,8 +204,8 @@ export const getTmdbPopularMovies = () =>
 	TmdbApiOpen.get('/3/movie/popular', {
 		params: {
 			query: {
-				language: get(settings).language,
-				region: get(settings).region
+				language: get(settings)?.language,
+				region: get(settings)?.discover.region
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -203,19 +214,7 @@ export const getTmdbPopularSeries = () =>
 	TmdbApiOpen.get('/3/tv/popular', {
 		params: {
 			query: {
-				language: get(settings).language
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTmdbTrendingAll = () =>
-	TmdbApiOpen.get('/3/trending/all/{time_window}', {
-		params: {
-			path: {
-				time_window: 'day'
-			},
-			query: {
-				language: get(settings).language
+				language: get(settings)?.language
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -229,44 +228,11 @@ export const getTmdbNetworkSeries = (networkId: number) =>
 		}
 	}).then((res) => res.data?.results || []);
 
-export const getTmdbDigitalReleases = () =>
-	TmdbApiOpen.get('/3/discover/movie', {
-		params: {
-			query: {
-				with_release_type: 4,
-				sort_by: 'popularity.desc',
-				'release_date.lte': formatDateToYearMonthDay(new Date()),
-				...getIncludedLanguagesQuery()
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTmdbUpcomingMovies = () =>
-	TmdbApiOpen.get('/3/discover/movie', {
-		params: {
-			query: {
-				'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc'
-				// ...getIncludedLanguagesQuery()
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
-export const getTrendingActors = () =>
-	TmdbApiOpen.get('/3/trending/person/{time_window}', {
-		params: {
-			path: {
-				time_window: 'week'
-			}
-		}
-	}).then((res) => res.data?.results || []);
-
 export const getTmdbGenreMovies = (genreId: number) =>
 	TmdbApiOpen.get('/3/discover/movie', {
 		params: {
 			query: {
-				with_genres: String(genreId),
-				...getIncludedLanguagesQuery()
+				with_genres: String(genreId)
 			}
 		}
 	}).then((res) => res.data?.results || []);
@@ -324,6 +290,58 @@ export const searchTmdbTitles = (query: string) =>
 			}
 		}
 	}).then((res) => res.data?.results || []);
+
+export const getTmdbItemBackdrop = (item: {
+	images: { backdrops: { file_path: string; iso_639_1: string }[] };
+}) =>
+	(
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === get(settings)?.language) ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1 === 'en') ||
+		item?.images?.backdrops?.find((b) => b.iso_639_1) ||
+		item?.images?.backdrops?.[0]
+	)?.file_path;
+
+export const getPosterProps = async (
+	item: {
+		name?: string;
+		title?: string;
+		id?: number;
+		vote_average?: number;
+		number_of_seasons?: number;
+		first_air_date?: string;
+		poster_path?: string;
+	},
+	type: TitleType | undefined = undefined
+) => {
+	const backdropUri = item.poster_path;
+	const t =
+		type ||
+		(item?.number_of_seasons === undefined && item?.first_air_date === undefined
+			? 'movie'
+			: 'series');
+	return {
+		tmdbId: item.id || 0,
+		title: item.title || item.name || '',
+		// subtitle: item.subtitle || '',
+		rating: item.vote_average || undefined,
+		size: 'md',
+		backdropUrl: backdropUri ? TMDB_BACKDROP_SMALL + backdropUri : '',
+		type: t,
+		orientation: 'portrait'
+	} as const;
+};
+
+export const getTmdbPerson = async (person_id: number) =>
+	TmdbApiOpen.get('/3/person/{person_id}', {
+		params: {
+			path: {
+				person_id: person_id
+			},
+			query: {
+				append_to_response: 'images,movie_credits,tv_credits,external_ids'
+			}
+		}
+	}).then((res) => res.data as TmdbPersonFull);
 
 export const TMDB_MOVIE_GENRES = [
 	{

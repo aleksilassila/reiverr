@@ -1,6 +1,6 @@
-import { library } from '$lib/stores/library.store';
+import { jellyfinItemsStore } from '$lib/stores/data.store';
 import { writable } from 'svelte/store';
-import { modalStack } from '../Modal/Modal';
+import { modalStack } from '../../stores/modal.store';
 import VideoPlayer from './VideoPlayer.svelte';
 
 const initialValue = { visible: false, jellyfinId: '' };
@@ -17,7 +17,7 @@ function createPlayerState() {
 		},
 		close: () => {
 			store.set({ visible: false, jellyfinId: '' });
-			library.refresh();
+			jellyfinItemsStore.refresh();
 		}
 	};
 }

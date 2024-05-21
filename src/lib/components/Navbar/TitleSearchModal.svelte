@@ -3,11 +3,12 @@
 	import { searchTmdbTitles } from '$lib/apis/tmdb/tmdbApi';
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
-	import { modalStack } from '../Modal/Modal';
+	import { modalStack } from '../../stores/modal.store';
 	import ModalContent from '../Modal/ModalContainer.svelte';
 	import ModalHeader from '../Modal/ModalHeader.svelte';
 	import { onMount } from 'svelte';
 	import type { TitleType } from '$lib/types';
+	import { _ } from 'svelte-i18n';
 
 	export let modalId: symbol;
 
@@ -75,13 +76,15 @@
 			on:input={handleInput}
 			type="text"
 			class="flex-1 bg-transparent font-light outline-none"
-			placeholder="Search for Movies and Shows..."
+			placeholder={$_('search.placeHolder')}
 		/>
 	</ModalHeader>
 	{#if resultProps === undefined || inputValue === ''}
-		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">No recent searches</div>
+		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">
+			{$_('search.noRecentSearches')}
+		</div>
 	{:else if resultProps?.length === 0 && !fetching}
-		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">No search results</div>
+		<div class="text-sm text-zinc-200 opacity-50 font-light p-4">{$_('search.noResults')}</div>
 	{:else}
 		<div class="py-2">
 			{#each resultProps.slice(0, 5) as result}

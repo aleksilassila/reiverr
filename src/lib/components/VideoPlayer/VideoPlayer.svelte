@@ -1,38 +1,40 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import {
+		delteActiveEncoding as deleteActiveEncoding,
 		getJellyfinItem,
 		getJellyfinPlaybackInfo,
 		reportJellyfinPlaybackProgress,
 		reportJellyfinPlaybackStarted,
-		reportJellyfinPlaybackStopped,
-		delteActiveEncoding as deleteActiveEncoding
+		reportJellyfinPlaybackStopped
 	} from '$lib/apis/jellyfin/jellyfinApi';
-	import { getQualities } from '$lib/apis/jellyfin/qualities';
 	import getDeviceProfile from '$lib/apis/jellyfin/playback-profiles';
+	import { getQualities } from '$lib/apis/jellyfin/qualities';
+	import { settings } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
 	import Hls from 'hls.js';
 	import {
 		Cross2,
-		Play,
-		Pause,
 		EnterFullScreen,
 		ExitFullScreen,
+		Gear,
+		Pause,
+		Play,
 		SpeakerLoud,
 		SpeakerModerate,
-		SpeakerQuiet,
 		SpeakerOff,
-		Gear
+		SpeakerQuiet
 	} from 'radix-icons-svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import IconButton from '../IconButton.svelte';
-	import { playerState } from './VideoPlayer';
-	import { modalStack } from '../Modal/Modal';
-	import { JELLYFIN_BASE_URL } from '$lib/constants';
+	import { fade } from 'svelte/transition';
 	import { contextMenu } from '../ContextMenu/ContextMenu';
-	import Slider from './Slider.svelte';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import SelectableContextMenuItem from '../ContextMenu/SelectableContextMenuItem.svelte';
+	import IconButton from '../IconButton.svelte';
+	import { modalStack } from '../../stores/modal.store';
+	import Slider from './Slider.svelte';
+	import { playerState } from './VideoPlayer';
+	import { linear } from 'svelte/easing';
+	import ContextMenuButton from '../ContextMenu/ContextMenuButton.svelte';
 
 	export let modalId: symbol;
 
@@ -138,7 +140,7 @@
 				}
 
 				video.poster = item?.BackdropImageTags?.length
-					? `${JELLYFIN_BASE_URL}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+					? `${$settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 					: '';
 
 				videoLoaded = false;
@@ -146,7 +148,7 @@
 					if (Hls.isSupported()) {
 						const hls = new Hls();
 
-						hls.loadSource(JELLYFIN_BASE_URL + playbackUri);
+						hls.loadSource($settings.jellyfin.baseUrl + playbackUri);
 						hls.attachMedia(video);
 					} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
 						/*
@@ -154,12 +156,12 @@
 						 * This is not a problem, since HLS is natively supported on iOS. But any other browser
 						 * that does not support MSE will not be able to play the video.
 						 */
-						video.src = JELLYFIN_BASE_URL + playbackUri;
+						video.src = $settings.jellyfin.baseUrl + playbackUri;
 					} else {
 						throw new Error('HLS is not supported');
 					}
 				} else {
-					video.src = JELLYFIN_BASE_URL + playbackUri;
+					video.src = $settings.jellyfin.baseUrl + playbackUri;
 				}
 
 				resolution = item?.Height || 1080;
@@ -326,7 +328,36 @@
 			fullscreen = !!getFullscreenElement?.();
 		});
 	}
+
+	function handleRequestFullscreen() {
+		if (reqFullscreenFunc) {
+			fullscreen = !fullscreen;
+			// @ts-ignore
+		} else if (video?.webkitEnterFullScreen) {
+			// Edge case to allow fullscreen on iPhone
+			// @ts-ignore
+			video.webkitEnterFullScreen();
+		}
+	}
+
+	function handleShortcuts(event: KeyboardEvent) {
+		if (event.key === 'f') {
+			handleRequestFullscreen();
+		} else if (event.key === ' ') {
+			paused = !paused;
+		} else if (event.key === 'ArrowLeft') {
+			video.currentTime -= 10;
+		} else if (event.key === 'ArrowRight') {
+			video.currentTime += 10;
+		} else if (event.key === 'ArrowUp') {
+			volume = Math.min(volume + 0.1, 1);
+		} else if (event.key === 'ArrowDown') {
+			volume = Math.max(volume - 0.1, 0);
+		}
+	}
 </script>
+
+<svelte:window on:keydown={handleShortcuts} />
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
@@ -336,15 +367,16 @@
 			'cursor-none': !uiVisible
 		}
 	)}
+	in:fade|global={{ duration: 300, easing: linear }}
+	out:fade|global={{ duration: 200, easing: linear }}
 >
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
-		class="bg-black w-screen h-screen flex items-center justify-center"
+		class="w-screen h-screen flex items-center justify-center"
 		bind:this={videoWrapper}
 		on:mousemove={() => handleUserInteraction(false)}
 		on:touchend|preventDefault={() => handleUserInteraction(true)}
-		on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
-		on:click={() => (paused = !paused)}
+		in:fade|global={{ duration: 500, delay: 1200, easing: linear }}
 	>
 		<!-- svelte-ignore a11y-media-has-caption -->
 		<video
@@ -365,6 +397,8 @@
 			bind:muted={mute}
 			class="sm:w-full sm:h-full"
 			playsinline={true}
+			on:dblclick|preventDefault={() => (fullscreen = !fullscreen)}
+			on:click={() => (paused = !paused)}
 		/>
 
 		{#if uiVisible}
@@ -403,29 +437,22 @@
 						</IconButton>
 
 						<div class="flex items-center space-x-3">
-							<div class="relative">
-								<ContextMenu
-									heading="Quality"
-									position="absolute"
-									bottom={true}
-									id={qualityContextMenuId}
-								>
-									<svelte:fragment slot="menu">
-										{#each getQualities(resolution) as quality}
-											<SelectableContextMenuItem
-												selected={quality.maxBitrate === currentBitrate}
-												on:click={() => handleSelectQuality(quality.maxBitrate)}
-											>
-												{quality.name}
-											</SelectableContextMenuItem>
-										{/each}
-									</svelte:fragment>
-									<IconButton on:click={handleQualityToggleVisibility}>
-										<Gear size={20} />
-									</IconButton>
-								</ContextMenu>
-							</div>
+							<ContextMenuButton heading="Quality">
+								<svelte:fragment slot="menu">
+									{#each getQualities(resolution) as quality}
+										<SelectableContextMenuItem
+											selected={quality.maxBitrate === currentBitrate}
+											on:click={() => handleSelectQuality(quality.maxBitrate)}
+										>
+											{quality.name}
+										</SelectableContextMenuItem>
+									{/each}
+								</svelte:fragment>
 
+								<IconButton>
+									<Gear size={20} />
+								</IconButton>
+							</ContextMenuButton>
 							<IconButton
 								on:click={() => {
 									mute = !mute;
@@ -446,20 +473,13 @@
 								<Slider bind:primaryValue={volume} secondaryValue={0} max={1} />
 							</div>
 
-							{#if reqFullscreenFunc}
-								<IconButton on:click={() => (fullscreen = !fullscreen)}>
-									{#if fullscreen}
-										<ExitFullScreen size={20} />
-									{:else if !fullscreen && exitFullscreen}
-										<EnterFullScreen size={20} />
-									{/if}
-								</IconButton>
-								<!-- Edge case to allow fullscreen on iPhone -->
-							{:else if video?.webkitEnterFullScreen}
-								<IconButton on:click={() => video.webkitEnterFullScreen()}>
+							<IconButton on:click={handleRequestFullscreen}>
+								{#if fullscreen}
+									<ExitFullScreen size={20} />
+								{:else if !fullscreen && exitFullscreen}
 									<EnterFullScreen size={20} />
-								</IconButton>
-							{/if}
+								{/if}
+							</IconButton>
 						</div>
 					</div>
 				</div>

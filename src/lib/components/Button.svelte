@@ -19,7 +19,7 @@
 			'bg-white text-zinc-900 font-extrabold backdrop-blur-lg rounded-xl': type === 'primary',
 			'hover:bg-amber-400 focus-within:bg-amber-400 hover:border-amber-400 focus-within:border-amber-400':
 				type === 'primary' && !disabled,
-			'text-zinc-200 bg-zinc-400 bg-opacity-20 backdrop-blur-lg rounded-xl': type === 'secondary',
+			'text-zinc-200 bg-zinc-600 bg-opacity-20 backdrop-blur-lg rounded-xl': type === 'secondary',
 			'focus-visible:bg-zinc-200 focus-visible:text-zinc-800 hover:bg-zinc-200 hover:text-zinc-800':
 				(type === 'secondary' || type === 'tertiary') && !disabled,
 			'rounded-full': type === 'tertiary',

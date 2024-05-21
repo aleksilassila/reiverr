@@ -1,0 +1,102 @@
+{
+	"appName": "Reiverr",
+	"setupRequiredTitle": "Welcome to",
+	"setupRequiredDescription": "It seems like the application is missing some environment variables that are necessary for the application to function. Please provide the following environment variables:",
+	"navbar": {
+		"home": "Home",
+		"discover": "Discover",
+		"library": "Library",
+		"sources": "Sources",
+		"settings": "Settings"
+	},
+	"search": {
+		"placeHolder": "Search for Movies and TV Shows",
+		"noRecentSearches": "No recent searches",
+		"noResults": "No search results"
+	},
+	"discover": {
+		"trending": "Trending",
+		"popularPeople": "Popular People",
+		"upcomingMovies": "Upcoming Movies",
+		"upcomingSeries": "Upcoming Series",
+		"genres": "Genres",
+		"newDigitalReleases": "New Digital Releases",
+		"streamingNow": "Streaming Now",
+		"TVNetworks": "TV Networks"
+	},
+	"library": {
+		"missingConfiguration": "Configure Radarr, Sonarr and Jellyfin to watch and manage your library",
+		"available": "Available",
+		"watched": "Watched",
+		"unavailable": "Unavailable",
+		"sort": {
+			"byTitle": "By Title"
+		},
+		"content": {
+			"movie": "Movie",
+			"show": "Show",
+			"requestContent": "Request",
+			"directedBy": "Directed By",
+			"releaseDate": "Release Date",
+			"budget": "Budget",
+			"status": "Status",
+			"runtime": "Runtime",
+			"castAndCrew": "Cast & Crew",
+			"recommendations": "Recommendations",
+			"similarTitles": "Similar Titles"
+		}
+	},
+	"sources": {},
+	"titleShowcase": {
+		"details": "Details",
+		"watchTrailer": "Watch Trailer",
+		"releaseDate": "Release Date",
+		"directedBy": "Directed By"
+	},
+	"settings": {
+		"navbar": {
+			"settings": "Configuration",
+			"general": "General",
+			"integrations": "Integrations"
+		},
+		"general": {
+			"userInterface": {
+				"userInterface": "User Interface",
+				"language": "Language",
+				"autoplayTrailers": "Autoplay Trailers",
+				"animationDuration": "Animation Duration"
+			},
+			"discovery": {
+				"discovery": "Discovery",
+				"none": "None",
+				"region": "Region",
+				"excludeLibraryItemsFromDiscovery": "Exclude library items from Discovery",
+				"includedLanguages": "Included languages",
+				"includedLanguagesDescription": "Filter results based on spoken language. Takes ISO 639-1 language codes separated with commas. Leave empty to disable."
+			}
+		},
+		"integrations": {
+			"integrations": "Integrations",
+			"integrationsNote": "Note: Base urls must be accessible from the browser, meaning that internal docker addresses won't work, for example. API Keys <span class='font-medium underline'>will be exposed</span> to the browser.",
+			"baseUrl": "Base URL",
+			"apiKey": "API Key",
+			"testConnection": "Test Connection",
+			"status": {
+				"connected": "Connected",
+				"disconnected": "Disconnected"
+			},
+			"options": {
+				"options": "Options",
+				"rootFolder": "Root Folder",
+				"qualityProfile": "Quality Profile",
+				"languageProfile": "Language Profile",
+				"jellyfinUser": "Jellyfin User"
+			}
+		},
+		"misc": {
+			"saveChanges": "Save Changes",
+			"resetToDefaults": "Reset to Defaults ",
+			"changelog": "Changelog"
+		}
+	}
+}

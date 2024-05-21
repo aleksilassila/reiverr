@@ -11,6 +11,10 @@
 		"strict": true,
 		"target": "ES2022",
 		"module": "ES2022",
+		"lib": ["es6"],
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"strictPropertyInitialization": false
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//

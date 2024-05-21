@@ -10,6 +10,15 @@ export default {
 			colors: {
 				darken: '#07050166',
 				lighten: '#fde68a20'
+			},
+			keyframes: {
+				timer: {
+					'0%': { width: '0%' },
+					'100%': { width: '100%' }
+				}
+			},
+			animation: {
+				timer: 'timer 1s linear'
 			}
 		}
 	},

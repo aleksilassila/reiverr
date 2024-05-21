@@ -1,13 +1,16 @@
 <script lang="ts">
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
-	import { createLibraryItemStore } from '$lib/stores/library.store';
+	import {
+		createJellyfinItemStore,
+		createRadarrMovieStore,
+		createSonarrSeriesStore
+	} from '$lib/stores/data.store';
 	import type { TitleType } from '$lib/types';
 	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Clock, Star } from 'radix-icons-svelte';
+	import { openTitleModal } from '../../stores/modal.store';
 	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
 	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
-	import { openTitleModal } from '../Modal/Modal';
 	import ProgressBar from '../ProgressBar.svelte';
 
 	export let tmdbId: number;
@@ -25,12 +28,20 @@
 	export let size: 'dynamic' | 'md' | 'lg' = 'md';
 	export let openInModal = true;
 
-	let itemStore = createLibraryItemStore(tmdbId);
+	let jellyfinItemStore = createJellyfinItemStore(tmdbId);
+	let radarrMovieStore = createRadarrMovieStore(tmdbId);
+	let sonarrSeriesStore = createSonarrSeriesStore(title);
 </script>
 
 <ContextMenu heading={title}>
 	<svelte:fragment slot="menu">
-		<LibraryItemContextItems {itemStore} {type} {tmdbId} />
+		<LibraryItemContextItems
+			jellyfinItem={$jellyfinItemStore.item}
+			radarrMovie={$radarrMovieStore.item}
+			sonarrSeries={$sonarrSeriesStore.item}
+			{type}
+			{tmdbId}
+		/>
 	</svelte:fragment>
 	<button
 		class={classNames(
@@ -44,7 +55,7 @@
 		)}
 		on:click={() => {
 			if (openInModal) {
-				openTitleModal(tmdbId, type);
+				openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
 			} else {
 				window.location.href = `/${type}/${tmdbId}`;
 			}
