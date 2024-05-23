@@ -55,8 +55,11 @@ jobs:
       - name: Build containers
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
 
+#      - name: Add tag
+#        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+
       - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
 
       # - name: Tag with Git SHA
       #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
