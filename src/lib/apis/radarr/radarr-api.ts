@@ -212,7 +212,7 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getRadarrHealth = async (
+	getHealth = async (
 		baseUrl: string | undefined = undefined,
 		apiKey: string | undefined = undefined
 	) =>
@@ -222,8 +222,7 @@ export class RadarrApi implements Api<paths> {
 					'X-Api-Key': apiKey || this.getSettings()?.apiKey
 				}
 			})
-			.then((res) => res.status === 200)
-			.catch(() => false);
+			.catch((e) => e.response);
 
 	getRootFolders = async (
 		baseUrl: string | undefined = undefined,

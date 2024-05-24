@@ -5,6 +5,7 @@ import { appState } from '../../stores/app-state.store';
 import type { Api } from '../api.interface';
 
 export type ReiverrUser = components['schemas']['UserDto'];
+export type ReiverrSettings = ReiverrUser['settings'];
 
 export class ReiverrApi implements Api<paths> {
 	getClient(basePath?: string, _token?: string) {
@@ -33,6 +34,18 @@ export class ReiverrApi implements Api<paths> {
 			}
 		});
 	}
+
+	updateUser = (user: ReiverrUser) =>
+		this.getClient()
+			?.PUT('/user/{id}', {
+				params: {
+					path: {
+						id: get(appState).user?.id as string
+					}
+				},
+				body: user
+			})
+			.then((res) => res.data);
 }
 
 export const reiverrApi = new ReiverrApi();

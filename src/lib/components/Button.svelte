@@ -39,7 +39,7 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'h-12 rounded-lg font-medium tracking-wide flex items-center group',
+			'h-12 rounded-xl font-medium tracking-wide flex items-center group',
 			{
 				'bg-secondary-800': type === 'primary',
 				'bg-primary-900': type === 'primary-dark',
@@ -61,14 +61,14 @@
 		<div
 			class={classNames({
 				contents: type === 'primary' || type === 'primary-dark',
-				'border-2 border-transparent h-full w-full rounded-md flex items-center px-6':
+				'border-2 border-transparent h-full w-full rounded-lg flex items-center px-6':
 					type === 'secondary',
 				'bg-primary-500 text-secondary-950': type === 'secondary' && $hasFocus,
 				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary',
 				'!bg-red-500': confirmDanger && armed
 			})}
 		>
-			<div class="flex-1 text-center text-nowrap flex items-center justify-center">
+			<div class="flex-1 text-center text-nowrap flex items-center justify-center relative">
 				{#if $$slots.icon}
 					<div class="mr-2">
 						<slot name="icon" />
@@ -78,6 +78,11 @@
 				{#if $$slots['icon-after']}
 					<div class="ml-2">
 						<slot name="icon-after" />
+					</div>
+				{/if}
+				{#if $$slots['icon-absolute']}
+					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
+						<slot name="icon-absolute" />
 					</div>
 				{/if}
 			</div>

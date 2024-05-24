@@ -1,6 +1,11 @@
-import { derived, writable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import { createLocalStorageStore } from './localstorage.store';
-import { getReiverrApiClient, type ReiverrUser } from '../apis/reiverr/reiverr-api';
+import {
+	getReiverrApiClient,
+	reiverrApi,
+	type ReiverrSettings,
+	type ReiverrUser
+} from '../apis/reiverr/reiverr-api';
 
 interface AuthenticationStoreData {
 	token?: string;
@@ -11,7 +16,7 @@ interface UserStoreData {
 	user: ReiverrUser | null;
 }
 
-interface AppStateData extends AuthenticationStoreData {
+export interface AppStateData extends AuthenticationStoreData {
 	user: ReiverrUser | null;
 }
 
@@ -61,11 +66,25 @@ function createAppState() {
 		});
 	});
 
+	async function updateUser(updateFn: (user: ReiverrUser) => ReiverrUser) {
+		const user = get(userStore).user;
+
+		if (!user) return;
+
+		const updated = updateFn(user);
+		const update = await reiverrApi.updateUser(updated);
+
+		if (update) {
+			setUser(update);
+		}
+	}
+
 	return {
 		subscribe: combinedStore.subscribe,
 		setBaseUrl,
 		setToken,
 		setUser,
+		updateUser,
 		logOut,
 		ready
 	};

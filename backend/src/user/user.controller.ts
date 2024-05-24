@@ -7,13 +7,14 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard, GetUser } from '../auth/auth.guard';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { CreateUserDto, UserDto } from './user.dto';
-import { User } from './user.entity';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
+import { Settings, User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 
 @ApiTags('user')
@@ -71,5 +72,26 @@ export class UserController {
     );
 
     return UserDto.fromEntity(user);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put(':id')
+  @ApiOkResponse({ description: 'User updated', type: UserDto })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @GetUser() callerUser: User,
+  ): Promise<UserDto> {
+    if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
+      throw new NotFoundException();
+    }
+
+    const user = await this.userService.findOne(id);
+    if (updateUserDto.settings) user.settings = updateUserDto.settings;
+    if (updateUserDto.onboardingDone)
+      user.onboardingDone = updateUserDto.onboardingDone;
+
+    const updated = await this.userService.update(user);
+    return UserDto.fromEntity(updated);
   }
 }

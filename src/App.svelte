@@ -9,6 +9,7 @@
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import { defaultStackRouter } from './lib/components/StackRouter/StackRouter';
 	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
+	import OnboardingPage from './lib/pages/OnboardingPage.svelte';
 
 	appState.subscribe((s) => console.log('appState', s));
 
@@ -40,6 +41,8 @@
 		</div>
 	{:else if $appState.user === null}
 		<LoginPage />
+	{:else if $appState.user.onboardingDone === false}
+		<OnboardingPage />
 	{:else}
 		<!--		<Router primary={false}>-->
 		<Container class="flex flex-col relative" direction="horizontal" trapFocus>

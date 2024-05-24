@@ -112,8 +112,12 @@ export class User {
   password: string;
 
   @ApiProperty({ required: true })
-  @Column()
+  @Column({ default: false })
   isAdmin: boolean = false;
+
+  @ApiProperty({ required: false })
+  @Column({ default: false })
+  onboardingDone: boolean = false;
 
   @ApiProperty({ required: true, type: Settings })
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })

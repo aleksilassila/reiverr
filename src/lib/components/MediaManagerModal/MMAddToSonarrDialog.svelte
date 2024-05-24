@@ -13,7 +13,6 @@
 	import classNames from 'classnames';
 	import { type BackEvent, scrollIntoView, Selectable } from '../../selectable';
 	import { fade } from 'svelte/transition';
-	import { sonarrService } from '../../stores/sonarr-service.store';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { formatSize } from '../../utils';
 	import { capitalize } from '../../utils.js';
@@ -50,7 +49,12 @@
 		monitorOptions: null
 	});
 
-	$sonarrService.then((s) => {
+	const sonarrOptions = Promise.all([
+		sonarrApi.getRootFolders(),
+		sonarrApi.getQualityProfiles()
+	]).then(([rootFolders, qualityProfiles]) => ({ rootFolders, qualityProfiles }));
+
+	sonarrOptions.then((s) => {
 		addOptionsStore.update((prev) => ({
 			rootFolderPath: prev.rootFolderPath || s.rootFolders[0]?.path || null,
 			qualityProfileId: prev.qualityProfileId || s.qualityProfiles[0]?.id || null,
@@ -108,7 +112,7 @@
 		/>
 	{/if}
 
-	{#await $sonarrService then { qualityProfiles, rootFolders }}
+	{#await sonarrOptions then { qualityProfiles, rootFolders }}
 		{@const selectedRootFolder = rootFolders.find(
 			(f) => f.path === $addOptionsStore.rootFolderPath
 		)}

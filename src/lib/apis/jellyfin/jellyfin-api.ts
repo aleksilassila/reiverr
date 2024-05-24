@@ -8,6 +8,7 @@ import axios from 'axios';
 import { log } from '../../utils';
 
 export type JellyfinItem = components['schemas']['BaseItemDto'];
+export type JellyfinUser = components['schemas']['UserDto'];
 
 type Type = 'movie' | 'series';
 
@@ -503,7 +504,7 @@ export class JellyfinApi implements Api<paths> {
 	getJellyfinUsers = async (
 		baseUrl: string | undefined = undefined,
 		apiKey: string | undefined = undefined
-	): Promise<components['schemas']['UserDto'][]> =>
+	): Promise<JellyfinUser[]> =>
 		axios
 			.get((baseUrl || this.getBaseUrl()) + '/Users', {
 				headers: {

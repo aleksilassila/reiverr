@@ -96,6 +96,10 @@ html[data-useragent*="Tizen"] .selectable-secondary {
     @apply font-semibold text-4xl text-secondary-100 tracking-wider;
 }
 
+.body {
+    @apply text-base text-secondary-200;
+}
+
 @media tv {
     html {
         font-size: 24px;

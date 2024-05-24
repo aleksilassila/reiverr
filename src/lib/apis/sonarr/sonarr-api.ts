@@ -393,7 +393,7 @@ export class SonarrApi implements ApiAsync<paths> {
 	// 	}));
 	// };
 
-	getSonarrHealth = async (
+	getHealth = async (
 		baseUrl: string | undefined = undefined,
 		apiKey: string | undefined = undefined
 	) =>
@@ -403,8 +403,7 @@ export class SonarrApi implements ApiAsync<paths> {
 					'X-Api-Key': apiKey || this.getApiKey()
 				}
 			})
-			.then((res) => res.status === 200)
-			.catch(() => false);
+			.catch((e) => e.response);
 
 	_getSonarrRootFolders = async (
 		baseUrl: string | undefined = undefined,

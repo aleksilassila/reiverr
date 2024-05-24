@@ -5,17 +5,18 @@
 
 
 export interface paths {
-  "/api/user": {
+  "/user": {
     get: operations["UserController_getProfile"];
     post: operations["UserController_create"];
   };
-  "/api/user/{id}": {
+  "/user/{id}": {
     get: operations["UserController_findById"];
+    put: operations["UserController_updateUser"];
   };
-  "/api/auth": {
+  "/auth": {
     post: operations["AuthController_signIn"];
   };
-  "/api": {
+  "/": {
     get: operations["AppController_getHello"];
   };
 }
@@ -59,12 +60,18 @@ export interface components {
       id: string;
       name: string;
       isAdmin: boolean;
+      onboardingDone?: boolean;
       settings: components["schemas"]["Settings"];
     };
     CreateUserDto: {
       name: string;
       password: string;
       isAdmin: boolean;
+    };
+    UpdateUserDto: {
+      name?: string;
+      onboardingDone?: boolean;
+      settings?: components["schemas"]["Settings"];
     };
     SignInDto: {
       name: string;
@@ -144,6 +151,26 @@ export interface operations {
             /** @example Not Found */
             error?: string;
           };
+        };
+      };
+    };
+  };
+  UserController_updateUser: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateUserDto"];
+      };
+    };
+    responses: {
+      /** @description User updated */
+      200: {
+        content: {
+          "application/json": components["schemas"]["UserDto"];
         };
       };
     };

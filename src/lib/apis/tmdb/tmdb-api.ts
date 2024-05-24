@@ -1,6 +1,7 @@
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { operations, paths } from './tmdb.generated';
+import type { operations as operations4, paths as paths4 } from './tmdb4.generated';
 import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '../../constants';
 import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
@@ -62,8 +63,21 @@ export class TmdbApi implements Api<paths> {
 		});
 	}
 
+	static getClient4() {
+		return createClient<paths4>({
+			baseUrl: 'https://api.themoviedb.org',
+			headers: {
+				Authorization: `Bearer ${TMDB_API_KEY}`
+			}
+		});
+	}
+
 	getClient() {
 		return TmdbApi.getClient();
+	}
+
+	getClient4() {
+		return TmdbApi.getClient4();
 	}
 
 	getSessionId() {
@@ -248,8 +262,7 @@ export class TmdbApi implements Api<paths> {
 
 		const top100: TmdbMovieSmall[] = await Promise.all(
 			[...Array(5).keys()].map((i) =>
-				this.getClient()
-					// @ts-ignore
+				this.getClient4()
 					?.GET('/4/account/{account_object_id}/movie/recommendations', {
 						params: {
 							path: {
@@ -324,8 +337,7 @@ export class TmdbApi implements Api<paths> {
 
 		const top100: TmdbSeriesSmall[] = await Promise.all(
 			[...Array(5).keys()].map((i) =>
-				this.getClient()
-					// @ts-ignore
+				this.getClient4()
 					?.GET('/4/account/{account_object_id}/tv/recommendations', {
 						params: {
 							path: {
@@ -376,6 +388,36 @@ export class TmdbApi implements Api<paths> {
 			topRated,
 			mostPopular
 		};
+	};
+
+	getConnectAccountLink = () =>
+		this.getClient4()
+			?.POST('/4/auth/request_token', {})
+			.then((res) => res.data);
+
+	getAccountAccessToken = (requestToken: string) =>
+		this.getClient4()
+			?.POST('/4/auth/access_token', {
+				body: {
+					// @ts-ignore
+					request_token: requestToken
+				}
+			})
+			.then((res) => res.data);
+
+	getAccountDetails = () => {
+		const userId = this.getUserId();
+		if (!userId) return undefined;
+
+		return this.getClient()
+			?.GET('/3/account/{account_id}', {
+				params: {
+					path: {
+						account_id: Number(userId)
+					}
+				}
+			})
+			.then((res) => res.data);
 	};
 }
 
