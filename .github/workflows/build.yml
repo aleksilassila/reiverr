@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
+
     # branches:
     #   - master
     #   - dev
@@ -59,12 +61,12 @@ jobs:
 #        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
 
       - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
 
       # - name: Tag with Git SHA
       #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
 
       - name: Push to Docker Hub
         run: |
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
+#          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
