@@ -1,0 +1,102 @@
+{
+	"appName": "Reiverr",
+	"setupRequiredTitle": "Welkom bij",
+	"setupRequiredDescription": "Het lijkt erop dat de software enkele omgevingsvariabelen mist die nodig zijn om de software te doen werken. Geef de volgende omgevingsvariabelen op:",
+	"navbar": {
+		"home": "Start",
+		"discover": "Ontdek",
+		"library": "Collectie",
+		"sources": "Bronnen",
+		"settings": "Instellingen"
+	},
+	"search": {
+		"placeHolder": "Zoek voor Films en Series",
+		"noRecentSearches": "Geen recente zoekopdrachten",
+		"noResults": "Geen zoekresultaten"
+	},
+	"discover": {
+		"trending": "Trending",
+		"popularPeople": "Populaire Personen",
+		"upcomingMovies": "Aankomende Films",
+		"upcomingSeries": "Aankomende Series",
+		"genres": "Genres",
+		"newDigitalReleases": "Pas Uitgebracht",
+		"streamingNow": "Nu Streamen",
+		"TVNetworks": "Streaming Diensten"
+	},
+	"library": {
+		"missingConfiguration": "Configureer Radarr, Sonarr en Jellyfin om je bibliotheek te bekijken en beheren",
+		"available": "Beschikbaar",
+		"watched": "Bekeken",
+		"unavailable": "Niet beschikbaar",
+		"sort": {
+			"byTitle": "Op Titel"
+		},
+		"content": {
+			"movie": "Film",
+			"show": "Serie",
+			"requestContent": "Vraag Aan",
+			"directedBy": "Geregisseerd Door",
+			"releaseDate": "Release Datum",
+			"budget": "Budget",
+			"status": "Status",
+			"runtime": "Speelduur",
+			"castAndCrew": "Cast & Crew",
+			"recommendations": "Aanbevelingen",
+			"similarTitles": "Vergelijkbare Titels"
+		}
+	},
+	"sources": {},
+	"titleShowcase": {
+		"details": "Details",
+		"watchTrailer": "Bekijk Trailer",
+		"releaseDate": "Release Datum",
+		"directedBy": "Geregisseerd Door"
+	},
+	"settings": {
+		"navbar": {
+			"settings": "Configuratie",
+			"general": "Algemeen",
+			"integrations": "Integraties"
+		},
+		"general": {
+			"userInterface": {
+				"userInterface": "Gebruikersinterface",
+				"language": "Taal",
+				"autoplayTrailers": "Trailers Automatisch Afspelen",
+				"animationDuration": "Animatieduur"
+			},
+			"discovery": {
+				"discovery": "Ontdekken",
+				"none": "Geen",
+				"region": "Regio",
+				"excludeLibraryItemsFromDiscovery": "Bibliotheekitems uitsluiten van Ontdekken",
+				"includedLanguages": "Inbegrepen talen",
+				"includedLanguagesDescription": "Filter resultaten op gesproken taal. Neemt ISO 639-1 taalcodes gescheiden met komma's. Laat leeg om uit te schakelen."
+			}
+		},
+		"integrations": {
+			"integrations": "Integraties",
+			"integrationsNote": "Opmerking: Basis-URL's moeten toegankelijk zijn vanuit de browser, wat betekent dat bijvoorbeeld interne docker-adressen niet zullen werken. API-sleutels <span class='font-medium underline'>zullen worden blootgesteld</span> aan de browser.",
+			"baseUrl": "Basis URL",
+			"apiKey": "API Sleutel",
+			"testConnection": "Test Verbinding",
+			"status": {
+				"connected": "Verbonden",
+				"disconnected": "Gedeconecteerd"
+			},
+			"options": {
+				"options": "Opties",
+				"rootFolder": "Root Map",
+				"qualityProfile": "Kwaliteitsprofiel",
+				"languageProfile": "Taalprofiel",
+				"jellyfinUser": "Jellyfin Gebruiker"
+			}
+		},
+		"misc": {
+			"saveChanges": "Wijzigingen Opslaan",
+			"resetToDefaults": "Herstellen naar Standaard",
+			"changelog": "Wijzigingslog"
+		}
+	}
+}
