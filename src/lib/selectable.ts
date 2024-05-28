@@ -81,6 +81,8 @@ export type NavigationHandler = (
 ) => void;
 export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
 
+export type ActiveChildStore = typeof Selectable.prototype.activeChild;
+
 export class Selectable {
 	id: number;
 	name: string;
@@ -109,6 +111,22 @@ export class Selectable {
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
 	focusIndex: Writable<number> = writable(0);
+
+	activeChild = (() => {
+		const store = derived(this.focusIndex, (focusIndex) => {
+			return this.children[focusIndex];
+		});
+
+		const set = (selectable: Selectable) => {
+			const index = this.children.indexOf(selectable);
+			if (index !== -1) this.focusIndex.set(index);
+		};
+
+		return {
+			subscribe: store.subscribe,
+			set
+		};
+	})();
 	hasFocus: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
 		return $focusedObject === this;
 	});
@@ -217,6 +235,24 @@ export class Selectable {
 		}
 
 		return false;
+	}
+
+	activate() {
+		const parent = this.parent;
+		if (!parent) {
+			console.error('No parent, undefined behavior?');
+			return;
+		}
+
+		const parentHasFocus = get(parent.hasFocusWithin);
+
+		if (parentHasFocus) {
+			this.focus();
+		} else {
+			const index = parent.children.indexOf(this);
+			if (index === -1) console.error('Child not found in parent when activating', this, parent);
+			this.parent?.focusIndex.update((prev) => (index >= 0 ? index : prev));
+		}
 	}
 
 	/**
@@ -623,13 +659,15 @@ export class Selectable {
 		hasFocusWithin: Readable<boolean>;
 		registerer: Registerer;
 		focusIndex: Writable<number>;
+		activeChild: ActiveChildStore;
 	} {
 		return {
 			container: this,
 			hasFocus: this.hasFocus,
 			hasFocusWithin: this.hasFocusWithin,
 			registerer: this.getRegisterer(),
-			focusIndex: this.focusIndex
+			focusIndex: this.focusIndex,
+			activeChild: this.activeChild
 		};
 	}
 

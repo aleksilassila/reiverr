@@ -89,6 +89,7 @@
 	export const hasFocus = rest.hasFocus;
 	export const hasFocusWithin = rest.hasFocusWithin;
 	export const focusIndex = rest.focusIndex;
+	export const activeChild = rest.activeChild;
 
 	export let tag = 'div';
 

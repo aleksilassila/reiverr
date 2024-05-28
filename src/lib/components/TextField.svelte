@@ -22,6 +22,8 @@
 			icon = Cross1;
 		} else if (isValid === true) {
 			icon = Check;
+		} else {
+			icon = undefined;
 		}
 	}
 

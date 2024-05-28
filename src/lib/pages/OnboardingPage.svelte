@@ -12,6 +12,7 @@
 	import { sonarrApi } from '../apis/sonarr/sonarr-api';
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { get } from 'svelte/store';
+	import { useTabs } from '../components/Tab/Tab';
 
 	enum Tabs {
 		Welcome,
@@ -24,7 +25,7 @@
 		TmdbConnect = Tmdb + 0.1
 	}
 
-	let openTab: Tabs = Tabs.Welcome;
+	const tab = useTabs(Tabs.Welcome);
 
 	let tmdbConnectRequestToken: string | undefined = undefined;
 	let tmdbConnectLink: string | undefined = undefined;
@@ -122,7 +123,7 @@
 				}
 			}));
 
-			openTab++;
+			tab.next();
 		});
 	}
 
@@ -145,7 +146,7 @@
 			}
 		}));
 
-		openTab++;
+		tab.next();
 	}
 
 	async function handleConnectSonarr() {
@@ -177,7 +178,7 @@
 			}
 		}));
 
-		openTab++;
+		tab.next();
 	}
 
 	async function handleConnectRadarr() {
@@ -219,7 +220,7 @@
 	}
 
 	function handleBack() {
-		openTab--;
+		tab.previous();
 	}
 
 	const tabContainer =
@@ -227,7 +228,7 @@
 </script>
 
 <Container focusOnMount class="h-full w-full grid justify-items-center items-center">
-	<Tab {openTab} tab={Tabs.Welcome} class={tabContainer}>
+	<Tab {...tab} tab={Tabs.Welcome} class={tabContainer}>
 		<h1 class="header2 mb-2">Welcome to Reiverr</h1>
 		<div class="body mb-8">
 			Looks like this is a new account. This setup will get you started with connecting your
@@ -236,7 +237,7 @@
 		<Container direction="horizontal" class="flex space-x-4">
 			<Button type="primary-dark" on:clickOrSelect={() => appState.logOut()}>Log Out</Button>
 			<div class="flex-1">
-				<Button type="primary-dark" on:clickOrSelect={() => openTab++}>
+				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
 					Next
 					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
 						<ArrowRight size={24} />
@@ -246,7 +247,7 @@
 		</Container>
 	</Tab>
 
-	<Tab {openTab} tab={Tabs.Tmdb} class={tabContainer} on:back={handleBack}>
+	<Tab {...tab} tab={Tabs.Tmdb} class={tabContainer} on:back={handleBack}>
 		<h1 class="header2 mb-2">Connect a TMDB Account</h1>
 		<div class="body mb-8">
 			Connect to TMDB for personalized recommendations based on your movie reviews and preferences.
@@ -258,7 +259,7 @@
 					<SelectField
 						value={account.username || ''}
 						on:clickOrSelect={() => {
-							openTab = Tabs.TmdbConnect;
+							tab.set(Tabs.TmdbConnect);
 							handleGenerateTMDBLink();
 						}}>Logged in as</SelectField
 					>
@@ -266,7 +267,7 @@
 					<Button
 						type="primary-dark"
 						on:clickOrSelect={() => {
-							openTab = Tabs.TmdbConnect;
+							tab.set(Tabs.TmdbConnect);
 							handleGenerateTMDBLink();
 						}}
 					>
@@ -276,7 +277,7 @@
 				{/if}
 			{/await}
 
-			<Button type="primary-dark" on:clickOrSelect={() => openTab++}>
+			<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
 				{#if $appState.user?.settings.tmdb.userId}
 					Next
 				{:else}
@@ -287,7 +288,7 @@
 		</div>
 	</Tab>
 
-	<Tab {openTab} tab={Tabs.TmdbConnect} class={tabContainer} on:back={() => (openTab = Tabs.Tmdb)}>
+	<Tab {...tab} tab={Tabs.TmdbConnect} class={tabContainer} on:back={() => tab.set(Tabs.Tmdb)}>
 		<h1 class="header2 mb-2">Connect a TMDB Account</h1>
 		<div class="body mb-8">
 			To connect your TMDB account, log in via the link below and then click "Complete Connection".
@@ -313,7 +314,7 @@
 		</Container>
 	</Tab>
 
-	<Tab {openTab} tab={Tabs.Jellyfin} class={tabContainer}>
+	<Tab {...tab} tab={Tabs.Jellyfin} class={tabContainer}>
 		<h1 class="header2 mb-2">Connect to Jellyfin</h1>
 		<div class="mb-8 body">Connect to Jellyfin to watch movies and tv shows.</div>
 
@@ -330,7 +331,7 @@
 			{#if users.length}
 				<SelectField
 					value={jellyfinUser?.Name || 'Select User'}
-					on:clickOrSelect={() => (openTab = Tabs.SelectUser)}
+					on:clickOrSelect={() => tab.set(Tabs.SelectUser)}
 				>
 					User
 				</SelectField>
@@ -342,20 +343,15 @@
 		{/if}
 
 		<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-			<Button type="primary-dark" on:clickOrSelect={() => openTab--}>Back</Button>
+			<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 			{#if jellyfinBaseUrl && jellyfinApiKey && jellyfinUser}
 				<Button type="primary-dark" action={handleConnectJellyfin}>Connect</Button>
 			{:else}
-				<Button type="primary-dark" on:clickOrSelect={() => openTab++}>Skip</Button>
+				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
 			{/if}
 		</Container>
 	</Tab>
-	<Tab
-		{openTab}
-		tab={Tabs.SelectUser}
-		on:back={() => (openTab = Tabs.Jellyfin)}
-		class={tabContainer}
-	>
+	<Tab {...tab} tab={Tabs.SelectUser} on:back={() => tab.set(Tabs.Jellyfin)} class={tabContainer}>
 		<h1 class="header1 mb-2">Select User</h1>
 		{#await jellyfinUsers then users}
 			{#each users as user}
@@ -363,7 +359,7 @@
 					selected={user?.Id === jellyfinUser?.Id}
 					on:clickOrSelect={() => {
 						jellyfinUser = user;
-						openTab = Tabs.Jellyfin;
+						tab.set(Tabs.Jellyfin);
 					}}
 				>
 					{user.Name}
@@ -372,7 +368,7 @@
 		{/await}
 	</Tab>
 
-	<Tab {openTab} tab={Tabs.Sonarr} class={tabContainer}>
+	<Tab {...tab} tab={Tabs.Sonarr} class={tabContainer}>
 		<h1 class="header2 mb-2">Connect to Sonarr</h1>
 		<div class="mb-8">Connect to Sonarr for requesting and managing tv shows.</div>
 
@@ -386,16 +382,16 @@
 		{/if}
 
 		<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-			<Button type="primary-dark" on:clickOrSelect={() => openTab--}>Back</Button>
+			<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 			{#if sonarrBaseUrl && sonarrApiKey}
 				<Button type="primary-dark" action={handleConnectSonarr}>Connect</Button>
 			{:else}
-				<Button type="primary-dark" on:clickOrSelect={() => openTab++}>Skip</Button>
+				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
 			{/if}
 		</Container>
 	</Tab>
 
-	<Tab {openTab} tab={Tabs.Radarr} class={tabContainer}>
+	<Tab {...tab} tab={Tabs.Radarr} class={tabContainer}>
 		<h1 class="header2 mb-2">Connect to Radarr</h1>
 		<div class="mb-8">Connect to Radarr for requesting and managing movies.</div>
 
@@ -409,7 +405,7 @@
 		{/if}
 
 		<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-			<Button type="primary-dark" on:clickOrSelect={() => openTab--}>Back</Button>
+			<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 			{#if radarrBaseUrl && radarrApiKey}
 				<Button type="primary-dark" action={handleConnectRadarr}>Connect</Button>
 			{:else}
