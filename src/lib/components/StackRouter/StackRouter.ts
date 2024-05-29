@@ -29,12 +29,23 @@ export type StackRouterStore = ReturnType<typeof useStackRouter>;
 
 type Indexes = { id: string; bottom: number; top: number };
 
-export function useStackRouter({ routes, notFound }: { routes: Route[]; notFound: Route }) {
+export function useStackRouter({
+	routes,
+	notFound,
+	maxDepth
+}: {
+	routes: Route[];
+	notFound: Route;
+	maxDepth?: number;
+}) {
 	const { initialPages, initialIndexes } = getInitialValues();
 	const indexes = writable<Indexes>(initialIndexes);
 	const pageStack = writable<Page[]>(initialPages);
 	const visibleStack = derived([indexes, pageStack], ([$indexes, $stack]) => {
-		return $stack.slice($indexes.bottom, $indexes.top + 1);
+		return $stack.slice(
+			maxDepth ? Math.max($indexes.bottom, $indexes.top - maxDepth + 1) : $indexes.bottom,
+			$indexes.top + 1
+		);
 	});
 
 	visibleStack.subscribe((v) => console.log('visibleStack', v));
@@ -229,7 +240,8 @@ export const defaultStackRouter = useStackRouter({
 		searchRoute,
 		manageRoute
 	],
-	notFound: notFoundRoute
+	notFound: notFoundRoute,
+	maxDepth: 3
 });
 // export const defaultStackRouter = useStackRouter({
 // 	'/': {

@@ -26,8 +26,6 @@
 	export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 	export let handleRequestSeason: (season: number) => Promise<any>;
 
-	console.log('ID IS: ', id);
-
 	let awaitedJellyfinEpisodes: JellyfinItem[] = [];
 	jellyfinEpisodes.then((episodes) => {
 		awaitedJellyfinEpisodes = episodes;
@@ -124,9 +122,10 @@
 				{@const jellyfinEpisodeId = jellyfinEpisode?.Id}
 				{#key episode.id}
 					<TmdbEpisodeCard
+						{episode}
+						series={$tmdbSeries}
 						on:mount={(e) => handleMountCard(e.detail, episode)}
 						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-						{episode}
 						handlePlay={jellyfinEpisodeId
 							? () => playerState.streamJellyfinId(jellyfinEpisodeId)
 							: undefined}

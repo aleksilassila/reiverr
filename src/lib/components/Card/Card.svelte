@@ -77,6 +77,7 @@
 			}
 		)}
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
+		focusOnClick
 		bind:hasFocus
 	>
 		<LazyImg
