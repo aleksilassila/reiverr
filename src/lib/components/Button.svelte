@@ -3,7 +3,7 @@
 	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
 	import AnimatedSelection from './AnimateScale.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { type ComponentType, createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
@@ -12,6 +12,9 @@
 	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
 	export let confirmDanger = false;
 	export let action: (() => Promise<any>) | null = null;
+	export let icon: ComponentType | undefined = undefined;
+	export let iconAfter: ComponentType | undefined = undefined;
+	export let iconAbsolute: ComponentType | undefined = undefined;
 
 	let actionIsFetching = false;
 	$: _disabled = disabled || actionIsFetching;
@@ -20,6 +23,8 @@
 	$: if (!$hasFocus && armed) armed = false;
 
 	function handleClickOrSelect() {
+		if (actionIsFetching || _disabled) return;
+
 		if (confirmDanger && !armed) {
 			armed = true;
 			return;
@@ -74,15 +79,30 @@
 						<slot name="icon" />
 					</div>
 				{/if}
+				{#if icon}
+					<div class="mr-2">
+						<svelte:component this={icon} size={19} />
+					</div>
+				{/if}
 				<slot {hasFocus} />
 				{#if $$slots['icon-after']}
 					<div class="ml-2">
 						<slot name="icon-after" />
 					</div>
 				{/if}
+				{#if iconAfter}
+					<div class="ml-2">
+						<svelte:component this={iconAfter} size={19} />
+					</div>
+				{/if}
 				{#if $$slots['icon-absolute']}
 					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
 						<slot name="icon-absolute" />
+					</div>
+				{/if}
+				{#if iconAbsolute}
+					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
+						<svelte:component this={iconAbsolute} size={19} />
 					</div>
 				{/if}
 			</div>

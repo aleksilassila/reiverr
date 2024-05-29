@@ -77,7 +77,7 @@ html[data-useragent*="Tizen"] .selectable-secondary {
 }
 
 .peer-selectable {
-    @apply peer-focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply peer-focus-visible:outline outline-2 outline-primary-500 outline-offset-2;
 }
 
 .selectable-explicit {

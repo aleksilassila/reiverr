@@ -12,9 +12,13 @@
 	import RadarrIntegration from '../components/Integrations/RadarrIntegration.svelte';
 	import type { JellyfinUser } from '../apis/jellyfin/jellyfin-api';
 	import JellyfinIntegration from '../components/Integrations/JellyfinIntegration.svelte';
-	import { createModal } from '../components/Modal/modal.store';
 	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
 	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
+	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import SelectField from '../components/SelectField.svelte';
+	import { ArrowRight, Trash } from 'radix-icons-svelte';
+	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
+	import { createModal } from '../components/Modal/modal.store';
 
 	enum Tabs {
 		Interface,
@@ -40,6 +44,7 @@
 	let lastKeyCode = 0;
 	let lastKey = '';
 	let tizenMediaKey = '';
+	$: tmdbAccount = $appState.user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
 
 	// onMount(() => {
 	// 	if (isTizen()) {
@@ -55,6 +60,20 @@
 	// 		(tizen as any)?.mediakey?.setMediaKeyEventListener?.(myMediaKeyChangeListener);
 	// 	}
 	// });
+
+	async function handleDisconnectTmdb() {
+		return appState.updateUser((prev) => ({
+			...prev,
+			settings: {
+				...prev.settings,
+				tmdb: {
+					...prev.settings.tmdb,
+					userId: '',
+					sessionId: ''
+				}
+			}
+		}));
+	}
 
 	async function handleSaveJellyfin() {
 		return appState.updateUser((prev) => ({
@@ -108,7 +127,7 @@
 	}}
 />
 
-<Container class="px-32 py-16 flex flex-col items-start" focusOnMount>
+<Container class="px-32 py-16" focusOnMount>
 	<Container
 		direction="horizontal"
 		class="flex space-x-8 header2 pb-3 border-b-2 border-secondary-700 w-full mb-8"
@@ -117,6 +136,7 @@
 			on:enter={() => tab.set(Tabs.Interface)}
 			on:clickOrSelect={() => tab.set(Tabs.Interface)}
 			let:hasFocus
+			focusOnClick
 		>
 			<span
 				class={classNames('cursor-pointer', {
@@ -131,6 +151,7 @@
 			on:enter={() => tab.set(Tabs.Integrations)}
 			on:clickOrSelect={() => tab.set(Tabs.Integrations)}
 			let:hasFocus
+			focusOnClick
 		>
 			<span
 				class={classNames('cursor-pointer', {
@@ -145,6 +166,7 @@
 			on:enter={() => tab.set(Tabs.About)}
 			on:clickOrSelect={() => tab.set(Tabs.About)}
 			let:hasFocus
+			focusOnClick
 		>
 			<span
 				class={classNames('cursor-pointer', {
@@ -158,81 +180,8 @@
 	</Container>
 
 	<Container class="grid">
-		<Tab {...tab} tab={Tabs.Integrations} class="space-y-8">
-			<div class="bg-primary-800 rounded-xl p-8">
-				<h1 class="mb-4 header2">Tmdb Account</h1>
-				<TmdbIntegration
-					on:change={({ detail }) => {
-						sonarrBaseUrl = detail.baseUrl;
-						sonarrApiKey = detail.apiKey;
-						sonarrStale = detail.stale;
-					}}
-				/>
-				<div class="flex">
-					<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
-						Save
-					</Button>
-				</div>
-			</div>
-
-			<div class="bg-primary-800 rounded-xl p-8">
-				<h1 class="mb-4 header2">Jellyfin</h1>
-				<JellyfinIntegration
-					bind:jellyfinUser
-					on:change={({ detail }) => {
-						jellyfinBaseUrl = detail.baseUrl;
-						jellyfinApiKey = detail.apiKey;
-						jellyfinStale = detail.stale;
-					}}
-					on:click-user={({ detail }) =>
-						createModal(JellyfinIntegrationUsersDialog, {
-							selectedUser: detail.user,
-							users: detail.users,
-							handleSelectUser: (u) => (jellyfinUser = u)
-						})}
-				/>
-				<div class="flex">
-					<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
-						Save
-					</Button>
-				</div>
-			</div>
-
-			<div class="bg-primary-800 rounded-xl p-8">
-				<h1 class="mb-4 header2">Sonarr</h1>
-				<SonarrIntegration
-					on:change={({ detail }) => {
-						sonarrBaseUrl = detail.baseUrl;
-						sonarrApiKey = detail.apiKey;
-						sonarrStale = detail.stale;
-					}}
-				/>
-				<div class="flex">
-					<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
-						Save
-					</Button>
-				</div>
-			</div>
-
-			<div class="bg-primary-800 rounded-xl p-8">
-				<h1 class="mb-4 header2">Radarr</h1>
-				<RadarrIntegration
-					on:change={({ detail }) => {
-						radarrBaseUrl = detail.baseUrl;
-						radarrApiKey = detail.apiKey;
-						radarrStale = detail.stale;
-					}}
-				/>
-				<div class="flex">
-					<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
-						Save
-					</Button>
-				</div>
-			</div>
-		</Tab>
-
-		<Tab {...tab} tab={Tabs.Interface}>
-			<div class="flex items-center justify-between">
+		<Tab {...tab} tab={Tabs.Interface} class="">
+			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 				<label class="mr-2">Animate scrolling</label>
 				<Toggle
 					checked={$localSettings.animateScrolling}
@@ -240,7 +189,7 @@
 						localSettings.update((p) => ({ ...p, animateScrolling: detail }))}
 				/>
 			</div>
-			<div class="flex items-center justify-between">
+			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 				<label class="mr-2">Use CSS Transitions</label>
 				<Toggle
 					checked={$localSettings.useCssTransitions}
@@ -250,6 +199,108 @@
 			</div>
 		</Tab>
 
+		<Tab {...tab} tab={Tabs.Integrations} class="">
+			<Container direction="horizontal" class="gap-8 grid grid-cols-2">
+				<Container class="flex flex-col space-y-8">
+					<Container class="bg-primary-800 rounded-xl p-8">
+						<h1 class="mb-4 header2">Sonarr</h1>
+						<SonarrIntegration
+							on:change={({ detail }) => {
+								sonarrBaseUrl = detail.baseUrl;
+								sonarrApiKey = detail.apiKey;
+								sonarrStale = detail.stale;
+							}}
+						/>
+						<div class="flex">
+							<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
+								Save
+							</Button>
+						</div>
+					</Container>
+
+					<Container class="bg-primary-800 rounded-xl p-8">
+						<h1 class="mb-4 header2">Radarr</h1>
+						<RadarrIntegration
+							on:change={({ detail }) => {
+								radarrBaseUrl = detail.baseUrl;
+								radarrApiKey = detail.apiKey;
+								radarrStale = detail.stale;
+							}}
+						/>
+						<div class="flex">
+							<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
+								Save
+							</Button>
+						</div>
+					</Container>
+				</Container>
+
+				<Container class="flex flex-col space-y-8">
+					<Container class="bg-primary-800 rounded-xl p-8">
+						<h1 class="mb-4 header2">Tmdb Account</h1>
+						{#await tmdbAccount then tmdbAccount}
+							{#if tmdbAccount}
+								<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
+									Connected to
+									<Trash
+										slot="icon"
+										let:size
+										let:iconClass
+										{size}
+										class={classNames(iconClass, '')}
+									/>
+								</SelectField>
+							{:else}
+								<div class="flex space-x-4">
+									<Button
+										type="primary-dark"
+										iconAfter={ArrowRight}
+										on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
+										>Connect</Button
+									>
+								</div>
+							{/if}
+						{/await}
+						<!--					<TmdbIntegration-->
+						<!--						on:change={({ detail }) => {-->
+						<!--							sonarrBaseUrl = detail.baseUrl;-->
+						<!--							sonarrApiKey = detail.apiKey;-->
+						<!--							sonarrStale = detail.stale;-->
+						<!--						}}-->
+						<!--					/>-->
+						<!--					<div class="flex">-->
+						<!--						<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>-->
+						<!--							Save-->
+						<!--						</Button>-->
+						<!--					</div>-->
+					</Container>
+
+					<Container class="bg-primary-800 rounded-xl p-8">
+						<h1 class="mb-4 header2">Jellyfin</h1>
+						<JellyfinIntegration
+							bind:jellyfinUser
+							on:change={({ detail }) => {
+								jellyfinBaseUrl = detail.baseUrl;
+								jellyfinApiKey = detail.apiKey;
+								jellyfinStale = detail.stale;
+							}}
+							on:click-user={({ detail }) =>
+								createModal(JellyfinIntegrationUsersDialog, {
+									selectedUser: detail.user,
+									users: detail.users,
+									handleSelectUser: (u) => (jellyfinUser = u)
+								})}
+						/>
+						<div class="flex">
+							<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
+								Save
+							</Button>
+						</div>
+					</Container>
+				</Container>
+			</Container>
+		</Tab>
+
 		<Tab {...tab} tab={Tabs.About}>
 			User agent: {window?.navigator?.userAgent}
 			<div>Last key code: {lastKeyCode}</div>
@@ -257,7 +308,9 @@
 			{#if tizenMediaKey}
 				<div>Tizen media key: {tizenMediaKey}</div>
 			{/if}
-			<Button on:clickOrSelect={appState.logOut} class="hover:bg-red-500">Log Out</Button>
+			<div class="flex space-x-4 mt-4">
+				<Button on:clickOrSelect={appState.logOut} class="hover:bg-red-500">Log Out</Button>
+			</div>
 		</Tab>
 	</Container>
 </Container>
