@@ -231,6 +231,17 @@ export class TmdbApi implements Api<paths> {
 			})
 			.then((res) => res.data);
 
+	searchTitles = (query: string) =>
+		this.getClient()
+			?.GET('/3/search/multi', {
+				params: {
+					query: {
+						query
+					}
+				}
+			})
+			.then((res) => res.data?.results || []) || Promise.resolve([]);
+
 	// OTHER
 
 	// USER
