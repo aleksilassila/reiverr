@@ -194,22 +194,37 @@ export class TmdbApi implements Api<paths> {
 			.then((res) => res.data);
 
 	getPopularSeries = () =>
-		TmdbApiOpen.GET('/3/tv/popular', {
-			params: {
-				query: {
-					language: get(settings)?.language
+		this.getClient()
+			.GET('/3/tv/popular', {
+				params: {
+					query: {
+						language: get(settings)?.language
+					}
 				}
-			}
-		}).then((res) => res.data?.results || []);
+			})
+			.then((res) => res.data?.results || []);
 
 	getSeriesRecommendations = (tmdbId: number) =>
-		TmdbApiOpen.GET('/3/tv/{series_id}/recommendations', {
-			params: {
-				path: {
-					series_id: tmdbId
+		this.getClient()
+			.GET('/3/tv/{series_id}/recommendations', {
+				params: {
+					path: {
+						series_id: tmdbId
+					}
 				}
-			}
-		}).then((res) => res.data?.results || []);
+			})
+			.then((res) => res.data?.results || []);
+
+	getMovieRecommendations = (tmdbId: number) =>
+		this.getClient()
+			.GET('/3/movie/{movie_id}/recommendations', {
+				params: {
+					path: {
+						movie_id: tmdbId
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
 
 	getEpisode = (
 		seriesId: number,
