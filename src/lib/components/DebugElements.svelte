@@ -2,6 +2,7 @@
 	import { Selectable } from '../selectable';
 	import classNames from 'classnames';
 	import { onMount } from 'svelte';
+	import { PLATFORM_WEB } from '../constants';
 
 	let showOverlay = false;
 	let x = 0;
@@ -36,6 +37,8 @@
 	};
 
 	onMount(() => {
+		if (!PLATFORM_WEB) return;
+
 		const interval = setInterval(() => {
 			if (element && showOverlay) {
 				updateOverlayPosition(element);

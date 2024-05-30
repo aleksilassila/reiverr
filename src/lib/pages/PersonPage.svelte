@@ -41,7 +41,8 @@
 			class="px-32 py-16 space-y-16"
 		>
 			<div class="flex space-x-8">
-				<div
+				<Container
+					on:enter={scrollIntoView({ vertical: 128 })}
 					class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
 					style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
 				/>
