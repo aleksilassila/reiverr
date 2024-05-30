@@ -3,6 +3,7 @@
 	import Container from '../../../Container.svelte';
 	import AnimateScale from '../AnimateScale.svelte';
 	import type { Readable } from 'svelte/store';
+	import { navigate } from '../StackRouter/StackRouter';
 
 	export let tmdbId: number;
 	// export let type: TitleType = 'person';
@@ -17,23 +18,19 @@
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'flex flex-col justify-start rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-secondary-800 group text-left',
+			'flex flex-col justify-start rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-secondary-800 group text-left cursor-pointer',
 			{
 				'w-56 h-80': size === 'md',
 				'h-52': size === 'lg',
 				'w-full': size === 'dynamic'
 			}
 		)}
-		on:clickOrSelect
-		on:click={() => {
-			// if (openInModal) {
-			// 	openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
-			// } else {
-			// 	window.location.href = `/${type}/${tmdbId}`;
-			// }
+		on:clickOrSelect={() => {
+			if (tmdbId) navigate(`/person/${tmdbId}`);
 		}}
 		on:enter
 		bind:hasFocus
+		focusOnClick
 	>
 		<!--		<div-->
 		<!--			class="mx-auto rounded-full overflow-hidden flex-shrink-0 aspect-square w-full bg-zinc-200 bg-opacity-20"-->

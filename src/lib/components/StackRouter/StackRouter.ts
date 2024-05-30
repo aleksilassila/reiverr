@@ -10,6 +10,7 @@ import LibraryPage from '../../pages/LibraryPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import ManagePage from '../../pages/ManagePage.svelte';
+import PersonPage from '../../pages/PersonPage.svelte';
 
 interface Page {
 	id: symbol;
@@ -21,7 +22,11 @@ interface Route {
 	path: string;
 	component: ComponentType;
 	default?: boolean;
+	// When root is navigated to, stcak is cleared
 	root?: boolean;
+	// Parent route, that is always rendered under this route,
+	// possibly sharing props that are a subset of the child's props.
+	// Child's props are also passed to these.
 	parent?: Route;
 }
 
@@ -205,6 +210,11 @@ const movieRoute: Route = {
 	parent: moviesHomeRoute
 };
 
+const personRoute: Route = {
+	path: '/person/:id',
+	component: PersonPage
+};
+
 const libraryRoute: Route = {
 	path: '/library',
 	component: LibraryPage,
@@ -236,6 +246,7 @@ export const defaultStackRouter = useStackRouter({
 		episodeRoute,
 		moviesHomeRoute,
 		movieRoute,
+		personRoute,
 		libraryRoute,
 		searchRoute,
 		manageRoute

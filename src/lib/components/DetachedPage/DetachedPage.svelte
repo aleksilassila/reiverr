@@ -40,7 +40,7 @@
 </script>
 
 <Container
-	class={classNames('fixed inset-0 z-20 bg-secondary-800 overflow-y-auto scrollbar-hide', {
+	class={classNames('fixed inset-0 z-20 bg-secondary-900 overflow-y-auto scrollbar-hide', {
 		hidden: !topmost
 	})}
 	trapFocus

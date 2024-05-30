@@ -242,6 +242,34 @@ export class TmdbApi implements Api<paths> {
 			})
 			.then((res) => res.data?.results || []) || Promise.resolve([]);
 
+	getPerson = async (person_id: number) =>
+		this.getClient()
+			.GET('/3/person/{person_id}', {
+				params: {
+					path: {
+						person_id: person_id
+					},
+					query: {
+						append_to_response: 'images,movie_credits,tv_credits,external_ids'
+					}
+				}
+			})
+			.then((res) => res.data as TmdbPersonFull);
+
+	getPersonTaggedImages = async (person_id: number) =>
+		this.getClient()
+			?.GET('/3/person/{person_id}/tagged_images', {
+				params: {
+					path: {
+						person_id: person_id
+					}
+				}
+			})
+			.then((res) => res.data?.results || []) || Promise.resolve([]);
+
+	getPersonBackdrops = async (person_id: number) =>
+		this.getPersonTaggedImages(person_id).then((r) => r.filter((i) => (i.aspect_ratio || 0) > 1.5));
+
 	// OTHER
 
 	// USER

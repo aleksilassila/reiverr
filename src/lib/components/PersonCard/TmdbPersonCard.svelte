@@ -14,7 +14,7 @@
 
 <PersonCard
 	tmdbId={tmdbCredit.id || -1}
-	name={tmdbCredit.original_name || 'Unknown'}
+	name={tmdbCredit.name || 'Unknown'}
 	{subtitle}
 	backdropUrl={TMDB_PROFILE_LARGE + tmdbCredit.profile_path}
 	on:clickOrSelect
