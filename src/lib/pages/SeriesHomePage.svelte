@@ -12,6 +12,7 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 
 	const continueWatching = jellyfinApi.getContinueWatchingSeries();
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
@@ -53,7 +54,7 @@
 	}
 </script>
 
-<Container focusOnMount class="flex flex-col">
+<DetachedPage class="flex flex-col relative">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
 		<HeroShowcase
 			items={recommendations.then(({ top10 }) => getShowcasePropsFromTmdbSeries(top10))}
@@ -196,4 +197,4 @@
 		<!-- TRENDING PEOPLE -->
 		<!-- Watchlist -->
 	</div>
-</Container>
+</DetachedPage>

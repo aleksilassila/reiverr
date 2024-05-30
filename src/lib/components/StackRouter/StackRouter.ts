@@ -251,8 +251,7 @@ export const defaultStackRouter = useStackRouter({
 		searchRoute,
 		manageRoute
 	],
-	notFound: notFoundRoute,
-	maxDepth: 3
+	notFound: notFoundRoute
 });
 // export const defaultStackRouter = useStackRouter({
 // 	'/': {

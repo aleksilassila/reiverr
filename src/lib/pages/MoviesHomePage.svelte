@@ -10,6 +10,7 @@
 	import { formatDateToYearMonthDay } from '../utils';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 
 	const continueWatching = jellyfinApi.getContinueWatching('movie');
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
@@ -59,7 +60,7 @@
 	}
 </script>
 
-<Container focusOnMount class="flex flex-col">
+<DetachedPage class="flex flex-col relative">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
 		<HeroShowcase
 			items={recommendedMovies.then(({ top10 }) => getShowcasePropsFromTmdbMovie(top10))}
@@ -202,4 +203,4 @@
 		<!-- TRENDING PEOPLE -->
 		<!-- Watchlist -->
 	</div>
-</Container>
+</DetachedPage>

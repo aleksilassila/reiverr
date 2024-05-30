@@ -82,7 +82,6 @@
 						direction="horizontal"
 						class="flex mt-8"
 						focusOnMount
-						on:navigate={handleGoBack}
 						on:back={handleGoBack}
 						{registrar}
 					>

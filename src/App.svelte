@@ -30,48 +30,47 @@
 </script>
 
 <I18n />
-<Container class="w-full h-full overflow-auto text-white scrollbar-hide">
-	{#if $appState.user === undefined}
-		<div class="h-full w-full flex flex-col items-center justify-center">
-			<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
-				<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
-				<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
-			</div>
-			<div>Loading...</div>
+<!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
+{#if $appState.user === undefined}
+	<div class="h-full w-full flex flex-col items-center justify-center">
+		<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
+			<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
+			<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
 		</div>
-	{:else if $appState.user === null}
-		<LoginPage />
-	{:else if $appState.user.onboardingDone === false}
-		<OnboardingPage />
-	{:else}
-		<!--		<Router primary={false}>-->
-		<Container class="flex flex-col relative" direction="horizontal" trapFocus>
-			<Sidebar />
-			<!--				<Route path="series/*">-->
-			<!--					<SeriesHomePage />-->
-			<!--				</Route>-->
-			<!--				<Route path="movies/*">-->
-			<!--					<MoviesHomePage />-->
-			<!--				</Route>-->
-			<!--				<Route path="library/*">-->
-			<!--					<LibraryPage />-->
-			<!--				</Route>-->
-			<!--				<Route path="manage">-->
-			<!--					<ManagePage />-->
-			<!--				</Route>-->
-			<!--				<Route path="search">-->
-			<!--					<SearchPage />-->
-			<!--				</Route>-->
-			<!--				<Route path="*">-->
-			<!--					<PageNotFound />-->
-			<!--				</Route>-->
-			<StackRouter stack={defaultStackRouter} />
-		</Container>
-		<!--		</Router>-->
+		<div>Loading...</div>
+	</div>
+{:else if $appState.user === null}
+	<LoginPage />
+{:else if $appState.user.onboardingDone === false}
+	<OnboardingPage />
+{:else}
+	<!--		<Router primary={false}>-->
+	<!--		<Container class="flex flex-col relative" direction="horizontal" trapFocus>-->
+	<!--				<Route path="series/*">-->
+	<!--					<SeriesHomePage />-->
+	<!--				</Route>-->
+	<!--				<Route path="movies/*">-->
+	<!--					<MoviesHomePage />-->
+	<!--				</Route>-->
+	<!--				<Route path="library/*">-->
+	<!--					<LibraryPage />-->
+	<!--				</Route>-->
+	<!--				<Route path="manage">-->
+	<!--					<ManagePage />-->
+	<!--				</Route>-->
+	<!--				<Route path="search">-->
+	<!--					<SearchPage />-->
+	<!--				</Route>-->
+	<!--				<Route path="*">-->
+	<!--					<PageNotFound />-->
+	<!--				</Route>-->
+	<StackRouter stack={defaultStackRouter} />
+	<!--		</Container>-->
+	<!--		</Router>-->
 
-		<ModalStack />
-	{/if}
-</Container>
+	<ModalStack />
+{/if}
+<!--</Container>-->
 
 <NavigationDebugger />
 

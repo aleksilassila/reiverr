@@ -10,7 +10,7 @@
 	// Top element, that when focused and back is pressed, will exit the modal
 	const topSelectable = useRegistrar();
 
-	function handleGoBack({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
+	function handleGoBack() {
 		// if ('willLeaveContainer' in detail) {
 		// 	if (detail.direction !== 'left' || !detail.willLeaveContainer) return;
 		// 	detail.preventNavigation();
@@ -24,18 +24,11 @@
 		}
 	}
 
-	function handleGoToTop({ detail }: CustomEvent<KeyEvent> | CustomEvent<NavigateEvent>) {
-		if ('willLeaveContainer' in detail) {
-			// Navigate event
-			// if (detail.direction === 'left' && detail.willLeaveContainer) {
-			// 	detail.preventNavigation();
-			// 	get(topSelectable)?.focus();
-			// }
-		} else {
-			// Back event
-			const selectable = get(topSelectable);
+	function handleGoToTop() {
+		const selectable = get(topSelectable);
+		if (topSelectable) {
 			selectable?.focusChild(0) || selectable?.focus();
-		}
+		} else handleGoBack();
 	}
 </script>
 
@@ -44,11 +37,12 @@
 		hidden: !topmost
 	})}
 	trapFocus
+	focusOnMount
 	direction="horizontal"
 	on:mount
 >
 	<Sidebar />
-	<Container on:back={handleGoToTop} focusOnMount>
+	<Container on:back={handleGoToTop} focusOnMount class={classNames($$restProps.class)}>
 		<slot {handleGoBack} registrar={topSelectable.registrar} />
 	</Container>
 </Container>

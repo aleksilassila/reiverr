@@ -7,6 +7,7 @@
 	import CardGrid from '../components/CardGrid.svelte';
 	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
 	import { scrollIntoView } from '../selectable';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 
@@ -22,7 +23,7 @@
 	}));
 </script>
 
-<Container focusOnMount class="px-32 py-16">
+<DetachedPage class="px-32 py-16">
 	<div class="mb-6">
 		<div class="header2">Library</div>
 	</div>
@@ -40,4 +41,4 @@
 			{/each}
 		{/await}
 	</CardGrid>
-</Container>
+</DetachedPage>

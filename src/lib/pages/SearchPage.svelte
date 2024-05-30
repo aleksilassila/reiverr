@@ -9,6 +9,7 @@
 	import { scrollIntoView } from '../selectable';
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import type { Readable } from 'svelte/store';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 
 	let searchQuery = '';
 	let typingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -36,7 +37,7 @@
 	});
 </script>
 
-<Container class="px-32 py-16 h-screen flex flex-col" focusOnMount>
+<DetachedPage class="px-32 py-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
 		class={classNames('header2 pb-3 border-b-2 w-full mb-4', {
@@ -80,4 +81,4 @@
 			{/await}
 		{/if}
 	</div>
-</Container>
+</DetachedPage>

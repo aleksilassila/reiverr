@@ -19,6 +19,7 @@
 	import { ArrowRight, Trash } from 'radix-icons-svelte';
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 
 	enum Tabs {
 		Interface,
@@ -127,7 +128,7 @@
 	}}
 />
 
-<Container class="px-32 py-16" focusOnMount>
+<DetachedPage class="px-32 py-16">
 	<Container
 		direction="horizontal"
 		class="flex space-x-8 header2 pb-3 border-b-2 border-secondary-700 w-full mb-8"
@@ -313,4 +314,4 @@
 			</div>
 		</Tab>
 	</Container>
-</Container>
+</DetachedPage>
