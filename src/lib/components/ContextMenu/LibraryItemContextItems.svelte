@@ -11,6 +11,7 @@
 	import type { TitleType } from '$lib/types';
 	import ContextMenuDivider from './ContextMenuDivider.svelte';
 	import ContextMenuItem from './ContextMenuItem.svelte';
+	import { _ } from 'svelte-i18n';
 
 	export let jellyfinItem: JellyfinItem | undefined = undefined;
 	export let sonarrSeries: SonarrSeries | undefined = undefined;
@@ -42,30 +43,30 @@
 </script>
 
 <ContextMenuItem on:click={handleSetWatched} disabled={!jellyfinItem?.Id || watched}>
-	Mark as watched
+	{$_('library.LibraryItemContext.markWatched')}
 </ContextMenuItem>
 <ContextMenuItem on:click={handleSetUnwatched} disabled={!jellyfinItem?.Id || !watched}>
-	Mark as unwatched
+	{$_('library.LibraryItemContext.markUnwatched')}
 </ContextMenuItem>
 <ContextMenuDivider />
 <ContextMenuItem disabled={!jellyfinItem?.Id} on:click={handleOpenInJellyfin}>
-	Open in Jellyfin
+	{$_('library.LibraryItemContext.openJellyfin')}
 </ContextMenuItem>
 {#if type === 'movie'}
 	<ContextMenuItem
 		disabled={!radarrMovie}
 		on:click={() => window.open($settings.radarr.baseUrl + '/movie/' + radarrMovie?.tmdbId)}
 	>
-		Open in Radarr
+	{$_('library.LibraryItemContext.openRadarr')}
 	</ContextMenuItem>
 {:else}
 	<ContextMenuItem
 		disabled={!sonarrSeries}
 		on:click={() => window.open($settings.sonarr.baseUrl + '/series/' + sonarrSeries?.titleSlug)}
 	>
-		Open in Sonarr
+	{$_('library.LibraryItemContext.openSonarr')}
 	</ContextMenuItem>
 {/if}
 <ContextMenuItem on:click={() => window.open(`https://www.themoviedb.org/${type}/${tmdbId}`)}>
-	Open in TMDB
+	{$_('library.LibraryItemContext.openTMDB')}
 </ContextMenuItem>

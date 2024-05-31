@@ -122,7 +122,7 @@
 							class="w-32 aspect-[2/3] rounded-lg bg-center bg-cover flex-shrink-0 shadow-lg"
 						/>
 						<div>
-							<p class="text-zinc-400 font-medium">Latest Addition</p>
+							<p class="text-zinc-400 font-medium">{$_('discover.LatestAddition')}</p>
 							<h1 class="text-3xl sm:text-4xl md:text-5xl font-semibold">
 								{showcase?.Name}
 							</h1>
@@ -131,7 +131,7 @@
 									type="primary"
 									on:click={() => showcase?.Id && playerState.streamJellyfinId(showcase?.Id)}
 								>
-									Play<ChevronRight size={20} />
+								{$_('library.content.play')}<ChevronRight size={20} />
 								</Button>
 								<Button
 									href={`/${showcase?.Type === 'Movie' ? 'movie' : 'series'}/${

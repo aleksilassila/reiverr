@@ -15,6 +15,8 @@
 		"noResults": "Nessun risultato"
 	},
 	"discover": {
+		"LatestAddition": "Ultima aggiunta",
+		"continueWatching": "Continua a guardare",
 		"trending": "In tendenza",
 		"popularPeople": "Personaggi in tendenza",
 		"upcomingMovies": "Film in uscita",
@@ -43,7 +45,51 @@
 			"runtime": "Durata",
 			"castAndCrew": "Cast e Crew",
 			"recommendations": "Suggerimenti",
-			"similarTitles": "Titoli simili"
+			"similarTitles": "Titoli simili",
+
+			"revenue": "Entrate",
+			"play": "Play",
+			"similarSeries": "Serie simili",
+			"minLeft": "min left",
+			"addRadarr": "Aggiungi a Radarr",
+			"addSonarr": "Aggiungi a Sonarr",
+			"requestMovie": "Richiedi film",
+			"requestSerie": "Richiedi serie",
+			"sizeDisk": "Dimensione su disco",
+			"downloadedIn": "Scaricato in",
+			"manage": "Gestisci",
+			"viewLess": "Mostra meno",
+			"viewAll": "Mostra di più",
+			"networks": "Reti",
+
+			"firstAirDate": "Data del primo episodio",
+			"episodeRunTime": "Durata media dell'episodio",
+			"nextAirDate": "Data del prossimo episodio",
+			"lastAirDate": "Data dell'ultimo episodio",
+			"spokenLanguages": "Lingua",
+			"season": "Stagione",
+			"available": "Disponibile",
+			"downloadCompletedIn":"Download completato"
+		},
+		"LibraryItemContext": {
+			"markWatched": "Segna come visto",
+			"markUnwatched": "Segna come non visto",
+			"openJellyfin": "Apri in Jellyfin",
+			"openRadarr": "Apri in Radarr",
+			"openSonarr": "Apri in Sonarr",
+			"openTMDB": "Apri in TMDB"
+		},
+		"personPage": {
+			"externalLinks": "Collegamenti esterni",
+			"birthday": "Compleanno",
+			"knownFor": "Conosciuto per",
+			"placeOfBirth": "Luogo di nascita",
+			"gender": "Genere",
+			"notSet": "Sconosciuto",
+			"female": "Femminile",
+			"male": "Uomo",
+			"nonBinary": "Non binario"
+			
 		}
 	},
 	"sources": {},
