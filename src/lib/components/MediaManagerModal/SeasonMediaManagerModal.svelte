@@ -9,9 +9,10 @@
 
 	export let season: number | undefined = undefined;
 	export let sonarrItem: SonarrSeries | SonarrEpisode;
+	export let onGrabRelease: (release: Release) => void = () => {};
+
 	export let modalId: symbol;
 	export let hidden: boolean;
-	export let onGrabRelease: (release: Release) => void = () => {};
 
 	$: releases = getReleases(season);
 

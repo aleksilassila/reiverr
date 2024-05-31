@@ -10,12 +10,13 @@
 	import { formatSize } from '../../utils';
 	import { Cross1 } from 'radix-icons-svelte';
 	import { capitalize } from '../../utils.js';
+	import type { Download } from '../../apis/combined-types';
 
-	export let download: EpisodeDownload;
-	export let episode: SonarrEpisode | undefined;
+	export let download: Download;
+	export let title: string;
+	export let subtitle: string;
+	export let backgroundUrl: string;
 	export let onCancel: () => void;
-	$: backgroundUrl = episode?.images?.[0]?.remoteUrl;
-	console.log(download);
 
 	function handleCancelDownload() {
 		return sonarrApi.cancelDownload(download.id || -1).then(() => onCancel());
@@ -33,8 +34,8 @@
 		{#if backgroundUrl}
 			<div class="h-24" />
 		{/if}
-		<h1 class="header2">{episode?.title}</h1>
-		<h2 class="header1 mb-4">Season {episode?.seasonNumber} Episode {episode?.episodeNumber}</h2>
+		<h1 class="header2">{title}</h1>
+		<h2 class="header1 mb-4">{subtitle}</h2>
 		<div
 			class="grid grid-cols-[1fr_max-content] font-medium mb-16
 			[&>*:nth-child(odd)]:text-secondary-300 [&>*:nth-child(even)]:text-right [&>*:nth-child(even)]:text-secondary-100 *:py-1"

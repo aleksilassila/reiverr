@@ -347,13 +347,17 @@
 													if (file)
 														modalStack.create(FileDetailsDialog, {
 															file,
-															episode,
+															title: episode?.title || '',
+															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
+															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
 															onDelete: () => (sonarrFiles = getFiles(sonarrItem))
 														});
 													else if (download)
 														modalStack.create(DownloadDetailsDialog, {
 															download,
-															episode,
+															title: episode?.title || '',
+															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
+															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
 															onCancel: () => (sonarrDownloads = getDownloads(sonarrItem))
 														});
 												}}

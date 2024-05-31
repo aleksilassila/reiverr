@@ -5,34 +5,52 @@
 	import ReleaseList from './Releases/MMReleasesTab.svelte';
 	import DownloadList from '../MediaManager/DownloadList.svelte';
 	import FileList from './LocalFiles/MMLocalFilesTab.svelte';
-	import { radarrApi } from '../../apis/radarr/radarr-api';
+	import { radarrApi, type RadarrMovie } from '../../apis/radarr/radarr-api';
+	import type { GrabReleaseFn } from './MediaManagerModal';
+	import type { Release } from '../../apis/combined-types';
+	import Dialog from '../Dialog/Dialog.svelte';
+	import MMReleasesTab from './Releases/MMReleasesTab.svelte';
 
-	export let id: number; // Tmdb ID
+	export let radarrItem: RadarrMovie;
+	export let onGrabRelease: (release: Release) => void = () => {};
+
 	export let modalId: symbol;
 	export let hidden: boolean;
 
-	const radarrItem = radarrApi.getMovieByTmdbId(id);
-	const downloads = radarrItem.then((i) => radarrApi.getDownloadsById(i?.id || -1));
-	const files = radarrItem.then((i) => radarrApi.getFilesByMovieId(i?.id || -1));
+	$: releases = radarrApi.getReleases(radarrItem.id || -1);
 
-	const getReleases = () => radarrItem.then((si) => radarrApi.getReleases(si?.id || -1));
-	const selectRelease = () => {};
-
-	const cancelDownload = radarrApi.cancelDownloadRadarrMovie;
-	const handleSelectFile = () => {};
+	const grabRelease: GrabReleaseFn = (release) =>
+		radarrApi.downloadMovie(release.guid || '', release.indexerId || -1).then((r) => {
+			onGrabRelease(release);
+			return r;
+		});
 </script>
 
-<MMModal {modalId} {hidden}>
-	{#await radarrItem then movie}
-		{#if !movie}
-			<!--			<MMAddToSonarr />-->
-		{:else}
-			<MMMainLayout>
-				<h1 slot="title">{movie?.title}</h1>
-				<ReleaseList slot="releases" {getReleases} {selectRelease} />
-				<DownloadList slot="downloads" {downloads} {cancelDownload} />
-				<FileList slot="local-files" {files} {handleSelectFile} />
-			</MMMainLayout>
-		{/if}
-	{/await}
-</MMModal>
+<Dialog size="full" {modalId} {hidden}>
+	<MMReleasesTab {releases} {grabRelease}>
+		<h1 slot="title">{radarrItem?.title}</h1>
+		<h2 slot="subtitle">
+			Releases
+			<!--{#if season}-->
+			<!--	Season {season} Releases-->
+			<!--{:else if 'episodeNumber' in sonarrItem}-->
+			<!--	Episode {sonarrItem.episodeNumber} Releases-->
+			<!--{/if}-->
+		</h2>
+	</MMReleasesTab>
+</Dialog>
+
+<!--<MMModal {modalId} {hidden}>-->
+<!--	{#await radarrItem then movie}-->
+<!--		{#if !movie}-->
+<!--			&lt;!&ndash;			<MMAddToSonarr />&ndash;&gt;-->
+<!--		{:else}-->
+<!--			<MMMainLayout>-->
+<!--				<h1 slot="title">{movie?.title}</h1>-->
+<!--				<ReleaseList slot="releases" {getReleases} {selectRelease} />-->
+<!--				<DownloadList slot="downloads" {downloads} {cancelDownload} />-->
+<!--				<FileList slot="local-files" {files} {handleSelectFile} />-->
+<!--			</MMMainLayout>-->
+<!--		{/if}-->
+<!--	{/await}-->
+<!--</MMModal>-->

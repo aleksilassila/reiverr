@@ -8,17 +8,26 @@ import { log } from '../../utils';
 import { appState } from '../../stores/app-state.store';
 import type { Api } from '../api.interface';
 
+export const movieAvailabilities = [
+	// 'tba',
+	'announced',
+	'inCinemas',
+	'released'
+	// 'deleted'
+] as const;
+
 export type RadarrMovie = components['schemas']['MovieResource'];
 export type MovieFileResource = components['schemas']['MovieFileResource'];
 export type RadarrRelease = components['schemas']['ReleaseResource'];
 export type MovieDownload = components['schemas']['QueueResource'] & { movie: RadarrMovie };
 export type DiskSpaceInfo = components['schemas']['DiskSpaceResource'];
 export type MovieHistoryResource = components['schemas']['HistoryResource'];
+export type MovieAvailability = components['schemas']['MovieStatusType'];
 
 export interface RadarrMovieOptions {
 	title: string;
 	qualityProfileId: number;
-	minimumAvailability: 'announced' | 'inCinemas' | 'released';
+	minimumAvailability: MovieAvailability;
 	tags: number[];
 	profileId: number;
 	year: number;
@@ -68,19 +77,26 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((r) => r.data || []) || Promise.resolve([]);
 
-	addMovieToRadarr = async (tmdbId: number) => {
+	addMovieToRadarr = async (
+		tmdbId: number,
+		_options: {
+			qualityProfileId?: number;
+			rootFolderPath?: string;
+			minimumAvailability?: MovieAvailability;
+		} = {}
+	) => {
 		const tmdbMovie = await getTmdbMovie(tmdbId);
-		const radarrMovie = await this.lookupRadarrMovieByTmdbId(tmdbId);
-
-		if (radarrMovie?.id) throw new Error('Movie already exists');
+		// const radarrMovie = await this.lookupRadarrMovieByTmdbId(tmdbId);
+		//
+		// if (radarrMovie?.id) throw new Error('Movie already exists');
 
 		if (!tmdbMovie) throw new Error('Movie not found');
 
 		const options: RadarrMovieOptions = {
-			qualityProfileId: get(appState).user?.settings.radarr.qualityProfileId || 0,
-			profileId: get(appState).user?.settings.radarr?.qualityProfileId || 0,
-			rootFolderPath: get(appState).user?.settings.radarr.rootFolderPath || '',
-			minimumAvailability: 'announced',
+			qualityProfileId: _options.qualityProfileId || this.getSettings()?.qualityProfileId || 0,
+			profileId: _options.qualityProfileId || this.getSettings()?.qualityProfileId || 0,
+			rootFolderPath: _options.rootFolderPath || this.getSettings()?.rootFolderPath || '',
+			minimumAvailability: _options.minimumAvailability || 'released',
 			title: tmdbMovie.title || tmdbMovie.original_title || '',
 			tmdbId: tmdbMovie.id || 0,
 			year: Number(tmdbMovie.release_date?.slice(0, 4)),
@@ -116,6 +132,15 @@ export class RadarrApi implements Api<paths> {
 
 		return !!deleteResponse?.response.ok;
 	};
+
+	cancelDownloads = async (downloadIds: number[]) =>
+		this.getClient()
+			?.DELETE('/api/v3/queue/bulk', {
+				body: {
+					ids: downloadIds
+				}
+			})
+			.then((r) => r.response.ok) || Promise.resolve(false);
 
 	getReleases = (movieId: number): Promise<RadarrRelease[]> =>
 		this.getClient()
@@ -161,6 +186,15 @@ export class RadarrApi implements Api<paths> {
 					path: {
 						id
 					}
+				}
+			})
+			.then((res) => res.response.ok) || Promise.resolve(false);
+
+	deleteFiles = (ids: number[]) =>
+		this.getClient()
+			?.DELETE('/api/v3/moviefile/bulk', {
+				body: {
+					movieFileIds: ids
 				}
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
