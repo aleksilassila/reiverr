@@ -8,12 +8,17 @@
 
 	let visible = true;
 
-	const skippedVersion = createLocalStorageStore<string>('skipped-version');
+	const skippedVersion = createLocalStorageStore<string>('skipped-version', '');
 
 	async function fetchLatestVersion() {
 		return axios
 			.get('https://api.github.com/repos/aleksilassila/reiverr/tags')
-			.then((res) => res.data?.[0]?.name);
+			.then(
+				(res) =>
+					res.data?.find(
+						(v: { name: string }) => v.name.startsWith('v0') || v.name.startsWith('v1')
+					)?.name
+			);
 	}
 </script>
 
