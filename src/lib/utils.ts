@@ -134,8 +134,11 @@ export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean)
 	});
 }
 
-export function getCardDimensions(viewportWidth: number) {
-	const minWidth = 240;
+export function getCardDimensions(
+	viewportWidth: number,
+	type: 'portrait' | 'landscape' = 'portrait'
+) {
+	const minWidth = type === 'portrait' ? 240 : 400;
 
 	const margin = 128;
 	const gap = 32;
@@ -144,7 +147,7 @@ export function getCardDimensions(viewportWidth: number) {
 	const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
 
 	const newWidth = minWidth * scale;
-	const newHeight = (3 / 2) * newWidth;
+	const newHeight = (type === 'portrait' ? 3 / 2 : 9 / 16) * newWidth;
 
 	return {
 		width: newWidth,

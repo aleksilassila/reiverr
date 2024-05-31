@@ -111,7 +111,7 @@
 			</Container>
 		{/each}
 	</UICarousel>
-	<CardGrid direction="horizontal" on:mount>
+	<CardGrid type="landscape" on:mount>
 		{#if $tmdbSeasons?.[seasonIndex]?.episodes?.length}
 			{#each $tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
 				{@const jellyfinEpisode = awaitedJellyfinEpisodes?.find(

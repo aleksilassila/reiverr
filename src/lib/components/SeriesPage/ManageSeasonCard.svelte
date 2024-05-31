@@ -4,19 +4,25 @@
 	import AnimateScale from '../AnimateScale.svelte';
 	import classNames from 'classnames';
 	import { Plus, PlusCircled } from 'radix-icons-svelte';
+	import { getCardDimensions } from '../../utils';
 
 	export let backdropUrl: string;
 
 	let hasFocus: Readable<boolean>;
+
+	let dimensions = getCardDimensions(window.innerWidth, 'landscape');
 </script>
 
+<svelte:window
+	on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth, 'landscape'))}
+/>
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'w-full h-64',
 			'flex flex-col shrink-0',
 			'overflow-hidden rounded-2xl cursor-pointer group relative selectable transition-opacity'
 		)}
+		style={`width: ${dimensions.width}px; height: ${dimensions.height}px`}
 		on:clickOrSelect
 		on:enter
 		bind:hasFocus

@@ -11,23 +11,28 @@
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import Card from '../components/Card/Card.svelte';
 	import type { ComponentProps } from 'svelte';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
+	import { tmdbApi, type TmdbMovie2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
-	let sonarrDownloads: Promise<ComponentProps<Card>[]> = sonarrApi.getDownloads().then((items) =>
-		items
-			.filter(
-				(value, index, self) => index === self.findIndex((t) => t.seriesId === value.seriesId)
+	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
+		.getDownloads()
+		.then((items) =>
+			Promise.all(
+				items
+					.filter(
+						(value, index, self) => index === self.findIndex((t) => t.seriesId === value.seriesId)
+					)
+					.map((i) => tmdbApi.getTmdbSeriesFromTvdbId(String(i.series.tvdbId)))
+			).then((i) => i.filter((i) => !!i) as TmdbSeries2[])
+		);
+	let radarrDownloads: Promise<TmdbMovie2[]> = radarrApi
+		.getDownloads()
+		.then((items) =>
+			Promise.all(items.map((i) => tmdbApi.getTmdbMovie(i.movie.tmdbId || -1))).then(
+				(i) => i.filter((i) => !!i) as TmdbMovie2[]
 			)
-			.map((i) => ({
-				backdropUrl: i.series.images?.find((i) => i.coverType === 'poster')?.remoteUrl || '',
-				group: true
-			}))
-	);
-	let radarrDownloads: Promise<ComponentProps<Card>[]> = radarrApi.getDownloads().then((items) =>
-		items.map((i) => ({
-			backdropUrl: i.movie.images?.find((i) => i.coverType === 'poster')?.remoteUrl || ''
-		}))
-	);
+		);
 
 	settings.update((prev) => ({
 		...prev,
@@ -46,12 +51,12 @@
 		{#if sonarrDownloads?.length || radarrDownloads?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Downloading</span>
-				{#each sonarrDownloads as props}
-					<Card on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {...props} />
+				{#each sonarrDownloads as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} group />
 				{/each}
 
-				{#each radarrDownloads as props}
-					<Card on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {...props} />
+				{#each radarrDownloads as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/if}

@@ -4,6 +4,7 @@
 	import { ArrowDown, Check, TriangleRight } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
 	import AnimateScale from '../AnimateScale.svelte';
+	import { getCardDimensions } from '../../utils';
 
 	export let episodeNumber: number;
 	export let episodeName: string;
@@ -16,36 +17,20 @@
 
 	let hasFocus: Readable<boolean>;
 
-	let dimensions = getDimensions(window.innerWidth);
-
-	function getDimensions(viewportWidth: number) {
-		const minWidth = 240;
-
-		const margin = 128;
-		const gap = 32;
-
-		const cols = Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap));
-		const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
-
-		const newWidth = minWidth * scale;
-		const newHeight = (3 / 2) * newWidth;
-
-		return {
-			width: newWidth,
-			height: newHeight
-		};
-	}
+	let dimensions = getCardDimensions(window.innerWidth, 'landscape');
 </script>
 
-<svelte:window on:resize={(e) => (dimensions = getDimensions(e.currentTarget.innerWidth))} />
+<svelte:window
+	on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth, 'landscape'))}
+/>
 
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'w-full h-72',
 			'flex flex-col shrink-0',
 			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable transition-opacity'
 		)}
+		style={`width: ${dimensions.width}px; height: ${dimensions.height}px`}
 		on:clickOrSelect
 		on:enter
 		on:mount
