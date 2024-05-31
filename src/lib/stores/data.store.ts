@@ -83,7 +83,7 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	};
 }
 
-export const sonarrSeriesStore = _createDataFetchStore(sonarrApi.getSonarrDownloads);
+export const sonarrSeriesStore = _createDataFetchStore(sonarrApi.getDownloads);
 export const radarrMoviesStore = _createDataFetchStore(radarrApi.getRadarrMovies);
 
 export function createRadarrMovieStore(tmdbId: number) {
@@ -131,8 +131,8 @@ export function createSonarrSeriesStore(name: Promise<string> | string) {
 	};
 }
 
-export const sonarrDownloadsStore = _createDataFetchStore(sonarrApi.getSonarrDownloads);
-export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getRadarrDownloads);
+export const sonarrDownloadsStore = _createDataFetchStore(sonarrApi.getDownloads);
+export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getDownloads);
 export const servarrDownloadsStore = (() => {
 	const store = derived([sonarrDownloadsStore, radarrDownloadsStore], ([sonarr, radarr]) => {
 		return {

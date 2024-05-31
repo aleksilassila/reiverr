@@ -248,7 +248,7 @@ export class SonarrApi implements ApiAsync<paths> {
 					.then((res) => res.response.ok) || Promise.resolve(false)
 		);
 
-	getSonarrDownloads = (): Promise<EpisodeDownload[]> =>
+	getDownloads = (): Promise<EpisodeDownload[]> =>
 		this.getClient().then(
 			(client) =>
 				client
@@ -271,9 +271,8 @@ export class SonarrApi implements ApiAsync<paths> {
 		);
 
 	getDownloadsBySeriesId = (sonarrId: number) =>
-		this.getSonarrDownloads().then((downloads) =>
-			downloads.filter((d) => d.seriesId === sonarrId)
-		) || Promise.resolve([]);
+		this.getDownloads().then((downloads) => downloads.filter((d) => d.seriesId === sonarrId)) ||
+		Promise.resolve([]);
 
 	removeFromSonarr = (id: number): Promise<boolean> =>
 		this.getClient().then(

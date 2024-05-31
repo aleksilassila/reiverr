@@ -2,10 +2,14 @@
 	import Container from '../../Container.svelte';
 	import { onMount } from 'svelte';
 	import classNames from 'classnames';
+	import { getCardDimensions } from '../utils';
 
 	export let direction: 'horizontal' | 'vertical' = 'vertical';
 
-	let cols: number = 1;
+	let cols = getCardDimensions(window.innerWidth).columns;
+	$: console.log('cols', cols);
+
+	// let cols: number = 1;
 	const calculateRows = () => {
 		const width = window.innerWidth;
 		if (direction === 'vertical') {
@@ -34,10 +38,12 @@
 		}
 	};
 
-	onMount(() => {
-		calculateRows();
-	});
+	// onMount(() => {
+	// 	calculateRows();
+	// });
 </script>
+
+<svelte:window on:resize={(e) => (cols = getCardDimensions(e.currentTarget.innerWidth).columns)} />
 
 <Container
 	direction="grid"
@@ -46,15 +52,16 @@
 		'grid gap-x-8 gap-y-8',
 		{
 			'grid-cols-1 md:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4':
-				direction === 'horizontal',
-			'grid-cols-4 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6': direction === 'vertical'
+				direction === 'horizontal'
+			// 'grid-cols-4 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6': direction === 'vertical'
 		},
 
 		$$restProps.class
 	)}
+	style={`grid-template-columns: repeat(${cols}, minmax(0, 1fr));`}
 	on:mount
 >
 	<slot />
 </Container>
 
-<svelte:window on:resize={calculateRows} />
+<!--<svelte:window on:resize={calculateRows} />-->

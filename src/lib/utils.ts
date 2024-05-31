@@ -133,3 +133,22 @@ export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean)
 		}
 	});
 }
+
+export function getCardDimensions(viewportWidth: number) {
+	const minWidth = 240;
+
+	const margin = 128;
+	const gap = 32;
+
+	const cols = Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap));
+	const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
+
+	const newWidth = minWidth * scale;
+	const newHeight = (3 / 2) * newWidth;
+
+	return {
+		width: newWidth,
+		height: newHeight,
+		columns: cols
+	};
+}

@@ -199,7 +199,7 @@ export class RadarrApi implements Api<paths> {
 			})
 			.then((res) => res.response.ok) || Promise.resolve(false);
 
-	getRadarrDownloads = (): Promise<MovieDownload[]> =>
+	getDownloads = (): Promise<MovieDownload[]> =>
 		this.getClient()
 			?.GET('/api/v3/queue', {
 				params: {
@@ -212,12 +212,10 @@ export class RadarrApi implements Api<paths> {
 		Promise.resolve([]);
 
 	getDownloadsById = (radarrId: number) =>
-		this.getRadarrDownloads().then((downloads) => downloads.filter((d) => d.movie.id === radarrId));
+		this.getDownloads().then((downloads) => downloads.filter((d) => d.movie.id === radarrId));
 
 	getRadarrDownloadsByTmdbId = (tmdbId: number) =>
-		this.getRadarrDownloads().then((downloads) =>
-			downloads.filter((d) => d.movie.tmdbId === tmdbId)
-		);
+		this.getDownloads().then((downloads) => downloads.filter((d) => d.movie.tmdbId === tmdbId));
 
 	private lookupRadarrMovieByTmdbId = (tmdbId: number) =>
 		this.getClient()

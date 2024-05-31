@@ -13,7 +13,7 @@
 
 <div
 	class={classNames(
-		'transition-opacity duration-300',
+		'transition-opacity duration-300 overflow-hidden',
 		{
 			'opacity-0': !loaded,
 			'opacity-100': loaded

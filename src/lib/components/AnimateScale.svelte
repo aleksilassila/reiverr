@@ -9,7 +9,7 @@
 
 <div
 	class={classNames(
-		'relative',
+		'relative hover:scale-105',
 		{
 			'scale-105': hasFocus
 			// 'transition-all': enabled
