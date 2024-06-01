@@ -4,7 +4,7 @@
 	import Button from '../components/Button.svelte';
 	import { appState } from '../stores/app-state.store';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import { ArrowRight, ExternalLink } from 'radix-icons-svelte';
+	import { ArrowLeft, ArrowRight, CheckCircled, ExternalLink } from 'radix-icons-svelte';
 	import TextField from '../components/TextField.svelte';
 	import { jellyfinApi, type JellyfinUser } from '../apis/jellyfin/jellyfin-api';
 	import SelectField from '../components/SelectField.svelte';
@@ -13,6 +13,7 @@
 	import { radarrApi } from '../apis/radarr/radarr-api';
 	import { get } from 'svelte/store';
 	import { useTabs } from '../components/Tab/Tab';
+	import classNames from 'classnames';
 
 	enum Tabs {
 		Welcome,
@@ -20,6 +21,7 @@
 		Jellyfin,
 		Sonarr,
 		Radarr,
+		Complete,
 
 		SelectUser = Jellyfin + 0.1,
 		TmdbConnect = Tmdb + 0.1
@@ -123,7 +125,7 @@
 				}
 			}));
 
-			tab.next();
+			tab.set(Tabs.Jellyfin);
 		});
 	}
 
@@ -409,8 +411,27 @@
 			{#if radarrBaseUrl && radarrApiKey}
 				<Button type="primary-dark" action={handleConnectRadarr}>Connect</Button>
 			{:else}
-				<Button type="primary-dark" on:clickOrSelect={finalizeSetup}>Skip</Button>
+				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
 			{/if}
+		</Container>
+	</Tab>
+
+	<Tab {...tab} tab={Tabs.Complete} class={classNames(tabContainer, 'w-full')}>
+		<div class="flex items-center justify-center text-secondary-500 mb-4">
+			<CheckCircled size={64} />
+		</div>
+		<h1 class="header2 text-center w-full">All Set!</h1>
+		<div class="header1 mb-8 text-center">Reiverr is now ready to use.</div>
+
+		<Container direction="horizontal" class="inline-flex space-x-4 w-full">
+			<Button type="primary-dark" on:clickOrSelect={() => tab.previous()} icon={ArrowLeft}
+				>Back</Button
+			>
+			<div class="flex-1">
+				<Button type="primary-dark" on:clickOrSelect={finalizeSetup} iconAbsolute={ArrowRight}
+					>Done</Button
+				>
+			</div>
 		</Container>
 	</Tab>
 </Container>

@@ -13,6 +13,9 @@ export interface paths {
     get: operations["UserController_findById"];
     put: operations["UserController_updateUser"];
   };
+  "/user/isSetupDone": {
+    get: operations["UserController_isSetupDone"];
+  };
   "/auth": {
     post: operations["AuthController_signIn"];
   };
@@ -171,6 +174,16 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["UserDto"];
+        };
+      };
+    };
+  };
+  UserController_isSetupDone: {
+    responses: {
+      /** @description Setup done */
+      200: {
+        content: {
+          "application/json": boolean;
         };
       };
     };

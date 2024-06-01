@@ -5,8 +5,8 @@
 	import TextField from '../components/TextField.svelte';
 	import Button from '../components/Button.svelte';
 
-	let name: string = 'test';
-	let password: string = 'test';
+	let name: string = '';
+	let password: string = '';
 	let error: string | undefined = undefined;
 
 	let loading = false;
@@ -36,26 +36,34 @@
 	}
 </script>
 
-<Container
-	class="w-full h-full max-w-xs mx-auto flex flex-col items-center justify-center"
-	focusOnMount
->
-	<h1 class="font-semibold tracking-wide text-xl w-full mb-4">Login to Reiverr</h1>
+<div class="w-full h-full flex items-center justify-center">
+	<Container class="flex flex-col bg-primary-800 rounded-2xl p-10 shadow-xl max-w-lg" focusOnMount>
+		<h1 class="header2 w-full mb-2">Login to Reiverr</h1>
+		<div class="header1 mb-4">
+			If this is your first time logging in, a new account will be created based on your
+			credentials.
+		</div>
 
-	<TextField
-		value={$appState.serverBaseUrl}
-		on:change={(e) => appState.setBaseUrl(e.detail)}
-		class="mb-4 w-full"
-	>
-		Server
-	</TextField>
+		<TextField
+			value={$appState.serverBaseUrl}
+			on:change={(e) => appState.setBaseUrl(e.detail)}
+			class="mb-4 w-full"
+		>
+			Server
+		</TextField>
 
-	<TextField bind:value={name} class="mb-4 w-full">Name</TextField>
-	<TextField bind:value={password} type="password" class="mb-8 w-full">Name</TextField>
+		<TextField bind:value={name} class="mb-4 w-full">Name</TextField>
+		<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
 
-	<Button disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full">Submit</Button>
+		<Button
+			type="primary-dark"
+			disabled={loading}
+			on:clickOrSelect={handleLogin}
+			class="mb-4 w-full">Submit</Button
+		>
 
-	{#if error}
-		<div class="text-red-300 text-center">{error}</div>
-	{/if}
-</Container>
+		{#if error}
+			<div class="text-red-300 text-center">{error}</div>
+		{/if}
+	</Container>
+</div>

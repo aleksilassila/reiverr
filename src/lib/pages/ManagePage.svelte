@@ -145,7 +145,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				Interface
+				General
 			</span>
 		</Container>
 		<Container
@@ -196,6 +196,14 @@
 					checked={$localSettings.useCssTransitions}
 					on:change={({ detail }) =>
 						localSettings.update((p) => ({ ...p, useCssTransitions: detail }))}
+				/>
+			</div>
+			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
+				<label class="mr-2">Check for Updates</label>
+				<Toggle
+					checked={$localSettings.checkForUpdates}
+					on:change={({ detail }) =>
+						localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
 				/>
 			</div>
 		</Tab>

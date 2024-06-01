@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../user/user.entity';
 
 export interface AccessTokenPayload {
   sub: string;
@@ -19,7 +20,9 @@ export class AuthService {
   ): Promise<{
     token: string;
   }> {
-    const user = await this.userService.findOneByName(name);
+    let user = await this.userService.findOneByName(name);
+    if (!user && (await this.userService.noPreviousAdmins()))
+      user = await this.userService.create(name, password, true);
 
     if (!(user && user.password === password)) {
       throw new UnauthorizedException();

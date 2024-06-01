@@ -95,7 +95,8 @@ export const appStateUser = derived(appState, ($state) => $state.user);
 
 authenticationStore.subscribe((auth) => {
 	if (auth.token) {
-		getReiverrApiClient(auth.serverBaseUrl, auth.token)
+		reiverrApi
+			.getClient(auth.serverBaseUrl, auth.token)
 			?.GET('/user', {})
 			.then((res) => res.data)
 			.then((user) => appState.setUser(user || null))

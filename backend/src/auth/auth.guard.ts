@@ -18,6 +18,12 @@ export const GetUser = createParamDecorator(
   },
 );
 
+function extractTokenFromHeader(request: Request): string | undefined {
+  const [type, token] =
+    (request.headers as any).authorization?.split(' ') ?? [];
+  return type === 'Bearer' ? token : undefined;
+}
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -27,7 +33,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();
     }
@@ -46,10 +52,34 @@ export class AuthGuard implements CanActivate {
     }
     return true;
   }
+}
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] =
-      (request.headers as any).authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+@Injectable()
+export class OptionalAuthGuard implements CanActivate {
+  constructor(
+    private jwtService: JwtService,
+    private userService: UserService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = extractTokenFromHeader(request);
+    if (!token) {
+      return true;
+    }
+    try {
+      const payload: AccessTokenPayload = await this.jwtService.verifyAsync(
+        token,
+        {
+          secret: JWT_SECRET,
+        },
+      );
+      if (payload.sub) {
+        request['user'] = await this.userService.findOne(payload.sub);
+      }
+    } catch {
+      return true;
+    }
+    return true;
   }
 }

@@ -8,13 +8,14 @@ import {
   Param,
   Post,
   Put,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { AuthGuard, GetUser } from '../auth/auth.guard';
-import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard, GetUser, OptionalAuthGuard } from '../auth/auth.guard';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
-import { Settings, User } from './user.entity';
+import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 
 @ApiTags('user')
@@ -57,18 +58,29 @@ export class UserController {
     return UserDto.fromEntity(user);
   }
 
+  // @Get('isSetupDone')
+  // @ApiOkResponse({ description: 'Setup done', type: Boolean })
+  // async isSetupDone() {
+  //   return this.userService.noPreviousAdmins();
+  // }
+
+  @UseGuards(OptionalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post()
   async create(
     @Body()
     userCreateDto: CreateUserDto,
+    @GetUser() callerUser: User | undefined,
   ) {
-    const canCreateAdmin = await this.userService.noPreviousAdmins();
+    const canCreateUser =
+      (await this.userService.noPreviousAdmins()) || callerUser?.isAdmin;
+
+    if (!canCreateUser) throw new UnauthorizedException();
 
     const user = await this.userService.create(
       userCreateDto.name,
       userCreateDto.password,
-      canCreateAdmin && userCreateDto.isAdmin,
+      userCreateDto.isAdmin,
     );
 
     return UserDto.fromEntity(user);

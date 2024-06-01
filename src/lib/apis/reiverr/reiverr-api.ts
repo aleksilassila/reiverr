@@ -21,6 +21,11 @@ export class ReiverrApi implements Api<paths> {
 		});
 	}
 
+	isSetupDone = async (): Promise<boolean> =>
+		this.getClient()
+			?.GET('/user/isSetupDone')
+			.then((res) => res.data || false) || false;
+
 	async getUser() {
 		const res = await this.getClient()?.GET('/user', {});
 		return res.data;
