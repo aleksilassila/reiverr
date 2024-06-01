@@ -2,14 +2,19 @@
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { appState } from './lib/stores/app-state.store';
 	import { handleKeyboardNavigation } from './lib/selectable';
-	import Container from './Container.svelte';
 	import LoginPage from './lib/pages/LoginPage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import { defaultStackRouter } from './lib/components/StackRouter/StackRouter';
-	import Sidebar from './lib/components/Sidebar/Sidebar.svelte';
 	import OnboardingPage from './lib/pages/OnboardingPage.svelte';
+	import { onMount } from 'svelte';
+	import { skippedVersion } from './lib/stores/localstorage.store';
+	import axios from 'axios';
+	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
+	import { createModal } from './lib/components/Modal/modal.store';
+	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
+	import { localSettings } from './lib/stores/localstorage.store';
 
 	appState.subscribe((s) => console.log('appState', s));
 
@@ -27,6 +32,22 @@
 	// 		tizen.mediakey.setMediaKeyEventListener(myMediaKeyChangeListener);
 	// 	}
 	// });
+
+	async function fetchLatestVersion() {
+		return axios
+			.get('https://api.github.com/repos/aleksilassila/reiverr/tags')
+			.then((res) => res.data?.find((v: { name: string }) => v.name.startsWith('v2'))?.name);
+	}
+
+	onMount(() => {
+		if ($localSettings.checkForUpdates)
+			fetchLatestVersion().then((latestVersion) => {
+				// @ts-ignore
+				if (latestVersion !== `v${VERSION}` && latestVersion !== $localSettings.skippedVersion) {
+					createModal(UpdateDialog, { version: latestVersion });
+				}
+			});
+	});
 </script>
 
 <I18n />
@@ -70,7 +91,8 @@
 
 	<ModalStack />
 {/if}
-<!--</Container>-->
+
+<NotificationStack />
 
 <NavigationDebugger />
 

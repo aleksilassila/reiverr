@@ -2,26 +2,15 @@
 	import Container from '../../Container.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { useActionRequest, useDependantRequest, useRequest } from '../stores/data.store';
+	import { useActionRequest } from '../stores/data.store';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
-	import classNames from 'classnames';
-	import {
-		Check,
-		DotFilled,
-		Download,
-		ExternalLink,
-		File,
-		Play,
-		Plus,
-		Trash
-	} from 'radix-icons-svelte';
+	import { Check, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
 	import HeroInfoTitle from '../components/HeroInfo/HeroInfoTitle.svelte';
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { formatSize, timeout } from '../utils';
-	import { tick } from 'svelte';
-	import { createModal, openEpisodeMediaManager } from '../components/Modal/modal.store';
+	import { formatSize } from '../utils';
+	import { createModal } from '../components/Modal/modal.store';
 	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
 	import {
 		type EpisodeFileResource,

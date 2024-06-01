@@ -22,7 +22,7 @@ export function createLocalStorageStore<T>(key: string, defaultValue: T) {
 	};
 }
 
-export const skippedVersion = createLocalStorageStore<string | null>('skipped-version', null);
+export const skippedVersion = createLocalStorageStore<string>('skipped-version', '');
 export const videoPlayerSettings = createLocalStorageStore<{
 	muted: boolean;
 	volume: number;
@@ -33,7 +33,11 @@ export const videoPlayerSettings = createLocalStorageStore<{
 export const localSettings = createLocalStorageStore<{
 	animateScrolling: boolean;
 	useCssTransitions: boolean;
+	checkForUpdates: boolean;
+	skippedVersion: string;
 }>('settings', {
 	animateScrolling: true,
-	useCssTransitions: true
+	useCssTransitions: true,
+	checkForUpdates: true,
+	skippedVersion: ''
 });

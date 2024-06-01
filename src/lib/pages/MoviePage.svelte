@@ -19,7 +19,7 @@
 	import { type MovieDownload, type MovieFileResource, radarrApi } from '../apis/radarr/radarr-api';
 	import { useActionRequests, useRequest } from '../stores/data.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { createModal, modalStack, openMovieMediaManager } from '../components/Modal/modal.store';
+	import { createModal, modalStack } from '../components/Modal/modal.store';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 	import { scrollIntoView } from '../selectable';
 	import Carousel from '../components/Carousel/Carousel.svelte';
