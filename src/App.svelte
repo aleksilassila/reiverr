@@ -43,7 +43,10 @@
 		if ($localSettings.checkForUpdates)
 			fetchLatestVersion().then((latestVersion) => {
 				// @ts-ignore
-				if (latestVersion !== `v${VERSION}` && latestVersion !== $localSettings.skippedVersion) {
+				if (
+					latestVersion !== `v${REIVERR_VERSION}` &&
+					latestVersion !== $localSettings.skippedVersion
+				) {
 					createModal(UpdateDialog, { version: latestVersion });
 				}
 			});

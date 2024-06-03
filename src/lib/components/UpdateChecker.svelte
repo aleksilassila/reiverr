@@ -15,7 +15,7 @@
 </script>
 
 {#await fetchLatestVersion() then latestVersion}
-	{#if latestVersion !== `v${VERSION}` && latestVersion !== $skippedVersion && visible}
+	{#if latestVersion !== `v${REIVERR_VERSION}` && latestVersion !== $skippedVersion && visible}
 		<div
 			class="fixed inset-x-0 bottom-0 p-3 flex items-center justify-center z-20 bg-stone-800 text-sm"
 		>

@@ -24,7 +24,7 @@ export default defineConfig({
 	],
 	optimizeDeps: { exclude: ['svelte-navigator'] },
 	define: {
-		VERSION: `"${pkg.version}"`
+		REIVERR_VERSION: `"${pkg.version}"`
 	}
 
 	// base: '/dist',
