@@ -18,7 +18,7 @@
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		class={classNames(
-			'flex flex-col justify-start rounded-xl overflow-hidden relative shadow-lg shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-secondary-800 group text-left cursor-pointer',
+			'flex flex-col justify-start rounded-xl overflow-hidden relative shrink-0 selectable hover:text-inherit hover:bg-stone-800 focus-visible:bg-stone-800 bg-secondary-800 group text-left cursor-pointer',
 			{
 				'w-56 h-80': size === 'md',
 				'h-52': size === 'lg',

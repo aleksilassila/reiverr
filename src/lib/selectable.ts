@@ -480,49 +480,16 @@ export class Selectable {
 			if (parentSelectable) {
 				const previousSibling = getPreviousSibling(parentSelectable, child);
 
-				// If parent has focus, focus the child if it's the first child to be added or if the child
-				// should have focus when user navigates to the container (makeFocusedChild)
-				// if (get(parentSelectable.hasFocus)) {
-				// 	if (parentSelectable.children.length === 0) {
-				// 		console.log('Focusing first child');
-				// 		childToFocus = child;
-				// 	} else if (child.makeFocusedChild) {
-				// 		console.log('Focusing child that should be focused');
-				// 		childToFocus = child;
-				// 	}
-				// } else if (
-				// 	get(parentSelectable.hasFocusWithin) &&
-				// 	(index === undefined ? 0 : index + 1) === get(parentSelectable.focusIndex) + 1
-				// ) {
-				// 	if (parentSelectable._removedChildrenCount > 0) {
-				// 		childToFocus = child;
-				// 		parentSelectable._removedChildrenCount--;
-				// 	}
-				// }
-				// else if (
-				// 	get(parentSelectable.hasFocusWithin) &&
-				// 	(index === undefined ? 0 : index + 1) === get(parentSelectable.focusIndex)
-				// ) {
-				// 	console.log(
-				// 		"Focusing child that's being added at focusIndex",
-				// 		child,
-				// 		index,
-				// 		get(parentSelectable.focusIndex)
-				// 	);
-				// 	childToFocus = child;
-				// }
-
-				// console.log(
-				// 	'Attaching child to parent',
-				// 	child,
-				// 	parentSelectable,
-				// 	index === undefined ? 0 : index + 1
-				// );
-
 				const toFocus = parentSelectable.addChild(child, previousSibling);
 				if (toFocus) childToFocus = toFocus;
 
-				console.debug('Attached child tree to parent', child, parentSelectable);
+				console.debug(
+					'Attached child tree to parent',
+					child,
+					parentSelectable,
+					'previousSibling',
+					previousSibling
+				);
 			} else {
 				console.warn('Could not attach child (probably root)', child);
 				Selectable.rootObjectsStack.push(child);
@@ -583,7 +550,7 @@ export class Selectable {
 				destroy: () => {
 					let elementToFocus: Selectable | undefined = undefined;
 					for (const child of Selectable._childrenToRemove) {
-						console.warn('Removing child', child);
+						console.warn('Removing child', child, 'from parent', child.parent);
 						const parent = child.parent;
 
 						if (parent) {
@@ -673,7 +640,6 @@ export class Selectable {
 
 	private _addChildCountTemp = 0;
 	/**
-	 * TODO: Adding children to focusIndex does not modify focusIndex.
 	 * @return {Selectable | undefined} child to be focused
 	 */
 	private addChild(
@@ -701,7 +667,7 @@ export class Selectable {
 			} else if (this.children.length > 0 && !initialization) {
 				this._addChildCount++;
 				// console.log('Incremented addChildCount to', this._addChildCount);
-				this.focusIndex.update((prev) => prev + 1);
+				if (focusIndex > 0) this.focusIndex.update((prev) => prev + 1); // TODO: Maybe needs fixing pt1
 			}
 
 			if (this._removedChildrenCount > 1) {
@@ -743,6 +709,16 @@ export class Selectable {
 		const index = this.children.indexOf(child);
 		const focusIndex = get(this.focusIndex);
 		let childToFocus: Selectable | undefined = undefined;
+		// console.log(
+		// 	'removing child',
+		// 	child,
+		// 	'from parent',
+		// 	this,
+		// 	'index',
+		// 	index,
+		// 	'focusIndex',
+		// 	focusIndex
+		// );
 
 		if (index === focusIndex) {
 			if (this._addChildCount > 0) {
@@ -770,8 +746,11 @@ export class Selectable {
 		} else if (index > focusIndex) {
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
-				this.focusIndex.update((prev) => prev - 1);
-				childToFocus = this.children[focusIndex - 1];
+				if (focusIndex > 0) {
+					// TODO: This might need fixing pt2
+					this.focusIndex.update((prev) => prev - 1);
+					childToFocus = this.children[focusIndex - 1];
+				} else childToFocus = this.children[focusIndex];
 			} else {
 				// Do nothing
 			}
