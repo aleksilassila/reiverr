@@ -20,14 +20,14 @@
 		if (selectable && get(selectable.focusIndex) === 0) {
 			history.back();
 		} else {
-			selectable?.focusChild(0) || selectable?.focus();
+			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
 		}
 	}
 
 	function handleGoToTop() {
 		const selectable = get(topSelectable);
 		if (topSelectable) {
-			selectable?.focusChild(0) || selectable?.focus();
+			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
 		} else handleGoBack();
 	}
 </script>

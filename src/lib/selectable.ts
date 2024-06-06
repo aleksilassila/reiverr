@@ -13,6 +13,7 @@ export type FlowDirection = 'vertical' | 'horizontal';
 type FocusEventOptions = {
 	setFocusedElement: boolean | HTMLElement;
 	propagate: boolean;
+	cycleTo?: boolean;
 	onFocus?: (
 		superOnFocus: FocusHandler,
 		...args: Parameters<FocusHandler>
@@ -82,6 +83,11 @@ export type NavigationHandler = (
 export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
 
 export type ActiveChildStore = typeof Selectable.prototype.activeChild;
+
+enum FocusOrder {
+	First,
+	Last
+}
 
 export class Selectable {
 	id: number;
@@ -216,6 +222,59 @@ export class Selectable {
 			propagateFocusUpdates(_options, this);
 
 			if (_options.setFocusedElement) {
+				if (_options.cycleTo) {
+					const previouslyFocused = get(Selectable.focusedObject);
+					if (previouslyFocused) {
+						const parents = this.getParents();
+						const otherParents = [];
+						let commonParent: Selectable | undefined = undefined;
+
+						let el = previouslyFocused;
+						while (el) {
+							const parent = el.parent;
+							if (parent) otherParents.push(parent);
+							if (parent && parents.includes(parent)) {
+								commonParent = parent;
+								// const thisBeforeParent = parents[parents.indexOf(commonParent) - 1];
+								// after = thisBeforeParent
+								// 	? parent.children.indexOf(el) < parent.children.indexOf(thisBeforeParent)
+								// 	: false;
+								// thatChild = parents[parents.indexOf(commonParent) - 1];
+								break;
+							} else if (parent) {
+								el = parent;
+							} else break;
+						}
+
+						if (commonParent) {
+							const targetChild = parents[parents.indexOf(commonParent) - 1];
+							const previousChild = otherParents[otherParents.indexOf(commonParent) - 1];
+
+							let order: FocusOrder | undefined = undefined;
+							const direction = commonParent.direction;
+							for (const child of commonParent.children) {
+								if (child === targetChild) {
+									if (order !== undefined) {
+										break;
+									}
+									order = FocusOrder.First;
+									continue;
+								} else if (child === previousChild) {
+									if (order !== undefined) {
+										child.recursiveSetFocusIndex(direction, order);
+										break;
+									}
+									order = FocusOrder.Last;
+								}
+
+								if (order !== undefined) {
+									child.recursiveSetFocusIndex(direction, order);
+								}
+							}
+						}
+					}
+				}
+
 				if (_options.setFocusedElement === true) {
 					this.htmlElement.focus({ preventScroll: true });
 				} else {
@@ -760,6 +819,43 @@ export class Selectable {
 		child.parent = undefined;
 
 		return childToFocus;
+	}
+
+	private getParents(): Selectable[] {
+		const parents = [];
+
+		let parent = this.parent;
+		while (parent) {
+			parents.push(parent);
+			parent = parent.parent;
+		}
+
+		return parents;
+	}
+
+	private recursiveSetFocusIndex(direction: FlowDirection, order: FocusOrder) {
+		for (const child of this.children) {
+			child.recursiveSetFocusIndex(direction, order);
+		}
+
+		if (this.direction === direction || this.gridColumns) {
+			if (order === FocusOrder.First) {
+				this.focusIndex.set(0);
+			} else {
+				this.focusIndex.set(this.children.length - 1);
+			}
+		}
+	}
+
+	private getCommonParent(other: Selectable): Selectable | undefined {
+		const parents = this.getParents();
+		const otherParents = other.getParents();
+
+		for (const parent of parents) {
+			if (otherParents.includes(parent)) return parent;
+		}
+
+		return undefined;
 	}
 
 	select() {
