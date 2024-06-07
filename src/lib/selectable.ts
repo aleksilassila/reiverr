@@ -609,7 +609,7 @@ export class Selectable {
 				destroy: () => {
 					let elementToFocus: Selectable | undefined = undefined;
 					for (const child of Selectable._childrenToRemove) {
-						console.warn('Removing child', child, 'from parent', child.parent);
+						// console.warn('Removing child', child, 'from parent', child.parent);
 						const parent = child.parent;
 
 						if (parent) {
@@ -620,7 +620,7 @@ export class Selectable {
 								const index = parent.children.indexOf(childToFocus);
 
 								if (index !== -1) {
-									parent.focusIndex.update((prev) => index);
+									parent.focusIndex.set(index);
 								} else {
 									console.error(
 										"Couldn't find index of child to focus",
@@ -632,23 +632,20 @@ export class Selectable {
 								elementToFocus = parent;
 								console.warn('Focusing parent after last child unmount', parent);
 							}
+						} else {
+							const topRootIndex = Selectable.rootObjectsStack.indexOf(child);
+
+							if (topRootIndex === Selectable.rootObjectsStack.length - 1) {
+								Selectable.rootObjectsStack.pop();
+								Selectable.rootObjectsStack[Selectable.rootObjectsStack.length - 1]?.focus();
+							} else if (topRootIndex !== -1) {
+								Selectable.rootObjectsStack.splice(topRootIndex, 1);
+							}
 						}
 
 						if (child.htmlElement) {
 							Selectable.objects.delete(child.htmlElement);
 						}
-					}
-
-					let topRoot = Selectable.rootObjectsStack[this.rootObjectsStack.length - 1];
-					while (
-						topRoot &&
-						Selectable._childrenToRemove.indexOf(topRoot) !== -1 &&
-						Selectable.rootObjectsStack.length > 0
-					) {
-						console.warn('REMOVED TOP ROOT');
-						Selectable.rootObjectsStack.pop();
-						topRoot = Selectable.rootObjectsStack[this.rootObjectsStack.length - 1];
-						topRoot?.focus();
 					}
 
 					Selectable._childrenToRemove = [];
