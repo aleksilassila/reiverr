@@ -69,4 +69,4 @@ jobs:
       - name: Push to Docker Hub
         run: |
           docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-#          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
