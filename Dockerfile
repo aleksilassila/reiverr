@@ -20,8 +20,6 @@ COPY . .
 
 RUN npm run build
 
-RUN npm run build --prefix backend
-
 FROM --platform=linux/amd64 node:18-alpine as production
 
 RUN mkdir -p /usr/src/app
@@ -31,7 +29,6 @@ ENV NODE_ENV=production
 
 COPY --from=pre-production /usr/src/app/backend/dist ./dist
 COPY --from=pre-production /usr/src/app/backend/node_modules ./node_modules
-COPY --from=pre-production /usr/src/app/dist ./dist/dist
 
 COPY backend/package.json .
 COPY backend/package-lock.json .

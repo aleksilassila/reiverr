@@ -61,6 +61,10 @@ services:
     container_name: reiverr
     ports:
       - 9494:9494
+    environment:
+      - SECRET=your_secret_here # optional, used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
+      - ADMIN_USERNAME=admin # optional
+      - ADMIN_PASSWORD=admin # optional
     volumes:
       - /path/to/appdata/config:/config
     restart: unless-stopped
@@ -115,6 +119,8 @@ The roadmap includes plans to support the following platforms in the future:
 # Post Installation
 
 To create the first user account, you can log in with any credentials and an admin account will be created.
+Alternatively, you can define the admin username and password using environment variables,
+as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
 To get most out of Reiverr, it is recommended to connect to TMDB, Jellyfin, Radarr and Sonarr.
 
 > Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
