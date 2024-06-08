@@ -25,7 +25,7 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import TmdbPersonCard from '../components/PersonCard/TmdbPersonCard.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import MovieMediaManagerModal from '../components/MediaManagerModal/MovieMediaManagerModal.svelte';
+	import MovieMediaManagerModal from '../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
 	import MMAddToRadarrDialog from '../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
 	import FileDetailsDialog from '../components/SeriesPage/FileDetailsDialog.svelte';
 	import DownloadDetailsDialog from '../components/SeriesPage/DownloadDetailsDialog.svelte';

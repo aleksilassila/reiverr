@@ -28,7 +28,7 @@
 	export let title: string;
 
 	export let modalId: symbol;
-	export let onComplete: () => void = () => {};
+	export let onComplete: (() => void) | (() => Promise<any>) = () => Promise.resolve();
 	$: backgroundUrl = TMDB_BACKDROP_SMALL + backdropUri;
 
 	let tab: 'add-to-sonarr' | 'root-folders' | 'quality-profiles' | 'monitor-settings' =
@@ -63,7 +63,7 @@
 	});
 	addOptionsStore.subscribe(() => (tab = 'add-to-sonarr'));
 
-	function handleAddToSonarr() {
+	async function handleAddToSonarr() {
 		return sonarrApi
 			.addToSonarr(tmdbId as number, {
 				rootFolderPath: $addOptionsStore.rootFolderPath || undefined,
@@ -73,7 +73,7 @@
 			.then((success) => {
 				if (success) {
 					modalStack.close(modalId);
-					onComplete();
+					return onComplete();
 				}
 			});
 	}

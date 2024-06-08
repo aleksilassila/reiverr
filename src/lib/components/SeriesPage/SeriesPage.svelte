@@ -25,7 +25,7 @@
 	import EpisodeGrid from './EpisodeGrid.svelte';
 	import { formatSize } from '../../utils';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
-	import SeasonMediaManagerModal from '../MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import SeasonMediaManagerModal from '../MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';

@@ -9,7 +9,7 @@
 	import Button from '../components/Button.svelte';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { formatSize } from '../utils';
+	import { formatSize, retry, timeout } from '../utils';
 	import { createModal } from '../components/Modal/modal.store';
 	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
 	import {
@@ -19,8 +19,9 @@
 		type SonarrSeries
 	} from '../apis/sonarr/sonarr-api';
 	import MMAddToSonarrDialog from '../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
-	import SeasonMediaManagerModal from '../components/MediaManagerModal/SeasonMediaManagerModal.svelte';
+	import SonarrMediaManagerModal from '../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
+	import { tick } from 'svelte';
 
 	export let id: string; // Series ID
 	export let season: string;
@@ -65,10 +66,21 @@
 		});
 	}
 
-	function handleRequestEpisode() {
+	async function handleAddedToSonarr() {
+		sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+		return retry(() => getSonarrEpisode(sonarrItem)).then((sonarrEpisode) => {
+			sonarrEpisode &&
+				createModal(SonarrMediaManagerModal, {
+					sonarrItem: sonarrEpisode,
+					onGrabRelease: () => {}
+				});
+		});
+	}
+
+	async function handleRequestEpisode() {
 		return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
 			if (sonarrEpisode) {
-				createModal(SeasonMediaManagerModal, {
+				createModal(SonarrMediaManagerModal, {
 					sonarrItem: sonarrEpisode,
 					onGrabRelease: () => {} // TODO
 				});
@@ -77,7 +89,7 @@
 					tmdbId: Number(id),
 					backdropUri: tmdbEpisode.still_path || '',
 					title: tmdbEpisode.name || '',
-					onComplete: () => (sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id)))
+					onComplete: handleAddedToSonarr
 				});
 			} else {
 				console.error('No series found');

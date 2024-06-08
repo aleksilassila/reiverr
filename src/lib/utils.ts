@@ -91,6 +91,34 @@ export function timeout<T>(ms: number, ret?: T) {
 	return new Promise<T | void>((resolve) => setTimeout(() => resolve(ret), ms));
 }
 
+export function retry<T>(
+	fn: () => Promise<T>,
+	successFn: (v: T) => boolean = (v) => !!v,
+	options: { retries?: number; delay?: number; reject?: boolean } = {}
+) {
+	let { retries = 3, delay = 1000, reject = false } = options;
+	return new Promise<T>((resolve, _reject) => {
+		function attempt() {
+			fn().then((v) => {
+				if (successFn(v)) {
+					resolve(v);
+				} else {
+					if (retries > 0) {
+						retries--;
+						setTimeout(attempt, delay);
+					} else if (reject) {
+						_reject(new Error('Max retries reached'));
+					} else {
+						resolve(v);
+					}
+				}
+			});
+		}
+
+		attempt();
+	});
+}
+
 export function formatDateToYearMonthDay(date: Date) {
 	const year = date.getFullYear();
 	const month = String(date.getMonth() + 1).padStart(2, '0');
