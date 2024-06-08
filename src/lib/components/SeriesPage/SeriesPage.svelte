@@ -25,7 +25,7 @@
 	import EpisodeGrid from './EpisodeGrid.svelte';
 	import { formatSize } from '../../utils';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
-	import SeasonMediaManagerModal from '../MediaManagerModal/SonarrMediaManagerModal.svelte';
+	import SonarrMediaManagerModal from '../MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
@@ -82,7 +82,7 @@
 		sonarrItem.then(
 			(sonarrItem) =>
 				sonarrItem &&
-				createModal(SeasonMediaManagerModal, {
+				createModal(SonarrMediaManagerModal, {
 					season: 1,
 					sonarrItem,
 					onGrabRelease
@@ -94,7 +94,7 @@
 		return sonarrItem.then((sonarrItem) => {
 			const tmdbSeries = get(tmdbSeriesData);
 			if (sonarrItem) {
-				createModal(SeasonMediaManagerModal, {
+				createModal(SonarrMediaManagerModal, {
 					season,
 					sonarrItem,
 					onGrabRelease

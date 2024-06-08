@@ -6,6 +6,7 @@
 	import Dialog from '../Dialog/Dialog.svelte';
 	import type { Release } from '../../apis/combined-types';
 	import MMSeasonSelectTab from './MMSeasonSelectTab.svelte';
+	import { retry } from '../../utils';
 
 	export let season: number | undefined = undefined;
 	export let sonarrItem: SonarrSeries | SonarrEpisode;
@@ -25,8 +26,18 @@
 		});
 
 	function getReleases(season?: number) {
-		if (season) return sonarrApi.getSeasonReleases(sonarrItem.id || -1, season);
-		else return sonarrApi.getEpisodeReleases(sonarrItem.id || -1);
+		if (season)
+			return retry(
+				() => sonarrApi.getSeasonReleases(sonarrItem.id || -1, season),
+				(v) => !!v?.length,
+				{ retries: 2 }
+			);
+		else
+			return retry(
+				() => sonarrApi.getEpisodeReleases(sonarrItem.id || -1),
+				(v) => !!v?.length,
+				{ retries: 2 }
+			);
 	}
 
 	onDestroy(() => {
