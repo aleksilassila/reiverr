@@ -3,18 +3,22 @@
 	import {
 		getSonarrLanguageProfiles,
 		getSonarrQualityProfiles,
-		getSonarrRootFolders
+		getSonarrRootFolders,
+		getSonarrMonitors
 	} from '$lib/apis/sonarr/sonarrApi';
+	import { getRadarrMonitors } from '$lib/apis/radarr/radarrApi';
 	import FormButton from '$lib/components/forms/FormButton.svelte';
 	import Input from '$lib/components/forms/Input.svelte';
 	import Select from '$lib/components/forms/Select.svelte';
 	import { settings, type SettingsValues } from '$lib/stores/settings.store';
 	import classNames from 'classnames';
-	import { Trash } from 'radix-icons-svelte';
+	import { Switch, Trash } from 'radix-icons-svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
 	import TestConnectionButton from './TestConnectionButton.svelte';
 	import { getRadarrQualityProfiles, getRadarrRootFolders } from '$lib/apis/radarr/radarrApi';
 	import { _ } from 'svelte-i18n';
+	import { defaultSettings } from '$lib/stores/settings.store';
+	import Toggle from '$lib/components/forms/Toggle.svelte';
 
 	export let values: SettingsValues;
 
@@ -29,9 +33,11 @@
 	let sonarrRootFolders: undefined | { id: number; path: string }[] = undefined;
 	let sonarrQualityProfiles: undefined | { id: number; name: string }[] = undefined;
 	let sonarrLanguageProfiles: undefined | { id: number; name: string }[] = undefined;
+	let sonarrMonitors: undefined | { id: number; type: string }[] = undefined;
 
 	let radarrRootFolders: undefined | { id: number; path: string }[] = undefined;
 	let radarrQualityProfiles: undefined | { id: number; name: string }[] = undefined;
+	let radarrMonitors: undefined | { id: number; type: string }[] = undefined;
 
 	let jellyfinUsers: undefined | { id: string; name: string }[] = undefined;
 
@@ -74,6 +80,12 @@
 				values.sonarr.apiKey || undefined
 			).then((profiles) => {
 				sonarrLanguageProfiles = profiles.map((p) => ({ id: p.id || 0, name: p.name || '' }));
+			});
+			getSonarrMonitors().then((mon) => {
+				sonarrMonitors = mon.map((p, index) => ({ id: index || 0, type: p || '' }));
+			});
+			getRadarrMonitors().then((mon) => {
+				radarrMonitors = mon.map((p, index) => ({ id: index || 0, type: p || '' }));
 			});
 		}
 	}
@@ -203,6 +215,22 @@
 						{/each}
 					</Select>
 				{/if}
+				<h2>Monitor Series</h2>
+				{#if !sonarrMonitors}
+					<Select loading />
+				{:else}
+					<Select bind:value={values.sonarr.monitor}>
+						{#each sonarrMonitors as profile}
+							<option value={profile.id}>{profile.type}</option>
+						{/each}
+					</Select>
+				{/if}
+				<h2>Start searching for new episodes</h2>
+				{#if defaultSettings.sonarr.StartSearch == undefined}
+					<Select loading />
+				{:else}
+					<Toggle bind:checked={values.sonarr.StartSearch} />
+				{/if}
 			</div>
 		</IntegrationCard>
 	</div>
@@ -275,6 +303,22 @@
 							<option value={profile.id}>{profile.name}</option>
 						{/each}
 					</Select>
+				{/if}
+				<h2>Monitor Movies</h2>
+				{#if !radarrMonitors}
+					<Select loading />
+				{:else}
+					<Select bind:value={values.radarr.monitor}>
+						{#each radarrMonitors as profile}
+							<option value={profile.id}>{profile.type}</option>
+						{/each}
+					</Select>
+				{/if}
+				<h2>Start searching for new episodes</h2>
+				{#if defaultSettings.radarr.StartSearch == undefined}
+					<Select loading />
+				{:else}
+					<Toggle bind:checked={values.radarr.StartSearch} />
 				{/if}
 			</div>
 		</IntegrationCard>

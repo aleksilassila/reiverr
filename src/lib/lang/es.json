@@ -54,7 +54,7 @@
 			"addRadarr": "Añadir a Radarr",
 			"addSonarr": "Añadir a Sonarr",
 			"requestMovie": "Solicitar la película",
-			"requestSerie": "Solicitar la serie",
+			"requestSeries": "Solicitar la serie",
 			"sizeDisk": "Tamaño en disco",
 			"downloadedIn": "Descargado",
 			"manage": "Gestionar",
@@ -89,7 +89,7 @@
 			"female": "Mujer",
 			"male": "Hombre",
 			"nonBinary": "No binario"
-			
+
 		}
 	},
 	"sources": {},
