@@ -19,7 +19,7 @@ Reiverr 1.0 remains usable, but all development efforts are focused on Reiverr 2
 are provided by the community as pull requests. This version uses the `reiverr-1.0` and `dev-1.0` branches.
 
 When 2.0 was released, the `latest` docker tag was reserved for 2.0. If you want to keep using the 1.0 version,
-and its future updates, you'll have to switch to the `latest-1.0` tag or a specific version instead.
+and its future updates, you'll have to switch to the `latest-v1` tag or a specific version instead.
 
 # List of major features
 
@@ -65,7 +65,7 @@ name: reiverr
 
 services:
   reiverr:
-    image: ghcr.io/aleksilassila/reiverr:latest
+    image: ghcr.io/aleksilassila/reiverr:latest-v1
     container_name: reiverr
     ports:
       - 9494:9494
