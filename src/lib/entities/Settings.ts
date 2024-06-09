@@ -48,7 +48,7 @@ export class Settings extends BaseEntity {
 	sonarrLanguageProfileId: number;
 
 	@Column('integer', { default: defaultSettings.sonarr.monitor })
-	sonarrmonitor: number;
+	sonarrMonitor: number;
 
 	@Column('boolean', { default: defaultSettings.sonarr.StartSearch })
 	sonarrStartSearch: boolean;
@@ -68,7 +68,7 @@ export class Settings extends BaseEntity {
 	radarrQualityProfileId: number;
 
 	@Column('integer', { default: defaultSettings.radarr.monitor })
-	radarrmonitor: number;
+	radarrMonitor: number;
 
 	@Column('boolean', { default: defaultSettings.radarr.StartSearch })
 	radarrStartSearch: boolean;
@@ -115,7 +115,7 @@ export class Settings extends BaseEntity {
 				...defaultSettings.sonarr,
 				apiKey: settings.sonarrApiKey,
 				baseUrl: settings.sonarrBaseUrl,
-				monitor: settings.sonarrmonitor,
+				monitor: settings.sonarrMonitor,
 				StartSearch: settings.sonarrStartSearch,
 				languageProfileId: settings.sonarrLanguageProfileId,
 				qualityProfileId: settings.sonarrQualityProfileId,
@@ -125,7 +125,7 @@ export class Settings extends BaseEntity {
 				...defaultSettings.radarr,
 				apiKey: settings.radarrApiKey,
 				baseUrl: settings.radarrBaseUrl,
-				monitor: settings.radarrmonitor,
+				monitor: settings.radarrMonitor,
 				StartSearch: settings.radarrStartSearch,
 				qualityProfileId: settings.radarrQualityProfileId,
 				rootFolderPath: settings.radarrRootFolderPath
@@ -158,14 +158,14 @@ export class Settings extends BaseEntity {
 		settings.sonarrLanguageProfileId = values.sonarr.languageProfileId;
 		settings.sonarrQualityProfileId = values.sonarr.qualityProfileId;
 		settings.sonarrRootFolderPath = values.sonarr.rootFolderPath;
-		settings.sonarrmonitor = values.sonarr.monitor;
+		settings.sonarrMonitor = values.sonarr.monitor;
 		settings.sonarrStartSearch = values.sonarr.StartSearch;
 
 		settings.radarrApiKey = values.radarr.apiKey;
 		settings.radarrBaseUrl = values.radarr.baseUrl;
 		settings.radarrQualityProfileId = values.radarr.qualityProfileId;
 		settings.radarrRootFolderPath = values.radarr.rootFolderPath;
-		settings.radarrmonitor = values.radarr.monitor;
+		settings.radarrMonitor = values.radarr.monitor;
 		settings.radarrStartSearch = values.radarr.StartSearch;
 
 		settings.jellyfinApiKey = values.jellyfin.apiKey;

@@ -153,7 +153,7 @@
 		if (nextJellyfinEpisode?.Id) playerState.streamJellyfinId(nextJellyfinEpisode?.Id || '');
 	}
 
-	 async function refreshSonarr() {
+	async function refreshSonarr() {
 		await sonarrSeriesStore.refreshIn();
 	}
 
@@ -258,7 +258,8 @@
 					{#if !!nextJellyfinEpisode}
 						<Button type="primary" on:click={playNextEpisode}>
 							<span>
-								{$_('library.content.play')} {`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
+								{$_('library.content.play')}
+								{`S${nextJellyfinEpisode?.ParentIndexNumber}E${nextJellyfinEpisode?.IndexNumber}`}
 							</span>
 							<ChevronRight size={20} />
 						</Button>
@@ -268,7 +269,7 @@
 						</Button>
 					{:else if $sonarrSeriesStore.item}
 						<Button type="primary" on:click={openRequestModal}>
-							<span class="mr-2">{$_('library.content.requestSerie')}</span><Plus size={20} />
+							<span class="mr-2">{$_('library.content.requestSeries')}</span><Plus size={20} />
 						</Button>
 					{/if}
 				{/if}
@@ -366,11 +367,14 @@
 				<div class="col-span-2 lg:col-span-1">
 					<p class="text-zinc-400 text-sm">{$_('library.content.nextAirDate')}</p>
 					<h2 class="font-medium">
-						{new Date(tmdbSeries.next_episode_to_air?.air_date).toLocaleDateString($settings.language, {
-							year: 'numeric',
-							month: 'short',
-							day: 'numeric'
-						})}
+						{new Date(tmdbSeries.next_episode_to_air?.air_date).toLocaleDateString(
+							$settings.language,
+							{
+								year: 'numeric',
+								month: 'short',
+								day: 'numeric'
+							}
+						)}
 					</h2>
 				</div>
 			{:else if tmdbSeries?.last_air_date}
@@ -436,7 +440,7 @@
 
 				<div class="flex gap-4 flex-wrap col-span-4 sm:col-span-6 mt-4">
 					<Button on:click={openRequestModal}>
-						<span class="mr-2">{$_('library.content.requestSerie')}</span><Plus size={20} />
+						<span class="mr-2">{$_('library.content.requestSeries')}</span><Plus size={20} />
 					</Button>
 					<Button>
 						<span class="mr-2">{$_('library.content.manage')}</span><Archive size={20} />
@@ -458,7 +462,9 @@
 				</Carousel>
 
 				<Carousel gradientFromColor="from-stone-950">
-					<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
+					<div slot="title" class="font-medium text-lg">
+						{$_('library.content.recommendations')}
+					</div>
 					<CarouselPlaceholderItems />
 				</Carousel>
 
@@ -478,7 +484,9 @@
 
 				{#if tmdbRecommendationProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">{$_('library.content.recommendations')}</div>
+						<div slot="title" class="font-medium text-lg">
+							{$_('library.content.recommendations')}
+						</div>
 						{#each tmdbRecommendationProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}
@@ -487,7 +495,9 @@
 
 				{#if tmdbSimilarProps?.length}
 					<Carousel gradientFromColor="from-stone-950">
-						<div slot="title" class="font-medium text-lg">{$_('library.content.similarSeries')}</div>
+						<div slot="title" class="font-medium text-lg">
+							{$_('library.content.similarSeries')}
+						</div>
 						{#each tmdbSimilarProps as prop}
 							<Card {...prop} openInModal={isModal} />
 						{/each}

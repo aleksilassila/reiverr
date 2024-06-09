@@ -33,11 +33,11 @@
 	let sonarrRootFolders: undefined | { id: number; path: string }[] = undefined;
 	let sonarrQualityProfiles: undefined | { id: number; name: string }[] = undefined;
 	let sonarrLanguageProfiles: undefined | { id: number; name: string }[] = undefined;
-	let sonarrmonitors: undefined | { id: number; type: string }[] = undefined;
+	let sonarrMonitors: undefined | { id: number; type: string }[] = undefined;
 
 	let radarrRootFolders: undefined | { id: number; path: string }[] = undefined;
 	let radarrQualityProfiles: undefined | { id: number; name: string }[] = undefined;
-	let radarrmonitors: undefined | { id: number; type: string }[] = undefined;
+	let radarrMonitors: undefined | { id: number; type: string }[] = undefined;
 
 	let jellyfinUsers: undefined | { id: string; name: string }[] = undefined;
 
@@ -81,12 +81,12 @@
 			).then((profiles) => {
 				sonarrLanguageProfiles = profiles.map((p) => ({ id: p.id || 0, name: p.name || '' }));
 			});
-			getSonarrMonitors().then((mon)=>{
-				sonarrmonitors = mon.map((p,index) => ({id: index || 0, type: p || ''}));
-			})
-			getRadarrMonitors().then((mon)=>{
-				radarrmonitors = mon.map((p,index) => ({id: index || 0, type: p || ''}));
-			})
+			getSonarrMonitors().then((mon) => {
+				sonarrMonitors = mon.map((p, index) => ({ id: index || 0, type: p || '' }));
+			});
+			getRadarrMonitors().then((mon) => {
+				radarrMonitors = mon.map((p, index) => ({ id: index || 0, type: p || '' }));
+			});
 		}
 	}
 
@@ -216,20 +216,20 @@
 					</Select>
 				{/if}
 				<h2>Monitor Series</h2>
-				{#if !sonarrmonitors}
+				{#if !sonarrMonitors}
 					<Select loading />
 				{:else}
-				<Select bind:value={values.sonarr.monitor}>
-					{#each sonarrmonitors as profile}
-						<option value={profile.id}>{profile.type}</option>
-					{/each}
-				</Select>
+					<Select bind:value={values.sonarr.monitor}>
+						{#each sonarrMonitors as profile}
+							<option value={profile.id}>{profile.type}</option>
+						{/each}
+					</Select>
 				{/if}
 				<h2>Start searching for new episodes</h2>
 				{#if defaultSettings.sonarr.StartSearch == undefined}
 					<Select loading />
 				{:else}
-				<Toggle bind:checked={values.sonarr.StartSearch} />
+					<Toggle bind:checked={values.sonarr.StartSearch} />
 				{/if}
 			</div>
 		</IntegrationCard>
@@ -305,20 +305,20 @@
 					</Select>
 				{/if}
 				<h2>Monitor Movies</h2>
-				{#if !radarrmonitors}
+				{#if !radarrMonitors}
 					<Select loading />
 				{:else}
-				<Select bind:value={values.radarr.monitor}>
-					{#each radarrmonitors as profile}
-						<option value={profile.id}>{profile.type}</option>
-					{/each}
-				</Select>
+					<Select bind:value={values.radarr.monitor}>
+						{#each radarrMonitors as profile}
+							<option value={profile.id}>{profile.type}</option>
+						{/each}
+					</Select>
 				{/if}
 				<h2>Start searching for new episodes</h2>
 				{#if defaultSettings.radarr.StartSearch == undefined}
 					<Select loading />
 				{:else}
-				<Toggle bind:checked={values.radarr.StartSearch} />
+					<Toggle bind:checked={values.radarr.StartSearch} />
 				{/if}
 			</div>
 		</IntegrationCard>
