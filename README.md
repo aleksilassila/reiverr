@@ -1,4 +1,4 @@
-# Reiverr
+# Reiverr 1.0
 
 ![Stargazers](https://img.shields.io/github/stars/aleksilassila/reiverr)
 ![GitHub issues](https://img.shields.io/github/issues/aleksilassila/reiverr)
@@ -10,7 +10,16 @@ Reiverr is a project that aims to create a single UI for interacting with TMDB, 
 
 This project is still in alpha, and many features are still missing / being tested and changed. Contributions are welcome! See [contributing](#Contributing) for more information.
 
-![Demo Videi](images/reiverr-demo.gif)
+![Demo Video](images/reiverr-demo.gif)
+
+## Reiverr 2.0
+
+This is the page for Reiverr 1.0, which is the original version of the project written in SvelteKit for web only. 
+Reiverr 1.0 remains usable, but all development efforts are focused on Reiverr 2.0, and any fixes and features
+are provided by the community as pull requests. This version uses the `reiverr-1.0` and `dev-1.0` branches.
+
+When 2.0 was released, the `latest` docker tag was reserved for 2.0. If you want to keep using the 1.0 version,
+and its future updates, you'll have to switch to the `latest-1.0` tag or a specific version instead.
 
 # List of major features
 
@@ -95,12 +104,6 @@ The roadmap includes plans to support the following platforms in the future:
 - Android TV / TizenOS
 
 # Contributing
-
-## State of the Project ⚠️
-
-Reiverr is currently being completely rewritten in plain svelte and with some major changes to architecture to make the project compatible with TVs. The SvelteKit version of the project will be deprecated in favor of the reworked app in 2024 summer, if all goes according to plan. I don't recommend contributing before the switch has been made, as the rework is still in constant change and the old sveltekit project will be discontinued.
-
-- [Project State Discussion Thread](https://github.com/aleksilassila/reiverr/issues/98)
 
 ## Before you contribute
 
