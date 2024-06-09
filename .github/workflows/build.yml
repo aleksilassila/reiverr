@@ -59,7 +59,7 @@ jobs:
         run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
 
       - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest-1.0
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest-v1
 
       # - name: Tag with Git SHA
       #   run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
@@ -67,4 +67,4 @@ jobs:
       - name: Push to Docker Hub
         run: |
           docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest-1.0
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest-v1
