@@ -8,6 +8,7 @@
 	import fr from '../../lang/fr.json';
 	import it from '../../lang/it.json';
 	import nl from '../../lang/nl.json';
+	import pt from '../../lang/pt_PT.json';
 
 	addMessages('de', de);
 	addMessages('en', en);
@@ -15,6 +16,7 @@
 	addMessages('fr', fr);
 	addMessages('it', it);
 	addMessages('nl', nl);
+	addMessages('pt_PT', pt);
 
 	settings.subscribe((value) => {
 		if (value.language) {
