@@ -312,7 +312,7 @@
 
 	{#if !libraryLoading && posterProps.length > 0}
 		<div class="mx-auto my-4">
-			<Button on:click={() => (page = page + 1)} disabled={!hasMore}>Load More</Button>
+			<Button on:click={() => (page = page + 1)} disabled={!hasMore}>{$_('library.loadMore')}</Button>
 		</div>
 	{/if}
 </div>

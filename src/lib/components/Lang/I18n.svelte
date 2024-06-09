@@ -8,6 +8,8 @@
 	import fr from '../../lang/fr.json';
 	import it from '../../lang/it.json';
 	import nl from '../../lang/nl.json';
+	import pt_pt from '../../lang/pt-PT.json';
+	import pt_br from '../../lang/pt-BR.json';
 
 	addMessages('de', de);
 	addMessages('en', en);
@@ -15,6 +17,8 @@
 	addMessages('fr', fr);
 	addMessages('it', it);
 	addMessages('nl', nl);
+	addMessages('pt', pt_pt);
+	// addMessages('pt-BR', pt_br); // No support for pt-BR vs pt-PT in svelte-i18n yet :(
 
 	settings.subscribe((value) => {
 		if (value.language) {
