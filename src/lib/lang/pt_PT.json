@@ -1,0 +1,102 @@
+{
+	"appName": "Reiverr",
+	"setupRequiredTitle": "Bem-vindo ao",
+	"setupRequiredDescription": "Parece que a aplicação não tem algumas variáveis de ambiente que são necessárias para que a aplicação funcione. Fornece as seguintes variáveis de ambiente:",
+	"navbar": {
+		"home": "Início",
+		"discover": "Explorar",
+		"library": "Biblioteca",
+		"sources": "Fontes",
+		"settings": "Definições"
+	},
+	"search": {
+		"placeHolder": "Pesquisar filmes e séries",
+		"noRecentSearches": "Não há pesquisas recentes",
+		"noResults": "Não há resultados de pesquisa"
+	},
+	"discover": {
+		"trending": "Tendências",
+		"popularPeople": "Pessoas populares",
+		"upcomingMovies": "Filmes a estrear em breve",
+		"upcomingSeries": "Séries a estrear em breve",
+		"genres": "Géneros",
+		"newDigitalReleases": "Novos lançamentos digitais",
+		"streamingNow": "Em streaming agora",
+		"TVNetworks": "Emissoras"
+	},
+	"library": {
+		"missingConfiguration": "Configura o Radarr, o Sonarr e o Jellyfin para ver e gerir a tua biblioteca",
+		"available": "Disponível",
+		"watched": "Visto",
+		"unavailable": "Indisponível",
+		"sort": {
+			"byTitle": "Por título"
+		},
+		"content": {
+			"movie": "Filme",
+			"show": "Série",
+			"requestContent": "Solicitar",
+			"directedBy": "Realização",
+			"releaseDate": "Data de lançamento",
+			"budget": "Orçamento",
+			"status": "Estado",
+			"runtime": "Duração",
+			"castAndCrew": "Elenco e equipa técnica",
+			"recommendations": "Recomendações",
+			"similarTitles": "Títulos semelhantes"
+		}
+	},
+	"sources": {},
+	"titleShowcase": {
+		"details": "Detalhes",
+		"watchTrailer": "Ver trailer",
+		"releaseDate": "Data de lançamento",
+		"directedBy": "Realização"
+	},
+	"settings": {
+		"navbar": {
+			"settings": "Configuração",
+			"general": "Geral",
+			"integrations": "Integrações"
+		},
+		"general": {
+			"userInterface": {
+				"userInterface": "Interface do utilizador",
+				"language": "Idioma",
+				"autoplayTrailers": "Reprodução automática de trailers",
+				"animationDuration": "Duração da animação"
+			},
+			"discovery": {
+				"discovery": "Explorar",
+				"none": "Nenhum",
+				"region": "Região",
+				"excludeLibraryItemsFromDiscovery": "Excluir itens da biblioteca do Explorar",
+				"includedLanguages": "Idiomas incluídos",
+				"includedLanguagesDescription": "Filtra os resultados com base no idioma falado. Utiliza códigos de idioma ISO 639-1 separados por vírgulas. Deixa em branco para desativar."
+			}
+		},
+		"integrations": {
+			"integrations": "Integrações",
+			"integrationsNote": "Nota: Os urls de base devem ser acessíveis a partir do navegador, o que significa que os endereços internos do docker não funcionarão, por exemplo. As chaves da API <span class='font-medium underline'>serão expostas</span> ao navegador.",
+			"baseUrl": "URL de base",
+			"apiKey": "Chave da API",
+			"testConnection": "Testar conexão",
+			"status": {
+				"connected": "Conectado",
+				"disconnected": "Desconectado"
+			},
+			"options": {
+				"options": "Opções",
+				"rootFolder": "Pasta raiz",
+				"qualityProfile": "Perfil de qualidade",
+				"languageProfile": "Perfil de idioma",
+				"jellyfinUser": "Utilizador Jellyfin"
+			}
+		},
+		"misc": {
+			"saveChanges": "Guardar alterações",
+			"resetToDefaults": "Repor os valores predefinidos das definições ",
+			"changelog": "Registo de alterações"
+		}
+	}
+}
