@@ -72,12 +72,27 @@ export class TmdbApi implements Api<paths> {
 		});
 	}
 
+	static getClient4l() {
+		const sessionId = get(appState)?.user?.settings.tmdb.sessionId;
+
+		return createClient<paths4>({
+			baseUrl: 'https://api.themoviedb.org',
+			headers: {
+				Authorization: `Bearer ${sessionId}`
+			}
+		});
+	}
+
 	getClient() {
 		return TmdbApi.getClient();
 	}
 
 	getClient4() {
 		return TmdbApi.getClient4();
+	}
+
+	getClient4l() {
+		return TmdbApi.getClient4l();
 	}
 
 	getSessionId() {
@@ -316,7 +331,7 @@ export class TmdbApi implements Api<paths> {
 
 		const top100: TmdbMovieSmall[] = await Promise.all(
 			[...Array(5).keys()].map((i) =>
-				this.getClient4()
+				this.getClient4l()
 					?.GET('/4/account/{account_object_id}/movie/recommendations', {
 						params: {
 							path: {
@@ -391,7 +406,7 @@ export class TmdbApi implements Api<paths> {
 
 		const top100: TmdbSeriesSmall[] = await Promise.all(
 			[...Array(5).keys()].map((i) =>
-				this.getClient4()
+				this.getClient4l()
 					?.GET('/4/account/{account_object_id}/tv/recommendations', {
 						params: {
 							path: {
@@ -463,15 +478,18 @@ export class TmdbApi implements Api<paths> {
 		const userId = this.getUserId();
 		if (!userId) return undefined;
 
-		return this.getClient()
-			?.GET('/3/account/{account_id}', {
-				params: {
-					path: {
-						account_id: Number(userId)
+		return (
+			this.getClient4l()
+				// @ts-ignore
+				?.GET('/4/account/{account_object_id}', {
+					params: {
+						path: {
+							account_object_id: userId
+						}
 					}
-				}
-			})
-			.then((res) => res.data);
+				})
+				.then((res) => res.data)
+		);
 	};
 }
 

@@ -14,6 +14,13 @@ Contributions are welcome! See [contributing](#Contributing) for more informatio
 
 ![Demo Video](images/reiverr-demo.gif)
 
+## Reiverr 1.0
+
+This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind.
+It still lacks many features of the previous version. If you want a more stable experience,
+or only care about the web app, you might want to check out the
+[1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
+
 # List of major features
 
 TMDB Discovery:
