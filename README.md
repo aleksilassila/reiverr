@@ -130,7 +130,8 @@ Alternatively, you can define the admin username and password using environment 
 as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
 To get most out of Reiverr, it is recommended to connect to TMDB, Jellyfin, Radarr and Sonarr.
 
-> Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+> Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs.
+> Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
 
 
 # Contributing
@@ -142,16 +143,23 @@ get started.
 To see a list of missing features & known bugs that you can help with,
 see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7). Feel free to also create your own
 issues for bug reports or feature requests, as well as discussions for general questions.
+Issues with the `community` label are issues that I can't or won't work on myself, and are
+left for the community to pick up. Feel free to work on any issues though, even without the label.
 
 Before you contribute:
 
-- If you are taking on an existing bug or feature ticket, please comment on the issue or mark yourself as an assignee to avoid multiple people working on the same thing.
+- If you are taking on an existing bug or feature ticket, it is encouraged to comment on the issue or mark yourself
+  as an assignee at some point to avoid multiple people working on the same thing.
 - If the ticket is vague or missing information, please ask for clarification in the comments.
-- UI style should match the rest of the project, and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with "design").
+- UI style should match the rest of the project, and it is a good idea to discuss the design beforehand,
+  especially for larger design choices (issues labelled with `design`).
 - [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
-- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
+- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is
+  a work in progress.
 
-I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated!
+I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them.
+If you are a designer and would like to help, contributions are much appreciated! Also the project
+is still missing a logo :)
 
 # Development
 
