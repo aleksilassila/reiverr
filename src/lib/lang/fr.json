@@ -15,8 +15,6 @@
 		"noResults": "Aucun résultat trouvé"
 	},
 	"discover": {
-		"LatestAddition": "Dernier ajout",
-		"continueWatching": "Reprendre la lecture",
 		"trending": "Tendance",
 		"popularPeople": "Personnes populaires",
 		"upcomingMovies": "Films à venir",
@@ -27,70 +25,25 @@
 		"TVNetworks": "Réseaux de télévision"
 	},
 	"library": {
-		"missingConfiguration": "Configurer Radarr, Sonarr et Jellyfin pour surveiller et gérer votre bibliothèque",
+		"missingConfiguration": "Configurez Radarr, Sonarr et Jellyfin pour surveiller et gérer votre bibliothèque",
 		"available": "Disponible",
 		"watched": "Regardé",
 		"unavailable": "Indisponible",
-		"loadMore":"Charger plus",
 		"sort": {
 			"byTitle": "Par titre"
 		},
 		"content": {
 			"movie": "Film",
-			"show": "Voir",
+			"show": "Série",
 			"requestContent": "Demander",
 			"directedBy": "Dirigé par",
 			"releaseDate": "Date de sortie",
 			"budget": "Budget",
-			"status": "Etat",
+			"status": "Statut",
 			"runtime": "Durée",
-			"castAndCrew": "Distribution et équipe",
+			"castAndCrew": "Casting",
 			"recommendations": "Recommandations",
-			"similarTitles": "Titres similaires",
-
-			"revenue": "Revenu",
-			"play": "Lecture",
-			"similarSeries": "Séries recommandées",
-			"minLeft": "mins restantes",
-			"addRadarr": "Ajouter à Radarr",
-			"addSonarr": "Ajouter à Sonarr",
-			"requestMovie": "Demander le film",
-			"requestSerie": "Demander la série",
-			"sizeDisk": "Taille sur le disque",
-			"downloadedIn": "Téléchargé",
-			"manage": "Gérer",
-			"viewLess": "Afficher moins",
-			"viewAll": "Afficher plus",
-			"networks": "Plateforme",
-
-			"firstAirDate": "Date du premier épisode",
-			"episodeRunTime": "Durée moy. episode",
-			"nextAirDate": "Date du prochain épisode",
-			"lastAirDate": "Date du dernier épisode",
-			"spokenLanguages": "Langue",
-			"season": "Saison",
-			"available": "Disponible",
-			"downloadCompletedIn":"Téléchargement terminé"
-		},
-		"LibraryItemContext": {
-			"markWatched": "Marquer comme vu",
-			"markUnwatched": "Marquer comme non-vu",
-			"openJellyfin": "Ouvrir dans Jellyfin",
-			"openRadarr": "Ouvrir dans Radarr",
-			"openSonarr": "Ouvrir dans Sonarr",
-			"openTMDB": "Ouvrir dans TMDB"
-		},
-		"personPage": {
-			"externalLinks": "Liens externes",
-			"birthday": "Anniversaire",
-			"knownFor": "Connu pour",
-			"placeOfBirth": "Lieu de naissance",
-			"gender": "Genre",
-			"notSet": "Inconnu",
-			"female": "Femme",
-			"male": "Homme",
-			"nonBinary": "Non-Binaire"
-			
+			"similarTitles": "Titres similaires"
 		}
 	},
 	"sources": {},
@@ -117,16 +70,16 @@
 				"discovery": "Découverte",
 				"none": "Aucun",
 				"region": "Région",
-				"excludeLibraryItemsFromDiscovery": "Exclure les éléments de bibliothèque de Discovery",
+				"excludeLibraryItemsFromDiscovery": "Exclure les éléments de bibliothèque de Découverte",
 				"includedLanguages": "Langues incluses",
-				"includedLanguagesDescription": "Filtrez les résultats en fonction de la langue parlée. "
+				"includedLanguagesDescription": "Filtrer les résultats en fonction de la langue parlée. Utiliser les codes de langue ISO 639-1 séparés par des virgules. Laisser vide pour désactiver."
 			}
 		},
 		"integrations": {
 			"integrations": "Intégrations",
-			"integrationsNote": "Remarque: Les URL de base doivent être accessibles depuis le navigateur, ce qui signifie que les adresses Docker internes ne fonctionneront pas, par exemple. Les clés API <span class='font-medium underline'>seront exposées</span> au navigateur.",
+			"integrationsNote": "Remarque: Les URL de base doivent être accessibles depuis le navigateur, ce qui signifie que les adresses Docker internes ne fonctionneront pas, par exemple. Les clés de l'API <span class='font-medium underline'>sera exposé</span> au navigateur.",
 			"baseUrl": "URL de base",
-			"apiKey": "clé API",
+			"apiKey": "Clé API",
 			"testConnection": "Tester la connexion",
 			"status": {
 				"connected": "Connecté",
