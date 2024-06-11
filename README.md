@@ -113,7 +113,8 @@ Alternatively, you can open the project in Tizen Studio and install the project 
 
 If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions),
 open an [issue](https://github.com/aleksilassila/reiverr/issues)
-or check out the [Discord channel](https://discord.gg/enypPQh6pz).
+or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented,
+you can react to it with a thumbs up.
 
 ## Other Platforms
 
@@ -173,8 +174,17 @@ To get started with development:
 4. To start the frontend: `npm run dev` or `npx vite --host` if you want to expose the server
 5. To start the backend: `npm run --prefix backend start:dev`
 
-Useful resources:
+## Notes
+- 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc.
+  [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource
+  for how to design for TVs.
+- The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that
+  you might not be able to use the latest browser features, or that you'll have to use a polyfill.
+  [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
+  - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is
+    css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
 
+## Useful resources
 - https://developer.themoviedb.org/reference
 - https://api.jellyfin.org/
 - https://sonarr.tv/docs/api/
