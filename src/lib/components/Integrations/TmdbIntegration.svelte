@@ -1,8 +1,8 @@
 <script lang="ts">
 	import TextField from '../TextField.svelte';
-	import { appState } from '../../stores/app-state.store';
 	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
 	import { createEventDispatcher } from 'svelte';
+	import { user } from '../../stores/user.store';
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
@@ -16,9 +16,9 @@
 	let error = '';
 	let healthCheck: Promise<boolean> | undefined;
 
-	appState.subscribe((appState) => {
-		baseUrl = baseUrl || appState.user?.settings.sonarr.baseUrl || '';
-		apiKey = apiKey || appState.user?.settings.sonarr.apiKey || '';
+	user.subscribe((user) => {
+		baseUrl = baseUrl || user?.settings.sonarr.baseUrl || '';
+		apiKey = apiKey || user?.settings.sonarr.apiKey || '';
 
 		originalBaseUrl = baseUrl;
 		originalApiKey = apiKey;

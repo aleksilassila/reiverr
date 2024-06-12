@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TextField from '../TextField.svelte';
-	import { appState } from '../../stores/app-state.store';
+	import { user } from '../../stores/user.store';
 	import { createEventDispatcher } from 'svelte';
 	import SelectField from '../SelectField.svelte';
 	import { jellyfinApi, type JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
@@ -20,9 +20,9 @@
 	let jellyfinUsers: Promise<JellyfinUser[]> | undefined = undefined;
 	export let jellyfinUser: JellyfinUser | undefined;
 
-	appState.subscribe((appState) => {
-		baseUrl = baseUrl || appState.user?.settings.jellyfin.baseUrl || '';
-		apiKey = apiKey || appState.user?.settings.jellyfin.apiKey || '';
+	user.subscribe((user) => {
+		baseUrl = baseUrl || user?.settings.jellyfin.baseUrl || '';
+		apiKey = apiKey || user?.settings.jellyfin.apiKey || '';
 
 		originalBaseUrl = baseUrl;
 		originalApiKey = apiKey;
@@ -35,9 +35,7 @@
 			baseUrl,
 			apiKey,
 			stale:
-				baseUrl && apiKey
-					? jellyfinUser?.Id !== get(appState).user?.settings.jellyfin.userId
-					: !jellyfinUser
+				baseUrl && apiKey ? jellyfinUser?.Id !== get(user)?.settings.jellyfin.userId : !jellyfinUser
 		});
 
 	function handleChange() {

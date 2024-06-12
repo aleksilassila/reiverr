@@ -43,7 +43,7 @@
 					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
 						'opacity-0': visibleIndex !== i,
-						'scale-125': !hasFocus
+						'scale-110': !hasFocus
 					})}
 					style={`background-image: url('${url}'); transition: opacity 500ms, transform 500ms;`}
 				/>
@@ -52,7 +52,7 @@
 	{:else}
 		<div
 			class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', {
-				'scale-125': !hasFocus
+				'scale-110': !hasFocus
 			})}
 			style="perspective: 1px; -webkit-perspective: 1px;"
 		>

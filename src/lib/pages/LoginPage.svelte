@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { getReiverrApiClient, reiverrApi } from '../apis/reiverr/reiverr-api';
 	import Container from '../../Container.svelte';
-	import { appState } from '../stores/app-state.store';
 	import TextField from '../components/TextField.svelte';
 	import Button from '../components/Button.svelte';
+	import { createLocalStorageStore } from '../stores/localstorage.store';
 
-	let name: string = '';
+	import { sessions } from '../stores/session.store';
+
+	const baseUrl = createLocalStorageStore('baseUrl', window.location.origin || '');
+	const name = createLocalStorageStore('username', '');
 	let password: string = '';
 	let error: string | undefined = undefined;
 
@@ -14,17 +16,13 @@
 	function handleLogin() {
 		loading = true;
 
-		reiverrApi
-			.authenticate(name, password)
+		sessions
+			.addSession($baseUrl, $name, password)
 			.then((res) => {
 				if (res.error?.statusCode === 401) {
 					error = 'Invalid credentials. Please try again.';
 				} else if (res.error) {
 					error = 'Error occurred: ' + res.error.message;
-				} else {
-					const token = res.data.accessToken;
-					appState.setToken(token);
-					// window.location.reload();
 				}
 			})
 			.catch((err: Error) => {
@@ -44,15 +42,13 @@
 			credentials.
 		</div>
 
-		<TextField
-			value={$appState.serverBaseUrl}
-			on:change={(e) => appState.setBaseUrl(e.detail)}
-			class="mb-4 w-full"
-		>
+		<TextField value={$baseUrl} on:change={(e) => baseUrl.set(e.detail)} class="mb-4 w-full">
 			Server
 		</TextField>
 
-		<TextField bind:value={name} class="mb-4 w-full">Name</TextField>
+		<TextField value={$name} on:change={({ detail }) => name.set(detail)} class="mb-4 w-full">
+			Name
+		</TextField>
 		<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
 
 		<Button

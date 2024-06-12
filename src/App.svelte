@@ -1,22 +1,23 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
-	import { appState } from './lib/stores/app-state.store';
 	import { handleKeyboardNavigation } from './lib/selectable';
 	import LoginPage from './lib/pages/LoginPage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
-	import { defaultStackRouter } from './lib/components/StackRouter/StackRouter';
+	import { stackRouter } from './lib/components/StackRouter/StackRouter';
 	import OnboardingPage from './lib/pages/OnboardingPage.svelte';
 	import { onMount } from 'svelte';
-	import { skippedVersion } from './lib/stores/localstorage.store';
 	import axios from 'axios';
 	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
 	import { createModal } from './lib/components/Modal/modal.store';
 	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
 	import { localSettings } from './lib/stores/localstorage.store';
+	import { user } from './lib/stores/user.store';
+	import { sessions } from './lib/stores/session.store';
 
-	appState.subscribe((s) => console.log('appState', s));
+	user.subscribe((s) => console.log('user', s));
+	sessions.subscribe((s) => console.log('sessions', s));
 
 	// onMount(() => {
 	// 	if (isTizen()) {
@@ -55,7 +56,7 @@
 
 <I18n />
 <!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
-{#if $appState.user === undefined}
+{#if $user === undefined}
 	<div class="h-full w-full flex flex-col items-center justify-center">
 		<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
 			<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
@@ -63,9 +64,9 @@
 		</div>
 		<div>Loading...</div>
 	</div>
-{:else if $appState.user === null}
+{:else if $user === null}
 	<LoginPage />
-{:else if $appState.user.onboardingDone === false}
+{:else if $user.onboardingDone === false}
 	<OnboardingPage />
 {:else}
 	<!--		<Router primary={false}>-->
@@ -88,7 +89,7 @@
 	<!--				<Route path="*">-->
 	<!--					<PageNotFound />-->
 	<!--				</Route>-->
-	<StackRouter stack={defaultStackRouter} />
+	<StackRouter stack={stackRouter} />
 	<!--		</Container>-->
 	<!--		</Router>-->
 

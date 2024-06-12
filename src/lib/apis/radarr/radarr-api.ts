@@ -5,8 +5,8 @@ import { settings } from '../../stores/settings.store';
 import type { components, paths } from './radarr.generated';
 import { getTmdbMovie } from '../tmdb/tmdb-api';
 import { log } from '../../utils';
-import { appState } from '../../stores/app-state.store';
 import type { Api } from '../api.interface';
+import { user } from '../../stores/user.store';
 
 export const movieAvailabilities = [
 	// 'tba',
@@ -39,7 +39,7 @@ export interface RadarrMovieOptions {
 
 export class RadarrApi implements Api<paths> {
 	getClient() {
-		const radarrSettings = get(appState).user?.settings.radarr;
+		const radarrSettings = get(user)?.settings.radarr;
 		const baseUrl = radarrSettings?.baseUrl;
 		const apiKey = radarrSettings?.apiKey;
 
@@ -52,11 +52,11 @@ export class RadarrApi implements Api<paths> {
 	}
 
 	getBaseUrl() {
-		return get(appState)?.user?.settings?.radarr.baseUrl || '';
+		return get(user)?.settings?.radarr.baseUrl || '';
 	}
 
 	getSettings() {
-		return get(appState).user?.settings.radarr;
+		return get(user)?.settings.radarr;
 	}
 
 	getMovieByTmdbId = (tmdbId: number): Promise<RadarrMovie | undefined> =>
@@ -277,10 +277,10 @@ export class RadarrApi implements Api<paths> {
 	) =>
 		axios
 			.get<components['schemas']['QualityProfileResource'][]>(
-				(baseUrl || get(appState)?.user?.settings.radarr.baseUrl) + '/api/v3/qualityprofile',
+				(baseUrl || get(user)?.settings.radarr.baseUrl) + '/api/v3/qualityprofile',
 				{
 					headers: {
-						'X-Api-Key': apiKey || get(appState)?.user?.settings.radarr.apiKey
+						'X-Api-Key': apiKey || get(user)?.settings.radarr.apiKey
 					}
 				}
 			)

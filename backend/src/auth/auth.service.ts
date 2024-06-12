@@ -19,6 +19,7 @@ export class AuthService {
     password: string,
   ): Promise<{
     token: string;
+    user: User;
   }> {
     let user = await this.userService.findOneByName(name);
     if (!user && (await this.userService.noPreviousAdmins()))
@@ -34,6 +35,7 @@ export class AuthService {
 
     return {
       token: await this.jwtService.signAsync(payload),
+      user,
     };
   }
 }

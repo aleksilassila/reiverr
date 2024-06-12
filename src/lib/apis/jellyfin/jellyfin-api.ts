@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
 import type { components, paths } from './jellyfin.generated';
 import type { Api } from '../api.interface';
-import { appState } from '../../stores/app-state.store';
+import { user } from '../../stores/user.store';
 import type { DeviceProfile } from './playback-profiles';
 import axios from 'axios';
 import { log } from '../../utils';
@@ -16,7 +16,7 @@ export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
 export class JellyfinApi implements Api<paths> {
 	getClient() {
-		const jellyfinSettings = get(appState).user?.settings.jellyfin;
+		const jellyfinSettings = get(user)?.settings.jellyfin;
 		const baseUrl = jellyfinSettings?.baseUrl;
 		const apiKey = jellyfinSettings?.apiKey;
 
@@ -29,15 +29,15 @@ export class JellyfinApi implements Api<paths> {
 	}
 
 	getUserId() {
-		return get(appState).user?.settings.jellyfin.userId || '';
+		return get(user)?.settings.jellyfin.userId || '';
 	}
 
 	getApiKey() {
-		return get(appState).user?.settings.jellyfin.apiKey || '';
+		return get(user)?.settings.jellyfin.apiKey || '';
 	}
 
 	getBaseUrl() {
-		return get(appState).user?.settings.jellyfin.baseUrl || '';
+		return get(user)?.settings.jellyfin.baseUrl || '';
 	}
 
 	getContinueWatching = async (type?: Type): Promise<JellyfinItem[] | undefined> =>
@@ -102,7 +102,7 @@ export class JellyfinApi implements Api<paths> {
 
 	getPosterUrl(item: JellyfinItem, quality = 100, original = false) {
 		return item.ImageTags?.Primary
-			? `${get(appState).user?.settings.jellyfin.baseUrl}/Items/${
+			? `${get(user)?.settings.jellyfin.baseUrl}/Items/${
 					item?.Id
 			  }/Images/Primary?quality=${quality}${original ? '' : '&fillWidth=432'}&tag=${
 					item?.ImageTags?.Primary

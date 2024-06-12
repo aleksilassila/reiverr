@@ -25,7 +25,7 @@
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api.js';
 	import { videoPlayerSettings } from '../../stores/localstorage.store';
 	import { get } from 'svelte/store';
-	import { appState } from '../../stores/app-state.store';
+	import { appState } from '../../stores/user.store';
 	import { getBrowserSpecificMediaFunctions } from './VideoPlayer';
 
 	export let jellyfinId: string;

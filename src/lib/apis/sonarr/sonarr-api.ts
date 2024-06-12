@@ -5,8 +5,8 @@ import { getTmdbSeries, tmdbApi } from '../tmdb/tmdb-api';
 import type { components, paths } from './sonarr.generated';
 import { log } from '../../utils';
 import type { Api, ApiAsync } from '../api.interface';
-import { appState } from '../../stores/app-state.store';
 import { createLocalStorageStore } from '../../stores/localstorage.store';
+import { user } from '../../stores/user.store';
 
 export const sonarrMonitorOptions = [
 	'unknown',
@@ -52,7 +52,7 @@ const tmdbToTvdbCache = createLocalStorageStore<Record<number, number>>('tmdb-to
 
 export class SonarrApi implements ApiAsync<paths> {
 	async getClient() {
-		await appState.ready;
+		// await appState.ready;
 		const sonarrSettings = this.getSettings();
 		const baseUrl = this.getBaseUrl();
 		const apiKey = sonarrSettings?.apiKey;
@@ -66,15 +66,15 @@ export class SonarrApi implements ApiAsync<paths> {
 	}
 
 	getBaseUrl() {
-		return get(appState)?.user?.settings?.sonarr.baseUrl || '';
+		return get(user)?.settings?.sonarr.baseUrl || '';
 	}
 
 	getSettings() {
-		return get(appState).user?.settings.sonarr;
+		return get(user)?.settings.sonarr;
 	}
 
 	getApiKey() {
-		return get(appState).user?.settings.sonarr.apiKey;
+		return get(user)?.settings.sonarr.apiKey;
 	}
 
 	tmdbToTvdb = async (tmdbId: number) => {

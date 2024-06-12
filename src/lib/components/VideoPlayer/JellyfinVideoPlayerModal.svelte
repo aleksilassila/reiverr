@@ -6,13 +6,13 @@
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
-	import { appState } from '../../stores/app-state.store';
 	import { onDestroy } from 'svelte';
 	import { modalStack, modalStackTop } from '../Modal/modal.store';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { get } from 'svelte/store';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
 	import Modal from '../Modal/Modal.svelte';
+	import { user } from '../../stores/user.store';
 
 	type MediaLanguageStore = {
 		subtitles?: string;
@@ -115,7 +115,7 @@
 				subtitles = {
 					kind: 'subtitles',
 					srclang: stream.Language || '',
-					url: `${$appState.user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${stream.Index}/${stream.Level}/Stream.vtt`,
+					url: `${$user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${stream.Index}/${stream.Level}/Stream.vtt`,
 					// @ts-ignore
 					language: ISO_2_LANGUAGES[stream?.Language || '']?.name || 'English'
 				};
@@ -126,7 +126,7 @@
 			mediaSource?.MediaStreams?.filter((s) => s.Type === 'Subtitle').map((s) => ({
 				kind: 'subtitles' as const,
 				srclang: s.Language || '',
-				url: `${$appState.user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${s.Index}/${s.Level}/Stream.vtt`,
+				url: `${$user?.settings.jellyfin.baseUrl}/Videos/${id}/${mediaSource?.Id}/Subtitles/${s.Index}/${s.Level}/Stream.vtt`,
 				language: 'English'
 			})) || [];
 
@@ -170,9 +170,9 @@
 					playbackPosition: progressTime * 10_000_000
 				}),
 			directPlay,
-			playbackUrl: $appState.user?.settings.jellyfin.baseUrl + playbackUri,
+			playbackUrl: $user?.settings.jellyfin.baseUrl + playbackUri,
 			backdrop: item?.BackdropImageTags?.length
-				? `${$appState.user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
+				? `${$user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 				: '',
 			startTime:
 				(options.playbackPosition || 0) / 10_000_000 ||

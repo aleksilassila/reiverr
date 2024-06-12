@@ -1,10 +1,10 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
-	import { appState } from '../../stores/app-state.store';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../Button.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
+	import { user } from '../../stores/user.store';
 
 	const dispatch = createEventDispatcher<{ connected: null }>();
 
@@ -33,7 +33,7 @@
 				return; // TODO add notification
 			}
 
-			appState.updateUser((prev) => ({
+			user.updateUser((prev) => ({
 				...prev,
 				settings: {
 					...prev.settings,

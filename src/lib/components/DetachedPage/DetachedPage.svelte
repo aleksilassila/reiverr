@@ -6,6 +6,7 @@
 	import classNames from 'classnames';
 
 	export let topmost = true;
+	export let sidebar = true;
 
 	// Top element, that when focused and back is pressed, will exit the modal
 	const topSelectable = useRegistrar();
@@ -41,7 +42,9 @@
 	direction="horizontal"
 	on:mount
 >
-	<Sidebar />
+	{#if sidebar}
+		<Sidebar />
+	{/if}
 	<Container on:back={handleGoToTop} focusOnMount class={classNames($$restProps.class)}>
 		<slot {handleGoBack} registrar={topSelectable.registrar} />
 	</Container>

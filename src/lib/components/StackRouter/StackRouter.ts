@@ -11,6 +11,7 @@ import SearchPage from '../../pages/SearchPage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import ManagePage from '../../pages/ManagePage.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
+import UsersPage from '../../pages/UsersPage.svelte';
 
 interface Page {
 	id: symbol;
@@ -179,6 +180,12 @@ export function useStackRouter({
 	};
 }
 
+const usersRoute: Route = {
+	path: '/users',
+	root: true,
+	component: UsersPage
+};
+
 const seriesHomeRoute: Route = {
 	path: '/series',
 	default: true,
@@ -239,8 +246,9 @@ const notFoundRoute: Route = {
 	root: true
 };
 
-export const defaultStackRouter = useStackRouter({
+export const stackRouter = useStackRouter({
 	routes: [
+		usersRoute,
 		seriesHomeRoute,
 		seriesRoute,
 		episodeRoute,
@@ -278,6 +286,6 @@ export const defaultStackRouter = useStackRouter({
 // 	// }
 // } as const);
 
-export const navigate = defaultStackRouter.navigate;
-export const back = defaultStackRouter.back;
-defaultStackRouter.subscribe(console.log);
+export const navigate = stackRouter.navigate;
+export const back = stackRouter.back;
+stackRouter.subscribe(console.log);

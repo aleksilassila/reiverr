@@ -6,7 +6,7 @@ import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '../../constants';
 import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
 import type { Api } from '../api.interface';
-import { appState } from '../../stores/app-state.store';
+import { user } from '../../stores/user.store';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -73,7 +73,7 @@ export class TmdbApi implements Api<paths> {
 	}
 
 	static getClient4l() {
-		const sessionId = get(appState)?.user?.settings.tmdb.sessionId;
+		const sessionId = get(user)?.settings.tmdb.sessionId;
 
 		return createClient<paths4>({
 			baseUrl: 'https://api.themoviedb.org',
@@ -96,11 +96,11 @@ export class TmdbApi implements Api<paths> {
 	}
 
 	getSessionId() {
-		return get(appState)?.user?.settings.tmdb.sessionId;
+		return get(user)?.settings.tmdb.sessionId;
 	}
 
 	getUserId() {
-		return get(appState)?.user?.settings.tmdb.userId;
+		return get(user)?.settings.tmdb.userId;
 	}
 
 	// MOVIES

@@ -2,7 +2,6 @@
 	import Container from '../../Container.svelte';
 	import Tab from '../components/Tab/Tab.svelte';
 	import Button from '../components/Button.svelte';
-	import { appState } from '../stores/app-state.store';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { ArrowLeft, ArrowRight, CheckCircled, ExternalLink } from 'radix-icons-svelte';
 	import TextField from '../components/TextField.svelte';
@@ -14,6 +13,8 @@
 	import { get } from 'svelte/store';
 	import { useTabs } from '../components/Tab/Tab';
 	import classNames from 'classnames';
+	import { user } from '../stores/user.store';
+	import { sessions } from '../stores/session.store';
 
 	enum Tabs {
 		Welcome,
@@ -32,7 +33,7 @@
 	let tmdbConnectRequestToken: string | undefined = undefined;
 	let tmdbConnectLink: string | undefined = undefined;
 	let tmdbConnectQrCode: string | undefined = undefined;
-	$: connectedTmdbAccount = $appState.user?.settings.tmdb.userId && tmdbApi.getAccountDetails();
+	$: connectedTmdbAccount = $user?.settings.tmdb.userId && tmdbApi.getAccountDetails();
 	let tmdbError: string = '';
 
 	let jellyfinBaseUrl: string = '';
@@ -50,15 +51,15 @@
 	let radarrApiKey: string = '';
 	let radarrError: string = '';
 
-	appState.subscribe((appState) => {
-		jellyfinBaseUrl = jellyfinBaseUrl || appState.user?.settings.jellyfin.baseUrl || '';
-		jellyfinApiKey = jellyfinApiKey || appState.user?.settings.jellyfin.apiKey || '';
+	user.subscribe((user) => {
+		jellyfinBaseUrl = jellyfinBaseUrl || user?.settings.jellyfin.baseUrl || '';
+		jellyfinApiKey = jellyfinApiKey || user?.settings.jellyfin.apiKey || '';
 
-		sonarrBaseUrl = sonarrBaseUrl || appState.user?.settings.sonarr.baseUrl || '';
-		sonarrApiKey = sonarrApiKey || appState.user?.settings.sonarr.apiKey || '';
+		sonarrBaseUrl = sonarrBaseUrl || user?.settings.sonarr.baseUrl || '';
+		sonarrApiKey = sonarrApiKey || user?.settings.sonarr.apiKey || '';
 
-		radarrBaseUrl = radarrBaseUrl || appState.user?.settings.radarr.baseUrl || '';
-		radarrApiKey = radarrApiKey || appState.user?.settings.radarr.apiKey || '';
+		radarrBaseUrl = radarrBaseUrl || user?.settings.radarr.baseUrl || '';
+		radarrApiKey = radarrApiKey || user?.settings.radarr.apiKey || '';
 
 		// if (
 		// 	!jellyfinUser &&
@@ -86,7 +87,7 @@
 				.getJellyfinUsers(jellyfinBaseUrl, jellyfinApiKey)
 				.then((users) => {
 					if (baseUrlCopy === jellyfinBaseUrl && apiKeyCopy === jellyfinApiKey) {
-						jellyfinUser = users.find((u) => u.Id === get(appState).user?.settings.jellyfin.userId);
+						jellyfinUser = users.find((u) => u.Id === $user?.settings.jellyfin.userId);
 						jellyfinError = users.length ? '' : 'Could not connect';
 					}
 					// console.log(users, baseUrlCopy, jellyfinBaseUrl, apiKeyCopy, jellyfinApiKey);
@@ -114,7 +115,7 @@
 			const { status_code, access_token, account_id } = res || {};
 			if (status_code !== 1 || !access_token || !account_id) return; // TODO add notification
 
-			appState.updateUser((prev) => ({
+			user.updateUser((prev) => ({
 				...prev,
 				settings: {
 					...prev.settings,
@@ -135,7 +136,7 @@
 		const apiKey = jellyfinApiKey;
 		if (!userId || !baseUrl || !apiKey) return;
 
-		await appState.updateUser((prev) => ({
+		await user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -168,7 +169,7 @@
 			return; // TODO add notification
 		}
 
-		await appState.updateUser((prev) => ({
+		await user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -199,7 +200,7 @@
 			return; // TODO add notification
 		}
 
-		await appState.updateUser((prev) => ({
+		await user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -215,7 +216,7 @@
 	}
 
 	async function finalizeSetup() {
-		await appState.updateUser((prev) => ({
+		await user.updateUser((prev) => ({
 			...prev,
 			onboardingDone: true
 		}));
@@ -237,7 +238,7 @@
 			services to get most out of Reiverr.
 		</div>
 		<Container direction="horizontal" class="flex space-x-4">
-			<Button type="primary-dark" on:clickOrSelect={() => appState.logOut()}>Log Out</Button>
+			<Button type="primary-dark" on:clickOrSelect={() => sessions.removeSession()}>Log Out</Button>
 			<div class="flex-1">
 				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
 					Next
@@ -280,7 +281,7 @@
 			{/await}
 
 			<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
-				{#if $appState.user?.settings.tmdb.userId}
+				{#if $user?.settings.tmdb.userId}
 					Next
 				{:else}
 					Skip

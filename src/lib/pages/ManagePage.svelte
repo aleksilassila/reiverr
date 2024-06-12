@@ -1,25 +1,24 @@
 <script lang="ts">
 	import Container from '../../Container.svelte';
-	import { appState } from '../stores/app-state.store';
 	import Button from '../components/Button.svelte';
 	import Toggle from '../components/Toggle.svelte';
 	import { localSettings } from '../stores/localstorage.store';
 	import classNames from 'classnames';
 	import Tab from '../components/Tab/Tab.svelte';
 	import { useTabs } from '../components/Tab/Tab';
-	import TextField from '../components/TextField.svelte';
 	import SonarrIntegration from '../components/Integrations/SonarrIntegration.svelte';
 	import RadarrIntegration from '../components/Integrations/RadarrIntegration.svelte';
 	import type { JellyfinUser } from '../apis/jellyfin/jellyfin-api';
 	import JellyfinIntegration from '../components/Integrations/JellyfinIntegration.svelte';
 	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
-	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import SelectField from '../components/SelectField.svelte';
 	import { ArrowRight, Trash } from 'radix-icons-svelte';
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { user } from '../stores/user.store';
+	import { sessions } from '../stores/session.store';
 
 	enum Tabs {
 		Interface,
@@ -45,7 +44,7 @@
 	let lastKeyCode = 0;
 	let lastKey = '';
 	let tizenMediaKey = '';
-	$: tmdbAccount = $appState.user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
+	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
 
 	// onMount(() => {
 	// 	if (isTizen()) {
@@ -63,7 +62,7 @@
 	// });
 
 	async function handleDisconnectTmdb() {
-		return appState.updateUser((prev) => ({
+		return user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -77,7 +76,7 @@
 	}
 
 	async function handleSaveJellyfin() {
-		return appState.updateUser((prev) => ({
+		return user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -92,7 +91,7 @@
 	}
 
 	async function handleSaveSonarr() {
-		return appState.updateUser((prev) => ({
+		return user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -106,7 +105,7 @@
 	}
 
 	async function handleSaveRadarr() {
-		return appState.updateUser((prev) => ({
+		return user.updateUser((prev) => ({
 			...prev,
 			settings: {
 				...prev.settings,
@@ -318,7 +317,9 @@
 				<div>Tizen media key: {tizenMediaKey}</div>
 			{/if}
 			<div class="flex space-x-4 mt-4">
-				<Button on:clickOrSelect={appState.logOut} class="hover:bg-red-500">Log Out</Button>
+				<Button on:clickOrSelect={() => sessions.removeSession()} class="hover:bg-red-500">
+					Log Out
+				</Button>
 			</div>
 		</Tab>
 	</Container>
