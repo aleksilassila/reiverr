@@ -113,7 +113,14 @@ export function useStackRouter({
 		};
 	}
 
-	const navigate = (routeString: string, options: { replaceStack?: boolean } = {}) => {
+	const navigate = (
+		routeString: string,
+		options: { replaceStack?: boolean; refresh?: boolean } = {}
+	) => {
+		if (options.refresh) {
+			location.assign(routeString);
+			return;
+		}
 		const page: Page = routeStringToRoute(routeString);
 		const replaceStack = page.route.root || options.replaceStack || false;
 

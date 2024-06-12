@@ -1,8 +1,10 @@
 import { createLocalStorageStore } from './localstorage.store';
 import type { operations } from '../apis/reiverr/reiverr.generated';
 import axios from 'axios';
+import { get } from 'svelte/store';
 
 export interface Session {
+	id: string;
 	baseUrl: string;
 	token: string;
 }
@@ -15,7 +17,7 @@ function useSessions() {
 		}
 	);
 
-	function setActiveSession(session: Session) {
+	function setActiveSession(session?: Session) {
 		sessions.update((s) => ({ ...s, activeSession: session }));
 	}
 
@@ -33,12 +35,13 @@ function useSessions() {
 		if (res.status !== 200) return res;
 
 		const session = {
+			id: res.data.user.id,
 			baseUrl,
 			token: res.data.accessToken
 		};
 
 		sessions.update((s) => {
-			const sessions = s.sessions.concat(session);
+			const sessions = s.sessions.filter((s) => s.id !== session.id).concat(session);
 			return {
 				sessions,
 				activeSession: activate ? session : s.activeSession
@@ -59,11 +62,16 @@ function useSessions() {
 		});
 	}
 
+	function removeSessions() {
+		sessions.set({ sessions: [] });
+	}
+
 	return {
 		subscribe: sessions.subscribe,
 		setActiveSession,
 		addSession,
-		removeSession
+		removeSession,
+		removeSessions
 	};
 }
 

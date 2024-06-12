@@ -27,7 +27,7 @@
 				$$restProps.class
 			)}
 		>
-			<slot />
+			<slot close={handleClose} />
 		</div>
 	</div>
 </Modal>

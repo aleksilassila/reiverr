@@ -26,7 +26,8 @@ function useUser() {
 					Authorization: 'Bearer ' + activeSession.token
 				}
 			})
-			.then((r) => r.data);
+			.then((r) => r.data)
+			.catch(() => null);
 
 		if (lastActiveSession === activeSession) userStore.set(user);
 	});

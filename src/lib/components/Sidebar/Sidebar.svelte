@@ -16,6 +16,7 @@
 	import { onMount } from 'svelte';
 	import { useTabs } from '../Tab/Tab';
 	import { user } from '../../stores/user.store';
+	import { sessions } from '../../stores/session.store';
 
 	enum Tabs {
 		Users,
@@ -121,7 +122,7 @@
 
 	<Container
 		class="w-full h-12 cursor-pointer"
-		on:clickOrSelect={selectIndex(Tabs.Users)}
+		on:clickOrSelect={() => sessions.setActiveSession()}
 		let:hasFocus
 	>
 		<div

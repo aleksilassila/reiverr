@@ -15,6 +15,8 @@
 	import { localSettings } from './lib/stores/localstorage.store';
 	import { user } from './lib/stores/user.store';
 	import { sessions } from './lib/stores/session.store';
+	import SplashScreen from './lib/pages/SplashScreen.svelte';
+	import UsersPage from './lib/pages/UsersPage.svelte';
 
 	user.subscribe((s) => console.log('user', s));
 	sessions.subscribe((s) => console.log('sessions', s));
@@ -57,15 +59,9 @@
 <I18n />
 <!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
 {#if $user === undefined}
-	<div class="h-full w-full flex flex-col items-center justify-center">
-		<div class="flex items-center justify-center hover:text-inherit selectable rounded-sm mb-2">
-			<div class="rounded-full bg-amber-300 h-4 w-4 mr-2" />
-			<h1 class="font-display uppercase font-semibold tracking-wider text-xl">Reiverr</h1>
-		</div>
-		<div>Loading...</div>
-	</div>
+	<SplashScreen />
 {:else if $user === null}
-	<LoginPage />
+	<UsersPage />
 {:else if $user.onboardingDone === false}
 	<OnboardingPage />
 {:else}
@@ -92,9 +88,9 @@
 	<StackRouter stack={stackRouter} />
 	<!--		</Container>-->
 	<!--		</Router>-->
-
-	<ModalStack />
 {/if}
+
+<ModalStack />
 
 <NotificationStack />
 

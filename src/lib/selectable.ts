@@ -724,6 +724,8 @@ export class Selectable {
 				this._addChildCount++;
 				// console.log('Incremented addChildCount to', this._addChildCount);
 				if (focusIndex > 0) this.focusIndex.update((prev) => prev + 1); // TODO: Maybe needs fixing pt1
+			} else if (this.children.length === 0 && get(this.hasFocus)) {
+				childToFocus = child;
 			}
 
 			if (this._removedChildrenCount > 1) {
