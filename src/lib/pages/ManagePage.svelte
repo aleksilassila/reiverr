@@ -310,6 +310,9 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.About}>
+			<div>
+				Version: {REIVERR_VERSION}
+			</div>
 			User agent: {window?.navigator?.userAgent}
 			<div>Last key code: {lastKeyCode}</div>
 			<div>Last key: {lastKey}</div>

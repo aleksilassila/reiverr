@@ -3,42 +3,42 @@
 	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
 	import { createEventDispatcher } from 'svelte';
 	import { user } from '../../stores/user.store';
+	import { derived, get } from 'svelte/store';
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
 	}>();
 
-	export let baseUrl = '';
-	export let apiKey = '';
-	let originalBaseUrl: string | undefined;
-	let originalApiKey: string | undefined;
+	export let baseUrl = get(user)?.settings.sonarr.baseUrl || '';
+	export let apiKey = get(user)?.settings.sonarr.apiKey || '';
+	const originalBaseUrl = derived(user, (u) => u?.settings.sonarr.baseUrl || '');
+	const originalApiKey = derived(user, (u) => u?.settings.sonarr.apiKey || '');
 	let timeout: ReturnType<typeof setTimeout>;
 	let error = '';
 	let healthCheck: Promise<boolean> | undefined;
 
-	user.subscribe((user) => {
-		baseUrl = baseUrl || user?.settings.sonarr.baseUrl || '';
-		apiKey = apiKey || user?.settings.sonarr.apiKey || '';
+	$: {
+		if ($originalBaseUrl !== baseUrl && $originalApiKey !== apiKey) handleChange();
+		else dispatch('change', { baseUrl, apiKey, stale: false });
+	}
 
-		originalBaseUrl = baseUrl;
-		originalApiKey = apiKey;
-
-		handleChange();
-	});
+	handleChange();
 
 	function handleChange() {
+		console.log('handleChange', $originalBaseUrl, baseUrl, $originalApiKey, apiKey);
+
 		clearTimeout(timeout);
 		error = '';
 		healthCheck = undefined;
 
 		const baseUrlCopy = baseUrl;
 		const apiKeyCopy = apiKey;
-		const stale = baseUrlCopy !== originalBaseUrl || apiKeyCopy !== originalApiKey;
+		const stale = baseUrlCopy !== $originalBaseUrl || apiKeyCopy !== $originalApiKey;
 
 		dispatch('change', {
 			baseUrl: '',
 			apiKey: '',
-			stale: baseUrl === '' && apiKey === ''
+			stale: baseUrl === '' && apiKey === '' && stale
 		});
 
 		if (baseUrlCopy === '' || apiKeyCopy === '') return;
@@ -66,8 +66,9 @@
 </script>
 
 <div class="space-y-4 mb-4">
-	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>Base Url</TextField
-	>
+	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>
+		Base Url
+	</TextField>
 	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>API Key</TextField>
 </div>
 

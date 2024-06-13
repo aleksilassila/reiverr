@@ -3,28 +3,26 @@
 	import { createEventDispatcher } from 'svelte';
 	import { radarrApi } from '../../apis/radarr/radarr-api';
 	import { user } from '../../stores/user.store';
+	import { derived, get } from 'svelte/store';
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
 	}>();
 
-	export let baseUrl = '';
-	export let apiKey = '';
-	let originalBaseUrl: string | undefined;
-	let originalApiKey: string | undefined;
+	export let baseUrl = get(user)?.settings.radarr.baseUrl || '';
+	export let apiKey = get(user)?.settings.radarr.apiKey || '';
+	const originalBaseUrl = derived(user, (user) => user?.settings.radarr.baseUrl || '');
+	const originalApiKey = derived(user, (user) => user?.settings.radarr.apiKey || '');
 	let timeout: ReturnType<typeof setTimeout>;
 	let error = '';
 	let healthCheck: Promise<boolean> | undefined;
 
-	user.subscribe((user) => {
-		baseUrl = baseUrl || user?.settings.radarr.baseUrl || '';
-		apiKey = apiKey || user?.settings.radarr.apiKey || '';
+	$: {
+		if ($originalBaseUrl !== baseUrl && $originalApiKey !== apiKey) handleChange();
+		else dispatch('change', { baseUrl, apiKey, stale: false });
+	}
 
-		originalBaseUrl = baseUrl;
-		originalApiKey = apiKey;
-
-		handleChange();
-	});
+	handleChange();
 
 	function handleChange() {
 		clearTimeout(timeout);
@@ -33,12 +31,12 @@
 
 		const baseUrlCopy = baseUrl;
 		const apiKeyCopy = apiKey;
-		const stale = baseUrlCopy !== originalBaseUrl || apiKeyCopy !== originalApiKey;
+		const stale = baseUrlCopy !== $originalBaseUrl || apiKeyCopy !== $originalApiKey;
 
 		dispatch('change', {
 			baseUrl: '',
 			apiKey: '',
-			stale: baseUrl === '' && apiKey === ''
+			stale: baseUrl === '' && apiKey === '' && stale
 		});
 
 		if (baseUrlCopy === '' || apiKeyCopy === '') return;
@@ -66,8 +64,9 @@
 </script>
 
 <div class="space-y-4 mb-4">
-	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>Base Url</TextField
-	>
+	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>
+		Base Url
+	</TextField>
 	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>API Key</TextField>
 </div>
 

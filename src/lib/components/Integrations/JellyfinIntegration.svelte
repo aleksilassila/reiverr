@@ -4,31 +4,26 @@
 	import { createEventDispatcher } from 'svelte';
 	import SelectField from '../SelectField.svelte';
 	import { jellyfinApi, type JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
-	import { get } from 'svelte/store';
+	import { derived, get } from 'svelte/store';
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
 		'click-user': { user: JellyfinUser | undefined; users: JellyfinUser[] };
 	}>();
 
-	export let baseUrl = '';
-	export let apiKey = '';
-	let originalBaseUrl: string | undefined;
-	let originalApiKey: string | undefined;
+	export let baseUrl = get(user)?.settings.jellyfin.baseUrl || '';
+	export let apiKey = get(user)?.settings.jellyfin.apiKey || '';
+	let originalBaseUrl = derived(user, (user) => user?.settings.jellyfin.baseUrl || '');
+	let originalApiKey = derived(user, (user) => user?.settings.jellyfin.apiKey || '');
 	let timeout: ReturnType<typeof setTimeout>;
 	let error = '';
 	let jellyfinUsers: Promise<JellyfinUser[]> | undefined = undefined;
 	export let jellyfinUser: JellyfinUser | undefined;
 
-	user.subscribe((user) => {
-		baseUrl = baseUrl || user?.settings.jellyfin.baseUrl || '';
-		apiKey = apiKey || user?.settings.jellyfin.apiKey || '';
-
-		originalBaseUrl = baseUrl;
-		originalApiKey = apiKey;
-
-		handleChange();
-	});
+	$: {
+		if ($originalBaseUrl !== baseUrl && $originalApiKey !== apiKey) handleChange();
+		else dispatch('change', { baseUrl, apiKey, stale: false });
+	}
 
 	$: if (jellyfinUser)
 		dispatch('change', {
@@ -37,6 +32,8 @@
 			stale:
 				baseUrl && apiKey ? jellyfinUser?.Id !== get(user)?.settings.jellyfin.userId : !jellyfinUser
 		});
+
+	handleChange();
 
 	function handleChange() {
 		clearTimeout(timeout);
@@ -50,7 +47,11 @@
 		dispatch('change', {
 			baseUrl: '',
 			apiKey: '',
-			stale: baseUrl === '' && apiKey === '' && jellyfinUser === undefined
+			stale:
+				baseUrl === '' &&
+				apiKey === '' &&
+				jellyfinUser === undefined &&
+				(baseUrl !== $originalBaseUrl || apiKey !== $originalApiKey)
 		});
 
 		if (baseUrlCopy === '' || apiKeyCopy === '') return;
@@ -62,9 +63,9 @@
 			if (baseUrlCopy !== baseUrl || apiKeyCopy !== apiKey) return;
 
 			if (users.length) {
-				jellyfinUser = users.find((u) => u.Id === get(appState).user?.settings.jellyfin.userId);
+				jellyfinUser = users.find((u) => u.Id === get(user)?.settings.jellyfin.userId);
 				const stale =
-					(baseUrlCopy !== originalBaseUrl || apiKeyCopy !== originalApiKey) &&
+					(baseUrlCopy !== $originalBaseUrl || apiKeyCopy !== $originalApiKey) &&
 					jellyfinUser !== undefined;
 				dispatch('change', { baseUrl: baseUrlCopy, apiKey: apiKeyCopy, stale });
 			} else {
@@ -91,13 +92,17 @@
 	<TextField
 		bind:value={baseUrl}
 		isValid={jellyfinUsers?.then((u) => !!u?.length)}
-		on:change={handleChange}>Base Url</TextField
+		on:change={handleChange}
 	>
+		Base Url
+	</TextField>
 	<TextField
 		bind:value={apiKey}
 		isValid={jellyfinUsers?.then((u) => !!u?.length)}
-		on:change={handleChange}>API Key</TextField
+		on:change={handleChange}
 	>
+		API Key
+	</TextField>
 </div>
 
 {#await jellyfinUsers then users}
