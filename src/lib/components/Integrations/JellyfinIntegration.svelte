@@ -13,8 +13,8 @@
 
 	export let baseUrl = get(user)?.settings.jellyfin.baseUrl || '';
 	export let apiKey = get(user)?.settings.jellyfin.apiKey || '';
-	let originalBaseUrl = derived(user, (user) => user?.settings.jellyfin.baseUrl || '');
-	let originalApiKey = derived(user, (user) => user?.settings.jellyfin.apiKey || '');
+	const originalBaseUrl = derived(user, (user) => user?.settings.jellyfin.baseUrl || '');
+	const originalApiKey = derived(user, (user) => user?.settings.jellyfin.apiKey || '');
 	let timeout: ReturnType<typeof setTimeout>;
 	let error = '';
 	let jellyfinUsers: Promise<JellyfinUser[]> | undefined = undefined;

@@ -111,6 +111,11 @@ export class User {
   @Column()
   password: string;
 
+  @ApiProperty({ required: false })
+  @Column({ type: 'blob', nullable: true })
+  profilePicture: Buffer;
+
+  @Column()
   @ApiProperty({ required: true })
   @Column({ default: false })
   isAdmin: boolean = false;

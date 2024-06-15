@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { UserService } from './user/user.service';
 import { ADMIN_PASSWORD, ADMIN_USERNAME } from './consts';
+import { json, urlencoded } from 'express';
 // import * as proxy from 'express-http-proxy';
 
 async function createAdminUser(userService: UserService) {
@@ -21,6 +22,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
   app.enableCors();
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // app.use('/api/proxy/jellyfin', proxy('http://192.168.0.129:8096'));
 

@@ -3,9 +3,9 @@
 	import type { Readable } from 'svelte/store';
 	import AnimateScale from '../AnimateScale.svelte';
 	import classNames from 'classnames';
-	import { Plus, PlusCircled } from 'radix-icons-svelte';
+	import { Plus } from 'radix-icons-svelte';
 	import { getCardDimensions } from '../../utils';
-	import AddElementOverlay from '../AddElementOverlay.svelte';
+	import IconOverlay from '../IconOverlay.svelte';
 
 	export let backdropUrl: string;
 
@@ -32,6 +32,6 @@
 			class="bg-cover bg-center absolute inset-0"
 			style={`background-image: url('${backdropUrl}')`}
 		/>
-		<AddElementOverlay />
+		<IconOverlay icon={Plus} />
 	</Container>
 </AnimateScale>

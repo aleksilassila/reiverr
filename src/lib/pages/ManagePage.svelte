@@ -13,20 +13,23 @@
 	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import SelectField from '../components/SelectField.svelte';
-	import { ArrowRight, Trash } from 'radix-icons-svelte';
+	import { ArrowRight, Exit, Pencil1, Pencil2, Trash } from 'radix-icons-svelte';
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { user } from '../stores/user.store';
 	import { sessions } from '../stores/session.store';
+	import TextField from '../components/TextField.svelte';
+	import EditProfileModal from '../components/Dialog/EditProfileModal.svelte';
+	import { scrollIntoView } from '../selectable';
 
 	enum Tabs {
 		Interface,
-		Integrations,
+		Account,
 		About
 	}
 
-	const tab = useTabs(Tabs.Integrations);
+	const tab = useTabs(Tabs.Account);
 
 	let jellyfinBaseUrl = '';
 	let jellyfinApiKey = '';
@@ -117,11 +120,14 @@
 			}
 		}));
 	}
+
+	function handleLogOut() {
+		sessions.removeSession();
+	}
 </script>
 
 <svelte:window
 	on:keydown={(e) => {
-		console.log('keypress', e);
 		lastKeyCode = e.keyCode;
 		lastKey = e.key;
 	}}
@@ -130,7 +136,7 @@
 <DetachedPage class="px-32 py-16">
 	<Container
 		direction="horizontal"
-		class="flex space-x-8 header2 pb-3 border-b-2 border-secondary-700 w-full mb-8"
+		class="flex space-x-8 header3 pb-3 border-b-2 border-secondary-700 w-full mb-8"
 	>
 		<Container
 			on:enter={() => tab.set(Tabs.Interface)}
@@ -144,22 +150,22 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				General
+				Options
 			</span>
 		</Container>
 		<Container
-			on:enter={() => tab.set(Tabs.Integrations)}
-			on:clickOrSelect={() => tab.set(Tabs.Integrations)}
+			on:enter={() => tab.set(Tabs.Account)}
+			on:clickOrSelect={() => tab.set(Tabs.Account)}
 			let:hasFocus
 			focusOnClick
 		>
 			<span
 				class={classNames('cursor-pointer', {
-					'text-secondary-400': $tab !== Tabs.Integrations,
+					'text-secondary-400': $tab !== Tabs.Account,
 					'text-primary-500': hasFocus
 				})}
 			>
-				Integrations
+				Account
 			</span>
 		</Container>
 		<Container
@@ -207,106 +213,131 @@
 			</div>
 		</Tab>
 
-		<Tab {...tab} tab={Tabs.Integrations} class="">
-			<Container direction="horizontal" class="gap-8 grid grid-cols-2">
-				<Container class="flex flex-col space-y-8">
-					<Container class="bg-primary-800 rounded-xl p-8">
-						<h1 class="mb-4 header2">Sonarr</h1>
-						<SonarrIntegration
-							on:change={({ detail }) => {
-								sonarrBaseUrl = detail.baseUrl;
-								sonarrApiKey = detail.apiKey;
-								sonarrStale = detail.stale;
-							}}
-						/>
-						<div class="flex">
-							<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
-								Save
-							</Button>
-						</div>
-					</Container>
-
-					<Container class="bg-primary-800 rounded-xl p-8">
-						<h1 class="mb-4 header2">Radarr</h1>
-						<RadarrIntegration
-							on:change={({ detail }) => {
-								radarrBaseUrl = detail.baseUrl;
-								radarrApiKey = detail.apiKey;
-								radarrStale = detail.stale;
-							}}
-						/>
-						<div class="flex">
-							<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
-								Save
-							</Button>
-						</div>
+		<Tab {...tab} tab={Tabs.Account} class="space-y-16">
+			<div>
+				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Profile</h1>
+				<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
+					<SelectField
+						value={$user?.name || ''}
+						on:clickOrSelect={() => {
+							const u = $user;
+							if (u)
+								createModal(EditProfileModal, {
+									user: u
+								});
+						}}
+					>
+						Logged in as
+						<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+					</SelectField>
+					<Container direction="horizontal" class="flex space-x-4">
+						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
 					</Container>
 				</Container>
+			</div>
 
-				<Container class="flex flex-col space-y-8">
-					<Container class="bg-primary-800 rounded-xl p-8">
-						<h1 class="mb-4 header2">Tmdb Account</h1>
-						{#await tmdbAccount then tmdbAccount}
-							{#if tmdbAccount}
-								<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
-									Connected to
-									<Trash
-										slot="icon"
-										let:size
-										let:iconClass
-										{size}
-										class={classNames(iconClass, '')}
-									/>
-								</SelectField>
-							{:else}
-								<div class="flex space-x-4">
-									<Button
-										type="primary-dark"
-										iconAfter={ArrowRight}
-										on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
-										>Connect</Button
-									>
-								</div>
-							{/if}
-						{/await}
-						<!--					<TmdbIntegration-->
-						<!--						on:change={({ detail }) => {-->
-						<!--							sonarrBaseUrl = detail.baseUrl;-->
-						<!--							sonarrApiKey = detail.apiKey;-->
-						<!--							sonarrStale = detail.stale;-->
-						<!--						}}-->
-						<!--					/>-->
-						<!--					<div class="flex">-->
-						<!--						<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>-->
-						<!--							Save-->
-						<!--						</Button>-->
-						<!--					</div>-->
+			<div>
+				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>
+				<Container direction="horizontal" class="gap-16 grid grid-cols-2">
+					<Container class="flex flex-col space-y-16">
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header2">Sonarr</h1>
+							<SonarrIntegration
+								on:change={({ detail }) => {
+									sonarrBaseUrl = detail.baseUrl;
+									sonarrApiKey = detail.apiKey;
+									sonarrStale = detail.stale;
+								}}
+							/>
+							<div class="flex">
+								<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
+									Save
+								</Button>
+							</div>
+						</Container>
+
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header2">Radarr</h1>
+							<RadarrIntegration
+								on:change={({ detail }) => {
+									radarrBaseUrl = detail.baseUrl;
+									radarrApiKey = detail.apiKey;
+									radarrStale = detail.stale;
+								}}
+							/>
+							<div class="flex">
+								<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
+									Save
+								</Button>
+							</div>
+						</Container>
 					</Container>
 
-					<Container class="bg-primary-800 rounded-xl p-8">
-						<h1 class="mb-4 header2">Jellyfin</h1>
-						<JellyfinIntegration
-							bind:jellyfinUser
-							on:change={({ detail }) => {
-								jellyfinBaseUrl = detail.baseUrl;
-								jellyfinApiKey = detail.apiKey;
-								jellyfinStale = detail.stale;
-							}}
-							on:click-user={({ detail }) =>
-								createModal(JellyfinIntegrationUsersDialog, {
-									selectedUser: detail.user,
-									users: detail.users,
-									handleSelectUser: (u) => (jellyfinUser = u)
-								})}
-						/>
-						<div class="flex">
-							<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
-								Save
-							</Button>
-						</div>
+					<Container class="flex flex-col space-y-16">
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header2">Tmdb Account</h1>
+							{#await tmdbAccount then tmdbAccount}
+								{#if tmdbAccount}
+									<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
+										Connected to
+										<Trash
+											slot="icon"
+											let:size
+											let:iconClass
+											{size}
+											class={classNames(iconClass, '')}
+										/>
+									</SelectField>
+								{:else}
+									<div class="flex space-x-4">
+										<Button
+											type="primary-dark"
+											iconAfter={ArrowRight}
+											on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
+											>Connect</Button
+										>
+									</div>
+								{/if}
+							{/await}
+						</Container>
+
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header2">Jellyfin</h1>
+							<JellyfinIntegration
+								bind:jellyfinUser
+								on:change={({ detail }) => {
+									jellyfinBaseUrl = detail.baseUrl;
+									jellyfinApiKey = detail.apiKey;
+									jellyfinStale = detail.stale;
+								}}
+								on:click-user={({ detail }) =>
+									createModal(JellyfinIntegrationUsersDialog, {
+										selectedUser: detail.user,
+										users: detail.users,
+										handleSelectUser: (u) => (jellyfinUser = u)
+									})}
+							/>
+							<div class="flex">
+								<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
+									Save
+								</Button>
+							</div>
+						</Container>
 					</Container>
 				</Container>
-			</Container>
+			</div>
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.About}>
@@ -320,9 +351,7 @@
 				<div>Tizen media key: {tizenMediaKey}</div>
 			{/if}
 			<div class="flex space-x-4 mt-4">
-				<Button on:clickOrSelect={() => sessions.removeSession()} class="hover:bg-red-500">
-					Log Out
-				</Button>
+				<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
 			</div>
 		</Tab>
 	</Container>

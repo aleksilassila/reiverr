@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -89,6 +90,7 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Put(':id')
   @ApiOkResponse({ description: 'User updated', type: UserDto })
+  @ApiException(() => NotFoundException, { description: 'User not found' })
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -99,9 +101,30 @@ export class UserController {
     }
 
     const user = await this.userService.findOne(id);
+    if (updateUserDto.name) user.name = updateUserDto.name;
+    if (
+      updateUserDto.oldPassword === user.password &&
+      updateUserDto.password !== undefined
+    )
+      user.password = updateUserDto.password;
+    else if (
+      updateUserDto.password &&
+      updateUserDto.oldPassword !== user.password
+    )
+      throw new BadRequestException("Passwords don't match");
     if (updateUserDto.settings) user.settings = updateUserDto.settings;
     if (updateUserDto.onboardingDone)
       user.onboardingDone = updateUserDto.onboardingDone;
+    if (updateUserDto.profilePicture) {
+      try {
+        user.profilePicture = Buffer.from(
+          updateUserDto.profilePicture.split(';base64,').pop() as string,
+          'base64',
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
     const updated = await this.userService.update(user);
     return UserDto.fromEntity(updated);

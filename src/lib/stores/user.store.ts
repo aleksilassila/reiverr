@@ -38,11 +38,13 @@ function useUser() {
 		if (!user) return;
 
 		const updated = updateFn(user);
-		const update = await reiverrApi.updateUser(updated);
+		const { user: update, error } = await reiverrApi.updateUser(updated);
 
 		if (update) {
 			userStore.set(update);
 		}
+
+		return error;
 	}
 
 	return {

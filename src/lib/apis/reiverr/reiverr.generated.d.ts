@@ -62,6 +62,7 @@ export interface components {
       isAdmin: boolean;
       onboardingDone?: boolean;
       settings: components["schemas"]["Settings"];
+      profilePicture: string;
     };
     CreateUserDto: {
       name: string;
@@ -70,8 +71,11 @@ export interface components {
     };
     UpdateUserDto: {
       name?: string;
+      password?: string;
       onboardingDone?: boolean;
       settings?: components["schemas"]["Settings"];
+      profilePicture?: string;
+      oldPassword?: string;
     };
     SignInDto: {
       name: string;
@@ -172,6 +176,18 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["UserDto"];
+        };
+      };
+      404: {
+        content: {
+          "application/json": {
+            /** @example 404 */
+            statusCode: number;
+            /** @example Not Found */
+            message: string;
+            /** @example Not Found */
+            error?: string;
+          };
         };
       };
     };

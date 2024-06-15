@@ -51,7 +51,7 @@ export class ReiverrApi implements Api<paths> {
 				},
 				body: user
 			})
-			.then((res) => res.data);
+			.then((res) => ({ user: res.data, error: res.error?.message }));
 }
 
 export const reiverrApi = new ReiverrApi();

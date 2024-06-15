@@ -37,7 +37,7 @@
 		$$restProps.class,
 		'transition-all col-start-1 col-end-1 row-start-1 row-end-1',
 		{
-			'opacity-0 pointer-events-none': !active,
+			'opacity-0 pointer-events-none absolute inset-0': !active,
 			'-translate-x-10': !active && $openTab >= index,
 			'translate-x-10': !active && $openTab < index
 		}

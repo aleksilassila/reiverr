@@ -101,6 +101,7 @@
 					</div>
 				{/if}
 				{#if iconAbsolute}
+					<div class="w-8" />
 					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
 						<svelte:component this={iconAbsolute} size={19} />
 					</div>

@@ -12,7 +12,8 @@
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
 	import Login from '../components/Login.svelte';
 	import { Plus, Trash } from 'radix-icons-svelte';
-	import AddElementOverlay from '../components/AddElementOverlay.svelte';
+	import ProfileIcon from '../components/ProfileIcon.svelte';
+	import { profilePictures } from '../profile-pictures';
 
 	$: users = getUsers($sessions.sessions);
 
@@ -40,38 +41,24 @@
 			<Container direction="grid" gridCols={4} class="flex space-x-8 mb-16">
 				{#each users as item}
 					{@const user = item.user}
-					<Container let:hasFocus on:clickOrSelect={() => user && handleSwitchUser(item)}>
-						<AnimateScale {hasFocus}>
-							<div
-								class={classNames('w-40 h-40 bg-center bg-cover mb-4 rounded-xl', {
-									selected: hasFocus
-								})}
-								style={`background-image: url('${TMDB_PROFILE_LARGE}/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg')`}
-							/>
-							<div class={classNames('text-center header1', { '!text-secondary-100': hasFocus })}>
-								{user?.name}
-							</div>
-						</AnimateScale>
+					<Container let:hasFocusWithin on:clickOrSelect={() => user && handleSwitchUser(item)}>
+						<ProfileIcon
+							class="mb-4"
+							url={user?.profilePicture || profilePictures.keanu}
+							on:clickOrSelect={() => user && handleSwitchUser(item)}
+						/>
+						<div
+							class={classNames('text-center header1', { '!text-secondary-100': hasFocusWithin })}
+						>
+							{user?.name}
+						</div>
 					</Container>
 				{/each}
-				<Container let:hasFocus on:clickOrSelect={() => createModal(AddUserDialog, {})}>
-					<AnimateScale {hasFocus}>
-						<div
-							class={classNames('relative overflow-hidden rounded-xl mb-4 w-40 h-40', {
-								selected: hasFocus
-							})}
-						>
-							<div
-								class={`w-full h-full bg-center bg-cover`}
-								style={`background-image: url('${TMDB_PROFILE_LARGE}/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg')`}
-							/>
-							<AddElementOverlay />
-						</div>
-						<!--						<div class={classNames('text-center header1', { '!text-secondary-100': hasFocus })}>-->
-						<!--							Add User-->
-						<!--						</div>-->
-					</AnimateScale>
-				</Container>
+				<ProfileIcon
+					url="profile-pictures/leo.webp"
+					on:clickOrSelect={() => createModal(AddUserDialog, {})}
+					icon={Plus}
+				/>
 			</Container>
 			<Container direction="horizontal" class="flex space-x-4">
 				<Button

@@ -4,7 +4,7 @@
 	import { fade } from 'svelte/transition';
 	import { modalStack } from '../Modal/modal.store';
 
-	export let size: 'sm' | 'full' = 'sm';
+	export let size: 'sm' | 'full' | 'lg' | 'dynamic' = 'sm';
 
 	function handleClose() {
 		modalStack.closeTopmost();
@@ -19,10 +19,12 @@
 	>
 		<div
 			class={classNames(
-				'flex-1 bg-primary-800 rounded-2xl p-10 relative shadow-xl flex flex-col',
+				'bg-primary-800 rounded-2xl p-12 relative shadow-xl flex flex-col transition-[max-width]',
 				{
-					'max-w-lg min-h-0 overflow-y-auto scrollbar-hide': size === 'sm',
-					'h-full overflow-hidden': size === 'full'
+					'flex-1 max-w-lg min-h-0 overflow-y-auto scrollbar-hide': size === 'sm',
+					'flex-1 h-full overflow-hidden': size === 'full',
+					'flex-1 max-w-[56rem] min-h-0 overflow-y-auto scrollbar-hide': size === 'lg',
+					'': size === 'dynamic'
 				},
 				$$restProps.class
 			)}

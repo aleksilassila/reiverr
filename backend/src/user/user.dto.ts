@@ -1,7 +1,13 @@
-import { OmitType, PartialType, PickType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { User } from './user.entity';
 
-export class UserDto extends OmitType(User, ['password'] as const) {
+export class UserDto extends OmitType(User, [
+  'password',
+  'profilePicture',
+] as const) {
+  @ApiProperty({ type: 'string' })
+  profilePicture: string | null;
+
   static fromEntity(entity: User): UserDto {
     return {
       id: entity.id,
@@ -9,6 +15,8 @@ export class UserDto extends OmitType(User, ['password'] as const) {
       isAdmin: entity.isAdmin,
       settings: entity.settings,
       onboardingDone: entity.onboardingDone,
+      profilePicture:
+        'data:image;base64,' + entity.profilePicture?.toString('base64'),
     };
   }
 }
@@ -20,7 +28,13 @@ export class CreateUserDto extends PickType(User, [
 ] as const) {}
 
 export class UpdateUserDto extends PartialType(
-  PickType(User, ['settings', 'onboardingDone', 'name'] as const),
-) {}
+  PickType(User, ['settings', 'onboardingDone', 'name', 'password'] as const),
+) {
+  @ApiProperty({ type: 'string', required: false })
+  profilePicture?: string;
+
+  @ApiProperty({ type: 'string', required: false })
+  oldPassword?: string;
+}
 
 export class SignInDto extends PickType(User, ['name', 'password'] as const) {}

@@ -92,6 +92,11 @@ html[data-useragent*="Tizen"] .selectable-secondary {
     @apply font-semibold text-2xl text-secondary-100;
 }
 
+.header3 {
+    @apply font-semibold text-3xl text-secondary-100;
+}
+
+
 .header4 {
     @apply font-semibold text-4xl text-secondary-100 tracking-wider;
 }
