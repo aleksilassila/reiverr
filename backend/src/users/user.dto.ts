@@ -25,10 +25,19 @@ export class CreateUserDto extends PickType(User, [
   'name',
   'password',
   'isAdmin',
-] as const) {}
+] as const) {
+  @ApiProperty({ type: 'string', required: false })
+  profilePicture?: string;
+}
 
 export class UpdateUserDto extends PartialType(
-  PickType(User, ['settings', 'onboardingDone', 'name', 'password'] as const),
+  PickType(User, [
+    'settings',
+    'onboardingDone',
+    'name',
+    'password',
+    'isAdmin',
+  ] as const),
 ) {
   @ApiProperty({ type: 'string', required: false })
   profilePicture?: string;

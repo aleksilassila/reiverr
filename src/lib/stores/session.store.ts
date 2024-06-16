@@ -54,10 +54,10 @@ function useSessions() {
 	function removeSession(_session?: Session) {
 		sessions.update((s) => {
 			const session = _session || s.activeSession;
-			const sessions = s.sessions.filter((s) => s !== session);
+			const sessions = s.sessions.filter((s) => s.id !== session?.id);
 			return {
 				sessions,
-				activeSession: s.activeSession === session ? undefined : s.activeSession
+				activeSession: s.activeSession?.id === session?.id ? undefined : s.activeSession
 			};
 		});
 	}

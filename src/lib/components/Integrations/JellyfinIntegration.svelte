@@ -110,6 +110,7 @@
 		<SelectField
 			value={jellyfinUser?.Name || 'Select User'}
 			on:clickOrSelect={() => dispatch('click-user', { user: jellyfinUser, users })}
+			class="mb-4"
 		>
 			User
 		</SelectField>

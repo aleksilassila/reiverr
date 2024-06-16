@@ -5,6 +5,8 @@ import type { Api } from '../api.interface';
 import { sessions } from '../../stores/session.store';
 
 export type ReiverrUser = components['schemas']['UserDto'];
+export type CreateReiverrUser = components['schemas']['CreateUserDto'];
+export type UpdateReiverrUser = components['schemas']['UpdateUserDto'];
 export type ReiverrSettings = ReiverrUser['settings'];
 
 export class ReiverrApi implements Api<paths> {
@@ -22,33 +24,37 @@ export class ReiverrApi implements Api<paths> {
 		});
 	}
 
-	// isSetupDone = async (): Promise<boolean> =>
-	// 	this.getClient()
-	// 		?.GET('/user/isSetupDone')
-	// 		.then((res) => res.data || false) || false;
-
-	async getUser() {
-		const res = await this.getClient()?.GET('/user', {});
-		return res.data;
-	}
-
-	authenticate(name: string, password: string) {
-		return this.getClient().POST('/auth', {
-			body: {
-				name,
-				password
-			}
-		});
-	}
-
-	updateUser = (user: ReiverrUser) =>
+	updateUser = (id: string, user: UpdateReiverrUser) =>
 		this.getClient()
-			?.PUT('/user/{id}', {
+			?.PUT('/users/{id}', {
 				params: {
 					path: {
-						id: user.id
+						id
 					}
 				},
+				body: user
+			})
+			.then((res) => ({ user: res.data, error: res.error?.message }));
+
+	getUsers = () =>
+		this.getClient()
+			.GET('/users', {})
+			.then((res) => res.data);
+
+	deleteUser = (id?: string) =>
+		this.getClient()
+			?.DELETE('/users/{id}', {
+				params: {
+					path: {
+						id: id || get(sessions).activeSession?.id || ''
+					}
+				}
+			})
+			.then((res) => res.error?.message);
+
+	createUser = (user: CreateReiverrUser) =>
+		this.getClient()
+			?.POST('/users', {
 				body: user
 			})
 			.then((res) => ({ user: res.data, error: res.error?.message }));

@@ -3,23 +3,32 @@
 	import { reiverrApi, type ReiverrUser } from '../../apis/reiverr/reiverr-api';
 	import TextField from '../TextField.svelte';
 	import Button from '../Button.svelte';
-	import { ArrowUp, EyeClosed, EyeOpen, Upload } from 'radix-icons-svelte';
+	import { ArrowUp, EyeClosed, EyeOpen, Trash, Upload } from 'radix-icons-svelte';
 	import Container from '../../../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
 	import Tab from '../Tab/Tab.svelte';
 	import { useTabs } from '../Tab/Tab';
 	import SelectField from '../SelectField.svelte';
 	import ProfileIcon from '../ProfileIcon.svelte';
-	import { profilePictures } from '../../profile-pictures';
-	import { modalStack } from '../Modal/modal.store';
+	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
+	import { createModal, modalStack } from '../Modal/modal.store';
 	import { user as userStore } from '../../stores/user.store';
+	import ConfirmDialog from './ConfirmDialog.svelte';
+	import { sessions } from '../../stores/session.store';
+	import { navigate } from '../StackRouter/StackRouter';
+	import Toggle from '../Toggle.svelte';
+	import { get } from 'svelte/store';
 
 	enum Tabs {
 		EditProfile,
 		ProfilePictures
 	}
 
-	export let user: ReiverrUser;
+	export let modalId: symbol;
+
+	export let user: ReiverrUser | undefined = undefined;
+	export let createNew = false;
+	export let admin = createNew;
 
 	const tab = useTabs(Tabs.EditProfile);
 
@@ -28,8 +37,9 @@
 	let oldPasswordVisible = false;
 	let newPassword = '';
 	let newPasswordVisible = false;
+	let isAdmin = user?.isAdmin || false;
 	let profilePictureFiles: FileList;
-	let profilePictureBase64: string = user.profilePicture;
+	let profilePictureBase64: string = user?.profilePicture ?? getRandomProfilePicture() ?? '';
 	let profilePictureTitle: string;
 	let profilePictureFilesInput: HTMLInputElement;
 	$: {
@@ -75,9 +85,11 @@
 	}
 
 	$: stale =
-		(name !== user.name && name !== '') ||
+		(name !== user?.name && name !== '') ||
 		oldPassword !== newPassword ||
-		profilePictureBase64 !== user.profilePicture;
+		profilePictureBase64 !== user?.profilePicture ||
+		isAdmin !== user?.isAdmin;
+	$: complete = name !== '';
 	let errorMessage = '';
 
 	function setProfilePicture(image: string) {
@@ -86,14 +98,30 @@
 	}
 
 	async function save() {
-		const error = await userStore.updateUser((u) => ({
-			...u,
-			name,
-			password: newPassword,
-			oldPassword,
-			profilePicture: profilePictureBase64
-			// password: newPassword
-		}));
+		const id = user?.id;
+
+		if (!id) return;
+
+		const error =
+			id === get(userStore)?.id
+				? await userStore.updateUser((u) => ({
+						...u,
+						name,
+						password: newPassword,
+						oldPassword,
+						profilePicture: profilePictureBase64,
+						isAdmin
+						// password: newPassword
+				  }))
+				: (
+						await reiverrApi.updateUser(id, {
+							name,
+							password: newPassword,
+							oldPassword,
+							profilePicture: profilePictureBase64,
+							isAdmin
+						})
+				  ).error;
 
 		if (error) {
 			errorMessage = error;
@@ -101,28 +129,60 @@
 			modalStack.closeTopmost();
 		}
 	}
+
+	async function create() {
+		const { error } = await reiverrApi.createUser({
+			name,
+			password: newPassword,
+			isAdmin,
+			profilePicture: profilePictureBase64
+		});
+
+		if (error) {
+			errorMessage = error;
+		} else {
+			modalStack.closeTopmost();
+		}
+	}
+
+	async function handleDeleteAccount() {
+		const error = await reiverrApi.deleteUser(user?.id);
+		if (error) {
+			errorMessage = error;
+		} else {
+			modalStack.close(modalId);
+			if (!admin) {
+				sessions.removeSession();
+				navigate('/');
+			}
+		}
+	}
 </script>
 
 <Dialog class="grid" size={'dynamic'}>
 	<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
-		<h1 class="header2">Edit Profile</h1>
+		<h1 class="header2">
+			{createNew ? 'Create Account' : 'Edit Profile'}
+		</h1>
 		<TextField bind:value={name}>name</TextField>
 		<SelectField value={profilePictureTitle} on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}>
 			Profile Picture
 		</SelectField>
-		<Container direction="horizontal" class="flex space-x-4 items-end">
-			<TextField
-				class="flex-1"
-				bind:value={oldPassword}
-				type={oldPasswordVisible ? 'text' : 'password'}
-			>
-				Old Password
-			</TextField>
-			<IconToggle
-				on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
-				icon={oldPasswordVisible ? EyeOpen : EyeClosed}
-			/>
-		</Container>
+		{#if !createNew}
+			<Container direction="horizontal" class="flex space-x-4 items-end">
+				<TextField
+					class="flex-1"
+					bind:value={oldPassword}
+					type={oldPasswordVisible ? 'text' : 'password'}
+				>
+					Old Password
+				</TextField>
+				<IconToggle
+					on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
+					icon={oldPasswordVisible ? EyeOpen : EyeClosed}
+				/>
+			</Container>
+		{/if}
 		<Container direction="horizontal" class="flex space-x-4 items-end">
 			<TextField
 				class="flex-1"
@@ -136,10 +196,32 @@
 				icon={newPasswordVisible ? EyeOpen : EyeClosed}
 			/>
 		</Container>
+		{#if isAdmin || admin}
+			<div class="flex justify-between">
+				<label>Admin</label>
+				<Toggle bind:checked={isAdmin}>Admin</Toggle>
+			</div>
+		{/if}
 		{#if errorMessage}
 			<div class="text-red-500 mb-4">{errorMessage}</div>
 		{/if}
-		<Button type="primary-dark" disabled={!stale} action={save} class="mt-8">Save</Button>
+		<Container direction="horizontal" class="flex space-x-4 pt-4 *:flex-1">
+			{#if !createNew}
+				<Button type="primary-dark" disabled={!stale} action={save}>Save</Button>
+				<Button
+					type="primary-dark"
+					icon={Trash}
+					on:clickOrSelect={() =>
+						createModal(ConfirmDialog, {
+							header: 'Delete Account',
+							body: 'Are you sure you want to delete your account?',
+							confirm: handleDeleteAccount
+						})}>Delete Account</Button
+				>
+			{:else}
+				<Button type="primary-dark" disabled={!complete} action={create}>Create</Button>
+			{/if}
+		</Container>
 	</Tab>
 
 	<Tab
@@ -204,10 +286,6 @@
 				accept="image/png, image/jpeg"
 				class="hidden"
 			/>
-			<!--			<Container>-->
-			<!--				Select File-->
-			<!--				<input type="file" bind:files={profilePictureFiles} accept="image/png, image/jpeg" />-->
-			<!--			</Container>-->
 		</Container>
 	</Tab>
 </Dialog>

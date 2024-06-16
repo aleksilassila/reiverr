@@ -85,7 +85,7 @@ html[data-useragent*="Tizen"] .selectable-secondary {
 }
 
 .header1 {
-    @apply font-medium text-lg text-secondary-300;
+    @apply font-semibold text-xl text-secondary-100;
 }
 
 .header2 {
@@ -96,13 +96,12 @@ html[data-useragent*="Tizen"] .selectable-secondary {
     @apply font-semibold text-3xl text-secondary-100;
 }
 
-
 .header4 {
     @apply font-semibold text-4xl text-secondary-100 tracking-wider;
 }
 
 .body {
-    @apply text-base text-secondary-200;
+    @apply font-medium text-lg text-secondary-300;
 }
 
 @media tv {

@@ -8,8 +8,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../consts';
 import { AccessTokenPayload } from './auth.service';
-import { User } from '../user/user.entity';
-import { UserService } from '../user/user.service';
+import { User } from '../users/user.entity';
+import { UsersService } from '../users/users.service';
 
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {
@@ -28,7 +28,7 @@ function extractTokenFromHeader(request: Request): string | undefined {
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    private userService: UserService,
+    private userService: UsersService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -47,6 +47,10 @@ export class AuthGuard implements CanActivate {
       if (payload.sub) {
         request['user'] = await this.userService.findOne(payload.sub);
       }
+
+      if (!request['user']) {
+        throw new UnauthorizedException();
+      }
     } catch {
       throw new UnauthorizedException();
     }
@@ -58,7 +62,7 @@ export class AuthGuard implements CanActivate {
 export class OptionalAuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    private userService: UserService,
+    private userService: UsersService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

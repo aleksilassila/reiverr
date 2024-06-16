@@ -5,13 +5,14 @@
 
 
 export interface paths {
-  "/user": {
-    get: operations["UserController_getProfile"];
-    post: operations["UserController_create"];
+  "/users": {
+    get: operations["UsersController_findAll"];
+    post: operations["UsersController_create"];
   };
-  "/user/{id}": {
-    get: operations["UserController_findById"];
-    put: operations["UserController_updateUser"];
+  "/users/{id}": {
+    get: operations["UsersController_findById"];
+    put: operations["UsersController_update"];
+    delete: operations["UsersController_deleteUser"];
   };
   "/auth": {
     post: operations["AuthController_signIn"];
@@ -68,10 +69,12 @@ export interface components {
       name: string;
       password: string;
       isAdmin: boolean;
+      profilePicture?: string;
     };
     UpdateUserDto: {
       name?: string;
       password?: string;
+      isAdmin?: boolean;
       onboardingDone?: boolean;
       settings?: components["schemas"]["Settings"];
       profilePicture?: string;
@@ -99,41 +102,56 @@ export type external = Record<string, never>;
 
 export interface operations {
 
-  UserController_getProfile: {
+  UsersController_findAll: {
     responses: {
-      /** @description User found */
+      /** @description All users found */
       200: {
         content: {
-          "application/json": components["schemas"]["UserDto"];
-        };
-      };
-      404: {
-        content: {
-          "application/json": {
-            /** @example 404 */
-            statusCode: number;
-            /** @example Not Found */
-            message: string;
-            /** @example Not Found */
-            error?: string;
-          };
+          "application/json": components["schemas"]["UserDto"][];
         };
       };
     };
   };
-  UserController_create: {
+  UsersController_create: {
     requestBody: {
       content: {
         "application/json": components["schemas"]["CreateUserDto"];
       };
     };
     responses: {
+      /** @description User created */
       200: {
-        content: never;
+        content: {
+          "application/json": components["schemas"]["UserDto"];
+        };
+      };
+      400: {
+        content: {
+          "application/json": {
+            /** @example 400 */
+            statusCode: number;
+            /** @example Bad Request */
+            message: string;
+            /** @example Bad Request */
+            error?: string;
+          };
+        };
+      };
+      401: {
+        content: {
+          "application/json": {
+            /** @example 401 */
+            statusCode: number;
+            /** @example Unauthorized */
+            message: string;
+            /** @example Unauthorized */
+            error?: string;
+          };
+        };
       };
     };
   };
-  UserController_findById: {
+  UsersController_findById: {
     parameters: {
       path: {
         id: string;
@@ -160,7 +178,7 @@ export interface operations {
       };
     };
   };
-  UserController_updateUser: {
+  UsersController_update: {
     parameters: {
       path: {
         id: string;
@@ -177,6 +195,31 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["UserDto"];
         };
+      };
+      404: {
+        content: {
+          "application/json": {
+            /** @example 404 */
+            statusCode: number;
+            /** @example Not Found */
+            message: string;
+            /** @example Not Found */
+            error?: string;
+          };
+        };
+      };
+    };
+  };
+  UsersController_deleteUser: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description User deleted */
+      200: {
+        content: never;
       };
       404: {
         content: {

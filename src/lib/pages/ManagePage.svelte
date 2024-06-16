@@ -13,15 +13,16 @@
 	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import SelectField from '../components/SelectField.svelte';
-	import { ArrowRight, Exit, Pencil1, Pencil2, Trash } from 'radix-icons-svelte';
+	import { ArrowRight, Exit, Pencil1, Pencil2, Plus, Trash } from 'radix-icons-svelte';
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { user } from '../stores/user.store';
 	import { sessions } from '../stores/session.store';
-	import TextField from '../components/TextField.svelte';
-	import EditProfileModal from '../components/Dialog/EditProfileModal.svelte';
+	import EditProfileModal from '../components/Dialog/CreateOrEditProfileModal.svelte';
 	import { scrollIntoView } from '../selectable';
+	import Panel from '../components/Panel.svelte';
+	import { reiverrApi } from '../apis/reiverr/reiverr-api';
 
 	enum Tabs {
 		Interface,
@@ -48,21 +49,7 @@
 	let lastKey = '';
 	let tizenMediaKey = '';
 	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
-
-	// onMount(() => {
-	// 	if (isTizen()) {
-	// 		const myMediaKeyChangeListener = {
-	// 			onpressed: function (key: string) {
-	// 				console.log('Pressed key: ' + key);
-	// 				tizenMediaKey = key;
-	// 			}
-	// 		};
-	//
-	// 		// eslint-disable-next-line no-undef
-	// 		tizen?.tvinputdevice?.registerKey?.('MediaPlayPause');
-	// 		(tizen as any)?.mediakey?.setMediaKeyEventListener?.(myMediaKeyChangeListener);
-	// 	}
-	// });
+	$: users = $user?.isAdmin ? reiverrApi.getUsers() : undefined;
 
 	async function handleDisconnectTmdb() {
 		return user.updateUser((prev) => ({
@@ -124,6 +111,21 @@
 	function handleLogOut() {
 		sessions.removeSession();
 	}
+
+	// onMount(() => {
+	// 	if (isTizen()) {
+	// 		const myMediaKeyChangeListener = {
+	// 			onpressed: function (key: string) {
+	// 				console.log('Pressed key: ' + key);
+	// 				tizenMediaKey = key;
+	// 			}
+	// 		};
+	//
+	// 		// eslint-disable-next-line no-undef
+	// 		tizen?.tvinputdevice?.registerKey?.('MediaPlayPause');
+	// 		(tizen as any)?.mediakey?.setMediaKeyEventListener?.(myMediaKeyChangeListener);
+	// 	}
+	// });
 </script>
 
 <svelte:window
@@ -165,7 +167,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				Account
+				Accounts
 			</span>
 		</Container>
 		<Container
@@ -215,9 +217,10 @@
 
 		<Tab {...tab} tab={Tabs.Account} class="space-y-16">
 			<div>
-				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Profile</h1>
 				<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
+					<h1 class="header1 mb-4">My Profile</h1>
 					<SelectField
+						class="mb-4"
 						value={$user?.name || ''}
 						on:clickOrSelect={() => {
 							const u = $user;
@@ -233,6 +236,46 @@
 					<Container direction="horizontal" class="flex space-x-4">
 						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
 					</Container>
+					{#await users then users}
+						{#if users?.length}
+							<div class="mt-8">
+								<h1 class="header1 mb-4">Server Accounts</h1>
+								<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
+									{#each users as user}
+										<SelectField
+											value={user?.name || ''}
+											on:clickOrSelect={() => {
+												createModal(EditProfileModal, {
+													user,
+													admin: true
+												});
+											}}
+										>
+											{user.isAdmin ? 'Admin' : 'User'}
+											<Pencil2
+												slot="icon"
+												let:size
+												let:iconClass
+												{size}
+												class={classNames(iconClass)}
+											/>
+										</SelectField>
+									{/each}
+									<SelectField
+										value="New Account"
+										on:clickOrSelect={() => {
+											createModal(EditProfileModal, {
+												createNew: true
+											});
+										}}
+									>
+										Create
+										<Plus slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+									</SelectField>
+								</Container>
+							</div>
+						{/if}
+					{/await}
 				</Container>
 			</div>
 
@@ -244,7 +287,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header2">Sonarr</h1>
+							<h1 class="mb-4 header1">Sonarr</h1>
 							<SonarrIntegration
 								on:change={({ detail }) => {
 									sonarrBaseUrl = detail.baseUrl;
@@ -263,7 +306,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header2">Radarr</h1>
+							<h1 class="mb-4 header1">Radarr</h1>
 							<RadarrIntegration
 								on:change={({ detail }) => {
 									radarrBaseUrl = detail.baseUrl;
@@ -284,10 +327,14 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header2">Tmdb Account</h1>
+							<h1 class="mb-4 header1">Tmdb Account</h1>
 							{#await tmdbAccount then tmdbAccount}
 								{#if tmdbAccount}
-									<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
+									<SelectField
+										value={tmdbAccount.username || ''}
+										action={handleDisconnectTmdb}
+										class="mb-4"
+									>
 										Connected to
 										<Trash
 											slot="icon"
@@ -314,7 +361,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header2">Jellyfin</h1>
+							<h1 class="mb-4 header1">Jellyfin</h1>
 							<JellyfinIntegration
 								bind:jellyfinUser
 								on:change={({ detail }) => {

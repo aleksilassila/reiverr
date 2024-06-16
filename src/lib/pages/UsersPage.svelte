@@ -4,9 +4,7 @@
 	import { reiverrApi } from '../apis/reiverr/reiverr-api';
 	import Container from '../../Container.svelte';
 	import Button from '../components/Button.svelte';
-	import { TMDB_PROFILE_LARGE } from '../constants';
 	import classNames from 'classnames';
-	import AnimateScale from '../components/AnimateScale.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { createModal } from '../components/Modal/modal.store';
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
@@ -22,7 +20,7 @@
 			sessions.map(async (session) =>
 				reiverrApi
 					.getClient(session.baseUrl, session.token)
-					.GET('/user')
+					.GET('/users/{id}', { params: { path: { id: session.id } } })
 					.then((r) => ({ session, user: r.data }))
 			)
 		).then((us) => us.filter((u) => !!u.user));

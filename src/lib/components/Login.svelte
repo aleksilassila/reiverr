@@ -41,7 +41,7 @@
 
 <Container class="flex flex-col" focusOnMount>
 	<h1 class="header2 w-full mb-2">Login to Reiverr</h1>
-	<div class="header1 mb-4">
+	<div class="body mb-4">
 		If this is your first time logging in, a new account will be created based on your credentials.
 	</div>
 

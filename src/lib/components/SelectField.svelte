@@ -27,12 +27,13 @@
 
 <Container
 	class={classNames(
-		'flex items-center justify-between bg-primary-900 rounded-xl px-6 py-2.5 mb-4 font-medium',
+		'flex items-center justify-between bg-primary-900 rounded-xl px-6 py-2.5 font-medium',
 		'border-2 border-transparent focus:border-primary-500 hover:border-primary-500  group',
 		{
 			'cursor-pointer': !_disabled,
 			'cursor-not-allowed pointer-events-none opacity-40': _disabled
-		}
+		},
+		$$restProps.class
 	)}
 	on:clickOrSelect={handleClickOrSelect}
 	let:hasFocus

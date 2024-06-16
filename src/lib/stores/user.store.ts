@@ -20,8 +20,8 @@ function useUser() {
 		lastActiveSession = activeSession;
 		const user = await axios
 			.get<
-				operations['UserController_getProfile']['responses']['200']['content']['application/json']
-			>(activeSession.baseUrl + '/api/user', {
+				operations['UsersController_findById']['responses']['200']['content']['application/json']
+			>(activeSession.baseUrl + '/api/users/' + activeSession.id, {
 				headers: {
 					Authorization: 'Bearer ' + activeSession.token
 				}
@@ -38,7 +38,7 @@ function useUser() {
 		if (!user) return;
 
 		const updated = updateFn(user);
-		const { user: update, error } = await reiverrApi.updateUser(updated);
+		const { user: update, error } = await reiverrApi.updateUser(updated.id, updated);
 
 		if (update) {
 			userStore.set(update);

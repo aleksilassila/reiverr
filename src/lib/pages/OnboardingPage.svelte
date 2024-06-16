@@ -264,6 +264,7 @@
 				{#await connectedTmdbAccount then account}
 					{#if account}
 						<SelectField
+							class="mb-4"
 							value={account.username || ''}
 							on:clickOrSelect={() => {
 								tab.set(Tabs.TmdbConnect);
@@ -347,6 +348,7 @@
 					<SelectField
 						value={jellyfinUser?.Name || 'Select User'}
 						on:clickOrSelect={() => tab.set(Tabs.SelectUser)}
+						class="mb-4"
 					>
 						User
 					</SelectField>
