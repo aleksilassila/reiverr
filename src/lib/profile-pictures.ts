@@ -1,5 +1,6 @@
 export function getRandomProfilePicture() {
 	const pictures = Object.keys(profilePictures);
+	// @ts-ignore
 	return profilePictures[pictures[Math.floor(Math.random() * pictures.length)]];
 }
 

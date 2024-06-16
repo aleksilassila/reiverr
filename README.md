@@ -88,7 +88,7 @@ services:
    `npm install --prefix backend`\
    `npm run build`
 4. Start the app:\
-   `node backend/dist/main`
+   `node backend/dist/src/main`
 
 #### Reiverr will be accessible via port 9494 by default.
 
