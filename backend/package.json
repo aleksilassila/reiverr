@@ -20,10 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "openapi:schema": "ts-node src/generate-openapi.ts",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
-    "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./data-source.ts",
-    "typeorm:generate-migration": "npm run typeorm -- -d ./data-source.ts migration:generate ./migrations/$npm_config_name",
+    "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./dist/data-source.js",
+    "typeorm:generate-migration": "npm run typeorm -- -d ./dist/data-source.js migration:generate ./dist/migrations/$npm_config_name",
     "typeorm:create-migration": "npm run typeorm -- migration:create ./migrations/$npm_config_name",
-    "typeorm:revert-migration": "npm run typeorm -- -d ./data-source.ts migration:revert"
+    "typeorm:revert-migration": "npm run typeorm -- -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
     "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.11",
