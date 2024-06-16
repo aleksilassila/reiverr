@@ -29,7 +29,7 @@
 		About
 	}
 
-	const tab = useTabs(Tabs.Account);
+	const tab = useTabs(Tabs.Interface, { size: 'stretch' });
 
 	let jellyfinBaseUrl = '';
 	let jellyfinApiKey = '';
@@ -133,7 +133,7 @@
 	}}
 />
 
-<DetachedPage class="px-32 py-16">
+<DetachedPage class="px-32 py-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
 		class="flex space-x-8 header3 pb-3 border-b-2 border-secondary-700 w-full mb-8"
@@ -185,8 +185,8 @@
 		</Container>
 	</Container>
 
-	<Container class="grid">
-		<Tab {...tab} tab={Tabs.Interface} class="">
+	<Container class="flex-1 grid w-full overflow-y-auto scrollbar-hide relative">
+		<Tab {...tab} tab={Tabs.Interface} class="w-full">
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 				<label class="mr-2">Animate scrolling</label>
 				<Toggle

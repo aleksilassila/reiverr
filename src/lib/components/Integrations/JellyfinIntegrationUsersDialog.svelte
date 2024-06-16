@@ -15,9 +15,15 @@
 </script>
 
 <Dialog>
-	{#each users as user}
-		<SelectItem selected={user.Id === selectedUser?.Id} on:clickOrSelect={() => handleSelect(user)}>
-			{user.Name}
-		</SelectItem>
-	{/each}
+	<h1 class="header1 mb-2">Users</h1>
+	<div class="space-y-4">
+		{#each users as user}
+			<SelectItem
+				selected={user.Id === selectedUser?.Id}
+				on:clickOrSelect={() => handleSelect(user)}
+			>
+				{user.Name}
+			</SelectItem>
+		{/each}
+	</div>
 </Dialog>

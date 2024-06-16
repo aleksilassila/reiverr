@@ -103,8 +103,8 @@
 	}
 </script>
 
-<Dialog class="grid" size={$tab === Tabs.EditProfile ? 'sm' : 'dynamic'}>
-	<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4">
+<Dialog class="grid" size={'dynamic'}>
+	<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
 		<h1 class="header2">Edit Profile</h1>
 		<TextField bind:value={name}>name</TextField>
 		<SelectField value={profilePictureTitle} on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}>
@@ -151,7 +151,7 @@
 		}}
 	>
 		<h1 class="header2 mb-6">Select Profile Picture</h1>
-		<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4">
+		<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4 w-max">
 			<ProfileIcon
 				url={profilePictures.ana}
 				on:clickOrSelect={() => setProfilePicture(profilePictures.ana)}

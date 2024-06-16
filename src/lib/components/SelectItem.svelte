@@ -7,7 +7,7 @@
 </script>
 
 <Container
-	class="flex items-center justify-between bg-primary-900 rounded-xl px-6 py-2.5 mb-4 font-medium
+	class="flex items-center justify-between bg-primary-900 rounded-xl px-6 py-2.5 font-medium
 		   border-2 border-transparent focus:border-primary-500 hover:border-primary-500 cursor-pointer group"
 	on:clickOrSelect
 	on:enter
