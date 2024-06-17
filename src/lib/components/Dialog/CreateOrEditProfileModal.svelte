@@ -27,6 +27,7 @@
 	export let modalId: symbol;
 
 	export let user: ReiverrUser | undefined = undefined;
+	export let onComplete: () => void = () => {};
 	export let createNew = false;
 	export let admin = createNew;
 
@@ -127,6 +128,7 @@
 			errorMessage = error;
 		} else {
 			modalStack.closeTopmost();
+			onComplete();
 		}
 	}
 
@@ -142,19 +144,21 @@
 			errorMessage = error;
 		} else {
 			modalStack.closeTopmost();
+			onComplete();
 		}
 	}
 
 	async function handleDeleteAccount() {
+		const self = user?.id === get(userStore)?.id;
 		const error = await reiverrApi.deleteUser(user?.id);
 		if (error) {
 			errorMessage = error;
 		} else {
 			modalStack.close(modalId);
-			if (!admin) {
+			if (self) {
 				sessions.removeSession();
 				navigate('/');
-			}
+			} else onComplete();
 		}
 	}
 </script>

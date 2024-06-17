@@ -49,7 +49,11 @@
 	let lastKey = '';
 	let tizenMediaKey = '';
 	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
-	$: users = $user?.isAdmin ? reiverrApi.getUsers() : undefined;
+	let users = getUsers();
+
+	function getUsers() {
+		return $user?.isAdmin ? reiverrApi.getUsers() : undefined;
+	}
 
 	async function handleDisconnectTmdb() {
 		return user.updateUser((prev) => ({
@@ -236,18 +240,19 @@
 					<Container direction="horizontal" class="flex space-x-4">
 						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
 					</Container>
-					{#await users then users}
-						{#if users?.length}
+					{#await users then usersR}
+						{#if usersR?.length}
 							<div class="mt-8">
 								<h1 class="header1 mb-4">Server Accounts</h1>
 								<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
-									{#each users as user}
+									{#each usersR.filter((u) => u.id !== $user?.id) as user}
 										<SelectField
 											value={user?.name || ''}
 											on:clickOrSelect={() => {
 												createModal(EditProfileModal, {
 													user,
-													admin: true
+													admin: true,
+													onComplete: () => (users = getUsers())
 												});
 											}}
 										>
@@ -265,7 +270,8 @@
 										value="New Account"
 										on:clickOrSelect={() => {
 											createModal(EditProfileModal, {
-												createNew: true
+												createNew: true,
+												onComplete: () => (users = getUsers())
 											});
 										}}
 									>
