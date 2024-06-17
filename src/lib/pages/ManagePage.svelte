@@ -246,9 +246,19 @@
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
 							<h1 class="mb-4 header1">Tmdb Account</h1>
-							<TmdbIntegration
-								handleConnectTmdb={() => createModal(TmdbIntegrationConnectDialog, {})}
-							/>
+							<TmdbIntegration let:connected>
+								{#if !connected}
+									<div class="flex space-x-4 mt-4">
+										<Button
+											type="primary-dark"
+											iconAfter={ArrowRight}
+											on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
+										>
+											Connect
+										</Button>
+									</div>
+								{/if}
+							</TmdbIntegration>
 
 							<!--{#await tmdbAccount then tmdbAccount}-->
 							<!--	{#if tmdbAccount}-->

@@ -82,8 +82,8 @@
 				preferences.
 			</div>
 
-			<TmdbIntegration handleConnectTmdb={() => tab.set(Tabs.TmdbConnect)}>
-				<Container direction="horizontal" class="flex space-x-4 *:flex-1">
+			<TmdbIntegration handleConnectTmdb={() => tab.set(Tabs.TmdbConnect)} let:connected>
+				{#if !connected}
 					{#if !$user?.settings.tmdb.userId}
 						<Button
 							type="primary-dark"
@@ -94,8 +94,11 @@
 							Connect
 						</Button>
 					{/if}
+				{/if}
+				<Container direction="horizontal" class="flex space-x-4 *:flex-1 mt-4">
+					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
-						{#if $user?.settings.tmdb.userId}
+						{#if connected}
 							Next
 						{:else}
 							Skip
