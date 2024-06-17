@@ -2,7 +2,7 @@
 	import Container from '../../../Container.svelte';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../Button.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
 	import { user } from '../../stores/user.store';
 
@@ -12,6 +12,8 @@
 	let tmdbConnectLink: string | undefined = undefined;
 	let tmdbConnectQrCode: string | undefined = undefined;
 	let tmdbError: string = '';
+
+	handleGenerateTMDBLink();
 
 	async function handleGenerateTMDBLink() {
 		return tmdbApi.getConnectAccountLink().then((res) => {
@@ -66,9 +68,9 @@
 {/if}
 
 <Container direction="horizontal" class="flex space-x-4 *:flex-1">
-	{#if !tmdbConnectRequestToken}
-		<Button type="primary-dark" action={handleGenerateTMDBLink}>Generate Link</Button>
-	{:else if tmdbConnectLink}
+	<!--{#if !tmdbConnectRequestToken}-->
+	<!--	<Button type="primary-dark" action={handleGenerateTMDBLink}>Generate Link</Button>-->
+	{#if tmdbConnectLink}
 		<Button type="primary-dark" action={completeTMDBConnect}>Complete Connection</Button>
 		<Button type="primary-dark" on:clickOrSelect={() => window.open(tmdbConnectLink)}>
 			Open Link

@@ -13,7 +13,7 @@
 	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import SelectField from '../components/SelectField.svelte';
-	import { ArrowRight, Exit, Pencil1, Pencil2, Plus, Trash } from 'radix-icons-svelte';
+	import { ArrowRight, Exit, Pencil2, Plus, Trash } from 'radix-icons-svelte';
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
@@ -21,8 +21,8 @@
 	import { sessions } from '../stores/session.store';
 	import EditProfileModal from '../components/Dialog/CreateOrEditProfileModal.svelte';
 	import { scrollIntoView } from '../selectable';
-	import Panel from '../components/Panel.svelte';
 	import { reiverrApi } from '../apis/reiverr/reiverr-api';
+	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
 
 	enum Tabs {
 		Interface,
@@ -32,19 +32,6 @@
 
 	const tab = useTabs(Tabs.Interface, { size: 'stretch' });
 
-	let jellyfinBaseUrl = '';
-	let jellyfinApiKey = '';
-	let jellyfinStale = false;
-	let jellyfinUser: JellyfinUser | undefined = undefined;
-
-	let sonarrBaseUrl = '';
-	let sonarrApiKey = '';
-	let sonarrStale = false;
-
-	let radarrBaseUrl = '';
-	let radarrApiKey = '';
-	let radarrStale = false;
-
 	let lastKeyCode = 0;
 	let lastKey = '';
 	let tizenMediaKey = '';
@@ -53,63 +40,6 @@
 
 	function getUsers() {
 		return $user?.isAdmin ? reiverrApi.getUsers() : undefined;
-	}
-
-	async function handleDisconnectTmdb() {
-		return user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				tmdb: {
-					...prev.settings.tmdb,
-					userId: '',
-					sessionId: ''
-				}
-			}
-		}));
-	}
-
-	async function handleSaveJellyfin() {
-		return user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				jellyfin: {
-					...prev.settings.jellyfin,
-					baseUrl: jellyfinBaseUrl,
-					apiKey: jellyfinApiKey,
-					userId: jellyfinUser?.Id ?? ''
-				}
-			}
-		}));
-	}
-
-	async function handleSaveSonarr() {
-		return user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				sonarr: {
-					...prev.settings.sonarr,
-					baseUrl: sonarrBaseUrl,
-					apiKey: sonarrApiKey
-				}
-			}
-		}));
-	}
-
-	async function handleSaveRadarr() {
-		return user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				radarr: {
-					...prev.settings.radarr,
-					baseUrl: radarrBaseUrl,
-					apiKey: radarrApiKey
-				}
-			}
-		}));
 	}
 
 	function handleLogOut() {
@@ -294,18 +224,9 @@
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
 							<h1 class="mb-4 header1">Sonarr</h1>
-							<SonarrIntegration
-								on:change={({ detail }) => {
-									sonarrBaseUrl = detail.baseUrl;
-									sonarrApiKey = detail.apiKey;
-									sonarrStale = detail.stale;
-								}}
-							/>
-							<div class="flex">
-								<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
-									Save
-								</Button>
-							</div>
+							<SonarrIntegration let:stale let:handleSave>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</SonarrIntegration>
 						</Container>
 
 						<Container
@@ -313,18 +234,9 @@
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
 							<h1 class="mb-4 header1">Radarr</h1>
-							<RadarrIntegration
-								on:change={({ detail }) => {
-									radarrBaseUrl = detail.baseUrl;
-									radarrApiKey = detail.apiKey;
-									radarrStale = detail.stale;
-								}}
-							/>
-							<div class="flex">
-								<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
-									Save
-								</Button>
-							</div>
+							<RadarrIntegration let:stale let:handleSave>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</RadarrIntegration>
 						</Container>
 					</Container>
 
@@ -334,33 +246,37 @@
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
 							<h1 class="mb-4 header1">Tmdb Account</h1>
-							{#await tmdbAccount then tmdbAccount}
-								{#if tmdbAccount}
-									<SelectField
-										value={tmdbAccount.username || ''}
-										action={handleDisconnectTmdb}
-										class="mb-4"
-									>
-										Connected to
-										<Trash
-											slot="icon"
-											let:size
-											let:iconClass
-											{size}
-											class={classNames(iconClass, '')}
-										/>
-									</SelectField>
-								{:else}
-									<div class="flex space-x-4">
-										<Button
-											type="primary-dark"
-											iconAfter={ArrowRight}
-											on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
-											>Connect</Button
-										>
-									</div>
-								{/if}
-							{/await}
+							<TmdbIntegration
+								handleConnectTmdb={() => createModal(TmdbIntegrationConnectDialog, {})}
+							/>
+
+							<!--{#await tmdbAccount then tmdbAccount}-->
+							<!--	{#if tmdbAccount}-->
+							<!--		<SelectField-->
+							<!--			value={tmdbAccount.username || ''}-->
+							<!--			action={handleDisconnectTmdb}-->
+							<!--			class="mb-4"-->
+							<!--		>-->
+							<!--			Connected to-->
+							<!--			<Trash-->
+							<!--				slot="icon"-->
+							<!--				let:size-->
+							<!--				let:iconClass-->
+							<!--				{size}-->
+							<!--				class={classNames(iconClass, '')}-->
+							<!--			/>-->
+							<!--		</SelectField>-->
+							<!--	{:else}-->
+							<!--		<div class="flex space-x-4">-->
+							<!--			<Button-->
+							<!--				type="primary-dark"-->
+							<!--				iconAfter={ArrowRight}-->
+							<!--				on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}-->
+							<!--				>Connect</Button-->
+							<!--			>-->
+							<!--		</div>-->
+							<!--	{/if}-->
+							<!--{/await}-->
 						</Container>
 
 						<Container
@@ -369,24 +285,17 @@
 						>
 							<h1 class="mb-4 header1">Jellyfin</h1>
 							<JellyfinIntegration
-								bind:jellyfinUser
-								on:change={({ detail }) => {
-									jellyfinBaseUrl = detail.baseUrl;
-									jellyfinApiKey = detail.apiKey;
-									jellyfinStale = detail.stale;
-								}}
 								on:click-user={({ detail }) =>
 									createModal(JellyfinIntegrationUsersDialog, {
 										selectedUser: detail.user,
 										users: detail.users,
-										handleSelectUser: (u) => (jellyfinUser = u)
+										handleSelectUser: detail.setJellyfinUser
 									})}
-							/>
-							<div class="flex">
-								<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
-									Save
-								</Button>
-							</div>
+								let:handleSave
+								let:stale
+							>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</JellyfinIntegration>
 						</Container>
 					</Container>
 				</Container>

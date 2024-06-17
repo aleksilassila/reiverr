@@ -7,55 +7,59 @@
 	import { derived, get } from 'svelte/store';
 
 	const dispatch = createEventDispatcher<{
-		change: { baseUrl: string; apiKey: string; stale: boolean };
-		'click-user': { user: JellyfinUser | undefined; users: JellyfinUser[] };
+		'click-user': {
+			user: JellyfinUser | undefined;
+			users: JellyfinUser[];
+			setJellyfinUser: typeof setJellyfinUser;
+		};
 	}>();
 
-	export let baseUrl = get(user)?.settings.jellyfin.baseUrl || '';
-	export let apiKey = get(user)?.settings.jellyfin.apiKey || '';
+	let baseUrl = get(user)?.settings.jellyfin.baseUrl || '';
+	let apiKey = get(user)?.settings.jellyfin.apiKey || '';
+	export let jellyfinUser: JellyfinUser | undefined = undefined;
 	const originalBaseUrl = derived(user, (user) => user?.settings.jellyfin.baseUrl || '');
 	const originalApiKey = derived(user, (user) => user?.settings.jellyfin.apiKey || '');
+	const originalUserId = derived(user, (user) => user?.settings.jellyfin.userId || undefined);
+
 	let timeout: ReturnType<typeof setTimeout>;
+	export let jellyfinUsers: Promise<JellyfinUser[]> | undefined = undefined;
+
+	let stale = false;
 	let error = '';
-	let jellyfinUsers: Promise<JellyfinUser[]> | undefined = undefined;
-	export let jellyfinUser: JellyfinUser | undefined;
 
 	$: {
-		if ($originalBaseUrl !== baseUrl && $originalApiKey !== apiKey) handleChange();
-		else dispatch('change', { baseUrl, apiKey, stale: false });
+		jellyfinUser;
+		$originalBaseUrl;
+		$originalApiKey;
+		$originalUserId;
+		stale = getIsStale();
 	}
-
-	$: if (jellyfinUser)
-		dispatch('change', {
-			baseUrl,
-			apiKey,
-			stale:
-				baseUrl && apiKey ? jellyfinUser?.Id !== get(user)?.settings.jellyfin.userId : !jellyfinUser
-		});
 
 	handleChange();
 
+	function getIsStale() {
+		return (
+			(!!jellyfinUser?.Id || (!baseUrl && !apiKey && !jellyfinUser)) &&
+			($originalBaseUrl !== baseUrl ||
+				$originalApiKey !== apiKey ||
+				$originalUserId !== jellyfinUser?.Id)
+		);
+	}
+
 	function handleChange() {
 		clearTimeout(timeout);
+		stale = false;
 		error = '';
 		jellyfinUsers = undefined;
 		jellyfinUser = undefined;
 
+		if (baseUrl === '' || apiKey === '') {
+			stale = getIsStale();
+			return;
+		}
+
 		const baseUrlCopy = baseUrl;
 		const apiKeyCopy = apiKey;
-
-		dispatch('change', {
-			baseUrl: '',
-			apiKey: '',
-			stale:
-				baseUrl === '' &&
-				apiKey === '' &&
-				jellyfinUser === undefined &&
-				(baseUrl !== $originalBaseUrl || apiKey !== $originalApiKey)
-		});
-
-		if (baseUrlCopy === '' || apiKeyCopy === '') return;
-
 		timeout = setTimeout(async () => {
 			jellyfinUsers = jellyfinApi.getJellyfinUsers(baseUrl, apiKey);
 
@@ -64,28 +68,38 @@
 
 			if (users.length) {
 				jellyfinUser = users.find((u) => u.Id === get(user)?.settings.jellyfin.userId);
-				const stale =
-					(baseUrlCopy !== $originalBaseUrl || apiKeyCopy !== $originalApiKey) &&
-					jellyfinUser !== undefined;
-				dispatch('change', { baseUrl: baseUrlCopy, apiKey: apiKeyCopy, stale });
+				// stale = !!jellyfinUser?.Id && getIsStale();
 			} else {
 				error = 'Could not connect';
+				stale = false;
 			}
-
-			// if (res.status !== 200) {
-			// 	error =
-			// 		res.status === 404
-			// 			? 'Server not found'
-			// 			: res.status === 401
-			// 			? 'Invalid api key'
-			// 			: 'Could not connect';
-			//
-			// 	return; // TODO add notification
-			// } else {
-			// 	dispatch('change', { baseUrl: baseUrlCopy, apiKey: apiKeyCopy, stale });
-			// }
 		}, 1000);
 	}
+
+	const setJellyfinUser = (u: JellyfinUser) => (jellyfinUser = u);
+
+	async function handleSave() {
+		if (!stale) return;
+
+		return user.updateUser((prev) => ({
+			...prev,
+			settings: {
+				...prev.settings,
+				jellyfin: {
+					...prev.settings.jellyfin,
+					baseUrl,
+					apiKey,
+					userId: jellyfinUser?.Id || ''
+				}
+			}
+		}));
+	}
+
+	$: empty = !baseUrl && !apiKey && !jellyfinUser;
+	$: unchanged =
+		$originalBaseUrl === baseUrl &&
+		$originalApiKey === apiKey &&
+		$originalUserId === jellyfinUser?.Id;
 </script>
 
 <div class="space-y-4 mb-4">
@@ -109,7 +123,8 @@
 	{#if users?.length}
 		<SelectField
 			value={jellyfinUser?.Name || 'Select User'}
-			on:clickOrSelect={() => dispatch('click-user', { user: jellyfinUser, users })}
+			on:clickOrSelect={() =>
+				dispatch('click-user', { user: jellyfinUser, users, setJellyfinUser })}
 			class="mb-4"
 		>
 			User
@@ -120,3 +135,5 @@
 {#if error}
 	<div class="text-red-500 mb-4">{error}</div>
 {/if}
+
+<slot {handleSave} {stale} {empty} {unchanged} />

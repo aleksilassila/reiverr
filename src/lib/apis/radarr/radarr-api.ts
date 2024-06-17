@@ -249,9 +249,9 @@ export class RadarrApi implements Api<paths> {
 		apiKey: string | undefined = undefined
 	) =>
 		axios
-			.get((baseUrl || this.getBaseUrl()) + '/api/v3/health', {
+			.get((baseUrl ?? this.getBaseUrl()) + '/api/v3/health', {
 				headers: {
-					'X-Api-Key': apiKey || this.getSettings()?.apiKey
+					'X-Api-Key': apiKey ?? this.getSettings()?.apiKey
 				}
 			})
 			.catch((e) => e.response);

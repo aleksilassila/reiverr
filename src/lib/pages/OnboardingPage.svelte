@@ -15,6 +15,11 @@
 	import { user } from '../stores/user.store';
 	import { sessions } from '../stores/session.store';
 	import Panel from '../components/Panel.svelte';
+	import TmdbIntegrationConnect from '../components/Integrations/TmdbIntegrationConnect.svelte';
+	import JellyfinIntegration from '../components/Integrations/JellyfinIntegration.svelte';
+	import SonarrIntegration from '../components/Integrations/SonarrIntegration.svelte';
+	import RadarrIntegration from '../components/Integrations/RadarrIntegration.svelte';
+	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
 
 	enum Tabs {
 		Welcome,
@@ -30,190 +35,10 @@
 
 	const tab = useTabs(Tabs.Welcome, { ['class']: 'w-max max-w-lg' });
 
-	let tmdbConnectRequestToken: string | undefined = undefined;
-	let tmdbConnectLink: string | undefined = undefined;
-	let tmdbConnectQrCode: string | undefined = undefined;
 	$: connectedTmdbAccount = $user?.settings.tmdb.userId && tmdbApi.getAccountDetails();
-	let tmdbError: string = '';
 
-	let jellyfinBaseUrl: string = '';
-	let jellyfinApiKey: string = '';
 	let jellyfinUser: JellyfinUser | undefined = undefined;
 	let jellyfinUsers: Promise<JellyfinUser[]> = Promise.resolve([]);
-	let jellyfinConnectionCheckTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
-	let jellyfinError: string = '';
-
-	let sonarrBaseUrl: string = '';
-	let sonarrApiKey: string = '';
-	let sonarrError: string = '';
-
-	let radarrBaseUrl: string = '';
-	let radarrApiKey: string = '';
-	let radarrError: string = '';
-
-	user.subscribe((user) => {
-		jellyfinBaseUrl = jellyfinBaseUrl || user?.settings.jellyfin.baseUrl || '';
-		jellyfinApiKey = jellyfinApiKey || user?.settings.jellyfin.apiKey || '';
-
-		sonarrBaseUrl = sonarrBaseUrl || user?.settings.sonarr.baseUrl || '';
-		sonarrApiKey = sonarrApiKey || user?.settings.sonarr.apiKey || '';
-
-		radarrBaseUrl = radarrBaseUrl || user?.settings.radarr.baseUrl || '';
-		radarrApiKey = radarrApiKey || user?.settings.radarr.apiKey || '';
-
-		// if (
-		// 	!jellyfinUser &&
-		// 	appState.user?.settings.jellyfin.userId &&
-		// 	jellyfinBaseUrl &&
-		// 	jellyfinApiKey
-		// ) {
-		// 	jellyfinUsers = jellyfinApi.getJellyfinUsers(jellyfinBaseUrl, jellyfinApiKey);
-		// 	jellyfinUsers.then(
-		// 		(users) =>
-		// 			(jellyfinUser = users.find((u) => u.Id === appState.user?.settings.jellyfin.userId))
-		// 	);
-		// }
-	});
-
-	$: if (jellyfinBaseUrl && jellyfinApiKey) {
-		clearTimeout(jellyfinConnectionCheckTimeout);
-
-		const baseUrlCopy = jellyfinBaseUrl;
-		const apiKeyCopy = jellyfinApiKey;
-		jellyfinUser = undefined;
-
-		jellyfinConnectionCheckTimeout = setTimeout(async () => {
-			jellyfinUsers = jellyfinApi
-				.getJellyfinUsers(jellyfinBaseUrl, jellyfinApiKey)
-				.then((users) => {
-					if (baseUrlCopy === jellyfinBaseUrl && apiKeyCopy === jellyfinApiKey) {
-						jellyfinUser = users.find((u) => u.Id === $user?.settings.jellyfin.userId);
-						jellyfinError = users.length ? '' : 'Could not connect';
-					}
-					// console.log(users, baseUrlCopy, jellyfinBaseUrl, apiKeyCopy, jellyfinApiKey);
-					// jellyfinUsers = users;
-					// return !!users?.length;
-					return users;
-				});
-		}, 500);
-	}
-
-	async function handleGenerateTMDBLink() {
-		return tmdbApi.getConnectAccountLink().then((res) => {
-			if (res?.status_code !== 1) return; // TODO add notification
-			const link = `https://www.themoviedb.org/auth/access?request_token=${res?.request_token}`;
-			const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${link}`;
-			tmdbConnectRequestToken = res?.request_token;
-			tmdbConnectLink = link;
-			tmdbConnectQrCode = qrCode;
-		});
-	}
-
-	async function completeTMDBConnect() {
-		if (!tmdbConnectRequestToken) return;
-		tmdbApi.getAccountAccessToken(tmdbConnectRequestToken).then((res) => {
-			const { status_code, access_token, account_id } = res || {};
-			if (status_code !== 1 || !access_token || !account_id) return; // TODO add notification
-
-			user.updateUser((prev) => ({
-				...prev,
-				settings: {
-					...prev.settings,
-					tmdb: {
-						userId: account_id,
-						sessionId: access_token
-					}
-				}
-			}));
-
-			tab.set(Tabs.Jellyfin);
-		});
-	}
-
-	async function handleConnectJellyfin() {
-		const userId = jellyfinUser?.Id;
-		const baseUrl = jellyfinBaseUrl;
-		const apiKey = jellyfinApiKey;
-		if (!userId || !baseUrl || !apiKey) return;
-
-		await user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				jellyfin: {
-					...prev.settings.jellyfin,
-					userId,
-					baseUrl,
-					apiKey
-				}
-			}
-		}));
-
-		tab.next();
-	}
-
-	async function handleConnectSonarr() {
-		const baseUrl = sonarrBaseUrl;
-		const apiKey = sonarrApiKey;
-		if (!baseUrl || !apiKey) return;
-		const res = await sonarrApi.getHealth(baseUrl, apiKey);
-
-		if (res.status !== 200) {
-			sonarrError =
-				res.status === 404
-					? 'Server not found'
-					: res.status === 401
-					? 'Invalid api key'
-					: 'Could not connect';
-
-			return; // TODO add notification
-		}
-
-		await user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				sonarr: {
-					...prev.settings.sonarr,
-					baseUrl,
-					apiKey
-				}
-			}
-		}));
-
-		tab.next();
-	}
-
-	async function handleConnectRadarr() {
-		const baseUrl = radarrBaseUrl;
-		const apiKey = radarrApiKey;
-		if (!baseUrl || !apiKey) return;
-		const res = await radarrApi.getHealth(baseUrl, apiKey);
-
-		if (res.status !== 200) {
-			res.status === 404
-				? 'Server not found'
-				: res.status === 401
-				? 'Invalid api key'
-				: 'Could not connect';
-
-			return; // TODO add notification
-		}
-
-		await user.updateUser((prev) => ({
-			...prev,
-			settings: {
-				...prev.settings,
-				radarr: {
-					...prev.settings.radarr,
-					baseUrl,
-					apiKey
-				}
-			}
-		}));
-
-		await finalizeSetup();
-	}
 
 	async function finalizeSetup() {
 		await user.updateUser((prev) => ({
@@ -225,9 +50,6 @@
 	function handleBack() {
 		tab.previous();
 	}
-
-	const tabContainer =
-		'col-start-1 col-end-1 row-start-1 row-end-1 flex flex-col bg-primary-800 rounded-2xl p-10 shadow-xl max-w-lg';
 </script>
 
 <Container focusOnMount class="h-full w-full flex items-center justify-center" on:back={handleBack}>
@@ -260,40 +82,52 @@
 				preferences.
 			</div>
 
-			<div class="space-y-4 flex flex-col">
-				{#await connectedTmdbAccount then account}
-					{#if account}
-						<SelectField
-							class="mb-4"
-							value={account.username || ''}
-							on:clickOrSelect={() => {
-								tab.set(Tabs.TmdbConnect);
-								handleGenerateTMDBLink();
-							}}>Logged in as</SelectField
-						>
-					{:else}
+			<TmdbIntegration handleConnectTmdb={() => tab.set(Tabs.TmdbConnect)}>
+				<Container direction="horizontal" class="flex space-x-4 *:flex-1">
+					{#if !$user?.settings.tmdb.userId}
 						<Button
 							type="primary-dark"
 							on:clickOrSelect={() => {
 								tab.set(Tabs.TmdbConnect);
-								handleGenerateTMDBLink();
 							}}
 						>
 							Connect
-							<ArrowRight size={19} slot="icon-absolute" />
 						</Button>
 					{/if}
-				{/await}
+					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+						{#if $user?.settings.tmdb.userId}
+							Next
+						{:else}
+							Skip
+						{/if}
+						<ArrowRight size={19} slot="icon-absolute" />
+					</Button>
+				</Container>
+			</TmdbIntegration>
 
-				<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
-					{#if $user?.settings.tmdb.userId}
-						Next
-					{:else}
-						Skip
-					{/if}
-					<ArrowRight size={19} slot="icon-absolute" />
-				</Button>
-			</div>
+			<!--			<div class="space-y-4 flex flex-col">-->
+			<!--				{#await connectedTmdbAccount then account}-->
+			<!--					{#if account}-->
+			<!--						<SelectField-->
+			<!--							class="mb-4"-->
+			<!--							value={account.username || ''}-->
+			<!--							on:clickOrSelect={() => {-->
+			<!--								tab.set(Tabs.TmdbConnect);-->
+			<!--							}}>Logged in as</SelectField-->
+			<!--						>-->
+			<!--					{:else}-->
+			<!--						<Button-->
+			<!--							type="primary-dark"-->
+			<!--							on:clickOrSelect={() => {-->
+			<!--								tab.set(Tabs.TmdbConnect);-->
+			<!--							}}-->
+			<!--						>-->
+			<!--							Connect-->
+			<!--							<ArrowRight size={19} slot="icon-absolute" />-->
+			<!--						</Button>-->
+			<!--					{/if}-->
+			<!--				{/await}-->
+			<!--			</div>-->
 		</Tab>
 
 		<Tab
@@ -304,69 +138,64 @@
 				detail.stopPropagation();
 			}}
 		>
-			<h1 class="header2 mb-2">Connect a TMDB Account</h1>
-			<div class="body mb-8">
-				To connect your TMDB account, log in via the link below and then click "Complete
-				Connection".
-			</div>
-
-			{#if tmdbConnectQrCode}
-				<div
-					class="w-[150px] h-[150px] bg-contain bg-center mb-8 mx-auto"
-					style={`background-image: url(${tmdbConnectQrCode})`}
-				/>
-			{/if}
-
-			<Container direction="horizontal" class="flex space-x-4 *:flex-1">
-				{#if !tmdbConnectRequestToken}
-					<Button type="primary-dark" action={handleGenerateTMDBLink}>Generate Link</Button>
-				{:else if tmdbConnectLink}
-					<Button type="primary-dark" action={completeTMDBConnect}>Complete Connection</Button>
-					<Button type="primary-dark" on:clickOrSelect={() => window.open(tmdbConnectLink)}>
-						Open Link
-						<ExternalLink size={19} slot="icon-after" />
-					</Button>
-				{/if}
-			</Container>
+			<TmdbIntegrationConnect on:connected={() => tab.set(Tabs.Jellyfin)} />
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Jellyfin}>
 			<h1 class="header2 mb-2">Connect to Jellyfin</h1>
 			<div class="mb-8 body">Connect to Jellyfin to watch movies and tv shows.</div>
 
-			<div class="space-y-4 mb-4">
-				<TextField bind:value={jellyfinBaseUrl} isValid={jellyfinUsers.then((u) => !!u?.length)}>
-					Base Url
-				</TextField>
-				<TextField bind:value={jellyfinApiKey} isValid={jellyfinUsers.then((u) => !!u?.length)}>
-					API Key
-				</TextField>
-			</div>
+			<JellyfinIntegration
+				bind:jellyfinUser
+				bind:jellyfinUsers
+				on:click-user={() => tab.set(Tabs.SelectUser)}
+				let:handleSave
+				let:stale
+				let:empty
+				let:unchanged
+			>
+				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
+					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
+					{#if empty || unchanged}
+						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+							{empty ? 'Skip' : 'Next'}
+						</Button>
+					{:else}
+						<Button
+							type="primary-dark"
+							disabled={!stale}
+							action={() => handleSave().then(tab.next)}
+						>
+							Connect
+						</Button>
+					{/if}
+				</Container>
+			</JellyfinIntegration>
 
-			{#await jellyfinUsers then users}
-				{#if users.length}
-					<SelectField
-						value={jellyfinUser?.Name || 'Select User'}
-						on:clickOrSelect={() => tab.set(Tabs.SelectUser)}
-						class="mb-4"
-					>
-						User
-					</SelectField>
-				{/if}
-			{/await}
+			<!--			<div class="space-y-4 mb-4">-->
+			<!--				<TextField bind:value={jellyfinBaseUrl} isValid={jellyfinUsers.then((u) => !!u?.length)}>-->
+			<!--					Base Url-->
+			<!--				</TextField>-->
+			<!--				<TextField bind:value={jellyfinApiKey} isValid={jellyfinUsers.then((u) => !!u?.length)}>-->
+			<!--					API Key-->
+			<!--				</TextField>-->
+			<!--			</div>-->
 
-			{#if jellyfinError}
-				<div class="text-red-500 mb-4">{jellyfinError}</div>
-			{/if}
+			<!--			{#await jellyfinUsers then users}-->
+			<!--				{#if users.length}-->
+			<!--					<SelectField-->
+			<!--						value={jellyfinUser?.Name || 'Select User'}-->
+			<!--						on:clickOrSelect={() => tab.set(Tabs.SelectUser)}-->
+			<!--						class="mb-4"-->
+			<!--					>-->
+			<!--						User-->
+			<!--					</SelectField>-->
+			<!--				{/if}-->
+			<!--			{/await}-->
 
-			<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-				<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
-				{#if jellyfinBaseUrl && jellyfinApiKey && jellyfinUser}
-					<Button type="primary-dark" action={handleConnectJellyfin}>Connect</Button>
-				{:else}
-					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
-				{/if}
-			</Container>
+			<!--			{#if jellyfinError}-->
+			<!--				<div class="text-red-500 mb-4">{jellyfinError}</div>-->
+			<!--			{/if}-->
 		</Tab>
 		<Tab
 			{...tab}
@@ -379,7 +208,7 @@
 			<h1 class="header1 mb-2 w-96">Select User</h1>
 			<div class="flex flex-col space-y-4" />
 			{#await jellyfinUsers then users}
-				{#each users as user}
+				{#each users || [] as user}
 					<SelectItem
 						selected={user?.Id === jellyfinUser?.Id}
 						on:clickOrSelect={() => {
@@ -397,46 +226,48 @@
 			<h1 class="header2 mb-2">Connect to Sonarr</h1>
 			<div class="mb-8">Connect to Sonarr for requesting and managing tv shows.</div>
 
-			<div class="space-y-4 mb-4">
-				<TextField bind:value={sonarrBaseUrl}>Base Url</TextField>
-				<TextField bind:value={sonarrApiKey}>API Key</TextField>
-			</div>
-
-			{#if sonarrError}
-				<div class="text-red-500 mb-4">{sonarrError}</div>
-			{/if}
-
-			<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-				<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
-				{#if sonarrBaseUrl && sonarrApiKey}
-					<Button type="primary-dark" action={handleConnectSonarr}>Connect</Button>
-				{:else}
-					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
-				{/if}
-			</Container>
+			<SonarrIntegration let:stale let:handleSave let:empty let:unchanged>
+				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
+					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
+					{#if empty || unchanged}
+						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+							{empty ? 'Skip' : 'Next'}
+						</Button>
+					{:else}
+						<Button
+							type="primary-dark"
+							disabled={!stale}
+							action={() => handleSave().then(tab.next)}
+						>
+							Connect
+						</Button>
+					{/if}
+				</Container>
+			</SonarrIntegration>
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Radarr}>
 			<h1 class="header2 mb-2">Connect to Radarr</h1>
 			<div class="mb-8">Connect to Radarr for requesting and managing movies.</div>
 
-			<div class="space-y-4 mb-4">
-				<TextField bind:value={radarrBaseUrl}>Base Url</TextField>
-				<TextField bind:value={radarrApiKey}>API Key</TextField>
-			</div>
-
-			{#if radarrError}
-				<div class="text-red-500 mb-4">{radarrError}</div>
-			{/if}
-
-			<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
-				<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
-				{#if radarrBaseUrl && radarrApiKey}
-					<Button type="primary-dark" action={handleConnectRadarr}>Connect</Button>
-				{:else}
-					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>Skip</Button>
-				{/if}
-			</Container>
+			<RadarrIntegration let:stale let:handleSave let:empty let:unchanged>
+				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
+					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
+					{#if empty || unchanged}
+						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+							{empty ? 'Skip' : 'Next'}
+						</Button>
+					{:else}
+						<Button
+							type="primary-dark"
+							disabled={!stale}
+							action={() => handleSave().then(tab.next)}
+						>
+							Connect
+						</Button>
+					{/if}
+				</Container>
+			</RadarrIntegration>
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Complete} class={classNames('w-full')}>

@@ -397,9 +397,9 @@ export class SonarrApi implements ApiAsync<paths> {
 		apiKey: string | undefined = undefined
 	) =>
 		axios
-			.get((baseUrl || this.getBaseUrl()) + '/api/v3/health', {
+			.get((baseUrl ?? this.getBaseUrl()) + '/api/v3/health', {
 				headers: {
-					'X-Api-Key': apiKey || this.getApiKey()
+					'X-Api-Key': apiKey ?? this.getApiKey()
 				}
 			})
 			.catch((e) => e.response);

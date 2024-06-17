@@ -506,9 +506,9 @@ export class JellyfinApi implements Api<paths> {
 		apiKey: string | undefined = undefined
 	): Promise<JellyfinUser[]> =>
 		axios
-			.get((baseUrl || this.getBaseUrl()) + '/Users', {
+			.get((baseUrl ?? this.getBaseUrl()) + '/Users', {
 				headers: {
-					'X-Emby-Token': apiKey || this.getApiKey()
+					'X-Emby-Token': apiKey ?? this.getApiKey()
 				}
 			})
 			.then((res) => res.data || [])
