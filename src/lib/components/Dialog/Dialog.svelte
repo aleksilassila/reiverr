@@ -9,6 +9,12 @@
 	function handleClose() {
 		modalStack.closeTopmost();
 	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			handleClose();
+		}
+	}
 </script>
 
 <Modal on:back>
@@ -16,6 +22,7 @@
 		class="h-full flex items-center justify-center bg-primary-900/75 py-20 px-32"
 		transition:fade={{ duration: 100 }}
 		on:click|self={() => handleClose()}
+		on:keydown={handleKeydown}
 	>
 		<div
 			class={classNames(
@@ -23,8 +30,7 @@
 				{
 					'max-w-lg min-h-0 overflow-y-auto scrollbar-hide': size === 'sm',
 					'h-full overflow-hidden': size === 'full'
-				},
-				$$restProps.class
+				}
 			)}
 		>
 			<slot />

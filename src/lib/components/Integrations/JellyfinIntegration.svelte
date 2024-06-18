@@ -5,6 +5,8 @@
 	import SelectField from '../SelectField.svelte';
 	import { jellyfinApi, type JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
 	import { get } from 'svelte/store';
+	import { _, dictionary } from 'svelte-i18n';
+
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
@@ -93,12 +95,12 @@
 	<TextField
 		bind:value={baseUrl}
 		isValid={jellyfinUsers?.then((u) => !!u?.length)}
-		on:change={handleChange}>Base Url</TextField
+		on:change={handleChange}>{$_('settings.integrations.baseUrl')}</TextField
 	>
 	<TextField
 		bind:value={apiKey}
 		isValid={jellyfinUsers?.then((u) => !!u?.length)}
-		on:change={handleChange}>API Key</TextField
+		on:change={handleChange}>{$_('settings.integrations.apiKey')}</TextField
 	>
 </div>
 
@@ -108,7 +110,7 @@
 			value={jellyfinUser?.Name || 'Select User'}
 			on:clickOrSelect={() => dispatch('click-user', { user: jellyfinUser, users })}
 		>
-			User
+		{$_('settings.integrations.user')}
 		</SelectField>
 	{/if}
 {/await}

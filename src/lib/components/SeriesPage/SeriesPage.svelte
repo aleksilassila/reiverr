@@ -29,6 +29,8 @@
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
+	import { _, dictionary } from 'svelte-i18n';
+
 
 	export let id: string;
 
@@ -185,9 +187,9 @@
 							>
 								<p class="flex-shrink-0">
 									{#if series.status !== 'Ended'}
-										Since {new Date(series.first_air_date || Date.now())?.getFullYear()}
+									{$_('library.content.since')} {new Date(series.first_air_date || Date.now())?.getFullYear()}
 									{:else}
-										Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}
+									{$_('library.content.ended')} {new Date(series.last_air_date || Date.now())?.getFullYear()}
 									{/if}
 								</p>
 								<!-- <DotFilled />
@@ -220,24 +222,24 @@
 									on:clickOrSelect={() =>
 										nextJellyfinEpisode?.Id && playerState.streamJellyfinId(nextJellyfinEpisode.Id)}
 								>
-									Play Season {nextJellyfinEpisode?.ParentIndexNumber} Episode
+								{$_('library.LibraryItemContext.playSeason')} {nextJellyfinEpisode?.ParentIndexNumber} {$_('library.LibraryItemContext.episode')}
 									{nextJellyfinEpisode?.IndexNumber}
 									<Play size={19} slot="icon" />
 								</Button>
 							{:else}
 								<Button class="mr-4" action={() => handleRequestSeason(1)}>
-									Request
+									{$_('library.content.requestContent')}
 									<Plus size={19} slot="icon" />
 								</Button>
 							{/if}
 
 							{#if PLATFORM_WEB}
 								<Button class="mr-4">
-									Open In TMDB
+									{$_('library.LibraryItemContext.openTMDB')}
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
 								<Button class="mr-4">
-									Open In Jellyfin
+									{$_('library.LibraryItemContext.openJellyfin')}
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
 							{/if}
@@ -263,7 +265,7 @@
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 				{#await $tmdbSeries then series}
 					<Carousel scrollClass="px-32" class="mb-8">
-						<div slot="header">Show Cast</div>
+						<div slot="header">{$_('library.content.castAndCrew')}</div>
 						{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
 							<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
 						{/each}
@@ -271,7 +273,7 @@
 				{/await}
 				{#await $recommendations then recommendations}
 					<Carousel scrollClass="px-32" class="mb-8">
-						<div slot="header">Recommendations</div>
+						<div slot="header">{$_('library.content.recommendations')}</div>
 						{#each recommendations || [] as recommendation}
 							<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />
 						{/each}
@@ -280,27 +282,27 @@
 			</Container>
 			{#await $tmdbSeries then series}
 				<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
-					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
+					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">{$_('library.content.moreInformations')}</h1>
 					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 						<div class="flex-1">
 							<div class="mb-8">
-								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Created By</h2>
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.directedBy')}</h2>
 								{#each series?.created_by || [] as creator}
 									<div>{creator.name}</div>
 								{/each}
 							</div>
 							<div class="mb-8">
-								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.networks')}</h2>
 								<div>{series?.networks?.[0]?.name}</div>
 							</div>
 						</div>
 						<div class="flex-1">
 							<div class="mb-8">
-								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Language</h2>
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.languages')}</h2>
 								<div>{series?.spoken_languages?.[0]?.name}</div>
 							</div>
 							<div class="mb-8">
-								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.lastAirDate')}</h2>
 								<div>{series?.last_air_date}</div>
 							</div>
 						</div>
@@ -313,7 +315,6 @@
 						class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
 						on:enter={scrollIntoView({ top: 32 })}
 					>
-						<!--						<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">Local Files</h1>-->
 						<div class="space-y-16">
 							{#each seasons as season}
 								{@const seasonEpisodes = episodes.filter((e) => e.seasonNumber === season)}
@@ -323,7 +324,7 @@
 								<div>
 									<div class="flex justify-between">
 										<h2 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">
-											Season {season} Files
+											{$_('library.content.filesSeason')} {season}
 										</h2>
 									</div>
 
@@ -339,8 +340,6 @@
 													{
 														'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
 														'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
-														// 'bg-primary-700 focus-within:border-primary-500': selected,
-														// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 													}
 												)}
 												on:clickOrSelect={() => {
@@ -348,7 +347,7 @@
 														modalStack.create(FileDetailsDialog, {
 															file,
 															title: episode?.title || '',
-															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
+															subtitle: `Saison ${episode?.seasonNumber} Épisode ${episode?.episodeNumber}`,
 															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
 															onDelete: () => (sonarrFiles = getFiles(sonarrItem))
 														});
@@ -356,7 +355,7 @@
 														modalStack.create(DownloadDetailsDialog, {
 															download,
 															title: episode?.title || '',
-															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
+															subtitle: `Saison ${episode?.seasonNumber} Épisode ${episode?.episodeNumber}`,
 															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
 															onCancel: () => (sonarrDownloads = getDownloads(sonarrItem))
 														});
@@ -406,7 +405,7 @@
 										{#if seasonFiles?.length}
 											<Button on:clickOrSelect={() => createConfirmDeleteSeasonDialog(seasonFiles)}>
 												<Trash size={19} slot="icon" />
-												Delete Season Files
+												{$_('library.content.deleteFilesSeason')}
 											</Button>
 										{/if}
 										{#if seasonDownloads?.length}
@@ -414,7 +413,7 @@
 												on:clickOrSelect={() => createConfirmCancelDownloadsDialog(seasonDownloads)}
 											>
 												<Cross1 size={19} slot="icon" />
-												Cancel Season Downloads
+												{$_('library.content.cancelFilesSeason')}
 											</Button>
 										{/if}
 									</Container>

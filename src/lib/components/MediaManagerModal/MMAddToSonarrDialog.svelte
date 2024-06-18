@@ -16,6 +16,7 @@
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { formatSize } from '../../utils';
 	import { capitalize } from '../../utils.js';
+	import { _, dictionary } from 'svelte-i18n';
 
 	type AddOptionsStore = {
 		rootFolderPath: string | null;
@@ -129,7 +130,7 @@
 					<div class="h-24" />
 					<h1 class="header2">Add {title} to Sonarr?</h1>
 					<div class="font-medium text-secondary-300 mb-8">
-						Before you can fetch episodes, you need to add this series to Sonarr.
+						{$_('dialogs.addToSonarrMessage')}
 					</div>
 					<Container
 						class={listItemClass}
@@ -137,9 +138,9 @@
 						let:hasFocus
 					>
 						<div>
-							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">Root Folder</h1>
+							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">{$_('dialogs.rootFolder')}</h1>
 							{selectedRootFolder?.path}
-							({formatSize(selectedRootFolder?.freeSpace || 0)} left)
+							({formatSize(selectedRootFolder?.freeSpace || 0)} {$_('dialogs.left')})
 						</div>
 						<ArrowRight class={scaledArrowClas(hasFocus)} size={24} />
 					</Container>
@@ -151,7 +152,7 @@
 					>
 						<div>
 							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">
-								Quality Profile
+								{$_('dialogs.qualityProfile')}
 							</h1>
 							<span>
 								{selectedQualityProfile?.name}
@@ -167,7 +168,7 @@
 					>
 						<div>
 							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">
-								Monitor Strategy
+								{$_('dialogs.monitorStrategy')}
 							</h1>
 							<span>
 								{capitalize($addOptionsStore.monitorOptions || 'none')}
@@ -213,7 +214,7 @@
 							focusOnMount={$addOptionsStore.rootFolderPath === rootFolder.path}
 						>
 							<div>
-								{rootFolder.path} ({formatSize(rootFolder.freeSpace || 0)} left)
+								{rootFolder.path} ({formatSize(rootFolder.freeSpace || 0)} {$_('dialogs.left')})
 							</div>
 							{#if selectedRootFolder?.id === rootFolder.id}
 								<Check size={24} />
@@ -228,7 +229,7 @@
 				class={tabClasses(tab === 'quality-profiles', true)}
 				bind:selectable={qualityProfilesTab}
 			>
-				<h1 class="text-xl text-secondary-100 font-medium mb-4">Quality Profile</h1>
+				<h1 class="text-xl text-secondary-100 font-medium mb-4">{$_('dialogs.qualityProfile')}</h1>
 				<div class="min-h-0 overflow-y-auto scrollbar-hide">
 					{#each qualityProfiles as qualityProfile}
 						<Container
@@ -256,7 +257,7 @@
 				class={tabClasses(tab === 'monitor-settings', true)}
 				bind:selectable={monitorSettingsTab}
 			>
-				<h1 class="text-xl text-secondary-100 font-medium mb-4">Monitor Episodes</h1>
+				<h1 class="text-xl text-secondary-100 font-medium mb-4">{$_('dialogs.monitorEpisodes')}</h1>
 				<div class="min-h-0 overflow-y-auto scrollbar-hide">
 					{#each sonarrMonitorOptions as monitorOption}
 						<Container

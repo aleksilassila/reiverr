@@ -10,6 +10,7 @@
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import type { Readable } from 'svelte/store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { _, dictionary } from 'svelte-i18n';
 
 	let searchQuery = '';
 	let typingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -65,7 +66,7 @@
 				class="bg-transparent outline-none placeholder:text-secondary-400"
 				bind:value={searchQuery}
 				on:input={() => handleInput(searchQuery)}
-				placeholder="Search titles..."
+				placeholder={$_('search.placeHolder')}
 				bind:this={searchInput}
 			/>
 		</Container>

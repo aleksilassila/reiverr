@@ -9,15 +9,18 @@ export function createLocalStorageStore<T>(key: string, defaultValue: T) {
 		set: (value: T) => {
 			localStorage.setItem(key, JSON.stringify(value));
 			store.set(value);
+			console.log(`Set ${key} to`, value); // Debugging line
 		},
 		update: (updater: (value: T) => T) => {
 			const newValue = updater(get(store));
 			localStorage.setItem(key, JSON.stringify(newValue));
 			store.set(newValue);
+			console.log(`Updated ${key} to`, newValue); // Debugging line
 		},
 		remove: () => {
 			localStorage.removeItem(key);
 			store.set(defaultValue);
+			console.log(`Removed ${key}`); // Debugging line
 		}
 	};
 }
@@ -35,9 +38,11 @@ export const localSettings = createLocalStorageStore<{
 	useCssTransitions: boolean;
 	checkForUpdates: boolean;
 	skippedVersion: string;
+	language: string; // Propriété language ajoutée ici
 }>('settings', {
 	animateScrolling: true,
 	useCssTransitions: true,
 	checkForUpdates: true,
-	skippedVersion: ''
+	skippedVersion: '',
+	language: 'en' // Valeur par défaut pour la langue
 });
