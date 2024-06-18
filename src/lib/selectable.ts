@@ -580,6 +580,20 @@ export class Selectable {
 			console.error('No html element found for', this);
 			return;
 		}
+
+		if (this.makeFocusedChild) {
+			// eslint-disable-next-line @typescript-eslint/no-this-alias
+			let el: Selectable = this;
+			let parent = el.parent;
+
+			while (parent && !get(parent.hasFocusWithin)) {
+				console.log('setting parent focusIndex', parent, parent.children.indexOf(el));
+				parent.focusIndex.update((prev) => parent?.children?.indexOf(el) || prev);
+
+				el = parent;
+				parent = el.parent;
+			}
+		}
 	}
 
 	_unmountContainer() {
@@ -743,18 +757,6 @@ export class Selectable {
 
 		this.children.splice(index, 0, child);
 		child.parent = this;
-
-		if (child.makeFocusedChild) {
-			let el = child;
-			let parent = el.parent;
-
-			while (parent && !get(parent.hasFocusWithin)) {
-				parent.focusIndex.update((prev) => parent?.children?.indexOf(el) || prev);
-
-				el = parent;
-				parent = el.parent;
-			}
-		}
 
 		return childToFocus;
 	}

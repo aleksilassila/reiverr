@@ -9,6 +9,7 @@
 
 	export let disabled: boolean = false;
 	export let focusOnMount: boolean = false;
+	export let focusedChild = false;
 	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
 	export let confirmDanger = false;
 	export let action: (() => Promise<any>) | null = null;
@@ -62,6 +63,7 @@
 		on:clickOrSelect={handleClickOrSelect}
 		on:enter
 		{focusOnMount}
+		{focusedChild}
 	>
 		<div
 			class={classNames({

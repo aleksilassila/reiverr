@@ -60,18 +60,18 @@
 				Looks like this is a new account. This setup will get you started with connecting your
 				services to get most out of Reiverr.
 			</div>
-			<Container direction="horizontal" class="flex space-x-4">
+			<Container direction="horizontal" class="flex space-x-4 *:flex-1">
 				<Button type="primary-dark" on:clickOrSelect={() => sessions.removeSession()}
 					>Log Out</Button
 				>
-				<div class="flex-1">
-					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
-						Next
-						<div class="absolute inset-y-0 right-0 flex items-center justify-center">
-							<ArrowRight size={24} />
-						</div>
-					</Button>
-				</div>
+				<Button
+					focusOnMount
+					type="primary-dark"
+					on:clickOrSelect={() => tab.next()}
+					iconAbsolute={ArrowRight}
+				>
+					Next
+				</Button>
 			</Container>
 		</Tab>
 
@@ -97,13 +97,12 @@
 				{/if}
 				<Container direction="horizontal" class="flex space-x-4 *:flex-1 mt-4">
 					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
-					<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+					<Button focusedChild type="primary-dark" on:clickOrSelect={() => tab.next()}>
 						{#if connected}
 							Next
 						{:else}
 							Skip
 						{/if}
-						<ArrowRight size={19} slot="icon-absolute" />
 					</Button>
 				</Container>
 			</TmdbIntegration>
@@ -160,7 +159,7 @@
 				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
 					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 					{#if empty || unchanged}
-						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+						<Button focusedChild type="primary-dark" on:clickOrSelect={() => tab.next()}>
 							{empty ? 'Skip' : 'Next'}
 						</Button>
 					{:else}
@@ -233,7 +232,7 @@
 				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
 					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 					{#if empty || unchanged}
-						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+						<Button focusedChild type="primary-dark" on:clickOrSelect={() => tab.next()}>
 							{empty ? 'Skip' : 'Next'}
 						</Button>
 					{:else}
@@ -257,7 +256,7 @@
 				<Container direction="horizontal" class="grid grid-cols-2 gap-4 mt-4">
 					<Button type="primary-dark" on:clickOrSelect={() => tab.previous()}>Back</Button>
 					{#if empty || unchanged}
-						<Button type="primary-dark" on:clickOrSelect={() => tab.next()}>
+						<Button focusedChild type="primary-dark" on:clickOrSelect={() => tab.next()}>
 							{empty ? 'Skip' : 'Next'}
 						</Button>
 					{:else}
@@ -278,16 +277,21 @@
 				<CheckCircled size={64} />
 			</div>
 			<h1 class="header2 text-center w-full">All Set!</h1>
-			<div class="header1 mb-8 text-center">Reiverr is now ready to use.</div>
+			<div class="body mb-8 text-center">Reiverr is now ready to use.</div>
 
 			<Container direction="horizontal" class="inline-flex space-x-4 w-full">
-				<Button type="primary-dark" on:clickOrSelect={() => tab.previous()} icon={ArrowLeft}
-					>Back</Button
-				>
+				<Button type="primary-dark" on:clickOrSelect={() => tab.previous()} icon={ArrowLeft}>
+					Back
+				</Button>
 				<div class="flex-1">
-					<Button type="primary-dark" on:clickOrSelect={finalizeSetup} iconAbsolute={ArrowRight}
-						>Done</Button
+					<Button
+						focusedChild
+						type="primary-dark"
+						on:clickOrSelect={finalizeSetup}
+						iconAbsolute={ArrowRight}
 					>
+						Done
+					</Button>
 				</div>
 			</Container>
 		</Tab>
