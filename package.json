@@ -8,8 +8,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"build": "npm run --prefix backend build && vite build --outDir backend/dist/dist",
-		"build:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist",
+		"build": "npm run --prefix backend build && vite build --mode production --outDir backend/dist/dist",
+		"build:tizen": "set VITE_PLATFORM=tv&& vite build --mode production --outDir tizen/dist",
 		"preview": "vite preview",
 		"preview:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",

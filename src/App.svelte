@@ -94,6 +94,7 @@
 
 <NotificationStack />
 
-<NavigationDebugger />
-
+{#if import.meta.env.DEV}
+	<NavigationDebugger />
+{/if}
 <svelte:window on:keydown={handleKeyboardNavigation} />

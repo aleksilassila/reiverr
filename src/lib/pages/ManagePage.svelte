@@ -69,10 +69,10 @@
 	}}
 />
 
-<DetachedPage class="px-32 py-16 h-screen flex flex-col">
+<DetachedPage class="pt-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
-		class="flex space-x-8 header3 pb-3 border-b-2 border-secondary-700 w-full mb-8"
+		class="flex space-x-8 header3 pb-3 border-b-2 border-secondary-700 mb-8 mx-32"
 	>
 		<Container
 			on:enter={() => tab.set(Tabs.Interface)}
@@ -121,7 +121,7 @@
 		</Container>
 	</Container>
 
-	<Container class="flex-1 grid w-full overflow-y-auto scrollbar-hide relative">
+	<Container class="flex-1 grid w-full overflow-y-auto scrollbar-hide relative pb-16 px-32">
 		<Tab {...tab} tab={Tabs.Interface} class="w-full">
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 				<label class="mr-2">Animate scrolling</label>
@@ -315,6 +315,12 @@
 		<Tab {...tab} tab={Tabs.About}>
 			<div>
 				Version: {REIVERR_VERSION}
+			</div>
+			<div>
+				Mode: {import.meta.env.MODE}
+			</div>
+			<div>
+				meta.env: {JSON.stringify(import.meta.env)}
 			</div>
 			User agent: {window?.navigator?.userAgent}
 			<div>Last key code: {lastKeyCode}</div>
