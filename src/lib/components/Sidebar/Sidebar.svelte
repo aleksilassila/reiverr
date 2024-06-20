@@ -12,7 +12,8 @@
 	import Container from '../../../Container.svelte';
 	import { registrars, Selectable } from '../../selectable';
 	import { defaultStackRouter, navigate } from '../StackRouter/StackRouter';
-	import { onMount } from 'svelte';
+	import { onMount } from 'svelte'
+	import { _ } from 'svelte-i18n';
 
 	let selectedIndex = 0;
 	let activeIndex = -1;
@@ -128,7 +129,7 @@
 						}
 					)}
 				>
-					Series
+				{$_('navbar.series')}
 				</span>
 			</div>
 		</Container>
@@ -156,7 +157,7 @@
 						}
 					)}
 				>
-					Movies
+				{$_('navbar.movies')}
 				</span>
 			</div>
 		</Container>
@@ -184,7 +185,7 @@
 						}
 					)}
 				>
-					Library
+				{$_('navbar.library')}
 				</span>
 			</div>
 		</Container>
@@ -212,7 +213,7 @@
 						}
 					)}
 				>
-					Search
+				{$_('navbar.search')}
 				</span>
 			</div>
 		</Container>
@@ -247,7 +248,7 @@
 					}
 				)}
 			>
-				Manage
+			{$_('navbar.settings')}
 			</span>
 		</div>
 	</Container>

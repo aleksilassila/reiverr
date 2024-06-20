@@ -3,6 +3,7 @@
 	import Button from '../Button.svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import Dialog from './Dialog.svelte';
+	import { _ } from 'svelte-i18n';
 
 	type ActionFn = (() => Promise<any>) | (() => any);
 
@@ -38,10 +39,10 @@
 	</div>
 	<Container class="flex flex-col space-y-4">
 		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(confirm)}>
-			Confirm
+			{$_('confirmDialogs.confirm')}
 		</Button>
 		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}
-			>Cancel</Button
+			>{$_('confirmDialogs.cancel')}</Button
 		>
 	</Container>
 </Dialog>

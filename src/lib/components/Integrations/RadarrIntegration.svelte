@@ -3,6 +3,8 @@
 	import { appState } from '../../stores/app-state.store';
 	import { createEventDispatcher } from 'svelte';
 	import { radarrApi } from '../../apis/radarr/radarr-api';
+	import { _ } from 'svelte-i18n';
+
 
 	const dispatch = createEventDispatcher<{
 		change: { baseUrl: string; apiKey: string; stale: boolean };
@@ -66,9 +68,9 @@
 </script>
 
 <div class="space-y-4 mb-4">
-	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>Base Url</TextField
+	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>{$_('settings.integrations.baseUrl')}</TextField
 	>
-	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>API Key</TextField>
+	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>{$_('settings.integrations.apiKey')}</TextField>
 </div>
 
 {#if error}

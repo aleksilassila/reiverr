@@ -8,6 +8,8 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Container from '../../Container.svelte';
 	import { scrollIntoView } from '../selectable';
+	import { _ } from 'svelte-i18n';
+
 
 	export let id: string;
 	$: person = tmdbApi.getPerson(Number(id));
@@ -63,7 +65,7 @@
 						class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
 					>
 						<p class="flex-shrink-0">
-							Born {new Date(person.birthday || 0).toLocaleDateString('en-US', {
+							{$_('personPage.born')} {new Date(person.birthday || 0).toLocaleDateString('en-US', {
 								year: 'numeric',
 								month: 'long',
 								day: 'numeric'

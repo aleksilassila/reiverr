@@ -4,6 +4,7 @@
 	import { appState } from '../stores/app-state.store';
 	import TextField from '../components/TextField.svelte';
 	import Button from '../components/Button.svelte';
+	import { _ } from 'svelte-i18n';
 
 	let name: string = '';
 	let password: string = '';
@@ -18,9 +19,9 @@
 			.authenticate(name, password)
 			.then((res) => {
 				if (res.error?.statusCode === 401) {
-					error = 'Invalid credentials. Please try again.';
+					error = $_('login.invalidCredentials');
 				} else if (res.error) {
-					error = 'Error occurred: ' + res.error.message;
+					error = $_('login.errorOccurred') + ': ' + res.error.message;
 				} else {
 					const token = res.data.accessToken;
 					appState.setToken(token);
@@ -38,10 +39,9 @@
 
 <div class="w-full h-full flex items-center justify-center">
 	<Container class="flex flex-col bg-primary-800 rounded-2xl p-10 shadow-xl max-w-lg" focusOnMount>
-		<h1 class="header2 w-full mb-2">Login to Reiverr</h1>
+		<h1 class="header2 w-full mb-2">{$_('login.title')}</h1>
 		<div class="header1 mb-4">
-			If this is your first time logging in, a new account will be created based on your
-			credentials.
+			{$_('login.firstTime')}
 		</div>
 
 		<TextField
@@ -49,18 +49,20 @@
 			on:change={(e) => appState.setBaseUrl(e.detail)}
 			class="mb-4 w-full"
 		>
-			Server
+			{$_('login.server')}
 		</TextField>
 
-		<TextField bind:value={name} class="mb-4 w-full">Name</TextField>
-		<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
+		<TextField bind:value={name} class="mb-4 w-full">{$_('login.name')}</TextField>
+		<TextField bind:value={password} type="password" class="mb-8 w-full">{$_('login.password')}</TextField>
 
 		<Button
 			type="primary-dark"
 			disabled={loading}
 			on:clickOrSelect={handleLogin}
-			class="mb-4 w-full">Submit</Button
+			class="mb-4 w-full"
 		>
+			{$_('login.submit')}
+		</Button>
 
 		{#if error}
 			<div class="text-red-300 text-center">{error}</div>

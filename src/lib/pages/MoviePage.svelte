@@ -32,6 +32,7 @@
 	import { capitalize, formatSize } from '../utils';
 	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../constants.js';
+	import { _ } from 'svelte-i18n';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -91,8 +92,8 @@
 
 	function createConfirmDeleteSeasonDialog(files: MovieFileResource[]) {
 		createModal(ConfirmDialog, {
-			header: 'Delete Season Files?',
-			body: `Are you sure you want to delete all ${files.length} file(s)?`, // TODO: These messages  could be better, for series too
+			header: $_('library.content.confirmDeleteSeasonHeader'),
+			body: $_('library.content.confirmDeleteSeasonBody', { count: files.length }),
 			confirm: () =>
 				radarrApi
 					.deleteFiles(files.map((f) => f.id || -1))
@@ -102,8 +103,8 @@
 
 	function createConfirmCancelDownloadsDialog(downloads: MovieDownload[]) {
 		createModal(ConfirmDialog, {
-			header: 'Cancel Season Downloads?',
-			body: `Are you sure you want to cancel all ${downloads.length} download(s)?`, // TODO: These messages  could be better, for series too
+			header: $_('library.content.confirmCancelDownloadsHeader'),
+			body: $_('library.content.confirmCancelDownloadsBody', { count: downloads.length }),
 			confirm: () =>
 				radarrApi
 					.cancelDownloads(downloads.map((f) => f.id || -1))
@@ -176,15 +177,15 @@
 									on:clickOrSelect={() =>
 										jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
 								>
-									Play
+									{$_('library.content.play')}
 									<Play size={19} slot="icon" />
 								</Button>
 							{/if}
 							<Button class="mr-4" action={handleRequest}>
-								Request
+								{$_('library.content.requestContent')}
 								<Plus size={19} slot="icon" />
 							</Button>
-							<!--{#if radarrItem}-->
+								<!--{#if radarrItem}-->
 							<!--	<Button class="mr-4" on:clickOrSelect={() => openMovieMediaManager(Number(id))}>-->
 							<!--		{#if jellyfinItem}-->
 							<!--			Manage Media-->
@@ -205,11 +206,11 @@
 							<!--{/if}-->
 							{#if PLATFORM_WEB}
 								<Button class="mr-4">
-									Open In TMDB
+									{$_('library.content.openInTMDB')}
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
 								<Button class="mr-4">
-									Open In Jellyfin
+									{$_('library.content.openInJellyfin')}
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
 							{/if}
@@ -221,7 +222,7 @@
 		<Container on:enter={scrollIntoView({ top: 0 })} class="">
 			{#await tmdbMovie then movie}
 				<Carousel scrollClass="px-32" class="mb-8">
-					<div slot="header">Show Cast</div>
+					<div slot="header">{$_('library.content.castAndCrew')}</div>
 					{#each movie?.credits?.cast?.slice(0, 15) || [] as credit}
 						<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
 					{/each}
@@ -229,7 +230,7 @@
 			{/await}
 			{#await recommendations then recommendations}
 				<Carousel scrollClass="px-32" class="mb-8">
-					<div slot="header">Recommendations</div>
+					<div slot="header">{$_('library.content.recommendations')}</div>
 					{#each recommendations || [] as recommendation}
 						<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />
 					{/each}
@@ -238,11 +239,11 @@
 		</Container>
 		{#await tmdbMovie then movie}
 			<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
-				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
+				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">{$_('library.content.moreInformation')}</h1>
 				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 					<div class="flex-1">
 						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Directed By</h2>
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.directedBy')}</h2>
 							<div>
 								{movie?.credits.crew
 									?.filter((c) => c.job === 'Director')
@@ -251,7 +252,7 @@
 							</div>
 						</div>
 						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Written By</h2>
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.writtenBy')}</h2>
 							<div>
 								{movie?.credits.crew
 									?.filter((c) => c.job === 'Writer')
@@ -262,13 +263,13 @@
 					</div>
 					<div class="flex-1">
 						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Languages</h2>
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.languages')}</h2>
 							<div>
 								{movie?.spoken_languages?.map((language) => language.name).join(', ')}
 							</div>
 						</div>
 						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Release Date</h2>
+							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">{$_('library.content.releaseDate')}</h2>
 							<div>
 								{new Date(movie?.release_date || 0).toLocaleDateString('en-US', {
 									year: 'numeric',
@@ -287,7 +288,7 @@
 					class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
 					on:enter={scrollIntoView({ top: 32 })}
 				>
-					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">Local Files</h1>
+					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">{$_('library.content.localFiles')}</h1>
 					<div class="space-y-8">
 						<Container direction="grid" gridCols={2} class="grid grid-cols-2 gap-8">
 							{#each downloads as download}
@@ -298,8 +299,6 @@
 										{
 											'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
 											'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
-											// 'bg-primary-700 focus-within:border-primary-500': selected,
-											// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 										}
 									)}
 									on:clickOrSelect={() =>
@@ -344,8 +343,6 @@
 										{
 											'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
 											'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
-											// 'bg-primary-700 focus-within:border-primary-500': selected,
-											// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 										}
 									)}
 									on:clickOrSelect={() =>
@@ -377,13 +374,13 @@
 							{#if files?.length}
 								<Button on:clickOrSelect={() => createConfirmDeleteSeasonDialog(files)}>
 									<Trash size={19} slot="icon" />
-									Delete All Files
+									{$_('library.content.deleteAllFiles')}
 								</Button>
 							{/if}
 							{#if downloads?.length}
 								<Button on:clickOrSelect={() => createConfirmCancelDownloadsDialog(downloads)}>
 									<Cross1 size={19} slot="icon" />
-									Cancel All Downloads
+									{$_('library.content.cancelAllDownloads')}
 								</Button>
 							{/if}
 						</Container>

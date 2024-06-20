@@ -15,6 +15,8 @@
 	import { capitalize, formatSize } from '../../utils';
 	import { ArrowRight, Check, Plus } from 'radix-icons-svelte';
 	import Button from '../Button.svelte';
+	import { _ } from 'svelte-i18n';
+
 
 	type AddOptionsStore = {
 		rootFolderPath: string | null;
@@ -126,9 +128,9 @@
 			>
 				<div class="z-10 mb-8">
 					<div class="h-24" />
-					<h1 class="header2">Add {title} to Sonarr?</h1>
+					<h1 class="header2">{$_('dialogs.add')} {title} {$_('dialogs.toRadarr')}</h1>
 					<div class="font-medium text-secondary-300 mb-8">
-						Before you can fetch episodes, you need to add this series to Sonarr.
+						{$_('dialogs.addToRadarrMessage')}
 					</div>
 					<Container
 						class={listItemClass}
@@ -136,9 +138,9 @@
 						let:hasFocus
 					>
 						<div>
-							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">Root Folder</h1>
+							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">{$_('dialogs.rootFolder')}</h1>
 							{selectedRootFolder?.path}
-							({formatSize(selectedRootFolder?.freeSpace || 0)} left)
+							({formatSize(selectedRootFolder?.freeSpace || 0)} {$_('dialogs.left')})
 						</div>
 						<ArrowRight class={scaledArrowClas(hasFocus)} size={24} />
 					</Container>
@@ -150,7 +152,7 @@
 					>
 						<div>
 							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">
-								Quality Profile
+								{$_('dialogs.qualityProfile')}
 							</h1>
 							<span>
 								{selectedQualityProfile?.name}
@@ -166,7 +168,7 @@
 					>
 						<div>
 							<h1 class="text-secondary-300 font-semibold tracking-wide text-sm">
-								Minimum Availability
+								{$_('dialogs.minimumAvailability')}
 							</h1>
 							<span>
 								{capitalize($addOptionsStore.minimumAvailability || 'released')}
@@ -187,10 +189,10 @@
 				<Container class="flex flex-col space-y-4">
 					<Button type="primary-dark" action={handleAddToSonarr} focusOnMount>
 						<Plus size={19} slot="icon" />
-						Add to Radarr
+						{$_('dialogs.addToRadarr')}
 					</Button>
 					<Button type="primary-dark" on:clickOrSelect={() => modalStack.close(modalId)}>
-						Cancel
+						{$_('confirmDialogs.cancel')}
 					</Button>
 				</Container>
 			</Container>
@@ -200,7 +202,7 @@
 				class={tabClasses(tab === 'root-folders', true)}
 				bind:selectable={rootFoldersTab}
 			>
-				<h1 class="text-xl text-secondary-100 font-medium mb-4">Root Folder</h1>
+				<h1 class="text-xl text-secondary-100 font-medium mb-4">{$_('dialogs.rootFolder')}</h1>
 				<div class="min-h-0 overflow-y-auto scrollbar-hide">
 					{#each rootFolders as rootFolder}
 						<Container
@@ -212,7 +214,7 @@
 							focusOnMount={$addOptionsStore.rootFolderPath === rootFolder.path}
 						>
 							<div>
-								{rootFolder.path} ({formatSize(rootFolder.freeSpace || 0)} left)
+								{rootFolder.path} ({formatSize(rootFolder.freeSpace || 0)} {$_('dialogs.left')})
 							</div>
 							{#if selectedRootFolder?.id === rootFolder.id}
 								<Check size={24} />
@@ -227,7 +229,7 @@
 				class={tabClasses(tab === 'quality-profiles', true)}
 				bind:selectable={qualityProfilesTab}
 			>
-				<h1 class="text-xl text-secondary-100 font-medium mb-4">Quality Profile</h1>
+				<h1 class="text-xl text-secondary-100 font-medium mb-4">{$_('dialogs.qualityProfile')}</h1>
 				<div class="min-h-0 overflow-y-auto scrollbar-hide">
 					{#each qualityProfiles as qualityProfile}
 						<Container
@@ -255,7 +257,7 @@
 				class={tabClasses(tab === 'monitor-settings', true)}
 				bind:selectable={monitorSettingsTab}
 			>
-				<h1 class="text-xl text-secondary-100 font-medium mb-4">Monitor Episodes</h1>
+				<h1 class="text-xl text-secondary-100 font-medium mb-4">{$_('dialogs.monitorEpisodes')}</h1>
 				<div class="min-h-0 overflow-y-auto scrollbar-hide">
 					{#each movieAvailabilities as availibility}
 						<Container

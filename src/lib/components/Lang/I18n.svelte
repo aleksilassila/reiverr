@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { addMessages, init, locale } from 'svelte-i18n';
+	import { localSettings } from '../../stores/localstorage.store';
 
 	import de from '../../lang/de.json';
 	import en from '../../lang/en.json';
 	import es from '../../lang/es.json';
 	import fr from '../../lang/fr.json';
 	import it from '../../lang/it.json';
-	import { settings } from '../../stores/settings.store';
 
 	addMessages('de', de);
 	addMessages('en', en);
@@ -14,7 +14,7 @@
 	addMessages('fr', fr);
 	addMessages('it', it);
 
-	settings.subscribe((value) => {
+	localSettings.subscribe(value => {
 		if (value.language) {
 			locale.set(value.language);
 		} else {
@@ -23,7 +23,7 @@
 	});
 
 	init({
-		initialLocale: $settings.language,
+		initialLocale: localSettings.get().language || 'en',
 		fallbackLocale: 'en'
 	});
 </script>

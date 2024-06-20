@@ -7,7 +7,6 @@
 	import classNames from 'classnames';
 	import Tab from '../components/Tab/Tab.svelte';
 	import { useTabs } from '../components/Tab/Tab';
-	import TextField from '../components/TextField.svelte';
 	import SonarrIntegration from '../components/Integrations/SonarrIntegration.svelte';
 	import RadarrIntegration from '../components/Integrations/RadarrIntegration.svelte';
 	import type { JellyfinUser } from '../apis/jellyfin/jellyfin-api';
@@ -20,6 +19,8 @@
 	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { _ } from 'svelte-i18n';
+	import LanguageSettings from '../components/LanguageSettings.svelte';
 
 	enum Tabs {
 		Interface,
@@ -61,7 +62,6 @@
 	// 		(tizen as any)?.mediakey?.setMediaKeyEventListener?.(myMediaKeyChangeListener);
 	// 	}
 	// });
-
 	async function handleDisconnectTmdb() {
 		return appState.updateUser((prev) => ({
 			...prev,
@@ -109,9 +109,9 @@
 		return appState.updateUser((prev) => ({
 			...prev,
 			settings: {
-				...prev.settings,
+				...prev.settings.sonarr,
 				radarr: {
-					...prev.settings.radarr,
+					...prev.settings.sonarr,
 					baseUrl: radarrBaseUrl,
 					apiKey: radarrApiKey
 				}
@@ -145,7 +145,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				General
+				{$_('settings.navbar.general')}
 			</span>
 		</Container>
 		<Container
@@ -160,7 +160,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				Integrations
+				{$_('settings.navbar.integrations')}
 			</span>
 		</Container>
 		<Container
@@ -175,7 +175,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				About
+				{$_('settings.navbar.about')}
 			</span>
 		</Container>
 	</Container>
@@ -183,7 +183,7 @@
 	<Container class="grid">
 		<Tab {...tab} tab={Tabs.Interface} class="">
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Animate scrolling</label>
+				<label class="mr-2">{$_('settings.general.userInterface.animateScrolling')}</label>
 				<Toggle
 					checked={$localSettings.animateScrolling}
 					on:change={({ detail }) =>
@@ -191,7 +191,7 @@
 				/>
 			</div>
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Use CSS Transitions</label>
+				<label class="mr-2">{$_('settings.general.userInterface.useCssTransitions')}</label>
 				<Toggle
 					checked={$localSettings.useCssTransitions}
 					on:change={({ detail }) =>
@@ -199,13 +199,23 @@
 				/>
 			</div>
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Check for Updates</label>
+				<label class="mr-2">{$_('settings.general.userInterface.checkForUpdates')}</label>
 				<Toggle
 					checked={$localSettings.checkForUpdates}
 					on:change={({ detail }) =>
 						localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
 				/>
 			</div>
+
+			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
+				<label class="mr-2">{$_('settings.general.userInterface.language')}</label>
+				<LanguageSettings 
+					on:change={({ detail }) => {
+					console.log('Language changed to:', detail.language);
+					}}
+				/>
+			</div>
+
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Integrations} class="">
@@ -222,7 +232,7 @@
 						/>
 						<div class="flex">
 							<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>
-								Save
+								{$_('settings.integrations.save')}
 							</Button>
 						</div>
 					</Container>
@@ -238,7 +248,7 @@
 						/>
 						<div class="flex">
 							<Button disabled={!radarrStale} type="primary-dark" action={handleSaveRadarr}>
-								Save
+								{$_('settings.integrations.save')}
 							</Button>
 						</div>
 					</Container>
@@ -246,11 +256,11 @@
 
 				<Container class="flex flex-col space-y-8">
 					<Container class="bg-primary-800 rounded-xl p-8">
-						<h1 class="mb-4 header2">Tmdb Account</h1>
+						<h1 class="mb-4 header2">{$_('settings.integrations.tmdbAccount')}</h1>
 						{#await tmdbAccount then tmdbAccount}
 							{#if tmdbAccount}
 								<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
-									Connected to
+									{$_('settings.integrations.connectedTo')}
 									<Trash
 										slot="icon"
 										let:size
@@ -265,23 +275,10 @@
 										type="primary-dark"
 										iconAfter={ArrowRight}
 										on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
-										>Connect</Button
-									>
+										>{$_('settings.integrations.tmdb.connect')}</Button>
 								</div>
 							{/if}
 						{/await}
-						<!--					<TmdbIntegration-->
-						<!--						on:change={({ detail }) => {-->
-						<!--							sonarrBaseUrl = detail.baseUrl;-->
-						<!--							sonarrApiKey = detail.apiKey;-->
-						<!--							sonarrStale = detail.stale;-->
-						<!--						}}-->
-						<!--					/>-->
-						<!--					<div class="flex">-->
-						<!--						<Button disabled={!sonarrStale} type="primary-dark" action={handleSaveSonarr}>-->
-						<!--							Save-->
-						<!--						</Button>-->
-						<!--					</div>-->
 					</Container>
 
 					<Container class="bg-primary-800 rounded-xl p-8">
@@ -302,7 +299,7 @@
 						/>
 						<div class="flex">
 							<Button disabled={!jellyfinStale} type="primary-dark" action={handleSaveJellyfin}>
-								Save
+								{$_('settings.integrations.save')}
 							</Button>
 						</div>
 					</Container>
@@ -311,14 +308,14 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.About}>
-			User agent: {window?.navigator?.userAgent}
-			<div>Last key code: {lastKeyCode}</div>
-			<div>Last key: {lastKey}</div>
+			{$_('settings.about.userAgent')}: {window?.navigator?.userAgent}
+			<div>{$_('settings.about.lastKeyCode')}: {lastKeyCode}</div>
+			<div>{$_('settings.about.lastKey')}: {lastKey}</div>
 			{#if tizenMediaKey}
-				<div>Tizen media key: {tizenMediaKey}</div>
+				<div>{$_('settings.about.tizenMediaKey')}: {tizenMediaKey}</div>
 			{/if}
 			<div class="flex space-x-4 mt-4">
-				<Button on:clickOrSelect={appState.logOut} class="hover:bg-red-500">Log Out</Button>
+				<Button on:clickOrSelect={appState.logOut} class="hover:bg-red-500">{$_('settings.about.logOut')}</Button>
 			</div>
 		</Tab>
 	</Container>
