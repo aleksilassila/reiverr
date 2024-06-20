@@ -13,6 +13,8 @@
 	import type { ComponentProps } from 'svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { tmdbApi, type TmdbMovie2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
+	import { writable } from 'svelte/store';
+	import { onMount } from 'svelte';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
@@ -44,6 +46,53 @@
 			userId: import.meta.env.VITE_JELLYFIN_USER_ID
 		}
 	}));
+
+	const displayedItems = writable([]);
+	let currentIndex = 0;
+	let allItems = [];
+
+	const ITEMS_PER_ROW = 3;
+	const ITEMS_PER_COLUMN = 4;
+	const ITEMS_PER_PAGE = ITEMS_PER_ROW * ITEMS_PER_COLUMN;
+
+	const loadMoreItems = () => {
+		const nextIndex = currentIndex + ITEMS_PER_PAGE;
+		const newItems = allItems.slice(currentIndex, nextIndex);
+		if (newItems.length > 0) {
+			displayedItems.update(curr => [...curr, ...newItems]);
+			currentIndex = nextIndex;
+		}
+	};
+
+	const observerCallback = (entries) => {
+		entries.forEach(entry => {
+			if (entry.isIntersecting) {
+				loadMoreItems();
+			}
+		});
+	};
+
+	onMount(() => {
+		const observer = new IntersectionObserver(observerCallback, {
+			root: null,
+			rootMargin: '0px',
+			threshold: 1.0
+		});
+		const sentinel = document.querySelector('#sentinel');
+		if (sentinel) {
+			observer.observe(sentinel);
+		}
+		return () => {
+			if (sentinel) {
+				observer.unobserve(sentinel);
+			}
+		};
+	});
+
+	libraryItemsP.then(items => {
+		allItems = items;
+		loadMoreItems();
+	});
 </script>
 
 <DetachedPage class="py-16 space-y-8">
@@ -66,10 +115,10 @@
 			<div class="header2">Library</div>
 		</div>
 		<CardGrid>
-			{#await libraryItemsP}
+			{#if $displayedItems.length === 0}
 				<CarouselPlaceholderItems />
-			{:then items}
-				{#each items as item}
+			{:else}
+				{#each $displayedItems as item}
 					<JellyfinCard
 						{item}
 						on:enter={scrollIntoView({ all: 64 })}
@@ -77,7 +126,9 @@
 						navigateWithType
 					/>
 				{/each}
-			{/await}
+			{/if}
 		</CardGrid>
+		<!-- Sentinel div for intersection observer -->
+		<div id="sentinel" style="height: 1px;"></div>
 	</div>
 </DetachedPage>
