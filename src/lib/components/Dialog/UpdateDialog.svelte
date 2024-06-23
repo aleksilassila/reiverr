@@ -25,7 +25,7 @@
 		<InfoCircled size={64} />
 	</div>
 	<h1 class="header2 text-center">Update Available</h1>
-	<div class="header1 mb-8 text-center">Reiverr {version} is now available.</div>
+	<div class="body mb-8 text-center">Reiverr {version} is now available.</div>
 	<Container class="space-y-4">
 		<Button type="primary-dark" on:clickOrSelect={dismiss}>Dismiss</Button>
 		{#if PLATFORM_WEB}

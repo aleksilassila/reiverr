@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
 	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';

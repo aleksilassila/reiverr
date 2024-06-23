@@ -58,11 +58,14 @@ export class JellyfinApi implements Api<paths> {
 
 	getContinueWatchingSeries = async () => {
 		const seriesIds = [
-			...new Set(
-				await this.getContinueWatching('series')
+			...new Set([
+				...(await this.getContinueWatching('series')
 					.then((items) => items?.map((i) => i.SeriesId) || [])
-					.then((ids) => ids.filter((i) => !!i) as string[])
-			)
+					.then((ids) => ids.filter((i) => !!i) as string[])),
+				...(await this.getJellyfinNextUp()
+					.then((items) => items?.map((i) => i.SeriesId) || [])
+					.then((ids) => ids.filter((i) => !!i) as string[]))
+			])
 		];
 
 		return Promise.all(seriesIds.map((id) => this.getLibraryItem(id))).then((is) =>
