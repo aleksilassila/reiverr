@@ -35,7 +35,7 @@
 	onDestroy(() => visibleIndexTimeout && clearTimeout(visibleIndexTimeout));
 </script>
 
-<div class="fixed inset-0 -z-10">
+<div class="fixed inset-0 -z-10" style="-webkit-transform: translate3d(0,0,0);">
 	{#if !isFirefox()}
 		{#await urls then urls}
 			{#each urls as url, i}
@@ -80,6 +80,7 @@
 	class={classNames('absolute inset-0 flex flex-col -z-10 transition-opacity', {
 		'opacity-0': hideInterface
 	})}
+	style="-webkit-transform: translate3d(0,0,0);"
 >
 	<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 	<div class="flex-1 bg-secondary-900" />
