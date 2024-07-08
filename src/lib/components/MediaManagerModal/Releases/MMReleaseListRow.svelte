@@ -3,11 +3,14 @@
 	import type { RadarrRelease } from '../../../apis/radarr/radarr-api';
 	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
 	import { scrollIntoView } from '../../../selectable';
-	import { Check, Download } from 'radix-icons-svelte';
+	import { Check, Download, Play } from 'radix-icons-svelte';
 	import TableRow from '../../Table/TableRow.svelte';
 	import type { GrabReleaseFn } from '../MediaManagerModal';
 	import TableButton from '../../Table/TableButton.svelte';
 	import TableCell from '../../Table/TableCell.svelte';
+	import Container from '../../../../Container.svelte';
+	import { playerState } from '../../VideoPlayer/VideoPlayer';
+
 	export let release: RadarrRelease | SonarrRelease;
 
 	export let grabRelease: GrabReleaseFn;
@@ -20,6 +23,10 @@
 			fetching = false;
 			didGrab = ok;
 		});
+	}
+
+	function handleStreamRelease() {
+		release.magnetUrl && playerState.streamMagnetLink(release.magnetUrl);
 	}
 </script>
 
@@ -50,12 +57,21 @@
 		</div>
 	</TableCell>
 	<TableCell>
-		<TableButton
-			disabled={didGrab || fetching}
-			on:clickOrSelect={handleGrabRelease}
-			on:enter={scrollIntoView({ vertical: 128 })}
-		>
-			<svelte:component this={didGrab ? Check : Download} size={19} />
-		</TableButton>
+		<Container direction="horizontal">
+			<TableButton
+				disabled={didGrab || fetching}
+				on:clickOrSelect={handleGrabRelease}
+				on:enter={scrollIntoView({ vertical: 128 })}
+			>
+				<svelte:component this={didGrab ? Check : Download} size={19} />
+			</TableButton>
+
+			<TableButton
+				on:clickOrSelect={handleStreamRelease}
+				on:enter={scrollIntoView({ vertical: 128 })}
+			>
+				<svelte:component this={Play} size={19} />
+			</TableButton>
+		</Container>
 	</TableCell>
 </TableRow>

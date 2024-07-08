@@ -1,7 +1,8 @@
 import { writable } from 'svelte/store';
 import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
-import VideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
+import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
+import TorrentVideoPlayerModal from './TorrentVideoPlayerModal.svelte';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -42,7 +43,11 @@ function createPlayerState() {
 		...store,
 		streamJellyfinId: (id: string) => {
 			store.set({ visible: true, jellyfinId: id });
-			modalStack.create(VideoPlayerModal, { id });
+			modalStack.create(JellyfinVideoPlayerModal, { id });
+		},
+		streamMagnetLink: (link: string) => {
+			store.set({ visible: true, jellyfinId: '' });
+			modalStack.create(TorrentVideoPlayerModal, { link });
 		},
 		close: () => {
 			store.set({ visible: false, jellyfinId: '' });

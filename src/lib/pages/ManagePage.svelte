@@ -223,28 +223,6 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header1">Sonarr</h1>
-							<SonarrIntegration let:stale let:handleSave>
-								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
-							</SonarrIntegration>
-						</Container>
-
-						<Container
-							class="bg-primary-800 rounded-xl p-8"
-							on:enter={scrollIntoView({ vertical: 64 })}
-						>
-							<h1 class="mb-4 header1">Radarr</h1>
-							<RadarrIntegration let:stale let:handleSave>
-								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
-							</RadarrIntegration>
-						</Container>
-					</Container>
-
-					<Container class="flex flex-col space-y-16">
-						<Container
-							class="bg-primary-800 rounded-xl p-8"
-							on:enter={scrollIntoView({ vertical: 64 })}
-						>
 							<h1 class="mb-4 header1">Tmdb Account</h1>
 							<TmdbIntegration let:connected>
 								{#if !connected}
@@ -306,6 +284,47 @@
 							>
 								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
 							</JellyfinIntegration>
+						</Container>
+
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header1">Peerflix</h1>
+							<JellyfinIntegration
+								on:click-user={({ detail }) =>
+									createModal(JellyfinIntegrationUsersDialog, {
+										selectedUser: detail.user,
+										users: detail.users,
+										handleSelectUser: detail.setJellyfinUser
+									})}
+								let:handleSave
+								let:stale
+							>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</JellyfinIntegration>
+						</Container>
+					</Container>
+
+					<Container class="flex flex-col space-y-16">
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header1">Sonarr</h1>
+							<SonarrIntegration let:stale let:handleSave>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</SonarrIntegration>
+						</Container>
+
+						<Container
+							class="bg-primary-800 rounded-xl p-8"
+							on:enter={scrollIntoView({ vertical: 64 })}
+						>
+							<h1 class="mb-4 header1">Radarr</h1>
+							<RadarrIntegration let:stale let:handleSave>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+							</RadarrIntegration>
 						</Container>
 					</Container>
 				</Container>

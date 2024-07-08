@@ -34,6 +34,11 @@ export class JellyfinSettings {
   userId: string;
 }
 
+export class PeerflixSettings {
+  @ApiProperty({ required: true })
+  baseUrl: string;
+}
+
 export class TmdbSettings {
   @ApiProperty({ required: true })
   sessionId: string;
@@ -60,6 +65,8 @@ export class Settings {
   radarr: RadarrSettings;
   @ApiProperty({ required: true, type: JellyfinSettings })
   jellyfin: JellyfinSettings;
+  @ApiProperty({ required: true, type: PeerflixSettings })
+  peerflix: PeerflixSettings;
   @ApiProperty({ required: true, type: TmdbSettings })
   tmdb: TmdbSettings;
 }
@@ -90,6 +97,9 @@ const DEFAULT_SETTINGS: Settings = {
     apiKey: '',
     baseUrl: '',
     userId: '',
+  },
+  peerflix: {
+    baseUrl: '',
   },
   tmdb: {
     sessionId: '',

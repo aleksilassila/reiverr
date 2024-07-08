@@ -44,6 +44,9 @@ export interface components {
       baseUrl: string;
       userId: string;
     };
+    PeerflixSettings: {
+      baseUrl: string;
+    };
     TmdbSettings: {
       sessionId: string;
       userId: string;
@@ -55,6 +58,7 @@ export interface components {
       sonarr: components["schemas"]["SonarrSettings"];
       radarr: components["schemas"]["RadarrSettings"];
       jellyfin: components["schemas"]["JellyfinSettings"];
+      peerflix: components["schemas"]["PeerflixSettings"];
       tmdb: components["schemas"]["TmdbSettings"];
     };
     UserDto: {

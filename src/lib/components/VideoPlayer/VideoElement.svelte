@@ -112,6 +112,7 @@
 	on:playing={() => (buffering = false)}
 	on:dblclick
 	on:click={togglePlay}
+	on:error
 	autoplay
 	playsinline
 	crossorigin="anonymous"

@@ -1,5 +1,6 @@
-import type { ComponentType } from 'svelte';
+import type { ComponentProps, ComponentType } from 'svelte';
 import { writable } from 'svelte/store';
+import Notification from './Notification.svelte';
 
 type NotificationItem = {
 	id: symbol;
@@ -17,9 +18,14 @@ function useNotificationStack() {
 		return id;
 	}
 
+	function createDefault(props: ComponentProps<Notification>) {
+		return create(Notification, props);
+	}
+
 	return {
 		subscribe: notifications.subscribe,
-		create
+		create,
+		createDefault
 	};
 }
 

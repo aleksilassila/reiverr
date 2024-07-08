@@ -10,3 +10,5 @@ export const PLACEHOLDER_BACKDROP = '/plcaeholder.jpg';
 
 export const PLATFORM_TV: boolean = import.meta.env.VITE_PLATFORM === 'tv';
 export const PLATFORM_WEB: boolean = !PLATFORM_TV;
+
+export const MOUSE_SUPPORT: boolean = !PLATFORM_TV;

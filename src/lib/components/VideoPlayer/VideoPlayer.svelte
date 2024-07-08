@@ -12,6 +12,8 @@
 	import IconButton from './IconButton.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
+	import { notificationStack } from '../Notifications/notification.store';
+	import Notification from '../Notifications/Notification.svelte';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -122,6 +124,7 @@
 		bind:videoDidLoad
 		bind:video
 		bind:buffering
+		on:error
 	/>
 
 	<!-- Overlay -->
