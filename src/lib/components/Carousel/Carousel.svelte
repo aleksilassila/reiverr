@@ -42,25 +42,25 @@
 			)}
 		>
 			<IconButton
+				icon={ChevronLeft}
+				mouseOnly
 				on:click={() => {
 					carousel?.scrollTo({
 						left: scrollX - (carousel?.clientWidth - 2 * 128 + 32),
 						behavior: 'smooth'
 					});
 				}}
-			>
-				<ChevronLeft size={20} />
-			</IconButton>
+			/>
 			<IconButton
+				icon={ChevronRight}
+				mouseOnly
 				on:click={() => {
 					carousel?.scrollTo({
 						left: scrollX + (carousel?.clientWidth - 2 * 128) + 32,
 						behavior: 'smooth'
 					});
 				}}
-			>
-				<ChevronRight size={20} />
-			</IconButton>
+			/>
 		</div>
 	</div>
 

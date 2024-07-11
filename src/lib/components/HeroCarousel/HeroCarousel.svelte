@@ -80,9 +80,7 @@
 		<slot />
 		<div class="flex flex-col justify-end ml-4">
 			<div class="flex flex-1 justify-end items-center">
-				<IconButton on:click={onNext}>
-					<ChevronRight size={38} />
-				</IconButton>
+				<IconButton icon={ChevronRight} mouseOnly size={38} on:click={onNext} />
 			</div>
 			<PageDots {index} {length} {onJump} {onPrevious} {onNext} />
 		</div>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../../../Container.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
 	import classNames from 'classnames';
 	import type { NavigateEvent } from '../../selectable';
 	import { formatMinutesToTime, formatSecondsToTime } from '../../utils';
@@ -23,7 +23,7 @@
 		seeking = true;
 
 		pausedBeforeSeeking = paused;
-		paused = true;
+		// paused = true;
 	}
 
 	function handleStopSeeking() {
@@ -35,15 +35,32 @@
 		dispatch('jumpTo', progressTime);
 	}
 
+	let seekingTimeout: ReturnType<typeof setTimeout>;
 	function handleNavigateEvent({ detail }: CustomEvent<NavigateEvent>) {
 		if (detail.direction === 'left') {
-			dispatch('jumpTo', progressTime - 10);
+			// dispatch('jumpTo', progressTime - 10);
+			handleStartSeeking();
+			progressTime -= 10;
+			clearTimeout(seekingTimeout);
+			seekingTimeout = setTimeout(() => {
+				handleStopSeeking();
+			}, 1000);
 			detail.preventNavigation();
 		} else if (detail.direction === 'right') {
-			dispatch('jumpTo', progressTime + 30);
+			// dispatch('jumpTo', progressTime + 30);
+			handleStartSeeking();
+			progressTime += 30;
+			clearTimeout(seekingTimeout);
+			seekingTimeout = setTimeout(() => {
+				handleStopSeeking();
+			}, 1000);
 			detail.preventNavigation();
 		}
 	}
+
+	onDestroy(() => {
+		clearTimeout(seekingTimeout);
+	});
 </script>
 
 <div class="w-full flex flex-col">

@@ -8,12 +8,10 @@
 	import type { Selectable } from '../../selectable';
 	import { modalStack } from '../Modal/modal.store';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
-	import { ChatBubble, TextAlignLeft } from 'radix-icons-svelte';
+	import { ChatBubble, Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
-	import { notificationStack } from '../Notifications/notification.store';
-	import Notification from '../Notifications/Notification.svelte';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -143,7 +141,11 @@
 	>
 		<!--		Title-->
 	</Container>
-	{#if buffering || !videoDidLoad}
+	{#if paused}
+		<div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+			<Pause class="w-12 h-12" />
+		</div>
+	{:else if buffering || !videoDidLoad}
 		<div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
 			<Spinner class="w-12 h-12" />
 		</div>
