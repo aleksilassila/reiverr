@@ -7,6 +7,7 @@
 	import type { Release } from '../../apis/combined-types';
 	import MMSeasonSelectTab from './MMSeasonSelectTab.svelte';
 	import { retry } from '../../utils';
+	import Modal from '../Modal/Modal.svelte';
 
 	export let season: number | undefined = undefined;
 	export let sonarrItem: SonarrSeries | SonarrEpisode;
@@ -45,7 +46,7 @@
 	});
 </script>
 
-<Dialog size="full" {modalId} {hidden}>
+<Modal class="bg-secondary-900 pt-16 px-20" {modalId} {hidden}>
 	{#if 'seasons' in sonarrItem && !season}
 		<MMSeasonSelectTab />
 	{:else}
@@ -60,4 +61,4 @@
 			</h2>
 		</MMReleasesTab>
 	{/if}
-</Dialog>
+</Modal>

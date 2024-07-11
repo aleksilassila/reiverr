@@ -104,6 +104,10 @@ html[data-useragent*="Tizen"] .selectable-secondary {
     @apply font-medium text-lg text-secondary-300;
 }
 
+.tag {
+    @apply px-3 py-1 rounded bg-secondary-700 inline-flex items-center justify-center text-sm text-secondary-100;
+}
+
 @media tv {
     html {
         font-size: 24px;

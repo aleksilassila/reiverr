@@ -47,9 +47,10 @@
 		class={classNames(
 			'h-12 rounded-xl font-medium tracking-wide flex items-center group',
 			{
-				'bg-secondary-800': type === 'primary',
-				'bg-primary-900': type === 'primary-dark',
-				'selectable px-6': type === 'primary' || type === 'primary-dark',
+				'px-6': type === 'primary' || type === 'primary-dark',
+				'bg-secondary-800': type === 'primary' && !$hasFocus,
+				'bg-primary-900': type === 'primary-dark' && !$hasFocus,
+				'bg-primary-500 text-black': (type === 'primary' || type === 'primary-dark') && $hasFocus,
 				'border-2 p-1 hover:border-primary-500': type === 'secondary',
 				'border-primary-500': type === 'secondary' && $hasFocus,
 				'!border-red-500': confirmDanger && armed,

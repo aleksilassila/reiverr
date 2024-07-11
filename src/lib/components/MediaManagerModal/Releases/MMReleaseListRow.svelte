@@ -2,13 +2,9 @@
 	import { formatMinutesToTime, formatSize } from '../../../utils.js';
 	import type { RadarrRelease } from '../../../apis/radarr/radarr-api';
 	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
-	import { scrollIntoView } from '../../../selectable';
-	import { Check, Download, Play } from 'radix-icons-svelte';
 	import TableRow from '../../Table/TableRow.svelte';
 	import type { GrabReleaseFn } from '../MediaManagerModal';
-	import TableButton from '../../Table/TableButton.svelte';
 	import TableCell from '../../Table/TableCell.svelte';
-	import Container from '../../../../Container.svelte';
 	import { playerState } from '../../VideoPlayer/VideoPlayer';
 
 	export let release: RadarrRelease | SonarrRelease;
@@ -30,48 +26,69 @@
 	}
 </script>
 
-<TableRow class="font-medium">
+<TableRow class="font-medium" on:enter on:clickOrSelect>
 	<TableCell>
 		<div>
-			<h2 class="text-sm font-medium text-zinc-300 mb-1">
+			<h1 class="font-medium text-lg text-secondary-100 mb-1">{release.title}</h1>
+			<h2 class="text-sm font-medium text-secondary-400">
 				{formatMinutesToTime(release.ageMinutes || 0)} ago
 			</h2>
-			<h1 class="font-medium text-lg">{release.title}</h1>
 		</div>
 	</TableCell>
-	<TableCell class="text-zinc-300">
-		{formatSize(release.size || 0)}
-	</TableCell>
-	<TableCell class="text-zinc-300">
-		<div
-			class="px-3 py-1 rounded bg-secondary-700 flex items-center justify-center float-left text-sm"
-		>
-			{release.seeders} / {release.leechers}
-		</div>
-	</TableCell>
-	<TableCell class="text-zinc-300">
-		<div
-			class="px-3 py-1 rounded bg-secondary-700 flex items-center justify-center float-left text-sm"
-		>
+	<TableCell>
+		<div class="tag">
 			{release.quality?.quality?.name}
 		</div>
 	</TableCell>
 	<TableCell>
-		<Container direction="horizontal">
-			<TableButton
-				disabled={didGrab || fetching}
-				on:clickOrSelect={handleGrabRelease}
-				on:enter={scrollIntoView({ vertical: 128 })}
-			>
-				<svelte:component this={didGrab ? Check : Download} size={19} />
-			</TableButton>
-
-			<TableButton
-				on:clickOrSelect={handleStreamRelease}
-				on:enter={scrollIntoView({ vertical: 128 })}
-			>
-				<svelte:component this={Play} size={19} />
-			</TableButton>
-		</Container>
+		<div class="tag">
+			{release.seeders} / {release.leechers}
+		</div>
 	</TableCell>
 </TableRow>
+
+<!--<TableRow class="font-medium">-->
+<!--	<TableCell>-->
+<!--		<div>-->
+<!--			<h2 class="text-sm font-medium text-zinc-300 mb-1">-->
+<!--				{formatMinutesToTime(release.ageMinutes || 0)} ago-->
+<!--			</h2>-->
+<!--			<h1 class="font-medium text-lg">{release.title}</h1>-->
+<!--		</div>-->
+<!--	</TableCell>-->
+<!--	<TableCell class="text-zinc-300">-->
+<!--		{formatSize(release.size || 0)}-->
+<!--	</TableCell>-->
+<!--	<TableCell class="text-zinc-300">-->
+<!--		<div-->
+<!--			class="px-3 py-1 rounded bg-secondary-700 flex items-center justify-center float-left text-sm"-->
+<!--		>-->
+<!--			{release.seeders} / {release.leechers}-->
+<!--		</div>-->
+<!--	</TableCell>-->
+<!--	<TableCell class="text-zinc-300">-->
+<!--		<div-->
+<!--			class="px-3 py-1 rounded bg-secondary-700 flex items-center justify-center float-left text-sm"-->
+<!--		>-->
+<!--			{release.quality?.quality?.name}-->
+<!--		</div>-->
+<!--	</TableCell>-->
+<!--	<TableCell>-->
+<!--		<Container direction="horizontal">-->
+<!--			<TableButton-->
+<!--				disabled={didGrab || fetching}-->
+<!--				on:clickOrSelect={handleGrabRelease}-->
+<!--				on:enter={scrollIntoView({ vertical: 128 })}-->
+<!--			>-->
+<!--				<svelte:component this={didGrab ? Check : Download} size={19} />-->
+<!--			</TableButton>-->
+
+<!--			<TableButton-->
+<!--				on:clickOrSelect={handleStreamRelease}-->
+<!--				on:enter={scrollIntoView({ vertical: 128 })}-->
+<!--			>-->
+<!--				<svelte:component this={Play} size={19} />-->
+<!--			</TableButton>-->
+<!--		</Container>-->
+<!--	</TableCell>-->
+<!--</TableRow>-->

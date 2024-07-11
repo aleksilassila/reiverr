@@ -1,19 +1,48 @@
 <script lang="ts">
 	import classNames from 'classnames';
+	import Container from '../../Container.svelte';
+	import type { ComponentType } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import AnimateScale from './AnimateScale.svelte';
 
+	export let icon: ComponentType;
 	export let disabled = false;
+	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
+	export let size: 'md' | 'sm' = 'md';
+
+	let hasFocus: Readable<boolean>;
 </script>
 
-<button
-	class={classNames(
-		'text-zinc-300 hover:text-zinc-50 p-1 flex items-center justify-center selectable rounded-sm flex-shrink-0',
-		{
-			'opacity-30 cursor-not-allowed pointer-events-none': disabled,
-			'cursor-pointer': !disabled
-		},
-		$$restProps.class
-	)}
-	on:click
->
-	<slot />
-</button>
+<AnimateScale hasFocus={$hasFocus}>
+	<Container
+		bind:hasFocus
+		class={classNames(
+			'rounded-xl font-medium tracking-wide flex items-center overflow-hidden',
+			{
+				'h-12': size === 'md',
+				'px-4': size === 'md',
+				'h-10': size === 'sm',
+				'px-3': size === 'sm'
+			},
+			{
+				'bg-secondary-800': type === 'primary' && !$hasFocus,
+				'bg-primary-900': type === 'primary-dark' && !$hasFocus,
+				'bg-primary-500 text-black': $hasFocus
+			},
+			$$restProps.class
+		)}
+		on:clickOrSelect
+	>
+		<svelte:component this={icon} size={19} />
+		<div
+			class={classNames('', {
+				'max-w-0 opacity-0': !$hasFocus,
+				'max-w-[calc(100%-19px)] opacity-100': $hasFocus
+			})}
+		>
+			<span class="ml-2">
+				<slot />
+			</span>
+		</div>
+	</Container>
+</AnimateScale>
