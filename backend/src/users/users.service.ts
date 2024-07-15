@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
-import { CreateUserDto, UpdateUserDto } from './user.dto';
+import { CreateUserDto, UpdateUserDto } from './user.dtos';
+import { USER_REPOSITORY } from './user.providers';
 
 export enum UserServiceError {
   PasswordMismatch = 'PasswordMismatch',
@@ -12,7 +13,7 @@ export enum UserServiceError {
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject('USER_REPOSITORY')
+    @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
   ) {}
 

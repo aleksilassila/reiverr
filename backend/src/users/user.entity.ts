@@ -1,5 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { PlayState } from './play-state/play-state.entity';
+import { MyListItem } from './my-list/my-list-item.entity';
 
 export class SonarrSettings {
   @ApiProperty({ required: true })
@@ -137,4 +139,10 @@ export class User {
   @ApiProperty({ required: true, type: Settings })
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
   settings = DEFAULT_SETTINGS;
+
+  @OneToMany(() => PlayState, (playState) => playState.user)
+  playStates: PlayState[];
+
+  @OneToMany(() => MyListItem, (myListItem) => myListItem.user)
+  myListItems: MyListItem[];
 }

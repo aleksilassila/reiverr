@@ -9,6 +9,7 @@
 	import { retry } from '../../utils';
 	import Modal from '../Modal/Modal.svelte';
 
+	export let tmdbId: number;
 	export let season: number | undefined = undefined;
 	export let sonarrItem: SonarrSeries | SonarrEpisode;
 	export let onGrabRelease: (release: Release) => void = () => {};
@@ -50,7 +51,7 @@
 	{#if 'seasons' in sonarrItem && !season}
 		<MMSeasonSelectTab />
 	{:else}
-		<MMReleasesTab {releases} {grabRelease}>
+		<MMReleasesTab {tmdbId} {sonarrItem} {releases} {grabRelease}>
 			<h1 slot="title">{sonarrItem?.title}</h1>
 			<h2 slot="subtitle">
 				{#if season}

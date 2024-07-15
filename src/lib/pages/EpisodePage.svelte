@@ -23,7 +23,7 @@
 	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
 	import { tick } from 'svelte';
 
-	export let id: string; // Series ID
+	export let id: string; // TmdbID
 	export let season: string;
 	export let episode: string;
 
@@ -71,6 +71,7 @@
 		return retry(() => getSonarrEpisode(sonarrItem)).then((sonarrEpisode) => {
 			sonarrEpisode &&
 				createModal(SonarrMediaManagerModal, {
+					tmdbId: Number(id),
 					sonarrItem: sonarrEpisode,
 					onGrabRelease: () => {}
 				});
@@ -81,6 +82,7 @@
 		return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
 			if (sonarrEpisode) {
 				createModal(SonarrMediaManagerModal, {
+					tmdbId: Number(id),
 					sonarrItem: sonarrEpisode,
 					onGrabRelease: () => {} // TODO
 				});

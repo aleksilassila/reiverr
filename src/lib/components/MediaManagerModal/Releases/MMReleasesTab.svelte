@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { type RadarrRelease } from '../../../apis/radarr/radarr-api';
 	import ButtonGhost from '../../Ghosts/ButtonGhost.svelte';
-	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
+	import type { SonarrEpisode, SonarrRelease, SonarrSeries } from '../../../apis/sonarr/sonarr-api';
 	import MMReleaseListRow from './MMReleaseListRow.svelte';
-	import TableHeaderRow from '../../Table/TableHeaderRow.svelte';
-	import TableHeaderSortBy from '../../Table/TableHeaderSortBy.svelte';
 	import type { GrabReleaseFn } from '../MediaManagerModal';
 	import Container from '../../../../Container.svelte';
 	import Dropdown from '../../Dropdown.svelte';
-	import { scrollElementIntoView, scrollIntoView, type Selectable } from '../../../selectable';
+	import { scrollElementIntoView, type Selectable } from '../../../selectable';
 	import Button from '../../Button.svelte';
 	import { formatMinutesToTime, formatSize } from '../../../utils';
 	import { Check, Download, Play, Reload } from 'radix-icons-svelte';
@@ -32,6 +30,8 @@
 		{ value: 'desc', text: 'Descending' }
 	];
 
+	export let tmdbId: number | undefined = undefined;
+	export let sonarrItem: SonarrSeries | SonarrEpisode;
 	export let releases: Promise<Release[]>;
 	export let grabRelease: GrabReleaseFn;
 
@@ -108,7 +108,15 @@
 	}
 
 	function handleStreamRelease(release: Release) {
-		release.magnetUrl && playerState.streamMagnetLink(release.magnetUrl);
+		let seasonNumber, episodeNumber;
+
+		if ('episodeNumber' in sonarrItem) {
+			seasonNumber = sonarrItem.seasonNumber;
+			episodeNumber = sonarrItem.episodeNumber;
+		}
+
+		release.magnetUrl &&
+			playerState.streamMagnetLink(release.magnetUrl, tmdbId, seasonNumber, episodeNumber);
 	}
 </script>
 

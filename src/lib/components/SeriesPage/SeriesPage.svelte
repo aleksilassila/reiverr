@@ -83,6 +83,7 @@
 			(sonarrItem) =>
 				sonarrItem &&
 				createModal(SonarrMediaManagerModal, {
+					tmdbId: Number(id),
 					season: 1,
 					sonarrItem,
 					onGrabRelease
@@ -95,6 +96,7 @@
 			const tmdbSeries = get(tmdbSeriesData);
 			if (sonarrItem) {
 				createModal(SonarrMediaManagerModal, {
+					tmdbId: Number(id),
 					season,
 					sonarrItem,
 					onGrabRelease

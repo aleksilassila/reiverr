@@ -45,9 +45,14 @@ function createPlayerState() {
 			store.set({ visible: true, jellyfinId: id });
 			modalStack.create(JellyfinVideoPlayerModal, { id });
 		},
-		streamMagnetLink: (link: string) => {
+		streamMagnetLink: (
+			link: string,
+			tmdbId?: number,
+			seasonNumber?: number,
+			episodeNumber?: number
+		) => {
 			store.set({ visible: true, jellyfinId: '' });
-			modalStack.create(TorrentVideoPlayerModal, { link });
+			modalStack.create(TorrentVideoPlayerModal, { link, tmdbId, seasonNumber, episodeNumber });
 		},
 		close: () => {
 			store.set({ visible: false, jellyfinId: '' });

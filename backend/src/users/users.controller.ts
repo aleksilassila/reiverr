@@ -17,7 +17,7 @@ import {
 import { UserServiceError, UsersService } from './users.service';
 import { AuthGuard, GetUser, OptionalAuthGuard } from '../auth/auth.guard';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dtos';
 import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 

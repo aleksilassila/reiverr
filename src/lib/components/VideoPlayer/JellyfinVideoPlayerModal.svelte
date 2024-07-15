@@ -186,7 +186,7 @@
 		reportProgressInterval = setInterval(() => {
 			if (video?.readyState === 4 && progressTime > 0 && sessionId && id)
 				reportProgress(id, sessionId, paused, progressTime);
-		}, 10_000);
+		}, 5_000);
 	}
 
 	loadPlaybackInfo();

@@ -17,6 +17,21 @@ export interface paths {
   "/auth": {
     post: operations["AuthController_signIn"];
   };
+  "/my-list": {
+    get: operations["MyListController_getMyList"];
+  };
+  "/my-list/{tmdbId}": {
+    post: operations["MyListController_addToMyList"];
+    delete: operations["MyListController_removeFromMyList"];
+  };
+  "/play-state/{tmdbId}": {
+    get: operations["PlayStateController_getPlayState"];
+    put: operations["PlayStateController_updatePlayState"];
+  };
+  "/play-state/{tmdbId}/season/{seasonNumber}/episode/{episodeNumber}": {
+    get: operations["PlayStateController_getEpisodePlayState"];
+    put: operations["PlayStateController_updateEpisodePlayState"];
+  };
   "/": {
     get: operations["AppController_getHello"];
   };
@@ -91,6 +106,24 @@ export interface components {
     SignInResponse: {
       accessToken: string;
       user: components["schemas"]["UserDto"];
+    };
+    MyListItemDto: {
+      id: string;
+      tmdbId: number;
+    };
+    PlayStateDto: {
+      id: string;
+      tmdbId: number;
+      seasonNumber?: number;
+      episodeNumber?: number;
+      progress: number;
+      watched?: boolean;
+      showInUpNext?: boolean;
+    };
+    UpdatePlayStateDto: {
+      progress?: number;
+      watched?: boolean;
+      showInUpNext?: boolean;
     };
   };
   responses: never;
@@ -262,6 +295,113 @@ export interface operations {
             /** @example Unauthorized */
             error?: string;
           };
+        };
+      };
+    };
+  };
+  MyListController_getMyList: {
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["MyListItemDto"][];
+        };
+      };
+    };
+  };
+  MyListController_addToMyList: {
+    parameters: {
+      path: {
+        tmdbId: number;
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["MyListItemDto"][];
+        };
+      };
+    };
+  };
+  MyListController_removeFromMyList: {
+    parameters: {
+      path: {
+        tmdbId: number;
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["MyListItemDto"][];
+        };
+      };
+    };
+  };
+  PlayStateController_getPlayState: {
+    parameters: {
+      path: {
+        tmdbId: number;
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayStateDto"];
+        };
+      };
+    };
+  };
+  PlayStateController_updatePlayState: {
+    parameters: {
+      path: {
+        tmdbId: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdatePlayStateDto"];
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayStateDto"];
+        };
+      };
+    };
+  };
+  PlayStateController_getEpisodePlayState: {
+    parameters: {
+      path: {
+        tmdbId: number;
+        seasonNumber: number;
+        episodeNumber: number;
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayStateDto"];
+        };
+      };
+    };
+  };
+  PlayStateController_updateEpisodePlayState: {
+    parameters: {
+      path: {
+        tmdbId: number;
+        seasonNumber: number;
+        episodeNumber: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdatePlayStateDto"];
+      };
+    };
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlayStateDto"];
         };
       };
     };

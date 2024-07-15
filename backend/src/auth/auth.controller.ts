@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignInDto, UserDto } from '../users/user.dto';
+import { SignInDto, UserDto } from '../users/user.dtos';
 import { ApiOkResponse, ApiProperty } from '@nestjs/swagger';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 

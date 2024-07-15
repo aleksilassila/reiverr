@@ -4,6 +4,8 @@ import { User } from './user.entity';
 export class UserDto extends OmitType(User, [
   'password',
   'profilePicture',
+  'playStates',
+  'myListItems',
 ] as const) {
   @ApiProperty({ type: 'string' })
   profilePicture: string | null;
