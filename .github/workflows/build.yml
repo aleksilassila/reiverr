@@ -5,19 +5,25 @@ on:
     types: [published]
   workflow_dispatch:
 
-    # branches:
-    #   - master
-    #   - dev
-
-  # pull_request:
-  #   branches:
-  #     - main
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # test:
+  #   timeout-minutes: 10
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v1
+
+  #     #      - name: Build containers
+  #     #        run: docker compose build
+
+  #     - name: Test backend
+  #       run: docker compose run --build backend sh -c 'npx prisma migrate reset --force && export NODE_ENV=test && npx jest'
+
   push:
     runs-on: ubuntu-latest
     permissions:

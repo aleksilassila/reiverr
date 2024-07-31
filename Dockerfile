@@ -10,6 +10,8 @@ COPY package-lock.json .
 COPY backend/package.json ./backend/package.json
 COPY backend/package-lock.json ./backend/package-lock.json
 
+RUN npm i
+
 # Add tini for better signal handling
 RUN apk add --no-cache tini
 ENTRYPOINT ["/sbin/tini", "--"]
@@ -25,14 +27,6 @@ FROM --platform=linux/amd64 node:18-alpine as production
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
-
-COPY --from=builder /usr/src/app/build build/
-COPY --from=builder /usr/src/app/node_modules node_modules/
-COPY package.json ./
-
-# Config folder
-RUN mkdir -p ./config
-RUN ln -s /usr/src/app/config /config
 
 ENV PORT=9494
 ENV NODE_ENV=production
