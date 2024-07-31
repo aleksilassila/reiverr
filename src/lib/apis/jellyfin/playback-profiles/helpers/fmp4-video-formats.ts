@@ -10,7 +10,7 @@ import {
 	isFirefox,
 	isTizen,
 	isWebOS
-} from '$lib/utils/browser-detection';
+} from '../../../../utils/browser-detection';
 
 /**
  * Gets an array of supported fmp4 video codecs

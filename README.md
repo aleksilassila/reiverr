@@ -1,17 +1,33 @@
 # Reiverr
 
-Reiverr is a project that aims to create a single UI for interacting with TMDB, Jellyfin, Radarr and Sonarr, as well as be an alternative to Overseerr.
+![Stargazers](https://img.shields.io/github/stars/aleksilassila/reiverr)
+![GitHub issues](https://img.shields.io/github/issues/aleksilassila/reiverr)
+![Discord](https://img.shields.io/discord/923259625145524354)
+![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
+![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
 
-This project is still in alpha, and many features are still missing. Contributions are welcome! See [contributing](#Contributing) for more information.
+Reiverr is a project that aims to create a single UI for interacting with TMDB, Jellyfin, Radarr and Sonarr, as well as
+be an alternative to Overseerr.
 
-![Demo Videi](images/reiverr-demo.gif)
+This project is still in early stages, and many features are still missing / being tested and changed.
+Contributions are welcome! See [contributing](#Contributing) for more information.
 
-# List of major featuers
+![Demo Video](images/reiverr-demo.gif)
+
+## Reiverr 1.0
+
+This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind.
+It still lacks many features of the previous version. If you want a more stable experience,
+or only care about the web app, you might want to check out the
+[1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
+
+# List of major features
 
 TMDB Discovery:
 
 - Discover trending movies and TV shows
-- Browse movies and TV shows by genre or network
+- Get personalized recommendations based on your ratings
+- ~~Browse movies and TV shows by genre or network~~
 - View details about movies and TV shows, such as cast, crew, ratings & a trailer.
 - Movie & TV show search
 
@@ -20,15 +36,13 @@ Local Library & Playback
 - Stream Movies & TV shows (from Jellyfin library)
 - Create requests for movies & TV shows in Radarr & Sonarr
 - Manage local library files
-- View Radarr & Sonarr stats (disk space, items, etc.)
-
+- ~~View Radarr & Sonarr stats (disk space, items, etc.)~~
+  
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
 # Installation
 
 The easiest and the recommended way to install Reiverr is via Docker. Make sure to update the api keys and base URLs to match your setup.
-
-Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs. Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
 
 ### Docker CLI
 
@@ -54,31 +68,53 @@ services:
     container_name: reiverr
     ports:
       - 9494:9494
+    environment:
+      - SECRET=your_secret_here # optional, used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
+      - ADMIN_USERNAME=admin # optional
+      - ADMIN_PASSWORD=admin # optional
     volumes:
       - /path/to/appdata/config:/config
     restart: unless-stopped
 ```
 
-### Manual Instructions
+### Building from Source
 
-1. Requirements:
-   - Node v18.14.0 or high
-   - NPM v9.3.1 or high
-1. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
-1. Build the app:
-   ```sh
-   npm ci --ignore-scripts
-   npm run build
-   npm ci --ignore-scripts --omit=dev # optional
-   ```
-1. Start the app:
-   ```sh
-   npm run deploy
-   ```
+1. Requirements(ish):
+   - Node v18.14.0 or higher
+   - NPM v9.3.1 or higher
+2. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
+3. Build the app:\
+   `npm install`\
+   `npm install --prefix backend`\
+   `npm run build`
+4. Start the app:\
+   `node backend/dist/src/main`
 
-### Reiverr will be accessible via port 9494 by default.
+#### Reiverr will be accessible via port 9494 by default.
 
-If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions), open an [issue](https://github.com/aleksilassila/reiverr/issues) or check out the [Discord channel](https://discord.gg/enypPQh6pz).
+### Tizen / Samsung Smart TVs
+
+To be able to use Reiverr on TVs, you'll still need to host the backend server on a separate device.
+See the above methods for instructions on how to set up the backend / web app.
+
+There are plans to attempt getting the app to the official store. In the meantime, you have to manually build and install
+the app using Tizen Studio or the CLI, following roughly these steps:
+
+1. Follow the manual installation steps above to install the dependencies (npm install)
+2. Download either Tizen Studio or the CLI tools from the [official website](https://developer.tizen.org/development/tizen-studio/download)
+3. [Connect Tizen Studio to your TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
+4. Use the following command to build and install the app on your TV:\
+\
+`npm run build:tizen;C:\tizen-studio\tools\ide\bin\tizen.bat build-web -- tizen;C:\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -o .\tizen -- .\tizen\.buildResult\;C:\tizen-studio\tools\ide\bin\tizen.bat install -n .\tizen\Reiverr.wgt -t QE55Q64TAUXXC`.\
+\
+You may need to replace the paths for Tizen Studio tools according to your installation location, as well as the device identifier, which was in my case the tv model number.\
+\
+Alternatively, you can open the project in Tizen Studio and install the project on a device from there. For more instructions on run a project on a device, see [here](https://docs.tizen.org/application/web/get-started/tv/first-samsung-tv-app/#run-on-a-target-device).
+
+If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions),
+open an [issue](https://github.com/aleksilassila/reiverr/issues)
+or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented,
+you can react to it with a thumbs up.
 
 ## Other Platforms
 
@@ -86,23 +122,45 @@ The roadmap includes plans to support the following platforms in the future:
 
 - Windows Desktop App
 - MacOS Desktop App
-- Android TV / TizenOS
+- Android TV / WebOS
+
+# Post Installation
+
+To create the first user account, you can log in with any credentials and an admin account will be created.
+Alternatively, you can define the admin username and password using environment variables,
+as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
+To get most out of Reiverr, it is recommended to connect to TMDB, Jellyfin, Radarr and Sonarr.
+
+> Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs.
+> Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+
 
 # Contributing
 
-Unlike the most Servarr projects, this one is built with Svelte and SvelteKit. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
+Unlike the most Servarr projects, this one is built with Svelte and NestJS. If you haven't used Svelte before,
+don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to
+get started.
 
-To see a list of missing features & known bugs that you can help with, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5). Feel free to also create your own issues for bug reports or feature requests, as well as discussions for general questions.
+To see a list of missing features & known bugs that you can help with,
+see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7). Feel free to also create your own
+issues for bug reports or feature requests, as well as discussions for general questions.
+Issues with the `community` label are issues that I can't or won't work on myself, and are
+left for the community to pick up. Feel free to work on any issues though, even without the label.
 
 Before you contribute:
 
-- If you are taking on an existing bug or feature ticket, please comment on the issue or mark yourself as an assignee to avoid multiple people working on the same thing.
+- If you are taking on an existing bug or feature ticket, it is encouraged to comment on the issue or mark yourself
+  as an assignee at some point to avoid multiple people working on the same thing.
 - If the ticket is vague or missing information, please ask for clarification in the comments.
-- UI style must match the rest of the project and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with "design").
+- UI style should match the rest of the project, and it is a good idea to discuss the design beforehand,
+  especially for larger design choices (issues labelled with `design`).
 - [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
-- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
+- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is
+  a work in progress.
 
-I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated!
+I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them.
+If you are a designer and would like to help, contributions are much appreciated! Also the project
+is still missing a logo :)
 
 # Development
 
@@ -110,15 +168,23 @@ To get started with development:
 
 1. Clone the repository
 2. Check out the `dev` branch
-3. Run `npm install`
-4. Run `npm run dev`
+3. Install dependencies\
+   `npm install`\
+   `npm install --prefix backend`
+4. To start the frontend: `npm run dev` or `npx vite --host` if you want to expose the server
+5. To start the backend: `npm run --prefix backend start:dev`
 
-Alternatively, you can run `docker-compose up`.
+## Notes
+- 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc.
+  [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource
+  for how to design for TVs.
+- The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that
+  you might not be able to use the latest browser features, or that you'll have to use a polyfill.
+  [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
+  - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is
+    css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
 
-For Webstorm users: I'd recommend using VS Code as it has way better Svelte Typescript support.
-
-Useful resources:
-
+## Useful resources
 - https://developer.themoviedb.org/reference
 - https://api.jellyfin.org/
 - https://sonarr.tv/docs/api/

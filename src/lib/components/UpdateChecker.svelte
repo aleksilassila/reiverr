@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { version } from '$app/environment';
-	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { Cross2 } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import axios from 'axios';
 	import Button from './Button.svelte';
+	import { skippedVersion } from '../stores/localstorage.store';
 
 	let visible = true;
-
-	const skippedVersion = createLocalStorageStore<string>('skipped-version');
 
 	async function fetchLatestVersion() {
 		return axios
@@ -18,7 +15,7 @@
 </script>
 
 {#await fetchLatestVersion() then latestVersion}
-	{#if latestVersion !== `v${version}` && latestVersion !== $skippedVersion && visible}
+	{#if latestVersion !== `v${REIVERR_VERSION}` && latestVersion !== $skippedVersion && visible}
 		<div
 			class="fixed inset-x-0 bottom-0 p-3 flex items-center justify-center z-20 bg-stone-800 text-sm"
 		>

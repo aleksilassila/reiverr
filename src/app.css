@@ -3,29 +3,109 @@
 @tailwind utilities;
 
 a {
-	@apply hover:text-amber-200;
+    @apply hover:text-amber-200;
 }
 
 .placeholder {
-	@apply bg-zinc-700 bg-opacity-40 animate-pulse;
+    @apply bg-zinc-700 bg-opacity-40 animate-pulse;
 }
 
 .placeholder-image {
-	@apply bg-zinc-700 bg-opacity-75;
+    @apply bg-zinc-700 bg-opacity-75;
 }
 
 .placeholder-text {
-	@apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
+    @apply bg-zinc-700 bg-opacity-40 animate-pulse text-transparent rounded-lg select-none;
+}
+
+/*html:not([data-useragent*="Tizen"]) .selectable, html:not([data-useragent*="Tizen"]) .selectable-offset {*/
+/*    @apply focus-visible:outline-2;*/
+/*}*/
+
+/*html[data-useragent*="Tizen"] .selectable, html[data-useragent*="Tizen"] .selectable-offset {*/
+/*    @apply focus-within:outline-2;*/
+/*}*/
+
+/*.selectable, .selectable-offset {*/
+/*    @apply outline outline-0 outline-primary-500*/
+/*}*/
+
+/*.selectable {*/
+/*	@apply outline-offset-[-2px] border-2 border-transparent*/
+/*}*/
+
+/*.selectable-offset {*/
+/*	@apply outline-offset-[2px]*/
+/*}*/
+
+html:not([data-useragent*="Tizen"]) .selectable {
+    @apply focus:border-primary-500 focus-visible:border-primary-500;
+}
+
+html[data-useragent*="Tizen"] .selectable {
+    @apply focus:border-primary-500 focus-within:border-primary-500;
 }
 
 .selectable {
-	@apply focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply outline-none outline-0 border-2 border-[#00000000] transition-colors hover:border-primary-500;
+}
+
+.selectable:focus, .selectable:focus-within {
+    border-width: 2px;
+}
+
+
+
+.selectable-secondary {
+    @apply outline-none outline-0 border-2 transition-colors hover:border-primary-500;
+}
+
+html:not([data-useragent*="Tizen"]) .selectable-secondary {
+    @apply focus-visible:border-primary-500;
+}
+
+html[data-useragent*="Tizen"] .selectable-secondary {
+    @apply focus-within:border-primary-500;
+}
+
+.selected {
+    @apply outline-none outline-0 border-2 border-primary-500;
+}
+
+.unselected {
+    @apply outline-none outline-0 border-2 border-transparent;
 }
 
 .peer-selectable {
-	@apply peer-focus-visible:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply peer-focus-visible:outline outline-2 outline-primary-500 outline-offset-2;
 }
 
 .selectable-explicit {
-	@apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+    @apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
+}
+
+.header1 {
+    @apply font-semibold text-xl text-secondary-100;
+}
+
+.header2 {
+    @apply font-semibold text-2xl text-secondary-100;
+}
+
+.header3 {
+    @apply font-semibold text-3xl text-secondary-100;
+}
+
+.header4 {
+    @apply font-semibold text-4xl text-secondary-100 tracking-wider;
+}
+
+.body {
+    @apply font-medium text-lg text-secondary-300;
+}
+
+@media tv {
+    html {
+        font-size: 24px;
+    }
 }

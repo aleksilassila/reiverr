@@ -1,17 +1,8 @@
-import { getJellyfinItems, type JellyfinItem } from '$lib/apis/jellyfin/jellyfinApi';
-import {
-	getRadarrDownloads,
-	getRadarrMovies,
-	type RadarrDownload
-} from '$lib/apis/radarr/radarrApi';
-import {
-	getSonarrDownloads,
-	getSonarrSeries,
-	type SonarrDownload,
-	type SonarrSeries
-} from '$lib/apis/sonarr/sonarrApi';
-import { derived, writable } from 'svelte/store';
+import { derived, type Readable, writable } from 'svelte/store';
 import { settings } from './settings.store';
+import { jellyfinApi, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
+import { type EpisodeDownload, sonarrApi, type SonarrSeries } from '../apis/sonarr/sonarr-api';
+import { radarrApi, type MovieDownload } from '../apis/radarr/radarr-api';
 
 async function waitForSettings() {
 	return new Promise((resolve) => {
@@ -29,7 +20,7 @@ type AwaitableStoreValue<R, T = { data?: R }> = {
 	loading: boolean;
 } & T;
 
-function _createDataFetchStore<T>(fn: () => Promise<T>) {
+export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 	const store = writable<AwaitableStoreValue<T>>({
 		loading: true,
 		data: undefined
@@ -57,13 +48,13 @@ function _createDataFetchStore<T>(fn: () => Promise<T>) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh,
+		send: refresh,
 		refreshIn,
 		promise: refresh()
 	};
 }
 
-export const jellyfinItemsStore = _createDataFetchStore(getJellyfinItems);
+export const jellyfinItemsStore = _createDataFetchStore(() => jellyfinApi.getLibraryItems());
 
 export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	const store = writable<{ loading: boolean; item?: JellyfinItem }>({
@@ -82,7 +73,7 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: jellyfinItemsStore.refresh,
+		send: jellyfinItemsStore.send,
 		refreshIn: jellyfinItemsStore.refreshIn,
 		promise: new Promise<JellyfinItem | undefined>((resolve) => {
 			store.subscribe((s) => {
@@ -92,8 +83,8 @@ export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
 	};
 }
 
-export const sonarrSeriesStore = _createDataFetchStore(getSonarrSeries);
-export const radarrMoviesStore = _createDataFetchStore(getRadarrMovies);
+export const sonarrSeriesStore = _createDataFetchStore(sonarrApi.getDownloads);
+export const radarrMoviesStore = _createDataFetchStore(radarrApi.getRadarrMovies);
 
 export function createRadarrMovieStore(tmdbId: number) {
 	const store = derived(radarrMoviesStore, (s) => {
@@ -105,7 +96,7 @@ export function createRadarrMovieStore(tmdbId: number) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: radarrMoviesStore.refresh,
+		send: radarrMoviesStore.send,
 		refreshIn: radarrMoviesStore.refreshIn
 	};
 }
@@ -135,13 +126,13 @@ export function createSonarrSeriesStore(name: Promise<string> | string) {
 
 	return {
 		subscribe: store.subscribe,
-		refresh: sonarrSeriesStore.refresh,
+		send: sonarrSeriesStore.send,
 		refreshIn: sonarrSeriesStore.refreshIn
 	};
 }
 
-export const sonarrDownloadsStore = _createDataFetchStore(getSonarrDownloads);
-export const radarrDownloadsStore = _createDataFetchStore(getRadarrDownloads);
+export const sonarrDownloadsStore = _createDataFetchStore(sonarrApi.getDownloads);
+export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getDownloads);
 export const servarrDownloadsStore = (() => {
 	const store = derived([sonarrDownloadsStore, radarrDownloadsStore], ([sonarr, radarr]) => {
 		return {
@@ -159,7 +150,7 @@ export const servarrDownloadsStore = (() => {
 export function createRadarrDownloadStore(
 	radarrMovieStore: ReturnType<typeof createRadarrMovieStore>
 ) {
-	const store = writable<{ loading: boolean; downloads?: RadarrDownload[] }>({
+	const store = writable<{ loading: boolean; downloads?: MovieDownload[] }>({
 		loading: true,
 		downloads: undefined
 	});
@@ -183,14 +174,14 @@ export function createRadarrDownloadStore(
 
 	return {
 		subscribe: store.subscribe,
-		refresh: async () => radarrDownloadsStore.refresh()
+		send: async () => radarrDownloadsStore.send()
 	};
 }
 
 export function createSonarrDownloadStore(
 	sonarrItemStore: ReturnType<typeof createSonarrSeriesStore>
 ) {
-	const store = writable<{ loading: boolean; downloads?: SonarrDownload[] }>({
+	const store = writable<{ loading: boolean; downloads?: EpisodeDownload[] }>({
 		loading: true,
 		downloads: undefined
 	});
@@ -214,6 +205,162 @@ export function createSonarrDownloadStore(
 
 	return {
 		subscribe: store.subscribe,
-		refresh: async () => sonarrDownloadsStore.refresh()
+		send: async () => sonarrDownloadsStore.send()
 	};
 }
+
+export const useActionRequests = <P extends Record<string, (...args: any[]) => Promise<any>>>(
+	values: P
+) => {
+	const initialFetching: Record<keyof P, boolean> = {} as any;
+	Object.keys(values).forEach((key) => {
+		initialFetching[key as keyof P] = false;
+	});
+
+	const fetching = writable(initialFetching);
+
+	const initialData: Record<keyof P, Awaited<ReturnType<P[keyof P]>> | undefined> = {} as any;
+	Object.keys(values).forEach((key) => {
+		initialData[key as keyof P] = undefined;
+	});
+
+	const data = writable(initialData);
+
+	const methods: P = {} as any;
+	Object.keys(values).forEach((key) => {
+		// @ts-expect-error
+		methods[key as keyof P] = async (...args: any[]) => {
+			fetching.update((f) => ({ ...f, [key]: true }));
+			values[key as keyof P]?.(...args)
+				.then((d) => data.update((prev) => ({ ...prev, [key]: d })))
+				.finally(() => {
+					fetching.update((f) => ({ ...f, [key]: false }));
+				});
+		};
+	});
+
+	return {
+		requests: methods,
+		data: {
+			subscribe: data.subscribe
+		},
+		isFetching: {
+			subscribe: fetching.subscribe
+		}
+	};
+};
+
+export const useDependantRequest = <P extends (...args: A) => Promise<any>, A extends any[], S>(
+	fn: P,
+	store: Readable<S>,
+	subscribeFn: (store: S) => Parameters<P> | undefined
+) => {
+	const isLoading = writable(true);
+	const r = useActionRequest<P, A>(fn);
+
+	store.subscribe(($data) => {
+		const args = subscribeFn($data);
+		if (!args) return;
+		r.send(...args).finally(() => isLoading.set(false));
+	});
+
+	return {
+		...r,
+		refresh: r.send,
+		isLoading: {
+			subscribe: isLoading.subscribe
+		}
+	};
+};
+
+export const useRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P,
+	...args: Parameters<P>
+) => {
+	const isLoading = writable(true);
+	const r = useActionRequest<P, A>(fn);
+
+	r.send(...args).finally(() => isLoading.set(false));
+
+	return {
+		...r,
+		refresh: r.send,
+		isLoading: {
+			subscribe: isLoading.subscribe
+		}
+	};
+};
+
+export const useActionRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P
+) => {
+	const request = writable<ReturnType<P>>(undefined);
+	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
+	const isFetching = writable(false);
+
+	function send(...args: Parameters<P>): ReturnType<P> {
+		isFetching.set(true);
+		// @ts-ignore
+		const p: ReturnType<P> = fn(...args)
+			.then((res) => {
+				data.set(res);
+				return res;
+			})
+			.finally(() => {
+				isFetching.set(false);
+			});
+
+		request.set(p);
+		return p;
+	}
+
+	return {
+		promise: {
+			subscribe: request.subscribe
+		},
+		data: {
+			subscribe: data.subscribe
+		},
+
+		isFetching: {
+			subscribe: isFetching.subscribe
+		},
+		send
+	};
+};
+
+export const useActionRequest2 = <P extends (...args: A) => Promise<any>, A extends any[]>(
+	fn: P
+) => {
+	const request = writable<ReturnType<P>>(undefined);
+	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
+	const isFetching = writable(false);
+
+	function send(...args: Parameters<P>): ReturnType<P> {
+		isFetching.set(true);
+		// @ts-ignore
+		const p: ReturnType<P> = fn(...args)
+			.then((res) => {
+				data.set(res);
+				return res;
+			})
+			.finally(() => {
+				isFetching.set(false);
+			});
+
+		request.set(p);
+		return p;
+	}
+
+	return {
+		promise: request,
+		data: {
+			subscribe: data.subscribe
+		},
+
+		isFetching: {
+			subscribe: isFetching.subscribe
+		},
+		send
+	};
+};

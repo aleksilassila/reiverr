@@ -2,7 +2,7 @@
  * @deprecated - Check @/utils/playback-profiles/index
  */
 
-import { isApple, isTizen, isTv, isWebOS } from '$lib/utils/browser-detection';
+import { isApple, isTizen, isTv, isWebOS } from '../../../../utils/browser-detection';
 
 /**
  * Determines if audio codec is supported

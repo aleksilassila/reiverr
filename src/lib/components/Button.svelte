@@ -1,61 +1,114 @@
 <script lang="ts">
+	import Container from '../../Container.svelte';
+	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
-	import { createEventDispatcher } from 'svelte';
+	import AnimatedSelection from './AnimateScale.svelte';
+	import { type ComponentType, createEventDispatcher } from 'svelte';
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
-	export let size: 'md' | 'sm' | 'lg' | 'xs' = 'md';
-	export let type: 'primary' | 'secondary' | 'tertiary' = 'secondary';
-	export let slim = false;
-	export let disabled = false;
+	export let disabled: boolean = false;
+	export let focusOnMount: boolean = false;
+	export let focusedChild = false;
+	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
+	export let confirmDanger = false;
+	export let action: (() => Promise<any>) | null = null;
+	export let icon: ComponentType | undefined = undefined;
+	export let iconAfter: ComponentType | undefined = undefined;
+	export let iconAbsolute: ComponentType | undefined = undefined;
 
-	export let href: string | undefined = undefined;
-	export let target: string | undefined = '_self';
+	let actionIsFetching = false;
+	$: _disabled = disabled || actionIsFetching;
+	let armed = false;
+	let hasFocus: Readable<boolean>;
+	$: if (!$hasFocus && armed) armed = false;
 
-	let buttonStyle: string;
-	$: buttonStyle = classNames(
-		'flex items-center gap-1 font-medium select-none cursor-pointer selectable transition-all flex-shrink-0',
-		{
-			'bg-white text-zinc-900 font-extrabold backdrop-blur-lg rounded-xl': type === 'primary',
-			'hover:bg-amber-400 focus-within:bg-amber-400 hover:border-amber-400 focus-within:border-amber-400':
-				type === 'primary' && !disabled,
-			'text-zinc-200 bg-zinc-600 bg-opacity-20 backdrop-blur-lg rounded-xl': type === 'secondary',
-			'focus-visible:bg-zinc-200 focus-visible:text-zinc-800 hover:bg-zinc-200 hover:text-zinc-800':
-				(type === 'secondary' || type === 'tertiary') && !disabled,
-			'rounded-full': type === 'tertiary',
+	function handleClickOrSelect() {
+		if (actionIsFetching || _disabled) return;
 
-			'py-2 px-6 sm:py-3 sm:px-6': size === 'lg' && !slim,
-			'py-2 px-6': size === 'md' && !slim,
-			'py-1 px-4': size === 'sm' && !slim,
-			'py-1 px-4 text-sm': size === 'xs' && !slim,
-
-			'p-2 sm:p-3': size === 'lg' && slim,
-			'p-2': size === 'md' && slim,
-			'p-1': size === 'sm' && slim,
-			'p-1 text-sm': size === 'xs' && slim,
-
-			'opacity-50': disabled,
-			'cursor-pointer': !disabled
+		if (confirmDanger && !armed) {
+			armed = true;
+			return;
 		}
-	);
 
-	const handleClick = (event: MouseEvent) => {
-		if (href) {
-			window.open(href, target)?.focus();
-		} else {
-			dispatch('click', event);
+		if (action) {
+			actionIsFetching = true;
+			action().then(() => (actionIsFetching = false));
 		}
-	};
+
+		dispatch('clickOrSelect');
+		armed = false;
+	}
 </script>
 
-<button
-	class={buttonStyle}
-	on:click={handleClick}
-	on:focus
-	on:mouseover
-	on:mouseleave
-	on:blur
-	{disabled}
->
-	<slot />
-</button>
+<AnimatedSelection hasFocus={$hasFocus}>
+	<Container
+		bind:hasFocus
+		class={classNames(
+			'h-12 rounded-xl font-medium tracking-wide flex items-center group',
+			{
+				'bg-secondary-800': type === 'primary',
+				'bg-primary-900': type === 'primary-dark',
+				'selectable px-6': type === 'primary' || type === 'primary-dark',
+				'border-2 p-1 hover:border-primary-500': type === 'secondary',
+				'border-primary-500': type === 'secondary' && $hasFocus,
+				'!border-red-500': confirmDanger && armed,
+				'cursor-pointer': !_disabled,
+				'cursor-not-allowed pointer-events-none opacity-40': _disabled
+			},
+			$$restProps.class
+		)}
+		on:click
+		on:select
+		on:clickOrSelect={handleClickOrSelect}
+		on:enter
+		{focusOnMount}
+		{focusedChild}
+	>
+		<div
+			class={classNames({
+				contents: type === 'primary' || type === 'primary-dark',
+				'border-2 border-transparent h-full w-full rounded-lg flex items-center px-6':
+					type === 'secondary',
+				'bg-primary-500 text-secondary-950': type === 'secondary' && $hasFocus,
+				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary',
+				'!bg-red-500': confirmDanger && armed
+			})}
+		>
+			<div class="flex-1 text-center text-nowrap flex items-center justify-center relative">
+				{#if $$slots.icon}
+					<div class="mr-2">
+						<slot name="icon" />
+					</div>
+				{/if}
+				{#if icon}
+					<div class="mr-2">
+						<svelte:component this={icon} size={19} />
+					</div>
+				{/if}
+				<slot {hasFocus} />
+				{#if $$slots['icon-after']}
+					<div class="ml-2">
+						<slot name="icon-after" />
+					</div>
+				{/if}
+				{#if iconAfter}
+					<div class="ml-2">
+						<svelte:component this={iconAfter} size={19} />
+					</div>
+				{/if}
+				{#if $$slots['icon-absolute']}
+					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
+						<slot name="icon-absolute" />
+					</div>
+				{/if}
+				{#if iconAbsolute}
+					<div class="w-8" />
+					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
+						<svelte:component this={iconAbsolute} size={19} />
+					</div>
+				{/if}
+			</div>
+		</div>
+	</Container>
+</AnimatedSelection>

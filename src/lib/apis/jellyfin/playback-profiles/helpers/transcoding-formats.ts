@@ -2,7 +2,7 @@
  * @deprecated - Check @/utils/playback-profiles/index
  */
 
-import { isEdge, isTizen, isTv, supportsMediaSource } from '$lib/utils/browser-detection';
+import { isEdge, isTizen, isTv, supportsMediaSource } from '../../../../utils/browser-detection';
 
 /**
  * Checks if the client can play native HLS

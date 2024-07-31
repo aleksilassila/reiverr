@@ -1,129 +1,157 @@
 <script lang="ts">
-	import {
-		createJellyfinItemStore,
-		createRadarrMovieStore,
-		createSonarrSeriesStore
-	} from '$lib/stores/data.store';
-	import type { TitleType } from '$lib/types';
-	import { formatMinutesToTime } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Clock, Star } from 'radix-icons-svelte';
-	import { openTitleModal } from '../../stores/modal.store';
-	import ContextMenu from '../ContextMenu/ContextMenu.svelte';
-	import LibraryItemContextItems from '../ContextMenu/LibraryItemContextItems.svelte';
+	import PlayButton from '../PlayButton.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
+	import LazyImg from '../LazyImg.svelte';
+	import type { TitleType } from '../../types';
+	import Container from '../../../Container.svelte';
+	import type { Readable } from 'svelte/store';
+	import AnimatedSelection from '../AnimateScale.svelte';
+	import { navigate } from '../StackRouter/StackRouter';
+	import { getCardDimensions } from '../../utils';
 
-	export let tmdbId: number;
+	export let tmdbId: number | undefined = undefined;
+	export let tvdbId: number | undefined = undefined;
+	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
-	export let title: string;
-	export let genres: string[] = [];
-	export let runtimeMinutes = 0;
-	export let seasons = 0;
-	export let completionTime = '';
 	export let backdropUrl: string;
-	export let rating: number;
+	export let group = false;
 
-	export let available = true;
+	export let title = '';
+	export let subtitle = '';
+	export let rating: number | undefined = undefined;
 	export let progress = 0;
-	export let size: 'dynamic' | 'md' | 'lg' = 'md';
-	export let openInModal = true;
 
-	let jellyfinItemStore = createJellyfinItemStore(tmdbId);
-	let radarrMovieStore = createRadarrMovieStore(tmdbId);
-	let sonarrSeriesStore = createSonarrSeriesStore(title);
+	export let disabled = false;
+	export let shadow = false;
+	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
+	export let orientation: 'portrait' | 'landscape' = 'landscape';
+
+	let hasFocus: Readable<boolean>;
+
+	let dimensions = getCardDimensions(window.innerWidth);
 </script>
 
-<ContextMenu heading={title}>
-	<svelte:fragment slot="menu">
-		<LibraryItemContextItems
-			jellyfinItem={$jellyfinItemStore.item}
-			radarrMovie={$radarrMovieStore.item}
-			sonarrSeries={$sonarrSeriesStore.item}
-			{type}
-			{tmdbId}
-		/>
-	</svelte:fragment>
-	<button
-		class={classNames(
-			'rounded overflow-hidden relative shadow-lg shrink-0 aspect-video selectable hover:text-inherit flex flex-col justify-between group placeholder-image',
-			'p-2 px-3 gap-2',
-			{
-				'h-40': size === 'md',
-				'h-60': size === 'lg',
-				'w-full': size === 'dynamic'
-			}
-		)}
-		on:click={() => {
-			if (openInModal) {
-				openTitleModal({ type, id: tmdbId, provider: 'tmdb' });
-			} else {
-				window.location.href = `/${type}/${tmdbId}`;
-			}
-		}}
-	>
-		<div
-			style={"background-image: url('" + backdropUrl + "')"}
-			class="absolute inset-0 bg-center bg-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform"
-		/>
-		<div
+<svelte:window on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth))} />
+
+<div class="relative">
+	{#if group}
+		<div class="absolute inset-0 scale-95 translate-y-3.5 opacity-50">
+			<LazyImg src={backdropUrl} class="absolute inset-0 rounded-xl" />
+			<div class="absolute inset-0 bg-white/10 rounded-xl" />
+
+			<LazyImg
+				src={backdropUrl}
+				class="absolute inset-0 scale-95 translate-y-4 rounded-xl opacity-25"
+			/>
+			<div class="absolute inset-0 scale-95 translate-y-4 rounded-xl bg-white/10 opacity-25" />
+		</div>
+	{/if}
+	<AnimatedSelection hasFocus={$hasFocus}>
+		<Container
+			{disabled}
+			on:clickOrSelect={() => {
+				if (tmdbId || tvdbId) navigate(`/${type}/${tmdbId || tvdbId}`);
+			}}
+			on:enter
 			class={classNames(
-				'absolute inset-0 transition-opacity bg-darken sm:bg-opacity-100 bg-opacity-50',
+				'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
+				'selectable',
 				{
-					'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100': available
+					'aspect-video': orientation === 'landscape',
+					'aspect-[2/3]': orientation === 'portrait',
+					'w-32 h-48': size === 'sm' && orientation === 'portrait',
+					'h-32 w-56': size === 'sm' && orientation === 'landscape',
+					'w-44 h-64': size === 'md' && orientation === 'portrait',
+					'h-44 w-80': size === 'md' && orientation === 'landscape',
+					// 'w-60 h-96': size === 'lg' && orientation === 'portrait',
+					'h-60 w-96': size === 'lg' && orientation === 'landscape',
+					'w-full h-96': size === 'dynamic',
+					'shadow-lg': shadow
 				}
 			)}
-		/>
-		<div
-			class="flex flex-col justify-between flex-1 transition-opacity cursor-pointer relative opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+			style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
+			focusOnClick
+			bind:hasFocus
 		>
-			<div class="text-left">
-				<h1 class="font-bold tracking-wider text-lg">{title}</h1>
-				<div class="text-xs text-zinc-300 tracking-wider font-medium">
-					{genres.map((genre) => genre.charAt(0).toUpperCase() + genre.slice(1)).join(', ')}
-				</div>
-			</div>
-			<div class="flex justify-between items-end">
-				{#if completionTime}
-					<div class="text-sm font-medium text-zinc-200 tracking-wide">
-						Downloaded in <b
-							>{formatMinutesToTime(
-								(new Date(completionTime).getTime() - Date.now()) / 1000 / 60
-							)}</b
-						>
-					</div>
-				{:else}
-					{#if runtimeMinutes}
-						<div class="flex gap-1.5 items-center">
-							<Clock />
-							<div class="text-sm text-zinc-200">
-								{progress
-									? formatMinutesToTime(runtimeMinutes - runtimeMinutes * (progress / 100)) +
-									  ' left'
-									: formatMinutesToTime(runtimeMinutes)}
-							</div>
-						</div>
-					{/if}
-					{#if seasons}
-						<div class="text-sm text-zinc-200">
-							{seasons} Season{seasons > 1 ? 's' : ''}
-						</div>
-					{/if}
+			<!--{#if !group}-->
+			<LazyImg src={backdropUrl} class="absolute inset-0" />
+			<!--{:else}-->
+			<!--	<LazyImg src={backdropUrl} class="absolute inset-0 opacity-10 " />-->
+			<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
+			<!--	<LazyImg-->
+			<!--		src={backdropUrl}-->
+			<!--		class="absolute inset-0 scale-95 translate-y-[0.5rem] rounded-xl opacity-25"-->
+			<!--	/>-->
+			<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
+			<!--	<LazyImg-->
+			<!--		src={backdropUrl}-->
+			<!--		class="absolute inset-0 scale-90 translate-y-[1.125rem] rounded-xl "-->
+			<!--	/>-->
+			<!--{/if}-->
+			<!-- This is the tinted and blurred hover overlay -->
+			<!--		<div-->
+			<!--			class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"-->
+			<!--			style="filter: blur(50px); transform: scale(3);"-->
+			<!--		>-->
+			<!--			<LazyImg src={backdropUrl} />-->
+			<!--		</div>-->
 
-					{#if rating}
-						<div class="flex gap-1.5 items-center">
-							<Star />
-							<div class="text-sm text-zinc-200">
-								{rating.toFixed(1)}
-							</div>
-						</div>
-					{/if}
-				{/if}
-			</div>
-		</div>
-		{#if progress}
-			<div class="relative">
-				<ProgressBar {progress} />
-			</div>
-		{/if}
-	</button>
-</ContextMenu>
+			<!-- Mouse hover details -->
+			<!--		<div-->
+			<!--			class={classNames(-->
+			<!--				'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',-->
+			<!--				{-->
+			<!--					'py-2 px-3': true-->
+			<!--				}-->
+			<!--			)}-->
+			<!--		>-->
+			<!--			<div class="flex justify-self-start justify-between">-->
+			<!--				<slot name="top-left">-->
+			<!--					<div>-->
+			<!--						<h1 class="text-zinc-100 font-bold line-clamp-2 text-lg">{title}</h1>-->
+			<!--						<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>-->
+			<!--					</div>-->
+			<!--				</slot>-->
+			<!--				<slot name="top-right">-->
+			<!--					<div />-->
+			<!--				</slot>-->
+			<!--			</div>-->
+			<!--			<div class="flex justify-self-end justify-between">-->
+			<!--				<slot name="bottom-left">-->
+			<!--					<div>-->
+			<!--						{#if rating}-->
+			<!--							<h2 class="flex items-center gap-1.5 text-sm text-zinc-300 font-medium">-->
+			<!--								<Star />{rating.toFixed(1)}-->
+			<!--							</h2>-->
+			<!--						{/if}-->
+			<!--					</div>-->
+			<!--				</slot>-->
+			<!--				<slot name="bottom-right">-->
+			<!--					<div />-->
+			<!--				</slot>-->
+			<!--			</div>-->
+			<!--		</div>-->
+
+			<!-- Play Button -->
+			{#if jellyfinId}
+				<div class="absolute inset-0 flex items-center justify-center z-[1]">
+					<PlayButton
+						on:click={(e) => {
+							e.preventDefault();
+							jellyfinId && true; //playerState.streamJellyfinId(jellyfinId);
+						}}
+						class="sm:opacity-0 group-hover:opacity-100 transition-opacity"
+					/>
+				</div>
+			{/if}
+			{#if progress}
+				<div
+					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
+				>
+					<ProgressBar {progress} />
+				</div>
+			{/if}
+		</Container>
+	</AnimatedSelection>
+</div>

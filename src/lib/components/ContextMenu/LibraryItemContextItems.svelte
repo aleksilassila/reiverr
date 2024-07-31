@@ -4,11 +4,11 @@
 		setJellyfinItemWatched,
 		type JellyfinItem
 	} from '$lib/apis/jellyfin/jellyfinApi';
-	import type { RadarrMovie } from '$lib/apis/radarr/radarrApi';
-	import type { SonarrSeries } from '$lib/apis/sonarr/sonarrApi';
-	import { jellyfinItemsStore } from '$lib/stores/data.store';
-	import { settings } from '$lib/stores/settings.store';
-	import type { TitleType } from '$lib/types';
+	import type { RadarrMovie } from '../../apis/radarr/radarr-api';
+	import type { SonarrSeries } from '../../apis/sonarr/sonarr-api';
+	import { jellyfinItemsStore } from '../../stores/data.store';
+	import { settings } from '../../stores/settings.store';
+	import type { TitleType } from '../../types';
 	import ContextMenuDivider from './ContextMenuDivider.svelte';
 	import ContextMenuItem from './ContextMenuItem.svelte';
 

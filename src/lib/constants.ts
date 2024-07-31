@@ -4,5 +4,9 @@ export const TMDB_IMAGES_ORIGINAL = 'https://www.themoviedb.org/t/p/original';
 export const TMDB_BACKDROP_SMALL = 'https://www.themoviedb.org/t/p/w780';
 export const TMDB_POSTER_SMALL = 'https://www.themoviedb.org/t/p/w342';
 export const TMDB_PROFILE_SMALL = 'https://www.themoviedb.org/t/p/w185';
+export const TMDB_PROFILE_LARGE = 'https://www.themoviedb.org/t/p/h632';
 
 export const PLACEHOLDER_BACKDROP = '/plcaeholder.jpg';
+
+export const PLATFORM_TV: boolean = import.meta.env.VITE_PLATFORM === 'tv';
+export const PLATFORM_WEB: boolean = !PLATFORM_TV;

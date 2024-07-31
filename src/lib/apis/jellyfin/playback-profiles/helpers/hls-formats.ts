@@ -5,7 +5,7 @@
 import { hasH264Support, hasH265Support } from './mp4-video-formats';
 import { hasEac3Support, hasAacSupport } from './mp4-audio-formats';
 import { getSupportedAudioCodecs } from './audio-formats';
-import { isTv } from '$lib/utils/browser-detection';
+import { isTv } from '../../../../utils/browser-detection';
 
 /**
  * Check if client supports AC3 in HLS stream
