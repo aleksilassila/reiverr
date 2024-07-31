@@ -1,6 +1,5 @@
 FROM --platform=linux/amd64 node:18-alpine as pre-production
 
-RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 #COPY . .
@@ -12,6 +11,10 @@ COPY backend/package.json ./backend/package.json
 COPY backend/package-lock.json ./backend/package-lock.json
 
 RUN npm i
+
+# Add tini for better signal handling
+RUN apk add --no-cache tini
+ENTRYPOINT ["/sbin/tini", "--"]
 
 RUN #npm ci --prefix backend --omit dev
 RUN npm ci --prefix backend
@@ -25,6 +28,7 @@ FROM --platform=linux/amd64 node:18-alpine as production
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+ENV PORT=9494
 ENV NODE_ENV=production
 
 COPY --from=pre-production /usr/src/app/backend/dist ./dist

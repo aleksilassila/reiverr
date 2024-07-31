@@ -25,7 +25,13 @@ export default defineConfig({
 	optimizeDeps: { exclude: ['svelte-navigator'] },
 	define: {
 		REIVERR_VERSION: `"${pkg.version}"`
-	}
+	},
+	server: {
+		port: Number(process.env.PORT || 4173)
+	},
+	preview: {
+		port: Number(process.env.PORT || 9494)
+	},
 
 	// base: '/dist',
 	//     experimental: {
