@@ -103,7 +103,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				Accounts
+			{$_('settings.accounts.accounts')}
 			</span>
 		</Container>
 		<Container
@@ -166,7 +166,7 @@
 		<Tab {...tab} tab={Tabs.Account} class="space-y-16">
 			<div>
 				<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
-					<h1 class="header1 mb-4">My Profile</h1>
+					<h1 class="header1 mb-4">{$_('settings.accounts.myprofile')}</h1>
 					<SelectField
 						class="mb-4"
 						value={$user?.name || ''}
@@ -178,16 +178,17 @@
 								});
 						}}
 					>
-						Logged in as
+					{$_('settings.accounts.loginAs')}
 						<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 					</SelectField>
 					<Container direction="horizontal" class="flex space-x-4">
-						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
+						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>{$_('settings.accounts.logOut')}</Button>
 					</Container>
 					{#await users then usersR}
 						{#if usersR?.length}
 							<div class="mt-8">
-								<h1 class="header1 mb-4">Server Accounts</h1>
+								<h1 class="header1 mb-4">{$_('settings.accounts.serverAccounts')}
+								</h1>
 								<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
 									{#each usersR.filter((u) => u.id !== $user?.id) as user}
 										<SelectField
@@ -211,7 +212,7 @@
 										</SelectField>
 									{/each}
 									<SelectField
-										value="New Account"
+										value="{$_('settings.accounts.newaccount')}"
 										on:clickOrSelect={() => {
 											createModal(EditProfileModal, {
 												createNew: true,
@@ -219,7 +220,7 @@
 											});
 										}}
 									>
-										Create
+									{$_('settings.accounts.create')}
 										<Plus slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 									</SelectField>
 								</Container>
@@ -259,7 +260,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header1">{$_('settings.integrations.tmdbAccount')}</h1>
+							<h1 class="mb-4 header1">{$_('settings.accounts.newaccount')}</h1>
 							<TmdbIntegration let:connected>
 								{#if !connected}
 									<div class="flex space-x-4 mt-4">

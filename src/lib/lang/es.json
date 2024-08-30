@@ -46,7 +46,9 @@
 		"password": "Contraseña",
 		"submit": "Enviar",
 		"invalidCredentials": "Credenciales inválidas. Por favor, inténtalo de nuevo.",
-		"errorOccurred": "Ocurrió un error"
+		"errorOccurred": "Ocurrió un error",
+		"whoIsWatching": "¿Quién está viendo?",
+		"removeAllAccounts": "Eliminar todas las cuentas"
 	},
 	"settings": {
 		"general": {
@@ -84,7 +86,29 @@
 			"lastKey": "Última tecla",
 			"tizenMediaKey": "Tecla de medios Tizen",
 			"logOut": "Cerrar sesión"
-		}
+		},
+		"accounts": {
+			"accounts": "Cuentas",
+			"myprofile": "Mi Perfil",
+			"loginAs": "Conectado como",
+			"logOut": "Cerrar sesión",
+			"create": "Crear",
+			"newaccount": "Nueva cuenta",
+			"serverAccounts": "Cuentas del Servidor"
+		},
+		"profile": {
+				"createProfile": "Crear una cuenta",
+				"editProfile": "Editar Perfil",
+				"name": "Nombre",
+				"profilePicture": "Foto de Perfil",
+				"custom": "Personalizado",
+				"oldPassword": "Contraseña Antigua",
+				"newPassword": "Nueva Contraseña",
+				"admin": "Administrador",
+				"save": "Guardar",
+				"deleteAccount": "Eliminar Cuenta"
+			}
+
 	},
 	"discover": {
 		"continueWatching": "Seguir viendo",

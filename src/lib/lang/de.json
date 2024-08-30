@@ -53,7 +53,9 @@
 		"password": "Passwort",
 		"submit": "Einreichen",
 		"invalidCredentials": "Ungültige Anmeldeinformationen. Bitte versuchen Sie es erneut.",
-		"errorOccurred": "Ein Fehler ist aufgetreten"
+		"errorOccurred": "Ein Fehler ist aufgetreten",
+		"whoIsWatching": "Wer schaut?",
+		"removeAllAccounts": "Alle Konten entfernen"
 	},
 	"settings": {
 		"general": {
@@ -91,7 +93,29 @@
 			"lastKey": "Letzter Schlüssel",
 			"tizenMediaKey": "Tizen Media Key",
 			"logOut": "Ausloggen"
-		}
+		},
+		"accounts": {
+			"accounts": "Konten",
+			"myprofile": "Mein Profil",
+			"loginAs": "Angemeldet als",
+			"logOut": "Abmelden",
+			"create": "Erstellen",
+			"newaccount": "Neues Konto",
+			"serverAccounts": "Serverkonten"
+		},
+		"profile": {
+				"createProfile": "Ein Konto erstellen",
+				"editProfile": "Profil Bearbeiten",
+				"name": "Name",
+				"profilePicture": "Profilbild",
+				"custom": "Benutzerdefiniert",
+				"oldPassword": "Altes Passwort",
+				"newPassword": "Neues Passwort",
+				"admin": "Administrator",
+				"save": "Speichern",
+				"deleteAccount": "Konto Löschen"
+			}
+
 	},
 	"discover": {
 		"continueWatching": "Weiter ansehen",
