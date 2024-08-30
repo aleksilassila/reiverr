@@ -260,7 +260,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header1">{$_('settings.integrations.tmdbAccount')}</h1>
+							<h1 class="mb-4 header1">{$_('settings.accounts.newaccount')}</h1>
 							<TmdbIntegration let:connected>
 								{#if !connected}
 									<div class="flex space-x-4 mt-4">
