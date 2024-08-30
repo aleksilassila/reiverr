@@ -54,7 +54,9 @@
 		"password": "Mot de passe",
 		"submit": "Connexion",
 		"invalidCredentials": "Identifiants invalides. Veuillez réessayer.",
-		"errorOccurred": "Une erreur s'est produite"
+		"errorOccurred": "Une erreur s'est produite",
+		"whoIsWatching": "Qui regarde ?",
+		"removeAllAccounts": "Supprimer tous les comptes"
 	},
 	"settings": {
 		"general": {
@@ -70,7 +72,11 @@
 			"apiKey": "Clé API",
 			"save": "Sauvegarder",
 			"tmdbAccount": "Compte TMDB",
+			"tmdbText": "Pour connecter votre compte TMDB, connectez-vous via le lien ci-dessous, puis cliquez sur 'Compléter la connexion'.",
+			"connectTmdb": "Connecter un compte TMDB",
 			"connectedTo": "Connecté à",
+			"completeConnectionTmdb": "Compléter la connexion",
+			"tmdbOpenLink": "Ouvrir le lien",
 			"tmdb": {
 				"connect": "Connecter"
 			},
@@ -92,7 +98,28 @@
 			"lastKey": "Dernière touche",
 			"tizenMediaKey": "Touche média Tizen",
 			"logOut": "Déconnexion"
-		}
+		},
+		"accounts": {
+			"accounts": "Comptes",
+			"myprofile": "Mon Profil",
+			"loginAs": "Connecté en tant que",
+			"logOut": "Déconnexion",
+			"create": "Créer",
+			"newaccount": "Nouveau compte",
+			"serverAccounts": "Gestion des comptes"
+		},
+		"profile": {
+			"createProfile": "Créer un compte",
+				"editProfile": "Modifier le profil",
+				"name": "Nom",
+				"profilePicture": "Photo de profil",
+				"custom": "Personnalisé",
+				"oldPassword": "Ancien mot de passe",
+				"newPassword": "Nouveau mot de passe",
+				"admin": "Administrateur",
+				"save": "Enregistrer",
+				"deleteAccount": "Supprimer le compte"
+			}
 	},
 	"discover": {
 		"continueWatching": "Continuer à regarder",

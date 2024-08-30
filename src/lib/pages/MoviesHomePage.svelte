@@ -13,8 +13,12 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { _ } from 'svelte-i18n';
 
-	const continueWatching = jellyfinApi.getContinueWatching('movie');
-	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
+	const continueWatching = jellyfinApi.getContinueWatching('movie').then(items => {
+		return items.filter(item => item.Type === 'Movie');
+	});
+	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie').then(items => {
+		return items.filter(item => item.Type === 'Movie');
+	});
 
 	const popularMovies = tmdbApi.getPopularMovies();
 

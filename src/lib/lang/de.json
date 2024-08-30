@@ -53,7 +53,9 @@
 		"password": "Passwort",
 		"submit": "Einreichen",
 		"invalidCredentials": "Ungültige Anmeldeinformationen. Bitte versuchen Sie es erneut.",
-		"errorOccurred": "Ein Fehler ist aufgetreten"
+		"errorOccurred": "Ein Fehler ist aufgetreten",
+		"whoIsWatching": "Wer schaut?",
+		"removeAllAccounts": "Alle Konten entfernen"
 	},
 	"settings": {
 		"general": {
@@ -69,7 +71,11 @@
 			"apiKey": "API Schlüssel",
 			"save": "Speichern",
 			"tmdbAccount": "Tmdb Konto",
+			"tmdbText": "Um Ihr TMDB-Konto zu verbinden, melden Sie sich über den untenstehenden Link an und klicken Sie dann auf 'Verbindung abschließen'.",
+			"connectTmdb": "Ein TMDB-Konto verbinden",
 			"connectedTo": "Verbunden mit",
+			"completeConnectionTmdb": "Verbindung abschließen",
+			"tmdbOpenLink": "Link öffnen",
 			"tmdb": {
 				"connect": "Verbinden"
 			},
@@ -91,7 +97,29 @@
 			"lastKey": "Letzter Schlüssel",
 			"tizenMediaKey": "Tizen Media Key",
 			"logOut": "Ausloggen"
-		}
+		},
+		"accounts": {
+			"accounts": "Konten",
+			"myprofile": "Mein Profil",
+			"loginAs": "Angemeldet als",
+			"logOut": "Abmelden",
+			"create": "Erstellen",
+			"newaccount": "Neues Konto",
+			"serverAccounts": "Serverkonten"
+		},
+		"profile": {
+				"createProfile": "Ein Konto erstellen",
+				"editProfile": "Profil Bearbeiten",
+				"name": "Name",
+				"profilePicture": "Profilbild",
+				"custom": "Benutzerdefiniert",
+				"oldPassword": "Altes Passwort",
+				"newPassword": "Neues Passwort",
+				"admin": "Administrator",
+				"save": "Speichern",
+				"deleteAccount": "Konto Löschen"
+			}
+
 	},
 	"discover": {
 		"continueWatching": "Weiter ansehen",

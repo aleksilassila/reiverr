@@ -12,6 +12,7 @@
 	import { Plus, Trash } from 'radix-icons-svelte';
 	import ProfileIcon from '../components/ProfileIcon.svelte';
 	import { profilePictures } from '../profile-pictures';
+	import { _ } from 'svelte-i18n';
 
 	$: users = getUsers($sessions.sessions);
 
@@ -35,7 +36,7 @@
 <DetachedPage sidebar={false} class="px-32 py-16 h-full flex flex-col items-center justify-center">
 	{#await users then users}
 		{#if users?.length}
-			<h1 class="header4 mb-16">Who is watching?</h1>
+			<h1 class="header4 mb-16">{$_('login.whoIsWatching')}</h1>
 			<Container direction="grid" gridCols={4} class="flex space-x-8 mb-16">
 				{#each users as item}
 					{@const user = item.user}
@@ -66,7 +67,7 @@
 					}}
 					icon={Trash}
 				>
-					Remove all Accounts
+				{$_('login.removeAllAccounts')}
 				</Button>
 			</Container>
 		{:else}

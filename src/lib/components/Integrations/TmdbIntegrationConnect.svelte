@@ -5,6 +5,7 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
 	import { user } from '../../stores/user.store';
+	import { _ } from 'svelte-i18n';
 
 	const dispatch = createEventDispatcher<{ connected: null }>();
 
@@ -51,9 +52,9 @@
 	}
 </script>
 
-<h1 class="header2 mb-2">Connect a TMDB Account</h1>
+<h1 class="header2 mb-2">{$_('settings.integrations.connectTmdb')}</h1>
 <div class="body mb-8">
-	To connect your TMDB account, log in via the link below and then click "Complete Connection".
+	{$_('settings.integrations.tmdbText')}
 </div>
 
 {#if tmdbConnectQrCode}
@@ -71,9 +72,9 @@
 	<!--{#if !tmdbConnectRequestToken}-->
 	<!--	<Button type="primary-dark" action={handleGenerateTMDBLink}>Generate Link</Button>-->
 	{#if tmdbConnectLink}
-		<Button type="primary-dark" action={completeTMDBConnect}>Complete Connection</Button>
+		<Button type="primary-dark" action={completeTMDBConnect}>{$_('settings.integrations.completeConnectionTmdb')}</Button>
 		<Button type="primary-dark" on:clickOrSelect={() => window.open(tmdbConnectLink)}>
-			Open Link
+			{$_('settings.integrations.tmdbOpenLink')}
 			<ExternalLink size={19} slot="icon-after" />
 		</Button>
 	{/if}

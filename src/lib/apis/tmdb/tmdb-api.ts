@@ -145,6 +145,7 @@ export class TmdbApi implements Api<paths> {
 						external_id: tvdbId
 					},
 					query: {
+						
 						external_source: 'tvdb_id'
 					}
 				},
@@ -169,8 +170,9 @@ export class TmdbApi implements Api<paths> {
 						series_id: tmdbId
 					},
 					query: {
+						language: get(localSettings)?.language,
 						append_to_response: 'videos,aggregate_credits,external_ids,images',
-						...({ include_image_language: get(localSettings)?.language + ',en,null' } as any)
+						...({ include_image_language: get(localSettings)?.language + ',en,null' } as any)  
 					}
 				},
 				headers: {
@@ -257,6 +259,7 @@ export class TmdbApi implements Api<paths> {
 						episode_number: episode
 					},
 					query: {
+						language: get(localSettings)?.language,  // Spécifiez la langue ici
 						append_to_response: 'credits,external_ids,images'
 					}
 				}
@@ -341,6 +344,7 @@ export class TmdbApi implements Api<paths> {
 								account_object_id: userId
 							},
 							query: {
+								language: get(localSettings)?.language,
 								page: i + 1
 							}
 						}
@@ -416,6 +420,7 @@ export class TmdbApi implements Api<paths> {
 								account_object_id: userId
 							},
 							query: {
+								language: get(localSettings)?.language,
 								page: i + 1
 							}
 						}
@@ -551,7 +556,8 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 				external_id: tvdbId
 			},
 			query: {
-				external_source: 'tvdb_id'
+				external_source: 'tvdb_id',
+				language: get(localSettings)?.language
 			}
 		},
 		headers: {
@@ -574,7 +580,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 			},
 			query: {
 				append_to_response: 'videos,aggregate_credits,external_ids,images',
-				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
+				language: get(localSettings)?.language
 			}
 		},
 		headers: {

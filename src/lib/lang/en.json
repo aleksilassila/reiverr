@@ -54,7 +54,9 @@
 		"password": "Password",
 		"submit": "Submit",
 		"invalidCredentials": "Invalid credentials. Please try again.",
-		"errorOccurred": "Error occurred"
+		"errorOccurred": "Error occurred",
+		"whoIsWatching": "Who is watching ?",
+		"removeAllAccounts": "Remove all accounts"
 	},
 	"settings": {
 		"general": {
@@ -70,6 +72,10 @@
 			"apiKey": "API Key",
 			"save": "Save",
 			"tmdbAccount": "Tmdb Account",
+			"tmdbText": "To connect your TMDB account, log in via the link below and then click 'Complete Connection'.",
+			"connectTmdb": "Connect a TMDB Account",
+			"completeConnectionTmdb": "Complete connection",
+			"tmdbOpenLink": "Open Link",
 			"connectedTo": "Connected to",
 			"tmdb": {
 				"connect": "Connect"
@@ -90,9 +96,30 @@
 			"userAgent": "User agent",
 			"lastKeyCode": "Last key code",
 			"lastKey": "Last key",
-			"tizenMediaKey": "Tizen media key",
-			"logOut": "Log Out"
-		}
+			"tizenMediaKey": "Tizen media key"
+		},
+		"accounts": {
+			"accounts": "Accounts",
+			"myprofile": "My Profile",
+			"loginAs": "Logged in as",
+			"logOut": "Log Out",
+			"create": "Create",
+			"newaccount": "New account",
+			"serverAccounts": "Serveur Accounts"
+			
+		},
+			"profile": {
+				"createProfile": "Create an account",
+				"editProfile": "Edit Profile",
+				"name": "Name",
+				"profilePicture": "Profile Picture",
+				"custom": "Custom",
+				"oldPassword": "Old Password",
+				"newPassword": "New Password",
+				"admin": "Admin",
+				"save": "Save",
+				"deleteAccount": "Delete Account"
+			}
 	},
 	"discover": {
 		"continueWatching": "Continue Watching",
