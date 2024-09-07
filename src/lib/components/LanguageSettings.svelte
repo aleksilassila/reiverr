@@ -44,12 +44,14 @@
 
   {#if showLanguageDialog}
 	<Dialog on:close={() => (showLanguageDialog = false)}>
-	  {#each Object.entries(AVAILABLE_LANGUAGES) as [code, language]}
-		<SelectItem 
-		  selected={code === selectedLanguage} 
-		  on:clickOrSelect={() => handleSelectLanguage(code)}		>
-		  {language.name}
-		</SelectItem>
-	  {/each}
-	</Dialog>
+		<div class="space-y-4">
+		{#each Object.entries(AVAILABLE_LANGUAGES) as [code, language]}
+			<SelectItem 
+			selected={code === selectedLanguage} 
+			on:clickOrSelect={() => handleSelectLanguage(code)}>
+			{language.name}
+			</SelectItem>
+		{/each}
+		</div>
+	</Dialog> 
   {/if}

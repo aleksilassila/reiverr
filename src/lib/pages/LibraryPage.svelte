@@ -15,6 +15,7 @@
 	import { tmdbApi, type TmdbMovie2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
@@ -112,7 +113,7 @@
 	{/await}
 	<div class="px-32">
 		<div class="mb-6">
-			<div class="header2">Library</div>
+			<div class="header2">{$_('navbar.library')}</div>
 		</div>
 		<CardGrid>
 			{#if $displayedItems.length === 0}
