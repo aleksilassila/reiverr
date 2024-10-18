@@ -7,6 +7,7 @@ import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
 import type { Api } from '../api.interface';
 import { user } from '../../stores/user.store';
+import { sessions } from '../../stores/session.store';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -63,6 +64,23 @@ export class TmdbApi implements Api<paths> {
 		});
 	}
 
+	static getProxyClient() {
+		const session = get(sessions).activeSession;
+		const token = session?.token;
+
+		return createClient<paths>({
+			baseUrl: session?.baseUrl + '/api/proxy/tmdb',
+			headers: {
+				Authorization: `Bearer ${TMDB_API_KEY}`
+			}
+			// ...(token && {
+			// 	headers: {
+			// 		Authorization: 'Bearer ' + token
+			// 	}
+			// })
+		});
+	}
+
 	static getClient4() {
 		return createClient<paths4>({
 			baseUrl: 'https://api.themoviedb.org',
@@ -95,6 +113,10 @@ export class TmdbApi implements Api<paths> {
 		return TmdbApi.getClient4l();
 	}
 
+	getProxyClient() {
+		return TmdbApi.getProxyClient();
+	}
+
 	getSessionId() {
 		return get(user)?.settings.tmdb.sessionId;
 	}
@@ -105,8 +127,8 @@ export class TmdbApi implements Api<paths> {
 
 	// MOVIES
 
-	getTmdbMovie = async (tmdbId: number) => {
-		return this.getClient()
+	getMovie = async (tmdbId: number) => {
+		return this.getProxyClient()
 			?.GET('/3/movie/{movie_id}', {
 				params: {
 					path: {
@@ -159,8 +181,8 @@ export class TmdbApi implements Api<paths> {
 			return id;
 		});
 
-	getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
-		await this.getClient()
+	getSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
+		await this.getProxyClient()
 			?.GET('/3/tv/{series_id}', {
 				params: {
 					path: {
@@ -490,6 +512,98 @@ export class TmdbApi implements Api<paths> {
 				})
 				.then((res) => res.data)
 		);
+	};
+
+	getLibraryListId = async () => {
+		let listId = get(user)?.settings.tmdb.libraryListId || '';
+
+		if (!listId) {
+			listId = await this.getClient4l()
+				?.POST('/4/list', {
+					body: {
+						// @ts-ignore
+						description: 'Items added to library in Reiverr',
+						name: 'reiverr-library',
+						iso_3166_1: 'US',
+						iso_639_1: 'en',
+						public: false,
+						private: true
+					}
+				})
+				.then((r) => String(r.data?.id || ''));
+
+			await user.updateUser((u) => ({
+				...u,
+				settings: { ...u.settings, tmdb: { ...u.settings.tmdb, libraryListId: listId } }
+			}));
+
+			console.assert(!!listId, 'Failed to create library list');
+		}
+
+		return listId;
+	};
+
+	getLibrary = async () => {
+		const listId = await this.getLibraryListId();
+
+		return (
+			this.getClient4l()
+				?.GET('/4/list/{list_id}', {
+					params: {
+						path: {
+							list_id: Number(listId)
+						}
+					}
+				})
+				.then((res) => (res.data?.results as (TmdbMovie2 | TmdbSeries2)[]) || []) ||
+			Promise.resolve([])
+		);
+	};
+
+	addToLibrary = async (tmdbId: number, type: TitleType) => {
+		const listId = await this.getLibraryListId();
+
+		return this.getClient4l()
+			.POST('/4/list/{list_id}/items', {
+				params: {
+					path: {
+						list_id: Number(listId)
+					}
+				},
+				body: {
+					// @ts-ignore
+					items: [
+						{
+							media_type: type === 'movie' ? 'movie' : 'tv',
+							media_id: tmdbId
+						}
+					]
+				}
+			})
+			.then((r) => r.data);
+	};
+
+	removeFromLibrary = async (tmdbId: number, type: TitleType) => {
+		const listId = await this.getLibraryListId();
+
+		return this.getClient4l()
+			.DELETE('/4/list/{list_id}/items', {
+				params: {
+					path: {
+						list_id: Number(listId)
+					}
+				},
+				body: {
+					// @ts-ignore
+					items: [
+						{
+							media_type: type === 'movie' ? 'movie' : 'tv',
+							media_id: tmdbId
+						}
+					]
+				}
+			})
+			.then((r) => r.data);
 	};
 }
 

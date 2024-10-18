@@ -70,6 +70,7 @@
 		]
 	},
 	"dependencies": {
+		"class-transformer": "^0.5.1",
 		"gsap": "^3.12.5"
 	}
 }

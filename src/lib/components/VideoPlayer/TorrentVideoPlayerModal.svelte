@@ -55,7 +55,8 @@
 			audioStreamIndex: 0,
 			audioTracks: [],
 			selectAudioTrack: () => {},
-			startTime: playState?.progress || 0
+			// startTime: playState?.progress || 0
+			startTime: 0
 		};
 
 		console.log(tmdbId, seasonNumber, episodeNumber);

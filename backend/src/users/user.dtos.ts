@@ -1,14 +1,19 @@
 import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { User } from './user.entity';
+import { MyListItemDto } from './my-list/my-list.dtos';
+import { plainToInstance } from 'class-transformer';
 
 export class UserDto extends OmitType(User, [
   'password',
   'profilePicture',
-  'playStates',
+  'titles',
   'myListItems',
 ] as const) {
   @ApiProperty({ type: 'string' })
   profilePicture: string | null;
+
+  @ApiProperty({ type: MyListItemDto, isArray: true })
+  myList: MyListItemDto[];
 
   static fromEntity(entity: User): UserDto {
     return {
@@ -19,6 +24,7 @@ export class UserDto extends OmitType(User, [
       onboardingDone: entity.onboardingDone,
       profilePicture:
         'data:image;base64,' + entity.profilePicture?.toString('base64'),
+      myList: entity.myListItems?.map((i) => plainToInstance(MyListItemDto, i)),
     };
   }
 }

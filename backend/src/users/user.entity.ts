@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { PlayState } from './play-state/play-state.entity';
+import { Title } from './titles/title.entity';
 import { MyListItem } from './my-list/my-list-item.entity';
 
 export class SonarrSettings {
@@ -47,6 +47,9 @@ export class TmdbSettings {
 
   @ApiProperty({ required: true })
   userId: string;
+
+  @ApiProperty({ required: true })
+  libraryListId: string; // TODO: Change to number?
 }
 
 export class Settings {
@@ -106,6 +109,7 @@ const DEFAULT_SETTINGS: Settings = {
   tmdb: {
     sessionId: '',
     userId: '',
+    libraryListId: '',
   },
 };
 
@@ -140,8 +144,8 @@ export class User {
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
   settings = DEFAULT_SETTINGS;
 
-  @OneToMany(() => PlayState, (playState) => playState.user)
-  playStates: PlayState[];
+  @OneToMany(() => Title, (playState) => playState.user)
+  titles: Title[];
 
   @OneToMany(() => MyListItem, (myListItem) => myListItem.user)
   myListItems: MyListItem[];

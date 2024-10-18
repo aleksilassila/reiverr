@@ -13,6 +13,32 @@
 	import type { ComponentProps } from 'svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { tmdbApi, type TmdbMovie2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
+	import { reiverrApi } from '../apis/reiverr/reiverr-api';
+	import { myList } from '../stores/library.store';
+
+	let tmdbLibraryItems: (TmdbSeries2 | TmdbMovie2)[] | undefined = undefined;
+
+	myList.subscribe((v) => {
+		if (v) {
+			tmdbLibraryItems = [
+				...(Object.values(v.series) as TmdbSeries2[]),
+				...(Object.values(v.movies) as TmdbMovie2[])
+			];
+		}
+	});
+
+	// const reiverrLibraryItemsP = reiverrApi
+	// 	.getLibrary()
+	// 	.then(async (items) => {
+	// 		return items.slice(0, 20);
+	// 	})
+	// 	.then((items) =>
+	// 		Promise.all(
+	// 			items.map((i) =>
+	// 				i.type === 'movie' ? tmdbApi.getTmdbMovie(i.tmdbId) : tmdbApi.getTmdbSeries(i.tmdbId)
+	// 			)
+	// 		).then((i) => i.filter((i) => !!i) as (TmdbMovie2 | TmdbSeries2)[])
+	// 	);
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
@@ -29,7 +55,7 @@
 	let radarrDownloads: Promise<TmdbMovie2[]> = radarrApi
 		.getDownloads()
 		.then((items) =>
-			Promise.all(items.map((i) => tmdbApi.getTmdbMovie(i.movie.tmdbId || -1))).then(
+			Promise.all(items.map((i) => tmdbApi.getMovie(i.movie.tmdbId || -1))).then(
 				(i) => i.filter((i) => !!i) as TmdbMovie2[]
 			)
 		);
@@ -61,9 +87,9 @@
 			</Carousel>
 		{/if}
 	{/await}
-	<div class="px-32">
-		<div class="mb-6">
-			<div class="header2">Library</div>
+	<div class="px-32 space-y-8">
+		<div class="">
+			<div class="header2">On Deck</div>
 		</div>
 		<CardGrid>
 			{#await libraryItemsP}
@@ -78,6 +104,26 @@
 					/>
 				{/each}
 			{/await}
+		</CardGrid>
+		<div class="">
+			<div class="header2">Your Library</div>
+		</div>
+		<CardGrid>
+			{#if tmdbLibraryItems === undefined}
+				<CarouselPlaceholderItems />
+			{:else}
+				{#each tmdbLibraryItems as item}
+					<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />
+				{/each}
+			{/if}
+
+			<!--{#await reiverrLibraryItemsP}-->
+			<!--	<CarouselPlaceholderItems />-->
+			<!--{:then items}-->
+			<!--	{#each items as item}-->
+			<!--		<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />-->
+			<!--	{/each}-->
+			<!--{/await}-->
 		</CardGrid>
 	</div>
 </DetachedPage>

@@ -6,7 +6,16 @@
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
-	import { Cross1, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
+	import {
+		Check,
+		Cross1,
+		DotFilled,
+		ExternalLink,
+		Minus,
+		Play,
+		Plus,
+		Trash
+	} from 'radix-icons-svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import {
 		type EpisodeDownload,
@@ -29,13 +38,11 @@
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
+	import { myList } from '../../stores/library.store';
 
 	export let id: string;
 
-	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(
-		tmdbApi.getTmdbSeries,
-		Number(id)
-	);
+	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getSeries, Number(id));
 	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
 
@@ -211,14 +218,13 @@
 					{#await nextJellyfinEpisode then nextJellyfinEpisode}
 						<Container
 							direction="horizontal"
-							class="flex mt-8"
+							class="flex mt-8 space-x-4"
 							focusOnMount
 							on:back={handleGoBack}
 							on:mount={registrar}
 						>
 							{#if nextJellyfinEpisode}
 								<Button
-									class="mr-4"
 									on:clickOrSelect={() =>
 										nextJellyfinEpisode?.Id && playerState.streamJellyfinId(nextJellyfinEpisode.Id)}
 								>
@@ -227,18 +233,28 @@
 									<Play size={19} slot="icon" />
 								</Button>
 							{:else}
-								<Button class="mr-4" action={() => handleRequestSeason(1)}>
+								<Button action={() => handleRequestSeason(1)}>
 									Request
 									<Plus size={19} slot="icon" />
 								</Button>
 							{/if}
 
+							{#if $myList?.series[id]}
+								<Button icon={Check} action={() => myList.remove(Number(id), 'series')}>
+									On My List
+								</Button>
+							{:else if $myList}
+								<Button icon={Plus} action={() => myList.add(Number(id), 'series')}>
+									Add to My List
+								</Button>
+							{/if}
+
 							{#if PLATFORM_WEB}
-								<Button class="mr-4">
+								<Button>
 									Open In TMDB
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
-								<Button class="mr-4">
+								<Button>
 									Open In Jellyfin
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>

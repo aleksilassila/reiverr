@@ -18,15 +18,21 @@ export class UsersService {
   ) {}
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+    return this.userRepository.find({ relations: ['myListItems'] });
   }
 
   async findOne(id: string): Promise<User> {
-    return this.userRepository.findOne({ where: { id } });
+    return this.userRepository.findOne({
+      where: { id },
+      relations: ['myListItems'],
+    });
   }
 
   async findOneByName(name: string): Promise<User> {
-    return this.userRepository.findOne({ where: { name } });
+    return this.userRepository.findOne({
+      where: { name },
+      relations: ['myListItems'],
+    });
   }
 
   async create(userCreateDto: CreateUserDto): Promise<User> {

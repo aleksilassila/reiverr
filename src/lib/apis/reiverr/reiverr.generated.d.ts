@@ -24,13 +24,18 @@ export interface paths {
     post: operations["MyListController_addToMyList"];
     delete: operations["MyListController_removeFromMyList"];
   };
-  "/play-state/{tmdbId}": {
-    get: operations["PlayStateController_getPlayState"];
-    put: operations["PlayStateController_updatePlayState"];
+  "/titles/library": {
+    get: operations["TitlesController_getLibrary"];
   };
-  "/play-state/{tmdbId}/season/{seasonNumber}/episode/{episodeNumber}": {
-    get: operations["PlayStateController_getEpisodePlayState"];
-    put: operations["PlayStateController_updateEpisodePlayState"];
+  "/titles/continue-watching": {
+    get: operations["TitlesController_getContinueWatching"];
+  };
+  "/titles/{tmdbId}": {
+    get: operations["TitlesController_getTitle"];
+    put: operations["TitlesController_updateTitle"];
+  };
+  "/titles/progress/{tmdbId}": {
+    put: operations["TitlesController_updateProgress"];
   };
   "/": {
     get: operations["AppController_getHello"];
@@ -65,6 +70,7 @@ export interface components {
     TmdbSettings: {
       sessionId: string;
       userId: string;
+      libraryListId: string;
     };
     Settings: {
       autoplayTrailers: boolean;
@@ -76,6 +82,10 @@ export interface components {
       peerflix: components["schemas"]["PeerflixSettings"];
       tmdb: components["schemas"]["TmdbSettings"];
     };
+    MyListItemDto: {
+      id: string;
+      tmdbId: number;
+    };
     UserDto: {
       id: string;
       name: string;
@@ -83,6 +93,7 @@ export interface components {
       onboardingDone?: boolean;
       settings: components["schemas"]["Settings"];
       profilePicture: string;
+      myList: components["schemas"]["MyListItemDto"][];
     };
     CreateUserDto: {
       name: string;
@@ -107,23 +118,49 @@ export interface components {
       accessToken: string;
       user: components["schemas"]["UserDto"];
     };
-    MyListItemDto: {
-      id: string;
+    Title: {
+      id?: string;
       tmdbId: number;
+      /** @enum {string} */
+      type: "movie" | "series";
+      upNext?: boolean;
+      isInLibrary?: boolean;
+      watched?: boolean;
+      media?: components["schemas"]["Media"][];
     };
-    PlayStateDto: {
-      id: string;
-      tmdbId: number;
+    Media: {
+      id?: string;
       seasonNumber?: number;
       episodeNumber?: number;
-      progress: number;
-      watched?: boolean;
-      showInUpNext?: boolean;
-    };
-    UpdatePlayStateDto: {
       progress?: number;
       watched?: boolean;
-      showInUpNext?: boolean;
+      title: components["schemas"]["Title"];
+    };
+    TitleDto: {
+      id?: string;
+      tmdbId: number;
+      /** @enum {string} */
+      type: "movie" | "series";
+      upNext?: boolean;
+      isInLibrary?: boolean;
+      watched?: boolean;
+      media?: components["schemas"]["Media"][];
+    };
+    ContinueWatchingDto: {
+      nextEpisode?: components["schemas"]["Media"] | null;
+      title: components["schemas"]["Title"];
+    };
+    UpdateTitleDto: {
+      /** @enum {string} */
+      type?: "movie" | "series";
+      upNext?: boolean;
+      isInLibrary?: boolean;
+      watched?: boolean;
+      media?: components["schemas"]["Media"][];
+    };
+    UpdateProgressDto: {
+      progress?: number;
+      watched?: boolean;
     };
   };
   responses: never;
@@ -336,8 +373,29 @@ export interface operations {
       };
     };
   };
-  PlayStateController_getPlayState: {
+  TitlesController_getLibrary: {
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["TitleDto"][];
+        };
+      };
+    };
+  };
+  TitlesController_getContinueWatching: {
+    responses: {
+      200: {
+        content: {
+          "application/json": components["schemas"]["ContinueWatchingDto"][];
+        };
+      };
+    };
+  };
+  TitlesController_getTitle: {
     parameters: {
+      query: {
+        type: "movie" | "series";
+      };
       path: {
         tmdbId: number;
       };
@@ -345,63 +403,53 @@ export interface operations {
     responses: {
       200: {
         content: {
-          "application/json": components["schemas"]["PlayStateDto"];
+          "application/json": components["schemas"]["TitleDto"];
         };
       };
     };
   };
-  PlayStateController_updatePlayState: {
+  TitlesController_updateTitle: {
     parameters: {
+      query: {
+        type: "movie" | "series";
+      };
       path: {
         tmdbId: number;
       };
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["UpdatePlayStateDto"];
+        "application/json": components["schemas"]["UpdateTitleDto"];
       };
     };
     responses: {
       200: {
         content: {
-          "application/json": components["schemas"]["PlayStateDto"];
+          "application/json": components["schemas"]["TitleDto"];
         };
       };
     };
   };
-  PlayStateController_getEpisodePlayState: {
+  TitlesController_updateProgress: {
     parameters: {
+      query: {
+        type: "movie" | "series";
+      };
       path: {
         tmdbId: number;
-        seasonNumber: number;
-        episodeNumber: number;
-      };
-    };
-    responses: {
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlayStateDto"];
-        };
-      };
-    };
-  };
-  PlayStateController_updateEpisodePlayState: {
-    parameters: {
-      path: {
-        tmdbId: number;
-        seasonNumber: number;
-        episodeNumber: number;
+        season: number;
+        episode: number;
       };
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["UpdatePlayStateDto"];
+        "application/json": components["schemas"]["UpdateProgressDto"];
       };
     };
     responses: {
       200: {
         content: {
-          "application/json": components["schemas"]["PlayStateDto"];
+          "application/json": components["schemas"]["TitleDto"];
         };
       };
     };

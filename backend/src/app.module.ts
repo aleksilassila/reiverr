@@ -7,7 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MyListModule } from './users/my-list/my-list.module';
-import { PlayStateModule } from './users/play-state/play-state.module';
+import { TitleModule } from './users/titles/title.module';
+import { ProxyModule } from './proxy/proxy.module';
 
 @Module({
   imports: [
@@ -15,10 +16,11 @@ import { PlayStateModule } from './users/play-state/play-state.module';
     UsersModule,
     AuthModule,
     MyListModule,
-    PlayStateModule,
+    TitleModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '../dist'),
     }),
+    ProxyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

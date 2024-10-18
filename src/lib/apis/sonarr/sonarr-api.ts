@@ -80,7 +80,7 @@ export class SonarrApi implements ApiAsync<paths> {
 	tmdbToTvdb = async (tmdbId: number) => {
 		if (!get(tmdbToTvdbCache)[tmdbId]) {
 			const tvdbId = await tmdbApi
-				.getTmdbSeries(tmdbId)
+				.getSeries(tmdbId)
 				.then((series) => series?.external_ids.tvdb_id || 0);
 			tmdbToTvdbCache.update((prev) => ({ ...prev, [tmdbId]: tvdbId }));
 			return tvdbId;

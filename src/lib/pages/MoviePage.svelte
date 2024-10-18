@@ -36,7 +36,7 @@
 	export let id: string;
 	const tmdbId = Number(id);
 
-	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
+	const tmdbMovie = tmdbApi.getMovie(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 	const { promise: jellyfinItemP } = useRequest(
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
