@@ -58,6 +58,68 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Structure
+- Routes
+- series -> shows
+
+### Users
+- PUT /users/{id}
+- GET /users
+- GET /users/{id}
+- DELETE /users/{id}
+- POST /users
+
+### Users > Library
+- GET /users/{userId}/library
+- POST /users/{userId}/library/{tmdbId}
+- DELETE /users/{userId}/library/{tmdbId}
+
+### Users > PlayState
+- GET /users/{userId}/playstate/movies/{tmdbId}
+- GET /users/{userId}/playstate/series/{tmdbId}/{season}/{episode}
+- PUT /users/{userId}/playstate/movies/{tmdbId}
+- PUT /users/{userId}/playstate/series/{tmdbId}/{season}/{episode}
+
+### TMDB / Metadata
+- GET /movies/{tmdbId}
+- GET /movies/{tmdbId}/similar
+- GET /movies/recommendations
+  - User-specific
+- GET /series/{tmdbId}
+- (GET /series/{tmdbId}/season/{season})
+- GET /series/{tmdbId}/season/{season}/episode/{episode}
+- GET /series/{tmdbId}/similar
+- GET /series/recommendations
+  - User-specific
+- GET /people/{tmdbPersonId}
+
+### TMDB / Discovery
+- (GET /discover/popular)
+- GET /discover/popular/movies
+- GET /discover/popular/series
+- (GET /discover/network/{network})
+- GET /discover/network/{network}/movies
+- GET /discover/network/{network}/series
+- (GET /discover/genre/{genre})
+- GET /discover/genre/{genre}/movies
+- GET /discover/genre/{genre}/series
+
+### Sources
+- GET /sources
+- (GET /sources/{sourceId})
+- GET /sources/{sourceId}/movies
+  - if indexable 
+- GET /sources/{sourceId}/movies/{tmdbId}
+- GET /sources/{sourceId}/movies/{tmdbId}/stream
+- GET /sources/{sourceId}/series
+  - if indexable
+- GET /sources/{sourceId}/series/{tmdbId}
+- GET /sources/{sourceId}/series/{tmdbId}/season/{season}/episode/{episode}/stream
+
+## Resources
+
+- [REST best practices](https://github.com/saifaustcse/api-best-practices)
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
