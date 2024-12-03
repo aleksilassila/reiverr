@@ -37,7 +37,7 @@ Local Library & Playback
 - Create requests for movies & TV shows in Radarr & Sonarr
 - Manage local library files
 - ~~View Radarr & Sonarr stats (disk space, items, etc.)~~
-  
+
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
 # Installation
@@ -104,12 +104,12 @@ the app using Tizen Studio or the CLI, following roughly these steps:
 2. Download either Tizen Studio or the CLI tools from the [official website](https://developer.tizen.org/development/tizen-studio/download)
 3. [Connect Tizen Studio to your TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
 4. Use the following command to build and install the app on your TV:\
-\
-`npm run build:tizen;C:\tizen-studio\tools\ide\bin\tizen.bat build-web -- tizen;C:\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -o .\tizen -- .\tizen\.buildResult\;C:\tizen-studio\tools\ide\bin\tizen.bat install -n .\tizen\Reiverr.wgt -t QE55Q64TAUXXC`.\
-\
-You may need to replace the paths for Tizen Studio tools according to your installation location, as well as the device identifier, which was in my case the tv model number.\
-\
-Alternatively, you can open the project in Tizen Studio and install the project on a device from there. For more instructions on run a project on a device, see [here](https://docs.tizen.org/application/web/get-started/tv/first-samsung-tv-app/#run-on-a-target-device).
+   \
+   `npm run build:tizen;C:\tizen-studio\tools\ide\bin\tizen.bat build-web -- tizen;C:\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -o .\tizen -- .\tizen\.buildResult\;C:\tizen-studio\tools\ide\bin\tizen.bat install -n .\tizen\Reiverr.wgt -t QE55Q64TAUXXC`.\
+   \
+   You may need to replace the paths for Tizen Studio tools according to your installation location, as well as the device identifier, which was in my case the tv model number.\
+   \
+   Alternatively, you can open the project in Tizen Studio and install the project on a device from there. For more instructions on run a project on a device, see [here](https://docs.tizen.org/application/web/get-started/tv/first-samsung-tv-app/#run-on-a-target-device).
 
 If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions),
 open an [issue](https://github.com/aleksilassila/reiverr/issues)
@@ -133,7 +133,6 @@ To get most out of Reiverr, it is recommended to connect to TMDB, Jellyfin, Rada
 
 > Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs.
 > Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
-
 
 # Contributing
 
@@ -175,6 +174,7 @@ To get started with development:
 5. To start the backend: `npm run --prefix backend start:dev`
 
 ## Notes
+
 - 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc.
   [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource
   for how to design for TVs.
@@ -185,6 +185,7 @@ To get started with development:
     css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
 
 ## Useful resources
+
 - https://developer.themoviedb.org/reference
 - https://api.jellyfin.org/
 - https://sonarr.tv/docs/api/

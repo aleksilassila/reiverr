@@ -7,6 +7,7 @@ import { UsersService } from './users/users.service';
 import { ADMIN_PASSWORD, ADMIN_USERNAME } from './consts';
 import { json, urlencoded } from 'express';
 // import * as proxy from 'express-http-proxy';
+require('ts-node/register'); // For importing plugins
 
 async function createAdminUser(userService: UsersService) {
   if (!ADMIN_USERNAME || ADMIN_PASSWORD === undefined) return;
@@ -42,6 +43,7 @@ async function bootstrap() {
   await createAdminUser(app.get(UsersService));
 
   await app.listen(9494);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();

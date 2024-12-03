@@ -1,1 +1,370 @@
-{"openapi":"3.0.0","paths":{"/api/user":{"get":{"operationId":"UserController_getProfile","parameters":[],"responses":{"200":{"description":"User found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserDto"}}}},"404":{"content":{"application/json":{"examples":{"NotFoundException":{"description":"User not found","value":{"statusCode":404,"message":"Not Found","error":"Not Found"}}},"schema":{"type":"object","description":"User not found","properties":{"statusCode":{"type":"number","example":404},"message":{"type":"string","example":"Not Found"},"error":{"type":"string","example":"Not Found"}},"required":["statusCode","message"]}}},"description":""}},"tags":["user"]},"post":{"operationId":"UserController_create","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateUserDto"}}}},"responses":{"200":{"description":""}},"tags":["user"]}},"/api/user/{id}":{"get":{"operationId":"UserController_findById","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"responses":{"200":{"description":"User found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserDto"}}}},"404":{"content":{"application/json":{"examples":{"NotFoundException":{"description":"User not found","value":{"statusCode":404,"message":"Not Found","error":"Not Found"}}},"schema":{"type":"object","description":"User not found","properties":{"statusCode":{"type":"number","example":404},"message":{"type":"string","example":"Not Found"},"error":{"type":"string","example":"Not Found"}},"required":["statusCode","message"]}}},"description":""}},"tags":["user"]},"put":{"operationId":"UserController_updateUser","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateUserDto"}}}},"responses":{"200":{"description":"User updated","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserDto"}}}}},"tags":["user"]}},"/api/auth":{"post":{"operationId":"AuthController_signIn","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SignInDto"}}}},"responses":{"200":{"description":"User found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SignInResponse"}}}},"401":{"content":{"application/json":{"examples":{"UnauthorizedException":{"description":"Unauthorized","value":{"statusCode":401,"message":"Unauthorized","error":"Unauthorized"}}},"schema":{"type":"object","properties":{"statusCode":{"type":"number","example":401},"message":{"type":"string","example":"Unauthorized"},"error":{"type":"string","example":"Unauthorized"}},"required":["statusCode","message"]}}},"description":""}}}},"/api":{"get":{"operationId":"AppController_getHello","parameters":[],"responses":{"200":{"description":""}}}}},"info":{"title":"","description":"","version":"1.0.0","contact":{}},"tags":[],"servers":[],"components":{"schemas":{"SonarrSettings":{"type":"object","properties":{"apiKey":{"type":"string"},"baseUrl":{"type":"string"},"qualityProfileId":{"type":"number"},"rootFolderPath":{"type":"string"},"languageProfileId":{"type":"number"}},"required":["apiKey","baseUrl","qualityProfileId","rootFolderPath","languageProfileId"]},"RadarrSettings":{"type":"object","properties":{"apiKey":{"type":"string"},"baseUrl":{"type":"string"},"qualityProfileId":{"type":"number"},"rootFolderPath":{"type":"string"}},"required":["apiKey","baseUrl","qualityProfileId","rootFolderPath"]},"JellyfinSettings":{"type":"object","properties":{"apiKey":{"type":"string"},"baseUrl":{"type":"string"},"userId":{"type":"string"}},"required":["apiKey","baseUrl","userId"]},"TmdbSettings":{"type":"object","properties":{"sessionId":{"type":"string"},"userId":{"type":"string"}},"required":["sessionId","userId"]},"Settings":{"type":"object","properties":{"autoplayTrailers":{"type":"boolean"},"language":{"type":"string"},"animationDuration":{"type":"number"},"sonarr":{"$ref":"#/components/schemas/SonarrSettings"},"radarr":{"$ref":"#/components/schemas/RadarrSettings"},"jellyfin":{"$ref":"#/components/schemas/JellyfinSettings"},"tmdb":{"$ref":"#/components/schemas/TmdbSettings"}},"required":["autoplayTrailers","language","animationDuration","sonarr","radarr","jellyfin","tmdb"]},"UserDto":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"isAdmin":{"type":"boolean"},"onboardingDone":{"type":"boolean"},"settings":{"$ref":"#/components/schemas/Settings"}},"required":["id","name","isAdmin","settings"]},"CreateUserDto":{"type":"object","properties":{"name":{"type":"string"},"password":{"type":"string"},"isAdmin":{"type":"boolean"}},"required":["name","password","isAdmin"]},"UpdateUserDto":{"type":"object","properties":{"name":{"type":"string"},"onboardingDone":{"type":"boolean"},"settings":{"$ref":"#/components/schemas/Settings"}}},"SignInDto":{"type":"object","properties":{"name":{"type":"string"},"password":{"type":"string"}},"required":["name","password"]},"SignInResponse":{"type":"object","properties":{"accessToken":{"type":"string"}},"required":["accessToken"]}}}}
+{
+	"openapi": "3.0.0",
+	"paths": {
+		"/api/users": {
+			"get": {
+				"operationId": "UsersController_findAll",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "All users found",
+						"content": {
+							"application/json": {
+								"schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserDto" } }
+							}
+						}
+					}
+				},
+				"tags": ["users"]
+			},
+			"post": {
+				"operationId": "UsersController_create",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": { "schema": { "$ref": "#/components/schemas/CreateUserDto" } }
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "User created",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } }
+						}
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"BadRequestException": {
+										"description": "Bad Request",
+										"value": { "statusCode": 400, "message": "Bad Request", "error": "Bad Request" }
+									}
+								},
+								"schema": {
+									"type": "object",
+									"properties": {
+										"statusCode": { "type": "number", "example": 400 },
+										"message": { "type": "string", "example": "Bad Request" },
+										"error": { "type": "string", "example": "Bad Request" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"UnauthorizedException": {
+										"description": "Unauthorized",
+										"value": {
+											"statusCode": 401,
+											"message": "Unauthorized",
+											"error": "Unauthorized"
+										}
+									}
+								},
+								"schema": {
+									"type": "object",
+									"description": "Unauthorized",
+									"properties": {
+										"statusCode": { "type": "number", "example": 401 },
+										"message": { "type": "string", "example": "Unauthorized" },
+										"error": { "type": "string", "example": "Unauthorized" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					}
+				},
+				"tags": ["users"]
+			}
+		},
+		"/api/users/{id}": {
+			"get": {
+				"operationId": "UsersController_findById",
+				"parameters": [
+					{ "name": "id", "required": true, "in": "path", "schema": { "type": "string" } }
+				],
+				"responses": {
+					"200": {
+						"description": "User found",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } }
+						}
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"NotFoundException": {
+										"description": "User not found",
+										"value": { "statusCode": 404, "message": "Not Found", "error": "Not Found" }
+									}
+								},
+								"schema": {
+									"type": "object",
+									"description": "User not found",
+									"properties": {
+										"statusCode": { "type": "number", "example": 404 },
+										"message": { "type": "string", "example": "Not Found" },
+										"error": { "type": "string", "example": "Not Found" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					}
+				},
+				"tags": ["users"]
+			},
+			"put": {
+				"operationId": "UsersController_update",
+				"parameters": [
+					{ "name": "id", "required": true, "in": "path", "schema": { "type": "string" } }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserDto" } }
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "User updated",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/UserDto" } }
+						}
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"NotFoundException": {
+										"description": "User not found",
+										"value": { "statusCode": 404, "message": "Not Found", "error": "Not Found" }
+									}
+								},
+								"schema": {
+									"type": "object",
+									"description": "User not found",
+									"properties": {
+										"statusCode": { "type": "number", "example": 404 },
+										"message": { "type": "string", "example": "Not Found" },
+										"error": { "type": "string", "example": "Not Found" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					}
+				},
+				"tags": ["users"]
+			},
+			"delete": {
+				"operationId": "UsersController_deleteUser",
+				"parameters": [
+					{ "name": "id", "required": true, "in": "path", "schema": { "type": "string" } }
+				],
+				"responses": {
+					"200": { "description": "User deleted" },
+					"404": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"NotFoundException": {
+										"description": "User not found",
+										"value": { "statusCode": 404, "message": "Not Found", "error": "Not Found" }
+									}
+								},
+								"schema": {
+									"type": "object",
+									"description": "User not found",
+									"properties": {
+										"statusCode": { "type": "number", "example": 404 },
+										"message": { "type": "string", "example": "Not Found" },
+										"error": { "type": "string", "example": "Not Found" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					}
+				},
+				"tags": ["users"]
+			}
+		},
+		"/api/auth": {
+			"post": {
+				"operationId": "AuthController_signIn",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": { "schema": { "$ref": "#/components/schemas/SignInDto" } }
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "User found",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/SignInResponse" } }
+						}
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"examples": {
+									"UnauthorizedException": {
+										"description": "Unauthorized",
+										"value": {
+											"statusCode": 401,
+											"message": "Unauthorized",
+											"error": "Unauthorized"
+										}
+									}
+								},
+								"schema": {
+									"type": "object",
+									"properties": {
+										"statusCode": { "type": "number", "example": 401 },
+										"message": { "type": "string", "example": "Unauthorized" },
+										"error": { "type": "string", "example": "Unauthorized" }
+									},
+									"required": ["statusCode", "message"]
+								}
+							}
+						},
+						"description": ""
+					}
+				}
+			}
+		},
+		"/api": {
+			"get": {
+				"operationId": "AppController_getHello",
+				"parameters": [],
+				"responses": { "200": { "description": "" } }
+			}
+		}
+	},
+	"info": { "title": "", "description": "", "version": "1.0.0", "contact": {} },
+	"tags": [],
+	"servers": [],
+	"components": {
+		"schemas": {
+			"SonarrSettings": {
+				"type": "object",
+				"properties": {
+					"apiKey": { "type": "string" },
+					"baseUrl": { "type": "string" },
+					"qualityProfileId": { "type": "number" },
+					"rootFolderPath": { "type": "string" },
+					"languageProfileId": { "type": "number" }
+				},
+				"required": ["apiKey", "baseUrl", "qualityProfileId", "rootFolderPath", "languageProfileId"]
+			},
+			"RadarrSettings": {
+				"type": "object",
+				"properties": {
+					"apiKey": { "type": "string" },
+					"baseUrl": { "type": "string" },
+					"qualityProfileId": { "type": "number" },
+					"rootFolderPath": { "type": "string" }
+				},
+				"required": ["apiKey", "baseUrl", "qualityProfileId", "rootFolderPath"]
+			},
+			"JellyfinSettings": {
+				"type": "object",
+				"properties": {
+					"apiKey": { "type": "string" },
+					"baseUrl": { "type": "string" },
+					"userId": { "type": "string" }
+				},
+				"required": ["apiKey", "baseUrl", "userId"]
+			},
+			"TmdbSettings": {
+				"type": "object",
+				"properties": { "sessionId": { "type": "string" }, "userId": { "type": "string" } },
+				"required": ["sessionId", "userId"]
+			},
+			"Settings": {
+				"type": "object",
+				"properties": {
+					"autoplayTrailers": { "type": "boolean" },
+					"language": { "type": "string" },
+					"animationDuration": { "type": "number" },
+					"sonarr": { "$ref": "#/components/schemas/SonarrSettings" },
+					"radarr": { "$ref": "#/components/schemas/RadarrSettings" },
+					"jellyfin": { "$ref": "#/components/schemas/JellyfinSettings" },
+					"tmdb": { "$ref": "#/components/schemas/TmdbSettings" }
+				},
+				"required": [
+					"autoplayTrailers",
+					"language",
+					"animationDuration",
+					"sonarr",
+					"radarr",
+					"jellyfin",
+					"tmdb"
+				]
+			},
+			"UserDto": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "string" },
+					"name": { "type": "string" },
+					"isAdmin": { "type": "boolean" },
+					"onboardingDone": { "type": "boolean" },
+					"settings": { "$ref": "#/components/schemas/Settings" },
+					"profilePicture": { "type": "string" }
+				},
+				"required": ["id", "name", "isAdmin", "settings", "profilePicture"]
+			},
+			"CreateUserDto": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"password": { "type": "string" },
+					"isAdmin": { "type": "boolean" },
+					"profilePicture": { "type": "string" }
+				},
+				"required": ["name", "password", "isAdmin"]
+			},
+			"UpdateUserDto": {
+				"type": "object",
+				"properties": {
+					"name": { "type": "string" },
+					"password": { "type": "string" },
+					"isAdmin": { "type": "boolean" },
+					"onboardingDone": { "type": "boolean" },
+					"settings": { "$ref": "#/components/schemas/Settings" },
+					"profilePicture": { "type": "string" },
+					"oldPassword": { "type": "string" }
+				}
+			},
+			"SignInDto": {
+				"type": "object",
+				"properties": { "name": { "type": "string" }, "password": { "type": "string" } },
+				"required": ["name", "password"]
+			},
+			"SignInResponse": {
+				"type": "object",
+				"properties": {
+					"accessToken": { "type": "string" },
+					"user": { "$ref": "#/components/schemas/UserDto" }
+				},
+				"required": ["accessToken", "user"]
+			}
+		}
+	}
+}

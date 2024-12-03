@@ -23,7 +23,7 @@ module.exports = {
 			files: ['*.svelte'],
 			parser: 'svelte-eslint-parser',
 			parserOptions: {
-				parser: '@typescript-eslint/parser',
+				parser: '@typescript-eslint/parser'
 			}
 		}
 	],
@@ -31,6 +31,6 @@ module.exports = {
 		'@typescript-eslint/ban-ts-comment': 'off',
 		'@typescript-eslint/no-unused-vars': 'warn',
 		'@typescript-eslint/no-explicit-any': 'warn',
-		'prefer-const': 'warn',
+		'prefer-const': 'warn'
 	}
 };

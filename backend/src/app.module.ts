@@ -7,7 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MediaModule } from './media/media.module';
-import { SourcesModule } from './sources/sources.module';
+import { SourceModule } from './sources/sources.module';
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { SourcesModule } from './sources/sources.module';
       rootPath: join(__dirname, '../dist'),
     }),
     MediaModule,
-    SourcesModule,
+    SourceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

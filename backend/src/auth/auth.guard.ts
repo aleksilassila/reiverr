@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { JWT_SECRET } from '../consts';
+import { ENV, JWT_SECRET } from '../consts';
 import { AccessTokenPayload } from './auth.service';
 import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
@@ -34,7 +34,11 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = extractTokenFromHeader(request);
-    if (!token) {
+
+    if (ENV === 'development' && !token) {
+      request['user'] = await this.userService.findOneByName('test');
+      return true;
+    } else if (!token) {
       throw new UnauthorizedException();
     }
     try {
