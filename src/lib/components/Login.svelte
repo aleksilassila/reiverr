@@ -5,6 +5,7 @@
 	import { createLocalStorageStore } from '../stores/localstorage.store';
 	import { sessions } from '../stores/session.store';
 	import { createEventDispatcher } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	const dispatch = createEventDispatcher<{ login: null }>();
 
@@ -23,9 +24,9 @@
 			.then((res) => {
 				console.log('res', res);
 				if (res?.request?.status === 401) {
-					error = 'Invalid credentials. Please try again.';
+					error = $_('login.invalidCredentials');
 				} else if (res?.request.status !== 200) {
-					error = 'Error occurred: ' + res.request.statusText;
+					error = $_('login.errorOccurred') + ': ' + res.request.statusText;
 				} else {
 					dispatch('login');
 				}
@@ -40,22 +41,22 @@
 </script>
 
 <Container class="flex flex-col" focusOnMount>
-	<h1 class="header2 w-full mb-2">Login to Reiverr</h1>
+	<h1 class="header2 w-full mb-2">{$_('login.title')}</h1>
 	<div class="body mb-4">
-		If this is your first time logging in, a new account will be created based on your credentials.
+		{$_('login.firstTime')}
 	</div>
 
 	<TextField value={$baseUrl} on:change={(e) => baseUrl.set(e.detail)} class="mb-4 w-full">
-		Server
+		{$_('login.server')}
 	</TextField>
 
 	<TextField value={$name} on:change={({ detail }) => name.set(detail)} class="mb-4 w-full">
-		Name
+		{$_('login.name')}
 	</TextField>
-	<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
+	<TextField bind:value={password} type="password" class="mb-8 w-full">{$_('login.password')}</TextField>
 
 	<Button type="primary-dark" disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full"
-		>Submit</Button
+		>{$_('login.submit')}</Button
 	>
 
 	{#if error}

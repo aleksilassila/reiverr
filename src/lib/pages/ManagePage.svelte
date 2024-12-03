@@ -23,6 +23,8 @@
 	import { scrollIntoView } from '../selectable';
 	import { reiverrApi } from '../apis/reiverr/reiverr-api';
 	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
+	import { _ } from 'svelte-i18n';
+	import LanguageSettings from '../components/LanguageSettings.svelte';
 
 	enum Tabs {
 		Interface,
@@ -101,7 +103,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				Accounts
+			{$_('settings.accounts.accounts')}
 			</span>
 		</Container>
 		<Container
@@ -116,7 +118,7 @@
 					'text-primary-500': hasFocus
 				})}
 			>
-				About
+			{$_('settings.navbar.about')}
 			</span>
 		</Container>
 	</Container>
@@ -124,7 +126,7 @@
 	<Container class="flex-1 grid w-full overflow-y-auto scrollbar-hide relative pb-16 px-32">
 		<Tab {...tab} tab={Tabs.Interface} class="w-full">
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Animate scrolling</label>
+				<label class="mr-2">{$_('settings.general.userInterface.animateScrolling')}</label>
 				<Toggle
 					checked={$localSettings.animateScrolling}
 					on:change={({ detail }) =>
@@ -132,7 +134,7 @@
 				/>
 			</div>
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Use CSS Transitions</label>
+				<label class="mr-2">{$_('settings.general.userInterface.useCssTransitions')}</label>
 				<Toggle
 					checked={$localSettings.useCssTransitions}
 					on:change={({ detail }) =>
@@ -140,19 +142,31 @@
 				/>
 			</div>
 			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-				<label class="mr-2">Check for Updates</label>
+				<label class="mr-2">{$_('settings.general.userInterface.checkForUpdates')}</label>
 				<Toggle
 					checked={$localSettings.checkForUpdates}
 					on:change={({ detail }) =>
 						localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
 				/>
 			</div>
+
+
+			<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
+				<label class="mr-2">{$_('settings.general.userInterface.language')}</label>
+				<LanguageSettings 
+					on:change={({ detail }) => {
+					console.log('Language changed to:', detail.language);
+					}}
+				/>
+			</div>
+
+
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Account} class="space-y-16">
 			<div>
 				<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
-					<h1 class="header1 mb-4">My Profile</h1>
+					<h1 class="header1 mb-4">{$_('settings.accounts.myprofile')}</h1>
 					<SelectField
 						class="mb-4"
 						value={$user?.name || ''}
@@ -164,16 +178,17 @@
 								});
 						}}
 					>
-						Logged in as
+					{$_('settings.accounts.loginAs')}
 						<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 					</SelectField>
 					<Container direction="horizontal" class="flex space-x-4">
-						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
+						<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>{$_('settings.accounts.logOut')}</Button>
 					</Container>
 					{#await users then usersR}
 						{#if usersR?.length}
 							<div class="mt-8">
-								<h1 class="header1 mb-4">Server Accounts</h1>
+								<h1 class="header1 mb-4">{$_('settings.accounts.serverAccounts')}
+								</h1>
 								<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
 									{#each usersR.filter((u) => u.id !== $user?.id) as user}
 										<SelectField
@@ -197,7 +212,7 @@
 										</SelectField>
 									{/each}
 									<SelectField
-										value="New Account"
+										value="{$_('settings.accounts.newaccount')}"
 										on:clickOrSelect={() => {
 											createModal(EditProfileModal, {
 												createNew: true,
@@ -205,7 +220,7 @@
 											});
 										}}
 									>
-										Create
+									{$_('settings.accounts.create')}
 										<Plus slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 									</SelectField>
 								</Container>
@@ -216,7 +231,7 @@
 			</div>
 
 			<div>
-				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>
+				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">{$_('settings.navbar.integrations')}</h1>
 				<Container direction="horizontal" class="gap-16 grid grid-cols-2">
 					<Container class="flex flex-col space-y-16">
 						<Container
@@ -225,7 +240,7 @@
 						>
 							<h1 class="mb-4 header1">Sonarr</h1>
 							<SonarrIntegration let:stale let:handleSave>
-								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>{$_('settings.integrations.save')}</Button>
 							</SonarrIntegration>
 						</Container>
 
@@ -235,7 +250,7 @@
 						>
 							<h1 class="mb-4 header1">Radarr</h1>
 							<RadarrIntegration let:stale let:handleSave>
-								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>{$_('settings.integrations.save')}</Button>
 							</RadarrIntegration>
 						</Container>
 					</Container>
@@ -245,7 +260,7 @@
 							class="bg-primary-800 rounded-xl p-8"
 							on:enter={scrollIntoView({ vertical: 64 })}
 						>
-							<h1 class="mb-4 header1">Tmdb Account</h1>
+							<h1 class="mb-4 header1">{$_('settings.accounts.newaccount')}</h1>
 							<TmdbIntegration let:connected>
 								{#if !connected}
 									<div class="flex space-x-4 mt-4">
@@ -254,7 +269,7 @@
 											iconAfter={ArrowRight}
 											on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
 										>
-											Connect
+										{$_('settings.integrations.tmdb.connect')}
 										</Button>
 									</div>
 								{/if}
@@ -304,7 +319,7 @@
 								let:handleSave
 								let:stale
 							>
-								<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
+								<Button disabled={!stale} type="primary-dark" action={handleSave}>{$_('settings.integrations.save')}</Button>
 							</JellyfinIntegration>
 						</Container>
 					</Container>
@@ -322,14 +337,14 @@
 			<div>
 				meta.env: {JSON.stringify(import.meta.env)}
 			</div>
-			User agent: {window?.navigator?.userAgent}
-			<div>Last key code: {lastKeyCode}</div>
-			<div>Last key: {lastKey}</div>
+			{$_('settings.about.userAgent')} {window?.navigator?.userAgent}
+			<div>{$_('settings.about.lastKeyCode')} {lastKeyCode}</div>
+			<div>{$_('settings.about.lastKey')} {lastKey}</div>
 			{#if tizenMediaKey}
-				<div>Tizen media key: {tizenMediaKey}</div>
+				<div>{$_('settings.about.tizenMediaKey')} {tizenMediaKey}</div>
 			{/if}
 			<div class="flex space-x-4 mt-4">
-				<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
+				<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">{$_('settings.about.logOut')}</Button>
 			</div>
 		</Tab>
 	</Container>

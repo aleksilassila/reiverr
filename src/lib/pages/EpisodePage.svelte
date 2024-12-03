@@ -22,6 +22,7 @@
 	import SonarrMediaManagerModal from '../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
 	import { tick } from 'svelte';
+	import { _ } from 'svelte-i18n';
 
 	export let id: string; // Series ID
 	export let season: string;
@@ -99,8 +100,8 @@
 
 	function createConfirmDeleteFiles(files: EpisodeFileResource[]) {
 		createModal(ConfirmDialog, {
-			header: 'Delete Season Files?',
-			body: `Are you sure you want to delete all ${files.length} file(s)?`,
+			header: $_('dialogs.deleteSeasonFilesHeader'),
+			body: `${$_('dialogs.deleteSeasonFilesBody')} ${files.length} ${$_('dialogs.deleteFilesCount')} ${files[0]?.seasonNumber}?`,
 			confirm: () =>
 				sonarrApi
 					.deleteSonarrEpisodes(files.map((f) => f.id || -1))
@@ -141,7 +142,7 @@
 			class="h-screen flex flex-col justify-end mx-32 py-16"
 		>
 			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
-				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
+				{$_('library.content.season')} {tmdbEpisode?.season_number} {$_('library.content.episode')} {tmdbEpisode?.episode_number}
 			</div>
 			<HeroInfoTitle title={tmdbEpisode?.name} />
 			<div
@@ -161,7 +162,7 @@
 					</a>
 				</p>
 				<DotFilled />
-				<p class="flex-shrink-0">{tmdbEpisode?.runtime} Minutes</p>
+				<p class="flex-shrink-0">{tmdbEpisode?.runtime} {$_('library.content.minLeft')}</p>
 
 				{#await jellyfinEpisode then episode}
 					{#if episode?.MediaSources?.[0]?.Size}
@@ -181,29 +182,29 @@
 			</div>
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
 				{#await Promise.all([jellyfinEpisode, sonarrEpisode])}
-					<ButtonGhost>Play</ButtonGhost>
-					<ButtonGhost>Manage Media</ButtonGhost>
-					<ButtonGhost>Delete Files</ButtonGhost>
+					<ButtonGhost>{$_('library.content.play')}</ButtonGhost>
+					<ButtonGhost>{$_('library.content.manage')}</ButtonGhost>
+					<ButtonGhost>{$_('library.content.deleteFiles')}</ButtonGhost>
 				{:then [jellyfinEpisode]}
 					{#if jellyfinEpisode?.MediaSources?.length}
 						<Button
 							on:clickOrSelect={() =>
 								jellyfinEpisode?.Id && playerState.streamJellyfinId(jellyfinEpisode.Id)}
 						>
-							Play
+						{$_('library.content.play')}
 							<Play size={19} slot="icon" />
 						</Button>
 						<Button disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
 							{#if isWatched}
-								Mark as Unwatched
+							{$_('library.LibraryItemContext.markUnwatched')}
 							{:else}
-								Mark as Watched
+							{$_('library.LibraryItemContext.markWatched')}
 							{/if}
 							<Check slot="icon" size={19} />
 						</Button>
 					{:else}
 						<Button action={handleRequestEpisode}>
-							Request
+							{$_('library.content.requestContent')}
 							<Plus size={19} slot="icon" />
 						</Button>
 					{/if}
@@ -216,18 +217,18 @@
 				{#await sonarrFiles then files}
 					{#if files?.length}
 						<Button on:clickOrSelect={() => createConfirmDeleteFiles(files)}
-							>Delete Files <Trash slot="icon" size={19} /></Button
+							>{$_('library.content.deleteFiles')} <Trash slot="icon" size={19} /></Button
 						>
 					{/if}
 				{/await}
 
 				{#if PLATFORM_WEB}
 					<Button>
-						Open In TMDB
+						{$_('library.LibraryItemContext.openTMDB')}
 						<ExternalLink size={19} slot="icon-after" />
 					</Button>
 					<Button>
-						Open In Jellyfin
+						{$_('library.LibraryItemContext.openJellyfin')}
 						<ExternalLink size={19} slot="icon-after" />
 					</Button>
 				{/if}

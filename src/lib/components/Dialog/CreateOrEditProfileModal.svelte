@@ -18,6 +18,7 @@
 	import { navigate } from '../StackRouter/StackRouter';
 	import Toggle from '../Toggle.svelte';
 	import { get } from 'svelte/store';
+	import { _ } from 'svelte-i18n';
 
 	enum Tabs {
 		EditProfile,
@@ -166,11 +167,11 @@
 <Dialog class="grid" size={'dynamic'}>
 	<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
 		<h1 class="header2">
-			{createNew ? 'Create Account' : 'Edit Profile'}
-		</h1>
-		<TextField bind:value={name}>name</TextField>
+			{createNew ? $_('settings.profile.createProfile') : $_('settings.profile.editProfile')}
+		</h1>		
+		<TextField bind:value={name}>{$_('settings.profile.name')}</TextField>
 		<SelectField value={profilePictureTitle} on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}>
-			Profile Picture
+			{$_('settings.profile.profilePicture')}
 		</SelectField>
 		{#if !createNew}
 			<Container direction="horizontal" class="flex space-x-4 items-end">
@@ -179,7 +180,7 @@
 					bind:value={oldPassword}
 					type={oldPasswordVisible ? 'text' : 'password'}
 				>
-					Old Password
+				{$_('settings.profile.oldPassword')}
 				</TextField>
 				<IconToggle
 					on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
@@ -193,7 +194,7 @@
 				bind:value={newPassword}
 				type={newPasswordVisible ? 'text' : 'password'}
 			>
-				New Password
+			{$_('settings.profile.newPassword')}
 			</TextField>
 			<IconToggle
 				on:clickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
@@ -202,7 +203,7 @@
 		</Container>
 		{#if isAdmin || admin}
 			<div class="flex justify-between">
-				<label>Admin</label>
+				<label>{$_('settings.profile.admin')}</label>
 				<Toggle bind:checked={isAdmin}>Admin</Toggle>
 			</div>
 		{/if}
@@ -211,7 +212,7 @@
 		{/if}
 		<Container direction="horizontal" class="flex space-x-4 pt-4 *:flex-1">
 			{#if !createNew}
-				<Button type="primary-dark" disabled={!stale} action={save}>Save</Button>
+				<Button type="primary-dark" disabled={!stale} action={save}>{$_('settings.profile.save')}</Button>
 				<Button
 					type="primary-dark"
 					icon={Trash}
@@ -220,10 +221,10 @@
 							header: 'Delete Account',
 							body: 'Are you sure you want to delete your account?',
 							confirm: handleDeleteAccount
-						})}>Delete Account</Button
+						})}>{$_('settings.profile.deleteAccount')}</Button
 				>
 			{:else}
-				<Button type="primary-dark" disabled={!complete} action={create}>Create</Button>
+				<Button type="primary-dark" disabled={!complete} action={create}>{$_('settings.accounts.create')}</Button>
 			{/if}
 		</Container>
 	</Tab>
@@ -236,7 +237,7 @@
 			detail.stopPropagation();
 		}}
 	>
-		<h1 class="header2 mb-6">Select Profile Picture</h1>
+		<h1 class="header2 mb-6">{$_('settings.profile.profilePicture')}</h1>
 		<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4 w-max">
 			<ProfileIcon
 				url={profilePictures.ana}

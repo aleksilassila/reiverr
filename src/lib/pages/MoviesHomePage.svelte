@@ -11,9 +11,14 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { _ } from 'svelte-i18n';
 
-	const continueWatching = jellyfinApi.getContinueWatching('movie');
-	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
+	const continueWatching = jellyfinApi.getContinueWatching('movie').then(items => {
+		return items.filter(item => item.Type === 'Movie');
+	});
+	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie').then(items => {
+		return items.filter(item => item.Type === 'Movie');
+	});
 
 	const popularMovies = tmdbApi.getPopularMovies();
 
@@ -72,7 +77,7 @@
 		{#await continueWatching then continueWatching}
 			{#if continueWatching?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">Continue Watching</span>
+					<span slot="header">{$_('discover.continueWatching')}</span>
 					{#each continueWatching as item (item.Id)}
 						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -81,7 +86,7 @@
 				{#await recentlyAdded then recentlyAdded}
 					{#if recentlyAdded?.length}
 						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-							<span slot="header">Recently Added</span>
+							<span slot="header">{$_('discover.recentlyAdded')}</span>
 							{#each recentlyAdded as item (item.Id)}
 								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 							{/each}
@@ -93,7 +98,7 @@
 
 		{#await popularMovies then popularMovies}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Popular</span>
+				<span slot="header">{$_('discover.trending')}</span>
 				{#each popularMovies as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}
@@ -115,7 +120,7 @@
 
 		{#await newDigitalReleases then nowStreaming}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">New Digital Releases</span>
+				<span slot="header">{$_('discover.newDigitalReleases')}</span>
 				{#each nowStreaming as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}
@@ -137,7 +142,7 @@
 
 		{#await upcomingMovies then upcomingSeries}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Upcoming Movies</span>
+				<span slot="header">{$_('discover.upcomingMovies')}</span>
 				{#each upcomingSeries as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}

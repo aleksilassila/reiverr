@@ -4,6 +4,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { user } from '../../stores/user.store';
 	import { derived, get } from 'svelte/store';
+	import { _ } from 'svelte-i18n';
 
 	let baseUrl = get(user)?.settings.sonarr.baseUrl || '';
 	let apiKey = get(user)?.settings.sonarr.apiKey || '';
@@ -85,9 +86,9 @@
 
 <div class="space-y-4 mb-4">
 	<TextField bind:value={baseUrl} isValid={healthCheck} on:change={handleChange}>
-		Base Url
+		{$_('settings.integrations.baseUrl')}
 	</TextField>
-	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>API Key</TextField>
+	<TextField bind:value={apiKey} isValid={healthCheck} on:change={handleChange}>{$_('settings.integrations.apiKey')}</TextField>
 </div>
 
 {#if error}

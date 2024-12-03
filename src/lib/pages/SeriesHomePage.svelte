@@ -12,6 +12,7 @@
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { _ } from 'svelte-i18n';
 
 	const continueWatching = jellyfinApi.getContinueWatchingSeries();
 	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
@@ -65,7 +66,7 @@
 		{#await continueWatching then continueWatching}
 			{#if continueWatching?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">Continue Watching</span>
+					<span slot="header">{$_('discover.continueWatching')}</span>
 					{#each continueWatching as item (item.Id)}
 						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -74,7 +75,7 @@
 				{#await recentlyAdded then recentlyAdded}
 					{#if recentlyAdded?.length}
 						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-							<span slot="header">Recently Added</span>
+							<span slot="header">{$_('discover.recentlyAdded')}</span>
 							{#each recentlyAdded as item (item.Id)}
 								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 							{/each}
@@ -86,7 +87,7 @@
 
 		{#await popular then popular}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Popular</span>
+				<span slot="header">{$_('discover.trending')}</span>
 				{#each popular as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}
@@ -108,7 +109,7 @@
 
 		{#await nowStreaming then nowStreaming}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Now Streaming</span>
+				<span slot="header">{$_('discover.streamingNow')}</span>
 				{#each nowStreaming as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}
@@ -130,7 +131,7 @@
 
 		{#await upcomingSeries then upcomingSeries}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Upcoming Series</span>
+				<span slot="header">{$_('discover.upcomingSeries')}</span>
 				{#each upcomingSeries as item}
 					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 				{/each}

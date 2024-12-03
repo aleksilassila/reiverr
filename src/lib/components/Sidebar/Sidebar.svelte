@@ -17,6 +17,7 @@
 	import { useTabs } from '../Tab/Tab';
 	import { user } from '../../stores/user.store';
 	import { sessions } from '../../stores/session.store';
+	import { _ } from 'svelte-i18n';
 
 	enum Tabs {
 		Users,
@@ -188,7 +189,7 @@
 						}
 					)}
 				>
-					Series
+				{$_('navbar.series')}
 				</span>
 			</div>
 		</Container>
@@ -220,7 +221,7 @@
 						}
 					)}
 				>
-					Movies
+				{$_('navbar.movies')}
 				</span>
 			</div>
 		</Container>
@@ -252,7 +253,7 @@
 						}
 					)}
 				>
-					Library
+				{$_('navbar.library')}
 				</span>
 			</div>
 		</Container>
@@ -284,7 +285,7 @@
 						}
 					)}
 				>
-					Search
+				{$_('navbar.search')}
 				</span>
 			</div>
 		</Container>
@@ -323,7 +324,7 @@
 					}
 				)}
 			>
-				Manage
+			{$_('navbar.settings')}
 			</span>
 		</div>
 	</Container>

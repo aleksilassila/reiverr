@@ -1,102 +1,177 @@
 {
 	"appName": "Reiverr",
 	"setupRequiredTitle": "Willkommen zu",
-	"setupRequiredDescription": "Es scheint das einige Umgebungsvariables zur fehlerfreien Ausführung fehlen. Bitte gib die folgenden Umgebungsvariablen an:",
+	"setupRequiredDescription": "Es scheint das einige Umgebungsvariables zur fehlerfreien Ausführung fehlen.",
 	"navbar": {
-		"home": "Start",
-		"discover": "Entdecken",
+		"series": "Serie",
+		"movies": "Film",
+		"search": "Suche",
 		"library": "Bibliothek",
-		"sources": "Quellen",
-		"settings": "Einstellungen"
+		"settings": "Einstellungen",
+		"loading": "Lädt"
 	},
-	"search": {
-		"placeHolder": "Suche nach Filmen und Serien",
-		"noRecentSearches": "Kein Suchverlauf",
-		"noResults": "Keine Suchergebnisse"
+	"contextMenu": {
+		"markAsWatched": "Als geschaut markieren",
+		"markAsUnwatched": "Als ungesehen markieren",
+		"openInJellyfin": "In Jellyfin öffnen",
+		"openInRadarr": "In Radarr öffnen",
+		"openInSonarr": "In Sonarr öffnen",
+		"openInTMDB": "In TMDB öffnen"
 	},
-	"discover": {
-		"trending": "Aufsteigend",
-		"popularPeople": "Beliebte Personen",
-		"upcomingMovies": "Bald verfügbare Filme",
-		"upcomingSeries": "Bald verfügbare Serien",
-		"genres": "Genres",
-		"newDigitalReleases": "Neue Digitale Veröffentlichungen",
-		"streamingNow": "Aktuell im Stream",
-		"TVNetworks": "Anbieter"
+	"confirmDialogs": {
+		"confirm": "Bestätigen",
+		"cancel": "Abbrechen"
 	},
-	"library": {
-		"missingConfiguration": "Konfiguriere Radarr, Sonarr und Jellyfin, zum Verwalten und Abspielen der Bibliothek",
-		"available": "Verfügbar",
-		"watched": "Geschaut",
-		"unavailable": "Nicht verfügbar",
-		"sort": {
-			"byTitle": "Nach Titel"
-		},
-		"content": {
-			"movie": "Film",
-			"show": "Serie",
-			"requestContent": "Anfrage",
-			"directedBy": "Regie von",
-			"releaseDate": "Veröffentlichung",
-			"budget": "Budget",
-			"status": "Status",
-			"runtime": "Spielzeit",
-			"castAndCrew": "Cast & Crew",
-			"recommendations": "Empfehlungen",
-			"similarTitles": "Ähnliche Titel"
-		}
+	"dialogs": {
+		"addToRadarrMessage": "Bevor Sie Episoden abrufen können, müssen Sie diese Serie zu Radarr hinzufügen.",
+		"addToSonarrMessage": "Bevor Sie Episoden abrufen können, müssen Sie diese Serie zu Sonarr hinzufügen.",
+		"rootFolder": "Hauptordner",
+		"qualityProfile": "Qualitätsprofil",
+		"minimumAvailability": "Minimale Verfügbarkeit",
+		"left": "übrig",
+		"addToRadarr": "Zu Radarr hinzufügen",
+		"addToSonarr": "Zu Sonarr hinzufügen",
+		"deleteSeasonFilesHeader": "Staffel Dateien löschen?",
+		"deleteSeasonFilesBody": "Sind Sie sicher, dass Sie alle ",
+		"deleteFilesCount": "Datei(en) löschen möchten?",
+		"confirmDeleteSeasonHeader": "Staffel Dateien löschen?",
+		"confirmDeleteSeasonBody": "Sind Sie sicher, dass Sie alle ",
+		"confirmCancelDownloadsHeader": "Staffel Downloads abbrechen?",
+		"confirmCancelDownloadsBody": "Sind Sie sicher, dass Sie alle ",
+		"cancelAllDownloads": "Alle Downloads abbrechen",
+		"add": "Hinzufügen",
+		"toRadarr": "zu Radarr?",
+		"toSonarr": "zu Sonarr?",
+		"monitorStrategy": "Überwachungsstrategie",
+		"monitorEpisodes": "Episoden überwachen"
 	},
-	"sources": {},
-	"titleShowcase": {
-		"details": "Details",
-		"watchTrailer": "Trailer abspielen",
-		"releaseDate": "Veröffentlichung",
-		"directedBy": "Regie von"
+	"login": {
+		"title": "Anmelden bei Reiverr",
+		"firstTime": "Wenn dies Ihr erstes Login ist, wird ein neues Konto basierend auf Ihren Anmeldedaten erstellt.",
+		"server": "Server",
+		"name": "Name",
+		"password": "Passwort",
+		"submit": "Einreichen",
+		"invalidCredentials": "Ungültige Anmeldeinformationen. Bitte versuchen Sie es erneut.",
+		"errorOccurred": "Ein Fehler ist aufgetreten",
+		"whoIsWatching": "Wer schaut?",
+		"removeAllAccounts": "Alle Konten entfernen"
 	},
 	"settings": {
-		"navbar": {
-			"settings": "Konfiguration",
-			"general": "Allgemein",
-			"integrations": "Integrationen"
-		},
 		"general": {
 			"userInterface": {
-				"userInterface": "Benutzeroberfläche",
-				"language": "Sprache",
-				"autoplayTrailers": "Trailer automatisch abspielen",
-				"animationDuration": "Animationsdauer"
-			},
-			"discovery": {
-				"discovery": "Entdecken",
-				"none": "Keine",
-				"region": "Region",
-				"excludeLibraryItemsFromDiscovery": "Schließe Bibliothekeinträge von 'Entdecken' aus",
-				"includedLanguages": "Enthaltene Sprachen",
-				"includedLanguagesDescription": "Filter Resultate nach gesprochener Sprache. Trage ISO 639-1 Sprachcodes kommasepariert ein. Freilassen zum deaktivieren."
+				"animateScrolling": "Scrollen animieren",
+				"useCssTransitions": "CSS-Übergänge verwenden",
+				"checkForUpdates": "Nach Updates suchen",
+				"language": "Sprache"
 			}
 		},
 		"integrations": {
-			"integrations": "Integrationen",
-			"integrationsNote": "Anmerkungen: Basis URLs müssen vom Browser aus erreichbar sein. Interne Docker Adressen funktionieren nicht. API Schlüssel <span class='font-medium underline'>sind Sichtbar</span> in den Browseranfragen.",
 			"baseUrl": "Basis URL",
 			"apiKey": "API Schlüssel",
-			"testConnection": "Verbindung testen",
-			"status": {
-				"connected": "Verbunden",
-				"disconnected": "Getrennt"
+			"save": "Speichern",
+			"tmdbAccount": "Tmdb Konto",
+			"tmdbText": "Um Ihr TMDB-Konto zu verbinden, melden Sie sich über den untenstehenden Link an und klicken Sie dann auf 'Verbindung abschließen'.",
+			"connectTmdb": "Ein TMDB-Konto verbinden",
+			"connectedTo": "Verbunden mit",
+			"completeConnectionTmdb": "Verbindung abschließen",
+			"tmdbOpenLink": "Link öffnen",
+			"tmdb": {
+				"connect": "Verbinden"
 			},
-			"options": {
-				"options": "Optionen",
-				"rootFolder": "Hauptordner",
-				"qualityProfile": "Qualitätsprofil",
-				"languageProfile": "Sprachprofil",
-				"jellyfinUser": "Jellyfin Benutzer"
-			}
+			"user": "Benutzer"
 		},
-		"misc": {
-			"saveChanges": "Änderungen speichern",
-			"resetToDefaults": "Auf Standard zurücksetzen ",
-			"changelog": "Änderungen"
+		"navbar": {
+			"general": "Allgemein",
+			"integrations": "Integrationen",
+			"about": "Über",
+			"serie": "Serie",
+			"movies": "Film",
+			"library": "Bibliothek",
+			"search": "Suche",
+			"settings": "Einstellungen"
+		},
+		"about": {
+			"userAgent": "User agent",
+			"lastKeyCode": "Letzter Schlüsselcode",
+			"lastKey": "Letzter Schlüssel",
+			"tizenMediaKey": "Tizen Media Key",
+			"logOut": "Ausloggen"
+		},
+		"accounts": {
+			"accounts": "Konten",
+			"myprofile": "Mein Profil",
+			"loginAs": "Angemeldet als",
+			"logOut": "Abmelden",
+			"create": "Erstellen",
+			"newaccount": "Neues Konto",
+			"serverAccounts": "Serverkonten"
+		},
+		"profile": {
+				"createProfile": "Ein Konto erstellen",
+				"editProfile": "Profil Bearbeiten",
+				"name": "Name",
+				"profilePicture": "Profilbild",
+				"custom": "Benutzerdefiniert",
+				"oldPassword": "Altes Passwort",
+				"newPassword": "Neues Passwort",
+				"admin": "Administrator",
+				"save": "Speichern",
+				"deleteAccount": "Konto Löschen"
+			}
+
+	},
+	"discover": {
+		"continueWatching": "Weiter ansehen",
+		"recentlyAdded": "Kürzlich hinzugefügt",
+		"trending": "Aufsteigend",
+		"newDigitalReleases": "Neue Digitale Veröffentlichungen",
+		"upcomingMovies": "Bald verfügbare Filme",
+		"streamingNow": "Aktuell im Stream",
+		"upcomingSeries": "Bald verfügbare Serien"
+	},
+	"library": {
+		"content": {
+			"since": "Seit",
+			"ended": "Beendet",
+			"directedBy": "Regie von",
+			"writtenBy": "Geschrieben von",
+			"languages": "Sprachen",
+			"releaseDate": "Veröffentlichung",
+			"localFiles": "Lokale Dateien",
+			"deleteAllFiles": "Alle Dateien löschen",
+			"cancelAllDownloads": "Alle Downloads abbrechen",
+			"openInTMDB": "In TMDB öffnen",
+			"openInJellyfin": "In Jellyfin öffnen",
+			"requestContent": "Anfrage",
+			"season": "Staffel",
+			"episode": "Episode",
+			"moreInformation": "Mehr Informationen",
+			"filesSeason": "Dateien Staffel",
+			"deleteFilesSeason": "Staffel Dateien löschen",
+			"cancelFilesSeason": "Staffel Downloads abbrechen",
+			"minLeft": "Minuten übrig",
+			"played": "Gespielt",
+			"castAndCrew": "Cast & Crew",
+			"recommendations": "Empfehlungen",
+			"networks": "Anbieter",
+			"lastAirDate": "Letztes Sendedatum",
+			"moreInformations": "Mehr Informationen",
+			"play": "Abspielen"
+		},
+		"LibraryItemContext": {
+			"markWatched": "Als geschaut markieren",
+			"markUnwatched": "Als ungesehen markieren",
+			"openTMDB": "In TMDB öffnen",
+			"openJellyfin": "In Jellyfin öffnen",
+			"playSeason": "Staffel abspielen",
+			"episode": "Episode"
 		}
+	},
+	"search": {
+		"placeHolder": "Suche nach Filmen und Serien"
+	},
+	"personPage": {
+		"born": "Geboren"
 	}
 }
