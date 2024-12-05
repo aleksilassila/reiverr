@@ -20,8 +20,9 @@
 		"test:unit": "vitest",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
-		"openapi:update": "npm run --prefix backend openapi:schema && npm run openapi:codegen",
-		"openapi:codegen": "openapi-typescript \"backend/swagger-spec.json\" -o src/lib/apis/reiverr/reiverr.generated.d.ts"
+		"openapi:update": "npm run --prefix backend §generate && npm run openapi:codegen",
+		"openapi:codegen": "openapi-typescript \"backend/swagger-spec.json\" -o src/lib/apis/reiverr/reiverr.generated.d.ts",
+		"openapi:generate": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag"
 	},
 	"devDependencies": {
 		"@jellyfin/sdk": "^0.8.2",
@@ -70,7 +71,8 @@
 		]
 	},
 	"dependencies": {
-		"gsap": "^3.12.5"
+		"gsap": "^3.12.5",
+		"swagger-typescript-api": "^13.0.23"
 	},
 	"prettier": {
 		"useTabs": true,

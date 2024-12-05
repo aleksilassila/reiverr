@@ -5,11 +5,12 @@ import { UsersController } from './users.controller';
 import { DatabaseModule } from '../database/database.module';
 import { LibraryModule } from './library/library.module';
 import { PlayStateModule } from './play-state/play-state.module';
+import { UserSourcesService } from './user-sources/user-sources.service';
 
 @Module({
   imports: [DatabaseModule, LibraryModule, PlayStateModule],
-  providers: [...userProviders, UsersService],
+  providers: [...userProviders, UsersService, UserSourcesService],
   controllers: [UsersController],
-  exports: [UsersService],
+  exports: [UsersService, UserSourcesService],
 })
 export class UsersModule {}

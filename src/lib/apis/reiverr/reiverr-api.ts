@@ -3,11 +3,24 @@ import type { components, paths } from './reiverr.generated';
 import { get } from 'svelte/store';
 import type { Api } from '../api.interface';
 import { sessions } from '../../stores/session.store';
+import { Api as ReiverrApiNew } from './reiverr.openapi';
 
 export type ReiverrUser = components['schemas']['UserDto'];
 export type CreateReiverrUser = components['schemas']['CreateUserDto'];
 export type UpdateReiverrUser = components['schemas']['UpdateUserDto'];
 export type ReiverrSettings = ReiverrUser['settings'];
+
+const session = get(sessions).activeSession;
+const token = session?.token;
+console.log('session', session);
+
+console.log('Creating Reiverr API with base URL:', session?.baseUrl, 'and token:', token);
+export const reiverrApiNew = new ReiverrApiNew({
+	baseURL: session?.baseUrl,
+	headers: {
+		Authorization: token ? `Bearer ${token}` : ''
+	}
+});
 
 export class ReiverrApi implements Api<paths> {
 	getClient(basePath?: string, _token?: string) {

@@ -1,5 +1,13 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { MediaSource } from 'src/users/user-sources/user-source.entity';
 
 export class SonarrSettings {
   @ApiProperty({ required: true })
@@ -127,4 +135,11 @@ export class User {
   @ApiProperty({ required: true, type: Settings })
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
   settings = DEFAULT_SETTINGS;
+
+  // @ApiProperty({ required: false, type: 'object' })
+  // @Column('json', { default: '{}' })
+  // pluginSettings: PluginSettings = {};
+
+  @OneToMany(() => MediaSource, (mediaSource) => mediaSource.user)
+  mediaSources: MediaSource[];
 }

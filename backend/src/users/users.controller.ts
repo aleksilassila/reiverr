@@ -47,7 +47,7 @@ export class UsersController {
     type: UserDto,
     isArray: true,
   })
-  async findAll(@GetUser() callerUser: User): Promise<UserDto[]> {
+  async findAllUsers(@GetUser() callerUser: User): Promise<UserDto[]> {
     if (!callerUser.isAdmin) {
       throw new UnauthorizedException();
     }
@@ -61,7 +61,7 @@ export class UsersController {
   @Get(':id')
   @ApiOkResponse({ description: 'User found', type: UserDto })
   @ApiException(() => NotFoundException, { description: 'User not found' })
-  async findById(
+  async findUserById(
     @Param('id') id: string,
     @GetUser() callerUser: User,
   ): Promise<UserDto> {
@@ -90,7 +90,7 @@ export class UsersController {
   @ApiOkResponse({ description: 'User created', type: UserDto })
   @ApiException(() => UnauthorizedException, { description: 'Unauthorized' })
   @ApiException(() => BadRequestException)
-  async create(
+  async createUser(
     @Body()
     userCreateDto: CreateUserDto,
     @GetUser() callerUser: User | undefined,
@@ -113,7 +113,7 @@ export class UsersController {
   @Put(':id')
   @ApiOkResponse({ description: 'User updated', type: UserDto })
   @ApiException(() => NotFoundException, { description: 'User not found' })
-  async update(
+  async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @GetUser() callerUser: User,
@@ -121,6 +121,7 @@ export class UsersController {
     if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
       throw new NotFoundException();
     }
+
     const user = await this.usersService.findOne(id);
 
     const updated = await this.usersService

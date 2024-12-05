@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { UsersService } from './users/users.service';
-import { ADMIN_PASSWORD, ADMIN_USERNAME } from './consts';
+import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts';
 import { json, urlencoded } from 'express';
 // import * as proxy from 'express-http-proxy';
 require('ts-node/register'); // For importing plugins
@@ -30,15 +30,20 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
-  // app.use('/api/proxy/jellyfin', proxy('http://192.168.0.129:8096'));
+  if (ENV === 'development') {
+    console.log('Creating OpenAPI specification...');
 
-  const config = new DocumentBuilder().build();
+    const config = new DocumentBuilder().build();
 
-  const document = SwaggerModule.createDocument(app, config, {
-    deepScanRoutes: true,
-  });
-  SwaggerModule.setup('openapi', app, document);
-  fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
+    const document = SwaggerModule.createDocument(app, config, {
+      deepScanRoutes: true,
+      operationIdFactory: (controllerKey: string, methodKey: string) =>
+        methodKey,
+    });
+
+    SwaggerModule.setup('openapi', app, document);
+    fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
+  }
 
   await createAdminUser(app.get(UsersService));
 

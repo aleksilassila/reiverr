@@ -1,28 +1,28 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
-	import Button from '../components/Button.svelte';
-	import Toggle from '../components/Toggle.svelte';
-	import { localSettings } from '../stores/localstorage.store';
+	import Container from '../../../Container.svelte';
+	import Button from '../../components/Button.svelte';
+	import Toggle from '../../components/Toggle.svelte';
+	import { localSettings } from '../../stores/localstorage.store';
 	import classNames from 'classnames';
-	import Tab from '../components/Tab/Tab.svelte';
-	import { useTabs } from '../components/Tab/Tab';
-	import SonarrIntegration from '../components/Integrations/SonarrIntegration.svelte';
-	import RadarrIntegration from '../components/Integrations/RadarrIntegration.svelte';
-	import type { JellyfinUser } from '../apis/jellyfin/jellyfin-api';
-	import JellyfinIntegration from '../components/Integrations/JellyfinIntegration.svelte';
-	import JellyfinIntegrationUsersDialog from '../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import SelectField from '../components/SelectField.svelte';
+	import Tab from '../../components/Tab/Tab.svelte';
+	import { useTabs } from '../../components/Tab/Tab';
+	import SonarrIntegration from '../../components/Integrations/SonarrIntegration.svelte';
+	import RadarrIntegration from '../../components/Integrations/RadarrIntegration.svelte';
+	import type { JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
+	import JellyfinIntegration from '../../components/Integrations/JellyfinIntegration.svelte';
+	import JellyfinIntegrationUsersDialog from '../../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import SelectField from '../../components/SelectField.svelte';
 	import { ArrowRight, Exit, Pencil2, Plus, Trash } from 'radix-icons-svelte';
-	import TmdbIntegrationConnectDialog from '../components/Integrations/TmdbIntegrationConnectDialog.svelte';
-	import { createModal } from '../components/Modal/modal.store';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { user } from '../stores/user.store';
-	import { sessions } from '../stores/session.store';
-	import EditProfileModal from '../components/Dialog/CreateOrEditProfileModal.svelte';
-	import { scrollIntoView } from '../selectable';
-	import { reiverrApi } from '../apis/reiverr/reiverr-api';
-	import TmdbIntegration from '../components/Integrations/TmdbIntegration.svelte';
+	import TmdbIntegrationConnectDialog from '../../components/Integrations/TmdbIntegrationConnectDialog.svelte';
+	import { createModal } from '../../components/Modal/modal.store';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
+	import { user } from '../../stores/user.store';
+	import { sessions } from '../../stores/session.store';
+	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
+	import { scrollIntoView } from '../../selectable';
+	import { reiverrApi, reiverrApiNew } from '../../apis/reiverr/reiverr-api';
+	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
 
 	enum Tabs {
 		Interface,
@@ -37,6 +37,7 @@
 	let tizenMediaKey = '';
 	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
 	let users = getUsers();
+	const availablePlugins = reiverrApiNew.sources.getSourcePlugins().then((r) => r.data);
 
 	function getUsers() {
 		return $user?.isAdmin ? reiverrApi.getUsers() : undefined;
@@ -213,6 +214,18 @@
 						{/if}
 					{/await}
 				</Container>
+			</div>
+
+			<div>
+				<div class="mb-8">
+					<h1 class="font-semibold text-2xl text-secondary-100 mb-1">Soruces</h1>
+					<p class="font-medium text-md text-secondary-300">Asd asd</p>
+				</div>
+				{#await availablePlugins then plugins}
+					{#each plugins as plugin}
+						<div>{plugin}</div>
+					{/each}
+				{/await}
 			</div>
 
 			<div>

@@ -16,18 +16,34 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  // Finds
   async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+    return this.userRepository.find({
+      relations: {
+        mediaSources: true,
+      },
+    });
   }
 
   async findOne(id: string): Promise<User> {
-    return this.userRepository.findOne({ where: { id } });
+    return this.userRepository.findOne({
+      where: { id },
+      relations: {
+        mediaSources: true,
+      },
+    });
   }
 
   async findOneByName(name: string): Promise<User> {
-    return this.userRepository.findOne({ where: { name } });
+    return this.userRepository.findOne({
+      where: { name },
+      relations: {
+        mediaSources: true,
+      },
+    });
   }
 
+  // The rest
   async create(userCreateDto: CreateUserDto): Promise<User> {
     if (!userCreateDto.name) throw UserServiceError.UsernameRequired;
 
@@ -46,7 +62,8 @@ export class UsersService {
       console.error(e);
     }
 
-    return this.userRepository.save(user);
+    await this.userRepository.save(user);
+    return this.findOne(user.id);
   }
 
   async update(
@@ -60,15 +77,24 @@ export class UsersService {
       if (
         updateUserDto.password !== undefined &&
         updateUserDto.oldPassword !== user.password
-      )
+      ) {
         throw UserServiceError.PasswordMismatch;
-      else if (updateUserDto.password !== undefined)
+      } else if (updateUserDto.password !== undefined) {
         user.password = updateUserDto.password;
+      }
     }
 
     if (updateUserDto.settings) user.settings = updateUserDto.settings;
+
+    // if (updateUserDto.pluginSettings) {
+    //   for (const key of Object.keys(updateUserDto.pluginSettings)) {
+    //     user.pluginSettings[key] = updateUserDto.pluginSettings[key];
+    //   }
+    // }
+
     if (updateUserDto.onboardingDone)
       user.onboardingDone = updateUserDto.onboardingDone;
+
     if (updateUserDto.profilePicture) {
       try {
         user.profilePicture = Buffer.from(
@@ -79,14 +105,17 @@ export class UsersService {
         console.error(e);
       }
     }
+
     if (updateUserDto.isAdmin !== undefined && callerUser.isAdmin)
       user.isAdmin = updateUserDto.isAdmin;
 
-    return this.userRepository.save(user);
+    await this.userRepository.save(user);
+
+    return this.findOne(user.id);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.userRepository.delete(id);
+  async remove(id: string) {
+    return await this.userRepository.delete(id);
   }
 
   async noPreviousAdmins(): Promise<boolean> {

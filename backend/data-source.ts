@@ -1,3 +1,4 @@
+import { ENV } from 'src/consts';
 import { DataSource } from 'typeorm';
 
 export default new DataSource({
@@ -5,5 +6,6 @@ export default new DataSource({
   database: './config/reiverr.sqlite',
   entities: ['dist/**/*.entity.js'],
   migrations: ['dist/migrations/*.js'],
+  synchronize: ENV === 'development',
   // migrations: [__dirname + '/../**/*.migration{.ts,.js}'],
 });

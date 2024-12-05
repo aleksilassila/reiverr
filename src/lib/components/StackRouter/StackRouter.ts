@@ -9,9 +9,10 @@ import MoviePage from '../../pages/MoviePage.svelte';
 import LibraryPage from '../../pages/LibraryPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
-import ManagePage from '../../pages/ManagePage.svelte';
+import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
+import UiComponents from '../../pages/UiComponents.svelte';
 
 interface Page {
 	id: symbol;
@@ -247,6 +248,12 @@ const manageRoute: Route = {
 	root: true
 };
 
+const uiComponentsRoute: Route = {
+	path: '/ui-components',
+	component: UiComponents,
+	root: true
+};
+
 const notFoundRoute: Route = {
 	path: '/404',
 	component: PageNotFound,
@@ -264,7 +271,8 @@ export const stackRouter = useStackRouter({
 		personRoute,
 		libraryRoute,
 		searchRoute,
-		manageRoute
+		manageRoute,
+		uiComponentsRoute
 	],
 	notFound: notFoundRoute
 });

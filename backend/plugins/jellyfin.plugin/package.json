@@ -2,8 +2,9 @@
   "name": "jellyfin",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "scripts": {
+    "openapi:generate": "ts-node src/generate-openapi.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DynamicModule } from '@nestjs/common';
-import { PluginLoaderService } from './plguin-loader.service';
 import { SourcePluginsService } from './source-plugins.service';
-import { SourcesController } from './sources.controller';
+import { SourcesController } from './source-plugins.controller';
 import { UsersModule } from 'src/users/users.module';
 
 @Module({
@@ -11,4 +10,4 @@ import { UsersModule } from 'src/users/users.module';
   exports: [SourcePluginsService],
   imports: [UsersModule],
 })
-export class SourceModule {}
+export class SourcePluginsModule {}

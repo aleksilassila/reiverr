@@ -18,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "openapi:schema": "ts-node src/generate-openapi.ts",
+    "openapi:generate": "ts-node src/generate-openapi.ts",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./dist/data-source.js",
     "typeorm:generate-migration": "npm run typeorm -- -d ./dist/data-source.js migration:generate ./dist/migrations/$npm_config_name",
@@ -38,6 +38,7 @@
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
+    "swagger-typescript-api": "^13.0.23",
     "typeorm": "^0.3.20"
   },
   "devDependencies": {

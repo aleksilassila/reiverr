@@ -1,13 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-
-export interface SourcePlugin {
-  handleProxy(request: { uri: string; headers: any }): any;
-  name: string;
-  indexable: boolean;
-  getMovieStream: (tmdbId: string) => Promise<string>;
-}
+import { SourcePlugin } from 'plugins/plugin-types';
 
 @Injectable()
 export class SourcePluginsService {
@@ -37,7 +31,7 @@ export class SourcePluginsService {
       const directoryPath = path.join(rootDirectory, directoryName);
       const directoryStat = fs.statSync(directoryPath);
 
-      if (directoryStat.isDirectory()) {
+      if (directoryStat.isDirectory() && directoryName.endsWith('.plugin')) {
         pluginPaths.push(directoryPath);
       }
     }

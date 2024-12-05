@@ -78,14 +78,7 @@ export interface ActivityLogEntry {
    */
   UserPrimaryImageTag?: string | null;
   /** Gets or sets the log severity. */
-  Severity?:
-    | 'Trace'
-    | 'Debug'
-    | 'Information'
-    | 'Warning'
-    | 'Error'
-    | 'Critical'
-    | 'None';
+  Severity?: 'Trace' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Critical' | 'None';
 }
 
 /** Activity log created message. */
@@ -480,13 +473,7 @@ export interface BaseItemDto {
   SortName?: string | null;
   ForcedSortName?: string | null;
   /** Gets or sets the video3 D format. */
-  Video3DFormat?:
-    | 'HalfSideBySide'
-    | 'FullSideBySide'
-    | 'FullTopAndBottom'
-    | 'HalfTopAndBottom'
-    | 'MVC'
-    | null;
+  Video3DFormat?: 'HalfSideBySide' | 'FullSideBySide' | 'FullTopAndBottom' | 'HalfTopAndBottom' | 'MVC' | null;
   /**
    * Gets or sets the premiere date.
    * @format date-time
@@ -1691,12 +1678,7 @@ export interface EncodingOptions {
    */
   DownMixAudioBoost?: number;
   /** Gets or sets the algorithm used for downmixing audio to stereo. */
-  DownMixStereoAlgorithm?:
-    | 'None'
-    | 'Dave750'
-    | 'NightmodeDialogue'
-    | 'Rfc7845'
-    | 'Ac4';
+  DownMixStereoAlgorithm?: 'None' | 'Dave750' | 'NightmodeDialogue' | 'Rfc7845' | 'Ac4';
   /**
    * Gets or sets the maximum size of the muxing queue.
    * @format int32
@@ -1717,15 +1699,7 @@ export interface EncodingOptions {
    */
   SegmentKeepSeconds?: number;
   /** Gets or sets the hardware acceleration type. */
-  HardwareAccelerationType?:
-    | 'none'
-    | 'amf'
-    | 'qsv'
-    | 'nvenc'
-    | 'v4l2m2m'
-    | 'vaapi'
-    | 'videotoolbox'
-    | 'rkmpp';
+  HardwareAccelerationType?: 'none' | 'amf' | 'qsv' | 'nvenc' | 'v4l2m2m' | 'vaapi' | 'videotoolbox' | 'rkmpp';
   /** Gets or sets the FFmpeg path as set by the user via the UI. */
   EncoderAppPath?: string | null;
   /** Gets or sets the current FFmpeg path being used by the system and displayed on the transcode page. */
@@ -1741,15 +1715,7 @@ export interface EncodingOptions {
   /** Gets or sets a value indicating whether videotoolbox tonemapping is enabled. */
   EnableVideoToolboxTonemapping?: boolean;
   /** Gets or sets the tone-mapping algorithm. */
-  TonemappingAlgorithm?:
-    | 'none'
-    | 'clip'
-    | 'linear'
-    | 'gamma'
-    | 'reinhard'
-    | 'hable'
-    | 'mobius'
-    | 'bt2390';
+  TonemappingAlgorithm?: 'none' | 'clip' | 'linear' | 'gamma' | 'reinhard' | 'hable' | 'mobius' | 'bt2390';
   /** Gets or sets the tone-mapping mode. */
   TonemappingMode?: 'auto' | 'max' | 'rgb' | 'lum' | 'itp';
   /** Gets or sets the tone-mapping range. */
@@ -2636,34 +2602,13 @@ export interface InboundKeepAliveMessage {
 /** Represents the list of possible inbound websocket types */
 export type InboundWebSocketMessage = BaseInboundWebSocketMessage &
   (
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'ActivityLogEntryStart',
-        ActivityLogEntryStartMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'ActivityLogEntryStop',
-        ActivityLogEntryStopMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'KeepAlive',
-        InboundKeepAliveMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'ScheduledTasksInfoStart',
-        ScheduledTasksInfoStartMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'ScheduledTasksInfoStop',
-        ScheduledTasksInfoStopMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'SessionsStart',
-        SessionsStartMessage
-      >
-    | BaseInboundWebSocketMessageMessageTypeMapping<
-        'SessionsStop',
-        SessionsStopMessage
-      >
+    | BaseInboundWebSocketMessageMessageTypeMapping<'ActivityLogEntryStart', ActivityLogEntryStartMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'ActivityLogEntryStop', ActivityLogEntryStopMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'KeepAlive', InboundKeepAliveMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'ScheduledTasksInfoStart', ScheduledTasksInfoStartMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'ScheduledTasksInfoStop', ScheduledTasksInfoStopMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'SessionsStart', SessionsStartMessage>
+    | BaseInboundWebSocketMessageMessageTypeMapping<'SessionsStop', SessionsStopMessage>
   );
 
 /** Class InstallationInfo. */
@@ -3015,11 +2960,7 @@ export interface LibraryOptions {
   DelimiterWhitelist?: string[];
   AutomaticallyAddToCollection?: boolean;
   /** An enum representing the options to disable embedded subs. */
-  AllowEmbeddedSubtitles?:
-    | 'AllowAll'
-    | 'AllowText'
-    | 'AllowImage'
-    | 'AllowNone';
+  AllowEmbeddedSubtitles?: 'AllowAll' | 'AllowText' | 'AllowImage' | 'AllowNone';
   TypeOptions?: TypeOptions[];
 }
 
@@ -3340,15 +3281,7 @@ export interface MediaSourceInfo {
   Id?: string | null;
   Path?: string | null;
   EncoderPath?: string | null;
-  EncoderProtocol?:
-    | 'File'
-    | 'Http'
-    | 'Rtmp'
-    | 'Rtsp'
-    | 'Udp'
-    | 'Rtp'
-    | 'Ftp'
-    | null;
+  EncoderProtocol?: 'File' | 'Http' | 'Rtmp' | 'Rtsp' | 'Udp' | 'Rtp' | 'Ftp' | null;
   Type?: 'Default' | 'Grouping' | 'Placeholder';
   Container?: string | null;
   /** @format int64 */
@@ -3382,13 +3315,7 @@ export interface MediaSourceInfo {
   SupportsProbing?: boolean;
   VideoType?: 'VideoFile' | 'Iso' | 'Dvd' | 'BluRay' | null;
   IsoType?: 'Dvd' | 'BluRay' | null;
-  Video3DFormat?:
-    | 'HalfSideBySide'
-    | 'FullSideBySide'
-    | 'FullTopAndBottom'
-    | 'HalfTopAndBottom'
-    | 'MVC'
-    | null;
+  Video3DFormat?: 'HalfSideBySide' | 'FullSideBySide' | 'FullTopAndBottom' | 'HalfTopAndBottom' | 'MVC' | null;
   MediaStreams?: MediaStream[] | null;
   MediaAttachments?: MediaAttachment[] | null;
   Formats?: string[] | null;
@@ -4032,115 +3959,34 @@ export interface OutboundKeepAliveMessage {
 /** Represents the list of possible outbound websocket types */
 export type OutboundWebSocketMessage = BaseOutboundWebSocketMessage &
   (
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ActivityLogEntry',
-        ActivityLogEntryMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ForceKeepAlive',
-        ForceKeepAliveMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'GeneralCommand',
-        GeneralCommandMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'LibraryChanged',
-        LibraryChangedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'KeepAlive',
-        OutboundKeepAliveMessage
-      >
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ActivityLogEntry', ActivityLogEntryMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ForceKeepAlive', ForceKeepAliveMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'GeneralCommand', GeneralCommandMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'LibraryChanged', LibraryChangedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'KeepAlive', OutboundKeepAliveMessage>
     | BaseOutboundWebSocketMessageMessageTypeMapping<'Play', PlayMessage>
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'Playstate',
-        PlaystateMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'PackageInstallationCancelled',
-        PluginInstallationCancelledMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'PackageInstallationCompleted',
-        PluginInstallationCompletedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'PackageInstallationFailed',
-        PluginInstallationFailedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'PackageInstalling',
-        PluginInstallingMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'PackageUninstalled',
-        PluginUninstalledMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'RefreshProgress',
-        RefreshProgressMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'RestartRequired',
-        RestartRequiredMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ScheduledTaskEnded',
-        ScheduledTaskEndedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ScheduledTasksInfo',
-        ScheduledTasksInfoMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'SeriesTimerCancelled',
-        SeriesTimerCancelledMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'SeriesTimerCreated',
-        SeriesTimerCreatedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ServerRestarting',
-        ServerRestartingMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'ServerShuttingDown',
-        ServerShuttingDownMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'Sessions',
-        SessionsMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'SyncPlayCommand',
-        SyncPlayCommandMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'SyncPlayGroupUpdate',
-        SyncPlayGroupUpdateCommandMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'TimerCancelled',
-        TimerCancelledMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'TimerCreated',
-        TimerCreatedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'UserDataChanged',
-        UserDataChangedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'UserDeleted',
-        UserDeletedMessage
-      >
-    | BaseOutboundWebSocketMessageMessageTypeMapping<
-        'UserUpdated',
-        UserUpdatedMessage
-      >
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'Playstate', PlaystateMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'PackageInstallationCancelled', PluginInstallationCancelledMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'PackageInstallationCompleted', PluginInstallationCompletedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'PackageInstallationFailed', PluginInstallationFailedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'PackageInstalling', PluginInstallingMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'PackageUninstalled', PluginUninstalledMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'RefreshProgress', RefreshProgressMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'RestartRequired', RestartRequiredMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ScheduledTaskEnded', ScheduledTaskEndedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ScheduledTasksInfo', ScheduledTasksInfoMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'SeriesTimerCancelled', SeriesTimerCancelledMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'SeriesTimerCreated', SeriesTimerCreatedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ServerRestarting', ServerRestartingMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'ServerShuttingDown', ServerShuttingDownMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'Sessions', SessionsMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'SyncPlayCommand', SyncPlayCommandMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'SyncPlayGroupUpdate', SyncPlayGroupUpdateCommandMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'TimerCancelled', TimerCancelledMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'TimerCreated', TimerCreatedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'UserDataChanged', UserDataChangedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'UserDeleted', UserDeletedMessage>
+    | BaseOutboundWebSocketMessageMessageTypeMapping<'UserUpdated', UserUpdatedMessage>
   );
 
 /** Class PackageInfo. */
@@ -4731,12 +4577,7 @@ export interface PlayRequest {
    */
   StartPositionTicks?: number | null;
   /** Gets or sets the play command. */
-  PlayCommand?:
-    | 'PlayNow'
-    | 'PlayNext'
-    | 'PlayLast'
-    | 'PlayInstantMix'
-    | 'PlayShuffle';
+  PlayCommand?: 'PlayNow' | 'PlayNext' | 'PlayLast' | 'PlayInstantMix' | 'PlayShuffle';
   /**
    * Gets or sets the controlling user identifier.
    * @format uuid
@@ -4868,14 +4709,7 @@ export interface PluginInfo {
   /** Gets or sets a value indicating whether this plugin has a valid image. */
   HasImage?: boolean;
   /** Gets or sets a value indicating the status of the plugin. */
-  Status?:
-    | 'Active'
-    | 'Restart'
-    | 'Deleted'
-    | 'Superceded'
-    | 'Malfunctioned'
-    | 'NotSupported'
-    | 'Disabled';
+  Status?: 'Active' | 'Restart' | 'Deleted' | 'Superceded' | 'Malfunctioned' | 'NotSupported' | 'Disabled';
 }
 
 /** Plugin installation cancelled message. */
@@ -5168,12 +5002,7 @@ export enum ProcessPriorityClass {
 }
 
 export interface ProfileCondition {
-  Condition?:
-    | 'Equals'
-    | 'NotEquals'
-    | 'LessThanEqual'
-    | 'GreaterThanEqual'
-    | 'EqualsAny';
+  Condition?: 'Equals' | 'NotEquals' | 'LessThanEqual' | 'GreaterThanEqual' | 'EqualsAny';
   Property?:
     | 'AudioChannels'
     | 'AudioBitrate'
@@ -6226,11 +6055,7 @@ export interface SeriesTimerInfoDto {
   ParentBackdropImageTags?: string[] | null;
   /** Gets or sets a value indicating whether this instance is post padding required. */
   IsPostPaddingRequired?: boolean;
-  KeepUntil?:
-    | 'UntilDeleted'
-    | 'UntilSpaceNeeded'
-    | 'UntilWatched'
-    | 'UntilDate';
+  KeepUntil?: 'UntilDeleted' | 'UntilSpaceNeeded' | 'UntilWatched' | 'UntilDate';
   /** Gets or sets a value indicating whether [record any time]. */
   RecordAnyTime?: boolean;
   SkipEpisodesInLibrary?: boolean;
@@ -6408,16 +6233,7 @@ export interface ServerConfiguration {
    */
   DummyChapterDuration?: number;
   /** Gets or sets the chapter image resolution. */
-  ChapterImageResolution?:
-    | 'MatchSource'
-    | 'P144'
-    | 'P240'
-    | 'P360'
-    | 'P480'
-    | 'P720'
-    | 'P1080'
-    | 'P1440'
-    | 'P2160';
+  ChapterImageResolution?: 'MatchSource' | 'P144' | 'P240' | 'P360' | 'P480' | 'P720' | 'P1080' | 'P1440' | 'P2160';
   /**
    * Gets or sets the limit for parallel image encoding.
    * @format int32
@@ -7257,15 +7073,7 @@ export interface TaskTriggerInfo {
    */
   IntervalTicks?: number | null;
   /** Gets or sets the day of week. */
-  DayOfWeek?:
-    | 'Sunday'
-    | 'Monday'
-    | 'Tuesday'
-    | 'Wednesday'
-    | 'Thursday'
-    | 'Friday'
-    | 'Saturday'
-    | null;
+  DayOfWeek?: 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | null;
   /**
    * Gets or sets the maximum runtime ticks.
    * @format int64
@@ -7461,20 +7269,9 @@ export interface TimerInfoDto {
   ParentBackdropImageTags?: string[] | null;
   /** Gets or sets a value indicating whether this instance is post padding required. */
   IsPostPaddingRequired?: boolean;
-  KeepUntil?:
-    | 'UntilDeleted'
-    | 'UntilSpaceNeeded'
-    | 'UntilWatched'
-    | 'UntilDate';
+  KeepUntil?: 'UntilDeleted' | 'UntilSpaceNeeded' | 'UntilWatched' | 'UntilDate';
   /** Gets or sets the status. */
-  Status?:
-    | 'New'
-    | 'InProgress'
-    | 'Completed'
-    | 'Cancelled'
-    | 'ConflictedOk'
-    | 'ConflictedNotOk'
-    | 'Error';
+  Status?: 'New' | 'InProgress' | 'Completed' | 'Cancelled' | 'ConflictedOk' | 'ConflictedNotOk' | 'Error';
   /** Gets or sets the series timer identifier. */
   SeriesTimerId?: string | null;
   /** Gets or sets the external series timer identifier. */
@@ -7646,16 +7443,7 @@ export interface TranscodingInfo {
    */
   AudioChannels?: number | null;
   /** Gets or sets the hardware acceleration type. */
-  HardwareAccelerationType?:
-    | 'none'
-    | 'amf'
-    | 'qsv'
-    | 'nvenc'
-    | 'v4l2m2m'
-    | 'vaapi'
-    | 'videotoolbox'
-    | 'rkmpp'
-    | null;
+  HardwareAccelerationType?: 'none' | 'amf' | 'qsv' | 'nvenc' | 'v4l2m2m' | 'vaapi' | 'videotoolbox' | 'rkmpp' | null;
   /** Gets or sets the transcode reasons. */
   TranscodeReasons?:
     | 'ContainerNotSupported'
@@ -7818,13 +7606,7 @@ export interface TrickplayOptions {
   /** Gets or sets the behavior used by trickplay provider on library scan/update. */
   ScanBehavior?: 'Blocking' | 'NonBlocking';
   /** Gets or sets the process priority for the ffmpeg process. */
-  ProcessPriority?:
-    | 'Normal'
-    | 'Idle'
-    | 'High'
-    | 'RealTime'
-    | 'BelowNormal'
-    | 'AboveNormal';
+  ProcessPriority?: 'Normal' | 'Idle' | 'High' | 'RealTime' | 'BelowNormal' | 'AboveNormal';
   /**
    * Gets or sets the interval, in ms, between each new trickplay image.
    * @format int32
@@ -8467,16 +8249,7 @@ export interface VirtualFolderInfo {
   /** Gets or sets the locations. */
   Locations?: string[] | null;
   /** Gets or sets the type of the collection. */
-  CollectionType?:
-    | 'movies'
-    | 'tvshows'
-    | 'music'
-    | 'musicvideos'
-    | 'homevideos'
-    | 'boxsets'
-    | 'books'
-    | 'mixed'
-    | null;
+  CollectionType?: 'movies' | 'tvshows' | 'music' | 'musicvideos' | 'homevideos' | 'boxsets' | 'books' | 'mixed' | null;
   LibraryOptions?: LibraryOptions | null;
   /** Gets or sets the item identifier. */
   ItemId?: string | null;
@@ -8499,9 +8272,7 @@ export interface WakeOnLanInfo {
 }
 
 /** Represents the possible websocket types */
-export type WebSocketMessage =
-  | InboundWebSocketMessage
-  | OutboundWebSocketMessage;
+export type WebSocketMessage = InboundWebSocketMessage | OutboundWebSocketMessage;
 
 export interface XbmcMetadataOptions {
   UserId?: string | null;
@@ -8551,19 +8322,12 @@ type BaseOutboundWebSocketMessageMessageTypeMapping<Key, Type> = {
   MessageType: Key;
 } & Type;
 
-import type {
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-  HeadersDefaults,
-  ResponseType,
-} from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from 'axios';
 import axios from 'axios';
 
 export type QueryParamsType = Record<string | number, any>;
 
-export interface FullRequestParams
-  extends Omit<AxiosRequestConfig, 'data' | 'params' | 'url' | 'responseType'> {
+export interface FullRequestParams extends Omit<AxiosRequestConfig, 'data' | 'params' | 'url' | 'responseType'> {
   /** set parameter to `true` for call `securityWorker` for this request */
   secure?: boolean;
   /** request path */
@@ -8578,13 +8342,9 @@ export interface FullRequestParams
   body?: unknown;
 }
 
-export type RequestParams = Omit<
-  FullRequestParams,
-  'body' | 'method' | 'query' | 'path'
->;
+export type RequestParams = Omit<FullRequestParams, 'body' | 'method' | 'query' | 'path'>;
 
-export interface ApiConfig<SecurityDataType = unknown>
-  extends Omit<AxiosRequestConfig, 'data' | 'cancelToken'> {
+export interface ApiConfig<SecurityDataType = unknown> extends Omit<AxiosRequestConfig, 'data' | 'cancelToken'> {
   securityWorker?: (
     securityData: SecurityDataType | null,
   ) => Promise<AxiosRequestConfig | void> | AxiosRequestConfig | void;
@@ -8606,16 +8366,8 @@ export class HttpClient<SecurityDataType = unknown> {
   private secure?: boolean;
   private format?: ResponseType;
 
-  constructor({
-    securityWorker,
-    secure,
-    format,
-    ...axiosConfig
-  }: ApiConfig<SecurityDataType> = {}) {
-    this.instance = axios.create({
-      ...axiosConfig,
-      baseURL: axiosConfig.baseURL || 'http://localhost',
-    });
+  constructor({ securityWorker, secure, format, ...axiosConfig }: ApiConfig<SecurityDataType> = {}) {
+    this.instance = axios.create({ ...axiosConfig, baseURL: axiosConfig.baseURL || 'http://localhost' });
     this.secure = secure;
     this.format = format;
     this.securityWorker = securityWorker;
@@ -8625,10 +8377,7 @@ export class HttpClient<SecurityDataType = unknown> {
     this.securityData = data;
   };
 
-  protected mergeRequestParams(
-    params1: AxiosRequestConfig,
-    params2?: AxiosRequestConfig,
-  ): AxiosRequestConfig {
+  protected mergeRequestParams(params1: AxiosRequestConfig, params2?: AxiosRequestConfig): AxiosRequestConfig {
     const method = params1.method || (params2 && params2.method);
 
     return {
@@ -8636,11 +8385,7 @@ export class HttpClient<SecurityDataType = unknown> {
       ...params1,
       ...(params2 || {}),
       headers: {
-        ...((method &&
-          this.instance.defaults.headers[
-            method.toLowerCase() as keyof HeadersDefaults
-          ]) ||
-          {}),
+        ...((method && this.instance.defaults.headers[method.toLowerCase() as keyof HeadersDefaults]) || {}),
         ...(params1.headers || {}),
         ...((params2 && params2.headers) || {}),
       },
@@ -8661,15 +8406,11 @@ export class HttpClient<SecurityDataType = unknown> {
     }
     return Object.keys(input || {}).reduce((formData, key) => {
       const property = input[key];
-      const propertyContent: any[] =
-        property instanceof Array ? property : [property];
+      const propertyContent: any[] = property instanceof Array ? property : [property];
 
       for (const formItem of propertyContent) {
         const isFileType = formItem instanceof Blob || formItem instanceof File;
-        formData.append(
-          key,
-          isFileType ? formItem : this.stringifyFormItem(formItem),
-        );
+        formData.append(key, isFileType ? formItem : this.stringifyFormItem(formItem));
       }
 
       return formData;
@@ -8693,21 +8434,11 @@ export class HttpClient<SecurityDataType = unknown> {
     const requestParams = this.mergeRequestParams(params, secureParams);
     const responseFormat = format || this.format || undefined;
 
-    if (
-      type === ContentType.FormData &&
-      body &&
-      body !== null &&
-      typeof body === 'object'
-    ) {
+    if (type === ContentType.FormData && body && body !== null && typeof body === 'object') {
       body = this.createFormData(body as Record<string, unknown>);
     }
 
-    if (
-      type === ContentType.Text &&
-      body &&
-      body !== null &&
-      typeof body !== 'string'
-    ) {
+    if (type === ContentType.Text && body && body !== null && typeof body !== 'string') {
       body = JSON.stringify(body);
     }
 
@@ -8730,9 +8461,7 @@ export class HttpClient<SecurityDataType = unknown> {
  * @version 10.10.3
  * @baseUrl http://localhost
  */
-export class Api<
-  SecurityDataType extends unknown,
-> extends HttpClient<SecurityDataType> {
+export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
   system = {
     /**
      * No description
@@ -8801,10 +8530,7 @@ export class Api<
      * @request POST:/System/Configuration
      * @secure
      */
-    updateConfiguration: (
-      data: ServerConfiguration,
-      params: RequestParams = {},
-    ) =>
+    updateConfiguration: (data: ServerConfiguration, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/System/Configuration`,
         method: 'POST',
@@ -8841,11 +8567,7 @@ export class Api<
      * @request POST:/System/Configuration/{key}
      * @secure
      */
-    updateNamedConfiguration: (
-      key: string,
-      data: any,
-      params: RequestParams = {},
-    ) =>
+    updateNamedConfiguration: (key: string, data: any, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/System/Configuration/${key}`,
         method: 'POST',
@@ -11359,11 +11081,7 @@ export class Api<
      * @summary Gets the specified audio segment for an audio item.
      * @request GET:/Audio/{itemId}/hls/{segmentId}/stream.aac
      */
-    getHlsAudioSegmentLegacyAac: (
-      itemId: string,
-      segmentId: string,
-      params: RequestParams = {},
-    ) =>
+    getHlsAudioSegmentLegacyAac: (itemId: string, segmentId: string, params: RequestParams = {}) =>
       this.request<File, any>({
         path: `/Audio/${itemId}/hls/${segmentId}/stream.aac`,
         method: 'GET',
@@ -11378,11 +11096,7 @@ export class Api<
      * @summary Gets the specified audio segment for an audio item.
      * @request GET:/Audio/{itemId}/hls/{segmentId}/stream.mp3
      */
-    getHlsAudioSegmentLegacyMp3: (
-      itemId: string,
-      segmentId: string,
-      params: RequestParams = {},
-    ) =>
+    getHlsAudioSegmentLegacyMp3: (itemId: string, segmentId: string, params: RequestParams = {}) =>
       this.request<File, any>({
         path: `/Audio/${itemId}/hls/${segmentId}/stream.mp3`,
         method: 'GET',
@@ -11480,11 +11194,7 @@ export class Api<
      * @request POST:/Audio/{itemId}/RemoteSearch/Lyrics/{lyricId}
      * @secure
      */
-    downloadRemoteLyrics: (
-      itemId: string,
-      lyricId: string,
-      params: RequestParams = {},
-    ) =>
+    downloadRemoteLyrics: (itemId: string, lyricId: string, params: RequestParams = {}) =>
       this.request<LyricDto, void | ProblemDetails>({
         path: `/Audio/${itemId}/RemoteSearch/Lyrics/${lyricId}`,
         method: 'POST',
@@ -13506,11 +13216,7 @@ The body is expected to the image contents base64 encoded.
      * @request GET:/Videos/{itemId}/hls/{playlistId}/stream.m3u8
      * @secure
      */
-    getHlsPlaylistLegacy: (
-      itemId: string,
-      playlistId: string,
-      params: RequestParams = {},
-    ) =>
+    getHlsPlaylistLegacy: (itemId: string, playlistId: string, params: RequestParams = {}) =>
       this.request<File, void>({
         path: `/Videos/${itemId}/hls/${playlistId}/stream.m3u8`,
         method: 'GET',
@@ -13583,11 +13289,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Videos/{itemId}/Subtitles
      * @secure
      */
-    uploadSubtitle: (
-      itemId: string,
-      data: UploadSubtitleDto,
-      params: RequestParams = {},
-    ) =>
+    uploadSubtitle: (itemId: string, data: UploadSubtitleDto, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Videos/${itemId}/Subtitles`,
         method: 'POST',
@@ -13606,11 +13308,7 @@ The body is expected to the image contents base64 encoded.
      * @request DELETE:/Videos/{itemId}/Subtitles/{index}
      * @secure
      */
-    deleteSubtitle: (
-      itemId: string,
-      index: number,
-      params: RequestParams = {},
-    ) =>
+    deleteSubtitle: (itemId: string, index: number, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Videos/${itemId}/Subtitles/${index}`,
         method: 'DELETE',
@@ -13821,12 +13519,7 @@ The body is expected to the image contents base64 encoded.
      * @summary Get video attachment.
      * @request GET:/Videos/{videoId}/{mediaSourceId}/Attachments/{index}
      */
-    getAttachment: (
-      videoId: string,
-      mediaSourceId: string,
-      index: number,
-      params: RequestParams = {},
-    ) =>
+    getAttachment: (videoId: string, mediaSourceId: string, index: number, params: RequestParams = {}) =>
       this.request<File, ProblemDetails>({
         path: `/Videos/${videoId}/${mediaSourceId}/Attachments/${index}`,
         method: 'GET',
@@ -15809,10 +15502,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/Book
      * @secure
      */
-    getBookRemoteSearchResults: (
-      data: BookInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getBookRemoteSearchResults: (data: BookInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/Book`,
         method: 'POST',
@@ -15832,10 +15522,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/BoxSet
      * @secure
      */
-    getBoxSetRemoteSearchResults: (
-      data: BoxSetInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getBoxSetRemoteSearchResults: (data: BoxSetInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/BoxSet`,
         method: 'POST',
@@ -15855,10 +15542,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/Movie
      * @secure
      */
-    getMovieRemoteSearchResults: (
-      data: MovieInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getMovieRemoteSearchResults: (data: MovieInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/Movie`,
         method: 'POST',
@@ -15878,10 +15562,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/MusicAlbum
      * @secure
      */
-    getMusicAlbumRemoteSearchResults: (
-      data: AlbumInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getMusicAlbumRemoteSearchResults: (data: AlbumInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/MusicAlbum`,
         method: 'POST',
@@ -15901,10 +15582,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/MusicArtist
      * @secure
      */
-    getMusicArtistRemoteSearchResults: (
-      data: ArtistInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getMusicArtistRemoteSearchResults: (data: ArtistInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/MusicArtist`,
         method: 'POST',
@@ -15924,10 +15602,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/MusicVideo
      * @secure
      */
-    getMusicVideoRemoteSearchResults: (
-      data: MusicVideoInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getMusicVideoRemoteSearchResults: (data: MusicVideoInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/MusicVideo`,
         method: 'POST',
@@ -15947,10 +15622,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/Person
      * @secure
      */
-    getPersonRemoteSearchResults: (
-      data: PersonLookupInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getPersonRemoteSearchResults: (data: PersonLookupInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/Person`,
         method: 'POST',
@@ -15970,10 +15642,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/Series
      * @secure
      */
-    getSeriesRemoteSearchResults: (
-      data: SeriesInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getSeriesRemoteSearchResults: (data: SeriesInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/Series`,
         method: 'POST',
@@ -15993,10 +15662,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/RemoteSearch/Trailer
      * @secure
      */
-    getTrailerRemoteSearchResults: (
-      data: TrailerInfoRemoteSearchQuery,
-      params: RequestParams = {},
-    ) =>
+    getTrailerRemoteSearchResults: (data: TrailerInfoRemoteSearchQuery, params: RequestParams = {}) =>
       this.request<RemoteSearchResult[], void>({
         path: `/Items/RemoteSearch/Trailer`,
         method: 'POST',
@@ -16023,20 +15689,12 @@ The body is expected to the image contents base64 encoded.
          * (Optional) Specifies the metadata refresh mode.
          * @default "None"
          */
-        metadataRefreshMode?:
-          | 'None'
-          | 'ValidationOnly'
-          | 'Default'
-          | 'FullRefresh';
+        metadataRefreshMode?: 'None' | 'ValidationOnly' | 'Default' | 'FullRefresh';
         /**
          * (Optional) Specifies the image refresh mode.
          * @default "None"
          */
-        imageRefreshMode?:
-          | 'None'
-          | 'ValidationOnly'
-          | 'Default'
-          | 'FullRefresh';
+        imageRefreshMode?: 'None' | 'ValidationOnly' | 'Default' | 'FullRefresh';
         /**
          * (Optional) Determines if metadata should be replaced. Only applicable if mode is FullRefresh.
          * @default false
@@ -16351,11 +16009,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/{itemId}
      * @secure
      */
-    updateItem: (
-      itemId: string,
-      data: BaseItemDto,
-      params: RequestParams = {},
-    ) =>
+    updateItem: (itemId: string, data: BaseItemDto, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Items/${itemId}`,
         method: 'POST',
@@ -17000,11 +16654,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Items/{itemId}/RemoteSearch/Subtitles/{subtitleId}
      * @secure
      */
-    downloadRemoteSubtitles: (
-      itemId: string,
-      subtitleId: string,
-      params: RequestParams = {},
-    ) =>
+    downloadRemoteSubtitles: (itemId: string, subtitleId: string, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Items/${itemId}/RemoteSearch/Subtitles/${subtitleId}`,
         method: 'POST',
@@ -19733,11 +19383,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Playlists/{playlistId}
      * @secure
      */
-    updatePlaylist: (
-      playlistId: string,
-      data: UpdatePlaylistDto,
-      params: RequestParams = {},
-    ) =>
+    updatePlaylist: (playlistId: string, data: UpdatePlaylistDto, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Playlists/${playlistId}`,
         method: 'POST',
@@ -19881,12 +19527,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Playlists/{playlistId}/Items/{itemId}/Move/{newIndex}
      * @secure
      */
-    moveItem: (
-      playlistId: string,
-      itemId: string,
-      newIndex: number,
-      params: RequestParams = {},
-    ) =>
+    moveItem: (playlistId: string, itemId: string, newIndex: number, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Playlists/${playlistId}/Items/${itemId}/Move/${newIndex}`,
         method: 'POST',
@@ -19921,11 +19562,7 @@ The body is expected to the image contents base64 encoded.
      * @request GET:/Playlists/{playlistId}/Users/{userId}
      * @secure
      */
-    getPlaylistUser: (
-      playlistId: string,
-      userId: string,
-      params: RequestParams = {},
-    ) =>
+    getPlaylistUser: (playlistId: string, userId: string, params: RequestParams = {}) =>
       this.request<PlaylistUserPermissions, void | ProblemDetails>({
         path: `/Playlists/${playlistId}/Users/${userId}`,
         method: 'GET',
@@ -19943,12 +19580,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Playlists/{playlistId}/Users/{userId}
      * @secure
      */
-    updatePlaylistUser: (
-      playlistId: string,
-      userId: string,
-      data: UpdatePlaylistUserDto,
-      params: RequestParams = {},
-    ) =>
+    updatePlaylistUser: (playlistId: string, userId: string, data: UpdatePlaylistUserDto, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Playlists/${playlistId}/Users/${userId}`,
         method: 'POST',
@@ -19967,11 +19599,7 @@ The body is expected to the image contents base64 encoded.
      * @request DELETE:/Playlists/{playlistId}/Users/{userId}
      * @secure
      */
-    removeUserFromPlaylist: (
-      playlistId: string,
-      userId: string,
-      params: RequestParams = {},
-    ) =>
+    removeUserFromPlaylist: (playlistId: string, userId: string, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Playlists/${playlistId}/Users/${userId}`,
         method: 'DELETE',
@@ -20483,15 +20111,7 @@ The body is expected to the image contents base64 encoded.
         /** The name of the virtual folder. */
         name?: string;
         /** The type of the collection. */
-        collectionType?:
-          | 'movies'
-          | 'tvshows'
-          | 'music'
-          | 'musicvideos'
-          | 'homevideos'
-          | 'boxsets'
-          | 'books'
-          | 'mixed';
+        collectionType?: 'movies' | 'tvshows' | 'music' | 'musicvideos' | 'homevideos' | 'boxsets' | 'books' | 'mixed';
         /** The paths of the virtual folder. */
         paths?: string[];
         /**
@@ -20550,10 +20170,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Library/VirtualFolders/LibraryOptions
      * @secure
      */
-    updateLibraryOptions: (
-      data: UpdateLibraryOptionsDto,
-      params: RequestParams = {},
-    ) =>
+    updateLibraryOptions: (data: UpdateLibraryOptionsDto, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Library/VirtualFolders/LibraryOptions`,
         method: 'POST',
@@ -20664,10 +20281,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Library/VirtualFolders/Paths/Update
      * @secure
      */
-    updateMediaPath: (
-      data: UpdateMediaPathRequestDto,
-      params: RequestParams = {},
-    ) =>
+    updateMediaPath: (data: UpdateMediaPathRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Library/VirtualFolders/Paths/Update`,
         method: 'POST',
@@ -21425,10 +21039,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/LiveTv/ChannelMappings
      * @secure
      */
-    setChannelMapping: (
-      data: SetChannelMappingDto,
-      params: RequestParams = {},
-    ) =>
+    setChannelMapping: (data: SetChannelMappingDto, params: RequestParams = {}) =>
       this.request<TunerChannelMapping, void>({
         path: `/LiveTv/ChannelMappings`,
         method: 'POST',
@@ -21739,11 +21350,7 @@ The body is expected to the image contents base64 encoded.
      * @summary Gets a live tv channel stream.
      * @request GET:/LiveTv/LiveStreamFiles/{streamId}/stream.{container}
      */
-    getLiveStreamFile: (
-      streamId: string,
-      container: string,
-      params: RequestParams = {},
-    ) =>
+    getLiveStreamFile: (streamId: string, container: string, params: RequestParams = {}) =>
       this.request<File, ProblemDetails>({
         path: `/LiveTv/LiveStreamFiles/${streamId}/stream.${container}`,
         method: 'GET',
@@ -22002,14 +21609,7 @@ The body is expected to the image contents base64 encoded.
          */
         limit?: number;
         /** Optional. Filter by recording status. */
-        status?:
-          | 'New'
-          | 'InProgress'
-          | 'Completed'
-          | 'Cancelled'
-          | 'ConflictedOk'
-          | 'ConflictedNotOk'
-          | 'Error';
+        status?: 'New' | 'InProgress' | 'Completed' | 'Cancelled' | 'ConflictedOk' | 'ConflictedNotOk' | 'Error';
         /** Optional. Filter by recordings that are in progress, or not. */
         isInProgress?: boolean;
         /** Optional. Filter by recordings belonging to a series timer. */
@@ -22209,14 +21809,7 @@ The body is expected to the image contents base64 encoded.
          */
         limit?: number;
         /** Optional. Filter by recording status. */
-        status?:
-          | 'New'
-          | 'InProgress'
-          | 'Completed'
-          | 'Cancelled'
-          | 'ConflictedOk'
-          | 'ConflictedNotOk'
-          | 'Error';
+        status?: 'New' | 'InProgress' | 'Completed' | 'Cancelled' | 'ConflictedOk' | 'ConflictedNotOk' | 'Error';
         /** Optional. Filter by recordings that are in progress, or not. */
         isInProgress?: boolean;
         /** Optional. Filter by recordings belonging to a series timer. */
@@ -22341,11 +21934,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/LiveTv/SeriesTimers/{timerId}
      * @secure
      */
-    updateSeriesTimer: (
-      timerId: string,
-      data: SeriesTimerInfoDto,
-      params: RequestParams = {},
-    ) =>
+    updateSeriesTimer: (timerId: string, data: SeriesTimerInfoDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/LiveTv/SeriesTimers/${timerId}`,
         method: 'POST',
@@ -22449,11 +22038,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/LiveTv/Timers/{timerId}
      * @secure
      */
-    updateTimer: (
-      timerId: string,
-      data: TimerInfoDto,
-      params: RequestParams = {},
-    ) =>
+    updateTimer: (timerId: string, data: TimerInfoDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/LiveTv/Timers/${timerId}`,
         method: 'POST',
@@ -22975,10 +22560,7 @@ The body is expected to the image contents base64 encoded.
      * @request DELETE:/Packages/Installing/{packageId}
      * @secure
      */
-    cancelPackageInstallation: (
-      packageId: string,
-      params: RequestParams = {},
-    ) =>
+    cancelPackageInstallation: (packageId: string, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Packages/Installing/${packageId}`,
         method: 'DELETE',
@@ -23180,10 +22762,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/Playing
      * @secure
      */
-    reportPlaybackStart: (
-      data: PlaybackStartInfo,
-      params: RequestParams = {},
-    ) =>
+    reportPlaybackStart: (data: PlaybackStartInfo, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/Playing`,
         method: 'POST',
@@ -23226,10 +22805,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/Playing/Progress
      * @secure
      */
-    reportPlaybackProgress: (
-      data: PlaybackProgressInfo,
-      params: RequestParams = {},
-    ) =>
+    reportPlaybackProgress: (data: PlaybackProgressInfo, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/Playing/Progress`,
         method: 'POST',
@@ -23248,10 +22824,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/Playing/Stopped
      * @secure
      */
-    reportPlaybackStopped: (
-      data: PlaybackStopInfo,
-      params: RequestParams = {},
-    ) =>
+    reportPlaybackStopped: (data: PlaybackStopInfo, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/Playing/Stopped`,
         method: 'POST',
@@ -23305,11 +22878,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/{sessionId}/Command
      * @secure
      */
-    sendFullGeneralCommand: (
-      sessionId: string,
-      data: GeneralCommand,
-      params: RequestParams = {},
-    ) =>
+    sendFullGeneralCommand: (sessionId: string, data: GeneralCommand, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/${sessionId}/Command`,
         method: 'POST',
@@ -23392,11 +22961,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/{sessionId}/Message
      * @secure
      */
-    sendMessageCommand: (
-      sessionId: string,
-      data: MessageCommand,
-      params: RequestParams = {},
-    ) =>
+    sendMessageCommand: (sessionId: string, data: MessageCommand, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/${sessionId}/Message`,
         method: 'POST',
@@ -23419,12 +22984,7 @@ The body is expected to the image contents base64 encoded.
       sessionId: string,
       query: {
         /** Enum PlayCommand. */
-        playCommand:
-          | 'PlayNow'
-          | 'PlayNext'
-          | 'PlayLast'
-          | 'PlayInstantMix'
-          | 'PlayShuffle';
+        playCommand: 'PlayNow' | 'PlayNext' | 'PlayLast' | 'PlayInstantMix' | 'PlayShuffle';
         /** The ids of the items to play, comma delimited. */
         itemIds: string[];
         /**
@@ -23573,11 +23133,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Sessions/{sessionId}/User/{userId}
      * @secure
      */
-    addUserToSession: (
-      sessionId: string,
-      userId: string,
-      params: RequestParams = {},
-    ) =>
+    addUserToSession: (sessionId: string, userId: string, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/${sessionId}/User/${userId}`,
         method: 'POST',
@@ -23594,11 +23150,7 @@ The body is expected to the image contents base64 encoded.
      * @request DELETE:/Sessions/{sessionId}/User/{userId}
      * @secure
      */
-    removeUserFromSession: (
-      sessionId: string,
-      userId: string,
-      params: RequestParams = {},
-    ) =>
+    removeUserFromSession: (sessionId: string, userId: string, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Sessions/${sessionId}/User/${userId}`,
         method: 'DELETE',
@@ -23890,11 +23442,7 @@ The body is expected to the image contents base64 encoded.
      * @request DELETE:/Plugins/{pluginId}/{version}
      * @secure
      */
-    uninstallPluginByVersion: (
-      pluginId: string,
-      version: string,
-      params: RequestParams = {},
-    ) =>
+    uninstallPluginByVersion: (pluginId: string, version: string, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Plugins/${pluginId}/${version}`,
         method: 'DELETE',
@@ -23911,11 +23459,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Plugins/{pluginId}/{version}/Disable
      * @secure
      */
-    disablePlugin: (
-      pluginId: string,
-      version: string,
-      params: RequestParams = {},
-    ) =>
+    disablePlugin: (pluginId: string, version: string, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Plugins/${pluginId}/${version}/Disable`,
         method: 'POST',
@@ -23932,11 +23476,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Plugins/{pluginId}/{version}/Enable
      * @secure
      */
-    enablePlugin: (
-      pluginId: string,
-      version: string,
-      params: RequestParams = {},
-    ) =>
+    enablePlugin: (pluginId: string, version: string, params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/Plugins/${pluginId}/${version}/Enable`,
         method: 'POST',
@@ -23953,11 +23493,7 @@ The body is expected to the image contents base64 encoded.
      * @request GET:/Plugins/{pluginId}/{version}/Image
      * @secure
      */
-    getPluginImage: (
-      pluginId: string,
-      version: string,
-      params: RequestParams = {},
-    ) =>
+    getPluginImage: (pluginId: string, version: string, params: RequestParams = {}) =>
       this.request<File, void | ProblemDetails>({
         path: `/Plugins/${pluginId}/${version}/Image`,
         method: 'GET',
@@ -24159,11 +23695,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/ScheduledTasks/{taskId}/Triggers
      * @secure
      */
-    updateTask: (
-      taskId: string,
-      data: TaskTriggerInfo[],
-      params: RequestParams = {},
-    ) =>
+    updateTask: (taskId: string, data: TaskTriggerInfo[], params: RequestParams = {}) =>
       this.request<void, void | ProblemDetails>({
         path: `/ScheduledTasks/${taskId}/Triggers`,
         method: 'POST',
@@ -24339,10 +23871,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Startup/Configuration
      * @secure
      */
-    updateInitialConfiguration: (
-      data: StartupConfigurationDto,
-      params: RequestParams = {},
-    ) =>
+    updateInitialConfiguration: (data: StartupConfigurationDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Startup/Configuration`,
         method: 'POST',
@@ -24379,10 +23908,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Startup/RemoteAccess
      * @secure
      */
-    setRemoteAccess: (
-      data: StartupRemoteAccessDto,
-      params: RequestParams = {},
-    ) =>
+    setRemoteAccess: (data: StartupRemoteAccessDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/Startup/RemoteAccess`,
         method: 'POST',
@@ -24494,10 +24020,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/Join
      * @secure
      */
-    syncPlayJoinGroup: (
-      data: JoinGroupRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlayJoinGroup: (data: JoinGroupRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/Join`,
         method: 'POST',
@@ -24551,10 +24074,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/MovePlaylistItem
      * @secure
      */
-    syncPlayMovePlaylistItem: (
-      data: MovePlaylistItemRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlayMovePlaylistItem: (data: MovePlaylistItemRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/MovePlaylistItem`,
         method: 'POST',
@@ -24573,10 +24093,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/New
      * @secure
      */
-    syncPlayCreateGroup: (
-      data: NewGroupRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlayCreateGroup: (data: NewGroupRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/New`,
         method: 'POST',
@@ -24650,10 +24167,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/PreviousItem
      * @secure
      */
-    syncPlayPreviousItem: (
-      data: PreviousItemRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlayPreviousItem: (data: PreviousItemRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/PreviousItem`,
         method: 'POST',
@@ -24710,10 +24224,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/RemoveFromPlaylist
      * @secure
      */
-    syncPlayRemoveFromPlaylist: (
-      data: RemoveFromPlaylistRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlayRemoveFromPlaylist: (data: RemoveFromPlaylistRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/RemoveFromPlaylist`,
         method: 'POST',
@@ -24751,10 +24262,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/SetIgnoreWait
      * @secure
      */
-    syncPlaySetIgnoreWait: (
-      data: IgnoreWaitRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlaySetIgnoreWait: (data: IgnoreWaitRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/SetIgnoreWait`,
         method: 'POST',
@@ -24792,10 +24300,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/SetPlaylistItem
      * @secure
      */
-    syncPlaySetPlaylistItem: (
-      data: SetPlaylistItemRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlaySetPlaylistItem: (data: SetPlaylistItemRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/SetPlaylistItem`,
         method: 'POST',
@@ -24814,10 +24319,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/SetRepeatMode
      * @secure
      */
-    syncPlaySetRepeatMode: (
-      data: SetRepeatModeRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlaySetRepeatMode: (data: SetRepeatModeRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/SetRepeatMode`,
         method: 'POST',
@@ -24836,10 +24338,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/SyncPlay/SetShuffleMode
      * @secure
      */
-    syncPlaySetShuffleMode: (
-      data: SetShuffleModeRequestDto,
-      params: RequestParams = {},
-    ) =>
+    syncPlaySetShuffleMode: (data: SetShuffleModeRequestDto, params: RequestParams = {}) =>
       this.request<void, void>({
         path: `/SyncPlay/SetShuffleMode`,
         method: 'POST',
@@ -25021,11 +24520,7 @@ The body is expected to the image contents base64 encoded.
      * @request POST:/Users/{userId}/Policy
      * @secure
      */
-    updateUserPolicy: (
-      userId: string,
-      data: UserPolicy,
-      params: RequestParams = {},
-    ) =>
+    updateUserPolicy: (userId: string, data: UserPolicy, params: RequestParams = {}) =>
       this.request<void, ProblemDetails | void>({
         path: `/Users/${userId}/Policy`,
         method: 'POST',
@@ -25043,10 +24538,7 @@ The body is expected to the image contents base64 encoded.
      * @summary Authenticates a user by name.
      * @request POST:/Users/AuthenticateByName
      */
-    authenticateUserByName: (
-      data: AuthenticateUserByName,
-      params: RequestParams = {},
-    ) =>
+    authenticateUserByName: (data: AuthenticateUserByName, params: RequestParams = {}) =>
       this.request<AuthenticationResult, any>({
         path: `/Users/AuthenticateByName`,
         method: 'POST',
@@ -25064,10 +24556,7 @@ The body is expected to the image contents base64 encoded.
      * @summary Authenticates a user with quick connect.
      * @request POST:/Users/AuthenticateWithQuickConnect
      */
-    authenticateWithQuickConnect: (
-      data: QuickConnectDto,
-      params: RequestParams = {},
-    ) =>
+    authenticateWithQuickConnect: (data: QuickConnectDto, params: RequestParams = {}) =>
       this.request<AuthenticationResult, void>({
         path: `/Users/AuthenticateWithQuickConnect`,
         method: 'POST',
@@ -25133,10 +24622,7 @@ The body is expected to the image contents base64 encoded.
      * @summary Redeems a forgot password pin.
      * @request POST:/Users/ForgotPassword/Pin
      */
-    forgotPasswordPin: (
-      data: ForgotPasswordPinDto,
-      params: RequestParams = {},
-    ) =>
+    forgotPasswordPin: (data: ForgotPasswordPinDto, params: RequestParams = {}) =>
       this.request<PinRedeemResult, any>({
         path: `/Users/ForgotPassword/Pin`,
         method: 'POST',
