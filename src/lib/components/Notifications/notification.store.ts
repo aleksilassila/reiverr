@@ -1,5 +1,6 @@
 import type { ComponentType } from 'svelte';
 import { writable } from 'svelte/store';
+import Notification from './Notification.svelte';
 
 type NotificationItem = {
 	id: symbol;
@@ -24,3 +25,7 @@ function useNotificationStack() {
 }
 
 export const notificationStack = useNotificationStack();
+export const createErrorNotification = (message: string) => {
+	console.error(message);
+	notificationStack.create(Notification, { title: 'Unexpected error occurred', body: message });
+};

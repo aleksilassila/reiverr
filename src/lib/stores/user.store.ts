@@ -1,5 +1,5 @@
 import { derived, get, writable } from 'svelte/store';
-import { reiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
+import { getReiverrApiNew, reiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
 import axios from 'axios';
 import type { operations } from '../apis/reiverr/reiverr.generated';
 import { type Session, sessions } from './session.store';
@@ -30,6 +30,7 @@ function useUser() {
 			.catch(() => null);
 
 		if (lastActiveSession === activeSession) userStore.set(user);
+		reiverrApiNew = getReiverrApiNew();
 	});
 
 	async function updateUser(updateFn: (user: ReiverrUser) => ReiverrUser) {
@@ -54,3 +55,4 @@ function useUser() {
 }
 
 export const user = useUser();
+export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;

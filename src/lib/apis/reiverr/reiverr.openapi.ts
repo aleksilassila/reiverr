@@ -45,13 +45,24 @@ export interface Settings {
 	tmdb: TmdbSettings;
 }
 
+export interface MediaSource {
+	id: string;
+	userId: string;
+	user: string;
+	/** @default false */
+	enabled?: boolean;
+	/** @default false */
+	adminControlled?: boolean;
+	pluginSettings?: object;
+}
+
 export interface UserDto {
 	id: string;
 	name: string;
 	isAdmin: boolean;
 	onboardingDone?: boolean;
 	settings: Settings;
-	pluginSettings?: object;
+	mediaSources?: MediaSource[];
 	profilePicture: string;
 }
 
@@ -68,9 +79,16 @@ export interface UpdateUserDto {
 	isAdmin?: boolean;
 	onboardingDone?: boolean;
 	settings?: Settings;
-	pluginSettings?: object;
 	profilePicture?: string;
 	oldPassword?: string;
+}
+
+export interface CreateSourceDto {
+	pluginSettings?: object;
+	/** @default false */
+	enabled?: boolean;
+	/** @default false */
+	adminControlled?: boolean;
 }
 
 export interface SignInDto {
@@ -81,6 +99,25 @@ export interface SignInDto {
 export interface SignInResponse {
 	accessToken: string;
 	user: UserDto;
+}
+
+export interface PluginSettingsTemplateDto {
+	/** @example {"setting1":"string","setting2":{"type":"link","url":"https://example.com"}} */
+	settings: Record<string, any>;
+}
+
+export interface PluginSettingsDto {
+	/** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
+	settings: Record<string, any>;
+}
+
+export interface ValidationResponsekDto {
+	/** @example true */
+	isValid: boolean;
+	/** @example {"setting1":"error message","setting2":"another error message"} */
+	errors: Record<string, string>;
+	/** @example {"setting1":"new value","setting2":"another new value"} */
+	replace: Record<string, any>;
 }
 
 import type {
@@ -366,6 +403,43 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				path: `/api/users/${id}`,
 				method: 'DELETE',
 				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name UpdateSource
+		 * @request PUT:/api/users/{userId}/sources/{sourceId}
+		 */
+		updateSource: (
+			sourceId: string,
+			userId: string,
+			data: CreateSourceDto,
+			params: RequestParams = {}
+		) =>
+			this.request<UserDto, any>({
+				path: `/api/users/${userId}/sources/${sourceId}`,
+				method: 'PUT',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name DeleteSource
+		 * @request DELETE:/api/users/{userId}/sources/{sourceId}
+		 */
+		deleteSource: (sourceId: string, userId: string, params: RequestParams = {}) =>
+			this.request<UserDto, any>({
+				path: `/api/users/${userId}/sources/${sourceId}`,
+				method: 'DELETE',
+				format: 'json',
+				...params
 			})
 	};
 	api = {
@@ -429,12 +503,34 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags sources
 		 * @name GetSourceSettingsTemplate
-		 * @request GET:/api/sources/{sourceId}/settings
+		 * @request GET:/api/sources/{sourceId}/settings/template
 		 */
 		getSourceSettingsTemplate: (sourceId: string, params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/sources/${sourceId}/settings`,
+			this.request<PluginSettingsTemplateDto, any>({
+				path: `/api/sources/${sourceId}/settings/template`,
 				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name ValidateSourceSettings
+		 * @request POST:/api/sources/{sourceId}/settings/validate
+		 */
+		validateSourceSettings: (
+			sourceId: string,
+			data: PluginSettingsDto,
+			params: RequestParams = {}
+		) =>
+			this.request<ValidationResponsekDto, any>({
+				path: `/api/sources/${sourceId}/settings/validate`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
 				...params
 			}),
 

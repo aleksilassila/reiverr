@@ -26,6 +26,6 @@ export class SourceDto extends PickAndPartial(
 
 export class CreateSourceDto extends PickAndPartial(
   MediaSource,
-  ['pluginSettings', 'id'],
+  ['pluginSettings'],
   ['enabled', 'adminControlled'],
 ) {}

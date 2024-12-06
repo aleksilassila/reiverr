@@ -55,9 +55,9 @@ export const defaultSettings: SettingsValues = {
 		rootFolderPath: ''
 	},
 	jellyfin: {
-		apiKey: 'ff526980723144a095f560fc2975657b',
-		baseUrl: 'http://192.168.0.129:8096',
-		userId: '75dcb061c9404115a7acdc893ea6bbbc'
+		apiKey: '',
+		baseUrl: '',
+		userId: ''
 	}
 };
 

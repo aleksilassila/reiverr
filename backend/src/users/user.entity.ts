@@ -140,6 +140,7 @@ export class User {
   // @Column('json', { default: '{}' })
   // pluginSettings: PluginSettings = {};
 
+  @ApiProperty({ required: false, type: MediaSource, isArray: true })
   @OneToMany(() => MediaSource, (mediaSource) => mediaSource.user)
   mediaSources: MediaSource[];
 }

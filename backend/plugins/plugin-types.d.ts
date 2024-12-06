@@ -1,9 +1,27 @@
+export type PluginSettingsLink = {
+  type: 'link';
+  url: string;
+  label: string;
+};
+
+export type PluginSettingsInput = {
+  type: 'string' | 'number' | 'boolean' | 'password';
+  label: string;
+  placeholder: string;
+};
+
 export type PluginSettingsTemplate = Record<
   string,
-  'string' | 'number' | 'boolean' | 'password' | { type: 'link'; url: string }
+  PluginSettingsLink | PluginSettingsInput
 >;
 
 export type PluginSettings = Record<string, any>;
+
+export type ValidationResponse = {
+  isValid: boolean;
+  errors: Record<string, string>;
+  replace: Record<string, any>;
+};
 
 export interface SourcePlugin {
   name: string;
@@ -24,10 +42,9 @@ export interface SourcePlugin {
 
   getSettingsTemplate: () => PluginSettingsTemplate;
 
-  validateSettings: (settings: Record<string, any>) => Promise<{
-    isValid: boolean;
-    errors: Record<string, string>;
-  }>;
+  validateSettings: (
+    settings: Record<string, any>,
+  ) => Promise<ValidationResponse>;
 
   getMovieStream: (tmdbId: string, settings: PluginSettings) => Promise<any>;
 
@@ -38,7 +55,10 @@ export interface SourcePlugin {
     settings: PluginSettings,
   ) => Promise<any>;
 
-  handleProxy(request: { uri: string; headers: any }, settings: PluginSettings): {
+  handleProxy(
+    request: { uri: string; headers: any },
+    settings: PluginSettings,
+  ): {
     url: string;
     headers: any;
   };

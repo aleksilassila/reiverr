@@ -24,7 +24,7 @@ import {
 @ApiTags('users')
 @Controller('users/:userId/sources')
 @UseGuards(AuthGuard)
-export class UsersSourcesController {
+export class UserSourcesController {
   constructor(
     private usersService: UsersService,
     private userSourcesService: UserSourcesService,
@@ -68,7 +68,11 @@ export class UsersSourcesController {
     @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
   ): Promise<UserDto> {
-    const updatedUser = await this.userSourcesService.deleteUserSource(userId, sourceId, callerUser);
+    const updatedUser = await this.userSourcesService.deleteUserSource(
+      userId,
+      sourceId,
+      callerUser,
+    );
 
     return UserDto.fromEntity(updatedUser);
   }

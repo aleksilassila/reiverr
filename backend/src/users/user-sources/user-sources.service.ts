@@ -82,13 +82,12 @@ export class UserSourcesService {
     source.adminControlled =
       sourceDto.adminControlled ?? source.adminControlled;
     source.enabled = sourceDto.enabled ?? source.enabled;
-    console.log('Test defaults, enabled', new MediaSource().enabled);
     source.pluginSettings = sourceDto.pluginSettings ?? source.pluginSettings;
-    
+
     await this.userSourceRepository.save(source);
     return this.userService.findOne(user.id);
   }
-  
+
   getSourceSettings(user: User, sourceId: string) {
     return user.mediaSources?.find((source) => source.id === sourceId)
       ?.pluginSettings;

@@ -8,6 +8,7 @@
 	import { Check, Cross1 } from 'radix-icons-svelte';
 
 	export let value = '';
+	export let placeholder: string = '';
 	export let type: HTMLInputTypeAttribute = 'text';
 	export let isValid: Promise<boolean> | boolean | undefined = undefined;
 	let icon: ComponentType | undefined = undefined;
@@ -64,6 +65,7 @@
 			{value}
 			on:input={handleChange}
 			bind:this={input}
+			{placeholder}
 		/>
 		{#if icon}
 			<div class="absolute inset-y-0 right-4 flex items-center justify-center">

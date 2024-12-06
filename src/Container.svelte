@@ -5,10 +5,14 @@
 	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from './lib/selectable';
 	import classNames from 'classnames';
 
+	/**
+	 * The basis for d-pad navigation. It's a mess, but it works™️
+	 */
+
 	const dispatch = createEventDispatcher<{
 		click: MouseEvent;
 		select: null;
-		clickOrSelect: null;
+		clickOrSelect: Selectable;
 		enter: EnterEvent;
 		mount: Selectable;
 		navigate: NavigateEvent;
@@ -58,7 +62,7 @@
 		})
 		.setOnSelect(() => {
 			dispatch('select');
-			dispatch('clickOrSelect');
+			dispatch('clickOrSelect', rest.container);
 		})
 		.setOnBack((selectable, options) => {
 			function stopPropagation() {
@@ -102,7 +106,7 @@
 		}
 
 		dispatch('click', e);
-		dispatch('clickOrSelect');
+		dispatch('clickOrSelect', rest.container);
 	}
 
 	onMount(() => {

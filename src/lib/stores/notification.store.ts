@@ -1,6 +1,9 @@
 import { writable } from 'svelte/store';
 import Notification from '$lib/components/Notification/Notification.svelte';
 
+/**
+ * @deprecated
+ */
 export type NotificationItem = {
 	id: symbol;
 	component: ConstructorOfATypedSvelteComponent;
@@ -9,7 +12,9 @@ export type NotificationItem = {
 	duration: number;
 	height: number;
 };
-
+/**
+ * @deprecated
+ */
 function createNotificationStack() {
 	const stack = writable<NotificationItem[]>([]);
 
@@ -57,8 +62,14 @@ function createNotificationStack() {
 	};
 }
 
+/**
+ * @deprecated
+ */
 export const notificationStack = createNotificationStack();
 
+/**
+ * @deprecated
+ */
 export function createErrorNotification(title: string, details: string, type = 'error') {
 	return notificationStack.create(Notification, {
 		type,

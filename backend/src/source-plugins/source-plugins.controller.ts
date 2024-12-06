@@ -1,10 +1,12 @@
 import {
   All,
   BadRequestException,
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
+  Post,
   Req,
   Res,
   UnauthorizedException,
@@ -17,6 +19,12 @@ import { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { User } from 'src/users/user.entity';
 import { UserSourcesService } from 'src/users/user-sources/user-sources.service';
+import { PluginSettingsTemplate } from 'plugins/plugin-types';
+import {
+  PluginSettingsDto,
+  PluginSettingsTemplateDto,
+  ValidationResponsekDto,
+} from './source-plugins.dto';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
@@ -41,11 +49,15 @@ export class SourcesController {
       .then((plugins) => Object.keys(plugins));
   }
 
-  @Get(':sourceId/settings-template')
+  @Get(':sourceId/settings/template')
+  @ApiOkResponse({
+    description: 'Source settings template',
+    type: PluginSettingsTemplateDto,
+  })
   async getSourceSettingsTemplate(
     @Param('sourceId') sourceId: string,
     @GetUser() callerUser: User,
-  ) {
+  ): Promise<PluginSettingsTemplateDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
     if (!plugin) {
@@ -53,7 +65,28 @@ export class SourcesController {
     }
 
     // return plugin.getSettingsTemplate(callerUser.pluginSettings?.[sourceId]);
-    return plugin.getSettingsTemplate();
+    return {
+      settings: plugin.getSettingsTemplate(),
+    };
+  }
+
+  @Post(':sourceId/settings/validate')
+  @ApiOkResponse({
+    description: 'Source settings validation',
+    type: ValidationResponsekDto,
+  })
+  async validateSourceSettings(
+    @GetUser() callerUser: User,
+    @Param('sourceId') sourceId: string,
+    @Body() settings: PluginSettingsDto,
+  ): Promise<ValidationResponsekDto> {
+    const plugin = this.sourcesService.getPlugin(sourceId);
+
+    if (!plugin) {
+      throw new NotFoundException('Plugin not found');
+    }
+
+    return plugin.validateSettings(settings.settings);
   }
 
   @Get(':sourceId/movies/:tmdbId/stream')

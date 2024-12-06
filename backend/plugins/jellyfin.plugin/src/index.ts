@@ -23,17 +23,18 @@ export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 export default class JellyfinPlugin implements SourcePlugin {
   name: string = 'jellyfin';
 
-  validateSettings: (
-    settings: JellyfinSettings,
-  ) => Promise<{ isValid: boolean; errors: Record<string, string> }> = async (
-    settings,
-  ) => {
+  validateSettings: (settings: JellyfinSettings) => Promise<{
+    isValid: boolean;
+    errors: Record<string, string>;
+    replace: Record<string, any>;
+  }> = async (settings) => {
     let isValid = true;
     const errors = {
       baseUrl: '',
       apiKey: '',
       userId: '',
     };
+    const replace: Record<string, any> = {};
 
     if (!settings.baseUrl) {
       isValid = false;
@@ -50,16 +51,39 @@ export default class JellyfinPlugin implements SourcePlugin {
       errors.userId = 'User ID is required';
     }
 
-    const context = new PluginContext(settings);
-    const user = await context.api.users
-      .getUserById(settings.userId)
-      .catch((err) => err);
+    if (isValid) {
+      const context = new PluginContext(settings);
+      let [user, err] = await context.api.users
+        .getUserById(settings.userId)
+        .then((res) => [res.data, undefined])
+        .catch((err) => [undefined, err.message]);
 
-    console.log('jellyfinUser', user);
+      if (!user && err) {
+        [user, err] = await context.api.users
+          .getUsers()
+          .then((res) => res.data?.find((u) => u.Name === settings.userId))
+          .then((user) => {
+            if (!user || !user.Id) {
+              return [undefined, 'User not found'];
+            }
+
+            replace.userId = user.Id;
+
+            return [user, undefined];
+          })
+          .catch((err) => [undefined, err.message]);
+      }
+
+      if (!user && err) {
+        isValid = false;
+        errors.userId = `Could not get user: ${err}`;
+      }
+    }
 
     return {
       isValid,
       errors,
+      replace,
     };
   };
 
@@ -68,9 +92,21 @@ export default class JellyfinPlugin implements SourcePlugin {
   getIsIndexable: () => boolean = () => true;
 
   getSettingsTemplate: () => PluginSettingsTemplate = () => ({
-    baseUrl: 'string',
-    apiKey: 'password',
-    userId: 'string',
+    baseUrl: {
+      type: 'string',
+      label: 'Base URL',
+      placeholder: 'http://localhost:8096',
+    },
+    apiKey: {
+      type: 'password',
+      label: 'API Key',
+      placeholder: '',
+    },
+    userId: {
+      type: 'string',
+      label: 'Username or User ID',
+      placeholder: 'username or user id',
+    },
   });
 
   getEpisodeStream: (

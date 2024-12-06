@@ -4,6 +4,7 @@
 	import classNames from 'classnames';
 	import AnimatedSelection from './AnimateScale.svelte';
 	import { type ComponentType, createEventDispatcher } from 'svelte';
+	import type { Selectable } from '../selectable';
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
@@ -23,11 +24,12 @@
 	let hasFocus: Readable<boolean>;
 	$: if (!$hasFocus && armed) armed = false;
 
-	function handleClickOrSelect() {
+	function handleClickOrSelect({ detail: selectable }: { detail: Selectable }) {
 		if (actionIsFetching || _disabled) return;
 
 		if (confirmDanger && !armed) {
 			armed = true;
+			selectable.focus();
 			return;
 		}
 
@@ -41,7 +43,7 @@
 	}
 </script>
 
-<AnimatedSelection hasFocus={$hasFocus}>
+<AnimatedSelection hasFocus={$hasFocus} enabled={!disabled}>
 	<Container
 		bind:hasFocus
 		class={classNames(

@@ -103,6 +103,10 @@ html[data-useragent*='Tizen'] .selectable-secondary {
 	@apply font-medium text-lg text-secondary-300;
 }
 
+.error {
+	@apply text-red-500;
+}
+
 @media tv {
 	html {
 		font-size: 24px;

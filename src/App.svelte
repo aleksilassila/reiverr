@@ -1,7 +1,6 @@
 <script lang="ts">
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { handleKeyboardNavigation } from './lib/selectable';
-	import LoginPage from './lib/pages/LoginPage.svelte';
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
@@ -17,6 +16,7 @@
 	import { sessions } from './lib/stores/session.store';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
+	import { createErrorNotification } from './lib/components/Notifications/notification.store';
 
 	user.subscribe((s) => console.log('user', s));
 	sessions.subscribe((s) => console.log('sessions', s));
@@ -40,6 +40,10 @@
 		return axios
 			.get('https://api.github.com/repos/aleksilassila/reiverr/tags')
 			.then((res) => res.data?.find((v: { name: string }) => v.name.startsWith('v2'))?.name);
+	}
+
+	function handleError(event: any) {
+		createErrorNotification(event.error.message);
 	}
 
 	onMount(() => {
@@ -97,4 +101,4 @@
 {#if import.meta.env.DEV}
 	<NavigationDebugger />
 {/if}
-<svelte:window on:keydown={handleKeyboardNavigation} />
+<svelte:window on:keydown={handleKeyboardNavigation} on:error={handleError} />

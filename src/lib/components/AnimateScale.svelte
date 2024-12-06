@@ -3,20 +3,22 @@
 	import { localSettings } from '../stores/localstorage.store';
 
 	export let hasFocus: boolean;
-	let enabled = true;
-	localSettings.subscribe((v) => (enabled = v.useCssTransitions));
+	export let enabled = true;
+	let useTransitions = true;
+	localSettings.subscribe((v) => (useTransitions = v.useCssTransitions));
 </script>
 
 <div
 	class={classNames(
-		'relative hover:scale-105',
+		'relative',
 		{
-			'scale-105': hasFocus
+			'scale-105': hasFocus,
+			'hover:scale-105': useTransitions && enabled
 			// 'transition-all': enabled
 		},
 		$$restProps.class
 	)}
-	style={enabled ? 'transition: transform 200ms;' : ''}
+	style={useTransitions ? 'transition: transform 200ms;' : ''}
 	{...$$restProps}
 >
 	<slot />

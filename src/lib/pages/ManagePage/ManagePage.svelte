@@ -21,8 +21,9 @@
 	import { sessions } from '../../stores/session.store';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
 	import { scrollIntoView } from '../../selectable';
-	import { reiverrApi, reiverrApiNew } from '../../apis/reiverr/reiverr-api';
+	import { reiverrApi } from '../../apis/reiverr/reiverr-api';
 	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
+	import Plugins from './Plugins.ManagePage.svelte';
 
 	enum Tabs {
 		Interface,
@@ -37,7 +38,6 @@
 	let tizenMediaKey = '';
 	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
 	let users = getUsers();
-	const availablePlugins = reiverrApiNew.sources.getSourcePlugins().then((r) => r.data);
 
 	function getUsers() {
 		return $user?.isAdmin ? reiverrApi.getUsers() : undefined;
@@ -216,17 +216,7 @@
 				</Container>
 			</div>
 
-			<div>
-				<div class="mb-8">
-					<h1 class="font-semibold text-2xl text-secondary-100 mb-1">Soruces</h1>
-					<p class="font-medium text-md text-secondary-300">Asd asd</p>
-				</div>
-				{#await availablePlugins then plugins}
-					{#each plugins as plugin}
-						<div>{plugin}</div>
-					{/each}
-				{/await}
-			</div>
+<Plugins />
 
 			<div>
 				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>
