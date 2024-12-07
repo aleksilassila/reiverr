@@ -65,7 +65,6 @@ export class UsersController {
     @Param('id') id: string,
     @GetUser() callerUser: User,
   ): Promise<UserDto> {
-    console.log('callerUser', callerUser);
     if (!callerUser.isAdmin && callerUser.id !== id) {
       throw new NotFoundException();
     }

@@ -4,6 +4,8 @@ import axios from 'axios';
 import type { operations } from '../apis/reiverr/reiverr.generated';
 import { type Session, sessions } from './session.store';
 
+export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;
+
 function useUser() {
 	const activeSession = derived(sessions, (sessions) => sessions.activeSession);
 
@@ -11,6 +13,26 @@ function useUser() {
 
 	let lastActiveSession: Session | undefined;
 	activeSession.subscribe(async (activeSession) => {
+		refreshUser(activeSession);
+		reiverrApiNew = getReiverrApiNew();
+	});
+
+	async function updateUser(updateFn: (user: ReiverrUser) => ReiverrUser) {
+		const user = get(userStore);
+
+		if (!user) return;
+
+		const updated = updateFn(user);
+		const { user: update, error } = await reiverrApi.updateUser(updated.id, updated);
+
+		if (update) {
+			userStore.set(update);
+		}
+
+		return error;
+	}
+
+	async function refreshUser(activeSession = get(sessions)?.activeSession) {
 		if (!activeSession) {
 			userStore.set(null);
 			return;
@@ -30,29 +52,13 @@ function useUser() {
 			.catch(() => null);
 
 		if (lastActiveSession === activeSession) userStore.set(user);
-		reiverrApiNew = getReiverrApiNew();
-	});
-
-	async function updateUser(updateFn: (user: ReiverrUser) => ReiverrUser) {
-		const user = get(userStore);
-
-		if (!user) return;
-
-		const updated = updateFn(user);
-		const { user: update, error } = await reiverrApi.updateUser(updated.id, updated);
-
-		if (update) {
-			userStore.set(update);
-		}
-
-		return error;
 	}
 
 	return {
 		subscribe: userStore.subscribe,
-		updateUser
+		updateUser,
+		refreshUser
 	};
 }
 
 export const user = useUser();
-export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;

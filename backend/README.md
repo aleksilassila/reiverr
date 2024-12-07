@@ -88,6 +88,10 @@ $ npm run test:cov
 
 - GET /movies/{tmdbId}
 - GET /movies/{tmdbId}/similar
+- GET /movies/{tmdbId}/sources
+- GET /movies/{tmdbId}/sources/{sourceId}
+- GET /movies/{tmdbId}/sources/{sourceId}/stream
+
 - GET /series/{tmdbId}
 - (GET /series/{tmdbId}/season/{season})
 - GET /series/{tmdbId}/season/{season}/episode/{episode}

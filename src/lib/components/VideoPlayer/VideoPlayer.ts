@@ -1,7 +1,12 @@
 import { writable } from 'svelte/store';
 import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
-import VideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
+import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
+import { reiverrApiNew } from '../../stores/user.store';
+import { createErrorNotification } from '../Notifications/notification.store';
+import VideoPlayerModal from './VideoPlayerModal.svelte';
+import { sources } from '../../stores/sources.store';
+import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -21,6 +26,12 @@ export type AudioTrack = {
 	index: number;
 };
 
+export interface VideoPlayerContext {
+	title?: string;
+	subtitle?: string;
+	playbackInfo?: PlaybackInfo;
+}
+
 export type PlaybackInfo = {
 	playbackUrl: string;
 	directPlay: boolean;
@@ -32,26 +43,45 @@ export type PlaybackInfo = {
 	selectAudioTrack: (index: number) => void;
 };
 
-const initialValue = { visible: false, jellyfinId: '' };
+const initialValue = { visible: false, jellyfinId: '', sourceId: '' };
 export type PlayerStateValue = typeof initialValue;
 
-function createPlayerState() {
+function usePlayerState() {
 	const store = writable<PlayerStateValue>(initialValue);
+
+	async function streamMovie(tmdbId: string, sourceId: string = '') {
+		if (!sourceId) {
+			const sources = await reiverrApiNew.movies.getMovieSources(tmdbId).then((r) => r.data);
+			sourceId = Object.keys(sources.sources)[0] || '';
+		}
+
+		if (!sourceId) {
+			createErrorNotification('Could not find a suitable source');
+			return;
+		}
+
+		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
+		modalStack.create(MovieVideoPlayerModal, {
+			tmdbId,
+			sourceId
+		});
+	}
 
 	return {
 		...store,
+		streamMovie,
 		streamJellyfinId: (id: string) => {
-			store.set({ visible: true, jellyfinId: id });
-			modalStack.create(VideoPlayerModal, { id });
+			store.set({ visible: true, jellyfinId: id, sourceId: '' });
+			modalStack.create(JellyfinVideoPlayerModal, { id });
 		},
 		close: () => {
-			store.set({ visible: false, jellyfinId: '' });
+			store.set({ visible: false, jellyfinId: '', sourceId: '' });
 			jellyfinItemsStore.send();
 		}
 	};
 }
 
-export const playerState = createPlayerState();
+export const playerState = usePlayerState();
 
 export function getBrowserSpecificMediaFunctions() {
 	// These functions are different in every browser

@@ -4,12 +4,18 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import {
+  AudioStream,
+  PlaybackConfig,
   PluginSettings,
   PluginSettingsInput,
   PluginSettingsLink,
   PluginSettingsTemplate,
+  Quality,
+  Subtitles,
   ValidationResponse,
+  VideoStream,
 } from 'plugins/plugin-types';
+import { DeviceProfileDto } from './device-profile.dto';
 
 class PluginSettingsLinkDto implements PluginSettingsLink {
   @ApiProperty({ example: 'link', enum: ['link'] })
@@ -90,4 +96,110 @@ export class ValidationResponsekDto implements ValidationResponse {
     additionalProperties: true,
   })
   replace: Record<string, any>;
+}
+
+export class SourceDto {
+  @ApiProperty({ example: '/path/to/stream' })
+  uri: string;
+}
+
+export class SourceListDto {
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { $ref: getSchemaPath(SourceDto) },
+    example: {
+      source1: { uri: '/path/to/stream' },
+      source2: { uri: '/path/to/other/stream' },
+    },
+  })
+  sources: Record<string, VideoStreamDto>;
+}
+
+export class AudioStreamDto implements AudioStream {
+  @ApiProperty()
+  index: number;
+
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty({ example: 'aac', required: false })
+  codec: string | undefined;
+
+  @ApiProperty({ example: 96_000, type: 'number', required: false })
+  bitrate: number | undefined;
+}
+
+export class QualityDto implements Quality {
+  @ApiProperty()
+  index: number;
+
+  @ApiProperty()
+  bitrate: number;
+
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty({ required: false })
+  codec: string | undefined;
+}
+
+export class SubtitlesDto implements Subtitles {
+  @ApiProperty()
+  index: number;
+
+  @ApiProperty()
+  uri: string;
+
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty({ required: false })
+  codec: string | undefined;
+}
+
+export class VideoStreamDto implements VideoStream {
+  @ApiProperty()
+  uri: string;
+
+  @ApiProperty()
+  directPlay: boolean;
+
+  @ApiProperty()
+  progress: number;
+
+  @ApiProperty({ type: [AudioStreamDto] })
+  audioStreams: AudioStreamDto[];
+
+  @ApiProperty()
+  audioStreamIndex: number;
+
+  @ApiProperty({ type: [QualityDto] })
+  qualities: QualityDto[];
+
+  @ApiProperty()
+  quality: number;
+
+  @ApiProperty({ type: [SubtitlesDto] })
+  subtitles: SubtitlesDto[];
+}
+
+export class PlaybackConfigDto implements PlaybackConfig {
+  @ApiPropertyOptional({ example: 0, required: false })
+  bitrate: number | undefined;
+
+  @ApiPropertyOptional({ example: 0, required: false })
+  audioStreamIndex: number | undefined;
+
+  @ApiPropertyOptional({ example: 0, required: false })
+  progress: number | undefined;
+
+  @ApiPropertyOptional({
+    example: 'en',
+    required: false,
+    type: DeviceProfileDto,
+  })
+  deviceProfile: DeviceProfileDto | undefined;
+
+  @ApiPropertyOptional({ example: 'en', required: false })
+  defaultLanguage: string | undefined;
 }

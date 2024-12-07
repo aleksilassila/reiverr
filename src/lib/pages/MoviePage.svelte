@@ -174,7 +174,7 @@
 								<Button
 									class="mr-4"
 									on:clickOrSelect={() =>
-										jellyfinItem.Id && playerState.streamJellyfinId(jellyfinItem.Id)}
+										jellyfinItem.Id && playerState.streamMovie(id)}
 								>
 									Play
 									<Play size={19} slot="icon" />

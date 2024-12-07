@@ -19,7 +19,7 @@ export class SourcePluginsService {
     );
   }
 
-  async getLoadedPlugins(): Promise<Record<string, SourcePlugin>> {
+  async getPlugins(): Promise<Record<string, SourcePlugin>> {
     return this.plugins;
   }
 

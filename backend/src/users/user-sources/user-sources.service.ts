@@ -89,7 +89,8 @@ export class UserSourcesService {
   }
 
   getSourceSettings(user: User, sourceId: string) {
-    return user.mediaSources?.find((source) => source.id === sourceId)
-      ?.pluginSettings;
+    return user.mediaSources
+      ?.filter((s) => s?.enabled)
+      ?.find((source) => source.id === sourceId)?.pluginSettings;
   }
 }

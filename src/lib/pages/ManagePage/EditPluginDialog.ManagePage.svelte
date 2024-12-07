@@ -52,6 +52,7 @@
 
 	async function handleRemovePlugin() {
 		await reiverrApiNew.users.deleteSource(plugin, get(user)?.id || '');
+		await user.refreshUser();
 		modalStack.close(modalId);
 	}
 </script>

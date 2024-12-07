@@ -120,6 +120,253 @@ export interface ValidationResponsekDto {
 	replace: Record<string, any>;
 }
 
+export interface SourceListDto {
+	/** @example {"source1":{"uri":"/path/to/stream"},"source2":{"uri":"/path/to/other/stream"}} */
+	sources: Record<string, any>;
+}
+
+export interface DirectPlayProfileDto {
+	/** Gets or sets the container. */
+	Container?: string | null;
+	/** Gets or sets the audio codec. */
+	AudioCodec?: string | null;
+	/** Gets or sets the video codec. */
+	VideoCodec?: string | null;
+	/** Gets or sets the Dlna profile type. */
+	Type?: 'Audio' | 'Video' | 'Photo' | 'Subtitle' | 'Lyric';
+}
+
+export interface ProfileConditionDto {
+	/** Gets or sets the condition. */
+	Condition?: 'Equals' | 'NotEquals' | 'LessThanEqual' | 'GreaterThanEqual' | 'EqualsAny' | null;
+	/** Gets or sets the property. */
+	Property?:
+		| 'AudioChannels'
+		| 'AudioBitrate'
+		| 'AudioProfile'
+		| 'Width'
+		| 'Height'
+		| 'Has64BitOffsets'
+		| 'PacketLength'
+		| 'VideoBitDepth'
+		| 'VideoBitrate'
+		| 'VideoFramerate'
+		| 'VideoLevel'
+		| 'VideoProfile'
+		| 'VideoTimestamp'
+		| 'IsAnamorphic'
+		| 'RefFrames'
+		| 'NumAudioStreams'
+		| 'NumVideoStreams'
+		| 'IsSecondaryAudio'
+		| 'VideoCodecTag'
+		| 'IsAvc'
+		| 'IsInterlaced'
+		| 'AudioSampleRate'
+		| 'AudioBitDepth'
+		| 'VideoRangeType'
+		| null;
+	/** Gets or sets the value. */
+	Value?: string | null;
+	/** Indicates if the condition is required. */
+	IsRequired?: boolean | null;
+}
+
+export interface TranscodingProfileDto {
+	/** Gets or sets the container. */
+	Container?: string | null;
+	/** Gets or sets the DLNA profile type. */
+	Type?: 'Audio' | 'Video' | 'Photo' | 'Subtitle' | 'Lyric';
+	/** Gets or sets the video codec. */
+	VideoCodec?: string | null;
+	/** Gets or sets the audio codec. */
+	AudioCodec?: string | null;
+	/** Media streaming protocol. */
+	Protocol?: 'http' | 'hls';
+	/**
+	 * Indicates if the content length should be estimated.
+	 * @default false
+	 */
+	EstimateContentLength?: boolean;
+	/**
+	 * Indicates if M2TS mode is enabled.
+	 * @default false
+	 */
+	EnableMpegtsM2TsMode?: boolean;
+	/**
+	 * Gets or sets the transcoding seek info mode.
+	 * @default "Auto"
+	 */
+	TranscodeSeekInfo?: 'Auto' | 'Bytes';
+	/**
+	 * Indicates if timestamps should be copied.
+	 * @default false
+	 */
+	CopyTimestamps?: boolean;
+	/**
+	 * Gets or sets the encoding context.
+	 * @default "Streaming"
+	 */
+	Context?: 'Streaming' | 'Static';
+	/**
+	 * Indicates if subtitles are allowed in the manifest.
+	 * @default false
+	 */
+	EnableSubtitlesInManifest?: boolean;
+	/** Gets or sets the maximum audio channels. */
+	MaxAudioChannels?: string | null;
+	/**
+	 * Gets or sets the minimum amount of segments.
+	 * @format int32
+	 * @default 0
+	 */
+	MinSegments?: number;
+	/**
+	 * Gets or sets the segment length.
+	 * @format int32
+	 * @default 0
+	 */
+	SegmentLength?: number;
+	/**
+	 * Indicates if breaking the video stream on non-keyframes is supported.
+	 * @default false
+	 */
+	BreakOnNonKeyFrames?: boolean;
+	/** Gets or sets the profile conditions. */
+	Conditions?: ProfileConditionDto[] | null;
+	/**
+	 * Indicates if variable bitrate encoding is supported.
+	 * @default true
+	 */
+	EnableAudioVbrEncoding?: boolean;
+}
+
+export interface ContainerProfileDto {
+	/** Gets or sets the MediaBrowser.Model.Dlna.DlnaProfileType which this container must meet. */
+	Type?: 'Audio' | 'Video' | 'Photo' | 'Subtitle' | 'Lyric' | null;
+	/** Gets or sets the profile conditions. */
+	Conditions?: ProfileConditionDto[] | null;
+	/** Gets or sets the container(s) which this container must meet. */
+	Container?: string | null;
+	/** Gets or sets the sub container(s) which this container must meet. */
+	SubContainer?: string | null;
+}
+
+export interface CodecProfileDto {
+	/** Gets or sets the MediaBrowser.Model.Dlna.CodecType which this container must meet. */
+	Type?: 'Video' | 'VideoAudio' | 'Audio' | null;
+	/** Gets or sets the profile conditions. */
+	Conditions?: ProfileConditionDto[] | null;
+	/** Gets or sets the apply conditions if this profile is met. */
+	ApplyConditions?: ProfileConditionDto[] | null;
+	/** Gets or sets the codec(s) that this profile applies to. */
+	Codec?: string | null;
+	/** Gets or sets the container(s) which this profile will be applied to. */
+	Container?: string | null;
+	/** Gets or sets the sub-container(s) which this profile will be applied to. */
+	SubContainer?: string | null;
+}
+
+export interface SubtitleProfileDto {
+	/** Gets or sets the format. */
+	Format?: string | null;
+	/** Gets or sets the delivery method. */
+	Method?: 'Encode' | 'Embed' | 'External' | 'Hls' | 'Drop' | null;
+	/** Gets or sets the DIDL mode. */
+	DidlMode?: string | null;
+	/** Gets or sets the language. */
+	Language?: string | null;
+	/** Gets or sets the container. */
+	Container?: string | null;
+}
+
+export interface DeviceProfileDto {
+	/** Gets or sets the name of this device profile. User profiles must have a unique name. */
+	Name?: string | null;
+	/**
+	 * Gets or sets the unique internal identifier.
+	 * @format uuid
+	 */
+	Id?: string | null;
+	/**
+	 * Gets or sets the maximum allowed bitrate for all streamed content.
+	 * @format int32
+	 */
+	MaxStreamingBitrate?: number | null;
+	/**
+	 * Gets or sets the maximum allowed bitrate for statically streamed content (= direct played files).
+	 * @format int32
+	 */
+	MaxStaticBitrate?: number | null;
+	/**
+	 * Gets or sets the maximum allowed bitrate for transcoded music streams.
+	 * @format int32
+	 */
+	MusicStreamingTranscodingBitrate?: number | null;
+	/**
+	 * Gets or sets the maximum allowed bitrate for statically streamed (= direct played) music files.
+	 * @format int32
+	 */
+	MaxStaticMusicBitrate?: number | null;
+	/** Gets or sets the direct play profiles. */
+	DirectPlayProfiles?: DirectPlayProfileDto[] | null;
+	/** Gets or sets the transcoding profiles. */
+	TranscodingProfiles?: TranscodingProfileDto[] | null;
+	/** Gets or sets the container profiles. */
+	ContainerProfiles?: ContainerProfileDto[] | null;
+	/** Gets or sets the codec profiles. */
+	CodecProfiles?: CodecProfileDto[] | null;
+	/** Gets or sets the subtitle profiles. */
+	SubtitleProfiles?: SubtitleProfileDto[] | null;
+}
+
+export interface PlaybackConfigDto {
+	/** @example 0 */
+	bitrate?: number;
+	/** @example 0 */
+	audioStreamIndex?: number;
+	/** @example 0 */
+	progress?: number;
+	/** @example "en" */
+	deviceProfile?: DeviceProfileDto;
+	/** @example "en" */
+	defaultLanguage?: string;
+}
+
+export interface AudioStreamDto {
+	index: number;
+	label: string;
+	/** @example "aac" */
+	codec?: string;
+	/** @example 96000 */
+	bitrate?: number;
+}
+
+export interface QualityDto {
+	index: number;
+	bitrate: number;
+	label: string;
+	codec?: string;
+}
+
+export interface SubtitlesDto {
+	index: number;
+	uri: string;
+	label: string;
+	codec?: string;
+}
+
+export interface VideoStreamDto {
+	uri: string;
+	directPlay: boolean;
+	progress: number;
+	audioStreams: AudioStreamDto[];
+	audioStreamIndex: number;
+	qualities: QualityDto[];
+	quality: number;
+	subtitles: SubtitlesDto[];
+}
+
 import type {
 	AxiosInstance,
 	AxiosRequestConfig,
@@ -532,32 +779,56 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				type: ContentType.Json,
 				format: 'json',
 				...params
+			})
+	};
+	movies = {
+		/**
+		 * No description
+		 *
+		 * @tags movies
+		 * @name GetMovieSources
+		 * @request GET:/api/movies/{tmdbId}/sources
+		 */
+		getMovieSources: (tmdbId: string, params: RequestParams = {}) =>
+			this.request<SourceListDto, any>({
+				path: `/api/movies/${tmdbId}/sources`,
+				method: 'GET',
+				format: 'json',
+				...params
 			}),
 
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStream
-		 * @request GET:/api/sources/{sourceId}/movies/{tmdbId}/stream
+		 * @request POST:/api/movies/{tmdbId}/sources/{sourceId}/stream
 		 */
-		getMovieStream: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream`,
-				method: 'GET',
+		getMovieStream: (
+			sourceId: string,
+			tmdbId: string,
+			data: PlaybackConfigDto,
+			params: RequestParams = {}
+		) =>
+			this.request<VideoStreamDto, any>({
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
 				...params
 			}),
 
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyGet
-		 * @request GET:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request GET:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyGet: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyGet: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'GET',
 				...params
 			}),
@@ -565,13 +836,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyPost
-		 * @request POST:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request POST:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyPost: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyPost: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'POST',
 				...params
 			}),
@@ -579,13 +850,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyPut
-		 * @request PUT:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request PUT:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyPut: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyPut: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'PUT',
 				...params
 			}),
@@ -593,13 +864,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyDelete
-		 * @request DELETE:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request DELETE:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyDelete: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyDelete: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'DELETE',
 				...params
 			}),
@@ -607,13 +878,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyPatch
-		 * @request PATCH:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request PATCH:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyPatch: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyPatch: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'PATCH',
 				...params
 			}),
@@ -621,13 +892,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyOptions
-		 * @request OPTIONS:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request OPTIONS:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyOptions: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyOptions: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'OPTIONS',
 				...params
 			}),
@@ -635,13 +906,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxyHead
-		 * @request HEAD:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request HEAD:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxyHead: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxyHead: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'HEAD',
 				...params
 			}),
@@ -649,13 +920,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @tags sources
+		 * @tags movies
 		 * @name GetMovieStreamProxySearch
-		 * @request SEARCH:/api/sources/{sourceId}/movies/{tmdbId}/stream/*
+		 * @request SEARCH:/api/movies/{tmdbId}/sources/{sourceId}/stream/*
 		 */
-		getMovieStreamProxySearch: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieStreamProxySearch: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
-				path: `/api/sources/${sourceId}/movies/${tmdbId}/stream/*`,
+				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/*`,
 				method: 'SEARCH',
 				...params
 			})

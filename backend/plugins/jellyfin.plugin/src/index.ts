@@ -6,9 +6,13 @@ import {
   Api as JellyfinApi,
 } from './jellyfin.openapi';
 import {
+  PlaybackConfig,
   PluginSettings,
   PluginSettingsTemplate,
   SourcePlugin,
+  Subtitles,
+  UserContext,
+  VideoStream,
 } from 'plugins/plugin-types';
 
 interface JellyfinSettings extends PluginSettings {
@@ -17,7 +21,69 @@ interface JellyfinSettings extends PluginSettings {
   userId: string;
 }
 
-export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
+interface JellyfinUserContext extends UserContext {
+  settings: JellyfinSettings;
+}
+
+const JELLYFIN_DEVICE_ID = 'Reiverr Client';
+
+const bitrateQualities = [
+  {
+    label: '4K - 120 Mbps',
+    bitrate: 120000000,
+    codec: undefined,
+  },
+  {
+    label: '4K - 80 Mbps',
+    bitrate: 80000000,
+    codec: undefined,
+  },
+  {
+    label: '1080p - 40 Mbps',
+    bitrate: 40000000,
+    codec: undefined,
+  },
+  {
+    label: '1080p - 10 Mbps',
+    bitrate: 10000000,
+    codec: undefined,
+  },
+  {
+    label: '720p - 8 Mbps',
+    bitrate: 8000000,
+    codec: undefined,
+  },
+  {
+    label: '720p - 4 Mbps',
+    bitrate: 4000000,
+    codec: undefined,
+  },
+  {
+    label: '480p - 3 Mbps',
+    bitrate: 3000000,
+    codec: undefined,
+  },
+  {
+    label: '480p - 720 Kbps',
+    bitrate: 720000,
+    codec: undefined,
+  },
+  {
+    label: '360p - 420 Kbps',
+    bitrate: 420000,
+    codec: undefined,
+  },
+];
+
+function getClosestBitrate(qualities, bitrate) {
+  return qualities.reduce(
+    (prev, curr) =>
+      Math.abs(curr.bitrate - bitrate) < Math.abs(prev.bitrate - bitrate)
+        ? curr
+        : prev,
+    qualities[0],
+  );
+}
 
 @Injectable()
 export default class JellyfinPlugin implements SourcePlugin {
@@ -149,10 +215,18 @@ export default class JellyfinPlugin implements SourcePlugin {
 
   async getMovieStream(
     tmdbId: string,
-    settings: JellyfinSettings,
-  ): Promise<string> {
-    const context = new PluginContext(settings);
+    userContext: JellyfinUserContext,
+    config: PlaybackConfig = {
+      audioStreamIndex: undefined,
+      bitrate: undefined,
+      progress: undefined,
+      defaultLanguage: undefined,
+      deviceProfile: undefined,
+    },
+  ): Promise<VideoStream> {
+    const context = new PluginContext(userContext.settings, userContext.token);
     const items = await this.getLibraryItems(context);
+    const proxyUrl = `/api/movies/${tmdbId}/sources/${this.name}/stream`;
 
     const movie = items.find((item) => item.ProviderIds?.Tmdb === tmdbId);
 
@@ -172,26 +246,99 @@ export default class JellyfinPlugin implements SourcePlugin {
         );
         */
 
-    const playbackInfo = await context.api.items.getPlaybackInfo(movie.Id, {
-      userId: context.settings.userId,
-      // deviceId: JELLYFIN_DEVICE_ID,
-      // mediaSourceId: movie.MediaSources[0].Id,
-      // maxBitrate: 8000000,
-    });
+    const startTimeTicks = movie.RunTimeTicks
+      ? movie.RunTimeTicks * config.progress
+      : undefined;
+    const maxStreamingBitrate = config.bitrate || 0; //|| movie.MediaSources?.[0]?.Bitrate || 10000000
+
+    const playbackInfo = await context.api.items.getPostedPlaybackInfo(
+      movie.Id,
+      {
+        DeviceProfile: config.deviceProfile,
+      },
+      {
+        userId: context.settings.userId,
+        startTimeTicks: startTimeTicks || 0,
+        ...(maxStreamingBitrate ? { maxStreamingBitrate } : {}),
+        autoOpenLiveStream: true,
+        ...(config.audioStreamIndex
+          ? { audioStreamIndex: config.audioStreamIndex }
+          : {}),
+        mediaSourceId: movie.Id,
+
+        // deviceId: JELLYFIN_DEVICE_ID,
+        // mediaSourceId: movie.MediaSources[0].Id,
+        // maxBitrate: 8000000,
+      },
+    );
+
+    const mediasSource = playbackInfo.data?.MediaSources?.[0];
 
     const playbackUri =
-      playbackInfo.data?.MediaSources?.[0]?.TranscodingUrl ||
-      `/Videos/${playbackInfo.data?.MediaSources?.[0]?.Id}/stream.mp4?Static=true&mediaSourceId=${playbackInfo.data?.MediaSources?.[0]?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${playbackInfo.data?.MediaSources?.[0]?.ETag}`;
+      proxyUrl +
+      (mediasSource?.TranscodingUrl ||
+        `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
+      `&reiverr_token=${userContext.token}`;
 
-    return playbackUri;
+    const audioStreams: VideoStream['audioStreams'] =
+      mediasSource?.MediaStreams.filter((s) => s.Type === 'Audio').map((s) => ({
+        bitrate: s.BitRate,
+        label: s.Language,
+        codec: s.Codec,
+        index: s.Index,
+      })) ?? [];
+
+    const qualities = [
+      ...bitrateQualities,
+      {
+        bitrate: mediasSource.Bitrate,
+        label: 'Original',
+        codec: undefined,
+      },
+    ].map((q, i) => ({
+      ...q,
+      index: i,
+    }));
+
+    const bitrate = Math.min(
+      maxStreamingBitrate,
+      movie.MediaSources[0].Bitrate,
+    );
+
+    const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
+      (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
+    ).map((s, i) => ({
+      index: i,
+      uri: proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      label: s.DisplayTitle,
+      codec: s.Codec,
+    }));
+
+    return {
+      audioStreamIndex:
+        config.audioStreamIndex ??
+        mediasSource?.DefaultAudioStreamIndex ??
+        audioStreams[0].index,
+      audioStreams,
+      progress: config.progress ?? 0,
+      qualities,
+      quality: getClosestBitrate(qualities, bitrate).index,
+      subtitles,
+      uri: playbackUri,
+      directPlay:
+        !!mediasSource?.SupportsDirectPlay ||
+        !!mediasSource?.SupportsDirectStream,
+    };
   }
 }
 
 class PluginContext {
   api: JellyfinApi<{}>;
   settings: JellyfinSettings;
+  token: string;
 
-  constructor(settings: JellyfinSettings) {
+  constructor(settings: JellyfinSettings, token = '') {
+    this.token = token;
     this.settings = settings;
     this.api = new JellyfinApi({
       baseURL: settings.baseUrl,

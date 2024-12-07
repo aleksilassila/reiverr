@@ -10,6 +10,7 @@ import { ENV, JWT_SECRET } from '../consts';
 import { AccessTokenPayload } from './auth.service';
 import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
+import { Request } from 'express';
 
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {
@@ -18,10 +19,24 @@ export const GetUser = createParamDecorator(
   },
 );
 
-function extractTokenFromHeader(request: Request): string | undefined {
+export const GetAuthToken = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext): string | undefined => {
+    const request = ctx.switchToHttp().getRequest();
+    return extractTokenFromRequest(request);
+  },
+);
+
+function extractTokenFromRequest(request: Request): string | undefined {
   const [type, token] =
     (request.headers as any).authorization?.split(' ') ?? [];
-  return type === 'Bearer' ? token : undefined;
+
+  let v = type === 'Bearer' ? token : undefined;
+
+  if (v) return v;
+
+  return request.query['reiverr_token']
+    ? (request.query['reiverr_token'] as string)
+    : undefined;
 }
 
 @Injectable()
@@ -33,7 +48,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = extractTokenFromHeader(request);
+    const token = extractTokenFromRequest(request);
 
     if (ENV === 'development' && !token) {
       request['user'] = await this.userService.findOneByName('test');
@@ -71,7 +86,7 @@ export class OptionalAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = extractTokenFromHeader(request);
+    const token = extractTokenFromRequest(request);
     if (!token) {
       return true;
     }

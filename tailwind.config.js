@@ -1,3 +1,5 @@
+import scrollbarHide from 'tailwind-scrollbar-hide'
+
 /**
  * https://huemint.com/website-monochrome/#palette=353633-fbfdff
  * https://huemint.com/website-monochrome/#palette=161718-dfd1a3 Very Nice
@@ -60,5 +62,5 @@ export default {
 	future: {
 		hoverOnlyWhenSupported: true
 	},
-	plugins: [require('tailwind-scrollbar-hide')]
+	plugins: [scrollbarHide]
 };
