@@ -11,6 +11,7 @@
 
 	export let tmdbId: string;
 	export let sourceId: string;
+	export let key: string = '';
 
 	export let modalId: symbol;
 	export let hidden: boolean = false;
@@ -32,12 +33,19 @@
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
 		console.log('called2');
 		videoStreamP = reiverrApiNew.movies
-			.getMovieStream(sourceId, tmdbId, {
-				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-				progress: 0,
-				audioStreamIndex,
-				deviceProfile: getDeviceProfile() as any
-			})
+			.getMovieStream(
+				tmdbId,
+				sourceId,
+				{
+					key
+				},
+				{
+					// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+					progress: 0,
+					audioStreamIndex,
+					deviceProfile: getDeviceProfile() as any
+				}
+			)
 			.then((r) => r.data)
 			.then((d) => ({
 				...d,

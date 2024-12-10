@@ -40,6 +40,7 @@ export type Quality = {
   bitrate: number;
   label: string;
   codec: string | undefined;
+  original: boolean;
 };
 
 export type Subtitles = {
@@ -49,14 +50,26 @@ export type Subtitles = {
   codec: string | undefined;
 };
 
-export type VideoStream = {
+export type VideoStreamProperty = {
+  label: string;
+  value: string | number;
+  formatted: string | undefined;
+};
+
+export type VideoStreamCandidate = {
+  key: string;
+  title: string;
+  properties: VideoStreamProperty[];
+};
+
+export type VideoStream = VideoStreamCandidate & {
   uri: string;
   directPlay: boolean;
   progress: number;
   audioStreams: AudioStream[];
   audioStreamIndex: number;
   qualities: Quality[];
-  quality: number;
+  qualityIndex: number;
   subtitles: Subtitles[];
 };
 
@@ -93,7 +106,21 @@ export interface SourcePlugin {
 
   getMovieStream: (
     tmdbId: string,
+    key: string,
     context: UserContext,
+    config?: PlaybackConfig,
+  ) => Promise<VideoStream>;
+
+  getMovieStreams: (
+    tmdbId: string,
+    context: UserContext,
+    config?: PlaybackConfig,
+  ) => Promise<VideoStreamCandidate[]>;
+
+  getMovieStream: (
+    tmdbId: string,
+    context: UserContext,
+    key: string,
     config?: PlaybackConfig,
   ) => Promise<VideoStream>;
 

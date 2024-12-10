@@ -5,7 +5,7 @@ import SeriesPage from '../SeriesPage/SeriesPage.svelte';
 import EpisodePage from '../../pages/EpisodePage.svelte';
 import { modalStack } from '../Modal/modal.store';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
-import MoviePage from '../../pages/MoviePage.svelte';
+import MoviePage from '../../pages/MoviePage/MoviePage.svelte';
 import LibraryPage from '../../pages/LibraryPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';

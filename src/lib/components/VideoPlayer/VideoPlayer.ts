@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
 import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
@@ -49,10 +49,17 @@ export type PlayerStateValue = typeof initialValue;
 function usePlayerState() {
 	const store = writable<PlayerStateValue>(initialValue);
 
-	async function streamMovie(tmdbId: string, sourceId: string = '') {
+	async function streamMovie(tmdbId: string, sourceId: string = '', key: string = '') {
 		if (!sourceId) {
-			const sources = await reiverrApiNew.movies.getMovieSources(tmdbId).then((r) => r.data);
-			sourceId = Object.keys(sources.sources)[0] || '';
+			const streams = await Promise.all(
+				get(sources).map((s) =>
+					reiverrApiNew.movies
+						.getMovieStreams(tmdbId, s.id)
+						.then((r) => ({ source: s, streams: r.data.streams }))
+				)
+			);
+			sourceId = streams?.[0]?.source.id || '';
+			key = streams?.[0]?.streams?.[0]?.key || '';
 		}
 
 		if (!sourceId) {
@@ -63,7 +70,8 @@ function usePlayerState() {
 		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
 		modalStack.create(MovieVideoPlayerModal, {
 			tmdbId,
-			sourceId
+			sourceId,
+			key
 		});
 	}
 

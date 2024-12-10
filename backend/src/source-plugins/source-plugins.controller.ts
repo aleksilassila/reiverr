@@ -21,12 +21,11 @@ import { Request, Response } from 'express';
 import { Readable } from 'stream';
 import { User } from 'src/users/user.entity';
 import { UserSourcesService } from 'src/users/user-sources/user-sources.service';
-import { PluginSettingsTemplate } from 'plugins/plugin-types';
 import {
   PlaybackConfigDto,
   PluginSettingsDto,
   PluginSettingsTemplateDto,
-  SourceListDto as VideoStreamListDto,
+  VideoStreamListDto,
   ValidationResponsekDto as ValidationResponseDto,
   VideoStreamDto,
 } from './source-plugins.dto';
@@ -97,48 +96,66 @@ export class SourcesController {
   }
 
   @ApiTags('movies')
-  @Get('movies/:tmdbId/sources')
+  @Get('movies/:tmdbId/sources/:sourceId/streams')
   @ApiOkResponse({
     description: 'Movie sources',
     type: VideoStreamListDto,
   })
-  async getMovieSources(
+  async getMovieStreams(
     @Param('tmdbId') tmdbId: string,
+    @Param('sourceId') sourceId: string,
     @GetUser() user: User,
     @GetAuthToken() token: string,
   ): Promise<VideoStreamListDto> {
-    if (!user) {
-      throw new UnauthorizedException();
+    const plugin = this.sourcesService.getPlugin(sourceId);
+
+    if (!plugin) {
+      throw new NotFoundException('Plugin not found');
     }
 
-    const plugins = await this.sourcesService.getPlugins();
-    const sources: VideoStreamListDto['sources'] = {};
+    const settings = this.userSourcesService.getSourceSettings(user, sourceId);
 
-    for (const pluginId in plugins) {
-      const plugin = plugins[pluginId];
-
-      if (!plugin) continue;
-
-      const settings = this.userSourcesService.getSourceSettings(
-        user,
-        pluginId,
-      );
-
-      if (!settings) continue;
-
-      const videoStream = await plugin.getMovieStream(tmdbId, {
-        settings,
-        token,
-      });
-
-      if (!videoStream) continue;
-
-      sources[pluginId] = videoStream;
+    if (!settings) {
+      throw new BadRequestException('Source configuration not found');
     }
+
+    const streams = await plugin.getMovieStreams(tmdbId, {
+      settings,
+      token,
+    });
 
     return {
-      sources,
+      streams,
     };
+
+    // const plugins = await this.sourcesService.getPlugins();
+    // const streams: VideoStreamListDto['streams'] = [];
+
+    // for (const pluginId in plugins) {
+    //   const plugin = plugins[pluginId];
+
+    //   if (!plugin) continue;
+
+    //   const settings = this.userSourcesService.getSourceSettings(
+    //     user,
+    //     pluginId,
+    //   );
+
+    //   if (!settings) continue;
+
+    //   const videoStream = await plugin.getMovieStreams(tmdbId, {
+    //     settings,
+    //     token,
+    //   });
+
+    //   if (!videoStream) continue;
+
+    //   streams[pluginId] = videoStream;
+    // }
+
+    // return {
+    //   streams,
+    // };
   }
 
   @ApiTags('movies')
@@ -148,14 +165,17 @@ export class SourcesController {
     type: VideoStreamDto,
   })
   async getMovieStream(
-    @Param('sourceId') sourceId: string,
     @Param('tmdbId') tmdbId: string,
+    @Param('sourceId') sourceId: string,
+    @Query('key') key: string,
     @GetUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
   ): Promise<VideoStreamDto> {
-    if (!user) {
-      throw new UnauthorizedException();
+    const plugin = this.sourcesService.getPlugin(sourceId);
+
+    if (!plugin) {
+      throw new NotFoundException('Plugin not found');
     }
 
     const settings = this.userSourcesService.getSourceSettings(user, sourceId);
@@ -164,8 +184,9 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    return this.sourcesService.getPlugin(sourceId)?.getMovieStream(
+    return plugin.getMovieStream(
       tmdbId,
+      key || '',
       {
         settings,
         token,
@@ -175,7 +196,7 @@ export class SourcesController {
   }
 
   @ApiTags('movies')
-  @All('movies/:tmdbId/sources/:sourceId/stream/*')
+  @All('movies/:tmdbId/sources/:sourceId/stream/proxy/*')
   async getMovieStreamProxy(
     @Param() params: any,
     @Req() req: Request,

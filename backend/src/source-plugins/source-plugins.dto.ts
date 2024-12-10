@@ -14,6 +14,8 @@ import {
   Subtitles,
   ValidationResponse,
   VideoStream,
+  VideoStreamCandidate,
+  VideoStreamProperty,
 } from 'plugins/plugin-types';
 import { DeviceProfileDto } from './device-profile.dto';
 
@@ -98,23 +100,6 @@ export class ValidationResponsekDto implements ValidationResponse {
   replace: Record<string, any>;
 }
 
-export class SourceDto {
-  @ApiProperty({ example: '/path/to/stream' })
-  uri: string;
-}
-
-export class SourceListDto {
-  @ApiProperty({
-    type: 'object',
-    additionalProperties: { $ref: getSchemaPath(SourceDto) },
-    example: {
-      source1: { uri: '/path/to/stream' },
-      source2: { uri: '/path/to/other/stream' },
-    },
-  })
-  sources: Record<string, VideoStreamDto>;
-}
-
 export class AudioStreamDto implements AudioStream {
   @ApiProperty()
   index: number;
@@ -141,6 +126,9 @@ export class QualityDto implements Quality {
 
   @ApiProperty({ required: false })
   codec: string | undefined;
+
+  @ApiProperty()
+  original: boolean;
 }
 
 export class SubtitlesDto implements Subtitles {
@@ -157,7 +145,34 @@ export class SubtitlesDto implements Subtitles {
   codec: string | undefined;
 }
 
-export class VideoStreamDto implements VideoStream {
+export class VideoStreamPropertyDto implements VideoStreamProperty {
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty({
+    oneOf: [{ type: 'string' }, { type: 'number' }],
+  })
+  value: string | number;
+
+  @ApiProperty({ required: false })
+  formatted: string | undefined;
+}
+
+export class VideoStreamCandidateDto implements VideoStreamCandidate {
+  @ApiProperty()
+  key: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty({ type: [VideoStreamPropertyDto] })
+  properties: VideoStreamPropertyDto[];
+}
+
+export class VideoStreamDto
+  extends VideoStreamCandidateDto
+  implements VideoStream
+{
   @ApiProperty()
   uri: string;
 
@@ -177,7 +192,7 @@ export class VideoStreamDto implements VideoStream {
   qualities: QualityDto[];
 
   @ApiProperty()
-  quality: number;
+  qualityIndex: number;
 
   @ApiProperty({ type: [SubtitlesDto] })
   subtitles: SubtitlesDto[];
@@ -202,4 +217,11 @@ export class PlaybackConfigDto implements PlaybackConfig {
 
   @ApiPropertyOptional({ example: 'en', required: false })
   defaultLanguage: string | undefined;
+}
+
+export class VideoStreamListDto {
+  @ApiProperty({
+    type: [VideoStreamCandidateDto],
+  })
+  streams: VideoStreamCandidateDto[];
 }

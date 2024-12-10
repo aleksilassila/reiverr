@@ -6,13 +6,13 @@ import { type Session, sessions } from './session.store';
 import { user } from './user.store';
 
 function useSources() {
-	const availableSources = derived(user, (user) =>
-		user?.mediaSources?.filter((s) => s.enabled)?.map((s) => s.id)
+	const availableSources = derived(
+		user,
+		(user) => user?.mediaSources?.filter((s) => s.enabled)?.map((s) => ({ ...s })) ?? []
 	);
 
 	return {
-		subscribe: availableSources.subscribe,
-        
+		subscribe: availableSources.subscribe
 	};
 }
 

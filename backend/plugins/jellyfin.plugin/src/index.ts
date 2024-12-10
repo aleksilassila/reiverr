@@ -13,7 +13,14 @@ import {
   Subtitles,
   UserContext,
   VideoStream,
+  VideoStreamCandidate,
 } from 'plugins/plugin-types';
+import {
+  bitrateQualities,
+  formatSize,
+  formatTicksToTime,
+  getClosestBitrate,
+} from './utils';
 
 interface JellyfinSettings extends PluginSettings {
   apiKey: string;
@@ -27,67 +34,13 @@ interface JellyfinUserContext extends UserContext {
 
 const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
-const bitrateQualities = [
-  {
-    label: '4K - 120 Mbps',
-    bitrate: 120000000,
-    codec: undefined,
-  },
-  {
-    label: '4K - 80 Mbps',
-    bitrate: 80000000,
-    codec: undefined,
-  },
-  {
-    label: '1080p - 40 Mbps',
-    bitrate: 40000000,
-    codec: undefined,
-  },
-  {
-    label: '1080p - 10 Mbps',
-    bitrate: 10000000,
-    codec: undefined,
-  },
-  {
-    label: '720p - 8 Mbps',
-    bitrate: 8000000,
-    codec: undefined,
-  },
-  {
-    label: '720p - 4 Mbps',
-    bitrate: 4000000,
-    codec: undefined,
-  },
-  {
-    label: '480p - 3 Mbps',
-    bitrate: 3000000,
-    codec: undefined,
-  },
-  {
-    label: '480p - 720 Kbps',
-    bitrate: 720000,
-    codec: undefined,
-  },
-  {
-    label: '360p - 420 Kbps',
-    bitrate: 420000,
-    codec: undefined,
-  },
-];
-
-function getClosestBitrate(qualities, bitrate) {
-  return qualities.reduce(
-    (prev, curr) =>
-      Math.abs(curr.bitrate - bitrate) < Math.abs(prev.bitrate - bitrate)
-        ? curr
-        : prev,
-    qualities[0],
-  );
-}
-
 @Injectable()
 export default class JellyfinPlugin implements SourcePlugin {
   name: string = 'jellyfin';
+
+  private getProxyUrl(tmdbId: string) {
+    return `/api/movies/${tmdbId}/sources/${this.name}/stream/proxy`;
+  }
 
   validateSettings: (settings: JellyfinSettings) => Promise<{
     isValid: boolean;
@@ -213,8 +166,25 @@ export default class JellyfinPlugin implements SourcePlugin {
       .then((res) => res.data.Items ?? []);
   }
 
+  async getMovieStreams(
+    tmdbId: string,
+    userContext: JellyfinUserContext,
+    config: PlaybackConfig = {
+      audioStreamIndex: undefined,
+      bitrate: undefined,
+      progress: undefined,
+      defaultLanguage: undefined,
+      deviceProfile: undefined,
+    },
+  ): Promise<VideoStreamCandidate[]> {
+    return this.getMovieStream(tmdbId, '', userContext, config).then(
+      (stream) => [stream],
+    );
+  }
+
   async getMovieStream(
     tmdbId: string,
+    key: string,
     userContext: JellyfinUserContext,
     config: PlaybackConfig = {
       audioStreamIndex: undefined,
@@ -226,7 +196,7 @@ export default class JellyfinPlugin implements SourcePlugin {
   ): Promise<VideoStream> {
     const context = new PluginContext(userContext.settings, userContext.token);
     const items = await this.getLibraryItems(context);
-    const proxyUrl = `/api/movies/${tmdbId}/sources/${this.name}/stream`;
+    const proxyUrl = this.getProxyUrl(tmdbId);
 
     const movie = items.find((item) => item.ProviderIds?.Tmdb === tmdbId);
 
@@ -288,22 +258,20 @@ export default class JellyfinPlugin implements SourcePlugin {
         index: s.Index,
       })) ?? [];
 
-    const qualities = [
+    const qualities: VideoStream['qualities'] = [
       ...bitrateQualities,
       {
         bitrate: mediasSource.Bitrate,
         label: 'Original',
         codec: undefined,
+        original: true,
       },
     ].map((q, i) => ({
       ...q,
       index: i,
     }));
 
-    const bitrate = Math.min(
-      maxStreamingBitrate,
-      movie.MediaSources[0].Bitrate,
-    );
+    const bitrate = Math.min(maxStreamingBitrate, mediasSource.Bitrate);
 
     const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
@@ -315,6 +283,32 @@ export default class JellyfinPlugin implements SourcePlugin {
     }));
 
     return {
+      key: '',
+      title: movie.Name,
+      properties: [
+        {
+          label: 'Video',
+          value: mediasSource.Bitrate || 0,
+          formatted:
+            mediasSource.MediaStreams.find((s) => s.Type === 'Video')
+              ?.DisplayTitle || 'Unknown',
+        },
+        {
+          label: 'Size',
+          value: mediasSource.Size,
+          formatted: formatSize(mediasSource.Size),
+        },
+        {
+          label: 'Filename',
+          value: mediasSource.Name,
+          formatted: undefined,
+        },
+        {
+          label: 'Runtime',
+          value: mediasSource.RunTimeTicks,
+          formatted: formatTicksToTime(mediasSource.RunTimeTicks),
+        },
+      ],
       audioStreamIndex:
         config.audioStreamIndex ??
         mediasSource?.DefaultAudioStreamIndex ??
@@ -322,7 +316,7 @@ export default class JellyfinPlugin implements SourcePlugin {
       audioStreams,
       progress: config.progress ?? 0,
       qualities,
-      quality: getClosestBitrate(qualities, bitrate).index,
+      qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
       uri: playbackUri,
       directPlay:

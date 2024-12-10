@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
-	import HeroCarousel from '../components/HeroCarousel/HeroCarousel.svelte';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
+	import Container from '../../../Container.svelte';
+	import HeroCarousel from '../../components/HeroCarousel/HeroCarousel.svelte';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
 	import {
 		Cross1,
@@ -14,24 +14,34 @@
 		Plus,
 		Trash
 	} from 'radix-icons-svelte';
-	import Button from '../components/Button.svelte';
-	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import { type MovieDownload, type MovieFileResource, radarrApi } from '../apis/radarr/radarr-api';
-	import { useActionRequests, useRequest } from '../stores/data.store';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { createModal, modalStack } from '../components/Modal/modal.store';
-	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { scrollIntoView } from '../selectable';
-	import Carousel from '../components/Carousel/Carousel.svelte';
-	import TmdbPersonCard from '../components/PersonCard/TmdbPersonCard.svelte';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import MovieMediaManagerModal from '../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
-	import MMAddToRadarrDialog from '../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
-	import FileDetailsDialog from '../components/SeriesPage/FileDetailsDialog.svelte';
-	import DownloadDetailsDialog from '../components/SeriesPage/DownloadDetailsDialog.svelte';
-	import { capitalize, formatSize } from '../utils';
-	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
-	import { TMDB_BACKDROP_SMALL } from '../constants.js';
+	import Button from '../../components/Button.svelte';
+	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
+	import {
+		type MovieDownload,
+		type MovieFileResource,
+		radarrApi
+	} from '../../apis/radarr/radarr-api';
+	import { useActionRequests, useRequest } from '../../stores/data.store';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
+	import { createModal, modalStack } from '../../components/Modal/modal.store';
+	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
+	import { scrollIntoView } from '../../selectable';
+	import Carousel from '../../components/Carousel/Carousel.svelte';
+	import TmdbPersonCard from '../../components/PersonCard/TmdbPersonCard.svelte';
+	import TmdbCard from '../../components/Card/TmdbCard.svelte';
+	import MovieMediaManagerModal from '../../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
+	import MMAddToRadarrDialog from '../../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
+	import FileDetailsDialog from '../../components/SeriesPage/FileDetailsDialog.svelte';
+	import DownloadDetailsDialog from '../../components/SeriesPage/DownloadDetailsDialog.svelte';
+	import { capitalize, formatSize } from '../../utils';
+	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
+	import { TMDB_BACKDROP_SMALL } from '../../constants.js';
+	import { reiverrApiNew } from '../../stores/user.store';
+	import { sources } from '../../stores/sources.store';
+	import { get } from 'svelte/store';
+	import type { VideoStreamCandidateDto, MediaSource } from '../../apis/reiverr/reiverr.openapi';
+	import MovieStreams from './MovieStreams.MoviePage.svelte';
+	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -42,6 +52,23 @@
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
 		id
 	);
+
+	const streams = getStreams();
+
+	function getStreams(): Map<MediaSource, Promise<VideoStreamCandidateDto[]>> {
+		const out = new Map();
+
+		for (const source of get(sources)) {
+			out.set(
+				source,
+				reiverrApiNew.movies.getMovieStreams(id, source.id).then((r) => r.data?.streams ?? [])
+			);
+		}
+		console.log(out);
+
+		return out;
+	}
+
 	const { promise: radarrItemP, send: refreshRadarrItem } = useRequest(
 		radarrApi.getMovieByTmdbId,
 		tmdbId
@@ -110,6 +137,18 @@
 					.then(() => (radarrDownloads = getDownloads(radarrItem)))
 		});
 	}
+
+	async function createStreamDetailsDialog(source: MediaSource, stream: VideoStreamCandidateDto) {
+		const movie = await tmdbMovie;
+		modalStack.create(StreamDetailsDialog, {
+			stream,
+			// title: movie?.title || '',
+			// subtitle: file.relativePath || '',
+			backgroundUrl: TMDB_BACKDROP_SMALL + movie?.backdrop_path || '',
+			streamMovie: () => playerState.streamMovie(id, source.id, stream.key),
+			onDelete: () => (radarrFiles = getFiles(radarrItem))
+		});
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -173,8 +212,7 @@
 							{#if jellyfinItem}
 								<Button
 									class="mr-4"
-									on:clickOrSelect={() =>
-										jellyfinItem.Id && playerState.streamMovie(id)}
+									on:clickOrSelect={() => jellyfinItem.Id && playerState.streamMovie(id)}
 								>
 									Play
 									<Play size={19} slot="icon" />
@@ -281,7 +319,12 @@
 				</div>
 			</Container>
 		{/await}
-		{#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}
+
+		{#if streams.size}
+			<MovieStreams {streams} {createStreamDetailsDialog} />
+		{/if}
+
+		<!-- {#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}
 			{#if files?.length || downloads?.length}
 				<Container
 					class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
@@ -390,6 +433,6 @@
 					</div>
 				</Container>
 			{/if}
-		{/await}
+		{/await} -->
 	</div>
 </DetachedPage>
