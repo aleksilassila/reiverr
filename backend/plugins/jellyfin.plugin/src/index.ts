@@ -7,6 +7,7 @@ import {
 } from './jellyfin.openapi';
 import {
   PlaybackConfig,
+  SourcePluginCapabilities,
   PluginSettings,
   PluginSettingsTemplate,
   SourcePlugin,
@@ -14,7 +15,11 @@ import {
   UserContext,
   VideoStream,
   VideoStreamCandidate,
-} from 'plugins/plugin-types';
+  IndexItem,
+  PaginatedResponse,
+  PaginationParams,
+  SourcePluginError,
+} from '../../plugin-types';
 import {
   bitrateQualities,
   formatSize,
@@ -106,7 +111,41 @@ export default class JellyfinPlugin implements SourcePlugin {
     };
   };
 
-  getIndex: () => Promise<Record<number, any>>;
+  getCapabilities: (conext: UserContext) => Promise<SourcePluginCapabilities> =
+    async (context) => {
+      return {
+        deletion: true,
+        indexing: true,
+        playback: true,
+        requesting: true,
+      };
+    };
+
+  getMovieIndex: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<IndexItem>> = async (
+    userContext: JellyfinUserContext,
+    pagination,
+  ) => {
+    const items = (
+      await this.getLibraryItems(
+        new PluginContext(userContext.settings, userContext.token),
+      )
+    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
+
+    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+
+    return {
+      total: items.length,
+      page: pagination.page,
+      itemsPerPage: pagination.itemsPerPage,
+      items: items.slice(startIndex, endIndex).map((item) => ({
+        id: item.ProviderIds?.Tmdb,
+      })),
+    };
+  };
 
   getIsIndexable: () => boolean = () => true;
 
@@ -177,9 +216,13 @@ export default class JellyfinPlugin implements SourcePlugin {
       deviceProfile: undefined,
     },
   ): Promise<VideoStreamCandidate[]> {
-    return this.getMovieStream(tmdbId, '', userContext, config).then(
-      (stream) => [stream],
-    );
+    return this.getMovieStream(tmdbId, '', userContext, config)
+      .then((stream) => [stream])
+      .catch((e) => {
+        if (e === SourcePluginError.StreamNotFound) {
+          return [];
+        } else throw e;
+      });
   }
 
   async getMovieStream(
@@ -203,7 +246,7 @@ export default class JellyfinPlugin implements SourcePlugin {
     // console.log(items.map((item) => item))
 
     if (!movie || !movie.MediaSources || movie.MediaSources.length === 0) {
-      throw new Error('Movie stream not found');
+      throw SourcePluginError.StreamNotFound;
     }
 
     /*

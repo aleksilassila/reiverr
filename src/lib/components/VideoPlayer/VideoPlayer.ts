@@ -2,10 +2,9 @@ import { get, writable } from 'svelte/store';
 import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
 import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
-import { reiverrApiNew } from '../../stores/user.store';
+import { reiverrApiNew, sources } from '../../stores/user.store';
 import { createErrorNotification } from '../Notifications/notification.store';
 import VideoPlayerModal from './VideoPlayerModal.svelte';
-import { sources } from '../../stores/sources.store';
 import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
 
 export type SubtitleInfo = {
@@ -54,8 +53,8 @@ function usePlayerState() {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
 					reiverrApiNew.movies
-						.getMovieStreams(tmdbId, s.id)
-						.then((r) => ({ source: s, streams: r.data.streams }))
+						.getMovieStreams(tmdbId, s.source.id)
+						.then((r) => ({ source: s.source, streams: r.data.streams }))
 				)
 			);
 			sourceId = streams?.[0]?.source.id || '';

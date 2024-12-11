@@ -5,12 +5,14 @@ import {
 } from '@nestjs/swagger';
 import {
   AudioStream,
+  IndexItem,
   PlaybackConfig,
   PluginSettings,
   PluginSettingsInput,
   PluginSettingsLink,
   PluginSettingsTemplate,
   Quality,
+  SourcePluginCapabilities,
   Subtitles,
   ValidationResponse,
   VideoStream,
@@ -18,6 +20,11 @@ import {
   VideoStreamProperty,
 } from 'plugins/plugin-types';
 import { DeviceProfileDto } from './device-profile.dto';
+
+export class IndexItemDto implements IndexItem {
+  @ApiProperty()
+  id: string;
+}
 
 class PluginSettingsLinkDto implements PluginSettingsLink {
   @ApiProperty({ example: 'link', enum: ['link'] })
@@ -61,6 +68,20 @@ export class PluginSettingsTemplateDto {
   settings: PluginSettingsTemplate;
 }
 
+export class SourcePluginCapabilitiesDto implements SourcePluginCapabilities {
+  @ApiProperty()
+  playback: boolean;
+
+  @ApiProperty()
+  indexing: boolean;
+
+  @ApiProperty()
+  requesting: boolean;
+
+  @ApiProperty()
+  deletion: boolean;
+}
+
 export class PluginSettingsDto {
   @ApiProperty({
     type: 'object',
@@ -75,7 +96,7 @@ export class PluginSettingsDto {
   settings: PluginSettings;
 }
 
-export class ValidationResponsekDto implements ValidationResponse {
+export class ValidationResponseDto implements ValidationResponse {
   @ApiProperty({ example: true })
   isValid: boolean;
 

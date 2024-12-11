@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  CodecProfile,
+  ContainerProfile,
+  DeviceProfile,
+  DirectPlayProfile,
+  ProfileCondition,
+  SubtitleProfile,
+  TranscodingProfile,
+} from 'plugins/plugin-types';
 
-export class DirectPlayProfileDto {
+export class DirectPlayProfileDto implements DirectPlayProfile {
   @ApiProperty({
     required: false,
     description: 'Gets or sets the container.',
@@ -30,7 +39,7 @@ export class DirectPlayProfileDto {
   Type?: 'Audio' | 'Video' | 'Photo' | 'Subtitle' | 'Lyric';
 }
 
-export class ProfileConditionDto {
+export class ProfileConditionDto implements ProfileCondition {
   @ApiProperty({
     description: 'Gets or sets the condition.',
     enum: [
@@ -123,7 +132,7 @@ export class ProfileConditionDto {
   IsRequired?: boolean;
 }
 
-export class TranscodingProfileDto {
+export class TranscodingProfileDto implements TranscodingProfile {
   @ApiProperty({
     description: 'Gets or sets the container.',
     nullable: true,
@@ -250,7 +259,7 @@ export class TranscodingProfileDto {
   EnableAudioVbrEncoding?: boolean;
 }
 
-export class ContainerProfileDto {
+export class ContainerProfileDto implements ContainerProfile {
   @ApiProperty({
     description:
       'Gets or sets the MediaBrowser.Model.Dlna.DlnaProfileType which this container must meet.',
@@ -285,7 +294,7 @@ export class ContainerProfileDto {
   SubContainer?: string | null;
 }
 
-export class CodecProfileDto {
+export class CodecProfileDto implements CodecProfile {
   @ApiProperty({
     description:
       'Gets or sets the MediaBrowser.Model.Dlna.CodecType which this container must meet.',
@@ -335,7 +344,7 @@ export class CodecProfileDto {
   SubContainer?: string | null;
 }
 
-export class SubtitleProfileDto {
+export class SubtitleProfileDto implements SubtitleProfile {
   @ApiProperty({
     description: 'Gets or sets the format.',
     nullable: true,
@@ -381,7 +390,7 @@ export class SubtitleProfileDto {
  * the device is able to direct play (without transcoding or remuxing),
  * as well as which <see cref="P:MediaBrowser.Model.Dlna.DeviceProfile.TranscodingProfiles">containers/codecs to transcode to</see> in case it isn't.
  */
-export class DeviceProfileDto {
+export class DeviceProfileDto implements DeviceProfile {
   @ApiProperty({
     description:
       'Gets or sets the name of this device profile. User profiles must have a unique name.',

@@ -36,8 +36,7 @@
 	import { capitalize, formatSize } from '../../utils';
 	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../../constants.js';
-	import { reiverrApiNew } from '../../stores/user.store';
-	import { sources } from '../../stores/sources.store';
+	import { reiverrApiNew, sources } from '../../stores/user.store';
 	import { get } from 'svelte/store';
 	import type { VideoStreamCandidateDto, MediaSource } from '../../apis/reiverr/reiverr.openapi';
 	import MovieStreams from './MovieStreams.MoviePage.svelte';
@@ -60,11 +59,12 @@
 
 		for (const source of get(sources)) {
 			out.set(
-				source,
-				reiverrApiNew.movies.getMovieStreams(id, source.id).then((r) => r.data?.streams ?? [])
+				source.source,
+				reiverrApiNew.movies
+					.getMovieStreams(id, source.source.id)
+					.then((r) => r.data?.streams ?? [])
 			);
 		}
-		console.log(out);
 
 		return out;
 	}

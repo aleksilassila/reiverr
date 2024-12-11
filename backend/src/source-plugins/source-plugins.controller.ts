@@ -4,9 +4,11 @@ import {
   Body,
   Controller,
   Get,
+  Injectable,
+  InternalServerErrorException,
   NotFoundException,
   Param,
-  ParseIntPipe,
+  PipeTransform,
   Post,
   Query,
   Req,
@@ -15,22 +17,48 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { SourcePluginsService } from './source-plugins.service';
-import { AuthGuard, GetAuthToken, GetUser } from 'src/auth/auth.guard';
 import { Request, Response } from 'express';
-import { Readable } from 'stream';
-import { User } from 'src/users/user.entity';
-import { UserSourcesService } from 'src/users/user-sources/user-sources.service';
+import { SourcePlugin, SourcePluginError } from 'plugins/plugin-types';
+import { AuthGuard, GetAuthToken, GetUser } from 'src/auth/auth.guard';
 import {
+  GetPaginationParams,
+  PaginatedApiOkResponse,
+} from 'src/common/common.decorator';
+import {
+  PaginatedResponseDto,
+  PaginationParamsDto,
+} from 'src/common/common.dto';
+import { UserSourcesService } from 'src/users/user-sources/user-sources.service';
+import { User } from 'src/users/user.entity';
+import { Readable } from 'stream';
+import {
+  IndexItemDto,
   PlaybackConfigDto,
   PluginSettingsDto,
   PluginSettingsTemplateDto,
-  VideoStreamListDto,
-  ValidationResponsekDto as ValidationResponseDto,
+  SourcePluginCapabilitiesDto,
+  ValidationResponseDto,
   VideoStreamDto,
+  VideoStreamListDto,
 } from './source-plugins.dto';
+import { SourcePluginsService } from './source-plugins.service';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
+
+@Injectable()
+export class ValidateSourcePluginPipe implements PipeTransform {
+  constructor(private readonly sourcesService: SourcePluginsService) {}
+
+  async transform(sourceId: string) {
+    const plugin = this.sourcesService.getPlugin(sourceId);
+
+    if (!plugin) {
+      throw new NotFoundException('Plugin not found');
+    }
+
+    return plugin;
+  }
+}
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -95,6 +123,58 @@ export class SourcesController {
     return plugin.validateSettings(settings.settings);
   }
 
+  @ApiTags('sources')
+  @Get('sources/:sourceId/capabilities')
+  @ApiOkResponse({
+    type: SourcePluginCapabilitiesDto,
+  })
+  async getSourceCapabilities(
+    @GetUser() user: User,
+    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
+    @GetAuthToken() token: string,
+  ): Promise<SourcePluginCapabilitiesDto> {
+    const settings = this.userSourcesService.getSourceSettings(
+      user,
+      plugin.name,
+    );
+
+    if (!settings) {
+      throw new BadRequestException('Source configuration not found');
+    }
+
+    return plugin.getCapabilities({
+      settings: settings.settings,
+      token,
+    });
+  }
+
+  @ApiTags('sources')
+  @Get('sources/:sourceId/index/movies')
+  @PaginatedApiOkResponse(IndexItemDto)
+  async getSourceMovieIndex(
+    @GetUser() user: User,
+    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
+    @GetAuthToken() token: string,
+    @GetPaginationParams() pagination: PaginationParamsDto,
+  ): Promise<PaginatedResponseDto<IndexItemDto>> {
+    const settings = this.userSourcesService.getSourceSettings(
+      user,
+      plugin.name,
+    );
+
+    if (!settings) {
+      throw new BadRequestException('Source configuration not found');
+    }
+
+    return plugin.getMovieIndex(
+      {
+        settings,
+        token,
+      },
+      pagination,
+    );
+  }
+
   @ApiTags('movies')
   @Get('movies/:tmdbId/sources/:sourceId/streams')
   @ApiOkResponse({
@@ -119,10 +199,11 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    const streams = await plugin.getMovieStreams(tmdbId, {
-      settings,
-      token,
-    });
+    const streams = await plugin
+      .getMovieStreams(tmdbId, {
+        settings,
+        token,
+      })
 
     return {
       streams,
@@ -184,15 +265,21 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    return plugin.getMovieStream(
-      tmdbId,
-      key || '',
-      {
-        settings,
-        token,
-      },
-      config,
-    );
+    return plugin
+      .getMovieStream(
+        tmdbId,
+        key || '',
+        {
+          settings,
+          token,
+        },
+        config,
+      )
+      .catch((e) => {
+        if (e === SourcePluginError.StreamNotFound) {
+          throw new NotFoundException('Stream not found');
+        } else throw new InternalServerErrorException();
+      });
   }
 
   @ApiTags('movies')

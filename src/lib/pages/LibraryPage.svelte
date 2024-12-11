@@ -1,18 +1,52 @@
 <script lang="ts">
-	import { settings } from '../stores/settings.store';
-	import CarouselPlaceholderItems from '../components/Carousel/CarouselPlaceholderItems.svelte';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import CardGrid from '../components/CardGrid.svelte';
-	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { scrollIntoView } from '../selectable';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { sonarrApi } from '../apis/sonarr/sonarr-api';
 	import { radarrApi } from '../apis/radarr/radarr-api';
-	import Card from '../components/Card/Card.svelte';
-	import type { ComponentProps } from 'svelte';
+	import { sonarrApi } from '../apis/sonarr/sonarr-api';
+	import {
+		tmdbApi,
+		type TmdbMovie2,
+		type TmdbMovieFull2,
+		type TmdbSeries2
+	} from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import { tmdbApi, type TmdbMovie2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
+	import CardGrid from '../components/CardGrid.svelte';
+	import Carousel from '../components/Carousel/Carousel.svelte';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { scrollIntoView } from '../selectable';
+	import { reiverrApiNew, sources } from '../stores/user.store';
+
+	let availableTmdbItems: (TmdbMovie2 | TmdbSeries2)[] = [];
+
+	$: indexableSources = $sources.filter((s) => s.capabilities.indexing).map(s => s.source)
+
+	async function updateAvailableItems() {
+		const initialUpdate = availableTmdbItems.length === 0;
+		const allItems: TmdbMovie2[] = [];
+
+		console.log(get(sources), get(sources).length);
+
+		await Promise.all(
+			get(sources).map(async (s) => {
+				if (s.capabilities.indexing) {
+					const items: TmdbMovie2[] = await reiverrApiNew.sources
+						.getSourceMovieIndex(s.source.id)
+						.then((r) => r.data.items)
+						.then((items) => {
+							return Promise.all(items.map((item) => tmdbApi.getTmdbMovie(Number(item.id)))).then(
+								(i) => i.filter((i) => !!i) as TmdbMovieFull2[]
+							);
+						});
+
+					allItems.push(...items);
+					if (initialUpdate) availableTmdbItems = [...availableTmdbItems, ...items];
+				}
+			})
+		);
+
+		if (!initialUpdate) availableTmdbItems = allItems;
+	}
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
@@ -34,16 +68,20 @@
 			)
 		);
 
-	settings.update((prev) => ({
-		...prev,
-		initialised: true,
-		jellyfin: {
-			...prev.jellyfin,
-			apiKey: import.meta.env.VITE_JELLYFIN_API_KEY,
-			baseUrl: import.meta.env.VITE_JELLYFIN_BASE_URL,
-			userId: import.meta.env.VITE_JELLYFIN_USER_ID
-		}
-	}));
+	// settings.update((prev) => ({
+	// 	...prev,
+	// 	initialised: true,
+	// 	jellyfin: {
+	// 		...prev.jellyfin,
+	// 		apiKey: import.meta.env.VITE_JELLYFIN_API_KEY,
+	// 		baseUrl: import.meta.env.VITE_JELLYFIN_BASE_URL,
+	// 		userId: import.meta.env.VITE_JELLYFIN_USER_ID
+	// 	}
+	// }));
+
+	onMount(() => {
+		updateAvailableItems();
+	});
 </script>
 
 <DetachedPage class="py-16 space-y-8">
@@ -61,7 +99,7 @@
 			</Carousel>
 		{/if}
 	{/await}
-	<div class="px-32">
+	<!-- <div class="px-32">
 		<div class="mb-6">
 			<div class="header2">Library</div>
 		</div>
@@ -78,6 +116,20 @@
 					/>
 				{/each}
 			{/await}
+		</CardGrid>
+	</div> -->
+	<div class="px-32">
+		<div class="mb-6">
+			<div class="header2">Available for streaming</div>
+		</div>
+		<CardGrid>
+			<!-- {#await libraryItemsP}
+				<CarouselPlaceholderItems />
+			{:then items} -->
+			{#each availableTmdbItems as item}
+				<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />
+			{/each}
+			<!-- {/await} -->
 		</CardGrid>
 	</div>
 </DetachedPage>

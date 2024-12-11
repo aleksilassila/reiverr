@@ -1,18 +1,41 @@
-import { derived, get, writable } from 'svelte/store';
-import { getReiverrApiNew, reiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
-import axios from 'axios';
-import type { operations } from '../apis/reiverr/reiverr.generated';
-import { type Session, sessions } from './session.store';
-import { user } from './user.store';
+import { derived, writable } from 'svelte/store';
+import type { MediaSource, SourcePluginCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
+import { reiverrApiNew, user } from './user.store';
 
 function useSources() {
-	const availableSources = derived(
-		user,
-		(user) => user?.mediaSources?.filter((s) => s.enabled)?.map((s) => ({ ...s })) ?? []
+	const sources = writable<{ source: MediaSource; capabilities: SourcePluginCapabilitiesDto }[]>(
+		[]
 	);
 
+	user.subscribe(async (user) => {
+		if (!user) {
+			sources.set([]);
+			return;
+		}
+
+		const out: { source: MediaSource; capabilities: SourcePluginCapabilitiesDto }[] = [];
+
+		user?.mediaSources
+			?.filter((s) => s.enabled)
+			?.forEach(async (s) => {
+				out.push({
+					source: s,
+					capabilities: await reiverrApiNew.sources
+						.getSourceCapabilities(s.id, s.pluginSettings ?? ({} as any))
+						.then((r) => r.data)
+				});
+			});
+
+		sources.set(out);
+	});
+
+	// const availableSources = derived(
+	// 	user,
+	// 	(user) => user?.mediaSources?.filter((s) => s.enabled)?.map((s) => ({ ...s })) ?? []
+	// );
+
 	return {
-		subscribe: availableSources.subscribe
+		subscribe: sources.subscribe
 	};
 }
 

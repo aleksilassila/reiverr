@@ -111,13 +111,30 @@ export interface PluginSettingsDto {
 	settings: Record<string, any>;
 }
 
-export interface ValidationResponsekDto {
+export interface ValidationResponseDto {
 	/** @example true */
 	isValid: boolean;
 	/** @example {"setting1":"error message","setting2":"another error message"} */
 	errors: Record<string, string>;
 	/** @example {"setting1":"new value","setting2":"another new value"} */
 	replace: Record<string, any>;
+}
+
+export interface SourcePluginCapabilitiesDto {
+	playback: boolean;
+	indexing: boolean;
+	requesting: boolean;
+	deletion: boolean;
+}
+
+export interface PaginatedResponseDto {
+	total: number;
+	page: number;
+	itemsPerPage: number;
+}
+
+export interface IndexItemDto {
+	id: string;
 }
 
 export interface VideoStreamPropertyDto {
@@ -787,11 +804,46 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			data: PluginSettingsDto,
 			params: RequestParams = {}
 		) =>
-			this.request<ValidationResponsekDto, any>({
+			this.request<ValidationResponseDto, any>({
 				path: `/api/sources/${sourceId}/settings/validate`,
 				method: 'POST',
 				body: data,
 				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourceCapabilities
+		 * @request GET:/api/sources/{sourceId}/capabilities
+		 */
+		getSourceCapabilities: (sourceId: string, params: RequestParams = {}) =>
+			this.request<SourcePluginCapabilitiesDto, any>({
+				path: `/api/sources/${sourceId}/capabilities`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourceMovieIndex
+		 * @request GET:/api/sources/{sourceId}/index/movies
+		 */
+		getSourceMovieIndex: (sourceId: string, params: RequestParams = {}) =>
+			this.request<
+				PaginatedResponseDto & {
+					items: IndexItemDto[];
+				},
+				any
+			>({
+				path: `/api/sources/${sourceId}/index/movies`,
+				method: 'GET',
 				format: 'json',
 				...params
 			})

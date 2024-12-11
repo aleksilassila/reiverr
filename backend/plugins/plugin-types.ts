@@ -1,3 +1,7 @@
+export enum SourcePluginError {
+  StreamNotFound = 'StreamNotFound',
+}
+
 export type PluginSettingsLink = {
   type: 'link';
   url: string;
@@ -81,28 +85,46 @@ export type PlaybackConfig = {
   defaultLanguage: string | undefined;
 };
 
+export type SourcePluginCapabilities = {
+  playback: boolean;
+  indexing: boolean;
+  requesting: boolean;
+  deletion: boolean;
+};
+
+export class IndexItem {
+  id: string;
+}
+
+export class PaginatedResponse<T> {
+  total: number;
+  page: number;
+  itemsPerPage: number;
+  items: T[];
+}
+
+export class PaginationParams {
+  page: number;
+  itemsPerPage: number;
+}
+
 export interface SourcePlugin {
   name: string;
 
   getIsIndexable: () => boolean;
 
-  getIndex: () => Promise<
-    Record<
-      number,
-      any
-      // | { tmdbId: number; quality: number }
-      // | {
-      //     tmdbId: number;
-      //     seasons: Record<number, Record<number, { quality: number }>>;
-      //   }
-    >
-  >;
+  getMovieIndex: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<IndexItem>>;
 
   getSettingsTemplate: () => PluginSettingsTemplate;
 
   validateSettings: (
     settings: Record<string, any>,
   ) => Promise<ValidationResponse>;
+
+  getCapabilities: (conext: UserContext) => Promise<SourcePluginCapabilities>;
 
   getMovieStream: (
     tmdbId: string,
@@ -116,13 +138,6 @@ export interface SourcePlugin {
     context: UserContext,
     config?: PlaybackConfig,
   ) => Promise<VideoStreamCandidate[]>;
-
-  getMovieStream: (
-    tmdbId: string,
-    context: UserContext,
-    key: string,
-    config?: PlaybackConfig,
-  ) => Promise<VideoStream>;
 
   getEpisodeStream: (
     tmdbId: string,

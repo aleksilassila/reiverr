@@ -12,7 +12,7 @@
 	import { createModal } from './lib/components/Modal/modal.store';
 	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
 	import { localSettings } from './lib/stores/localstorage.store';
-	import { user } from './lib/stores/user.store';
+	import { isAppInitialized, user } from './lib/stores/user.store';
 	import { sessions } from './lib/stores/session.store';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
@@ -62,7 +62,7 @@
 
 <I18n />
 <!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
-{#if $user === undefined}
+{#if !$isAppInitialized || $user === undefined}
 	<SplashScreen />
 {:else if $user === null}
 	<UsersPage />
