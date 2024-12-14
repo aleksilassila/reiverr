@@ -15,11 +15,18 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../selectable';
-	import { reiverrApiNew, sources } from '../stores/user.store';
+	import { reiverrApiNew, sources, user } from '../stores/user.store';
 
 	let availableTmdbItems: (TmdbMovie2 | TmdbSeries2)[] = [];
+	const libraryItems = reiverrApiNew.users
+		.getLibraryItems($user?.id as string)
+		.then((r) =>
+			Promise.all(r.data.items.map((i) => tmdbApi.getTmdbMovie(Number(i.tmdbId)))).then(
+				(i) => i.filter((i) => !!i) as TmdbMovie2[]
+			)
+		);
 
-	$: indexableSources = $sources.filter((s) => s.capabilities.indexing).map(s => s.source)
+	$: indexableSources = $sources.filter((s) => s.capabilities.indexing).map((s) => s.source);
 
 	async function updateAvailableItems() {
 		const initialUpdate = availableTmdbItems.length === 0;
@@ -85,7 +92,7 @@
 </script>
 
 <DetachedPage class="py-16 space-y-8">
-	{#await Promise.all([sonarrDownloads, radarrDownloads]) then [sonarrDownloads, radarrDownloads]}
+	<!-- {#await Promise.all([sonarrDownloads, radarrDownloads]) then [sonarrDownloads, radarrDownloads]}
 		{#if sonarrDownloads?.length || radarrDownloads?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Downloading</span>
@@ -98,7 +105,7 @@
 				{/each}
 			</Carousel>
 		{/if}
-	{/await}
+	{/await} -->
 	<!-- <div class="px-32">
 		<div class="mb-6">
 			<div class="header2">Library</div>
@@ -132,4 +139,20 @@
 			<!-- {/await} -->
 		</CardGrid>
 	</div>
+	{#await libraryItems then items}
+		<div class="px-32">
+			<div class="mb-6">
+				<div class="header2">My Library</div>
+			</div>
+			<CardGrid>
+				<!-- {#await libraryItemsP}
+				<CarouselPlaceholderItems />
+			{:then items} -->
+				{#each items as item}
+					<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />
+				{/each}
+				<!-- {/await} -->
+			</CardGrid>
+		</div>
+	{/await}
 </DetachedPage>

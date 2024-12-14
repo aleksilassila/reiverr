@@ -15,16 +15,29 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UserServiceError, UsersService } from './users.service';
-import { AuthGuard, GetUser, OptionalAuthGuard } from '../auth/auth.guard';
+import {
+  UserAccessControl,
+  GetAuthUser,
+  OptionalAccessControl,
+} from '../auth/auth.guard';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
+import {
+  CreateUserDto,
+  MovieUserDataDto,
+  UpdateUserDto,
+  UserDto,
+} from './user.dto';
 import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
+import { LibraryService } from './library/library.service';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private libraryService: LibraryService,
+  ) {}
 
   // @UseGuards(AuthGuard)
   // @Get()
@@ -40,14 +53,14 @@ export class UsersController {
   //   return UserDto.fromEntity(user);
   // }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAccessControl)
   @Get('')
   @ApiOkResponse({
     description: 'All users found',
     type: UserDto,
     isArray: true,
   })
-  async findAllUsers(@GetUser() callerUser: User): Promise<UserDto[]> {
+  async findAllUsers(@GetAuthUser() callerUser: User): Promise<UserDto[]> {
     if (!callerUser.isAdmin) {
       throw new UnauthorizedException();
     }
@@ -57,13 +70,13 @@ export class UsersController {
     return users.map((user) => UserDto.fromEntity(user));
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAccessControl)
   @Get(':id')
   @ApiOkResponse({ description: 'User found', type: UserDto })
   @ApiException(() => NotFoundException, { description: 'User not found' })
   async findUserById(
     @Param('id') id: string,
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
   ): Promise<UserDto> {
     if (!callerUser.isAdmin && callerUser.id !== id) {
       throw new NotFoundException();
@@ -84,7 +97,7 @@ export class UsersController {
   //   return this.userService.noPreviousAdmins();
   // }
 
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(OptionalAccessControl)
   @Post()
   @ApiOkResponse({ description: 'User created', type: UserDto })
   @ApiException(() => UnauthorizedException, { description: 'Unauthorized' })
@@ -92,7 +105,7 @@ export class UsersController {
   async createUser(
     @Body()
     userCreateDto: CreateUserDto,
-    @GetUser() callerUser: User | undefined,
+    @GetAuthUser() callerUser: User | undefined,
   ) {
     const canCreateUser =
       (await this.usersService.noPreviousAdmins()) || callerUser?.isAdmin;
@@ -108,14 +121,14 @@ export class UsersController {
     return UserDto.fromEntity(user);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAccessControl)
   @Put(':id')
   @ApiOkResponse({ description: 'User updated', type: UserDto })
   @ApiException(() => NotFoundException, { description: 'User not found' })
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
   ): Promise<UserDto> {
     if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
       throw new NotFoundException();
@@ -135,15 +148,32 @@ export class UsersController {
     return UserDto.fromEntity(updated);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAccessControl)
   @Delete(':id')
   @ApiOkResponse({ description: 'User deleted' })
   @ApiException(() => NotFoundException, { description: 'User not found' })
-  async deleteUser(@Param('id') id: string, @GetUser() callerUser: User) {
+  async deleteUser(@Param('id') id: string, @GetAuthUser() callerUser: User) {
     if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
       throw new NotFoundException();
     }
 
     await this.usersService.remove(id);
+  }
+
+  @UseGuards(UserAccessControl)
+  @Get(':userId/user-data/movie/tmdb/:tmdbId')
+  @ApiOkResponse({
+    description: 'User movie data found',
+    type: MovieUserDataDto,
+  })
+  async getUserMovieData(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<MovieUserDataDto> {
+    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+
+    return {
+      inLibrary: !!libraryItem,
+    };
   }
 }

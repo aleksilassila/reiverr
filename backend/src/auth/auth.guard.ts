@@ -12,7 +12,7 @@ import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { Request } from 'express';
 
-export const GetUser = createParamDecorator(
+export const GetAuthUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {
     const request = ctx.switchToHttp().getRequest();
     return request.user;
@@ -40,7 +40,7 @@ function extractTokenFromRequest(request: Request): string | undefined {
 }
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class UserAccessControl implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private userService: UsersService,
@@ -63,22 +63,31 @@ export class AuthGuard implements CanActivate {
           secret: JWT_SECRET,
         },
       );
+
+      let user: User;
       if (payload.sub) {
-        request['user'] = await this.userService.findOne(payload.sub);
+        user = await this.userService.findOne(payload.sub);
+        request['user'] = user;
       }
 
-      if (!request['user']) {
+      if (!user) {
+        throw new UnauthorizedException();
+      }
+
+      const targetUser = request.params.userId;
+      if (targetUser && targetUser !== user.id && user.isAdmin === false) {
         throw new UnauthorizedException();
       }
     } catch {
       throw new UnauthorizedException();
     }
+
     return true;
   }
 }
 
 @Injectable()
-export class OptionalAuthGuard implements CanActivate {
+export class OptionalAccessControl implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private userService: UsersService,

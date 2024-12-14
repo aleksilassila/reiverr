@@ -3,11 +3,14 @@ import {
   Entity,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { MediaSource } from 'src/users/user-sources/user-source.entity';
+import { LibraryItem } from './library/library.entity';
+import { PlayState } from './play-state/play-state.entity';
 
 export class SonarrSettings {
   @ApiProperty({ required: true })
@@ -143,4 +146,12 @@ export class User {
   @ApiProperty({ required: false, type: MediaSource, isArray: true })
   @OneToMany(() => MediaSource, (mediaSource) => mediaSource.user)
   mediaSources: MediaSource[];
+
+  @ApiProperty({ required: false, type: PlayState, isArray: true })
+  @OneToMany(() => PlayState, (playState) => playState.user)
+  playStates: PlayState[];
+
+  @ApiProperty({ required: false, type: LibraryItem, isArray: true })
+  @OneToMany(() => LibraryItem, (library) => library.user)
+  libraryItems: LibraryItem[];
 }

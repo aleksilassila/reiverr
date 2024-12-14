@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { AuthGuard, GetUser } from 'src/auth/auth.guard';
+import { UserAccessControl, GetAuthUser } from 'src/auth/auth.guard';
 import { UsersService } from '../users.service';
 import { User } from '../user.entity';
 import { UserDto } from '../user.dto';
@@ -23,7 +23,7 @@ import {
 
 @ApiTags('users')
 @Controller('users/:userId/sources')
-@UseGuards(AuthGuard)
+@UseGuards(UserAccessControl)
 export class UserSourcesController {
   constructor(
     private usersService: UsersService,
@@ -33,7 +33,7 @@ export class UserSourcesController {
   @Put(':sourceId')
   @ApiOkResponse({ description: 'Source updated', type: UserDto })
   async updateSource(
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
     @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
     @Body() sourceDto: CreateSourceDto,
@@ -64,7 +64,7 @@ export class UserSourcesController {
   @Delete(':sourceId')
   @ApiOkResponse({ description: 'Source deleted', type: UserDto })
   async deleteSource(
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
     @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
   ): Promise<UserDto> {

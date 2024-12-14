@@ -9,17 +9,23 @@ export class UserDto extends OmitType(User, [
   profilePicture: string | null;
 
   static fromEntity(entity: User, caller: User = entity): UserDto {
-    return {
-      id: entity.id,
-      name: entity.name,
-      isAdmin: entity.isAdmin,
-      settings: entity.settings,
-      onboardingDone: entity.onboardingDone,
+    const out = {
+      ...entity,
+      // id: entity.id,
+      // name: entity.name,
+      // isAdmin: entity.isAdmin,
+      // settings: entity.settings,
+      // onboardingDone: entity.onboardingDone,
+      // mediaSources: entity.mediaSources,
+      password: '',
       profilePicture:
         'data:image;base64,' + entity.profilePicture?.toString('base64'),
       // pluginSettings: entity.pluginSettings,
-      mediaSources: entity.mediaSources,
     };
+
+    delete out.password;
+
+    return out;
   }
 }
 
@@ -50,3 +56,8 @@ export class UpdateUserDto extends PartialType(
 }
 
 export class SignInDto extends PickType(User, ['name', 'password'] as const) {}
+
+export class MovieUserDataDto {
+  @ApiProperty()
+  inLibrary: boolean;
+}

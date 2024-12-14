@@ -56,6 +56,33 @@ export interface MediaSource {
 	pluginSettings?: object;
 }
 
+export interface PlayState {
+	id?: string;
+	tmdbId: number;
+	userId: string;
+	user: string;
+	season?: number;
+	episode?: number;
+	/**
+	 * Whether the user has watched this media
+	 * @default false
+	 */
+	watched?: boolean;
+	/**
+	 * A number between 0 and 1
+	 * @default false
+	 * @example 0.5
+	 */
+	progress?: number;
+}
+
+export interface LibraryItem {
+	id?: string;
+	tmdbId: number;
+	userId: string;
+	user?: string;
+}
+
 export interface UserDto {
 	id: string;
 	name: string;
@@ -63,6 +90,8 @@ export interface UserDto {
 	onboardingDone?: boolean;
 	settings: Settings;
 	mediaSources?: MediaSource[];
+	playStates?: PlayState[];
+	libraryItems?: LibraryItem[];
 	profilePicture: string;
 }
 
@@ -83,12 +112,33 @@ export interface UpdateUserDto {
 	oldPassword?: string;
 }
 
+export interface MovieUserDataDto {
+	inLibrary: boolean;
+}
+
 export interface CreateSourceDto {
 	pluginSettings?: object;
 	/** @default false */
 	enabled?: boolean;
 	/** @default false */
 	adminControlled?: boolean;
+}
+
+export interface PaginatedResponseDto {
+	total: number;
+	page: number;
+	itemsPerPage: number;
+}
+
+export type MovieDto = object;
+
+export interface LibraryItemDto {
+	tmdbId: string;
+	metadata?: MovieDto;
+}
+
+export interface SuccessResponseDto {
+	success: boolean;
 }
 
 export interface SignInDto {
@@ -125,12 +175,6 @@ export interface SourcePluginCapabilitiesDto {
 	indexing: boolean;
 	requesting: boolean;
 	deletion: boolean;
-}
-
-export interface PaginatedResponseDto {
-	total: number;
-	page: number;
-	itemsPerPage: number;
 }
 
 export interface IndexItemDto {
@@ -688,6 +732,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags users
+		 * @name GetUserMovieData
+		 * @request GET:/api/users/{userId}/user-data/movie/tmdb/{tmdbId}
+		 */
+		getUserMovieData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<MovieUserDataDto, any>({
+				path: `/api/users/${userId}/user-data/movie/tmdb/${tmdbId}`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
 		 * @name UpdateSource
 		 * @request PUT:/api/users/{userId}/sources/{sourceId}
 		 */
@@ -716,6 +775,56 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		deleteSource: (sourceId: string, userId: string, params: RequestParams = {}) =>
 			this.request<UserDto, any>({
 				path: `/api/users/${userId}/sources/${sourceId}`,
+				method: 'DELETE',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name GetLibraryItems
+		 * @request GET:/api/users/{userId}/library
+		 */
+		getLibraryItems: (userId: string, params: RequestParams = {}) =>
+			this.request<
+				PaginatedResponseDto & {
+					items: LibraryItemDto[];
+				},
+				any
+			>({
+				path: `/api/users/${userId}/library`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name AddLibraryItem
+		 * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
+		 */
+		addLibraryItem: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<SuccessResponseDto, any>({
+				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
+				method: 'PUT',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name RemoveLibraryItem
+		 * @request DELETE:/api/users/{userId}/library/tmdb/{tmdbId}
+		 */
+		removeLibraryItem: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<SuccessResponseDto, any>({
+				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
 				method: 'DELETE',
 				format: 'json',
 				...params
@@ -761,94 +870,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				...params
 			})
 	};
-	sources = {
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourcePlugins
-		 * @request GET:/api/sources
-		 */
-		getSourcePlugins: (params: RequestParams = {}) =>
-			this.request<string[], any>({
-				path: `/api/sources`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourceSettingsTemplate
-		 * @request GET:/api/sources/{sourceId}/settings/template
-		 */
-		getSourceSettingsTemplate: (sourceId: string, params: RequestParams = {}) =>
-			this.request<PluginSettingsTemplateDto, any>({
-				path: `/api/sources/${sourceId}/settings/template`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name ValidateSourceSettings
-		 * @request POST:/api/sources/{sourceId}/settings/validate
-		 */
-		validateSourceSettings: (
-			sourceId: string,
-			data: PluginSettingsDto,
-			params: RequestParams = {}
-		) =>
-			this.request<ValidationResponseDto, any>({
-				path: `/api/sources/${sourceId}/settings/validate`,
-				method: 'POST',
-				body: data,
-				type: ContentType.Json,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourceCapabilities
-		 * @request GET:/api/sources/{sourceId}/capabilities
-		 */
-		getSourceCapabilities: (sourceId: string, params: RequestParams = {}) =>
-			this.request<SourcePluginCapabilitiesDto, any>({
-				path: `/api/sources/${sourceId}/capabilities`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourceMovieIndex
-		 * @request GET:/api/sources/{sourceId}/index/movies
-		 */
-		getSourceMovieIndex: (sourceId: string, params: RequestParams = {}) =>
-			this.request<
-				PaginatedResponseDto & {
-					items: IndexItemDto[];
-				},
-				any
-			>({
-				path: `/api/sources/${sourceId}/index/movies`,
-				method: 'GET',
-				format: 'json',
-				...params
-			})
-	};
 	movies = {
+		/**
+		 * No description
+		 *
+		 * @tags movies
+		 * @name GetMovieByTmdbId
+		 * @request GET:/api/movies/tmdb/{tmdbId}
+		 */
+		getMovieByTmdbId: (tmdbId: string, params: RequestParams = {}) =>
+			this.request<MovieDto, any>({
+				path: `/api/movies/tmdb/${tmdbId}`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
 		/**
 		 * No description
 		 *
@@ -999,6 +1036,93 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			this.request<void, any>({
 				path: `/api/movies/${tmdbId}/sources/${sourceId}/stream/proxy/*`,
 				method: 'SEARCH',
+				...params
+			})
+	};
+	sources = {
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourcePlugins
+		 * @request GET:/api/sources
+		 */
+		getSourcePlugins: (params: RequestParams = {}) =>
+			this.request<string[], any>({
+				path: `/api/sources`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourceSettingsTemplate
+		 * @request GET:/api/sources/{sourceId}/settings/template
+		 */
+		getSourceSettingsTemplate: (sourceId: string, params: RequestParams = {}) =>
+			this.request<PluginSettingsTemplateDto, any>({
+				path: `/api/sources/${sourceId}/settings/template`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name ValidateSourceSettings
+		 * @request POST:/api/sources/{sourceId}/settings/validate
+		 */
+		validateSourceSettings: (
+			sourceId: string,
+			data: PluginSettingsDto,
+			params: RequestParams = {}
+		) =>
+			this.request<ValidationResponseDto, any>({
+				path: `/api/sources/${sourceId}/settings/validate`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourceCapabilities
+		 * @request GET:/api/sources/{sourceId}/capabilities
+		 */
+		getSourceCapabilities: (sourceId: string, params: RequestParams = {}) =>
+			this.request<SourcePluginCapabilitiesDto, any>({
+				path: `/api/sources/${sourceId}/capabilities`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetSourceMovieIndex
+		 * @request GET:/api/sources/{sourceId}/index/movies
+		 */
+		getSourceMovieIndex: (sourceId: string, params: RequestParams = {}) =>
+			this.request<
+				PaginatedResponseDto & {
+					items: IndexItemDto[];
+				},
+				any
+			>({
+				path: `/api/sources/${sourceId}/index/movies`,
+				method: 'GET',
+				format: 'json',
 				...params
 			})
 	};

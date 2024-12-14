@@ -1,49 +1,44 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
-	import HeroCarousel from '../../components/HeroCarousel/HeroCarousel.svelte';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
-	import {
-		Cross1,
-		DotFilled,
-		Download,
-		ExternalLink,
-		File,
-		Play,
-		Plus,
-		Trash
-	} from 'radix-icons-svelte';
-	import Button from '../../components/Button.svelte';
+	import { Bookmark, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
+	import { get, writable } from 'svelte/store';
+	import Container from '../../../Container.svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import {
 		type MovieDownload,
 		type MovieFileResource,
 		radarrApi
 	} from '../../apis/radarr/radarr-api';
-	import { useActionRequests, useRequest } from '../../stores/data.store';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import { createModal, modalStack } from '../../components/Modal/modal.store';
-	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
-	import { scrollIntoView } from '../../selectable';
-	import Carousel from '../../components/Carousel/Carousel.svelte';
-	import TmdbPersonCard from '../../components/PersonCard/TmdbPersonCard.svelte';
+	import type { MediaSource, VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import Button from '../../components/Button.svelte';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
-	import MovieMediaManagerModal from '../../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
-	import MMAddToRadarrDialog from '../../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
-	import FileDetailsDialog from '../../components/SeriesPage/FileDetailsDialog.svelte';
-	import DownloadDetailsDialog from '../../components/SeriesPage/DownloadDetailsDialog.svelte';
-	import { capitalize, formatSize } from '../../utils';
+	import Carousel from '../../components/Carousel/Carousel.svelte';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
 	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
+	import HeroCarousel from '../../components/HeroCarousel/HeroCarousel.svelte';
+	import MMAddToRadarrDialog from '../../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
+	import MovieMediaManagerModal from '../../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
+	import { createModal, modalStack } from '../../components/Modal/modal.store';
+	import TmdbPersonCard from '../../components/PersonCard/TmdbPersonCard.svelte';
+	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { TMDB_BACKDROP_SMALL } from '../../constants.js';
-	import { reiverrApiNew, sources } from '../../stores/user.store';
-	import { get } from 'svelte/store';
-	import type { VideoStreamCandidateDto, MediaSource } from '../../apis/reiverr/reiverr.openapi';
+	import { scrollIntoView } from '../../selectable';
+	import { useActionRequests, useRequest } from '../../stores/data.store';
+	import { reiverrApiNew, sources, user } from '../../stores/user.store';
 	import MovieStreams from './MovieStreams.MoviePage.svelte';
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
+
+	const movie = reiverrApiNew.movies.getMovieByTmdbId(id).then((r) => r.data);
+	const movieUserData = reiverrApiNew.users
+		.getUserMovieData($user?.id as string, id)
+		.then((r) => r.data);
+	const inLibrary = writable(false);
+	movieUserData.then((d) => inLibrary.set(d?.inLibrary ?? false));
 
 	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
@@ -149,6 +144,20 @@
 			onDelete: () => (radarrFiles = getFiles(radarrItem))
 		});
 	}
+
+	async function handleAddToLibrary() {
+		const success = await reiverrApiNew.users
+			.addLibraryItem($user?.id as string, id)
+			.then((r) => r.data.success);
+		if (success) inLibrary.set(true);
+	}
+
+	async function handleRemoveFromLibrary() {
+		const success = await reiverrApiNew.users
+			.removeLibraryItem($user?.id as string, id)
+			.then((r) => r.data.success);
+		if (success) inLibrary.set(false);
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -216,6 +225,15 @@
 								>
 									Play
 									<Play size={19} slot="icon" />
+								</Button>
+							{/if}
+							{#if !$inLibrary}
+								<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
+									Add to Library
+								</Button>
+							{:else}
+								<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
+									Remove from Library
 								</Button>
 							{/if}
 							<Button class="mr-4" action={handleRequest}>

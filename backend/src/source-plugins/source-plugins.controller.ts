@@ -19,7 +19,11 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { SourcePlugin, SourcePluginError } from 'plugins/plugin-types';
-import { AuthGuard, GetAuthToken, GetUser } from 'src/auth/auth.guard';
+import {
+  UserAccessControl,
+  GetAuthToken,
+  GetAuthUser,
+} from 'src/auth/auth.guard';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
@@ -61,7 +65,7 @@ export class ValidateSourcePluginPipe implements PipeTransform {
 }
 
 @Controller()
-@UseGuards(AuthGuard)
+@UseGuards(UserAccessControl)
 export class SourcesController {
   constructor(
     private sourcesService: SourcePluginsService,
@@ -89,7 +93,7 @@ export class SourcesController {
   })
   async getSourceSettingsTemplate(
     @Param('sourceId') sourceId: string,
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
   ): Promise<PluginSettingsTemplateDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
@@ -110,7 +114,7 @@ export class SourcesController {
     type: ValidationResponseDto,
   })
   async validateSourceSettings(
-    @GetUser() callerUser: User,
+    @GetAuthUser() callerUser: User,
     @Param('sourceId') sourceId: string,
     @Body() settings: PluginSettingsDto,
   ): Promise<ValidationResponseDto> {
@@ -129,7 +133,7 @@ export class SourcesController {
     type: SourcePluginCapabilitiesDto,
   })
   async getSourceCapabilities(
-    @GetUser() user: User,
+    @GetAuthUser() user: User,
     @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
     @GetAuthToken() token: string,
   ): Promise<SourcePluginCapabilitiesDto> {
@@ -152,7 +156,7 @@ export class SourcesController {
   @Get('sources/:sourceId/index/movies')
   @PaginatedApiOkResponse(IndexItemDto)
   async getSourceMovieIndex(
-    @GetUser() user: User,
+    @GetAuthUser() user: User,
     @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
     @GetAuthToken() token: string,
     @GetPaginationParams() pagination: PaginationParamsDto,
@@ -184,7 +188,7 @@ export class SourcesController {
   async getMovieStreams(
     @Param('tmdbId') tmdbId: string,
     @Param('sourceId') sourceId: string,
-    @GetUser() user: User,
+    @GetAuthUser() user: User,
     @GetAuthToken() token: string,
   ): Promise<VideoStreamListDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
@@ -199,11 +203,10 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    const streams = await plugin
-      .getMovieStreams(tmdbId, {
-        settings,
-        token,
-      })
+    const streams = await plugin.getMovieStreams(tmdbId, {
+      settings,
+      token,
+    });
 
     return {
       streams,
@@ -249,7 +252,7 @@ export class SourcesController {
     @Param('tmdbId') tmdbId: string,
     @Param('sourceId') sourceId: string,
     @Query('key') key: string,
-    @GetUser() user: User,
+    @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
   ): Promise<VideoStreamDto> {
@@ -288,7 +291,7 @@ export class SourcesController {
     @Param() params: any,
     @Req() req: Request,
     @Res() res: Response,
-    @GetUser() user: User,
+    @GetAuthUser() user: User,
   ) {
     const sourceId = params.sourceId;
     const settings = this.userSourcesService.getSourceSettings(user, sourceId);

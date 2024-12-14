@@ -22,3 +22,8 @@ export class PaginationParamsDto implements PaginationParams {
   @ApiProperty()
   itemsPerPage: number;
 }
+
+export class SuccessResponseDto {
+  @ApiProperty()
+  success: boolean;
+}
