@@ -1,5 +1,6 @@
 import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { User } from './user.entity';
+import { PlayStateDto } from './play-state/play-state.dto';
 
 export class UserDto extends OmitType(User, [
   'password',
@@ -60,4 +61,7 @@ export class SignInDto extends PickType(User, ['name', 'password'] as const) {}
 export class MovieUserDataDto {
   @ApiProperty()
   inLibrary: boolean;
+
+  @ApiProperty({ type: PlayStateDto, required: false })
+  playState?: PlayStateDto;
 }

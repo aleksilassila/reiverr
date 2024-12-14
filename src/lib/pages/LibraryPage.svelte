@@ -21,10 +21,16 @@
 	const libraryItems = reiverrApiNew.users
 		.getLibraryItems($user?.id as string)
 		.then((r) =>
-			Promise.all(r.data.items.map((i) => tmdbApi.getTmdbMovie(Number(i.tmdbId)))).then(
-				(i) => i.filter((i) => !!i) as TmdbMovie2[]
-			)
+			Promise.all(
+				r.data.items.map((i) =>
+					tmdbApi
+						.getTmdbMovie(Number(i.tmdbId))
+						.then((movie) => ({ tmdbMovie: movie as TmdbMovieFull2, playStates: i.playStates }))
+				)
+			).then((i) => i.filter((i) => !!i.tmdbMovie))
 		);
+
+	$: console.log('libraryItems', libraryItems);
 
 	$: indexableSources = $sources.filter((s) => s.capabilities.indexing).map((s) => s.source);
 
@@ -149,7 +155,13 @@
 				<CarouselPlaceholderItems />
 			{:then items} -->
 				{#each items as item}
-					<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />
+					<TmdbCard
+						item={item.tmdbMovie}
+						progress={item.playStates?.[0]?.progress || 0}
+						on:enter={scrollIntoView({ all: 64 })}
+						size="dynamic"
+						navigateWithType
+					/>
 				{/each}
 				<!-- {/await} -->
 			</CardGrid>

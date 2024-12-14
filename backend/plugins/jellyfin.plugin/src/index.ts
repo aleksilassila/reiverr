@@ -198,10 +198,6 @@ export default class JellyfinPlugin implements SourcePlugin {
           ItemFields.MediaSources,
         ],
       })
-      .then((res) => {
-        console.log(res.request.path);
-        return res;
-      })
       .then((res) => res.data.Items ?? []);
   }
 
@@ -260,7 +256,7 @@ export default class JellyfinPlugin implements SourcePlugin {
         */
 
     const startTimeTicks = movie.RunTimeTicks
-      ? movie.RunTimeTicks * config.progress
+      ? Math.floor(movie.RunTimeTicks * config.progress)
       : undefined;
     const maxStreamingBitrate = config.bitrate || 0; //|| movie.MediaSources?.[0]?.Bitrate || 10000000
 
@@ -357,6 +353,9 @@ export default class JellyfinPlugin implements SourcePlugin {
         mediasSource?.DefaultAudioStreamIndex ??
         audioStreams[0].index,
       audioStreams,
+      duration: mediasSource.RunTimeTicks
+        ? mediasSource.RunTimeTicks / 10_000_000
+        : 0,
       progress: config.progress ?? 0,
       qualities,
       qualityIndex: getClosestBitrate(qualities, bitrate).index,

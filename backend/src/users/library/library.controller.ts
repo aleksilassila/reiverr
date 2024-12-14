@@ -14,6 +14,7 @@ import {
 } from 'src/common/common.decorator';
 import { UsersService } from '../users.service';
 import { MediaService } from 'src/media/media.service';
+import { PlayStateService } from '../play-state/play-state.service';
 
 @ApiTags('users')
 @Controller('users/:userId/library')
@@ -32,7 +33,7 @@ export class LibraryController {
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     // const user = await this.userService.findOne(userId);
 
-    const items = await this.libraryService.getLibraryItems(userId);
+    const items = await this.libraryService.getLibraryItems(userId, pagination);
 
     return {
       items,

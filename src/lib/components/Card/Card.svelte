@@ -22,6 +22,8 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
+	$: console.log('progress', progress);
+
 	export let disabled = false;
 	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';
@@ -145,7 +147,7 @@
 					/>
 				</div>
 			{/if} -->
-			{#if progress}
+			{#if progress && progress > 0.1}
 				<div
 					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
 				>

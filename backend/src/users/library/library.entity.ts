@@ -4,13 +4,17 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryColumn,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../user.entity';
+import { PlayState } from '../play-state/play-state.entity';
 
 @Entity()
+@Unique(['tmdbId', 'userId'])
 export class LibraryItem {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryGeneratedColumn('uuid')
@@ -28,4 +32,7 @@ export class LibraryItem {
   @ManyToOne(() => User, (user) => user.libraryItems, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
+
+  @OneToMany(() => PlayState, (playState) => playState.libraryItem)
+  playStates?: PlayState[];
 }

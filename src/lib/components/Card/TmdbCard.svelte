@@ -6,6 +6,7 @@
 	import type { TitleType } from '../../types';
 
 	export let item: TmdbMovie2 | TmdbSeries2;
+	export let progress = 0;
 	let title = '';
 	let subtitle = '';
 	let type: TitleType = 'movie';
@@ -32,4 +33,4 @@
 	};
 </script>
 
-<Card {...$$restProps} {...props} on:enter />
+<Card {...$$restProps} {...props} {progress} on:enter />

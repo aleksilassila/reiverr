@@ -51,14 +51,14 @@
 
 	const reportProgress = () => {};
 
-	$: {
-		videoStreamP;
-		console.log('videoStreamP', videoStreamP);
-	}
+	// $: {
+	// 	videoStreamP;
+	// 	console.log('videoStreamP', videoStreamP);
+	// }
 
 	$: videoStreamP && asd();
 
-	const asd = () =>
+	const asd = () => 
 		videoStreamP.then((stream) => {
 			// async function loadPlaybackInfo(
 			// 		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}

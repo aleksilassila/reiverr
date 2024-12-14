@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { USER_LIBRARY_REPOSITORY } from '../user.providers';
 import { Repository } from 'typeorm';
 import { LibraryItem } from './library.entity';
+import { PaginationParamsDto } from 'src/common/common.dto';
 
 @Injectable()
 export class LibraryService {
@@ -10,11 +11,24 @@ export class LibraryService {
     private readonly libraryRepository: Repository<LibraryItem>,
   ) {}
 
-  async getLibraryItems(userId: string): Promise<LibraryItem[]> {
-    return this.libraryRepository.find({ where: { userId } });
+  async getLibraryItems(
+    userId: string,
+    pagination: PaginationParamsDto,
+  ): Promise<LibraryItem[]> {
+    return this.libraryRepository.find({
+      where: { userId },
+      relations: {
+        playStates: true,
+      },
+      take: pagination.itemsPerPage,
+      skip: pagination.itemsPerPage * (pagination.page - 1),
+    });
   }
 
-  async findByTmdbId(userId: string, tmdbId: string): Promise<LibraryItem | null> {
+  async findByTmdbId(
+    userId: string,
+    tmdbId: string,
+  ): Promise<LibraryItem | null> {
     return this.libraryRepository.findOne({ where: { userId, tmdbId } });
   }
 

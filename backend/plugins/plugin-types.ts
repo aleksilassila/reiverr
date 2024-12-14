@@ -70,6 +70,7 @@ export type VideoStream = VideoStreamCandidate & {
   uri: string;
   directPlay: boolean;
   progress: number;
+  duration: number;
   audioStreams: AudioStream[];
   audioStreamIndex: number;
   qualities: Quality[];

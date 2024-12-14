@@ -4,8 +4,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   InternalServerErrorException,
   NotFoundException,
   Param,
@@ -30,6 +28,7 @@ import {
 import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 import { LibraryService } from './library/library.service';
+import { PlayStateService } from './play-state/play-state.service';
 
 @ApiTags('users')
 @Controller('users')
@@ -37,6 +36,7 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private libraryService: LibraryService,
+    private playStateService: PlayStateService,
   ) {}
 
   // @UseGuards(AuthGuard)
@@ -171,9 +171,14 @@ export class UsersController {
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+    const playState = await this.playStateService.findMoviePlayState(
+      userId,
+      tmdbId,
+    );
 
     return {
       inLibrary: !!libraryItem,
+      playState: playState || undefined,
     };
   }
 }

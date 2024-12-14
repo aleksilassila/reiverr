@@ -281,7 +281,10 @@ export class SourcesController {
       .catch((e) => {
         if (e === SourcePluginError.StreamNotFound) {
           throw new NotFoundException('Stream not found');
-        } else throw new InternalServerErrorException();
+        } else {
+          console.error(e);
+          throw new InternalServerErrorException();
+        }
       });
   }
 

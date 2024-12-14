@@ -200,7 +200,10 @@ export class VideoStreamDto
   @ApiProperty()
   directPlay: boolean;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Duration in seconds' })
+  duration: number;
+
+  @ApiProperty({ description: 'Play progress as a number between 0 and 1' })
   progress: number;
 
   @ApiProperty({ type: [AudioStreamDto] })

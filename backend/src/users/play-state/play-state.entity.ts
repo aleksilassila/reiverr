@@ -7,8 +7,10 @@ import {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../user.entity';
+import { LibraryItem } from '../library/library.entity';
 
 @Entity()
 @Unique(['tmdbId', 'userId', 'season', 'episode'])
@@ -53,6 +55,20 @@ export class PlayState {
     example: 0.5,
     description: 'A number between 0 and 1',
   })
-  @Column({ default: 0 })
+  @Column('double', { default: 0 })
   progress: number = 0;
+
+  @ApiProperty({
+    type: 'date',
+    description: 'Last time the user played this media',
+  })
+  @UpdateDateColumn()
+  lastPlayedAt: Date;
+
+  @ManyToOne(() => LibraryItem, (libraryItem) => libraryItem.playStates)
+  @JoinColumn([
+    { name: 'tmdbId', referencedColumnName: 'tmdbId' },
+    { name: 'userId', referencedColumnName: 'userId' },
+  ])
+  libraryItem?: LibraryItem;
 }

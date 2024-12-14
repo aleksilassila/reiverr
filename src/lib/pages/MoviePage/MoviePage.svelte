@@ -37,8 +37,17 @@
 	const movieUserData = reiverrApiNew.users
 		.getUserMovieData($user?.id as string, id)
 		.then((r) => r.data);
-	const inLibrary = writable(false);
-	movieUserData.then((d) => inLibrary.set(d?.inLibrary ?? false));
+	const streams = getStreams();
+
+	const availableForStreaming = writable(false);
+	const inLibrary = writable<boolean>(undefined);
+	const progress = writable(0);
+
+	movieUserData.then((d) => {
+		inLibrary.set(d?.inLibrary ?? false);
+		progress.set(d?.playState?.progress ?? 0);
+	});
+	streams.forEach((p) => p.then((s) => availableForStreaming.update((p) => p || s.length > 0)));
 
 	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
@@ -46,8 +55,6 @@
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
 		id
 	);
-
-	const streams = getStreams();
 
 	function getStreams(): Map<MediaSource, Promise<VideoStreamCandidateDto[]>> {
 		const out = new Map();
@@ -140,7 +147,10 @@
 			// title: movie?.title || '',
 			// subtitle: file.relativePath || '',
 			backgroundUrl: TMDB_BACKDROP_SMALL + movie?.backdrop_path || '',
-			streamMovie: () => playerState.streamMovie(id, source.id, stream.key),
+			streamMovie: () =>
+				movieUserData.then((userData) =>
+					playerState.streamMovie(id, userData, source.id, stream.key)
+				),
 			onDelete: () => (radarrFiles = getFiles(radarrItem))
 		});
 	}
@@ -210,67 +220,66 @@
 							</div>
 						{/if}
 					{/await}
-					{#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]}
-						<Container
-							direction="horizontal"
-							class="flex mt-8"
-							focusOnMount
-							on:back={handleGoBack}
-							on:mount={registrar}
+					<!-- {#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]} -->
+					<Container
+						direction="horizontal"
+						class="flex mt-8"
+						focusOnMount
+						on:back={handleGoBack}
+						on:mount={registrar}
+					>
+						<Button
+							class="mr-4"
+							action={() => movieUserData.then((userData) => playerState.streamMovie(id, userData))}
+							disabled={!$availableForStreaming}
 						>
-							{#if jellyfinItem}
-								<Button
-									class="mr-4"
-									on:clickOrSelect={() => jellyfinItem.Id && playerState.streamMovie(id)}
-								>
-									Play
-									<Play size={19} slot="icon" />
-								</Button>
-							{/if}
-							{#if !$inLibrary}
-								<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
-									Add to Library
-								</Button>
-							{:else}
-								<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
-									Remove from Library
-								</Button>
-							{/if}
-							<Button class="mr-4" action={handleRequest}>
-								Request
-								<Plus size={19} slot="icon" />
+							Play
+							<Play size={19} slot="icon" />
+						</Button>
+						{#if !$inLibrary}
+							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
+								Add to Library
 							</Button>
-							<!--{#if radarrItem}-->
-							<!--	<Button class="mr-4" on:clickOrSelect={() => openMovieMediaManager(Number(id))}>-->
-							<!--		{#if jellyfinItem}-->
-							<!--			Manage Media-->
-							<!--		{:else}-->
-							<!--			Request-->
-							<!--		{/if}-->
-							<!--		<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />-->
-							<!--	</Button>-->
-							<!--{:else}-->
-							<!--	<Button-->
-							<!--		class="mr-4"-->
-							<!--		on:clickOrSelect={() => requests.handleAddToRadarr(Number(id))}-->
-							<!--		disabled={$isFetching.handleAddToRadarr}-->
-							<!--	>-->
-							<!--		Add to Radarr-->
-							<!--		<Plus slot="icon" size={19} />-->
-							<!--	</Button>-->
-							<!--{/if}-->
-							{#if PLATFORM_WEB}
-								<Button class="mr-4">
-									Open In TMDB
-									<ExternalLink size={19} slot="icon-after" />
-								</Button>
-								<Button class="mr-4">
-									Open In Jellyfin
-									<ExternalLink size={19} slot="icon-after" />
-								</Button>
-							{/if}
-						</Container>
-					{/await}
+						{:else}
+							<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
+								Remove from Library
+							</Button>
+						{/if}
+						<Button class="mr-4" action={handleRequest} disabled={$inLibrary === undefined}>
+							Request
+							<Plus size={19} slot="icon" />
+						</Button>
+						<!--{#if radarrItem}-->
+						<!--	<Button class="mr-4" on:clickOrSelect={() => openMovieMediaManager(Number(id))}>-->
+						<!--		{#if jellyfinItem}-->
+						<!--			Manage Media-->
+						<!--		{:else}-->
+						<!--			Request-->
+						<!--		{/if}-->
+						<!--		<svelte:component this={jellyfinItem ? File : Download} size={19} slot="icon" />-->
+						<!--	</Button>-->
+						<!--{:else}-->
+						<!--	<Button-->
+						<!--		class="mr-4"-->
+						<!--		on:clickOrSelect={() => requests.handleAddToRadarr(Number(id))}-->
+						<!--		disabled={$isFetching.handleAddToRadarr}-->
+						<!--	>-->
+						<!--		Add to Radarr-->
+						<!--		<Plus slot="icon" size={19} />-->
+						<!--	</Button>-->
+						<!--{/if}-->
+						{#if PLATFORM_WEB}
+							<Button class="mr-4">
+								Open In TMDB
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+							<Button class="mr-4">
+								Open In Jellyfin
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+						{/if}
+					</Container>
+					<!-- {/await} -->
 				</div>
 			</HeroCarousel>
 		</Container>

@@ -74,6 +74,8 @@ export interface PlayState {
 	 * @example 0.5
 	 */
 	progress?: number;
+	/** Last time the user played this media */
+	lastPlayedAt: date;
 }
 
 export interface LibraryItem {
@@ -112,8 +114,31 @@ export interface UpdateUserDto {
 	oldPassword?: string;
 }
 
+export interface PlayStateDto {
+	id?: string;
+	tmdbId: number;
+	userId: string;
+	user: string;
+	season?: number;
+	episode?: number;
+	/**
+	 * Whether the user has watched this media
+	 * @default false
+	 */
+	watched?: boolean;
+	/**
+	 * A number between 0 and 1
+	 * @default false
+	 * @example 0.5
+	 */
+	progress?: number;
+	/** Last time the user played this media */
+	lastPlayedAt: date;
+}
+
 export interface MovieUserDataDto {
 	inLibrary: boolean;
+	playState?: PlayStateDto;
 }
 
 export interface CreateSourceDto {
@@ -134,11 +159,26 @@ export type MovieDto = object;
 
 export interface LibraryItemDto {
 	tmdbId: string;
+	playStates?: PlayStateDto[];
 	metadata?: MovieDto;
 }
 
 export interface SuccessResponseDto {
 	success: boolean;
+}
+
+export interface UpdatePlayStateDto {
+	/**
+	 * Whether the user has watched this media
+	 * @default false
+	 */
+	watched?: boolean;
+	/**
+	 * A number between 0 and 1
+	 * @default false
+	 * @example 0.5
+	 */
+	progress?: number;
 }
 
 export interface SignInDto {
@@ -435,6 +475,9 @@ export interface VideoStreamDto {
 	properties: VideoStreamPropertyDto[];
 	uri: string;
 	directPlay: boolean;
+	/** Duration in seconds */
+	duration: number;
+	/** Play progress as a number between 0 and 1 */
 	progress: number;
 	audioStreams: AudioStreamDto[];
 	audioStreamIndex: number;
@@ -827,6 +870,41 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
 				method: 'DELETE',
 				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name UpdateMoviePlayStateByTmdbId
+		 * @request PUT:/api/users/{userId}/play-state/movie/tmdb/{tmdbId}
+		 */
+		updateMoviePlayStateByTmdbId: (
+			userId: string,
+			tmdbId: string,
+			data: UpdatePlayStateDto,
+			params: RequestParams = {}
+		) =>
+			this.request<void, any>({
+				path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
+				method: 'PUT',
+				body: data,
+				type: ContentType.Json,
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name DeleteMoviePlayStateByTmdbId
+		 * @request DELETE:/api/users/{userId}/play-state/movie/tmdb/{tmdbId}
+		 */
+		deleteMoviePlayStateByTmdbId: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
+				method: 'DELETE',
 				...params
 			})
 	};

@@ -6,6 +6,7 @@ import { reiverrApiNew, sources } from '../../stores/user.store';
 import { createErrorNotification } from '../Notifications/notification.store';
 import VideoPlayerModal from './VideoPlayerModal.svelte';
 import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
+import type { MovieUserDataDto } from '../../apis/reiverr/reiverr.openapi';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -48,7 +49,12 @@ export type PlayerStateValue = typeof initialValue;
 function usePlayerState() {
 	const store = writable<PlayerStateValue>(initialValue);
 
-	async function streamMovie(tmdbId: string, sourceId: string = '', key: string = '') {
+	async function streamTmdbMovie(
+		tmdbId: string,
+		userData: MovieUserDataDto,
+		sourceId: string = '',
+		key: string = ''
+	) {
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
@@ -70,13 +76,14 @@ function usePlayerState() {
 		modalStack.create(MovieVideoPlayerModal, {
 			tmdbId,
 			sourceId,
-			key
+			key,
+			progress: userData.playState?.progress || 0
 		});
 	}
 
 	return {
 		...store,
-		streamMovie,
+		streamMovie: streamTmdbMovie,
 		streamJellyfinId: (id: string) => {
 			store.set({ visible: true, jellyfinId: id, sourceId: '' });
 			modalStack.create(JellyfinVideoPlayerModal, { id });
