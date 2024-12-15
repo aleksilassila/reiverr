@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MovieDto } from 'src/media/media.dto';
+import { MovieDto } from 'src/metadata/metadata.dto';
 import { PlayStateDto } from '../play-state/play-state.dto';
 
 export class LibraryItemDto {

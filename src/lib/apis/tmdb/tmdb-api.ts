@@ -7,6 +7,7 @@ import { settings } from '../../stores/settings.store';
 import type { TitleType } from '../../types';
 import type { Api } from '../api.interface';
 import { user } from '../../stores/user.store';
+import { sessions } from '../../stores/session.store';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -55,10 +56,14 @@ export interface TmdbSeriesFull2 extends TmdbSeries2 {
 
 export class TmdbApi implements Api<paths> {
 	static getClient() {
+		const session = get(sessions).activeSession;
+		const token = session?.token;
+
 		return createClient<paths>({
-			baseUrl: 'https://api.themoviedb.org',
+			baseUrl: `${session?.baseUrl}/api/tmdb/v3/proxy`,
 			headers: {
-				Authorization: `Bearer ${TMDB_API_KEY}`
+				Authorization: `Bearer ${token}`
+				// Authorization: `Bearer ${TMDB_API_KEY}`
 			}
 		});
 	}

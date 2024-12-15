@@ -13,7 +13,7 @@ import {
   PaginatedApiOkResponse,
 } from 'src/common/common.decorator';
 import { UsersService } from '../users.service';
-import { MediaService } from 'src/media/media.service';
+import { MetadataService } from 'src/metadata/metadata.service';
 import { PlayStateService } from '../play-state/play-state.service';
 
 @ApiTags('users')

@@ -33,7 +33,7 @@
 	export let id: string;
 	const tmdbId = Number(id);
 
-	const movie = reiverrApiNew.movies.getMovieByTmdbId(id).then((r) => r.data);
+	// const movie = reiverrApiNew.movies.getMovieByTmdbId(id).then((r) => r.data);
 	const movieUserData = reiverrApiNew.users
 		.getUserMovieData($user?.id as string, id)
 		.then((r) => r.data);

@@ -12,36 +12,36 @@ import {
 import { PaginationParamsDto } from 'src/common/common.dto';
 import { LibraryService } from 'src/users/library/library.service';
 import { User } from 'src/users/user.entity';
-import { MovieDto } from './media.dto';
-import { MediaService } from './media.service';
+import { MovieDto } from './metadata.dto';
+import { MetadataService } from './metadata.service';
 
 // @UseGuards(OptionalAccessControl)
 @Controller()
-export class MediaController {
-  constructor(private mediaService: MediaService) {}
+export class MetadataController {
+  constructor(private mediaService: MetadataService) {}
 
-  @ApiTags('movies')
-  @Get('movies/tmdb/:tmdbId')
-  @ApiOkResponse({ type: MovieDto })
-  async getMovieByTmdbId(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<MovieDto> {
-    // let userData: MovieDto['userData'];
+  // @ApiTags('movies')
+  // @Get('movies/tmdb/:tmdbId')
+  // @ApiOkResponse({ type: MovieDto })
+  // async getMovieByTmdbId(
+  //   @GetAuthUser() user: User,
+  //   @Param('tmdbId') tmdbId: string,
+  // ): Promise<MovieDto> {
+  //   // let userData: MovieDto['userData'];
 
-    // if (user) {
-    //   const libraryItem = await this.libraryService.findByTmdbId(
-    //     user.id,
-    //     tmdbId,
-    //   );
+  //   // if (user) {
+  //   //   const libraryItem = await this.libraryService.findByTmdbId(
+  //   //     user.id,
+  //   //     tmdbId,
+  //   //   );
 
-    //   userData = {
-    //     inLibrary: !!libraryItem,
-    //   };
-    // }
+  //   //   userData = {
+  //   //     inLibrary: !!libraryItem,
+  //   //   };
+  //   // }
 
-    return this.mediaService.getMovieByTmdbId(tmdbId);
-  }
+  //   return this.mediaService.getMovieByTmdbId(tmdbId);
+  // }
 
   // @ApiTags('movies')
   // @Get('movies/library')
