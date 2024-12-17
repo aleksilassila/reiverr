@@ -156,15 +156,18 @@
 				}
 			}}
 		>
-			<HeroCarousel
-				urls={$tmdbSeries.then(
-					(series) =>
-						series?.images.backdrops
-							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-							?.map((i) => TMDB_IMAGES_ORIGINAL + i.file_path)
-							.slice(0, 5) || []
-				)}
-			>
+		<HeroCarousel
+			urls={$tmdbSeries.then((series) => {
+				const sortedBackdrops = series?.images.backdrops
+					?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+					?.map((i) => ({
+						trailerUrl: '',
+						backdropUrl: TMDB_IMAGES_ORIGINAL + i.file_path
+					}))
+					.slice(0, 5) || [];	
+				return sortedBackdrops;
+			})}
+		>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbSeries then series}

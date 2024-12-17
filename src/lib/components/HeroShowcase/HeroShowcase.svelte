@@ -17,17 +17,27 @@
 
 	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
 	let awaitedItems: undefined | ShowcaseItemProps[];
-	items.then((items) => (awaitedItems = items));
+	items.then((resolvedItems) => (awaitedItems = resolvedItems));
 
 	function openItem() {
-		if (awaitedItems) dispatch('select', awaitedItems[showcaseIndex]);
+		if (awaitedItems && awaitedItems[showcaseIndex]) {
+			dispatch('select', awaitedItems[showcaseIndex]);
+		}
 	}
 
 	let showcaseIndex = 0;
+
+	let urls: Promise<{ backdropUrl: string; trailerUrl: string }[]> = items.then((items) => {
+		const result = items.map((i) => ({
+			backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`,
+			trailerUrl: i.trailerUrl || ''
+		}));
+		return result;
+	});
 </script>
 
 <HeroCarousel
-	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
+	urls={urls}
 	bind:index={showcaseIndex}
 	on:enter
 	on:navigate={({ detail }) => {
@@ -55,7 +65,7 @@
 						<!--						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />-->
 						<div
 							class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
-							style={`background-image: url("${TMDB_POSTER_SMALL + item.posterUrl}")`}
+							style={`background-image: url("${item.posterUrl ? TMDB_POSTER_SMALL + item.posterUrl : ''}")`}
 							on:click={openItem}
 						/>
 					</div>
@@ -64,13 +74,13 @@
 							class={classNames(
 								'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 max-w-xl mt-2',
 								{
-									'text-4xl sm:text-5xl 2xl:text-6xl': item?.title.length < 15,
-									'text-3xl sm:text-4xl 2xl:text-5xl': item?.title.length >= 15
+									'text-4xl sm:text-5xl 2xl:text-6xl': item?.title?.length < 15,
+									'text-3xl sm:text-4xl 2xl:text-5xl': item?.title?.length >= 15
 								}
 							)}
 							on:click={openItem}
 						>
-							{item?.title}
+							{item?.title || 'No Title'}
 						</div>
 						<div
 							class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
@@ -79,10 +89,10 @@
 							<!-- <DotFilled />
 								<p class="flex-shrink-0">{item.runtime}</p> -->
 							<DotFilled />
-							<p class="flex-shrink-0"><a href={item.url}>{item.rating} TMDB</a></p>
+							<p class="flex-shrink-0"><a href={item.url}>{item.rating || 'N/A'} TMDB</a></p>
 						</div>
 						<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-2xl mt-4">
-							{item.overview}
+							{item.overview || 'No overview available.'}
 						</div>
 						<!-- <div class="flex items-center">
 								{#each item?.genres.slice(0, 3) as genre}
@@ -95,6 +105,8 @@
 							</div> -->
 					</div>
 				</div>
+			{:else}
+				<p>No item to display.</p>
 			{/if}
 		{:catch error}
 			<p>{error.message}</p>

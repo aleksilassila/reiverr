@@ -118,15 +118,18 @@
 			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 999 })}
 		>
-			<HeroCarousel
-				urls={tmdbMovie.then(
-					(movie) =>
-						movie?.images.backdrops
-							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-							?.map((bd) => TMDB_IMAGES_ORIGINAL + bd.file_path || '')
-							.slice(0, 5) || []
-				)}
-			>
+		<HeroCarousel
+			urls={tmdbMovie.then((movie) => {
+			const sortedBackdrops = movie?.images.backdrops
+				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+				?.map((bd) => ({
+				trailerUrl: '',
+				backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path
+				}))
+				.slice(0, 5) || [];
+			return sortedBackdrops;
+			})}
+		>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await tmdbMovie then movie}
