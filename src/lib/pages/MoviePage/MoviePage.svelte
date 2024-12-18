@@ -29,6 +29,7 @@
 	import { reiverrApiNew, sources, user } from '../../stores/user.store';
 	import MovieStreams from './MovieStreams.MoviePage.svelte';
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
+	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -47,7 +48,9 @@
 		inLibrary.set(d?.inLibrary ?? false);
 		progress.set(d?.playState?.progress ?? 0);
 	});
-	streams.forEach((p) => p.then((s) => availableForStreaming.update((p) => p || s.length > 0)));
+	streams.forEach((p) =>
+		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	);
 
 	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
@@ -56,16 +59,16 @@
 		id
 	);
 
-	function getStreams(): Map<MediaSource, Promise<VideoStreamCandidateDto[]>> {
-		const out = new Map();
+	function getStreams() {
+		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
 
 		for (const source of get(sources)) {
-			out.set(
-				source.source,
-				reiverrApiNew.movies
+			out.push({
+				source: source.source,
+				streams: reiverrApiNew.sources
 					.getMovieStreams(id, source.source.id)
 					.then((r) => r.data?.streams ?? [])
-			);
+			});
 		}
 
 		return out;
@@ -168,6 +171,32 @@
 			.then((r) => r.data.success);
 		if (success) inLibrary.set(false);
 	}
+
+	async function handlePlay() {
+		const awaited = await Promise.all(
+			streams.map(async (p) => ({ ...p, streams: await p.streams }))
+		);
+
+		const numberOfStreams = awaited.reduce((acc, p) => acc + p.streams.length, 0);
+
+		// If more than 1 stream
+		if (numberOfStreams > 1) {
+			modalStack.create(SelectDialog, {
+				title: 'Select Media Source',
+				subtitle: 'Select the media source you want to use',
+				options: awaited.map((p) => p.source.id),
+				handleSelectOption: (sourceId) => {
+					const key = awaited.find((p) => p.source.id === sourceId)?.streams[0]?.key;
+					movieUserData.then((userData) => playerState.streamMovie(id, userData, sourceId, key));
+				}
+			});
+		} else if (numberOfStreams === 1) {
+			const sourceId = awaited[0]?.source.id;
+			const key = awaited[0]?.streams[0]?.key;
+
+			movieUserData.then((userData) => playerState.streamMovie(id, userData, sourceId, key));
+		}
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -228,11 +257,7 @@
 						on:back={handleGoBack}
 						on:mount={registrar}
 					>
-						<Button
-							class="mr-4"
-							action={() => movieUserData.then((userData) => playerState.streamMovie(id, userData))}
-							disabled={!$availableForStreaming}
-						>
+						<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
 							Play
 							<Play size={19} slot="icon" />
 						</Button>
@@ -347,8 +372,8 @@
 			</Container>
 		{/await}
 
-		{#if streams.size}
-			<MovieStreams {streams} {createStreamDetailsDialog} />
+		{#if streams.length}
+			<MovieStreams sources={streams} {createStreamDetailsDialog} />
 		{/if}
 
 		<!-- {#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}

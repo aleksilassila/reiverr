@@ -112,9 +112,7 @@ export class PaginationParams {
 export interface SourcePlugin {
   name: string;
 
-  getIsIndexable: () => boolean;
-
-  getMovieIndex: (
+  getMovieIndex?: (
     context: UserContext,
     pagination: PaginationParams,
   ) => Promise<PaginatedResponse<IndexItem>>;
@@ -147,13 +145,19 @@ export interface SourcePlugin {
     settings: PluginSettings,
   ) => Promise<any>;
 
-  handleProxy(
-    request: { uri: string; headers: any },
-    settings: PluginSettings,
-  ): {
-    url: string;
-    headers: any;
-  };
+  // handleProxy(
+  //   request: { uri: string; headers: any },
+  //   settings: PluginSettings,
+  // ): {
+  //   url: string;
+  //   headers: any;
+  // };
+
+  proxyHandler?: (
+    req: any,
+    res: any,
+    options: { context: UserContext; uri: string, targetUrl?: string },
+  ) => Promise<any>;
 }
 
 /**

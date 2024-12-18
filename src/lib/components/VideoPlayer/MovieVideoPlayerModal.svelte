@@ -60,20 +60,13 @@
 	}
 
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
-		videoStreamP = reiverrApiNew.movies
-			.getMovieStream(
-				tmdbId,
-				sourceId,
-				{
-					key
-				},
-				{
-					// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-					progress,
-					audioStreamIndex,
-					deviceProfile: getDeviceProfile() as any
-				}
-			)
+		videoStreamP = reiverrApiNew.sources
+			.getMovieStream(tmdbId, sourceId, key, {
+				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+				progress,
+				audioStreamIndex,
+				deviceProfile: getDeviceProfile() as any
+			})
 			.then((r) => r.data)
 			.then((d) => ({
 				...d,

@@ -59,7 +59,7 @@ export class PlayState {
   progress: number = 0;
 
   @ApiProperty({
-    type: 'date',
+    type: 'string',
     description: 'Last time the user played this media',
   })
   @UpdateDateColumn()

@@ -64,6 +64,7 @@ export class ValidateSourcePluginPipe implements PipeTransform {
   }
 }
 
+@ApiTags('sources')
 @Controller()
 @UseGuards(UserAccessControl)
 export class SourcesController {
@@ -72,7 +73,6 @@ export class SourcesController {
     private userSourcesService: UserSourcesService,
   ) {}
 
-  @ApiTags('sources')
   @Get('sources')
   @ApiOkResponse({
     description: 'All source plugins found',
@@ -85,7 +85,6 @@ export class SourcesController {
       .then((plugins) => Object.keys(plugins));
   }
 
-  @ApiTags('sources')
   @Get('sources/:sourceId/settings/template')
   @ApiOkResponse({
     description: 'Source settings template',
@@ -107,7 +106,6 @@ export class SourcesController {
     };
   }
 
-  @ApiTags('sources')
   @Post('sources/:sourceId/settings/validate')
   @ApiOkResponse({
     description: 'Source settings validation',
@@ -127,7 +125,6 @@ export class SourcesController {
     return plugin.validateSettings(settings.settings);
   }
 
-  @ApiTags('sources')
   @Get('sources/:sourceId/capabilities')
   @ApiOkResponse({
     type: SourcePluginCapabilitiesDto,
@@ -152,7 +149,6 @@ export class SourcesController {
     });
   }
 
-  @ApiTags('sources')
   @Get('sources/:sourceId/index/movies')
   @PaginatedApiOkResponse(IndexItemDto)
   async getSourceMovieIndex(
@@ -170,6 +166,10 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
+    if (!plugin.getMovieIndex) {
+      throw new BadRequestException('Plugin does not support indexing');
+    }
+
     return plugin.getMovieIndex(
       {
         settings,
@@ -179,8 +179,7 @@ export class SourcesController {
     );
   }
 
-  @ApiTags('movies')
-  @Get('movies/:tmdbId/sources/:sourceId/streams')
+  @Get('sources/:sourceId/movies/tmdb/:tmdbId/streams')
   @ApiOkResponse({
     description: 'Movie sources',
     type: VideoStreamListDto,
@@ -242,8 +241,7 @@ export class SourcesController {
     // };
   }
 
-  @ApiTags('movies')
-  @Post('movies/:tmdbId/sources/:sourceId/stream')
+  @Post('sources/:sourceId/movies/tmdb/:tmdbId/streams/:key')
   @ApiOkResponse({
     description: 'Movie stream',
     type: VideoStreamDto,
@@ -251,7 +249,8 @@ export class SourcesController {
   async getMovieStream(
     @Param('tmdbId') tmdbId: string,
     @Param('sourceId') sourceId: string,
-    @Query('key') key: string,
+    // @Query('key') key: string,
+    @Param('key') key: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
@@ -288,38 +287,75 @@ export class SourcesController {
       });
   }
 
-  @ApiTags('movies')
-  @All('movies/:tmdbId/sources/:sourceId/stream/proxy/*')
-  async getMovieStreamProxy(
+  /** @deprecated */
+  @All(['sources/:sourceId/proxy', 'sources/:sourceId/proxy/*'])
+  async movieStreamProxy(
     @Param() params: any,
+    @Query() query: any,
     @Req() req: Request,
     @Res() res: Response,
     @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
     const settings = this.userSourcesService.getSourceSettings(user, sourceId);
 
     if (!settings) throw new UnauthorizedException();
 
-    const { url, headers } = this.sourcesService
-      .getPlugin(sourceId)
-      ?.handleProxy(
-        {
-          uri: params[0] + '?' + req.url.split('?')[1],
-          headers: req.headers,
-        },
-        settings,
-      );
+    const plugin = this.sourcesService.getPlugin(sourceId);
 
-    const proxyRes = await fetch(url, {
-      method: req.method || 'GET',
-      headers: {
-        ...headers,
-        // Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
-      },
+    if (!plugin) {
+      throw new NotFoundException('Plugin not found');
+    }
+
+    if (!plugin.proxyHandler) {
+      throw new BadRequestException('Plugin does not support proxying');
+    }
+
+    const targetUrl = query.reiverr_proxy_url || undefined;
+
+    await plugin.proxyHandler?.(req, res, {
+      context: { settings, token },
+      uri: `/${params[0]}?${req.url.split('?')[1] || ''}`,
+      targetUrl,
     });
-
-    Readable.from(proxyRes.body).pipe(res);
-    res.status(proxyRes.status);
   }
+
+  //   @All('movies/:tmdbId/sources/:sourceId/stream/proxy/*')
+  //   async getMovieStreamProxy(
+  //     @Param() params: any,
+  //     @Req() req: Request,
+  //     @Res() res: Response,
+  //     @GetAuthUser() user: User,
+  //   ) {
+  //     const sourceId = params.sourceId;
+  //     const settings = this.userSourcesService.getSourceSettings(user, sourceId);
+
+  //     if (!settings) throw new UnauthorizedException();
+
+  //     const { url, headers } = this.sourcesService
+  //       .getPlugin(sourceId)
+  //       ?.handleProxy(
+  //         {
+  //           uri: params[0] + '?' + req.url.split('?')[1],
+  //           headers: req.headers,
+  //         },
+  //         settings,
+  //       );
+
+  //     // console.log('url', url.split('?')[0]);
+  //     const proxyRes = await fetch(url.split('?')[0], {
+  //       method: req.method || 'GET',
+  //       headers: {
+  //         // ...headers,
+  //         // Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
+  //       },
+  //     }).catch((e) => {
+  //       console.error('error fetching proxy response', e);
+  //       throw new InternalServerErrorException();
+  //     });
+
+  //     Readable.from(proxyRes.body).pipe(res);
+  //     res.status(proxyRes.status);
+  //   }
 }

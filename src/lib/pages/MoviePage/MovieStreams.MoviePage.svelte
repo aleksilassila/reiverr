@@ -7,7 +7,7 @@
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
 	import { modalStack } from '../../components/Modal/modal.store';
 
-	export let streams: Map<MediaSource, Promise<VideoStreamCandidateDto[]>>;
+	export let sources: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[];
 	export let createStreamDetailsDialog: (
 		source: MediaSource,
 		stream: VideoStreamCandidateDto
@@ -18,13 +18,13 @@
 	class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
 	on:enter={scrollIntoView({ top: 32 })}
 >
-	{#each [...streams.keys()] as source}
-		{#await streams.get(source)}
+	{#each sources as source}
+		{#await source.streams}
 			Loading...
 		{:then streams}
 			{#if streams?.length}
 				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">
-					{capitalize(source.id)}
+					{capitalize(source.source.id)}
 				</h1>
 				<Container
 					direction="grid"
@@ -46,7 +46,7 @@
 									// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 								}
 							)}
-							on:clickOrSelect={() => createStreamDetailsDialog(source, stream)}
+							on:clickOrSelect={() => createStreamDetailsDialog(source.source, stream)}
 							on:enter={scrollIntoView({ vertical: 128 })}
 							focusOnClick
 						>

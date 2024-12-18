@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { generateApi, generateTemplates } from 'swagger-typescript-api';
 import {
   BaseItemKind,
   ItemFields,
@@ -26,6 +25,7 @@ import {
   formatTicksToTime,
   getClosestBitrate,
 } from './utils';
+import { Readable } from 'stream';
 
 interface JellyfinSettings extends PluginSettings {
   apiKey: string;
@@ -43,8 +43,8 @@ const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 export default class JellyfinPlugin implements SourcePlugin {
   name: string = 'jellyfin';
 
-  private getProxyUrl(tmdbId: string) {
-    return `/api/movies/${tmdbId}/sources/${this.name}/stream/proxy`;
+  private getProxyUrl() {
+    return `/api/sources/${this.name}/proxy`;
   }
 
   validateSettings: (settings: JellyfinSettings) => Promise<{
@@ -147,8 +147,6 @@ export default class JellyfinPlugin implements SourcePlugin {
     };
   };
 
-  getIsIndexable: () => boolean = () => true;
-
   getSettingsTemplate: () => PluginSettingsTemplate = () => ({
     baseUrl: {
       type: 'string',
@@ -173,15 +171,15 @@ export default class JellyfinPlugin implements SourcePlugin {
     episode: number,
   ) => Promise<any>;
 
-  handleProxy({ uri, headers }, settings: JellyfinSettings) {
-    return {
-      url: `${settings.baseUrl}/${uri}`,
-      headers: {
-        ...headers,
-        Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
-      },
-    };
-  }
+  // handleProxy({ uri, headers }, settings: JellyfinSettings) {
+  //   return {
+  //     url: `https://tmstr2.luminousstreamhaven.com/${uri}`,
+  //     headers: {
+  //       ...headers,
+  //       // Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
+  //     },
+  //   };
+  // }
 
   private async getLibraryItems(context: PluginContext) {
     return context.api.items
@@ -235,7 +233,7 @@ export default class JellyfinPlugin implements SourcePlugin {
   ): Promise<VideoStream> {
     const context = new PluginContext(userContext.settings, userContext.token);
     const items = await this.getLibraryItems(context);
-    const proxyUrl = this.getProxyUrl(tmdbId);
+    const proxyUrl = this.getProxyUrl();
 
     const movie = items.find((item) => item.ProviderIds?.Tmdb === tmdbId);
 
@@ -322,7 +320,7 @@ export default class JellyfinPlugin implements SourcePlugin {
     }));
 
     return {
-      key: '',
+      key: '0',
       title: movie.Name,
       properties: [
         {
@@ -361,11 +359,40 @@ export default class JellyfinPlugin implements SourcePlugin {
       qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
       uri: playbackUri,
+      // uri:
+      //   proxyUrl +
+      //   '/stream_new2/H4sIAAAAAAAAAw3OWXKDIAAA0Cvhggn9TBqSuJARBcU_CloiYp2Ojcvpm3eCB2EXASWjIAwRUkd4AF7XdYdQAY0kVPIjDTghrElZT0EJqGlv5I_64V5UOk58vOSO7F8bcjKYnvmusRg0zLe5Lv2YaWsSUpFMuTXOAAS5O66s_H5RBpbWrmftnV4JuIdZ8LNrf1laHs_FTqkMmro4z7CsSS7sRNpx2liFotJ5TPY45Q6tms3R45NSdYWGWZ6yvTm14.lXAV7r67IyOy85n5JHjQeFzV0z0guHo2YcrCzQQoEumgIZxrlQgQir2m4suLyPK22t6eX7nmG.Sn8SxRNdH7dBNKMxxGucvgyj8Lind4D.AeRg7d1BAQAA/master.m3u8' +
+      //   `?reiverr_token=${userContext.token}`,
       directPlay:
         !!mediasSource?.SupportsDirectPlay ||
         !!mediasSource?.SupportsDirectStream,
     };
   }
+
+  proxyHandler?: (
+    req: any,
+    res: any,
+    options: { context: UserContext; uri: string },
+  ) => Promise<any> = async (req, res, { context, uri }) => {
+    const settings = context.settings as JellyfinSettings;
+
+    const url = settings.baseUrl + uri;
+
+    const proxyRes = await fetch(url, {
+      method: req.method || 'GET',
+      headers: {
+        Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
+      },
+    }).catch((e) => {
+      console.error('error fetching proxy response', e);
+      res.status(500).send('Error fetching proxy response');
+    });
+
+    if (!proxyRes) return;
+
+    res.status(proxyRes.status);
+    Readable.from(proxyRes.body).pipe(res);
+  };
 }
 
 class PluginContext {

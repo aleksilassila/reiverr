@@ -58,7 +58,7 @@ function usePlayerState() {
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
-					reiverrApiNew.movies
+					reiverrApiNew.sources
 						.getMovieStreams(tmdbId, s.source.id)
 						.then((r) => ({ source: s.source, streams: r.data.streams }))
 				)
