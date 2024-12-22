@@ -7,16 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { MediaSource } from './user-source.entity';
 import { Type } from '@nestjs/common';
-
-const PickAndPartial = <T, K extends keyof T>(
-  clazz: Type<T>,
-  pick: K[] = [],
-  partial: K[] = [],
-) =>
-  IntersectionType(
-    OmitType(PickType(clazz, pick), partial),
-    PickType(PartialType(clazz), partial),
-  );
+import { PickAndPartial } from 'src/common/common.dto';
 
 export class SourceDto extends PickAndPartial(
   MediaSource,

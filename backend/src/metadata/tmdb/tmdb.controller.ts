@@ -74,12 +74,12 @@ export class TmdbController {
     });
 
     if (cached && req.method === 'GET') {
-      console.log('returning cached response', uri);
+      // console.log('returning cached response', uri);
       res.json(cached);
       return cached;
     }
 
-    console.log('TMDB PROXY', req.url);
+    // console.log('TMDB PROXY', req.url);
 
     // if (params[0].match(/^3\/movie\/\d+\/?$/)) {
     //   // console.log('req.params', req.params);

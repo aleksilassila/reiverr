@@ -1,5 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { Type } from '@nestjs/common';
+import {
+  ApiProperty,
+  IntersectionType,
+  OmitType,
+  PartialType,
+  PickType,
+} from '@nestjs/swagger';
 import { PaginatedResponse, PaginationParams } from 'plugins/plugin-types';
+
+export const PickAndPartial = <T, K extends keyof T>(
+  clazz: Type<T>,
+  pick: K[] = [],
+  partial: K[] = [],
+) =>
+  IntersectionType(
+    OmitType(PickType(clazz, pick), partial),
+    PickType(PartialType(clazz), partial),
+  );
 
 export class PaginatedResponseDto<T> implements PaginatedResponse<T> {
   @ApiProperty()

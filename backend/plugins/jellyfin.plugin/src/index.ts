@@ -219,6 +219,14 @@ export default class JellyfinPlugin implements SourcePlugin {
       });
   }
 
+  getEpisodeStreams: (
+    tmdbId: string,
+    season: number,
+    episode: number,
+    context: UserContext,
+    config?: PlaybackConfig,
+  ) => Promise<VideoStreamCandidate[]>;
+
   async getMovieStream(
     tmdbId: string,
     key: string,
@@ -396,7 +404,7 @@ export default class JellyfinPlugin implements SourcePlugin {
 }
 
 class PluginContext {
-  api: JellyfinApi<{}>;
+  api: JellyfinApi<unknown>;
   settings: JellyfinSettings;
   token: string;
 

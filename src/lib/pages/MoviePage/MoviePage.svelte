@@ -191,8 +191,9 @@
 				}
 			});
 		} else if (numberOfStreams === 1) {
-			const sourceId = awaited[0]?.source.id;
-			const key = awaited[0]?.streams[0]?.key;
+			const asd = awaited.find((p) => p.streams.length > 0);
+			const sourceId = asd?.source.id;
+			const key = asd?.streams[0]?.key;
 
 			movieUserData.then((userData) => playerState.streamMovie(id, userData, sourceId, key));
 		}

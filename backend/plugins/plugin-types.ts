@@ -142,8 +142,18 @@ export interface SourcePlugin {
     tmdbId: string,
     season: number,
     episode: number,
-    settings: PluginSettings,
-  ) => Promise<any>;
+    key: string,
+    context: UserContext,
+    config?: PlaybackConfig,
+  ) => Promise<VideoStream>;
+
+  getEpisodeStreams: (
+    tmdbId: string,
+    season: number,
+    episode: number,
+    context: UserContext,
+    config?: PlaybackConfig,
+  ) => Promise<VideoStreamCandidate[]>;
 
   // handleProxy(
   //   request: { uri: string; headers: any },
@@ -156,7 +166,7 @@ export interface SourcePlugin {
   proxyHandler?: (
     req: any,
     res: any,
-    options: { context: UserContext; uri: string, targetUrl?: string },
+    options: { context: UserContext; uri: string; targetUrl?: string },
   ) => Promise<any>;
 }
 
