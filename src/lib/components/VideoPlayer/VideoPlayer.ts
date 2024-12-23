@@ -36,7 +36,7 @@ export type PlaybackInfo = {
 	playbackUrl: string;
 	directPlay: boolean;
 	backdrop?: string;
-	startTime?: number;
+	progress?: number;
 
 	audioStreamIndex: number;
 	audioTracks: AudioTrack[];

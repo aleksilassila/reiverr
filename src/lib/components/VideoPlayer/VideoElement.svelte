@@ -28,7 +28,7 @@
 		// video.srcObject = null;
 		// hls?.destroy();
 
-		const { playbackUrl, directPlay, backdrop, startTime } = playbackInfo;
+		const { playbackUrl, directPlay, backdrop, progress } = playbackInfo;
 
 		if (backdrop) {
 			video.poster = backdrop;
@@ -55,9 +55,9 @@
 			video.src = playbackUrl;
 		}
 
-		if (startTime) {
-			progressTime = startTime;
-		}
+		// if (progress) {
+		// 	progressTime = startTime;
+		// }
 	}
 
 	function handleProgress() {
@@ -104,8 +104,14 @@
 	on:timeupdate={() => (progressTime = !seeking && videoDidLoad ? video.currentTime : progressTime)}
 	on:progress={handleProgress}
 	on:loadeddata={() => {
-		video.currentTime = progressTime;
+		// console.log('video loaded', video.currentTime, video.duration, playbackInfo?.progress);
+		// video.currentTime = progressTime;
 		videoDidLoad = true;
+
+		if (video.currentTime < video.duration * (playbackInfo?.progress || 0)) {
+			video.currentTime = video.duration * (playbackInfo?.progress || 0);
+		}
+
 		console.log('Video loaded');
 	}}
 	on:waiting={() => (buffering = true)}

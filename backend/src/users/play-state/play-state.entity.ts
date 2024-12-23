@@ -65,7 +65,10 @@ export class PlayState {
   @UpdateDateColumn()
   lastPlayedAt: Date;
 
-  @ManyToOne(() => LibraryItem, (libraryItem) => libraryItem.playStates)
+  @ManyToOne(() => LibraryItem, (libraryItem) => libraryItem.playStates, {
+    nullable: true,
+    createForeignKeyConstraints: false,
+  })
   @JoinColumn([
     { name: 'tmdbId', referencedColumnName: 'tmdbId' },
     { name: 'userId', referencedColumnName: 'userId' },

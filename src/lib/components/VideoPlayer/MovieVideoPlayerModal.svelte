@@ -52,9 +52,9 @@
 	});
 
 	function reportProgress() {
-		if (video?.readyState === 4 && progressTime > 0 && videoDuration > 0)
+		if (video?.readyState === 4 && video?.currentTime > 0 && video?.duration > 0)
 			reiverrApiNew.users.updateMoviePlayStateByTmdbId($user?.id as string, tmdbId, {
-				progress: progressTime / videoDuration,
+				progress: video.currentTime / video?.duration,
 				watched: progressTime > 0.9
 			});
 	}
@@ -135,7 +135,7 @@
 				// 	? `${$user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 				// 	:
 				'',
-			startTime: stream.progress * stream.duration
+			progress: stream.progress
 			// (options.playbackPosition || 0) / 10_000_000 ||
 			// (item?.UserData?.PlaybackPositionTicks || 0) / 10_000_000 ||
 			// undefined
