@@ -11,6 +11,8 @@ import {
 } from 'typeorm';
 import { User } from '../user.entity';
 import { LibraryItem } from '../library/library.entity';
+import { UserDto } from '../user.dto';
+import { MediaType } from 'src/common/common.dto';
 
 @Entity()
 @Unique(['tmdbId', 'userId', 'season', 'episode'])
@@ -23,14 +25,18 @@ export class PlayState {
   @Column({ unique: true })
   tmdbId: string;
 
+  @ApiProperty({ required: false, enum: MediaType })
+  @Column({ nullable: true })
+  mediaType: MediaType;
+
   @ApiProperty({ required: true, type: 'string' })
   @Column()
   userId: string;
 
-  @ApiProperty({ required: true, type: 'string' })
+  // @ApiProperty({ required: false, type: UserDto })
   @ManyToOne(() => User, (user) => user.playStates, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user?: User;
 
   @ApiProperty({ required: false, type: 'number' })
   @PrimaryColumn({ default: 0 })
@@ -61,6 +67,7 @@ export class PlayState {
   @ApiProperty({
     type: 'string',
     description: 'Last time the user played this media',
+    required: false,
   })
   @UpdateDateColumn()
   lastPlayedAt: Date;

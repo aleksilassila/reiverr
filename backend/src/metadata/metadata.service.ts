@@ -4,6 +4,7 @@ import { Movie } from './metadata.entity';
 import { MOVIE_REPOSITORY } from './metadata.providers';
 import { TMDB_CACHE_TTL } from 'src/consts';
 import { TMDB_API, TmdbApi } from './tmdb/tmdb.providers';
+import { TmdbMovieFull } from './tmdb/tmdb.dto';
 
 @Injectable()
 export class MetadataService {
@@ -15,7 +16,7 @@ export class MetadataService {
     private movieRepository: Repository<Movie>,
   ) {}
 
-  async getMovieByTmdbId(tmdbId: string): Promise<any> {
+  async getMovieByTmdbId(tmdbId: string): Promise<Movie | undefined> {
     let movie = await this.movieRepository.findOne({ where: { tmdbId } });
 
     if (!movie) {
@@ -31,7 +32,7 @@ export class MetadataService {
         .movieDetails(Number(tmdbId), {
           append_to_response: 'videos,credits,external_ids,images',
         })
-        .then((r) => r.data);
+        .then((r) => r.data as TmdbMovieFull);
       movie.tmdbMovie = tmdbMovie;
     }
 

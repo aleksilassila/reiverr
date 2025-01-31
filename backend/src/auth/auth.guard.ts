@@ -30,7 +30,7 @@ function extractTokenFromRequest(request: Request): string | undefined {
   const [type, token] =
     (request.headers as any).authorization?.split(' ') ?? [];
 
-  let v = type === 'Bearer' ? token : undefined;
+  const v = type === 'Bearer' ? token : undefined;
 
   if (v) return v;
 

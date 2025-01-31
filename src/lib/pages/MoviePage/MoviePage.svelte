@@ -30,6 +30,7 @@
 	import MovieStreams from './MovieStreams.MoviePage.svelte';
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
 	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
+	import { useUserData } from '../../stores/library.store';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -41,13 +42,13 @@
 	const streams = getStreams();
 
 	const availableForStreaming = writable(false);
-	const inLibrary = writable<boolean>(undefined);
-	const progress = writable(0);
 
-	movieUserData.then((d) => {
-		inLibrary.set(d?.inLibrary ?? false);
-		progress.set(d?.playState?.progress ?? 0);
-	});
+	const { inLibrary, progress, handleAddToLibrary, handleRemoveFromLibrary } = useUserData(
+		'Movie',
+		id,
+		movieUserData
+	);
+
 	streams.forEach((p) =>
 		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
 	);
@@ -156,20 +157,6 @@
 				),
 			onDelete: () => (radarrFiles = getFiles(radarrItem))
 		});
-	}
-
-	async function handleAddToLibrary() {
-		const success = await reiverrApiNew.users
-			.addLibraryItem($user?.id as string, id)
-			.then((r) => r.data.success);
-		if (success) inLibrary.set(true);
-	}
-
-	async function handleRemoveFromLibrary() {
-		const success = await reiverrApiNew.users
-			.removeLibraryItem($user?.id as string, id)
-			.then((r) => r.data.success);
-		if (success) inLibrary.set(false);
 	}
 
 	async function handlePlay() {

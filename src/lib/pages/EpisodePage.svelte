@@ -10,7 +10,7 @@
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { playerState } from '../components/VideoPlayer/VideoPlayer';
 	import { formatSize, retry, timeout } from '../utils';
-	import { createModal } from '../components/Modal/modal.store';
+	import { createModal, modalStack } from '../components/Modal/modal.store';
 	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
 	import {
 		type EpisodeFileResource,
@@ -22,10 +22,27 @@
 	import SonarrMediaManagerModal from '../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
 	import { tick } from 'svelte';
+	import { useUserData } from '../stores/library.store';
+	import { get, writable } from 'svelte/store';
+	import { reiverrApiNew, sources, user } from '../stores/user.store';
+	import type { MediaSource, VideoStreamCandidateDto } from '../apis/reiverr/reiverr.openapi';
+	import SelectDialog from '../components/Dialog/SelectDialog.svelte';
 
 	export let id: string; // Series ID
 	export let season: string;
 	export let episode: string;
+
+	const episodeUserData = reiverrApiNew.users
+		.getEpisodeUserData($user?.id as string, id, Number(season), Number(episode))
+		.then((r) => r.data);
+	const streams = getStreams();
+
+	const availableForStreaming = writable(false);
+	const { progress } = useUserData('Series', id, episodeUserData);
+
+	streams.forEach((p) =>
+		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	);
 
 	let isWatched = false;
 
@@ -55,6 +72,28 @@
 	jellyfinEpisode.then((e) => {
 		isWatched = e?.UserData?.Played || false;
 	});
+
+	function getStreams() {
+		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
+
+		for (const source of get(sources)) {
+			out.push({
+				source: source.source,
+				streams: episodeUserData.then((userData) => {
+					const { season: s, episode: e } = userData.playState ?? {
+						season: Number(season),
+						episode: Number(episode)
+					};
+
+					return reiverrApiNew.sources
+						.getEpisodeStreams(source.source.id, id, s ?? 1, e ?? 1)
+						.then((r) => r.data?.streams ?? []);
+				})
+			});
+		}
+
+		return out;
+	}
 
 	async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
 		return sonarrItem.then((sonarrItem) => {
@@ -119,6 +158,49 @@
 				.then((files) => files.filter((f) => sonarrEpisode?.episodeFileId === f.id));
 		});
 	}
+
+	async function handlePlay() {
+		const awaitedStreams = await Promise.all(
+			streams.map(async (p) => ({ ...p, streams: await p.streams }))
+		).then((d) => d.filter((p) => p.streams.length > 0));
+
+		if (awaitedStreams.length > 1) {
+			modalStack.create(SelectDialog, {
+				title: 'Select Media Source',
+				subtitle: 'Select the media source you want to use',
+				options: awaitedStreams.map((p) => p.source.id),
+				handleSelectOption: (sourceId) => {
+					const s = awaitedStreams.find((p) => p.source.id === sourceId);
+					const key = s?.streams[0]?.key;
+					episodeUserData.then((userData) =>
+						playerState.streamEpisode(
+							id,
+							userData.playState?.season ?? Number(season) ?? 1,
+							userData.playState?.episode ?? Number(episode) ?? 1,
+							userData,
+							sourceId,
+							key
+						)
+					);
+				}
+			});
+		} else if (awaitedStreams.length === 1) {
+			const asd = awaitedStreams.find((p) => p.streams.length > 0);
+			const sourceId = asd?.source.id;
+			const key = asd?.streams[0]?.key;
+
+			episodeUserData.then((userData) =>
+				playerState.streamEpisode(
+					id,
+					userData.playState?.season ?? 1,
+					userData.playState?.episode ?? 1,
+					userData,
+					sourceId,
+					key
+				)
+			);
+		}
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -180,19 +262,23 @@
 				{tmdbEpisode?.overview}
 			</div>
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
+				<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
+					Play
+					<Play size={19} slot="icon" />
+				</Button>
 				{#await Promise.all([jellyfinEpisode, sonarrEpisode])}
 					<ButtonGhost>Play</ButtonGhost>
 					<ButtonGhost>Manage Media</ButtonGhost>
 					<ButtonGhost>Delete Files</ButtonGhost>
 				{:then [jellyfinEpisode]}
 					{#if jellyfinEpisode?.MediaSources?.length}
-						<Button
+						<!-- <Button
 							on:clickOrSelect={() =>
 								jellyfinEpisode?.Id && playerState.streamJellyfinId(jellyfinEpisode.Id)}
 						>
 							Play
 							<Play size={19} slot="icon" />
-						</Button>
+						</Button> -->
 						<Button disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
 							{#if isWatched}
 								Mark as Unwatched

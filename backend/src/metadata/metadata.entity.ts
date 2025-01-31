@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TmdbMovieFull } from './tmdb/tmdb.dto';
 
 @Entity()
 export class Movie {
@@ -17,7 +18,7 @@ export class Movie {
   tmdbId: string;
 
   @Column('json')
-  tmdbMovie: any
+  tmdbMovie: TmdbMovieFull;
 
   @UpdateDateColumn()
   updatedAt: Date;

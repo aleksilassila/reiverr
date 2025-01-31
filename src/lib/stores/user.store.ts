@@ -21,7 +21,7 @@ function useUser() {
 	activeSession.subscribe(async (activeSession) => {
 		initializedStores.set({ user: false, sources: false });
 		await refreshUser(activeSession);
-	});	
+	});
 
 	userStore.subscribe(async (user) => {
 		if (!user) {
@@ -111,4 +111,3 @@ function useUser() {
 
 export const { user, sources, isAppInitialized } = useUser();
 // isAppInitialized.subscribe((i) => console.log('isAppInitialized', i));
-sources.subscribe((s) => console.log('sources', s, s.length));

@@ -22,8 +22,6 @@
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
 
-	$: console.log('progress', progress);
-
 	export let disabled = false;
 	export let shadow = false;
 	export let size: 'dynamic' | 'md' | 'lg' | 'sm' = 'md';

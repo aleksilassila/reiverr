@@ -44,3 +44,8 @@ export class SuccessResponseDto {
   @ApiProperty()
   success: boolean;
 }
+
+export enum MediaType {
+  Movie = 'Movie',
+  Series = 'Series',
+}

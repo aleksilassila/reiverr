@@ -6,7 +6,7 @@ import { reiverrApiNew, sources } from '../../stores/user.store';
 import { createErrorNotification } from '../Notifications/notification.store';
 import VideoPlayerModal from './VideoPlayerModal.svelte';
 import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
-import type { MovieUserDataDto } from '../../apis/reiverr/reiverr.openapi';
+import type { MediaUserDataDto } from '../../apis/reiverr/reiverr.openapi';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -51,7 +51,7 @@ function usePlayerState() {
 
 	async function streamTmdbMovie(
 		tmdbId: string,
-		userData: MovieUserDataDto,
+		userData: MediaUserDataDto,
 		sourceId: string = '',
 		key: string = ''
 	) {
@@ -81,9 +81,47 @@ function usePlayerState() {
 		});
 	}
 
+	async function streamTmdbEpisode(
+		tmdbId: string,
+		season: number,
+		episode: number,
+		userData: MediaUserDataDto,
+		sourceId: string = '',
+		key: string = ''
+	) {
+		if (!sourceId) {
+			const streams = await Promise.all(
+				get(sources).map((s) =>
+					reiverrApiNew.sources
+						.getEpisodeStreams(s.source.id, tmdbId, season, episode)
+						.then((r) => ({ source: s.source, streams: r.data.streams }))
+				)
+			);
+			sourceId = streams?.[0]?.source.id || '';
+			key = streams?.[0]?.streams?.[0]?.key || '';
+		}
+
+		if (!sourceId) {
+			createErrorNotification('Could not find a suitable source');
+			return;
+		}
+
+		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
+		console.log('sourceId', season, episode);
+		modalStack.create(MovieVideoPlayerModal, {
+			tmdbId,
+			episode,
+			season,
+			sourceId,
+			key,
+			progress: userData.playState?.progress || 0
+		});
+	}
+
 	return {
 		...store,
 		streamMovie: streamTmdbMovie,
+		streamEpisode: streamTmdbEpisode,
 		streamJellyfinId: (id: string) => {
 			store.set({ visible: true, jellyfinId: id, sourceId: '' });
 			modalStack.create(JellyfinVideoPlayerModal, { id });

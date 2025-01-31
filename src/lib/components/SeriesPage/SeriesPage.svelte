@@ -6,7 +6,16 @@
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import classNames from 'classnames';
-	import { Cross1, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
+	import {
+		Bookmark,
+		Cross1,
+		DotFilled,
+		ExternalLink,
+		Minus,
+		Play,
+		Plus,
+		Trash
+	} from 'radix-icons-svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import {
 		type EpisodeDownload,
@@ -16,7 +25,7 @@
 	import Button from '../Button.svelte';
 	import { playerState } from '../VideoPlayer/VideoPlayer';
 	import { createModal, modalStack } from '../Modal/modal.store';
-	import { get } from 'svelte/store';
+	import { get, writable } from 'svelte/store';
 	import { scrollIntoView, useRegistrar } from '../../selectable';
 	import ScrollHelper from '../ScrollHelper.svelte';
 	import Carousel from '../Carousel/Carousel.svelte';
@@ -29,15 +38,34 @@
 	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
+	import { reiverrApiNew, sources, user } from '../../stores/user.store';
+	import type { VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
+	import type { MediaSource } from '../../apis/reiverr/reiverr.openapi';
+	import SelectDialog from '../Dialog/SelectDialog.svelte';
+	import { useUserData } from '../../stores/library.store';
 
 	export let id: string;
+	const tmdbId = Number(id);
 
-	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(
-		tmdbApi.getTmdbSeries,
-		Number(id)
+	const showUserData = reiverrApiNew.users
+		.getShowUserData($user?.id as string, id)
+		.then((r) => r.data);
+	const streams = getStreams();
+
+	const availableForStreaming = writable(false);
+	const { inLibrary, progress, handleAddToLibrary, handleRemoveFromLibrary } = useUserData(
+		'Series',
+		id,
+		showUserData
 	);
-	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
-	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, Number(id));
+
+	streams.forEach((p) =>
+		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	);
+
+	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getTmdbSeries, tmdbId);
+	let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
+	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, tmdbId);
 
 	$: sonarrDownloads = getDownloads(sonarrItem);
 	$: sonarrFiles = getFiles(sonarrItem);
@@ -71,6 +99,25 @@
 	// 	hideInterface = !!modal;
 	// });
 
+	function getStreams() {
+		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
+
+		for (const source of get(sources)) {
+			out.push({
+				source: source.source,
+				streams: showUserData.then((userData) => {
+					const { season, episode } = userData.playState ?? {};
+
+					return reiverrApiNew.sources
+						.getEpisodeStreams(source.source.id, id, season ?? 1, episode ?? 1)
+						.then((r) => r.data?.streams ?? []);
+				})
+			});
+		}
+
+		return out;
+	}
+
 	function getJellyfinSeries(id: string) {
 		return jellyfinApi.getLibraryItemFromTmdbId(id);
 	}
@@ -78,7 +125,7 @@
 	const onGrabRelease = () => setTimeout(() => (sonarrDownloads = getDownloads(sonarrItem)), 8000);
 
 	function handleAddedToSonarr() {
-		sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+		sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
 		sonarrItem.then(
 			(sonarrItem) =>
 				sonarrItem &&
@@ -140,6 +187,49 @@
 					.cancelDownloads(downloads.map((f) => f.id || -1))
 					.then(() => (sonarrDownloads = getDownloads(sonarrItem)))
 		});
+	}
+
+	async function handlePlay() {
+		const awaitedStreams = await Promise.all(
+			streams.map(async (p) => ({ ...p, streams: await p.streams }))
+		).then((d) => d.filter((p) => p.streams.length > 0));
+
+		if (awaitedStreams.length > 1) {
+			modalStack.create(SelectDialog, {
+				title: 'Select Media Source',
+				subtitle: 'Select the media source you want to use',
+				options: awaitedStreams.map((p) => p.source.id),
+				handleSelectOption: (sourceId) => {
+					const s = awaitedStreams.find((p) => p.source.id === sourceId);
+					const key = s?.streams[0]?.key;
+					showUserData.then((userData) =>
+						playerState.streamEpisode(
+							id,
+							userData.playState?.season ?? 1,
+							userData.playState?.episode ?? 1,
+							userData,
+							sourceId,
+							key
+						)
+					);
+				}
+			});
+		} else if (awaitedStreams.length === 1) {
+			const asd = awaitedStreams.find((p) => p.streams.length > 0);
+			const sourceId = asd?.source.id;
+			const key = asd?.streams[0]?.key;
+
+			showUserData.then((userData) =>
+				playerState.streamEpisode(
+					id,
+					userData.playState?.season ?? 1,
+					userData.playState?.episode ?? 1,
+					userData,
+					sourceId,
+					key
+				)
+			);
+		}
 	}
 </script>
 
@@ -214,7 +304,20 @@
 							on:back={handleGoBack}
 							on:mount={registrar}
 						>
-							{#if nextJellyfinEpisode}
+							<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
+								Play
+								<Play size={19} slot="icon" />
+							</Button>
+							{#if !$inLibrary}
+								<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
+									Add to Library
+								</Button>
+							{:else}
+								<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
+									Remove from Library
+								</Button>
+							{/if}
+							<!-- {#if nextJellyfinEpisode}
 								<Button
 									class="mr-4"
 									on:clickOrSelect={() =>
@@ -223,13 +326,13 @@
 									Play Season {nextJellyfinEpisode?.ParentIndexNumber} Episode
 									{nextJellyfinEpisode?.IndexNumber}
 									<Play size={19} slot="icon" />
-								</Button>
-							{:else}
-								<Button class="mr-4" action={() => handleRequestSeason(1)}>
-									Request
-									<Plus size={19} slot="icon" />
-								</Button>
-							{/if}
+								</Button> -->
+							<!-- {:else} -->
+							<Button class="mr-4" action={() => handleRequestSeason(1)}>
+								Request
+								<Plus size={19} slot="icon" />
+							</Button>
+							<!-- {/if} -->
 
 							{#if PLATFORM_WEB}
 								<Button class="mr-4">

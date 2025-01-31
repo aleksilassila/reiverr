@@ -5,6 +5,8 @@ export type TitleId = {
 	type: TitleType;
 };
 
+export type MediaType = 'Movie' | 'Series';
+
 declare global {
 	const REIVERR_VERSION: string;
 }

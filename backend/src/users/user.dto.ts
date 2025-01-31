@@ -58,7 +58,10 @@ export class UpdateUserDto extends PartialType(
 
 export class SignInDto extends PickType(User, ['name', 'password'] as const) {}
 
-export class MovieUserDataDto {
+export class MediaUserDataDto {
+  @ApiProperty()
+  tmdbId: string;
+
   @ApiProperty()
   inLibrary: boolean;
 

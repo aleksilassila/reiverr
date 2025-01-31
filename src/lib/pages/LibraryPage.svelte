@@ -23,11 +23,15 @@
 		.then((r) =>
 			Promise.all(
 				r.data.items.map((i) =>
-					tmdbApi
-						.getTmdbMovie(Number(i.tmdbId))
-						.then((movie) => ({ tmdbMovie: movie as TmdbMovieFull2, playStates: i.playStates }))
+					i.mediaType === 'Movie'
+						? tmdbApi
+								.getTmdbMovie(Number(i.tmdbId))
+								.then((movie) => ({ tmdbMovie: movie as TmdbMovieFull2, playStates: i.playStates }))
+						: tmdbApi
+								.getTmdbSeries(Number(i.tmdbId))
+								.then((series) => ({ tmdbSeries: series as TmdbSeries2, playStates: i.playStates }))
 				)
-			).then((i) => i.filter((i) => !!i.tmdbMovie))
+			).then((i) => i.filter((i) => ('tmdbMovie' in i ? !!i.tmdbMovie : !!i.tmdbSeries)))
 		);
 
 	$: console.log('libraryItems', libraryItems);
@@ -156,7 +160,7 @@
 			{:then items} -->
 				{#each items as item}
 					<TmdbCard
-						item={item.tmdbMovie}
+						item={'tmdbMovie' in item ? item.tmdbMovie : item.tmdbSeries}
 						progress={item.playStates?.[0]?.progress || 0}
 						on:enter={scrollIntoView({ all: 64 })}
 						size="dynamic"

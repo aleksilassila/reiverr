@@ -15,6 +15,8 @@
 	import { modalStackTop } from '../Modal/modal.store';
 
 	export let tmdbId: string;
+	export let season: number | undefined = undefined;
+	export let episode: number | undefined = undefined;
 	export let sourceId: string;
 	export let key: string = '';
 	export let progress: number = 0;
@@ -46,27 +48,50 @@
 
 	let videoStreamP: Promise<VideoStreamDto>;
 
-	const movieP = tmdbApi.getTmdbMovie(Number(tmdbId)).then((r) => {
-		title = r?.title || '';
-		subtitle = '';
-	});
+	// const movieP = tmdbApi.getTmdbMovie(Number(tmdbId)).then((r) => {
+	// 	title = r?.title || '';
+	// 	subtitle = '';
+	// });
 
 	function reportProgress() {
+		const userId = get(user)?.id;
+
+		if (!userId) {
+			console.error('Update progress failed: User not logged in');
+			return;
+		}
+
 		if (video?.readyState === 4 && video?.currentTime > 0 && video?.duration > 0)
-			reiverrApiNew.users.updateMoviePlayStateByTmdbId($user?.id as string, tmdbId, {
-				progress: video.currentTime / video?.duration,
-				watched: progressTime > 0.9
-			});
+			if (season !== undefined && episode !== undefined) {
+				reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+					progress: video.currentTime / video?.duration,
+					watched: progressTime > 0.9
+				});
+			} else {
+				reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+					progress: video.currentTime / video?.duration,
+					watched: progressTime > 0.9
+				});
+			}
 	}
 
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
-		videoStreamP = reiverrApiNew.sources
-			.getMovieStream(tmdbId, sourceId, key, {
-				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-				progress,
-				audioStreamIndex,
-				deviceProfile: getDeviceProfile() as any
-			})
+		console.log('refreshVideoStream', season, episode);
+		videoStreamP = (
+			season !== undefined && episode !== undefined
+				? reiverrApiNew.sources.getEpisodeStream(sourceId, tmdbId, season, episode, key, {
+						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+						progress,
+						audioStreamIndex,
+						deviceProfile: getDeviceProfile() as any
+				  })
+				: reiverrApiNew.sources.getMovieStream(tmdbId, sourceId, key, {
+						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+						progress,
+						audioStreamIndex,
+						deviceProfile: getDeviceProfile() as any
+				  })
+		)
 			.then((r) => r.data)
 			.then((d) => ({
 				...d,

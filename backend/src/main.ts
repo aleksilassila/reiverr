@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import { UsersService } from './users/users.service';
-import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts';
+import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV, NODE_ENV } from './consts';
 import { json, urlencoded } from 'express';
 // import * as proxy from 'express-http-proxy';
 require('ts-node/register'); // For importing plugins
@@ -48,7 +48,7 @@ async function bootstrap() {
   await createAdminUser(app.get(UsersService));
 
   await app.listen(9494);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  console.log(`Application is running on: ${await app.getUrl()} in ${NODE_ENV} mode`);
 }
 
 bootstrap();

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { USER_LIBRARY_REPOSITORY } from '../user.providers';
 import { Repository } from 'typeorm';
 import { LibraryItem } from './library.entity';
-import { PaginationParamsDto } from 'src/common/common.dto';
+import { MediaType, PaginationParamsDto } from 'src/common/common.dto';
 
 @Injectable()
 export class LibraryService {
@@ -35,11 +35,16 @@ export class LibraryService {
   async findOrCreateByTmdbId(
     userId: string,
     tmdbId: string,
+    mediaType: MediaType,
   ): Promise<LibraryItem> {
     let libraryItem = await this.findByTmdbId(userId, tmdbId);
 
     if (!libraryItem) {
-      libraryItem = this.libraryRepository.create({ userId, tmdbId });
+      libraryItem = this.libraryRepository.create({
+        userId,
+        tmdbId,
+        mediaType,
+      });
       await this.libraryRepository.save(libraryItem);
     }
 

@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { User } from '../user.entity';
 import { PlayState } from '../play-state/play-state.entity';
+import { MediaType } from 'src/common/common.dto';
 
 @Entity()
 @Unique(['tmdbId', 'userId'])
@@ -23,6 +24,10 @@ export class LibraryItem {
   @ApiProperty({ required: true, type: 'number' })
   @Column({ unique: true })
   tmdbId: string;
+
+  @ApiProperty({ required: true, enum: MediaType })
+  @Column()
+  mediaType: MediaType;
 
   @ApiProperty({ required: true, type: 'string' })
   @PrimaryColumn()

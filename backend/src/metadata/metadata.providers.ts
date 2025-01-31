@@ -1,6 +1,6 @@
-import { DataSource } from "typeorm";
-import { Movie } from "./metadata.entity";
-import { DATA_SOURCE } from "src/database/database.providers";
+import { DataSource } from 'typeorm';
+import { Movie } from './metadata.entity';
+import { DATA_SOURCE } from 'src/database/database.providers';
 
 export const MOVIE_REPOSITORY = 'MOVIE_REPOSITORY';
 

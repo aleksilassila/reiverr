@@ -1,8 +1,18 @@
-import { Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseEnumPipe,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from 'src/auth/auth.guard';
 import { LibraryService } from './library.service';
 import {
+  MediaType,
   PaginatedResponseDto,
   PaginationParamsDto,
   SuccessResponseDto,
@@ -44,6 +54,7 @@ export class LibraryController {
   }
 
   @Put('tmdb/:tmdbId')
+  @ApiQuery({ name: 'mediaType', enum: MediaType })
   @ApiOkResponse({
     description: 'Library item added',
     type: SuccessResponseDto,
@@ -51,8 +62,13 @@ export class LibraryController {
   async addLibraryItem(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
+    @Query('mediaType', new ParseEnumPipe(MediaType)) mediaType: MediaType,
   ): Promise<SuccessResponseDto> {
-    const item = await this.libraryService.findOrCreateByTmdbId(userId, tmdbId);
+    const item = await this.libraryService.findOrCreateByTmdbId(
+      userId,
+      tmdbId,
+      mediaType,
+    );
 
     return {
       success: !!item,

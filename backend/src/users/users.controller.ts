@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   UnauthorizedException,
@@ -21,7 +22,7 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   CreateUserDto,
-  MovieUserDataDto,
+  MediaUserDataDto,
   UpdateUserDto,
   UserDto,
 } from './user.dto';
@@ -29,6 +30,8 @@ import { User } from './user.entity';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 import { LibraryService } from './library/library.service';
 import { PlayStateService } from './play-state/play-state.service';
+import { PlayState } from './play-state/play-state.entity';
+import { PlayStateDto } from './play-state/play-state.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -164,12 +167,12 @@ export class UsersController {
   @Get(':userId/user-data/movie/tmdb/:tmdbId')
   @ApiOkResponse({
     description: 'User movie data found',
-    type: MovieUserDataDto,
+    type: MediaUserDataDto,
   })
   async getUserMovieData(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<MovieUserDataDto> {
+  ): Promise<MediaUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
     const playState = await this.playStateService.findMoviePlayState(
       userId,
@@ -177,8 +180,59 @@ export class UsersController {
     );
 
     return {
+      tmdbId,
       inLibrary: !!libraryItem,
-      playState: playState || undefined,
+      playState: playState,
+    };
+  }
+
+  @UseGuards(UserAccessControl)
+  @Get(':userId/user-data/show/tmdb/:tmdbId')
+  @ApiOkResponse({
+    description: 'User show data found',
+    type: MediaUserDataDto,
+  })
+  async getShowUserData(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<MediaUserDataDto> {
+    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+    const playState = await this.playStateService.findShowPlayState(
+      userId,
+      tmdbId,
+    );
+
+    return {
+      tmdbId,
+      inLibrary: !!libraryItem,
+      playState: playState,
+    };
+  }
+
+  @UseGuards(UserAccessControl)
+  @Get(':userId/user-data/show/tmdb/:tmdbId/season/:season/episode/:episode')
+  @ApiOkResponse({
+    description: 'User show data found',
+    type: MediaUserDataDto,
+  })
+  async getEpisodeUserData(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+    @Param('episode', ParseIntPipe) episode: number,
+  ): Promise<MediaUserDataDto> {
+    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+    const playState = await this.playStateService.findShowPlayState(
+      userId,
+      tmdbId,
+      season,
+      episode,
+    );
+
+    return {
+      tmdbId,
+      inLibrary: !!libraryItem,
+      playState: playState,
     };
   }
 }

@@ -165,12 +165,6 @@ export default class JellyfinPlugin implements SourcePlugin {
     },
   });
 
-  getEpisodeStream: (
-    tmdbId: string,
-    season: number,
-    episode: number,
-  ) => Promise<any>;
-
   // handleProxy({ uri, headers }, settings: JellyfinSettings) {
   //   return {
   //     url: `https://tmstr2.luminousstreamhaven.com/${uri}`,
@@ -185,9 +179,13 @@ export default class JellyfinPlugin implements SourcePlugin {
     return context.api.items
       .getItems({
         userId: context.settings.userId,
-        hasTmdbId: true,
+        // hasTmdbId: true,
         recursive: true,
-        includeItemTypes: [BaseItemKind.Movie, BaseItemKind.Series],
+        includeItemTypes: [
+          BaseItemKind.Movie,
+          BaseItemKind.Series,
+          BaseItemKind.Episode,
+        ],
         fields: [
           ItemFields.ProviderIds,
           ItemFields.Genres,
@@ -199,8 +197,27 @@ export default class JellyfinPlugin implements SourcePlugin {
       .then((res) => res.data.Items ?? []);
   }
 
+  // private async getLibraryEpisodes(context: PluginContext) {
+  //   return context.api.items
+  //     .getItems({
+  //       userId: context.settings.userId,
+  //       // hasTmdbId: true,
+  //       recursive: true,
+  //       includeItemTypes: [BaseItemKind.Episode],
+  //       fields: [
+  //         ItemFields.ProviderIds,
+  //         ItemFields.Genres,
+  //         ItemFields.DateLastMediaAdded,
+  //         ItemFields.DateCreated,
+  //         ItemFields.MediaSources,
+  //       ],
+  //     })
+  //     .then((res) => res.data.Items ?? []);
+  // }
+
   async getMovieStreams(
     tmdbId: string,
+    metadata,
     userContext: JellyfinUserContext,
     config: PlaybackConfig = {
       audioStreamIndex: undefined,
@@ -210,7 +227,7 @@ export default class JellyfinPlugin implements SourcePlugin {
       deviceProfile: undefined,
     },
   ): Promise<VideoStreamCandidate[]> {
-    return this.getMovieStream(tmdbId, '', userContext, config)
+    return this.getMovieStream(tmdbId, metadata, '', userContext, config)
       .then((stream) => [stream])
       .catch((e) => {
         if (e === SourcePluginError.StreamNotFound) {
@@ -219,16 +236,32 @@ export default class JellyfinPlugin implements SourcePlugin {
       });
   }
 
-  getEpisodeStreams: (
+  async getEpisodeStreams(
     tmdbId: string,
     season: number,
     episode: number,
-    context: UserContext,
+    userContext: JellyfinUserContext,
     config?: PlaybackConfig,
-  ) => Promise<VideoStreamCandidate[]>;
+  ): Promise<VideoStreamCandidate[]> {
+    return this.getEpisodeStream(
+      tmdbId,
+      season,
+      episode,
+      '',
+      userContext,
+      config,
+    )
+      .then((stream) => [stream])
+      .catch((e) => {
+        if (e === SourcePluginError.StreamNotFound) {
+          return [];
+        } else throw e;
+      });
+  }
 
   async getMovieStream(
     tmdbId: string,
+    metadata,
     key: string,
     userContext: JellyfinUserContext,
     config: PlaybackConfig = {
@@ -330,6 +363,171 @@ export default class JellyfinPlugin implements SourcePlugin {
     return {
       key: '0',
       title: movie.Name,
+      properties: [
+        {
+          label: 'Video',
+          value: mediasSource.Bitrate || 0,
+          formatted:
+            mediasSource.MediaStreams.find((s) => s.Type === 'Video')
+              ?.DisplayTitle || 'Unknown',
+        },
+        {
+          label: 'Size',
+          value: mediasSource.Size,
+          formatted: formatSize(mediasSource.Size),
+        },
+        {
+          label: 'Filename',
+          value: mediasSource.Name,
+          formatted: undefined,
+        },
+        {
+          label: 'Runtime',
+          value: mediasSource.RunTimeTicks,
+          formatted: formatTicksToTime(mediasSource.RunTimeTicks),
+        },
+      ],
+      audioStreamIndex:
+        config.audioStreamIndex ??
+        mediasSource?.DefaultAudioStreamIndex ??
+        audioStreams[0].index,
+      audioStreams,
+      duration: mediasSource.RunTimeTicks
+        ? mediasSource.RunTimeTicks / 10_000_000
+        : 0,
+      progress: config.progress ?? 0,
+      qualities,
+      qualityIndex: getClosestBitrate(qualities, bitrate).index,
+      subtitles,
+      uri: playbackUri,
+      // uri:
+      //   proxyUrl +
+      //   '/stream_new2/H4sIAAAAAAAAAw3OWXKDIAAA0Cvhggn9TBqSuJARBcU_CloiYp2Ojcvpm3eCB2EXASWjIAwRUkd4AF7XdYdQAY0kVPIjDTghrElZT0EJqGlv5I_64V5UOk58vOSO7F8bcjKYnvmusRg0zLe5Lv2YaWsSUpFMuTXOAAS5O66s_H5RBpbWrmftnV4JuIdZ8LNrf1laHs_FTqkMmro4z7CsSS7sRNpx2liFotJ5TPY45Q6tms3R45NSdYWGWZ6yvTm14.lXAV7r67IyOy85n5JHjQeFzV0z0guHo2YcrCzQQoEumgIZxrlQgQir2m4suLyPK22t6eX7nmG.Sn8SxRNdH7dBNKMxxGucvgyj8Lind4D.AeRg7d1BAQAA/master.m3u8' +
+      //   `?reiverr_token=${userContext.token}`,
+      directPlay:
+        !!mediasSource?.SupportsDirectPlay ||
+        !!mediasSource?.SupportsDirectStream,
+    };
+  }
+
+  async getEpisodeStream(
+    tmdbId: string,
+    seasonNumber: number,
+    episodeNumber: number,
+    key: string,
+    userContext: JellyfinUserContext,
+    config: PlaybackConfig = {
+      audioStreamIndex: undefined,
+      bitrate: undefined,
+      progress: undefined,
+      defaultLanguage: undefined,
+      deviceProfile: undefined,
+    },
+  ): Promise<VideoStream> {
+    const context = new PluginContext(userContext.settings, userContext.token);
+    const items = await this.getLibraryItems(context);
+    const proxyUrl = this.getProxyUrl();
+
+    const show = items.find(
+      (item) => item.ProviderIds?.Tmdb === tmdbId,
+      // && item.ParentIndexNumber === seasonNumber &&
+      // item.IndexNumber === episodeNumber,
+    );
+
+    const episode = items.find(
+      (item) =>
+        item.SeriesId === show?.Id &&
+        item.IndexNumber === episodeNumber &&
+        item.ParentIndexNumber === seasonNumber,
+    );
+
+    if (
+      !episode ||
+      !episode.MediaSources ||
+      episode.MediaSources.length === 0
+    ) {
+      throw SourcePluginError.StreamNotFound;
+    }
+
+    /*
+        await jellyfinApi.getPlaybackInfo(
+          id,
+          getDeviceProfile(),
+          options.playbackPosition || item?.UserData?.PlaybackPositionTicks || 0,
+          options.bitrate || getQualities(item?.Height || 1080)[0]?.maxBitrate,
+          audioStreamIndex
+        );
+        */
+
+    const startTimeTicks = episode.RunTimeTicks
+      ? Math.floor(episode.RunTimeTicks * (config?.progress ?? 0))
+      : undefined;
+    const maxStreamingBitrate = config?.bitrate || 0; //|| movie.MediaSources?.[0]?.Bitrate || 10000000
+
+    const playbackInfo = await context.api.items.getPostedPlaybackInfo(
+      episode.Id,
+      {
+        DeviceProfile: config?.deviceProfile,
+      },
+      {
+        userId: context.settings.userId,
+        startTimeTicks: startTimeTicks || 0,
+        ...(maxStreamingBitrate ? { maxStreamingBitrate } : {}),
+        autoOpenLiveStream: true,
+        ...(config?.audioStreamIndex
+          ? { audioStreamIndex: config?.audioStreamIndex }
+          : {}),
+        mediaSourceId: episode.Id,
+
+        // deviceId: JELLYFIN_DEVICE_ID,
+        // mediaSourceId: movie.MediaSources[0].Id,
+        // maxBitrate: 8000000,
+      },
+    );
+
+    const mediasSource = playbackInfo.data?.MediaSources?.[0];
+
+    const playbackUri =
+      proxyUrl +
+      (mediasSource?.TranscodingUrl ||
+        `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
+      `&reiverr_token=${userContext.token}`;
+
+    const audioStreams: VideoStream['audioStreams'] =
+      mediasSource?.MediaStreams.filter((s) => s.Type === 'Audio').map((s) => ({
+        bitrate: s.BitRate,
+        label: s.Language,
+        codec: s.Codec,
+        index: s.Index,
+      })) ?? [];
+
+    const qualities: VideoStream['qualities'] = [
+      ...bitrateQualities,
+      {
+        bitrate: mediasSource.Bitrate,
+        label: 'Original',
+        codec: undefined,
+        original: true,
+      },
+    ].map((q, i) => ({
+      ...q,
+      index: i,
+    }));
+
+    const bitrate = Math.min(maxStreamingBitrate, mediasSource.Bitrate);
+
+    const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
+      (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
+    ).map((s, i) => ({
+      index: i,
+      uri: proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      label: s.DisplayTitle,
+      codec: s.Codec,
+    }));
+
+    return {
+      key: '0',
+      title: episode.Name,
       properties: [
         {
           label: 'Video',

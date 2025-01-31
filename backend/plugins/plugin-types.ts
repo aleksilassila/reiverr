@@ -109,6 +109,15 @@ export class PaginationParams {
   itemsPerPage: number;
 }
 
+interface Metadata {
+  title?: string;
+  year?: number;
+  tmdbId?: string;
+  imdbId?: string;
+}
+
+export interface MovieMetadata extends Metadata {}
+
 export interface SourcePlugin {
   name: string;
 
@@ -127,6 +136,7 @@ export interface SourcePlugin {
 
   getMovieStream: (
     tmdbId: string,
+    metadata: MovieMetadata,
     key: string,
     context: UserContext,
     config?: PlaybackConfig,
@@ -134,6 +144,7 @@ export interface SourcePlugin {
 
   getMovieStreams: (
     tmdbId: string,
+    metadata: MovieMetadata,
     context: UserContext,
     config?: PlaybackConfig,
   ) => Promise<VideoStreamCandidate[]>;

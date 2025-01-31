@@ -59,8 +59,8 @@ export interface MediaSource {
 export interface PlayState {
 	id?: string;
 	tmdbId: number;
+	mediaType?: 'Movie' | 'Series';
 	userId: string;
-	user: string;
 	season?: number;
 	episode?: number;
 	/**
@@ -75,12 +75,13 @@ export interface PlayState {
 	 */
 	progress?: number;
 	/** Last time the user played this media */
-	lastPlayedAt: string;
+	lastPlayedAt?: string;
 }
 
 export interface LibraryItem {
 	id?: string;
 	tmdbId: number;
+	mediaType: 'Movie' | 'Series';
 	userId: string;
 	user?: string;
 }
@@ -117,8 +118,8 @@ export interface UpdateUserDto {
 export interface PlayStateDto {
 	id?: string;
 	tmdbId: number;
+	mediaType?: 'Movie' | 'Series';
 	userId: string;
-	user: string;
 	season?: number;
 	episode?: number;
 	/**
@@ -133,10 +134,11 @@ export interface PlayStateDto {
 	 */
 	progress?: number;
 	/** Last time the user played this media */
-	lastPlayedAt: string;
+	lastPlayedAt?: string;
 }
 
-export interface MovieUserDataDto {
+export interface MediaUserDataDto {
+	tmdbId: string;
 	inLibrary: boolean;
 	playState?: PlayStateDto;
 }
@@ -162,6 +164,7 @@ export interface MovieDto {
 
 export interface LibraryItemDto {
 	tmdbId: string;
+	mediaType: 'Movie' | 'Series';
 	playStates?: PlayStateDto[];
 	metadata?: MovieDto;
 }
@@ -171,6 +174,7 @@ export interface SuccessResponseDto {
 }
 
 export interface UpdatePlayStateDto {
+	mediaType?: 'Movie' | 'Series';
 	/**
 	 * Whether the user has watched this media
 	 * @default false
@@ -782,8 +786,44 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * @request GET:/api/users/{userId}/user-data/movie/tmdb/{tmdbId}
 		 */
 		getUserMovieData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
-			this.request<MovieUserDataDto, any>({
+			this.request<MediaUserDataDto, any>({
 				path: `/api/users/${userId}/user-data/movie/tmdb/${tmdbId}`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name GetShowUserData
+		 * @request GET:/api/users/{userId}/user-data/show/tmdb/{tmdbId}
+		 */
+		getShowUserData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<MediaUserDataDto, any>({
+				path: `/api/users/${userId}/user-data/show/tmdb/${tmdbId}`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name GetEpisodeUserData
+		 * @request GET:/api/users/{userId}/user-data/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 */
+		getEpisodeUserData: (
+			userId: string,
+			tmdbId: string,
+			season: number,
+			episode: number,
+			params: RequestParams = {}
+		) =>
+			this.request<MediaUserDataDto, any>({
+				path: `/api/users/${userId}/user-data/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'GET',
 				format: 'json',
 				...params
@@ -853,10 +893,18 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * @name AddLibraryItem
 		 * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
 		 */
-		addLibraryItem: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+		addLibraryItem: (
+			userId: string,
+			tmdbId: string,
+			query: {
+				mediaType: 'Movie' | 'Series';
+			},
+			params: RequestParams = {}
+		) =>
 			this.request<SuccessResponseDto, any>({
 				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
 				method: 'PUT',
+				query: query,
 				format: 'json',
 				...params
 			}),
@@ -887,11 +935,15 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			userId: string,
 			tmdbId: string,
 			data: UpdatePlayStateDto,
+			query?: {
+				mediaType?: 'Movie' | 'Series';
+			},
 			params: RequestParams = {}
 		) =>
 			this.request<void, any>({
 				path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
 				method: 'PUT',
+				query: query,
 				body: data,
 				type: ContentType.Json,
 				...params
@@ -907,6 +959,49 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		deleteMoviePlayStateByTmdbId: (userId: string, tmdbId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
+				method: 'DELETE',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name UpdateEpisodePlayStateByTmdbId
+		 * @request PUT:/api/users/{userId}/play-state/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 */
+		updateEpisodePlayStateByTmdbId: (
+			userId: string,
+			tmdbId: string,
+			season: number,
+			episode: number,
+			data: UpdatePlayStateDto,
+			params: RequestParams = {}
+		) =>
+			this.request<void, any>({
+				path: `/api/users/${userId}/play-state/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+				method: 'PUT',
+				body: data,
+				type: ContentType.Json,
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name DeleteEpisodePlayStateByTmdbId
+		 * @request DELETE:/api/users/{userId}/play-state/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 */
+		deleteEpisodePlayStateByTmdbId: (
+			userId: string,
+			tmdbId: string,
+			season: number,
+			episode: number,
+			params: RequestParams = {}
+		) =>
+			this.request<void, any>({
+				path: `/api/users/${userId}/play-state/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'DELETE',
 				...params
 			})
@@ -1161,6 +1256,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
+		 * @name GetEpisodeStreams
+		 * @request GET:/api/sources/{sourceId}/shows/tmdb/{tmdbId}/season/{season}/episode/{episode}/streams
+		 */
+		getEpisodeStreams: (
+			sourceId: string,
+			tmdbId: string,
+			season: number,
+			episode: number,
+			params: RequestParams = {}
+		) =>
+			this.request<VideoStreamListDto, any>({
+				path: `/api/sources/${sourceId}/shows/tmdb/${tmdbId}/season/${season}/episode/${episode}/streams`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
 		 * @name GetMovieStream
 		 * @request POST:/api/sources/{sourceId}/movies/tmdb/{tmdbId}/streams/{key}
 		 */
@@ -1184,10 +1300,149 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
+		 * @name GetEpisodeStream
+		 * @request POST:/api/sources/{sourceId}/shows/tmdb/{tmdbId}/season/{season}/episode/{episode}/streams/{key}
+		 */
+		getEpisodeStream: (
+			sourceId: string,
+			tmdbId: string,
+			season: number,
+			episode: number,
+			key: string,
+			data: PlaybackConfigDto,
+			params: RequestParams = {}
+		) =>
+			this.request<VideoStreamDto, any>({
+				path: `/api/sources/${sourceId}/shows/tmdb/${tmdbId}/season/${season}/episode/${episode}/streams/${key}`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
 		 * @name MovieStreamProxyGet
-		 * @request GET:/api/sources/{sourceId}/proxy/*
+		 * @request GET:/api/sources/{sourceId}/proxy
 		 */
 		movieStreamProxyGet: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'GET',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyPost
+		 * @request POST:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyPost: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'POST',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyPut
+		 * @request PUT:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyPut: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'PUT',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyDelete
+		 * @request DELETE:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyDelete: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'DELETE',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyPatch
+		 * @request PATCH:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyPatch: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'PATCH',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyOptions
+		 * @request OPTIONS:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyOptions: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'OPTIONS',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyHead
+		 * @request HEAD:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxyHead: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'HEAD',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxySearch
+		 * @request SEARCH:/api/sources/{sourceId}/proxy
+		 */
+		movieStreamProxySearch: (sourceId: string, params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/sources/${sourceId}/proxy`,
+				method: 'SEARCH',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name MovieStreamProxyGet2
+		 * @request GET:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyGet
+		 * @duplicate
+		 */
+		movieStreamProxyGet2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'GET',
@@ -1198,10 +1453,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyPost
+		 * @name MovieStreamProxyPost2
 		 * @request POST:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyPost
+		 * @duplicate
 		 */
-		movieStreamProxyPost: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyPost2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'POST',
@@ -1212,10 +1469,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyPut
+		 * @name MovieStreamProxyPut2
 		 * @request PUT:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyPut
+		 * @duplicate
 		 */
-		movieStreamProxyPut: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyPut2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'PUT',
@@ -1226,10 +1485,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyDelete
+		 * @name MovieStreamProxyDelete2
 		 * @request DELETE:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyDelete
+		 * @duplicate
 		 */
-		movieStreamProxyDelete: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyDelete2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'DELETE',
@@ -1240,10 +1501,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyPatch
+		 * @name MovieStreamProxyPatch2
 		 * @request PATCH:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyPatch
+		 * @duplicate
 		 */
-		movieStreamProxyPatch: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyPatch2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'PATCH',
@@ -1254,10 +1517,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyOptions
+		 * @name MovieStreamProxyOptions2
 		 * @request OPTIONS:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyOptions
+		 * @duplicate
 		 */
-		movieStreamProxyOptions: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyOptions2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'OPTIONS',
@@ -1268,10 +1533,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxyHead
+		 * @name MovieStreamProxyHead2
 		 * @request HEAD:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxyHead
+		 * @duplicate
 		 */
-		movieStreamProxyHead: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxyHead2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'HEAD',
@@ -1282,10 +1549,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name MovieStreamProxySearch
+		 * @name MovieStreamProxySearch2
 		 * @request SEARCH:/api/sources/{sourceId}/proxy/*
+		 * @originalName movieStreamProxySearch
+		 * @duplicate
 		 */
-		movieStreamProxySearch: (sourceId: string, params: RequestParams = {}) =>
+		movieStreamProxySearch2: (sourceId: string, params: RequestParams = {}) =>
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'SEARCH',
