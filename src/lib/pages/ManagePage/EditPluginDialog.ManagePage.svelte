@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get, writable } from 'svelte/store';
-	import Container from '../../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Button from '../../components/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';
 	import { modalStack } from '../../components/Modal/modal.store';

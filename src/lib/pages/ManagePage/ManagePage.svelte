@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Button from '../../components/Button.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { localSettings } from '../../stores/localstorage.store';
@@ -216,7 +216,7 @@
 				</Container>
 			</div>
 
-<Plugins />
+			<Plugins />
 
 			<div>
 				<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>

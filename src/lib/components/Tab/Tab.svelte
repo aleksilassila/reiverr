@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import classNames from 'classnames';
 	import type { NavigateEvent, Selectable } from '../../selectable';
 	import type { Writable } from 'svelte/store';

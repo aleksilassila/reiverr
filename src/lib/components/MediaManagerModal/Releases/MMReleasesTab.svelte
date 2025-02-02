@@ -6,7 +6,7 @@
 	import TableHeaderRow from '../../Table/TableHeaderRow.svelte';
 	import TableHeaderSortBy from '../../Table/TableHeaderSortBy.svelte';
 	import type { GrabReleaseFn } from '../MediaManagerModal';
-	import Container from '../../../../Container.svelte';
+	import Container from '../../Container.svelte';
 	import TableHeaderCell from '../../Table/TableHeaderCell.svelte';
 	import MMTitle from '../MMTitle.svelte';
 

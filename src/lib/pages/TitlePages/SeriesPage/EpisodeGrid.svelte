@@ -5,20 +5,20 @@
 		type TmdbEpisode,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull2
-	} from '../../apis/tmdb/tmdb-api';
-	import Container from '../../../Container.svelte';
-	import { useDependantRequest } from '../../stores/data.store';
-	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
-	import TmdbEpisodeCard from '../EpisodeCard/TmdbEpisodeCard.svelte';
-	import { scrollIntoView, Selectable } from '../../selectable';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
-	import CardGrid from '../CardGrid.svelte';
-	import UICarousel from '../Carousel/UICarousel.svelte';
+	} from '../../../apis/tmdb/tmdb-api';
+	import { useDependantRequest } from '../../../stores/data.store';
+	import type { JellyfinItem } from '../../../apis/jellyfin/jellyfin-api';
+	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
+	import { scrollIntoView, Selectable } from '../../../selectable';
+	import { playerState } from '../../../components/VideoPlayer/VideoPlayer';
+	import CardGrid from '../../../components/CardGrid.svelte';
+	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
-	import ScrollHelper from '../ScrollHelper.svelte';
+	import ScrollHelper from '../../../components/ScrollHelper.svelte';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
-	import { TMDB_BACKDROP_SMALL } from '../../constants';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { TMDB_BACKDROP_SMALL } from '../../../constants';
+	import { navigate } from '../../../components/StackRouter/StackRouter';
+	import Container from '$components/Container.svelte';
 
 	export let id: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull2 | undefined>;

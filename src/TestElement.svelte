@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Container from './Container.svelte';
+	import Container from '$components/Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
 

@@ -4,7 +4,7 @@
 	import { formatSize } from '../../utils';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import type { Download } from '../../apis/combined-types';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 
 	export let downloads: Promise<Download[]>;
 	export let cancelDownload: (downloadId: number) => Promise<any>;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import Modal from '../Modal/Modal.svelte';
 

@@ -1,22 +1,27 @@
 <script lang="ts">
-	import type { JellyfinItem } from '../../apis/jellyfin/jellyfin-api';
-	import EpisodeCard from '../EpisodeCard/EpisodeCard.svelte';
-	import { useDependantRequest } from '../../stores/data.store';
+	import type { JellyfinItem } from '../../../apis/jellyfin/jellyfin-api';
+	import EpisodeCard from '../../../components/EpisodeCard/EpisodeCard.svelte';
+	import { useDependantRequest } from '../../../stores/data.store';
 	import { derived, get, type Readable } from 'svelte/store';
 	import {
 		tmdbApi,
 		type TmdbSeasonEpisode,
 		type TmdbSeason,
 		type TmdbSeriesFull2
-	} from '../../apis/tmdb/tmdb-api';
-	import Carousel from '../Carousel/Carousel.svelte';
-	import Container from '../../../Container.svelte';
-	import { registrars, scrollElementIntoView, scrollIntoView, Selectable } from '../../selectable';
-	import UICarousel from '../Carousel/UICarousel.svelte';
+	} from '../../../apis/tmdb/tmdb-api';
+	import Carousel from '../../../components/Carousel/Carousel.svelte';
+	import Container from '$components/Container.svelte';
+	import {
+		registrars,
+		scrollElementIntoView,
+		scrollIntoView,
+		Selectable
+	} from '../../../selectable';
+	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import classNames from 'classnames';
-	import ScrollHelper from '../ScrollHelper.svelte';
-	import TmdbEpisodeCard from '../EpisodeCard/TmdbEpisodeCard.svelte';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
+	import ScrollHelper from '../../../components/ScrollHelper.svelte';
+	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
+	import { playerState } from '../../../components/VideoPlayer/VideoPlayer';
 
 	export let id: number;
 	export let tmdbSeries: Readable<TmdbSeriesFull2 | undefined>;

@@ -4,7 +4,7 @@
 	import TextField from '../TextField.svelte';
 	import Button from '../Button.svelte';
 	import { ArrowUp, EyeClosed, EyeOpen, Trash, Upload } from 'radix-icons-svelte';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
 	import Tab from '../Tab/Tab.svelte';
 	import { useTabs } from '../Tab/Tab';

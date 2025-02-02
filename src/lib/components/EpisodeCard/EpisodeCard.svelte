@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import classNames from 'classnames';
 	import { ArrowDown, Check, TriangleRight } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
@@ -9,7 +9,7 @@
 	export let episodeNumber: number;
 	export let episodeName: string;
 	export let backdropUrl: string;
-	export let handlePlay: (() => void) | undefined = undefined
+	export let handlePlay: (() => void) | undefined = undefined;
 	export let isWatched = false;
 	export let playbackProgress = 0;
 

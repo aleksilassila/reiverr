@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Plus } from 'radix-icons-svelte';
 
-	import Container from '../../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Button from '../../components/Button.svelte';
 	import { reiverrApiNew, user } from '../../stores/user.store';
 	import { createModal } from '../../components/Modal/modal.store';

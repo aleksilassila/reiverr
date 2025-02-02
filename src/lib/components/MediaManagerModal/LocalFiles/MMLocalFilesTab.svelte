@@ -5,7 +5,7 @@
 	import TableHeaderRow from '../../Table/TableHeaderRow.svelte';
 	import TableHeaderSortBy from '../../Table/TableHeaderSortBy.svelte';
 	import TableHeaderCell from '../../Table/TableHeaderCell.svelte';
-	import Container from '../../../../Container.svelte';
+	import Container from '../../Container.svelte';
 	import Button from '../../Button.svelte';
 	import { Cross1, Trash } from 'radix-icons-svelte';
 	import { scrollIntoView } from '../../../selectable';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import classNames from 'classnames';
 	import { ChevronDown, ChevronUp } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';

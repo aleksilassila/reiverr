@@ -2,38 +2,36 @@
 	import classNames from 'classnames';
 	import { Bookmark, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
 	import { get, writable } from 'svelte/store';
-	import Container from '../../../Container.svelte';
-	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
+	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
 	import {
 		type MovieDownload,
 		type MovieFileResource,
 		radarrApi
-	} from '../../apis/radarr/radarr-api';
-	import type { MediaSource, VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import Button from '../../components/Button.svelte';
-	import TmdbCard from '../../components/Card/TmdbCard.svelte';
-	import Carousel from '../../components/Carousel/Carousel.svelte';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
-	import HeroCarousel from '../../components/HeroCarousel/HeroCarousel.svelte';
-	import MMAddToRadarrDialog from '../../components/MediaManagerModal/MMAddToRadarrDialog.svelte';
-	import MovieMediaManagerModal from '../../components/MediaManagerModal/RadarrMediaManagerModal.svelte';
-	import { createModal, modalStack } from '../../components/Modal/modal.store';
-	import TmdbPersonCard from '../../components/PersonCard/TmdbPersonCard.svelte';
-	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
-	import { TMDB_BACKDROP_SMALL } from '../../constants.js';
-	import { scrollIntoView } from '../../selectable';
-	import { useActionRequests, useRequest } from '../../stores/data.store';
-	import { reiverrApiNew, sources, user } from '../../stores/user.store';
+	} from '$lib/apis/radarr/radarr-api';
+	import type { MediaSource, VideoStreamCandidateDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import Button from '$lib/components/Button.svelte';
+	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
+	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
+	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
+	import MMAddToRadarrDialog from '$lib/components/MediaManagerModal/MMAddToRadarrDialog.svelte';
+	import MovieMediaManagerModal from '$lib/components/MediaManagerModal/RadarrMediaManagerModal.svelte';
+	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
+	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants.js';
+	import { scrollIntoView } from '$lib/selectable';
+	import { useActionRequests, useRequest } from '$lib/stores/data.store';
+	import { reiverrApiNew, sources, user } from '$lib/stores/user.store';
 	import MovieStreams from './MovieStreams.MoviePage.svelte';
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
-	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
-	import { useUserData } from '../../stores/library.store';
-	import { navigate } from '../../components/StackRouter/StackRouter';
-	import StreamSelectorPage from '../StreamSelectorPage/StreamSelectorPage.svelte';
+	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import { handleOpenStreamSelector } from './MoviePage.shared';
+	import Container from '$components/Container.svelte';
+	import { useUserData } from '$lib/stores/library.store';
 
 	export let id: string;
 	const tmdbId = Number(id);

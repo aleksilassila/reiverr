@@ -6,7 +6,7 @@
 	import { DotFilled } from 'radix-icons-svelte';
 	import CardGrid from '../components/CardGrid.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '../selectable';
 
 	export let id: string;

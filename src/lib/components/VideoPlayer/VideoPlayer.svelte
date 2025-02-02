@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import VideoElement from './VideoElement.svelte';
 	import type { PlaybackInfo, SubtitleInfo, Subtitles } from './VideoPlayer';
 	import classNames from 'classnames';

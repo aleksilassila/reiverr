@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../../Container.svelte';
+	import Container from '../../Container.svelte';
 	import { formatSize } from '../../../utils';
 	import Button from '../../Button.svelte';
 	import FullScreenModal from '../../Modal/FullScreenModal.svelte';

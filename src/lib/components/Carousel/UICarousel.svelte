@@ -1,7 +1,7 @@
 <script lang="ts">
 	import classNames from 'classnames';
 	import { onMount } from 'svelte';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 
 	let element: Container;
 	let scrollX = 0;

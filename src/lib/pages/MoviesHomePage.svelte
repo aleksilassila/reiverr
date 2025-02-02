@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
 	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Selectable, type FlowDirection } from './lib/selectable';
+	import { Selectable, type FlowDirection } from '../selectable';
 
 	export let name: string = '';
 	export let direction: FlowDirection = 'vertical';

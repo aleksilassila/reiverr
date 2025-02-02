@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import TextField from '../components/TextField.svelte';
 	import Button from '../components/Button.svelte';
 	import { createLocalStorageStore } from '../stores/localstorage.store';

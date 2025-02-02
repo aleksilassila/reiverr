@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 
 	export let rows: number;
 </script>

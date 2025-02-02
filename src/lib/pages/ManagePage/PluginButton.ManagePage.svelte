@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ArrowRight, ChevronRight } from 'radix-icons-svelte';
-	import Container from '../../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Button from '../../components/Button.svelte';
 	import { createModal, modalStack } from '../../components/Modal/modal.store';
 	import EditPluginDialog from './EditPluginDialog.ManagePage.svelte';

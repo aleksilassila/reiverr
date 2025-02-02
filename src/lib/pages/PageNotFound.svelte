@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useLocation, useNavigate } from 'svelte-navigator';
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { onMount } from 'svelte';
 

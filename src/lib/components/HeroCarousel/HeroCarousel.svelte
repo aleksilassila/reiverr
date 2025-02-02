@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import HeroShowcaseBackground from './HeroBackground.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';

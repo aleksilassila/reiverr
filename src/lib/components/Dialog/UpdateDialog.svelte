@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Dialog from './Dialog.svelte';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import Button from '../Button.svelte';
 	import { PLATFORM_WEB } from '../../constants';
 	import { ExternalLink, InfoCircled } from 'radix-icons-svelte';

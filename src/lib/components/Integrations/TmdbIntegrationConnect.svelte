@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../Button.svelte';
 	import { createEventDispatcher, onMount } from 'svelte';

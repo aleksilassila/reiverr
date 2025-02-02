@@ -2,12 +2,12 @@ import type {
 	MediaSource,
 	MediaUserDataDto,
 	VideoStreamCandidateDto
-} from '../../apis/reiverr/reiverr.openapi';
-import type { TmdbMovieFull2, TmdbSeason, TmdbSeriesFull2 } from '../../apis/tmdb/tmdb-api';
-import { createModal } from '../../components/Modal/modal.store';
-import { playerState } from '../../components/VideoPlayer/VideoPlayer';
-import { reiverrApiNew } from '../../stores/user.store';
-import StreamSelectorPage from '../StreamSelectorPage/StreamSelectorPage.svelte';
+} from '../../../apis/reiverr/reiverr.openapi';
+import type { TmdbMovieFull2, TmdbSeason } from '../../../apis/tmdb/tmdb-api';
+import { createModal } from '../../../components/Modal/modal.store';
+import { playerState } from '../../../components/VideoPlayer/VideoPlayer';
+import { reiverrApiNew } from '../../../stores/user.store';
+import StreamSelectorModal from '../StreamSelectorModal.svelte';
 
 type Episode = Pick<
 	NonNullable<TmdbSeason['episodes']>[0],
@@ -66,7 +66,7 @@ async function playStream(
 }
 
 export function handleOpenStreamSelector(tmdbItem: TmdbItem, userData: MediaUserDataDto) {
-	createModal(StreamSelectorPage, {
+	createModal(StreamSelectorModal, {
 		getStreams: (s) => getStreams(tmdbItem, s),
 		selectStream: (source, stream) => playStream(tmdbItem, userData, source, stream)
 	});

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
-	import Container from '../../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import FullScreenModal from '../../components/Modal/FullScreenModal.svelte';
 	import Modal from '../../components/Modal/Modal.svelte';
 	import { reiverrApiNew, sources } from '../../stores/user.store';

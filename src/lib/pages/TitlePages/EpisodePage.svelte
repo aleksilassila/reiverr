@@ -1,32 +1,32 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { useActionRequest } from '../stores/data.store';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../constants';
+	import Container from '$components/Container.svelte';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
+	import { useActionRequest } from '../../stores/data.store';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { Check, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
-	import HeroInfoTitle from '../components/HeroInfo/HeroInfoTitle.svelte';
-	import Button from '../components/Button.svelte';
-	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import { playerState } from '../components/VideoPlayer/VideoPlayer';
-	import { formatSize, retry, timeout } from '../utils';
-	import { createModal, modalStack } from '../components/Modal/modal.store';
-	import ButtonGhost from '../components/Ghosts/ButtonGhost.svelte';
+	import HeroInfoTitle from '../../components/HeroInfo/HeroInfoTitle.svelte';
+	import Button from '../../components/Button.svelte';
+	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
+	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
+	import { formatSize, retry, timeout } from '../../utils';
+	import { createModal, modalStack } from '../../components/Modal/modal.store';
+	import ButtonGhost from '../../components/Ghosts/ButtonGhost.svelte';
 	import {
 		type EpisodeFileResource,
 		sonarrApi,
 		type SonarrEpisode,
 		type SonarrSeries
-	} from '../apis/sonarr/sonarr-api';
-	import MMAddToSonarrDialog from '../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
-	import SonarrMediaManagerModal from '../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import ConfirmDialog from '../components/Dialog/ConfirmDialog.svelte';
+	} from '../../apis/sonarr/sonarr-api';
+	import MMAddToSonarrDialog from '../../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
+	import SonarrMediaManagerModal from '../../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
+	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
 	import { tick } from 'svelte';
-	import { useUserData } from '../stores/library.store';
+	import { useUserData } from '../../stores/library.store';
 	import { get, writable } from 'svelte/store';
-	import { reiverrApiNew, sources, user } from '../stores/user.store';
-	import type { MediaSource, VideoStreamCandidateDto } from '../apis/reiverr/reiverr.openapi';
-	import SelectDialog from '../components/Dialog/SelectDialog.svelte';
+	import { reiverrApiNew, sources, user } from '../../stores/user.store';
+	import type { MediaSource, VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
+	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 	import { handleOpenStreamSelector } from './MoviePage/MoviePage.shared';
 
 	export let id: string; // Series tmdbId

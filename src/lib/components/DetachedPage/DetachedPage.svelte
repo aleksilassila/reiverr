@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { type KeyEvent, type NavigateEvent, useRegistrar } from '../../selectable.js';
 	import { get } from 'svelte/store';
 	import Sidebar from '../Sidebar/Sidebar.svelte';

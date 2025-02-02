@@ -1,5 +1,5 @@
 <script>
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 </script>
 
 <Container>

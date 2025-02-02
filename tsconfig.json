@@ -14,11 +14,13 @@
 		"allowJs": true,
 		"checkJs": true,
 		"isolatedModules": true,
-		"noUncheckedIndexedAccess": true
-		//    "paths": {
-		//        "$lib/*": ["src/lib/*"],
-		//    }
+		"noUncheckedIndexedAccess": true,
+		"baseUrl": "./src",
+		"paths": {
+			"$lib/*": ["lib/*"],
+			"$components/*": ["lib/components/*"],
+			"$pages/*": ["lib/pages/*"]
+		}
 	},
-	"include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
-	"references": [{ "path": "./tsconfig.node.json" }]
+	"include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

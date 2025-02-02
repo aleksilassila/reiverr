@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { Check } from 'radix-icons-svelte';
 	import classNames from 'classnames';

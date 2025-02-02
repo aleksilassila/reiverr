@@ -1,13 +1,9 @@
 <script lang="ts">
-	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
-	import Container from '../../../Container.svelte';
-	import { formatSize } from '../../utils';
 	import { Play, Trash } from 'radix-icons-svelte';
-	import type { FileResource } from '../../apis/combined-types';
-	import type { VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import Dialog from '../../components/Dialog/Dialog.svelte';
-	import Button from '../../components/Button.svelte';
-	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
+	import Container from '$components/Container.svelte';
+	import type { VideoStreamCandidateDto } from '../../../apis/reiverr/reiverr.openapi';
+	import Button from '../../../components/Button.svelte';
+	import Dialog from '../../../components/Dialog/Dialog.svelte';
 
 	export let stream: VideoStreamCandidateDto;
 

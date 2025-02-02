@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
 	import AnimatedSelection from './AnimateScale.svelte';

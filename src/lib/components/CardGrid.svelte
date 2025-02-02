@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import { onMount } from 'svelte';
 	import classNames from 'classnames';
 	import { getCardDimensions } from '../utils';

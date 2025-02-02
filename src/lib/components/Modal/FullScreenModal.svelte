@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { modalStack } from './modal.store';
 
 	export let modalId: symbol;

@@ -2,7 +2,7 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { type Session, sessions } from '../stores/session.store.js';
 	import { reiverrApi } from '../apis/reiverr/reiverr-api';
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Button from '../components/Button.svelte';
 	import classNames from 'classnames';
 	import { navigate } from '../components/StackRouter/StackRouter';

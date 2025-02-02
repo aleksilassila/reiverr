@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
 	import type { PlaybackInfo, Subtitles, SubtitleInfo, AudioTrack } from './VideoPlayer';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
@@ -58,7 +58,7 @@
 
 	$: videoStreamP && asd();
 
-	const asd = () => 
+	const asd = () =>
 		videoStreamP.then((stream) => {
 			// async function loadPlaybackInfo(
 			// 		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}

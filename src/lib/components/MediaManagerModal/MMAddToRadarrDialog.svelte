@@ -11,7 +11,7 @@
 	import { modalStack } from '../Modal/modal.store';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { capitalize, formatSize } from '../../utils';
 	import { ArrowRight, Check, Plus } from 'radix-icons-svelte';
 	import Button from '../Button.svelte';

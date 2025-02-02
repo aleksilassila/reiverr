@@ -2,7 +2,7 @@
 	import IconButton from '../IconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
 	import type { BackEvent } from '../../selectable';
 	import { get } from 'svelte/store';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import type { FormEventHandler, HTMLInputTypeAttribute } from 'svelte/elements';
 	import { type ComponentType, createEventDispatcher } from 'svelte';
 	import { PLATFORM_TV } from '../constants';

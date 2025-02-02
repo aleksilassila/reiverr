@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import { ArrowRight, Check } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 

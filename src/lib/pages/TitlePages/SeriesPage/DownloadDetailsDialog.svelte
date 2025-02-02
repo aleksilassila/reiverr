@@ -1,16 +1,16 @@
 <script lang="ts">
-	import Dialog from '../Dialog/Dialog.svelte';
+	import Dialog from '../../../components/Dialog/Dialog.svelte';
 	import {
 		type EpisodeDownload,
 		sonarrApi,
 		type SonarrEpisode
-	} from '../../apis/sonarr/sonarr-api';
-	import Button from '../Button.svelte';
-	import Container from '../../../Container.svelte';
-	import { formatSize } from '../../utils';
+	} from '../../../apis/sonarr/sonarr-api';
+	import Button from '../../../components/Button.svelte';
+	import Container from '$components/Container.svelte';
+	import { formatSize } from '../../../utils';
 	import { Cross1 } from 'radix-icons-svelte';
-	import { capitalize } from '../../utils.js';
-	import type { Download } from '../../apis/combined-types';
+	import { capitalize } from '../../../utils.js';
+	import type { Download } from '../../../apis/combined-types';
 
 	export let download: Download;
 	export let title: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import Container from '../../Container.svelte';
+	import Container from './Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import AnimateScale from './AnimateScale.svelte';
 	import type { ComponentType } from 'svelte';

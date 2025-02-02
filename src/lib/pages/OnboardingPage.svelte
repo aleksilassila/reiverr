@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Container from '../../Container.svelte';
+	import Container from '$components/Container.svelte';
 	import Tab from '../components/Tab/Tab.svelte';
 	import Button from '../components/Button.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';

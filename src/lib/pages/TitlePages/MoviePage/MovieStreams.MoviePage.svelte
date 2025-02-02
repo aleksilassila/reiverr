@@ -1,11 +1,11 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import Container from '../../../Container.svelte';
-	import type { VideoStreamCandidateDto, MediaSource } from '../../apis/reiverr/reiverr.openapi';
-	import { scrollIntoView } from '../../selectable';
-	import { capitalize } from '../../utils';
+	import Container from '$components/Container.svelte';
+	import type { VideoStreamCandidateDto, MediaSource } from '../../../apis/reiverr/reiverr.openapi';
+	import { scrollIntoView } from '../../../selectable';
+	import { capitalize } from '../../../utils';
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
-	import { modalStack } from '../../components/Modal/modal.store';
+	import { modalStack } from '../../../components/Modal/modal.store';
 
 	export let sources: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[];
 	export let createStreamDetailsDialog: (

@@ -48,7 +48,9 @@ async function bootstrap() {
   await createAdminUser(app.get(UsersService));
 
   await app.listen(9494);
-  console.log(`Application is running on: ${await app.getUrl()} in ${NODE_ENV} mode`);
+  console.log(
+    `Application is running on: ${await app.getUrl()} in ${NODE_ENV} mode`,
+  );
 }
 
 bootstrap();

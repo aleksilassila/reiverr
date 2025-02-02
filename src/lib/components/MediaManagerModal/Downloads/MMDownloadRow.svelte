@@ -4,7 +4,7 @@
 	import type { Download } from '../../../apis/combined-types';
 	import type { CancelDownloadFn } from '../MediaManagerModal';
 	import { scrollIntoView } from '../../../selectable';
-	import Container from '../../../../Container.svelte';
+	import Container from '../../Container.svelte';
 	import classNames from 'classnames';
 	import { modalStack } from '../../Modal/modal.store';
 	import MMConfirmDeleteFileDialog from '../Dialogs/MMConfirmDeleteFileDialog.svelte';

@@ -2,7 +2,7 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from './lib/selectable';
+	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from '../selectable';
 	import classNames from 'classnames';
 
 	/**

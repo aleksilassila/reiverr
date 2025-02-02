@@ -1,10 +1,7 @@
 <script lang="ts">
-	import Container from '../../../Container.svelte';
-	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
-	import DetachedPage from '../DetachedPage/DetachedPage.svelte';
-	import { useRequest } from '../../stores/data.store';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
+	import { useRequest } from '$lib/stores/data.store';
+	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import classNames from 'classnames';
 	import {
 		Bookmark,
@@ -16,34 +13,37 @@
 		Plus,
 		Trash
 	} from 'radix-icons-svelte';
-	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
+	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
 	import {
 		type EpisodeDownload,
 		type EpisodeFileResource,
 		sonarrApi
-	} from '../../apis/sonarr/sonarr-api';
-	import Button from '../Button.svelte';
-	import { playerState } from '../VideoPlayer/VideoPlayer';
-	import { createModal, modalStack } from '../Modal/modal.store';
+	} from '$lib/apis/sonarr/sonarr-api';
+	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
+	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
 	import { get, writable } from 'svelte/store';
-	import { scrollIntoView, useRegistrar } from '../../selectable';
-	import ScrollHelper from '../ScrollHelper.svelte';
-	import Carousel from '../Carousel/Carousel.svelte';
-	import TmdbPersonCard from '../PersonCard/TmdbPersonCard.svelte';
-	import TmdbCard from '../Card/TmdbCard.svelte';
-	import EpisodeGrid from './EpisodeGrid.svelte';
-	import { formatSize } from '../../utils';
+	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import EpisodeGrid from '$lib/pages/TitlePages/SeriesPage/EpisodeGrid.svelte';
+	import { formatSize } from '$lib/utils';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
-	import SonarrMediaManagerModal from '../MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import MMAddToSonarrDialog from '../MediaManagerModal/MMAddToSonarrDialog.svelte';
-	import ConfirmDialog from '../Dialog/ConfirmDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
-	import { reiverrApiNew, sources, user } from '../../stores/user.store';
-	import type { VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import type { MediaSource } from '../../apis/reiverr/reiverr.openapi';
-	import SelectDialog from '../Dialog/SelectDialog.svelte';
-	import { useUserData } from '../../stores/library.store';
-	import { handleOpenStreamSelector } from '../../pages/MoviePage/MoviePage.shared';
+	import { reiverrApiNew, sources, user } from '$lib/stores/user.store';
+	import type { VideoStreamCandidateDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSource } from '$lib/apis/reiverr/reiverr.openapi';
+	import { useUserData } from '$lib/stores/library.store';
+	import { handleOpenStreamSelector } from '../MoviePage/MoviePage.shared';
+	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
+	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
+	import Container from '$components/Container.svelte';
+	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
+	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
+	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
+	import SonarrMediaManagerModal from '$lib/components/MediaManagerModal/SonarrMediaManagerModal.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
+	import MmAddToSonarrDialog from '$lib/components/MediaManagerModal/MMAddToSonarrDialog.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -153,7 +153,7 @@
 					onGrabRelease
 				});
 			} else if (tmdbSeries) {
-				createModal(MMAddToSonarrDialog, {
+				createModal(MmAddToSonarrDialog, {
 					title: tmdbSeries.name || '',
 					tmdbId: tmdbSeries.id || -1,
 					backdropUri: tmdbSeries.backdrop_path || '',
@@ -213,9 +213,7 @@
 							id,
 							userData.playState?.season ?? 1,
 							userData.playState?.episode ?? 1,
-							userData,
-							sourceId,
-							key
+							{ userData, sourceId, key }
 						)
 					);
 				}
@@ -230,9 +228,7 @@
 					id,
 					userData.playState?.season ?? 1,
 					userData.playState?.episode ?? 1,
-					userData,
-					sourceId,
-					key
+					{ userData, sourceId, key }
 				)
 			);
 		}

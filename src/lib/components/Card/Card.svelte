@@ -4,7 +4,7 @@
 	import ProgressBar from '../ProgressBar.svelte';
 	import LazyImg from '../LazyImg.svelte';
 	import type { TitleType } from '../../types';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import AnimatedSelection from '../AnimateScale.svelte';
 	import { navigate } from '../StackRouter/StackRouter';

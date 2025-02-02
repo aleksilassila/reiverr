@@ -10,7 +10,7 @@
 	} from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import { get, type Readable, writable, type Writable } from 'svelte/store';
-	import Container from '../../../Container.svelte';
+	import Container from '../Container.svelte';
 	import { registrars, Selectable } from '../../selectable';
 	import { stackRouter, navigate } from '../StackRouter/StackRouter';
 	import { onMount } from 'svelte';

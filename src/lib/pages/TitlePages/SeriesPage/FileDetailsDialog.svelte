@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Dialog from '../Dialog/Dialog.svelte';
-	import { sonarrApi } from '../../apis/sonarr/sonarr-api';
-	import Button from '../Button.svelte';
-	import Container from '../../../Container.svelte';
-	import { formatSize } from '../../utils';
+	import { sonarrApi } from '../../../apis/sonarr/sonarr-api';
+	import Container from '$components/Container.svelte';
+	import { formatSize } from '../../../utils';
 	import { Trash } from 'radix-icons-svelte';
-	import type { FileResource } from '../../apis/combined-types';
+	import type { FileResource } from '../../../apis/combined-types';
+	import Dialog from '../../../components/Dialog/Dialog.svelte';
+	import Button from '../../../components/Button.svelte';
 
 	export let file: FileResource;
 	export let title = '';
