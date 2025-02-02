@@ -8,10 +8,11 @@
 	import type { Selectable } from '../../selectable';
 	import { modalStack } from '../Modal/modal.store';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
-	import { ChatBubble, TextAlignLeft } from 'radix-icons-svelte';
+	import { ChatBubble, Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import IconButton from './IconButton.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
+	import { createInfoNotification } from '../Notifications/notification.store';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -41,13 +42,14 @@
 	$: if (modalHidden) video?.pause();
 	else video?.play();
 	$: if (!seeking && !modalHidden) handleShowInterface();
+	$: if (paused) handleShowInterface();
 
 	function handleShowInterface() {
 		showInterface = true;
 		clearTimeout(showInterfaceTimeout);
 		showInterfaceTimeout = setTimeout(() => {
 			if (!seeking && !modalHidden) handleHideInterface();
-		}, 4000);
+		}, 5000);
 	}
 
 	function handleHideInterface() {
@@ -141,8 +143,16 @@
 		<!--		Title-->
 	</Container>
 	{#if buffering || !videoDidLoad}
-		<div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+		>
 			<Spinner class="w-12 h-12" />
+		</div>
+	{:else if paused && showInterface}
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+		>
+			<Pause class="w-12 h-12" />
 		</div>
 	{/if}
 	<Container

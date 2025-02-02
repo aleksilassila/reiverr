@@ -11,6 +11,7 @@
 	import { capitalize } from '../../utils';
 	import { ChevronRight, Play } from 'radix-icons-svelte';
 	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
+	import { scrollIntoView } from '$lib/selectable';
 
 	export let modalId: symbol;
 	export let getStreams: (source: MediaSource) => Promise<VideoStreamCandidateDto[]>;
@@ -68,7 +69,11 @@
 				Loading...
 			{:then streams}
 				{#each streams ?? [] as stream}
-					<Container on:clickOrSelect={() => selectStream(s, stream)} let:hasFocus>
+					<Container
+						on:clickOrSelect={() => selectStream(s, stream)}
+						on:enter={scrollIntoView({ vertical: 64 })}
+						let:hasFocus
+					>
 						<span
 							class={classNames('text-3xl font-semibold flex items-center', {
 								'text-secondary-400': !hasFocus,

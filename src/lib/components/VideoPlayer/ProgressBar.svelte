@@ -35,13 +35,32 @@
 		dispatch('jumpTo', progressTime);
 	}
 
+	let pauseTime = 0;
+	const handlePause = (paused: boolean) => {
+		if (paused) {
+			pauseTime = progressTime;
+		} else if (pauseTime > 0) {
+			dispatch('jumpTo', pauseTime);
+			pauseTime = 0;
+		}
+	};
+	$: handlePause(paused);
+
 	function handleNavigateEvent({ detail }: CustomEvent<NavigateEvent>) {
 		if (detail.direction === 'left') {
-			dispatch('jumpTo', progressTime - 10);
-			detail.preventNavigation();
+			if (paused) {
+				pauseTime = pauseTime - 10;
+			} else {
+				dispatch('jumpTo', progressTime - 10);
+				detail.preventNavigation();
+			}
 		} else if (detail.direction === 'right') {
-			dispatch('jumpTo', progressTime + 30);
-			detail.preventNavigation();
+			if (paused) {
+				pauseTime = pauseTime + 30;
+			} else {
+				dispatch('jumpTo', progressTime + 30);
+				detail.preventNavigation();
+			}
 		}
 	}
 </script>
@@ -67,9 +86,9 @@
 		<!-- Primary progress -->
 		<div
 			class="absolute inset-y-1 inset-x-2 rounded-full bg-secondary-100 transition-transform"
-			style={`left: 0.5rem; right: calc(${(1 - progressTime / totalTime) * 100}% - 0.5rem + ${
-				progressTime / totalTime
-			}rem);`}
+			style={`left: 0.5rem; right: calc(${
+				(1 - (pauseTime > 0 ? pauseTime : progressTime) / totalTime) * 100
+			}% - 0.5rem + ${(pauseTime > 0 ? pauseTime : progressTime) / totalTime}rem);`}
 		/>
 
 		<div
@@ -79,7 +98,9 @@
 					'opacity-0 group-hover:opacity-100': !hasFocus
 				}
 			)}
-			style={`left: calc(${(progressTime / totalTime) * 100}% - ${progressTime / totalTime}rem);
+			style={`left: calc(${((pauseTime > 0 ? pauseTime : progressTime) / totalTime) * 100}% - ${
+				(pauseTime > 0 ? pauseTime : progressTime) / totalTime
+			}rem);
 		box-shadow: 0 0 0.25rem 2px #00000033;
 		`}
 		/>
@@ -98,7 +119,7 @@
 		/>
 	</Container>
 	<div class="flex justify-between px-2 pt-4 text-lg">
-		<span>{formatSecondsToTime(progressTime)}</span>
-		<span>-{formatSecondsToTime(totalTime - progressTime)}</span>
+		<span>{formatSecondsToTime(pauseTime || progressTime)}</span>
+		<span>-{formatSecondsToTime(totalTime - (pauseTime || progressTime))}</span>
 	</div>
 </div>

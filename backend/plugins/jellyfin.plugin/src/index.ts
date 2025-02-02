@@ -599,6 +599,11 @@ export default class JellyfinPlugin implements SourcePlugin {
 
     if (!proxyRes) return;
 
+    proxyRes.headers.forEach((value, name) => {
+      console.log('jellyfin proxy header', name, value);
+      res.setHeader(name, value);
+    });
+
     res.status(proxyRes.status);
     Readable.from(proxyRes.body).pipe(res);
   };
