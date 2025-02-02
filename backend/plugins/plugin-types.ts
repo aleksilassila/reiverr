@@ -151,6 +151,7 @@ export interface SourcePlugin {
 
   getEpisodeStream: (
     tmdbId: string,
+    series: string,
     season: number,
     episode: number,
     key: string,
@@ -160,6 +161,7 @@ export interface SourcePlugin {
 
   getEpisodeStreams: (
     tmdbId: string,
+    series: string,
     season: number,
     episode: number,
     context: UserContext,

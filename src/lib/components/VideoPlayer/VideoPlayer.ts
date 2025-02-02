@@ -51,10 +51,14 @@ function usePlayerState() {
 
 	async function streamTmdbMovie(
 		tmdbId: string,
-		userData: MediaUserDataDto,
-		sourceId: string = '',
-		key: string = ''
+		options: {
+			userData?: MediaUserDataDto;
+			sourceId?: string;
+			key?: string;
+		}
 	) {
+		let { sourceId, key, userData } = options;
+
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
@@ -77,7 +81,7 @@ function usePlayerState() {
 			tmdbId,
 			sourceId,
 			key,
-			progress: userData.playState?.progress || 0
+			progress: userData?.playState?.progress ?? 0
 		});
 	}
 
@@ -85,10 +89,13 @@ function usePlayerState() {
 		tmdbId: string,
 		season: number,
 		episode: number,
-		userData: MediaUserDataDto,
-		sourceId: string = '',
-		key: string = ''
+		options: {
+			sourceId?: string;
+			key?: string;
+			userData?: MediaUserDataDto;
+		} = {}
 	) {
+		let { sourceId, key, userData } = options;
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
@@ -114,7 +121,7 @@ function usePlayerState() {
 			season,
 			sourceId,
 			key,
-			progress: userData.playState?.progress || 0
+			progress: userData?.playState?.progress ?? 0
 		});
 	}
 

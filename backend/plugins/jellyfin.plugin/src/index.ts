@@ -238,6 +238,7 @@ export default class JellyfinPlugin implements SourcePlugin {
 
   async getEpisodeStreams(
     tmdbId: string,
+    _,
     season: number,
     episode: number,
     userContext: JellyfinUserContext,
@@ -245,6 +246,7 @@ export default class JellyfinPlugin implements SourcePlugin {
   ): Promise<VideoStreamCandidate[]> {
     return this.getEpisodeStream(
       tmdbId,
+      '',
       season,
       episode,
       '',
@@ -412,6 +414,7 @@ export default class JellyfinPlugin implements SourcePlugin {
 
   async getEpisodeStream(
     tmdbId: string,
+    _,
     seasonNumber: number,
     episodeNumber: number,
     key: string,

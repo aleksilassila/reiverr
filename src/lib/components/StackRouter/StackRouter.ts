@@ -13,6 +13,7 @@ import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
 import UiComponents from '../../pages/UiComponents.svelte';
+import StreamSelectorPage from '../../pages/StreamSelectorPage/StreamSelectorPage.svelte';
 
 interface Page {
 	id: symbol;

@@ -118,6 +118,7 @@
 	on:playing={() => (buffering = false)}
 	on:dblclick
 	on:click={togglePlay}
+	on:error={(e) => console.error('Error loading video', e)}
 	autoplay
 	playsinline
 	crossorigin="anonymous"

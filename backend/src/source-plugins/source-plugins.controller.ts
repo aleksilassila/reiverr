@@ -92,6 +92,15 @@ export class SourcesController {
     };
   }
 
+  async getSeriesMetadata(tmdbId: string) {
+    const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
+
+    return {
+      title: metadata.tmdbSeries?.name,
+      tmdbId,
+    };
+  }
+
   @Get('sources')
   @ApiOkResponse({
     description: 'All source plugins found',
@@ -204,8 +213,8 @@ export class SourcesController {
     type: VideoStreamListDto,
   })
   async getMovieStreams(
-    @Param('tmdbId') tmdbId: string, // TODO: Reorder params
     @Param('sourceId') sourceId: string,
+    @Param('tmdbId') tmdbId: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
   ): Promise<VideoStreamListDto> {
@@ -266,7 +275,7 @@ export class SourcesController {
     'sources/:sourceId/shows/tmdb/:tmdbId/season/:season/episode/:episode/streams',
   )
   @ApiOkResponse({
-    description: 'Movie sources',
+    description: 'Episode sources',
     type: VideoStreamListDto,
   })
   async getEpisodeStreams(
@@ -289,10 +298,22 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    const streams = await plugin.getEpisodeStreams(tmdbId, season, episode, {
-      settings,
-      token,
-    });
+    const metadata = await this.getSeriesMetadata(tmdbId);
+
+    if (!metadata.title) {
+      throw new NotFoundException('Show not found');
+    }
+
+    const streams = await plugin.getEpisodeStreams(
+      tmdbId,
+      metadata.title,
+      season,
+      episode,
+      {
+        settings,
+        token,
+      },
+    );
 
     return {
       streams,
@@ -377,9 +398,16 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
+    const metadata = await this.getSeriesMetadata(tmdbId);
+
+    if (!metadata.title) {
+      throw new NotFoundException('Show not found');
+    }
+
     return plugin
       .getEpisodeStream(
         tmdbId,
+        metadata.title || '',
         season,
         episode,
         key || '',

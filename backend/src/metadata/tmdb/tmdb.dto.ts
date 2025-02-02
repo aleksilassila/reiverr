@@ -17,9 +17,15 @@ export type TmdbMovie = Awaited<
   ReturnType<TmdbApi['v3']['movieDetails']>
 >['data'];
 
+export type TmdbSeries = Awaited<
+  ReturnType<TmdbApi['v3']['tvSeriesDetails']>
+>['data'];
+
 export type TmdbMovieFull = TmdbMovie & {
   videos: MovieVideos; // Proxy or to not proxy
   credits: MovieCredits;
   external_ids: MovieExternalIds;
   images: MovieImages;
 };
+
+export type TmdbSeriesFull = TmdbSeries;

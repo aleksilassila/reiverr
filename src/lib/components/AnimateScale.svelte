@@ -9,6 +9,8 @@
 </script>
 
 <div
+	{...$$restProps}
+	style={useTransitions ? 'transition: transform 200ms;' : ''}
 	class={classNames(
 		'relative',
 		{
@@ -18,8 +20,6 @@
 		},
 		$$restProps.class
 	)}
-	style={useTransitions ? 'transition: transform 200ms;' : ''}
-	{...$$restProps}
 >
 	<slot />
 </div>

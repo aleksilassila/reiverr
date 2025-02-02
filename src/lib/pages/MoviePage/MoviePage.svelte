@@ -31,6 +31,9 @@
 	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
 	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 	import { useUserData } from '../../stores/library.store';
+	import { navigate } from '../../components/StackRouter/StackRouter';
+	import StreamSelectorPage from '../StreamSelectorPage/StreamSelectorPage.svelte';
+	import { handleOpenStreamSelector } from './MoviePage.shared';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -153,7 +156,7 @@
 			backgroundUrl: TMDB_BACKDROP_SMALL + movie?.backdrop_path || '',
 			streamMovie: () =>
 				movieUserData.then((userData) =>
-					playerState.streamMovie(id, userData, source.id, stream.key)
+					playerState.streamMovie(id, { userData, sourceId: source.id, key: stream.key })
 				),
 			onDelete: () => (radarrFiles = getFiles(radarrItem))
 		});
@@ -174,7 +177,9 @@
 				options: awaited.map((p) => p.source.id),
 				handleSelectOption: (sourceId) => {
 					const key = awaited.find((p) => p.source.id === sourceId)?.streams[0]?.key;
-					movieUserData.then((userData) => playerState.streamMovie(id, userData, sourceId, key));
+					movieUserData.then((userData) =>
+						playerState.streamMovie(id, { userData, sourceId, key })
+					);
 				}
 			});
 		} else if (numberOfStreams === 1) {
@@ -182,7 +187,7 @@
 			const sourceId = asd?.source.id;
 			const key = asd?.streams[0]?.key;
 
-			movieUserData.then((userData) => playerState.streamMovie(id, userData, sourceId, key));
+			movieUserData.then((userData) => playerState.streamMovie(id, { userData, sourceId, key }));
 		}
 	}
 </script>
@@ -245,7 +250,15 @@
 						on:back={handleGoBack}
 						on:mount={registrar}
 					>
-						<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
+						<Button
+							class="mr-4"
+							action={handlePlay}
+							secondaryAction={() =>
+								Promise.all([tmdbMovie, movieUserData]).then(([tmdbMovie, userData]) => {
+									tmdbMovie && handleOpenStreamSelector(tmdbMovie, userData);
+								})}
+							disabled={!$availableForStreaming}
+						>
 							Play
 							<Play size={19} slot="icon" />
 						</Button>

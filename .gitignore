@@ -13,6 +13,9 @@ vite.config.ts.timestamp-*
 /config/*.sqlite
 /dist
 
+backend/plugins/*
+!backend/plugins/jellyfin.plugin
+
 # Logs
 logs
 *.log

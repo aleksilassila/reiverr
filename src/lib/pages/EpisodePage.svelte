@@ -27,8 +27,9 @@
 	import { reiverrApiNew, sources, user } from '../stores/user.store';
 	import type { MediaSource, VideoStreamCandidateDto } from '../apis/reiverr/reiverr.openapi';
 	import SelectDialog from '../components/Dialog/SelectDialog.svelte';
+	import { handleOpenStreamSelector } from './MoviePage/MoviePage.shared';
 
-	export let id: string; // Series ID
+	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
@@ -177,9 +178,7 @@
 							id,
 							userData.playState?.season ?? Number(season) ?? 1,
 							userData.playState?.episode ?? Number(episode) ?? 1,
-							userData,
-							sourceId,
-							key
+							{ userData, sourceId, key }
 						)
 					);
 				}
@@ -194,9 +193,7 @@
 					id,
 					userData.playState?.season ?? 1,
 					userData.playState?.episode ?? 1,
-					userData,
-					sourceId,
-					key
+					{ userData, sourceId, key }
 				)
 			);
 		}
@@ -262,7 +259,16 @@
 				{tmdbEpisode?.overview}
 			</div>
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
-				<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
+				<Button
+					class="mr-4"
+					action={handlePlay}
+					secondaryAction={() =>
+						Promise.all([tmdbEpisode, episodeUserData]).then(([tmdbEpisode, userData]) => {
+							tmdbEpisode &&
+								handleOpenStreamSelector({ ...tmdbEpisode, show_id: Number(id) }, userData);
+						})}
+					disabled={!$availableForStreaming}
+				>
 					Play
 					<Play size={19} slot="icon" />
 				</Button>

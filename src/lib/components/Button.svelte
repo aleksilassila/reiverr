@@ -5,6 +5,7 @@
 	import AnimatedSelection from './AnimateScale.svelte';
 	import { type ComponentType, createEventDispatcher } from 'svelte';
 	import type { Selectable } from '../selectable';
+	import { DotsVertical } from 'radix-icons-svelte';
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
@@ -14,6 +15,7 @@
 	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
 	export let confirmDanger = false;
 	export let action: (() => Promise<any>) | null = null;
+	export let secondaryAction: (() => Promise<any> | any) | null = null;
 	export let icon: ComponentType | undefined = undefined;
 	export let iconAfter: ComponentType | undefined = undefined;
 	export let iconAbsolute: ComponentType | undefined = undefined;
@@ -22,6 +24,7 @@
 	$: _disabled = disabled || actionIsFetching;
 	let armed = false;
 	let hasFocus: Readable<boolean>;
+	let hasSecondaryFocus: Readable<boolean>;
 	$: if (!$hasFocus && armed) armed = false;
 
 	function handleClickOrSelect({ detail: selectable }: { detail: Selectable }) {
@@ -43,22 +46,25 @@
 	}
 </script>
 
-<AnimatedSelection hasFocus={$hasFocus} enabled={!disabled}>
+<AnimatedSelection
+	hasFocus={$hasFocus || $hasSecondaryFocus}
+	enabled={!disabled}
+	class={classNames('flex items-center font-medium tracking-wide ', {}, $$restProps.class)}
+>
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'h-12 rounded-xl font-medium tracking-wide flex items-center group',
+			'h-12 flex items-center group',
+			secondaryAction ? 'rounded-l-xl' : 'rounded-xl',
+			(type === 'primary' || type === 'primary-dark') && (secondaryAction ? 'pl-6 pr-5' : 'px-6'),
+			_disabled ? 'cursor-not-allowed pointer-events-none opacity-40' : 'cursor-pointer',
 			{
-				'bg-secondary-800': type === 'primary',
-				'bg-primary-900': type === 'primary-dark',
-				'selectable px-6': type === 'primary' || type === 'primary-dark',
+				'bg-secondary-800 selectable': type === 'primary',
+				'bg-primary-900 selectable': type === 'primary-dark',
 				'border-2 p-1 hover:border-primary-500': type === 'secondary',
 				'border-primary-500': type === 'secondary' && $hasFocus,
-				'!border-red-500': confirmDanger && armed,
-				'cursor-pointer': !_disabled,
-				'cursor-not-allowed pointer-events-none opacity-40': _disabled
-			},
-			$$restProps.class
+				'!border-red-500': confirmDanger && armed
+			}
 		)}
 		on:click
 		on:select
@@ -113,4 +119,21 @@
 			</div>
 		</div>
 	</Container>
+	{#if secondaryAction !== null}
+		<div class="w-0.5 h-full bg-secondary-700" />
+		<Container
+			bind:hasFocus={hasSecondaryFocus}
+			class={classNames('rounded-r-xl h-12 flex items-center group cursor-pointer', {
+				'bg-secondary-800 selectable pl-2 pr-2': type === 'primary',
+				'bg-primary-900 selectable pl-2 pr-2': type === 'primary-dark',
+				'border-2 p-1 hover:border-primary-500 cursor-pointer': type === 'secondary' && !_disabled,
+				'border-primary-500': type === 'secondary' && $hasFocus,
+				'!border-red-500': confirmDanger && armed,
+				'cursor-not-allowed pointer-events-none opacity-40': _disabled
+			})}
+			on:clickOrSelect={secondaryAction}
+		>
+			<DotsVertical size={18} class="" />
+		</Container>
+	{/if}
 </AnimatedSelection>

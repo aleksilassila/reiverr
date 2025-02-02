@@ -5,7 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TmdbMovieFull } from './tmdb/tmdb.dto';
+import { TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto';
 
 @Entity()
 export class Movie {
@@ -19,6 +19,23 @@ export class Movie {
 
   @Column('json')
   tmdbMovie: TmdbMovieFull;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}
+
+@Entity()
+export class Series {
+  @ApiProperty({ required: false, type: 'string' })
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ApiProperty({ required: true, type: 'string' })
+  @Column({ unique: true })
+  tmdbId: string;
+
+  @Column('json')
+  tmdbSeries: TmdbSeriesFull;
 
   @UpdateDateColumn()
   updatedAt: Date;

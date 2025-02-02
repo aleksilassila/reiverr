@@ -43,6 +43,7 @@
 	import type { MediaSource } from '../../apis/reiverr/reiverr.openapi';
 	import SelectDialog from '../Dialog/SelectDialog.svelte';
 	import { useUserData } from '../../stores/library.store';
+	import { handleOpenStreamSelector } from '../../pages/MoviePage/MoviePage.shared';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -50,20 +51,25 @@
 	const showUserData = reiverrApiNew.users
 		.getShowUserData($user?.id as string, id)
 		.then((r) => r.data);
-	const streams = getStreams();
 
-	const availableForStreaming = writable(false);
 	const { inLibrary, progress, handleAddToLibrary, handleRemoveFromLibrary } = useUserData(
 		'Series',
 		id,
 		showUserData
 	);
 
+	//
+
+	const availableForStreaming = writable(false);
+	const streams = getStreams();
 	streams.forEach((p) =>
 		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
 	);
 
 	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getTmdbSeries, tmdbId);
+	let tmdbSeasons = $tmdbSeries.then((series) =>
+		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
+	);
 	let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, tmdbId);
 
@@ -304,7 +310,15 @@
 							on:back={handleGoBack}
 							on:mount={registrar}
 						>
-							<Button class="mr-4" action={handlePlay} disabled={!$availableForStreaming}>
+							<Button
+								class="mr-4"
+								action={handlePlay}
+								secondaryAction={() =>
+									Promise.all([$tmdbSeries, showUserData]).then(([tmdbSeries, userData]) => {
+										tmdbSeries && handleOpenStreamSelector(tmdbSeries, userData);
+									})}
+								disabled={!$availableForStreaming}
+							>
 								Play
 								<Play size={19} slot="icon" />
 							</Button>
@@ -358,7 +372,8 @@
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}
 				id={Number(id)}
-				tmdbSeries={tmdbSeriesData}
+				tmdbSeries={$tmdbSeries}
+				{tmdbSeasons}
 				{jellyfinEpisodes}
 				currentJellyfinEpisode={nextJellyfinEpisode}
 				{handleRequestSeason}

@@ -1244,7 +1244,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * @name GetMovieStreams
 		 * @request GET:/api/sources/{sourceId}/movies/tmdb/{tmdbId}/streams
 		 */
-		getMovieStreams: (tmdbId: string, sourceId: string, params: RequestParams = {}) =>
+		getMovieStreams: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
 			this.request<VideoStreamListDto, any>({
 				path: `/api/sources/${sourceId}/movies/tmdb/${tmdbId}/streams`,
 				method: 'GET',

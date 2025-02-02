@@ -9,7 +9,7 @@
 	export let episodeNumber: number;
 	export let episodeName: string;
 	export let backdropUrl: string;
-	export let handlePlay: (() => void) | undefined;
+	export let handlePlay: (() => void) | undefined = undefined
 	export let isWatched = false;
 	export let playbackProgress = 0;
 
