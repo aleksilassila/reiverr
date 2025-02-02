@@ -76,14 +76,14 @@
 				// 	!isOnDeck && !$hasFocus
 			})}
 		/>
-		<div
+		<!-- <div
 			class={classNames(
 				'opacity-0 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'
 			)}
 		>
-			{#if handlePlay}
-				<!-- svelte-ignore a11y-click-events-have-key-events -->
-				<div
+			{#if handlePlay} -->
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- <div
 					class={classNames(
 						'rounded-full p-2.5 cursor-pointer',
 						'bg-zinc-900/90 text-zinc-200',
@@ -92,8 +92,8 @@
 					on:click={handlePlay}
 				>
 					<TriangleRight size={32} />
-				</div>
-			{:else if !isOnDeck}
+				</div> -->
+		<!-- {:else if !isOnDeck}
 				<div
 					class={classNames(
 						'rounded-full p-4 cursor-pointer',
@@ -104,7 +104,7 @@
 					<ArrowDown size={19} />
 				</div>
 			{/if}
-		</div>
+		</div> -->
 	</Container>
 	<div class="mt-2 flex items-center justify-between">
 		<div class="">

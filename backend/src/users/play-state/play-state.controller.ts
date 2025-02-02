@@ -22,19 +22,18 @@ export class PlayStateController {
   constructor(private playStateService: PlayStateService) {}
 
   @Put('movie/tmdb/:tmdbId')
-  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
+  // @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   async updateMoviePlayStateByTmdbId(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Body() playState: UpdatePlayStateDto,
-    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
-    mediaType?: MediaType,
+    // @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
+    // mediaType?: MediaType,
   ) {
     return this.playStateService.updateOrCreateMoviePlayState(
       userId,
       tmdbId,
       playState,
-      mediaType,
     );
   }
 

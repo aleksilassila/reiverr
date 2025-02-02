@@ -101,7 +101,7 @@ function useUser() {
 			refreshUser
 		},
 		sources: {
-			subscribe: sources.subscribe
+			subscribe: sources.subscribe,
 		},
 		isAppInitialized: {
 			subscribe: isAppInitialized.subscribe

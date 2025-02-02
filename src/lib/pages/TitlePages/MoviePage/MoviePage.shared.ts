@@ -1,6 +1,6 @@
 import type {
 	MediaSource,
-	MediaUserDataDto,
+	MovieUserDataDto,
 	VideoStreamCandidateDto
 } from '../../../apis/reiverr/reiverr.openapi';
 import type { TmdbMovieFull2, TmdbSeason } from '../../../apis/tmdb/tmdb-api';
@@ -39,7 +39,7 @@ async function getStreams(
 
 async function playStream(
 	tmdbItem: TmdbItem,
-	userData: MediaUserDataDto,
+	userData: MovieUserDataDto,
 	source: MediaSource,
 	stream: VideoStreamCandidateDto
 ) {
@@ -65,7 +65,7 @@ async function playStream(
 	}
 }
 
-export function handleOpenStreamSelector(tmdbItem: TmdbItem, userData: MediaUserDataDto) {
+export function handleOpenStreamSelector(tmdbItem: TmdbItem, userData: MovieUserDataDto) {
 	createModal(StreamSelectorModal, {
 		getStreams: (s) => getStreams(tmdbItem, s),
 		selectStream: (source, stream) => playStream(tmdbItem, userData, source, stream)

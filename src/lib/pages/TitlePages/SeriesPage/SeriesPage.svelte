@@ -1,7 +1,30 @@
 <script lang="ts">
-	import { useRequest } from '$lib/stores/data.store';
+	import Container from '$components/Container.svelte';
+	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
+	import {
+		type EpisodeDownload,
+		type EpisodeFileResource,
+		sonarrApi
+	} from '$lib/apis/sonarr/sonarr-api';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import Button from '$lib/components/Button.svelte';
+	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
+	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
+	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
+	import MmAddToSonarrDialog from '$lib/components/MediaManagerModal/MMAddToSonarrDialog.svelte';
+	import SonarrMediaManagerModal from '$lib/components/MediaManagerModal/SonarrMediaManagerModal.svelte';
+	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
+	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
+	import JellyfinEpisodeGrid from '$lib/pages/TitlePages/SeriesPage/JellyfinEpisodeGrid.svelte';
+	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { useRequest } from '$lib/stores/data.store';
+	import { useSeriesUserData } from '$lib/stores/library.store';
+	import { reiverrApiNew, user } from '$lib/stores/user.store';
+	import { formatSize, formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
 	import {
 		Bookmark,
@@ -13,60 +36,43 @@
 		Plus,
 		Trash
 	} from 'radix-icons-svelte';
-	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
-	import {
-		type EpisodeDownload,
-		type EpisodeFileResource,
-		sonarrApi
-	} from '$lib/apis/sonarr/sonarr-api';
-	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
-	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
 	import { get, writable } from 'svelte/store';
-	import { scrollIntoView, useRegistrar } from '$lib/selectable';
-	import EpisodeGrid from '$lib/pages/TitlePages/SeriesPage/EpisodeGrid.svelte';
-	import { formatSize } from '$lib/utils';
-	import FileDetailsDialog from './FileDetailsDialog.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
-	import { reiverrApiNew, sources, user } from '$lib/stores/user.store';
-	import type { VideoStreamCandidateDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import type { MediaSource } from '$lib/apis/reiverr/reiverr.openapi';
-	import { useUserData } from '$lib/stores/library.store';
-	import { handleOpenStreamSelector } from '../MoviePage/MoviePage.shared';
-	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
-	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
-	import Container from '$components/Container.svelte';
-	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
-	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
-	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
-	import SonarrMediaManagerModal from '$lib/components/MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
-	import MmAddToSonarrDialog from '$lib/components/MediaManagerModal/MMAddToSonarrDialog.svelte';
+	import FileDetailsDialog from './FileDetailsDialog.svelte';
+	import EpisodeGrid from './EpisodeGrid.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
 
+	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getTmdbSeries, tmdbId);
+
 	const showUserData = reiverrApiNew.users
-		.getShowUserData($user?.id as string, id)
+		.getSeriesUserData($user?.id as string, id)
 		.then((r) => r.data);
 
-	const { inLibrary, progress, handleAddToLibrary, handleRemoveFromLibrary } = useUserData(
-		'Series',
+	const {
+		inLibrary,
+		handleAddToLibrary,
+		handleRemoveFromLibrary,
+		nextEpisode,
+		episodesUserData,
+		handleAutoplay,
+		handleStreamSelector,
+		canStream
+	} = useSeriesUserData(
 		id,
-		showUserData
+		showUserData,
+		// @ts-ignore
+		$tmdbSeries
 	);
 
 	//
 
-	const availableForStreaming = writable(false);
-	const streams = getStreams();
-	streams.forEach((p) =>
-		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
-	);
+	// const streams = getStreams();
+	// streams.forEach((p) =>
+	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	// );
 
-	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getTmdbSeries, tmdbId);
 	let tmdbSeasons = $tmdbSeries.then((series) =>
 		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
 	);
@@ -105,24 +111,24 @@
 	// 	hideInterface = !!modal;
 	// });
 
-	function getStreams() {
-		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
+	// function getStreams() {
+	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
 
-		for (const source of get(sources)) {
-			out.push({
-				source: source.source,
-				streams: showUserData.then((userData) => {
-					const { season, episode } = userData.playState ?? {};
+	// 	for (const source of get(sources)) {
+	// 		out.push({
+	// 			source: source.source,
+	// 			streams: showUserData.then((userData) => {
+	// 				const { season, episode } = userData.playState ?? {};
 
-					return reiverrApiNew.sources
-						.getEpisodeStreams(source.source.id, id, season ?? 1, episode ?? 1)
-						.then((r) => r.data?.streams ?? []);
-				})
-			});
-		}
+	// 				return reiverrApiNew.sources
+	// 					.getEpisodeStreams(source.source.id, id, season ?? 1, episode ?? 1)
+	// 					.then((r) => r.data?.streams ?? []);
+	// 			})
+	// 		});
+	// 	}
 
-		return out;
-	}
+	// 	return out;
+	// }
 
 	function getJellyfinSeries(id: string) {
 		return jellyfinApi.getLibraryItemFromTmdbId(id);
@@ -195,44 +201,44 @@
 		});
 	}
 
-	async function handlePlay() {
-		const awaitedStreams = await Promise.all(
-			streams.map(async (p) => ({ ...p, streams: await p.streams }))
-		).then((d) => d.filter((p) => p.streams.length > 0));
+	// async function handlePlay() {
+	// 	const awaitedStreams = await Promise.all(
+	// 		streams.map(async (p) => ({ ...p, streams: await p.streams }))
+	// 	).then((d) => d.filter((p) => p.streams.length > 0));
 
-		if (awaitedStreams.length > 1) {
-			modalStack.create(SelectDialog, {
-				title: 'Select Media Source',
-				subtitle: 'Select the media source you want to use',
-				options: awaitedStreams.map((p) => p.source.id),
-				handleSelectOption: (sourceId) => {
-					const s = awaitedStreams.find((p) => p.source.id === sourceId);
-					const key = s?.streams[0]?.key;
-					showUserData.then((userData) =>
-						playerState.streamEpisode(
-							id,
-							userData.playState?.season ?? 1,
-							userData.playState?.episode ?? 1,
-							{ userData, sourceId, key }
-						)
-					);
-				}
-			});
-		} else if (awaitedStreams.length === 1) {
-			const asd = awaitedStreams.find((p) => p.streams.length > 0);
-			const sourceId = asd?.source.id;
-			const key = asd?.streams[0]?.key;
+	// 	if (awaitedStreams.length > 1) {
+	// 		modalStack.create(SelectDialog, {
+	// 			title: 'Select Media Source',
+	// 			subtitle: 'Select the media source you want to use',
+	// 			options: awaitedStreams.map((p) => p.source.id),
+	// 			handleSelectOption: (sourceId) => {
+	// 				const s = awaitedStreams.find((p) => p.source.id === sourceId);
+	// 				const key = s?.streams[0]?.key;
+	// 				showUserData.then((userData) =>
+	// 					playerState.streamEpisode(
+	// 						id,
+	// 						userData.playState?.season ?? 1,
+	// 						userData.playState?.episode ?? 1,
+	// 						{ userData, sourceId, key }
+	// 					)
+	// 				);
+	// 			}
+	// 		});
+	// 	} else if (awaitedStreams.length === 1) {
+	// 		const asd = awaitedStreams.find((p) => p.streams.length > 0);
+	// 		const sourceId = asd?.source.id;
+	// 		const key = asd?.streams[0]?.key;
 
-			showUserData.then((userData) =>
-				playerState.streamEpisode(
-					id,
-					userData.playState?.season ?? 1,
-					userData.playState?.episode ?? 1,
-					{ userData, sourceId, key }
-				)
-			);
-		}
-	}
+	// 		showUserData.then((userData) =>
+	// 			playerState.streamEpisode(
+	// 				id,
+	// 				userData.playState?.season ?? 1,
+	// 				userData.playState?.episode ?? 1,
+	// 				{ userData, sourceId, key }
+	// 			)
+	// 		);
+	// 	}
+	// }
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -273,7 +279,7 @@
 								{series.name}
 							</div>
 							<div
-								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
+								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
 							>
 								<p class="flex-shrink-0">
 									{#if series.status !== 'Ended'}
@@ -286,9 +292,13 @@
 								<p class="flex-shrink-0">{movie.runtime}</p> -->
 								<DotFilled />
 								<p class="flex-shrink-0">
-									<a href={'https://www.themoviedb.org/movie/' + series.id}
-										>{series.vote_average} TMDB</a
+									<a href={'https://www.themoviedb.org/tv/' + series.id}
+										>{series.vote_average} TMDB ({formatThousands(series.vote_count ?? 0)})</a
 									>
+								</p>
+								<DotFilled />
+								<p class="flex-shrink-0">
+									{series.genres?.map((g) => g.name).join(', ')}
 								</p>
 							</div>
 							<div
@@ -308,14 +318,15 @@
 						>
 							<Button
 								class="mr-4"
-								action={handlePlay}
-								secondaryAction={() =>
-									Promise.all([$tmdbSeries, showUserData]).then(([tmdbSeries, userData]) => {
-										tmdbSeries && handleOpenStreamSelector(tmdbSeries, userData);
-									})}
-								disabled={!$availableForStreaming}
+								action={handleAutoplay}
+								secondaryAction={handleStreamSelector}
+								disabled={!$canStream}
 							>
-								Play
+								{#if $nextEpisode?.episode && $nextEpisode?.season}
+									Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
+								{:else}
+									Play
+								{/if}
 								<Play size={19} slot="icon" />
 							</Button>
 							{#if !$inLibrary}
@@ -364,7 +375,7 @@
 				// 'opacity-0': hideInterface
 			})}
 		>
-			<EpisodeGrid
+			<!-- <JellyfinEpisodeGrid
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}
 				id={Number(id)}
@@ -372,6 +383,15 @@
 				{tmdbSeasons}
 				{jellyfinEpisodes}
 				currentJellyfinEpisode={nextJellyfinEpisode}
+				{handleRequestSeason}
+			/> -->
+			<EpisodeGrid
+				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
+				on:mount={episodeCards.registrar}
+				{tmdbId}
+				tmdbSeries={$tmdbSeries}
+				nextEpisode={nextEpisode}
+				episodesUserData={$episodesUserData}
 				{handleRequestSeason}
 			/>
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">

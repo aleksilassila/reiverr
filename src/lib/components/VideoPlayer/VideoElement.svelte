@@ -2,6 +2,10 @@
 	import Hls from 'hls.js';
 	import { isTizen } from '../../utils/browser-detection';
 	import type { PlaybackInfo, SubtitleInfo } from './VideoPlayer';
+	import {
+		createErrorNotification,
+		createInfoNotification
+	} from '../Notifications/notification.store';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -101,7 +105,9 @@
 	bind:duration={totalTime}
 	bind:volume
 	bind:muted
-	on:timeupdate={() => (progressTime = !seeking && videoDidLoad ? video.currentTime : progressTime)}
+	on:timeupdate={() => {
+		progressTime = !seeking && videoDidLoad ? video.currentTime : progressTime;
+	}}
 	on:progress={handleProgress}
 	on:loadeddata={() => {
 		// console.log('video loaded', video.currentTime, video.duration, playbackInfo?.progress);
@@ -113,12 +119,17 @@
 		}
 
 		console.log('Video loaded');
+		createInfoNotification('Video loaded');
 	}}
 	on:waiting={() => (buffering = true)}
 	on:playing={() => (buffering = false)}
 	on:dblclick
 	on:click={togglePlay}
-	on:error={(e) => console.error('Error loading video', e)}
+	on:error={(e) => {
+		createErrorNotification('Error loading video', 'Unsupported video format');
+	}}
+	on:loadstart={() => createInfoNotification('Loading video')}
+	on:loadedmetadata={() => createInfoNotification('Loaded metadata')}
 	autoplay
 	playsinline
 	crossorigin="anonymous"

@@ -65,12 +65,12 @@
 			if (season !== undefined && episode !== undefined) {
 				reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
 					progress: video.currentTime / video?.duration,
-					watched: progressTime > 0.9
+					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
 			} else {
 				reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
 					progress: video.currentTime / video?.duration,
-					watched: progressTime > 0.9
+					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
 			}
 	}

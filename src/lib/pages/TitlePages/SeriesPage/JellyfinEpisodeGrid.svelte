@@ -17,32 +17,36 @@
 	import { TMDB_BACKDROP_SMALL } from '../../../constants';
 	import { scrollIntoView, Selectable } from '../../../selectable';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
-	import type { EpisodeData } from '$lib/stores/library.store';
-	import type { Readable } from 'svelte/store';
 
-	export let tmdbId: number;
+	export let id: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull2 | undefined>;
-	export let nextEpisode: Readable<EpisodeData>;
-	export let episodesUserData: EpisodeData[];
-	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
-	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
+	export let jellyfinEpisodes: Promise<JellyfinItem[]>;
+	export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 	export let handleRequestSeason: (season: number) => Promise<any>;
 	export let tmdbSeasons = tmdbSeries.then((series) =>
-		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
+		tmdbApi.getTmdbSeriesSeasons(id, series?.seasons?.length ?? 1)
 	);
+
+	let awaitedJellyfinEpisodes: JellyfinItem[] = [];
+	jellyfinEpisodes.then((episodes) => {
+		awaitedJellyfinEpisodes = episodes;
+	});
 
 	let seasonIndex = 0;
 	let scrollTop: number;
 	$: translateUp = scrollTop < 140;
 
 	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
-		navigate(`/series/${tmdbId}/season/${episode.season_number}/episode/${episode.episode_number}`);
+		navigate(`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`);
 	}
 
 	function handleMountSeasonButton(s: Selectable, seasonNumber: number) {
-		nextEpisode.subscribe((episode) => {
-			if (episode?.season === seasonNumber) {
-				seasonIndex = seasonNumber - 1;
+		currentJellyfinEpisode.then((currentEpisode) => {
+			if (currentEpisode?.ParentIndexNumber === seasonNumber) {
+				seasonIndex = currentEpisode?.ParentIndexNumber
+					? currentEpisode?.ParentIndexNumber - 1
+					: seasonIndex;
+
 				s.focus({ setFocusedElement: false, propagate: false });
 			}
 		});
@@ -104,33 +108,35 @@
 			{/each}
 		</UICarousel>
 		<CardGrid type="landscape" on:mount>
-			{#each tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
-				{@const userData = episodesUserData.find(
-					(e) => e.season === episode.season_number && e.episode === episode.episode_number
-				)}
-				{#key episode.id}
-					<TmdbEpisodeCard
-						{episode}
-						series={tmdbSeries}
-						on:mount={(e) => handleMountCard(e.detail, episode)}
-						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-						handlePlay={() =>
-							playerState.streamEpisode(
-								String(tmdbId),
-								episode.season_number ?? 1,
-								episode.episode_number ?? 1
-							)}
-						isWatched={userData?.watched || false}
-						playbackProgress={userData && userData.progress > 0.1 ? userData?.progress : 0}
-						on:clickOrSelect={() => handleOpenEpisodePage(episode)}
-					/>
-				{/key}
-			{/each}
-			<ManageSeasonCard
-				backdropUrl={TMDB_BACKDROP_SMALL + tmdbSeries?.backdrop_path}
-				on:clickOrSelect={() => handleRequestSeason(seasonIndex + 1)}
-				on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-			/>
+			{#if tmdbSeasons?.[seasonIndex]?.episodes?.length}
+				{#each tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
+					{@const jellyfinEpisode = awaitedJellyfinEpisodes?.find(
+						(i) =>
+							i.IndexNumber === episode.episode_number &&
+							i.ParentIndexNumber === episode.season_number
+					)}
+					{@const jellyfinEpisodeId = jellyfinEpisode?.Id}
+					{#key episode.id}
+						<TmdbEpisodeCard
+							{episode}
+							series={tmdbSeries}
+							on:mount={(e) => handleMountCard(e.detail, episode)}
+							on:enter={scrollIntoView({ top: 92, bottom: 128 })}
+							handlePlay={jellyfinEpisodeId
+								? () => playerState.streamJellyfinId(jellyfinEpisodeId)
+								: undefined}
+							isWatched={jellyfinEpisode?.UserData?.Played || false}
+							playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
+							on:clickOrSelect={() => handleOpenEpisodePage(episode)}
+						/>
+					{/key}
+				{/each}
+				<ManageSeasonCard
+					backdropUrl={TMDB_BACKDROP_SMALL + tmdbSeries?.backdrop_path}
+					on:clickOrSelect={() => handleRequestSeason(seasonIndex + 1)}
+					on:enter={scrollIntoView({ top: 92, bottom: 128 })}
+				/>
+			{/if}
 		</CardGrid>
 	{/await}
 </Container>

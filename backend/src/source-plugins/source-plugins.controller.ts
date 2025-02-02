@@ -240,35 +240,6 @@ export class SourcesController {
     return {
       streams,
     };
-
-    // const plugins = await this.sourcesService.getPlugins();
-    // const streams: VideoStreamListDto['streams'] = [];
-
-    // for (const pluginId in plugins) {
-    //   const plugin = plugins[pluginId];
-
-    //   if (!plugin) continue;
-
-    //   const settings = this.userSourcesService.getSourceSettings(
-    //     user,
-    //     pluginId,
-    //   );
-
-    //   if (!settings) continue;
-
-    //   const videoStream = await plugin.getMovieStreams(tmdbId, {
-    //     settings,
-    //     token,
-    //   });
-
-    //   if (!videoStream) continue;
-
-    //   streams[pluginId] = videoStream;
-    // }
-
-    // return {
-    //   streams,
-    // };
   }
 
   @Get(
@@ -460,42 +431,4 @@ export class SourcesController {
       targetUrl,
     });
   }
-
-  //   @All('movies/:tmdbId/sources/:sourceId/stream/proxy/*')
-  //   async getMovieStreamProxy(
-  //     @Param() params: any,
-  //     @Req() req: Request,
-  //     @Res() res: Response,
-  //     @GetAuthUser() user: User,
-  //   ) {
-  //     const sourceId = params.sourceId;
-  //     const settings = this.userSourcesService.getSourceSettings(user, sourceId);
-
-  //     if (!settings) throw new UnauthorizedException();
-
-  //     const { url, headers } = this.sourcesService
-  //       .getPlugin(sourceId)
-  //       ?.handleProxy(
-  //         {
-  //           uri: params[0] + '?' + req.url.split('?')[1],
-  //           headers: req.headers,
-  //         },
-  //         settings,
-  //       );
-
-  //     // console.log('url', url.split('?')[0]);
-  //     const proxyRes = await fetch(url.split('?')[0], {
-  //       method: req.method || 'GET',
-  //       headers: {
-  //         // ...headers,
-  //         // Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
-  //       },
-  //     }).catch((e) => {
-  //       console.error('error fetching proxy response', e);
-  //       throw new InternalServerErrorException();
-  //     });
-
-  //     Readable.from(proxyRes.body).pipe(res);
-  //     res.status(proxyRes.status);
-  //   }
 }

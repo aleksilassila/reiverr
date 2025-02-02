@@ -1,33 +1,28 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import { useActionRequest } from '../../stores/data.store';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
+	import { useEpisodeUserData } from '$lib/stores/library.store';
 	import { Check, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
-	import HeroInfoTitle from '../../components/HeroInfo/HeroInfoTitle.svelte';
-	import Button from '../../components/Button.svelte';
+	import { writable } from 'svelte/store';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
-	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
-	import { formatSize, retry, timeout } from '../../utils';
-	import { createModal, modalStack } from '../../components/Modal/modal.store';
-	import ButtonGhost from '../../components/Ghosts/ButtonGhost.svelte';
 	import {
 		type EpisodeFileResource,
 		sonarrApi,
 		type SonarrEpisode,
 		type SonarrSeries
 	} from '../../apis/sonarr/sonarr-api';
+	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import Button from '../../components/Button.svelte';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
+	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
+	import ButtonGhost from '../../components/Ghosts/ButtonGhost.svelte';
+	import HeroInfoTitle from '../../components/HeroInfo/HeroInfoTitle.svelte';
 	import MMAddToSonarrDialog from '../../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import SonarrMediaManagerModal from '../../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
-	import { tick } from 'svelte';
-	import { useUserData } from '../../stores/library.store';
-	import { get, writable } from 'svelte/store';
-	import { reiverrApiNew, sources, user } from '../../stores/user.store';
-	import type { MediaSource, VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
-	import { handleOpenStreamSelector } from './MoviePage/MoviePage.shared';
+	import { createModal } from '../../components/Modal/modal.store';
+	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
+	import { useActionRequest } from '../../stores/data.store';
+	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { formatSize, retry } from '../../utils';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
@@ -36,16 +31,17 @@
 	const episodeUserData = reiverrApiNew.users
 		.getEpisodeUserData($user?.id as string, id, Number(season), Number(episode))
 		.then((r) => r.data);
-	const streams = getStreams();
+	// const streams = getStreams();
 
-	const availableForStreaming = writable(false);
-	const { progress } = useUserData('Series', id, episodeUserData);
+	// const availableForStreaming = writable(false);
+	const { progress, handleAutoplay, handleStreamSelector, canStream, isWatched, toggleIsWatched } =
+		useEpisodeUserData(id, Number(season), Number(episode), episodeUserData);
 
-	streams.forEach((p) =>
-		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
-	);
+	// streams.forEach((p) =>
+	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	// );
 
-	let isWatched = false;
+	// let isWatched = false;
 
 	const tmdbEpisode = tmdbApi.getEpisode(Number(id), Number(season), Number(episode));
 	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
@@ -57,44 +53,44 @@
 		jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
 	);
 
-	const { send: toggleMarkAs, isFetching: markAsLoading } = useActionRequest(async () => {
-		const episode = await jellyfinEpisode;
+	// const { send: toggleMarkAs, isFetching: markAsLoading } = useActionRequest(async () => {
+	// 	const episode = await jellyfinEpisode;
 
-		const jellyfinId = episode?.Id;
-		if (!jellyfinId) return;
+	// 	const jellyfinId = episode?.Id;
+	// 	if (!jellyfinId) return;
 
-		if (isWatched) {
-			return jellyfinApi.markAsUnwatched(jellyfinId).then((ok) => (isWatched = !ok));
-		} else {
-			return jellyfinApi.markAsWatched(jellyfinId).then((ok) => (isWatched = ok));
-		}
-	});
+	// 	if (isWatched) {
+	// 		return jellyfinApi.markAsUnwatched(jellyfinId).then((ok) => (isWatched = !ok));
+	// 	} else {
+	// 		return jellyfinApi.markAsWatched(jellyfinId).then((ok) => (isWatched = ok));
+	// 	}
+	// });
 
-	jellyfinEpisode.then((e) => {
-		isWatched = e?.UserData?.Played || false;
-	});
+	// jellyfinEpisode.then((e) => {
+	// 	isWatched = e?.UserData?.Played || false;
+	// });
 
-	function getStreams() {
-		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
+	// function getStreams() {
+	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
 
-		for (const source of get(sources)) {
-			out.push({
-				source: source.source,
-				streams: episodeUserData.then((userData) => {
-					const { season: s, episode: e } = userData.playState ?? {
-						season: Number(season),
-						episode: Number(episode)
-					};
+	// 	for (const source of get(sources)) {
+	// 		out.push({
+	// 			source: source.source,
+	// 			streams: episodeUserData.then((userData) => {
+	// 				const { season: s, episode: e } = userData.playState ?? {
+	// 					season: Number(season),
+	// 					episode: Number(episode)
+	// 				};
 
-					return reiverrApiNew.sources
-						.getEpisodeStreams(source.source.id, id, s ?? 1, e ?? 1)
-						.then((r) => r.data?.streams ?? []);
-				})
-			});
-		}
+	// 				return reiverrApiNew.sources
+	// 					.getEpisodeStreams(source.source.id, id, s ?? 1, e ?? 1)
+	// 					.then((r) => r.data?.streams ?? []);
+	// 			})
+	// 		});
+	// 	}
 
-		return out;
-	}
+	// 	return out;
+	// }
 
 	async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
 		return sonarrItem.then((sonarrItem) => {
@@ -160,44 +156,44 @@
 		});
 	}
 
-	async function handlePlay() {
-		const awaitedStreams = await Promise.all(
-			streams.map(async (p) => ({ ...p, streams: await p.streams }))
-		).then((d) => d.filter((p) => p.streams.length > 0));
+	// async function handlePlay() {
+	// 	const awaitedStreams = await Promise.all(
+	// 		streams.map(async (p) => ({ ...p, streams: await p.streams }))
+	// 	).then((d) => d.filter((p) => p.streams.length > 0));
 
-		if (awaitedStreams.length > 1) {
-			modalStack.create(SelectDialog, {
-				title: 'Select Media Source',
-				subtitle: 'Select the media source you want to use',
-				options: awaitedStreams.map((p) => p.source.id),
-				handleSelectOption: (sourceId) => {
-					const s = awaitedStreams.find((p) => p.source.id === sourceId);
-					const key = s?.streams[0]?.key;
-					episodeUserData.then((userData) =>
-						playerState.streamEpisode(
-							id,
-							userData.playState?.season ?? Number(season) ?? 1,
-							userData.playState?.episode ?? Number(episode) ?? 1,
-							{ userData, sourceId, key }
-						)
-					);
-				}
-			});
-		} else if (awaitedStreams.length === 1) {
-			const asd = awaitedStreams.find((p) => p.streams.length > 0);
-			const sourceId = asd?.source.id;
-			const key = asd?.streams[0]?.key;
+	// 	if (awaitedStreams.length > 1) {
+	// 		modalStack.create(SelectDialog, {
+	// 			title: 'Select Media Source',
+	// 			subtitle: 'Select the media source you want to use',
+	// 			options: awaitedStreams.map((p) => p.source.id),
+	// 			handleSelectOption: (sourceId) => {
+	// 				const s = awaitedStreams.find((p) => p.source.id === sourceId);
+	// 				const key = s?.streams[0]?.key;
+	// 				episodeUserData.then((userData) =>
+	// 					playerState.streamEpisode(
+	// 						id,
+	// 						userData.playState?.season ?? Number(season) ?? 1,
+	// 						userData.playState?.episode ?? Number(episode) ?? 1,
+	// 						{ userData, sourceId, key }
+	// 					)
+	// 				);
+	// 			}
+	// 		});
+	// 	} else if (awaitedStreams.length === 1) {
+	// 		const asd = awaitedStreams.find((p) => p.streams.length > 0);
+	// 		const sourceId = asd?.source.id;
+	// 		const key = asd?.streams[0]?.key;
 
-			episodeUserData.then((userData) =>
-				playerState.streamEpisode(
-					id,
-					userData.playState?.season ?? 1,
-					userData.playState?.episode ?? 1,
-					{ userData, sourceId, key }
-				)
-			);
-		}
-	}
+	// 		episodeUserData.then((userData) =>
+	// 			playerState.streamEpisode(
+	// 				id,
+	// 				userData.playState?.season ?? 1,
+	// 				userData.playState?.episode ?? 1,
+	// 				{ userData, sourceId, key }
+	// 			)
+	// 		);
+	// 	}
+	// }
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -261,16 +257,21 @@
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
 				<Button
 					class="mr-4"
-					action={handlePlay}
-					secondaryAction={() =>
-						Promise.all([tmdbEpisode, episodeUserData]).then(([tmdbEpisode, userData]) => {
-							tmdbEpisode &&
-								handleOpenStreamSelector({ ...tmdbEpisode, show_id: Number(id) }, userData);
-						})}
-					disabled={!$availableForStreaming}
+					action={handleAutoplay}
+					secondaryAction={handleStreamSelector}
+					disabled={!$canStream}
 				>
 					Play
 					<Play size={19} slot="icon" />
+				</Button>
+
+				<Button on:clickOrSelect={toggleIsWatched}>
+					{#if $isWatched}
+						Mark as Unwatched
+					{:else}
+						Mark as Watched
+					{/if}
+					<Check slot="icon" size={19} />
 				</Button>
 				{#await Promise.all([jellyfinEpisode, sonarrEpisode])}
 					<ButtonGhost>Play</ButtonGhost>
@@ -285,14 +286,6 @@
 							Play
 							<Play size={19} slot="icon" />
 						</Button> -->
-						<Button disabled={$markAsLoading} on:clickOrSelect={toggleMarkAs}>
-							{#if isWatched}
-								Mark as Unwatched
-							{:else}
-								Mark as Watched
-							{/if}
-							<Check slot="icon" size={19} />
-						</Button>
 					{:else}
 						<Button action={handleRequestEpisode}>
 							Request

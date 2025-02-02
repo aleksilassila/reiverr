@@ -25,7 +25,13 @@ function useNotificationStack() {
 }
 
 export const notificationStack = useNotificationStack();
-export const createErrorNotification = (message: string) => {
+export const createErrorNotification = (title: string, message?: string) => {
 	console.error(message);
-	notificationStack.create(Notification, { title: 'Unexpected error occurred', body: message });
+	notificationStack.create(Notification, {
+		title: message ? title : 'Unexpected error occurred',
+		body: message ?? title
+	});
+};
+export const createInfoNotification = (title: string, message?: string) => {
+	notificationStack.create(Notification, { title, body: message });
 };

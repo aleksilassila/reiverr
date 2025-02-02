@@ -1,37 +1,27 @@
 <script lang="ts">
-	import classNames from 'classnames';
-	import { Bookmark, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
-	import { get, writable } from 'svelte/store';
+	import Container from '$components/Container.svelte';
 	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
 	import {
-		type MovieDownload,
-		type MovieFileResource,
 		radarrApi
 	} from '$lib/apis/radarr/radarr-api';
-	import type { MediaSource, VideoStreamCandidateDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
-	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
 	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
 	import MMAddToRadarrDialog from '$lib/components/MediaManagerModal/MMAddToRadarrDialog.svelte';
 	import MovieMediaManagerModal from '$lib/components/MediaManagerModal/RadarrMediaManagerModal.svelte';
-	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
+	import { createModal } from '$lib/components/Modal/modal.store';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants.js';
 	import { scrollIntoView } from '$lib/selectable';
-	import { useActionRequests, useRequest } from '$lib/stores/data.store';
-	import { reiverrApiNew, sources, user } from '$lib/stores/user.store';
-	import MovieStreams from './MovieStreams.MoviePage.svelte';
-	import StreamDetailsDialog from './StreamDetailsDialog.MoviePage.svelte';
-	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
-	import { handleOpenStreamSelector } from './MoviePage.shared';
-	import Container from '$components/Container.svelte';
-	import { useUserData } from '$lib/stores/library.store';
+	import { useRequest } from '$lib/stores/data.store';
+	import { useMovieUserData } from '$lib/stores/library.store';
+	import { reiverrApiNew, user } from '$lib/stores/user.store';
+	import classNames from 'classnames';
+	import { Bookmark, Check, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
+	import { writable } from 'svelte/store';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -40,19 +30,25 @@
 	const movieUserData = reiverrApiNew.users
 		.getUserMovieData($user?.id as string, id)
 		.then((r) => r.data);
-	const streams = getStreams();
+	// const streams = getStreams();
 
-	const availableForStreaming = writable(false);
+	// const availableForStreaming = writable(false);
 
-	const { inLibrary, progress, handleAddToLibrary, handleRemoveFromLibrary } = useUserData(
-		'Movie',
-		id,
-		movieUserData
-	);
+	const {
+		inLibrary,
+		progress,
+		handleAddToLibrary,
+		handleRemoveFromLibrary,
+		handleAutoplay,
+		handleStreamSelector,
+		canStream,
+		isWatched,
+		toggleIsWatched
+	} = useMovieUserData(id, movieUserData);
 
-	streams.forEach((p) =>
-		p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
-	);
+	// streams.forEach((p) =>
+	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
+	// );
 
 	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
@@ -61,38 +57,38 @@
 		id
 	);
 
-	function getStreams() {
-		const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
+	// function getStreams() {
+	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
 
-		for (const source of get(sources)) {
-			out.push({
-				source: source.source,
-				streams: reiverrApiNew.sources
-					.getMovieStreams(id, source.source.id)
-					.then((r) => r.data?.streams ?? [])
-			});
-		}
+	// 	for (const source of get(sources)) {
+	// 		out.push({
+	// 			source: source.source,
+	// 			streams: reiverrApiNew.sources
+	// 				.getMovieStreams(id, source.source.id)
+	// 				.then((r) => r.data?.streams ?? [])
+	// 		});
+	// 	}
 
-		return out;
-	}
+	// 	return out;
+	// }
 
-	const { promise: radarrItemP, send: refreshRadarrItem } = useRequest(
-		radarrApi.getMovieByTmdbId,
-		tmdbId
-	);
+	// const { promise: radarrItemP, send: refreshRadarrItem } = useRequest(
+	// 	radarrApi.getMovieByTmdbId,
+	// 	tmdbId
+	// );
 
 	let radarrItem = radarrApi.getMovieByTmdbId(tmdbId);
 	$: radarrDownloads = getDownloads(radarrItem);
-	$: radarrFiles = getFiles(radarrItem);
+	// $: radarrFiles = getFiles(radarrItem);
 
-	const { requests, isFetching, data } = useActionRequests({
-		handleAddToRadarr: (id: number) =>
-			radarrApi.addMovieToRadarr(id).finally(() => refreshRadarrItem(tmdbId))
-	});
+	// const { requests, isFetching, data } = useActionRequests({
+	// 	handleAddToRadarr: (id: number) =>
+	// 		radarrApi.addMovieToRadarr(id).finally(() => refreshRadarrItem(tmdbId))
+	// });
 
-	async function getFiles(item: typeof radarrItem) {
-		return item.then((item) => (item ? radarrApi.getFilesByMovieId(item?.id || -1) : []));
-	}
+	// async function getFiles(item: typeof radarrItem) {
+	// 	return item.then((item) => (item ? radarrApi.getFilesByMovieId(item?.id || -1) : []));
+	// }
 
 	async function getDownloads(item: typeof radarrItem) {
 		return item.then((item) => (item ? radarrApi.getDownloadsById(item?.id || -1) : []));
@@ -123,71 +119,71 @@
 		});
 	}
 
-	function createConfirmDeleteSeasonDialog(files: MovieFileResource[]) {
-		createModal(ConfirmDialog, {
-			header: 'Delete Season Files?',
-			body: `Are you sure you want to delete all ${files.length} file(s)?`, // TODO: These messages  could be better, for series too
-			confirm: () =>
-				radarrApi
-					.deleteFiles(files.map((f) => f.id || -1))
-					.then(() => (radarrFiles = getFiles(radarrItem)))
-		});
-	}
+	// function createConfirmDeleteSeasonDialog(files: MovieFileResource[]) {
+	// 	createModal(ConfirmDialog, {
+	// 		header: 'Delete Season Files?',
+	// 		body: `Are you sure you want to delete all ${files.length} file(s)?`, // TODO: These messages  could be better, for series too
+	// 		confirm: () =>
+	// 			radarrApi
+	// 				.deleteFiles(files.map((f) => f.id || -1))
+	// 				.then(() => (radarrFiles = getFiles(radarrItem)))
+	// 	});
+	// }
 
-	function createConfirmCancelDownloadsDialog(downloads: MovieDownload[]) {
-		createModal(ConfirmDialog, {
-			header: 'Cancel Season Downloads?',
-			body: `Are you sure you want to cancel all ${downloads.length} download(s)?`, // TODO: These messages  could be better, for series too
-			confirm: () =>
-				radarrApi
-					.cancelDownloads(downloads.map((f) => f.id || -1))
-					.then(() => (radarrDownloads = getDownloads(radarrItem)))
-		});
-	}
+	// function createConfirmCancelDownloadsDialog(downloads: MovieDownload[]) {
+	// 	createModal(ConfirmDialog, {
+	// 		header: 'Cancel Season Downloads?',
+	// 		body: `Are you sure you want to cancel all ${downloads.length} download(s)?`, // TODO: These messages  could be better, for series too
+	// 		confirm: () =>
+	// 			radarrApi
+	// 				.cancelDownloads(downloads.map((f) => f.id || -1))
+	// 				.then(() => (radarrDownloads = getDownloads(radarrItem)))
+	// 	});
+	// }
 
-	async function createStreamDetailsDialog(source: MediaSource, stream: VideoStreamCandidateDto) {
-		const movie = await tmdbMovie;
-		modalStack.create(StreamDetailsDialog, {
-			stream,
-			// title: movie?.title || '',
-			// subtitle: file.relativePath || '',
-			backgroundUrl: TMDB_BACKDROP_SMALL + movie?.backdrop_path || '',
-			streamMovie: () =>
-				movieUserData.then((userData) =>
-					playerState.streamMovie(id, { userData, sourceId: source.id, key: stream.key })
-				),
-			onDelete: () => (radarrFiles = getFiles(radarrItem))
-		});
-	}
+	// async function createStreamDetailsDialog(source: MediaSource, stream: VideoStreamCandidateDto) {
+	// 	const movie = await tmdbMovie;
+	// 	modalStack.create(StreamDetailsDialog, {
+	// 		stream,
+	// 		// title: movie?.title || '',
+	// 		// subtitle: file.relativePath || '',
+	// 		backgroundUrl: TMDB_BACKDROP_SMALL + movie?.backdrop_path || '',
+	// 		streamMovie: () =>
+	// 			movieUserData.then((userData) =>
+	// 				playerState.streamMovie(id, { userData, sourceId: source.id, key: stream.key })
+	// 			),
+	// 		onDelete: () => (radarrFiles = getFiles(radarrItem))
+	// 	});
+	// }
 
-	async function handlePlay() {
-		const awaited = await Promise.all(
-			streams.map(async (p) => ({ ...p, streams: await p.streams }))
-		);
+	// async function handlePlay() {
+	// 	const awaited = await Promise.all(
+	// 		streams.map(async (p) => ({ ...p, streams: await p.streams }))
+	// 	);
 
-		const numberOfStreams = awaited.reduce((acc, p) => acc + p.streams.length, 0);
+	// 	const numberOfStreams = awaited.reduce((acc, p) => acc + p.streams.length, 0);
 
-		// If more than 1 stream
-		if (numberOfStreams > 1) {
-			modalStack.create(SelectDialog, {
-				title: 'Select Media Source',
-				subtitle: 'Select the media source you want to use',
-				options: awaited.map((p) => p.source.id),
-				handleSelectOption: (sourceId) => {
-					const key = awaited.find((p) => p.source.id === sourceId)?.streams[0]?.key;
-					movieUserData.then((userData) =>
-						playerState.streamMovie(id, { userData, sourceId, key })
-					);
-				}
-			});
-		} else if (numberOfStreams === 1) {
-			const asd = awaited.find((p) => p.streams.length > 0);
-			const sourceId = asd?.source.id;
-			const key = asd?.streams[0]?.key;
+	// 	// If more than 1 stream
+	// 	if (numberOfStreams > 1) {
+	// 		modalStack.create(SelectDialog, {
+	// 			title: 'Select Media Source',
+	// 			subtitle: 'Select the media source you want to use',
+	// 			options: awaited.map((p) => p.source.id),
+	// 			handleSelectOption: (sourceId) => {
+	// 				const key = awaited.find((p) => p.source.id === sourceId)?.streams[0]?.key;
+	// 				movieUserData.then((userData) =>
+	// 					playerState.streamMovie(id, { userData, sourceId, key })
+	// 				);
+	// 			}
+	// 		});
+	// 	} else if (numberOfStreams === 1) {
+	// 		const asd = awaited.find((p) => p.streams.length > 0);
+	// 		const sourceId = asd?.source.id;
+	// 		const key = asd?.streams[0]?.key;
 
-			movieUserData.then((userData) => playerState.streamMovie(id, { userData, sourceId, key }));
-		}
-	}
+	// 		movieUserData.then((userData) => playerState.streamMovie(id, { userData, sourceId, key }));
+	// 	}
+	// }
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -250,16 +246,22 @@
 					>
 						<Button
 							class="mr-4"
-							action={handlePlay}
-							secondaryAction={() =>
-								Promise.all([tmdbMovie, movieUserData]).then(([tmdbMovie, userData]) => {
-									tmdbMovie && handleOpenStreamSelector(tmdbMovie, userData);
-								})}
-							disabled={!$availableForStreaming}
+							action={handleAutoplay}
+							secondaryAction={handleStreamSelector}
+							disabled={!$canStream}
 						>
 							Play
 							<Play size={19} slot="icon" />
 						</Button>
+						<Button class="mr-4" on:clickOrSelect={toggleIsWatched}>
+							{#if $isWatched}
+								Mark as Unwatched
+							{:else}
+								Mark as Watched
+							{/if}
+							<Check slot="icon" size={19} />
+						</Button>
+
 						{#if !$inLibrary}
 							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
 								Add to Library
@@ -371,9 +373,9 @@
 			</Container>
 		{/await}
 
-		{#if streams.length}
+		<!-- {#if streams.length}
 			<MovieStreams sources={streams} {createStreamDetailsDialog} />
-		{/if}
+		{/if} -->
 
 		<!-- {#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}
 			{#if files?.length || downloads?.length}

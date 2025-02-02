@@ -22,7 +22,8 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
   CreateUserDto,
-  MediaUserDataDto,
+  MovieUserDataDto,
+  SeriesUserDataDto,
   UpdateUserDto,
   UserDto,
 } from './user.dto';
@@ -167,12 +168,12 @@ export class UsersController {
   @Get(':userId/user-data/movie/tmdb/:tmdbId')
   @ApiOkResponse({
     description: 'User movie data found',
-    type: MediaUserDataDto,
+    type: MovieUserDataDto,
   })
   async getUserMovieData(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<MediaUserDataDto> {
+  ): Promise<MovieUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
     const playState = await this.playStateService.findMoviePlayState(
       userId,
@@ -187,17 +188,17 @@ export class UsersController {
   }
 
   @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/show/tmdb/:tmdbId')
+  @Get(':userId/user-data/series/tmdb/:tmdbId')
   @ApiOkResponse({
-    description: 'User show data found',
-    type: MediaUserDataDto,
+    description: 'User series data found',
+    type: SeriesUserDataDto,
   })
-  async getShowUserData(
+  async getSeriesUserData(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<MediaUserDataDto> {
+  ): Promise<SeriesUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService.findShowPlayState(
+    const playState = await this.playStateService.findSeriesPlayStates(
       userId,
       tmdbId,
     );
@@ -205,29 +206,28 @@ export class UsersController {
     return {
       tmdbId,
       inLibrary: !!libraryItem,
-      playState: playState,
+      playStates: playState,
     };
   }
 
   @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/show/tmdb/:tmdbId/season/:season/episode/:episode')
+  @Get(':userId/user-data/series/tmdb/:tmdbId/season/:season/episode/:episode')
   @ApiOkResponse({
-    description: 'User show data found',
-    type: MediaUserDataDto,
+    description: 'User series data found',
+    type: MovieUserDataDto,
   })
   async getEpisodeUserData(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
-  ): Promise<MediaUserDataDto> {
+  ): Promise<MovieUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService.findShowPlayState(
-      userId,
-      tmdbId,
-      season,
-      episode,
-    );
+    const playState = await this.playStateService
+      .findSeriesPlayStates(userId, tmdbId, season, episode)
+      .then((states) =>
+        states.find((s) => s.season === season && s.episode === episode),
+      );
 
     return {
       tmdbId,

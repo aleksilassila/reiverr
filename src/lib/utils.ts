@@ -33,6 +33,10 @@ export function formatSize(size: number) {
 	}
 }
 
+export function formatThousands(num: number) {
+	return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function request<R, A>(fetcher: (arg: A) => Promise<R>, args: A | undefined = undefined) {
 	const loading = writable(args !== undefined);
 	const error = writable<Error | null>(null);

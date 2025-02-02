@@ -6,7 +6,7 @@ import { reiverrApiNew, sources } from '../../stores/user.store';
 import { createErrorNotification } from '../Notifications/notification.store';
 import VideoPlayerModal from './VideoPlayerModal.svelte';
 import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
-import type { MediaUserDataDto } from '../../apis/reiverr/reiverr.openapi';
+import type { MovieUserDataDto } from '../../apis/reiverr/reiverr.openapi';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -49,21 +49,43 @@ export type PlayerStateValue = typeof initialValue;
 function usePlayerState() {
 	const store = writable<PlayerStateValue>(initialValue);
 
+	async function streamTmdbItem(options: {
+		tmdbId: string;
+		season?: number;
+		episode?: number;
+		sourceId: string;
+		key: string;
+		progress?: number;
+	}) {
+		const { tmdbId, season, episode, sourceId, key, progress } = options;
+
+		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
+		modalStack.create(MovieVideoPlayerModal, {
+			tmdbId,
+			episode,
+			season,
+			sourceId,
+			key,
+			progress
+		});
+	}
+
 	async function streamTmdbMovie(
 		tmdbId: string,
 		options: {
-			userData?: MediaUserDataDto;
 			sourceId?: string;
 			key?: string;
+			progress?: number;
 		}
 	) {
-		let { sourceId, key, userData } = options;
+		let { sourceId, key } = options;
+		const { progress = 0 } = options;
 
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
 					reiverrApiNew.sources
-						.getMovieStreams(tmdbId, s.source.id)
+						.getMovieStreams(s.source.id, tmdbId)
 						.then((r) => ({ source: s.source, streams: r.data.streams }))
 				)
 			);
@@ -81,7 +103,7 @@ function usePlayerState() {
 			tmdbId,
 			sourceId,
 			key,
-			progress: userData?.playState?.progress ?? 0
+			progress
 		});
 	}
 
@@ -92,10 +114,12 @@ function usePlayerState() {
 		options: {
 			sourceId?: string;
 			key?: string;
-			userData?: MediaUserDataDto;
+			progress?: number;
 		} = {}
 	) {
-		let { sourceId, key, userData } = options;
+		let { sourceId, key } = options;
+		const { progress = 0 } = options;
+
 		if (!sourceId) {
 			const streams = await Promise.all(
 				get(sources).map((s) =>
@@ -121,7 +145,7 @@ function usePlayerState() {
 			season,
 			sourceId,
 			key,
-			progress: userData?.playState?.progress ?? 0
+			progress
 		});
 	}
 
@@ -129,6 +153,7 @@ function usePlayerState() {
 		...store,
 		streamMovie: streamTmdbMovie,
 		streamEpisode: streamTmdbEpisode,
+		streamTmdbItem,
 		streamJellyfinId: (id: string) => {
 			store.set({ visible: true, jellyfinId: id, sourceId: '' });
 			modalStack.create(JellyfinVideoPlayerModal, { id });

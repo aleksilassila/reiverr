@@ -17,16 +17,16 @@ import { MediaType } from 'src/common/common.dto';
 @Entity()
 @Unique(['tmdbId', 'userId', 'season', 'episode'])
 export class PlayState {
-  @ApiProperty({ required: false, type: 'string' })
+  @ApiProperty({ type: 'string' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ApiProperty({ required: true, type: 'number' })
-  @Column({ unique: true })
+  @Column()
   tmdbId: string;
 
-  @ApiProperty({ required: false, enum: MediaType })
-  @Column({ nullable: true })
+  @ApiProperty({ enum: MediaType })
+  @Column()
   mediaType: MediaType;
 
   @ApiProperty({ required: true, type: 'string' })
@@ -47,7 +47,6 @@ export class PlayState {
   episode: number = 0;
 
   @ApiProperty({
-    required: false,
     type: 'boolean',
     default: false,
     description: 'Whether the user has watched this media',
@@ -56,7 +55,6 @@ export class PlayState {
   watched: boolean = false;
 
   @ApiProperty({
-    required: false,
     default: false,
     example: 0.5,
     description: 'A number between 0 and 1',
@@ -67,7 +65,6 @@ export class PlayState {
   @ApiProperty({
     type: 'string',
     description: 'Last time the user played this media',
-    required: false,
   })
   @UpdateDateColumn()
   lastPlayedAt: Date;

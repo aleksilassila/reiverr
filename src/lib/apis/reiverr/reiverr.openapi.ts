@@ -57,9 +57,9 @@ export interface MediaSource {
 }
 
 export interface PlayState {
-	id?: string;
+	id: string;
 	tmdbId: number;
-	mediaType?: 'Movie' | 'Series';
+	mediaType: 'Movie' | 'Series' | 'Episode';
 	userId: string;
 	season?: number;
 	episode?: number;
@@ -67,21 +67,21 @@ export interface PlayState {
 	 * Whether the user has watched this media
 	 * @default false
 	 */
-	watched?: boolean;
+	watched: boolean;
 	/**
 	 * A number between 0 and 1
 	 * @default false
 	 * @example 0.5
 	 */
-	progress?: number;
+	progress: number;
 	/** Last time the user played this media */
-	lastPlayedAt?: string;
+	lastPlayedAt: string;
 }
 
 export interface LibraryItem {
 	id?: string;
 	tmdbId: number;
-	mediaType: 'Movie' | 'Series';
+	mediaType: 'Movie' | 'Series' | 'Episode';
 	userId: string;
 	user?: string;
 }
@@ -116,9 +116,9 @@ export interface UpdateUserDto {
 }
 
 export interface PlayStateDto {
-	id?: string;
+	id: string;
 	tmdbId: number;
-	mediaType?: 'Movie' | 'Series';
+	mediaType: 'Movie' | 'Series' | 'Episode';
 	userId: string;
 	season?: number;
 	episode?: number;
@@ -126,21 +126,27 @@ export interface PlayStateDto {
 	 * Whether the user has watched this media
 	 * @default false
 	 */
-	watched?: boolean;
+	watched: boolean;
 	/**
 	 * A number between 0 and 1
 	 * @default false
 	 * @example 0.5
 	 */
-	progress?: number;
+	progress: number;
 	/** Last time the user played this media */
-	lastPlayedAt?: string;
+	lastPlayedAt: string;
 }
 
-export interface MediaUserDataDto {
+export interface MovieUserDataDto {
 	tmdbId: string;
 	inLibrary: boolean;
 	playState?: PlayStateDto;
+}
+
+export interface SeriesUserDataDto {
+	tmdbId: string;
+	inLibrary: boolean;
+	playStates: PlayStateDto[];
 }
 
 export interface CreateSourceDto {
@@ -164,7 +170,7 @@ export interface MovieDto {
 
 export interface LibraryItemDto {
 	tmdbId: string;
-	mediaType: 'Movie' | 'Series';
+	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
 	metadata?: MovieDto;
 }
@@ -174,7 +180,11 @@ export interface SuccessResponseDto {
 }
 
 export interface UpdatePlayStateDto {
-	mediaType?: 'Movie' | 'Series';
+	id?: string;
+	tmdbId?: number;
+	mediaType?: 'Movie' | 'Series' | 'Episode';
+	season?: number;
+	episode?: number;
 	/**
 	 * Whether the user has watched this media
 	 * @default false
@@ -186,6 +196,8 @@ export interface UpdatePlayStateDto {
 	 * @example 0.5
 	 */
 	progress?: number;
+	/** Last time the user played this media */
+	lastPlayedAt?: string;
 }
 
 export interface SignInDto {
@@ -786,7 +798,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * @request GET:/api/users/{userId}/user-data/movie/tmdb/{tmdbId}
 		 */
 		getUserMovieData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
-			this.request<MediaUserDataDto, any>({
+			this.request<MovieUserDataDto, any>({
 				path: `/api/users/${userId}/user-data/movie/tmdb/${tmdbId}`,
 				method: 'GET',
 				format: 'json',
@@ -797,12 +809,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags users
-		 * @name GetShowUserData
-		 * @request GET:/api/users/{userId}/user-data/show/tmdb/{tmdbId}
+		 * @name GetSeriesUserData
+		 * @request GET:/api/users/{userId}/user-data/series/tmdb/{tmdbId}
 		 */
-		getShowUserData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
-			this.request<MediaUserDataDto, any>({
-				path: `/api/users/${userId}/user-data/show/tmdb/${tmdbId}`,
+		getSeriesUserData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<SeriesUserDataDto, any>({
+				path: `/api/users/${userId}/user-data/series/tmdb/${tmdbId}`,
 				method: 'GET',
 				format: 'json',
 				...params
@@ -813,7 +825,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags users
 		 * @name GetEpisodeUserData
-		 * @request GET:/api/users/{userId}/user-data/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 * @request GET:/api/users/{userId}/user-data/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
 		 */
 		getEpisodeUserData: (
 			userId: string,
@@ -822,8 +834,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			episode: number,
 			params: RequestParams = {}
 		) =>
-			this.request<MediaUserDataDto, any>({
-				path: `/api/users/${userId}/user-data/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+			this.request<MovieUserDataDto, any>({
+				path: `/api/users/${userId}/user-data/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'GET',
 				format: 'json',
 				...params
@@ -897,7 +909,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			userId: string,
 			tmdbId: string,
 			query: {
-				mediaType: 'Movie' | 'Series';
+				mediaType: 'Movie' | 'Series' | 'Episode';
 			},
 			params: RequestParams = {}
 		) =>
@@ -935,15 +947,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			userId: string,
 			tmdbId: string,
 			data: UpdatePlayStateDto,
-			query?: {
-				mediaType?: 'Movie' | 'Series';
-			},
 			params: RequestParams = {}
 		) =>
 			this.request<void, any>({
 				path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
 				method: 'PUT',
-				query: query,
 				body: data,
 				type: ContentType.Json,
 				...params

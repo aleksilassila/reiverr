@@ -18,12 +18,12 @@ export class PlayStateService {
     });
   }
 
-  async findShowPlayState(
+  async findSeriesPlayStates(
     userId: string,
     tmdbId: string,
     season?: number,
     episode?: number,
-  ): Promise<PlayState | undefined> {
+  ): Promise<PlayState[]> {
     const playStates =
       (await this.playStateRepository.find({
         where: {
@@ -42,14 +42,13 @@ export class PlayStateService {
       return a.episode - b.episode;
     });
 
-    return playStates[0];
+    return playStates;
   }
 
   async updateOrCreateMoviePlayState(
     userId: string,
     tmdbId: string,
     playState: UpdatePlayStateDto,
-    mediaType?: MediaType,
   ) {
     let state = await this.findMoviePlayState(userId, tmdbId);
 
@@ -57,9 +56,7 @@ export class PlayStateService {
       state = this.playStateRepository.create();
       state.userId = userId;
       state.tmdbId = tmdbId;
-      if (mediaType) {
-        state.mediaType = mediaType;
-      }
+      state.mediaType = MediaType.Movie;
     }
 
     state.progress = playState.progress;
@@ -75,7 +72,16 @@ export class PlayStateService {
     episode: number,
     playState: UpdatePlayStateDto,
   ) {
-    let state = await this.findShowPlayState(userId, tmdbId, season, episode);
+    let state = await this.findSeriesPlayStates(
+      userId,
+      tmdbId,
+      season,
+      episode,
+    ).then((states) =>
+      states.find(
+        (state) => state.season === season && state.episode === episode,
+      ),
+    );
 
     if (!state) {
       state = this.playStateRepository.create();
@@ -83,6 +89,7 @@ export class PlayStateService {
       state.tmdbId = tmdbId;
       state.season = season;
       state.episode = episode;
+      state.mediaType = MediaType.Episode;
     }
 
     state.progress = playState.progress;
@@ -102,7 +109,12 @@ export class PlayStateService {
     season: number,
     episode: number,
   ) {
-    const state = await this.findShowPlayState(userId, tmdbId, season, episode);
+    const state = await this.findSeriesPlayStates(
+      userId,
+      tmdbId,
+      season,
+      episode,
+    );
     return await this.playStateRepository.remove(state);
   }
 }
