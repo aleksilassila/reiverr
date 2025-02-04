@@ -121,7 +121,7 @@
 								episode.episode_number ?? 1
 							)}
 						isWatched={userData?.watched || false}
-						playbackProgress={userData && userData.progress > 0.1 ? userData?.progress : 0}
+						progress={userData?.progress}
 						on:clickOrSelect={() => handleOpenEpisodePage(episode)}
 					/>
 				{/key}

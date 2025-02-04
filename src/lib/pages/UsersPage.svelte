@@ -8,7 +8,7 @@
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { createModal } from '../components/Modal/modal.store';
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
-	import Login from '../components/Login.svelte';
+	import Login from '../components/LoginForm.svelte';
 	import { Plus, Trash } from 'radix-icons-svelte';
 	import ProfileIcon from '../components/ProfileIcon.svelte';
 	import { profilePictures } from '../profile-pictures';

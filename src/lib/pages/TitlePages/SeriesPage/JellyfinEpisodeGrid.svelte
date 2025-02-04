@@ -126,7 +126,7 @@
 								? () => playerState.streamJellyfinId(jellyfinEpisodeId)
 								: undefined}
 							isWatched={jellyfinEpisode?.UserData?.Played || false}
-							playbackProgress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
+							progress={jellyfinEpisode?.UserData?.PlayedPercentage || 0}
 							on:clickOrSelect={() => handleOpenEpisodePage(episode)}
 						/>
 					{/key}

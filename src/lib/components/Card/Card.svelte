@@ -21,6 +21,7 @@
 	export let subtitle = '';
 	export let rating: number | undefined = undefined;
 	export let progress = 0;
+	export let runtime = 0;
 
 	export let disabled = false;
 	export let shadow = false;
@@ -28,8 +29,11 @@
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
 
 	let hasFocus: Readable<boolean>;
-
 	let dimensions = getCardDimensions(window.innerWidth);
+
+	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
+	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
+
 </script>
 
 <svelte:window on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth))} />
@@ -145,7 +149,7 @@
 					/>
 				</div>
 			{/if} -->
-			{#if progress && progress > 0.1}
+			{#if progress && progress > lowerLimit && progress < upperLimit}
 				<div
 					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
 				>

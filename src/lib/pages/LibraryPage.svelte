@@ -135,20 +135,16 @@
 			{/await}
 		</CardGrid>
 	</div> -->
-	<div class="px-32">
+	<!-- <div class="px-32">
 		<div class="mb-6">
 			<div class="header2">Available for streaming</div>
 		</div>
 		<CardGrid>
-			<!-- {#await libraryItemsP}
-				<CarouselPlaceholderItems />
-			{:then items} -->
 			{#each availableTmdbItems as item}
 				<TmdbCard {item} on:enter={scrollIntoView({ all: 64 })} size="dynamic" navigateWithType />
 			{/each}
-			<!-- {/await} -->
 		</CardGrid>
-	</div>
+	</div> -->
 	{#await libraryItems then items}
 		<div class="px-32">
 			<div class="mb-6">

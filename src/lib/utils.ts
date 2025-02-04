@@ -34,7 +34,8 @@ export function formatSize(size: number) {
 }
 
 export function formatThousands(num: number) {
-	return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+	if (num > 999) return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+	else return num;
 }
 
 export function request<R, A>(fetcher: (arg: A) => Promise<R>, args: A | undefined = undefined) {

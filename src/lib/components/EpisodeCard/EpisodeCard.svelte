@@ -11,7 +11,11 @@
 	export let backdropUrl: string;
 	export let handlePlay: (() => void) | undefined = undefined;
 	export let isWatched = false;
-	export let playbackProgress = 0;
+	export let progress = 0;
+	export let runtime = 0;
+
+	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
+	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
 
 	$: isOnDeck = handlePlay !== undefined;
 
@@ -50,9 +54,12 @@
 				<!--				<h2 class="text-zinc-300 font-medium">Episode {episodeNumber}</h2>-->
 				<!--				<h1 class="text-zinc-100 text-lg font-medium line-clamp-2">{episodeName}</h1>-->
 				<!-- Progress Bar -->
-				{#if playbackProgress !== 0}
+				{#if progress !== 0 && progress > lowerLimit && progress < upperLimit}
 					<div class="relative bg-zinc-300/50 rounded-full h-1 overflow-hidden mt-2">
-						<div class="absolute inset-y-0 bg-white left-0" style={`width: ${playbackProgress}%`} />
+						<div
+							class="absolute inset-y-0 bg-white left-0"
+							style={`width: ${(progress * 100).toFixed(0)}%`}
+						/>
 					</div>
 				{/if}
 			</div>
@@ -119,7 +126,11 @@
 			<h2 class="text-secondary-300 font-medium">Episode {episodeNumber}</h2>
 		</div>
 		<div class="self-start">
-			<div class="text-secondary-300 font-medium">58 Min</div>
+			<div class="text-secondary-300 font-medium">
+				{#if runtime > 0}
+					{runtime} Min
+				{/if}
+			</div>
 		</div>
 	</div>
 </AnimateScale>

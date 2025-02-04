@@ -33,4 +33,10 @@
 	};
 </script>
 
-<Card {...$$restProps} {...props} {progress} on:enter />
+<Card
+	{...$$restProps}
+	{...props}
+	{progress}
+	runtime={'runtime' in item ? item.runtime : 0}
+	on:enter
+/>

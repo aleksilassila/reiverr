@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from './Container.svelte';
-	import TextField from '../components/TextField.svelte';
-	import Button from '../components/Button.svelte';
+	import TextField from './TextField.svelte';
+	import Button from './Button.svelte';
 	import { createLocalStorageStore } from '../stores/localstorage.store';
 	import { sessions } from '../stores/session.store';
 	import { createEventDispatcher } from 'svelte';

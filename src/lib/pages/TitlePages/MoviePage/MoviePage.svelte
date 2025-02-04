@@ -1,9 +1,7 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
-	import {
-		radarrApi
-	} from '$lib/apis/radarr/radarr-api';
+	import { radarrApi } from '$lib/apis/radarr/radarr-api';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
@@ -19,6 +17,7 @@
 	import { useRequest } from '$lib/stores/data.store';
 	import { useMovieUserData } from '$lib/stores/library.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
+	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Bookmark, Check, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
 	import { writable } from 'svelte/store';
@@ -226,9 +225,13 @@
 								<p class="flex-shrink-0">{movie.runtime}</p> -->
 								<DotFilled />
 								<p class="flex-shrink-0">
-									<a href={'https://www.themoviedb.org/movie/' + movie.id}
-										>{movie.vote_average?.toFixed(1)} TMDB</a
-									>
+									<a href={'https://www.themoviedb.org/movie/' + movie.id}>
+										{movie.vote_average?.toFixed(1)} TMDB ({formatThousands(movie.vote_count ?? 0)})
+									</a>
+								</p>
+								<DotFilled />
+								<p class="flex-shrink-0">
+									{movie.genres?.map((g) => g.name).join(', ')}
 								</p>
 							</div>
 							<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
@@ -295,7 +298,11 @@
 						<!--	</Button>-->
 						<!--{/if}-->
 						{#if PLATFORM_WEB}
-							<Button class="mr-4">
+							<Button
+								class="mr-4"
+								on:clickOrSelect={() =>
+									window.open('https://www.themoviedb.org/movie/' + tmdbId, '_blank')}
+							>
 								Open In TMDB
 								<ExternalLink size={19} slot="icon-after" />
 							</Button>

@@ -305,6 +305,12 @@
 								class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4 text-lg"
 							>
 								{series.overview}
+								<!-- <div class="line-clamp-3">
+									{series.overview}
+								</div>
+								<div>
+									{series.genres?.map((g) => g.name).join(', ')}
+								</div> -->
 							</div>
 						{/if}
 					{/await}
@@ -356,7 +362,11 @@
 							<!-- {/if} -->
 
 							{#if PLATFORM_WEB}
-								<Button class="mr-4">
+								<Button
+									class="mr-4"
+									on:clickOrSelect={() =>
+										window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
+								>
 									Open In TMDB
 									<ExternalLink size={19} slot="icon-after" />
 								</Button>
@@ -390,7 +400,7 @@
 				on:mount={episodeCards.registrar}
 				{tmdbId}
 				tmdbSeries={$tmdbSeries}
-				nextEpisode={nextEpisode}
+				{nextEpisode}
 				episodesUserData={$episodesUserData}
 				{handleRequestSeason}
 			/>
