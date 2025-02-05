@@ -86,7 +86,7 @@
 							{/if} -->
 						</span>
 						<span class="text-secondary-400">
-							{stream.properties?.map((p) => `${p.label}: ${p.value}`).join(', ')}
+							{stream.properties?.map((p) => `${p.label}: ${p.formatted || p.value}`).join(', ')}
 						</span>
 					</Container>
 				{/each}

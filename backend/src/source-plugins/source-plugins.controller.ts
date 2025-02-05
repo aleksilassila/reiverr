@@ -20,6 +20,7 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import {
+  EpisodeMetadata,
   MovieMetadata,
   SourcePlugin,
   SourcePluginError,
@@ -92,12 +93,25 @@ export class SourcesController {
     };
   }
 
-  async getSeriesMetadata(tmdbId: string) {
+  async getSeriesMetadata(
+    tmdbId: string,
+    season: number,
+    episode: number,
+  ): Promise<EpisodeMetadata> {
     const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
+    const name = metadata.tmdbSeries?.name;
+
+    if (!name) throw new Error('Could not get metadata for series ' + tmdbId);
 
     return {
-      title: metadata.tmdbSeries?.name,
+      series: name,
       tmdbId,
+      season,
+      episode,
+      seasonEpisodes: metadata.tmdbSeries.seasons.find(
+        (s) => s.season_number === season,
+      )?.episode_count,
+      episodeRuntime: metadata.tmdbSeries.last_episode_to_air.runtime,
     };
   }
 
@@ -269,22 +283,12 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    const metadata = await this.getSeriesMetadata(tmdbId);
+    const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
 
-    if (!metadata.title) {
-      throw new NotFoundException('Show not found');
-    }
-
-    const streams = await plugin.getEpisodeStreams(
-      tmdbId,
-      metadata.title,
-      season,
-      episode,
-      {
-        settings,
-        token,
-      },
-    );
+    const streams = await plugin.getEpisodeStreams(tmdbId, metadata, {
+      settings,
+      token,
+    });
 
     return {
       streams,
@@ -369,18 +373,12 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    const metadata = await this.getSeriesMetadata(tmdbId);
-
-    if (!metadata.title) {
-      throw new NotFoundException('Show not found');
-    }
+    const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
 
     return plugin
       .getEpisodeStream(
         tmdbId,
-        metadata.title || '',
-        season,
-        episode,
+        metadata,
         key || '',
         {
           settings,

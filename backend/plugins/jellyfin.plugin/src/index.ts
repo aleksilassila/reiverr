@@ -18,6 +18,7 @@ import {
   PaginatedResponse,
   PaginationParams,
   SourcePluginError,
+  EpisodeMetadata,
 } from '../../plugin-types';
 import {
   bitrateQualities,
@@ -238,21 +239,11 @@ export default class JellyfinPlugin implements SourcePlugin {
 
   async getEpisodeStreams(
     tmdbId: string,
-    _,
-    season: number,
-    episode: number,
+    metadata: EpisodeMetadata,
     userContext: JellyfinUserContext,
     config?: PlaybackConfig,
   ): Promise<VideoStreamCandidate[]> {
-    return this.getEpisodeStream(
-      tmdbId,
-      '',
-      season,
-      episode,
-      '',
-      userContext,
-      config,
-    )
+    return this.getEpisodeStream(tmdbId, metadata, '', userContext, config)
       .then((stream) => [stream])
       .catch((e) => {
         if (e === SourcePluginError.StreamNotFound) {
@@ -414,9 +405,7 @@ export default class JellyfinPlugin implements SourcePlugin {
 
   async getEpisodeStream(
     tmdbId: string,
-    _,
-    seasonNumber: number,
-    episodeNumber: number,
+    metadata: EpisodeMetadata,
     key: string,
     userContext: JellyfinUserContext,
     config: PlaybackConfig = {
@@ -440,8 +429,8 @@ export default class JellyfinPlugin implements SourcePlugin {
     const episode = items.find(
       (item) =>
         item.SeriesId === show?.Id &&
-        item.IndexNumber === episodeNumber &&
-        item.ParentIndexNumber === seasonNumber,
+        item.IndexNumber === metadata.episode &&
+        item.ParentIndexNumber === metadata.season,
     );
 
     if (
