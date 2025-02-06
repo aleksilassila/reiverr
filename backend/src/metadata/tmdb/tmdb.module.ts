@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { tmdbProviders } from './tmdb.providers';
 import { TmdbController } from './tmdb.controller';
 import { UsersModule } from 'src/users/users.module';
@@ -7,7 +7,7 @@ import { TMDB_CACHE_TTL } from 'src/consts';
 
 @Module({
   imports: [
-    UsersModule,
+    forwardRef(() => UsersModule),
     CacheModule.register({ ttl: TMDB_CACHE_TTL, max: 10_000 }),
   ],
   providers: [...tmdbProviders],

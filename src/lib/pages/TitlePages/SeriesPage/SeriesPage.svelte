@@ -57,7 +57,7 @@
 		nextEpisode,
 		episodesUserData,
 		handleAutoplay,
-		handleStreamSelector,
+		handleOpenStreamSelector,
 		canStream
 	} = useSeriesUserData(
 		id,
@@ -325,7 +325,7 @@
 							<Button
 								class="mr-4"
 								action={handleAutoplay}
-								secondaryAction={handleStreamSelector}
+								secondaryAction={handleOpenStreamSelector}
 								disabled={!$canStream}
 							>
 								{#if $nextEpisode?.episode && $nextEpisode?.season}

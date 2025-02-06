@@ -3,30 +3,29 @@ import {
   ApiPropertyOptional,
   getSchemaPath,
 } from '@nestjs/swagger';
+import { DeviceProfileDto } from './device-profile.dto';
 import {
   AudioStream,
   IndexItem,
   PlaybackConfig,
-  PluginSettings,
-  PluginSettingsInput,
-  PluginSettingsLink,
-  PluginSettingsTemplate,
+  SourceProviderSettings,
+  SourceProviderSettingsInput,
+  SourceProviderSettingsLink,
+  SourceProviderSettingsTemplate,
   Quality,
-  SourcePluginCapabilities,
   Subtitles,
   ValidationResponse,
-  VideoStream,
-  VideoStreamCandidate,
-  VideoStreamProperty,
-} from 'plugins/plugin-types';
-import { DeviceProfileDto } from './device-profile.dto';
+  StreamCandidate,
+  StreamProperty,
+  Stream,
+} from 'plugin-types';
 
 export class IndexItemDto implements IndexItem {
   @ApiProperty()
   id: string;
 }
 
-class PluginSettingsLinkDto implements PluginSettingsLink {
+class PluginSettingsLinkDto implements SourceProviderSettingsLink {
   @ApiProperty({ example: 'link', enum: ['link'] })
   type: 'link';
 
@@ -37,7 +36,7 @@ class PluginSettingsLinkDto implements PluginSettingsLink {
   label: string;
 }
 
-class PluginSettingsInputDto implements PluginSettingsInput {
+class PluginSettingsInputDto implements SourceProviderSettingsInput {
   @ApiProperty({
     example: 'string',
     enum: ['string', 'number', 'boolean', 'password'],
@@ -65,21 +64,27 @@ export class PluginSettingsTemplateDto {
       ],
     },
   })
-  settings: PluginSettingsTemplate;
+  settings: SourceProviderSettingsTemplate;
 }
 
-export class SourcePluginCapabilitiesDto implements SourcePluginCapabilities {
+export class SourceProviderCapabilitiesDto {
   @ApiProperty()
-  playback: boolean;
+  moviePlayback: boolean;
 
   @ApiProperty()
-  indexing: boolean;
+  episodePlayback: boolean;
 
   @ApiProperty()
-  requesting: boolean;
+  movieIndexing: boolean;
 
   @ApiProperty()
-  deletion: boolean;
+  episodeIndexing: boolean;
+
+  // @ApiProperty()
+  // requesting: boolean;
+
+  // @ApiProperty()
+  // deletion: boolean;
 }
 
 export class PluginSettingsDto {
@@ -93,7 +98,7 @@ export class PluginSettingsDto {
       setting4: { nestedKey: 'nestedValue' },
     },
   })
-  settings: PluginSettings;
+  settings: SourceProviderSettings;
 }
 
 export class ValidationResponseDto implements ValidationResponse {
@@ -166,7 +171,7 @@ export class SubtitlesDto implements Subtitles {
   codec: string | undefined;
 }
 
-export class VideoStreamPropertyDto implements VideoStreamProperty {
+export class VideoStreamPropertyDto implements StreamProperty {
   @ApiProperty()
   label: string;
 
@@ -179,7 +184,7 @@ export class VideoStreamPropertyDto implements VideoStreamProperty {
   formatted: string | undefined;
 }
 
-export class VideoStreamCandidateDto implements VideoStreamCandidate {
+export class StreamCandidateDto implements StreamCandidate {
   @ApiProperty()
   key: string;
 
@@ -190,10 +195,7 @@ export class VideoStreamCandidateDto implements VideoStreamCandidate {
   properties: VideoStreamPropertyDto[];
 }
 
-export class VideoStreamDto
-  extends VideoStreamCandidateDto
-  implements VideoStream
-{
+export class StreamDto extends StreamCandidateDto implements Stream {
   @ApiProperty()
   uri: string;
 
@@ -243,9 +245,9 @@ export class PlaybackConfigDto implements PlaybackConfig {
   defaultLanguage: string | undefined;
 }
 
-export class VideoStreamListDto {
+export class StreamCandidatesDto {
   @ApiProperty({
-    type: [VideoStreamCandidateDto],
+    type: [StreamCandidateDto],
   })
-  streams: VideoStreamCandidateDto[];
+  candidates: StreamCandidateDto[];
 }

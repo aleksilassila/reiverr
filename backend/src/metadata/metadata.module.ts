@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MetadataController } from './metadata.controller';
 import { MetadataService as MetadataService } from './metadata.service';
 import { metadataProviders } from './metadata.providers';
@@ -9,7 +9,7 @@ import { UsersModule } from 'src/users/users.module';
 import { TmdbModule } from './tmdb/tmdb.module';
 
 @Module({
-  imports: [DatabaseModule, UsersModule, TmdbModule],
+  imports: [DatabaseModule, forwardRef(() => UsersModule), TmdbModule],
   controllers: [MetadataController],
   providers: [...metadataProviders, MetadataService],
   exports: [MetadataService],

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { DynamicModule } from '@nestjs/common';
 import { SourcePluginsService } from './source-plugins.service';
 import { SourcesController } from './source-plugins.controller';
@@ -9,6 +9,6 @@ import { MetadataModule } from 'src/metadata/metadata.module';
   providers: [SourcePluginsService],
   controllers: [SourcesController],
   exports: [SourcePluginsService],
-  imports: [UsersModule, MetadataModule],
+  imports: [forwardRef(() => UsersModule), forwardRef(() => MetadataModule)],
 })
 export class SourcePluginsModule {}

@@ -38,6 +38,7 @@ COPY backend/package-lock.json .
 RUN mkdir -p ./config
 
 RUN ln -s /usr/src/app/config /config
+RUN ln -s /usr/src/app/plugins /plugins
 
 CMD [ "npm", "run", "start:prod" ]
 

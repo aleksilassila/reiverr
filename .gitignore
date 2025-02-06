@@ -14,7 +14,7 @@ vite.config.ts.timestamp-*
 /dist
 
 backend/plugins/*
-!backend/plugins/jellyfin.plugin
+!backend/plugins/plugin
 
 # Logs
 logs

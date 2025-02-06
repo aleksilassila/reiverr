@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { userProviders } from './user.providers';
 import { UsersController } from './users.controller';
@@ -9,9 +9,10 @@ import { LibraryService } from './library/library.service';
 import { PlayStateService } from './play-state/play-state.service';
 import { LibraryController } from './library/library.controller';
 import { PlayStateController } from './play-state/play-state.controller';
+import { SourcePluginsModule } from 'src/source-plugins/source-plugins.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, forwardRef(() => SourcePluginsModule)],
   providers: [
     ...userProviders,
     UsersService,

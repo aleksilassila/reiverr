@@ -1,8 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { USER_REPOSITORY } from './user.providers';
+import { SourcePluginsService } from 'src/source-plugins/source-plugins.service';
 
 export enum UserServiceError {
   PasswordMismatch = 'PasswordMismatch',
@@ -15,33 +16,43 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => SourcePluginsService))
+    private readonly sourcePluginsService: SourcePluginsService,
   ) {}
 
   // Finds
   async findAll(): Promise<User[]> {
-    return this.userRepository.find({
-      relations: {
-        mediaSources: true,
-      },
-    });
+    return this.userRepository
+      .find({
+        relations: {
+          mediaSources: true,
+        },
+      })
+      .then((users) =>
+        Promise.all(users.map((user) => this.filterMediaSources(user))),
+      );
   }
 
   async findOne(id: string): Promise<User> {
-    return this.userRepository.findOne({
-      where: { id },
-      relations: {
-        mediaSources: true,
-      },
-    });
+    return this.userRepository
+      .findOne({
+        where: { id },
+        relations: {
+          mediaSources: true,
+        },
+      })
+      .then((u) => this.filterMediaSources(u));
   }
 
   async findOneByName(name: string): Promise<User> {
-    return this.userRepository.findOne({
-      where: { name },
-      relations: {
-        mediaSources: true,
-      },
-    });
+    return this.userRepository
+      .findOne({
+        where: { name },
+        relations: {
+          mediaSources: true,
+        },
+      })
+      .then((u) => this.filterMediaSources(u));
   }
 
   // The rest
@@ -125,5 +136,16 @@ export class UsersService {
     });
 
     return adminCount === 0;
+  }
+
+  private async filterMediaSources(user: User): Promise<User> {
+    const mediaSources = await this.sourcePluginsService.getPlugins();
+
+    return {
+      ...user,
+      mediaSources: user.mediaSources.filter(
+        (source) => !!mediaSources[source.id],
+      ),
+    };
   }
 }

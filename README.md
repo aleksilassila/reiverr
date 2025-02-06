@@ -74,6 +74,7 @@ services:
       - ADMIN_PASSWORD=admin # optional
     volumes:
       - /path/to/appdata/config:/config
+      - /path/to/appdata/plugins:/plugins
     restart: unless-stopped
 ```
 

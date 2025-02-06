@@ -86,7 +86,7 @@ function usePlayerState() {
 				get(sources).map((s) =>
 					reiverrApiNew.sources
 						.getMovieStreams(s.source.id, tmdbId)
-						.then((r) => ({ source: s.source, streams: r.data.streams }))
+						.then((r) => ({ source: s.source, streams: r.data.candidates }))
 				)
 			);
 			sourceId = streams?.[0]?.source.id || '';
@@ -125,7 +125,7 @@ function usePlayerState() {
 				get(sources).map((s) =>
 					reiverrApiNew.sources
 						.getEpisodeStreams(s.source.id, tmdbId, season, episode)
-						.then((r) => ({ source: s.source, streams: r.data.streams }))
+						.then((r) => ({ source: s.source, streams: r.data.candidates }))
 				)
 			);
 			sourceId = streams?.[0]?.source.id || '';

@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SourcePlugin } from 'plugins/plugin-types';
+import { PluginProvider, SourceProvider } from 'plugin-types';
 
 @Injectable()
 export class SourcePluginsService {
-  private plugins: Record<string, SourcePlugin>;
+  private plugins: Record<string, SourceProvider> = {};
 
   constructor() {
     console.log('Loading source plugins...');
@@ -19,11 +19,11 @@ export class SourcePluginsService {
     );
   }
 
-  async getPlugins(): Promise<Record<string, SourcePlugin>> {
+  async getPlugins(): Promise<Record<string, SourceProvider>> {
     return this.plugins;
   }
 
-  private loadPlugins(rootDirectory: string): Record<string, SourcePlugin> {
+  private loadPlugins(rootDirectory: string): Record<string, SourceProvider> {
     const pluginDirectories = fs.readdirSync(rootDirectory);
 
     const pluginPaths = [];
@@ -36,19 +36,25 @@ export class SourcePluginsService {
       }
     }
 
-    const plugins: Record<string, SourcePlugin> = {};
+    const plugins: Record<string, SourceProvider> = {};
 
     for (const pluginPath of pluginPaths) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pluginModule = require(pluginPath);
-      const plugin = new pluginModule.default();
-      plugins[plugin.name] = plugin;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pluginModule = require(pluginPath);
+        const provider: typeof PluginProvider = pluginModule.default;
+        provider.getPlugins().forEach((plugin) => {
+          plugins[plugin.name] = plugin;
+        });
+      } catch (e) {
+        console.error(`Failed to load plugin from ${pluginPath}: ${e}`);
+      }
     }
 
     return plugins;
   }
 
-  getPlugin(pluginName: string): SourcePlugin | undefined {
+  getPlugin(pluginName: string): SourceProvider | undefined {
     return this.plugins[pluginName];
   }
 }

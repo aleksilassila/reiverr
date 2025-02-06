@@ -13,6 +13,7 @@
     "@types/axios": "^0.14.4",
     "axios": "^1.7.8",
     "express-http-proxy": "^2.1.1",
+    "plugin-types": "file:../plugin-types",
     "swagger-typescript-api": "^13.0.23"
   }
 }

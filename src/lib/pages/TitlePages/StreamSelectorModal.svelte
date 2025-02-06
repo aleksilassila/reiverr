@@ -1,24 +1,19 @@
 <script lang="ts">
-	import { get } from 'svelte/store';
 	import Container from '$components/Container.svelte';
-	import FullScreenModal from '../../components/Modal/FullScreenModal.svelte';
-	import Modal from '../../components/Modal/Modal.svelte';
-	import { reiverrApiNew, sources } from '../../stores/user.store';
-	import type { MediaSource, VideoStreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import Button from '../../components/Button.svelte';
-	import { modalStack } from '../../components/Modal/modal.store';
-	import classNames from 'classnames';
-	import { capitalize } from '../../utils';
-	import { ChevronRight, Play } from 'radix-icons-svelte';
-	import { playerState } from '../../components/VideoPlayer/VideoPlayer';
 	import { scrollIntoView } from '$lib/selectable';
+	import classNames from 'classnames';
+	import { ChevronRight } from 'radix-icons-svelte';
+	import type { MediaSource, StreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
+	import Modal from '../../components/Modal/Modal.svelte';
+	import { sources } from '../../stores/user.store';
+	import { capitalize } from '../../utils';
 
 	export let modalId: symbol;
-	export let getStreams: (source: MediaSource) => Promise<VideoStreamCandidateDto[]>;
-	export let selectStream: (source: MediaSource, stream: VideoStreamCandidateDto) => void;
+	export let getStreams: (source: MediaSource) => Promise<StreamCandidateDto[]>;
+	export let selectStream: (source: MediaSource, stream: StreamCandidateDto) => void;
 
 	let selectedSource: MediaSource | undefined = undefined;
-	let streams: Record<string, Promise<VideoStreamCandidateDto[]>> = {};
+	let streams: Record<string, Promise<StreamCandidateDto[]>> = {};
 
 	function selectSource(source: MediaSource) {
 		selectedSource = source;

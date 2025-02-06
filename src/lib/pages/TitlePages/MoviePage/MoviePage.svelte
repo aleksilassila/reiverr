@@ -39,7 +39,7 @@
 		handleAddToLibrary,
 		handleRemoveFromLibrary,
 		handleAutoplay,
-		handleStreamSelector,
+		handleOpenStreamSelector,
 		canStream,
 		isWatched,
 		toggleIsWatched
@@ -250,7 +250,7 @@
 						<Button
 							class="mr-4"
 							action={handleAutoplay}
-							secondaryAction={handleStreamSelector}
+							secondaryAction={handleOpenStreamSelector}
 							disabled={!$canStream}
 						>
 							Play

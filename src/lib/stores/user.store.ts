@@ -3,7 +3,7 @@ import { getReiverrApiNew, reiverrApi, type ReiverrUser } from '../apis/reiverr/
 import axios from 'axios';
 import type { operations } from '../apis/reiverr/reiverr.generated';
 import { type Session, sessions } from './session.store';
-import type { SourcePluginCapabilitiesDto, MediaSource } from '../apis/reiverr/reiverr.openapi';
+import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
 
 export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;
 
@@ -12,7 +12,7 @@ function useUser() {
 
 	const initializedStores = writable({ user: false, sources: false });
 	const userStore = writable<ReiverrUser | undefined | null>(undefined);
-	const sources = writable<{ source: MediaSource; capabilities: SourcePluginCapabilitiesDto }[]>(
+	const sources = writable<{ source: MediaSource; capabilities: SourceProviderCapabilitiesDto }[]>(
 		[]
 	);
 	const isAppInitialized = derived(initializedStores, ({ user, sources }) => user && sources);
@@ -30,7 +30,7 @@ function useUser() {
 			return;
 		}
 
-		const out: { source: MediaSource; capabilities: SourcePluginCapabilitiesDto }[] = [];
+		const out: { source: MediaSource; capabilities: SourceProviderCapabilitiesDto }[] = [];
 
 		await Promise.all(
 			user?.mediaSources
@@ -41,6 +41,12 @@ function useUser() {
 						capabilities: await reiverrApiNew.sources
 							.getSourceCapabilities(s.id, s.pluginSettings ?? ({} as any))
 							.then((r) => r.data)
+							.catch(() => ({
+								episodeIndexing: false,
+								episodePlayback: false,
+								movieIndexing: false,
+								moviePlayback: false
+							}))
 					});
 				}) ?? []
 		);
@@ -101,7 +107,7 @@ function useUser() {
 			refreshUser
 		},
 		sources: {
-			subscribe: sources.subscribe,
+			subscribe: sources.subscribe
 		},
 		isAppInitialized: {
 			subscribe: isAppInitialized.subscribe

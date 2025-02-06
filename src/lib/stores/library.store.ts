@@ -8,7 +8,7 @@ import type {
 	MediaSource,
 	MovieUserDataDto,
 	SeriesUserDataDto,
-	VideoStreamCandidateDto
+	StreamCandidateDto
 } from '../apis/reiverr/reiverr.openapi';
 import type { MediaType } from '../types';
 import { reiverrApiNew, sources, user } from './user.store';
@@ -24,20 +24,18 @@ async function getStreams(
 	tmdbId: string,
 	season?: number,
 	episode?: number
-): Promise<{ source: MediaSource; streams: VideoStreamCandidateDto[] }[]> {
+): Promise<{ source: MediaSource; streams: StreamCandidateDto[] }[]> {
 	return Promise.all(
 		get(sources).map(async (source) => {
 			return {
 				source: source.source,
-				streams: await(
-					season !== undefined && episode !== undefined
-						? reiverrApiNew.sources
-								.getEpisodeStreams(source.source.id, tmdbId, season, episode)
-								.then((r) => r.data?.streams ?? [])
-						: reiverrApiNew.sources
-								.getMovieStreams(source.source.id, tmdbId)
-								.then((r) => r.data?.streams ?? [])
-				)
+				streams: await (season !== undefined && episode !== undefined
+					? reiverrApiNew.sources
+							.getEpisodeStreams(source.source.id, tmdbId, season, episode)
+							.then((r) => r.data?.candidates ?? [])
+					: reiverrApiNew.sources
+							.getMovieStreams(source.source.id, tmdbId)
+							.then((r) => r.data?.candidates ?? []))
 			};
 		})
 	);
@@ -66,7 +64,7 @@ async function handleAutoplay(options: {
 	}
 }
 
-async function handleStreamSelector(options: {
+async function handleOpenStreamSelector(options: {
 	tmdbId: string;
 	season?: number;
 	episode?: number;
@@ -232,7 +230,7 @@ export function useSeriesUserData(
 
 			return handleAutoplay({ tmdbId, season, episode, progress });
 		},
-		handleStreamSelector: async () => {
+		handleOpenStreamSelector: async () => {
 			const { season, episode, progress } = get(nextEpisode) ?? {};
 
 			if (season === undefined || episode === undefined) {
@@ -240,7 +238,7 @@ export function useSeriesUserData(
 				return;
 			}
 
-			return handleStreamSelector({ tmdbId, season, episode, progress });
+			return handleOpenStreamSelector({ tmdbId, season, episode, progress });
 		}
 	};
 }
@@ -265,7 +263,8 @@ export function useMovieUserData(tmdbId: string, userData: Promise<MovieUserData
 		...isWatchedStore,
 		progress,
 		handleAutoplay: async () => handleAutoplay({ tmdbId, progress: get(progress) }),
-		handleStreamSelector: async () => handleStreamSelector({ tmdbId, progress: get(progress) })
+		handleOpenStreamSelector: async () =>
+			handleOpenStreamSelector({ tmdbId, progress: get(progress) })
 	};
 }
 
@@ -293,7 +292,7 @@ export function useEpisodeUserData(
 		progress,
 		handleAutoplay: async () =>
 			handleAutoplay({ tmdbId, season, episode, progress: get(progress) }),
-		handleStreamSelector: async () =>
-			handleStreamSelector({ tmdbId, season, episode, progress: get(progress) })
+		handleOpenStreamSelector: async () =>
+			handleOpenStreamSelector({ tmdbId, season, episode, progress: get(progress) })
 	};
 }

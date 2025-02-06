@@ -34,8 +34,14 @@
 	// const streams = getStreams();
 
 	// const availableForStreaming = writable(false);
-	const { progress, handleAutoplay, handleStreamSelector, canStream, isWatched, toggleIsWatched } =
-		useEpisodeUserData(id, Number(season), Number(episode), episodeUserData);
+	const {
+		progress,
+		handleAutoplay,
+		handleOpenStreamSelector,
+		canStream,
+		isWatched,
+		toggleIsWatched
+	} = useEpisodeUserData(id, Number(season), Number(episode), episodeUserData);
 
 	// streams.forEach((p) =>
 	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
@@ -258,7 +264,7 @@
 				<Button
 					class="mr-4"
 					action={handleAutoplay}
-					secondaryAction={handleStreamSelector}
+					secondaryAction={handleOpenStreamSelector}
 					disabled={!$canStream}
 				>
 					Play

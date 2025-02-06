@@ -1,180 +1,49 @@
-import { Injectable } from '@nestjs/common';
+import { BaseItemKind, ItemFields } from './jellyfin.openapi';
 import {
-  BaseItemKind,
-  ItemFields,
-  Api as JellyfinApi,
-} from './jellyfin.openapi';
-import {
-  PlaybackConfig,
-  SourcePluginCapabilities,
-  PluginSettings,
-  PluginSettingsTemplate,
-  SourcePlugin,
-  Subtitles,
-  UserContext,
-  VideoStream,
-  VideoStreamCandidate,
+  EpisodeMetadata,
   IndexItem,
+  MovieMetadata,
   PaginatedResponse,
   PaginationParams,
-  SourcePluginError,
-  EpisodeMetadata,
-} from '../../plugin-types';
+  PlaybackConfig,
+  PluginProvider,
+  SettingsManager,
+  SourceProvider,
+  SourceProviderError,
+  Stream,
+  StreamCandidate,
+  Subtitles,
+  UserContext,
+} from 'plugin-types';
+import { Readable } from 'stream';
+import {
+  JellyfinSettings,
+  JellyfinUserContext,
+  PluginContext,
+} from './plugin-context';
+import { JellyfinSettingsManager } from './settings';
 import {
   bitrateQualities,
   formatSize,
   formatTicksToTime,
   getClosestBitrate,
+  JELLYFIN_DEVICE_ID,
 } from './utils';
-import { Readable } from 'stream';
 
-interface JellyfinSettings extends PluginSettings {
-  apiKey: string;
-  baseUrl: string;
-  userId: string;
+export default class JellyfinPluginProvider extends PluginProvider {
+  static getPlugins(): SourceProvider[] {
+    return [new JellyfinProvider()];
+  }
 }
 
-interface JellyfinUserContext extends UserContext {
-  settings: JellyfinSettings;
-}
-
-const JELLYFIN_DEVICE_ID = 'Reiverr Client';
-
-@Injectable()
-export default class JellyfinPlugin implements SourcePlugin {
+class JellyfinProvider extends SourceProvider {
   name: string = 'jellyfin';
 
-  private getProxyUrl() {
+  private get proxyUrl() {
     return `/api/sources/${this.name}/proxy`;
   }
 
-  validateSettings: (settings: JellyfinSettings) => Promise<{
-    isValid: boolean;
-    errors: Record<string, string>;
-    replace: Record<string, any>;
-  }> = async (settings) => {
-    let isValid = true;
-    const errors = {
-      baseUrl: '',
-      apiKey: '',
-      userId: '',
-    };
-    const replace: Record<string, any> = {};
-
-    if (!settings.baseUrl) {
-      isValid = false;
-      errors.baseUrl = 'Base URL is required';
-    }
-
-    if (!settings.apiKey) {
-      isValid = false;
-      errors.apiKey = 'API Key is required';
-    }
-
-    if (!settings.userId) {
-      isValid = false;
-      errors.userId = 'User ID is required';
-    }
-
-    if (isValid) {
-      const context = new PluginContext(settings);
-      let [user, err] = await context.api.users
-        .getUserById(settings.userId)
-        .then((res) => [res.data, undefined])
-        .catch((err) => [undefined, err.message]);
-
-      if (!user && err) {
-        [user, err] = await context.api.users
-          .getUsers()
-          .then((res) => res.data?.find((u) => u.Name === settings.userId))
-          .then((user) => {
-            if (!user || !user.Id) {
-              return [undefined, 'User not found'];
-            }
-
-            replace.userId = user.Id;
-
-            return [user, undefined];
-          })
-          .catch((err) => [undefined, err.message]);
-      }
-
-      if (!user && err) {
-        isValid = false;
-        errors.userId = `Could not get user: ${err}`;
-      }
-    }
-
-    return {
-      isValid,
-      errors,
-      replace,
-    };
-  };
-
-  getCapabilities: (conext: UserContext) => Promise<SourcePluginCapabilities> =
-    async (context) => {
-      return {
-        deletion: true,
-        indexing: true,
-        playback: true,
-        requesting: true,
-      };
-    };
-
-  getMovieIndex: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<IndexItem>> = async (
-    userContext: JellyfinUserContext,
-    pagination,
-  ) => {
-    const items = (
-      await this.getLibraryItems(
-        new PluginContext(userContext.settings, userContext.token),
-      )
-    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
-
-    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
-    const endIndex = startIndex + pagination.itemsPerPage;
-
-    return {
-      total: items.length,
-      page: pagination.page,
-      itemsPerPage: pagination.itemsPerPage,
-      items: items.slice(startIndex, endIndex).map((item) => ({
-        id: item.ProviderIds?.Tmdb,
-      })),
-    };
-  };
-
-  getSettingsTemplate: () => PluginSettingsTemplate = () => ({
-    baseUrl: {
-      type: 'string',
-      label: 'Base URL',
-      placeholder: 'http://localhost:8096',
-    },
-    apiKey: {
-      type: 'password',
-      label: 'API Key',
-      placeholder: '',
-    },
-    userId: {
-      type: 'string',
-      label: 'Username or User ID',
-      placeholder: 'username or user id',
-    },
-  });
-
-  // handleProxy({ uri, headers }, settings: JellyfinSettings) {
-  //   return {
-  //     url: `https://tmstr2.luminousstreamhaven.com/${uri}`,
-  //     headers: {
-  //       ...headers,
-  //       // Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
-  //     },
-  //   };
-  // }
+  settingsManager: SettingsManager = new JellyfinSettingsManager();
 
   private async getLibraryItems(context: PluginContext) {
     return context.api.items
@@ -198,83 +67,75 @@ export default class JellyfinPlugin implements SourcePlugin {
       .then((res) => res.data.Items ?? []);
   }
 
-  // private async getLibraryEpisodes(context: PluginContext) {
-  //   return context.api.items
-  //     .getItems({
-  //       userId: context.settings.userId,
-  //       // hasTmdbId: true,
-  //       recursive: true,
-  //       includeItemTypes: [BaseItemKind.Episode],
-  //       fields: [
-  //         ItemFields.ProviderIds,
-  //         ItemFields.Genres,
-  //         ItemFields.DateLastMediaAdded,
-  //         ItemFields.DateCreated,
-  //         ItemFields.MediaSources,
-  //       ],
-  //     })
-  //     .then((res) => res.data.Items ?? []);
-  // }
-
-  async getMovieStreams(
-    tmdbId: string,
-    metadata,
+  getMovieCatalogue = async (
     userContext: JellyfinUserContext,
-    config: PlaybackConfig = {
-      audioStreamIndex: undefined,
-      bitrate: undefined,
-      progress: undefined,
-      defaultLanguage: undefined,
-      deviceProfile: undefined,
-    },
-  ): Promise<VideoStreamCandidate[]> {
-    return this.getMovieStream(tmdbId, metadata, '', userContext, config)
-      .then((stream) => [stream])
+    pagination: PaginationParams,
+  ): Promise<PaginatedResponse<IndexItem>> => {
+    const items = (
+      await this.getLibraryItems(
+        new PluginContext(userContext.settings, userContext.token),
+      )
+    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
+
+    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+
+    return {
+      total: items.length,
+      page: pagination.page,
+      itemsPerPage: pagination.itemsPerPage,
+      items: items.slice(startIndex, endIndex).map((item) => ({
+        id: item.ProviderIds?.Tmdb,
+      })),
+    };
+  };
+
+  getMovieStreams = async (
+    tmdbId: string,
+    metadata: MovieMetadata,
+    context: JellyfinUserContext,
+    config?: PlaybackConfig,
+  ): Promise<{ candidates: StreamCandidate[] }> => {
+    return this.getMovieStream(tmdbId, metadata, '', context, config)
+      .then((stream) => ({ candidates: [stream] }))
       .catch((e) => {
-        if (e === SourcePluginError.StreamNotFound) {
-          return [];
+        if (e === SourceProviderError.StreamNotFound) {
+          return { candidates: [] };
         } else throw e;
       });
-  }
+  };
 
-  async getEpisodeStreams(
+  getEpisodeStreams = async (
     tmdbId: string,
     metadata: EpisodeMetadata,
-    userContext: JellyfinUserContext,
+    context: JellyfinUserContext,
     config?: PlaybackConfig,
-  ): Promise<VideoStreamCandidate[]> {
-    return this.getEpisodeStream(tmdbId, metadata, '', userContext, config)
-      .then((stream) => [stream])
+  ): Promise<{ candidates: StreamCandidate[] }> => {
+    return this.getEpisodeStream(tmdbId, metadata, '', context, config)
+      .then((stream) => ({ candidates: [stream] }))
       .catch((e) => {
-        if (e === SourcePluginError.StreamNotFound) {
-          return [];
+        if (e === SourceProviderError.StreamNotFound) {
+          return { candidates: [] };
         } else throw e;
       });
-  }
+  };
 
-  async getMovieStream(
+  getMovieStream = async (
     tmdbId: string,
-    metadata,
+    metadata: MovieMetadata,
     key: string,
     userContext: JellyfinUserContext,
-    config: PlaybackConfig = {
-      audioStreamIndex: undefined,
-      bitrate: undefined,
-      progress: undefined,
-      defaultLanguage: undefined,
-      deviceProfile: undefined,
-    },
-  ): Promise<VideoStream> {
+    config?: PlaybackConfig,
+  ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);
     const items = await this.getLibraryItems(context);
-    const proxyUrl = this.getProxyUrl();
 
     const movie = items.find((item) => item.ProviderIds?.Tmdb === tmdbId);
 
     // console.log(items.map((item) => item))
 
     if (!movie || !movie.MediaSources || movie.MediaSources.length === 0) {
-      throw SourcePluginError.StreamNotFound;
+      throw SourceProviderError.StreamNotFound;
     }
 
     /*
@@ -316,12 +177,12 @@ export default class JellyfinPlugin implements SourcePlugin {
     const mediasSource = playbackInfo.data?.MediaSources?.[0];
 
     const playbackUri =
-      proxyUrl +
+      this.proxyUrl +
       (mediasSource?.TranscodingUrl ||
         `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
       `&reiverr_token=${userContext.token}`;
 
-    const audioStreams: VideoStream['audioStreams'] =
+    const audioStreams: Stream['audioStreams'] =
       mediasSource?.MediaStreams.filter((s) => s.Type === 'Audio').map((s) => ({
         bitrate: s.BitRate,
         label: s.Language,
@@ -329,7 +190,7 @@ export default class JellyfinPlugin implements SourcePlugin {
         index: s.Index,
       })) ?? [];
 
-    const qualities: VideoStream['qualities'] = [
+    const qualities: Stream['qualities'] = [
       ...bitrateQualities,
       {
         bitrate: mediasSource.Bitrate,
@@ -348,7 +209,7 @@ export default class JellyfinPlugin implements SourcePlugin {
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
       index: i,
-      uri: proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      uri: this.proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
       label: s.DisplayTitle,
       codec: s.Codec,
     }));
@@ -401,24 +262,17 @@ export default class JellyfinPlugin implements SourcePlugin {
         !!mediasSource?.SupportsDirectPlay ||
         !!mediasSource?.SupportsDirectStream,
     };
-  }
+  };
 
-  async getEpisodeStream(
+  getEpisodeStream = async (
     tmdbId: string,
     metadata: EpisodeMetadata,
     key: string,
     userContext: JellyfinUserContext,
-    config: PlaybackConfig = {
-      audioStreamIndex: undefined,
-      bitrate: undefined,
-      progress: undefined,
-      defaultLanguage: undefined,
-      deviceProfile: undefined,
-    },
-  ): Promise<VideoStream> {
+    config?: PlaybackConfig,
+  ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);
     const items = await this.getLibraryItems(context);
-    const proxyUrl = this.getProxyUrl();
 
     const show = items.find(
       (item) => item.ProviderIds?.Tmdb === tmdbId,
@@ -438,7 +292,7 @@ export default class JellyfinPlugin implements SourcePlugin {
       !episode.MediaSources ||
       episode.MediaSources.length === 0
     ) {
-      throw SourcePluginError.StreamNotFound;
+      throw SourceProviderError.StreamNotFound;
     }
 
     /*
@@ -480,12 +334,12 @@ export default class JellyfinPlugin implements SourcePlugin {
     const mediasSource = playbackInfo.data?.MediaSources?.[0];
 
     const playbackUri =
-      proxyUrl +
+      this.proxyUrl +
       (mediasSource?.TranscodingUrl ||
         `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
       `&reiverr_token=${userContext.token}`;
 
-    const audioStreams: VideoStream['audioStreams'] =
+    const audioStreams: Stream['audioStreams'] =
       mediasSource?.MediaStreams.filter((s) => s.Type === 'Audio').map((s) => ({
         bitrate: s.BitRate,
         label: s.Language,
@@ -493,7 +347,7 @@ export default class JellyfinPlugin implements SourcePlugin {
         index: s.Index,
       })) ?? [];
 
-    const qualities: VideoStream['qualities'] = [
+    const qualities: Stream['qualities'] = [
       ...bitrateQualities,
       {
         bitrate: mediasSource.Bitrate,
@@ -512,7 +366,7 @@ export default class JellyfinPlugin implements SourcePlugin {
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
       index: i,
-      uri: proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      uri: this.proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
       label: s.DisplayTitle,
       codec: s.Codec,
     }));
@@ -565,13 +419,14 @@ export default class JellyfinPlugin implements SourcePlugin {
         !!mediasSource?.SupportsDirectPlay ||
         !!mediasSource?.SupportsDirectStream,
     };
-  }
+  };
 
-  proxyHandler?: (
+  proxyHandler = async (
     req: any,
     res: any,
-    options: { context: UserContext; uri: string },
-  ) => Promise<any> = async (req, res, { context, uri }) => {
+    options: { context: UserContext; uri: string; targetUrl?: string },
+  ): Promise<any> => {
+    const { context, uri, targetUrl } = options;
     const settings = context.settings as JellyfinSettings;
 
     const url = settings.baseUrl + uri;
@@ -596,24 +451,4 @@ export default class JellyfinPlugin implements SourcePlugin {
     res.status(proxyRes.status);
     Readable.from(proxyRes.body).pipe(res);
   };
-}
-
-class PluginContext {
-  api: JellyfinApi<unknown>;
-  settings: JellyfinSettings;
-  token: string;
-
-  constructor(settings: JellyfinSettings, token = '') {
-    this.token = token;
-    this.settings = settings;
-    this.api = new JellyfinApi({
-      baseURL: settings.baseUrl,
-      headers: {
-        Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
-      },
-      paramsSerializer: {
-        indexes: null,
-      },
-    });
-  }
 }

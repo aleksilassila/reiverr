@@ -22,13 +22,13 @@ import { Request, Response } from 'express';
 import {
   EpisodeMetadata,
   MovieMetadata,
-  SourcePlugin,
-  SourcePluginError,
-} from 'plugins/plugin-types';
+  SourceProvider,
+  SourceProviderError,
+} from 'plugin-types';
 import {
-  UserAccessControl,
   GetAuthToken,
   GetAuthUser,
+  UserAccessControl,
 } from 'src/auth/auth.guard';
 import {
   GetPaginationParams,
@@ -38,21 +38,20 @@ import {
   PaginatedResponseDto,
   PaginationParamsDto,
 } from 'src/common/common.dto';
+import { MetadataService } from 'src/metadata/metadata.service';
 import { UserSourcesService } from 'src/users/user-sources/user-sources.service';
 import { User } from 'src/users/user.entity';
-import { Readable } from 'stream';
 import {
   IndexItemDto,
   PlaybackConfigDto,
   PluginSettingsDto,
   PluginSettingsTemplateDto,
-  SourcePluginCapabilitiesDto,
+  SourceProviderCapabilitiesDto,
+  StreamCandidatesDto,
+  StreamDto,
   ValidationResponseDto,
-  VideoStreamDto,
-  VideoStreamListDto,
 } from './source-plugins.dto';
 import { SourcePluginsService } from './source-plugins.service';
-import { MetadataService } from 'src/metadata/metadata.service';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 
@@ -144,7 +143,7 @@ export class SourcesController {
 
     // return plugin.getSettingsTemplate(callerUser.pluginSettings?.[sourceId]);
     return {
-      settings: plugin.getSettingsTemplate(),
+      settings: plugin.settingsManager.getSettingsTemplate(),
     };
   }
 
@@ -164,18 +163,18 @@ export class SourcesController {
       throw new NotFoundException('Plugin not found');
     }
 
-    return plugin.validateSettings(settings.settings);
+    return plugin.settingsManager.validateSettings(settings.settings);
   }
 
   @Get('sources/:sourceId/capabilities')
   @ApiOkResponse({
-    type: SourcePluginCapabilitiesDto,
+    type: SourceProviderCapabilitiesDto,
   })
   async getSourceCapabilities(
     @GetAuthUser() user: User,
-    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
+    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourceProvider,
     @GetAuthToken() token: string,
-  ): Promise<SourcePluginCapabilitiesDto> {
+  ): Promise<SourceProviderCapabilitiesDto> {
     const settings = this.userSourcesService.getSourceSettings(
       user,
       plugin.name,
@@ -185,17 +184,19 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    return plugin.getCapabilities({
-      settings: settings.settings,
-      token,
-    });
+    return {
+      movieIndexing: !!plugin.getMovieCatalogue,
+      episodeIndexing: !!plugin.getEpisodeCatalogue,
+      moviePlayback: !!plugin.getMovieStreams && !!plugin.getMovieStream,
+      episodePlayback: !!plugin.getEpisodeStreams && !!plugin.getEpisodeStream,
+    };
   }
 
-  @Get('sources/:sourceId/index/movies')
+  @Get('sources/:sourceId/catalogue/movies')
   @PaginatedApiOkResponse(IndexItemDto)
-  async getSourceMovieIndex(
+  async getMovieCatalogue(
     @GetAuthUser() user: User,
-    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourcePlugin,
+    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourceProvider,
     @GetAuthToken() token: string,
     @GetPaginationParams() pagination: PaginationParamsDto,
   ): Promise<PaginatedResponseDto<IndexItemDto>> {
@@ -208,30 +209,64 @@ export class SourcesController {
       throw new BadRequestException('Source configuration not found');
     }
 
-    if (!plugin.getMovieIndex) {
+    if (!plugin.getMovieCatalogue) {
       throw new BadRequestException('Plugin does not support indexing');
     }
 
-    return plugin.getMovieIndex(
+    const catalogue = await plugin.getMovieCatalogue?.(
       {
         settings,
         token,
       },
       pagination,
     );
+
+    return catalogue ?? { items: [], total: 0, itemsPerPage: 0, page: 0 };
+  }
+
+  @Get('sources/:sourceId/catalogue/episodes')
+  @PaginatedApiOkResponse(IndexItemDto)
+  async getEpisodeCatalogue(
+    @GetAuthUser() user: User,
+    @Param('sourceId', ValidateSourcePluginPipe) plugin: SourceProvider,
+    @GetAuthToken() token: string,
+    @GetPaginationParams() pagination: PaginationParamsDto,
+  ): Promise<PaginatedResponseDto<IndexItemDto>> {
+    const settings = this.userSourcesService.getSourceSettings(
+      user,
+      plugin.name,
+    );
+
+    if (!settings) {
+      throw new BadRequestException('Source configuration not found');
+    }
+
+    if (!plugin.getEpisodeCatalogue) {
+      throw new BadRequestException('Plugin does not support indexing');
+    }
+
+    const catalogue = await plugin.getEpisodeCatalogue?.(
+      {
+        settings,
+        token,
+      },
+      pagination,
+    );
+
+    return catalogue ?? { items: [], total: 0, itemsPerPage: 0, page: 0 };
   }
 
   @Get('sources/:sourceId/movies/tmdb/:tmdbId/streams')
   @ApiOkResponse({
     description: 'Movie sources',
-    type: VideoStreamListDto,
+    type: StreamCandidatesDto,
   })
   async getMovieStreams(
     @Param('sourceId') sourceId: string,
     @Param('tmdbId') tmdbId: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
-  ): Promise<VideoStreamListDto> {
+  ): Promise<StreamCandidatesDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
     if (!plugin) {
@@ -246,14 +281,12 @@ export class SourcesController {
 
     const metadata = await this.getMovieMetadata(tmdbId);
 
-    const streams = await plugin.getMovieStreams(tmdbId, metadata, {
+    const streams = await plugin.getMovieStreams?.(tmdbId, metadata, {
       settings,
       token,
     });
 
-    return {
-      streams,
-    };
+    return streams ?? { candidates: [] };
   }
 
   @Get(
@@ -261,7 +294,7 @@ export class SourcesController {
   )
   @ApiOkResponse({
     description: 'Episode sources',
-    type: VideoStreamListDto,
+    type: StreamCandidatesDto,
   })
   async getEpisodeStreams(
     @Param('sourceId') sourceId: string,
@@ -270,7 +303,7 @@ export class SourcesController {
     @Param('episode', ParseIntPipe) episode: number,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
-  ): Promise<VideoStreamListDto> {
+  ): Promise<StreamCandidatesDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
     if (!plugin) {
@@ -285,20 +318,18 @@ export class SourcesController {
 
     const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
 
-    const streams = await plugin.getEpisodeStreams(tmdbId, metadata, {
+    const streams = await plugin.getEpisodeStreams?.(tmdbId, metadata, {
       settings,
       token,
     });
 
-    return {
-      streams,
-    };
+    return streams ?? { candidates: [] };
   }
 
   @Post('sources/:sourceId/movies/tmdb/:tmdbId/streams/:key')
   @ApiOkResponse({
     description: 'Movie stream',
-    type: VideoStreamDto,
+    type: StreamDto,
   })
   async getMovieStream(
     @Param('tmdbId') tmdbId: string,
@@ -308,7 +339,7 @@ export class SourcesController {
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
-  ): Promise<VideoStreamDto> {
+  ): Promise<StreamDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
     if (!plugin) {
@@ -323,8 +354,8 @@ export class SourcesController {
 
     const metadata = await this.getMovieMetadata(tmdbId);
 
-    return plugin
-      .getMovieStream(
+    const stream = await plugin
+      .getMovieStream?.(
         tmdbId,
         metadata,
         key || '',
@@ -335,13 +366,19 @@ export class SourcesController {
         config,
       )
       .catch((e) => {
-        if (e === SourcePluginError.StreamNotFound) {
+        if (e === SourceProviderError.StreamNotFound) {
           throw new NotFoundException('Stream not found');
         } else {
           console.error(e);
           throw new InternalServerErrorException();
         }
       });
+
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+
+    return stream;
   }
 
   @Post(
@@ -349,7 +386,7 @@ export class SourcesController {
   )
   @ApiOkResponse({
     description: 'Show stream',
-    type: VideoStreamDto,
+    type: StreamDto,
   })
   async getEpisodeStream(
     @Param('sourceId') sourceId: string,
@@ -360,7 +397,7 @@ export class SourcesController {
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
-  ): Promise<VideoStreamDto> {
+  ): Promise<StreamDto> {
     const plugin = this.sourcesService.getPlugin(sourceId);
 
     if (!plugin) {
@@ -375,8 +412,8 @@ export class SourcesController {
 
     const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
 
-    return plugin
-      .getEpisodeStream(
+    const stream = await plugin
+      .getEpisodeStream?.(
         tmdbId,
         metadata,
         key || '',
@@ -387,18 +424,24 @@ export class SourcesController {
         config,
       )
       .catch((e) => {
-        if (e === SourcePluginError.StreamNotFound) {
+        if (e === SourceProviderError.StreamNotFound) {
           throw new NotFoundException('Stream not found');
         } else {
           console.error(e);
           throw new InternalServerErrorException();
         }
       });
+
+    if (!stream) {
+      throw new NotFoundException('Stream not found');
+    }
+
+    return stream;
   }
 
   /** @deprecated */
   @All(['sources/:sourceId/proxy', 'sources/:sourceId/proxy/*'])
-  async movieStreamProxy(
+  async proxyHandler(
     @Param() params: any,
     @Query() query: any,
     @Req() req: Request,
