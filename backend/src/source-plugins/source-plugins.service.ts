@@ -11,7 +11,7 @@ export class SourcePluginsService {
     console.log('Loading source plugins...');
 
     this.plugins = this.loadPlugins(
-      path.join(require.main.path, '..', 'plugins'),
+      path.join(require.main.path, '..', '..', 'plugins'),
     );
 
     console.log(
@@ -39,6 +39,7 @@ export class SourcePluginsService {
     const plugins: Record<string, SourcePlugin> = {};
 
     for (const pluginPath of pluginPaths) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const pluginModule = require(pluginPath);
       const plugin = new pluginModule.default();
       plugins[plugin.name] = plugin;
