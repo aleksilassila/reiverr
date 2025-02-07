@@ -304,4 +304,3 @@ export const stackRouter = useStackRouter({
 
 export const navigate = stackRouter.navigate;
 export const back = stackRouter.back;
-stackRouter.subscribe(console.log);

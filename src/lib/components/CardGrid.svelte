@@ -8,7 +8,6 @@
 	export let type: 'portrait' | 'landscape' = 'portrait';
 
 	let cols = getCardDimensions(window.innerWidth, type).columns;
-	$: console.log('cols', cols);
 
 	// let cols: number = 1;
 	// const calculateRows = () => {

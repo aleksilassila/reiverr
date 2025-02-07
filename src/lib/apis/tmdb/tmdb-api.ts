@@ -397,7 +397,6 @@ export class TmdbApi implements Api<paths> {
 		mostPopular: TmdbSeriesSmall[];
 	}> => {
 		const userId = this.getUserId();
-		console.log('userId recommended series', userId);
 
 		if (!userId)
 			return {

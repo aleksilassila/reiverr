@@ -587,7 +587,7 @@ export class Selectable {
 			let parent = el.parent;
 
 			while (parent && !get(parent.hasFocusWithin)) {
-				console.log('setting parent focusIndex', parent, parent.children.indexOf(el));
+				console.debug('setting parent focusIndex', parent, parent.children.indexOf(el));
 				parent.focusIndex.update((prev) => parent?.children?.indexOf(el) || prev);
 
 				el = parent;

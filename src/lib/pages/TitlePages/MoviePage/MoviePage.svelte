@@ -14,7 +14,7 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
-	import { useRequest } from '$lib/stores/data.store';
+	import { tmdbMovieDataStore, useRequest } from '$lib/stores/data.store';
 	import { useMovieUserData } from '$lib/stores/media-user-data.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
@@ -22,14 +22,12 @@
 	import { Bookmark, Check, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
 	import { writable } from 'svelte/store';
 	import TitleProperties from '../TitleProperties.svelte';
+	import { onDestroy } from 'svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
 
 	// const movie = reiverrApiNew.movies.getMovieByTmdbId(id).then((r) => r.data);
-	const movieUserData = reiverrApiNew.users
-		.getUserMovieData($user?.id as string, id)
-		.then((r) => r.data);
 	// const streams = getStreams();
 
 	// const availableForStreaming = writable(false);
@@ -43,14 +41,15 @@
 		handleOpenStreamSelector,
 		canStream,
 		isWatched,
-		toggleIsWatched
-	} = useMovieUserData(id, movieUserData);
+		toggleIsWatched,
+		unsubscribe
+	} = useMovieUserData(id);
 
 	// streams.forEach((p) =>
 	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
 	// );
 
-	const tmdbMovie = tmdbApi.getTmdbMovie(tmdbId);
+	const { promise: tmdbMovie } = tmdbMovieDataStore.getRequest(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 	const { promise: jellyfinItemP } = useRequest(
 		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
@@ -92,7 +91,7 @@
 
 	let titleProperties: { href?: string; label: string }[] = [];
 	$: {
-		tmdbMovie.then((movie) => {
+		$tmdbMovie.then((movie) => {
 			if (movie?.release_date) {
 				titleProperties.push({
 					label: new Date(movie.release_date).getFullYear().toString()
@@ -134,7 +133,7 @@
 		return radarrItem.then((radarrItem) => {
 			if (radarrItem) createModal(MovieMediaManagerModal, { radarrItem, onGrabRelease });
 			else
-				return tmdbMovie.then((tmdbMovie) => {
+				return $tmdbMovie.then((tmdbMovie) => {
 					createModal(MMAddToRadarrDialog, {
 						title: tmdbMovie?.title || '',
 						tmdbId,
@@ -210,6 +209,10 @@
 	// 		movieUserData.then((userData) => playerState.streamMovie(id, { userData, sourceId, key }));
 	// 	}
 	// }
+
+	onDestroy(() => {
+		unsubscribe();
+	});
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -219,7 +222,7 @@
 			on:enter={scrollIntoView({ top: 999 })}
 		>
 			<HeroCarousel
-				urls={tmdbMovie.then(
+				urls={$tmdbMovie.then(
 					(movie) =>
 						movie?.images.backdrops
 							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
@@ -229,7 +232,7 @@
 			>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
-					{#await tmdbMovie then movie}
+					{#await $tmdbMovie then movie}
 						{#if movie}
 							<!-- <div
 								class={classNames(
@@ -348,7 +351,7 @@
 		</Container>
 		<div class="relative z-10">
 			<Container on:enter={scrollIntoView({ top: 0 })} class="">
-				{#await tmdbMovie then movie}
+				{#await $tmdbMovie then movie}
 					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Show Cast</div>
 						{#each movie?.credits?.cast?.slice(0, 15) || [] as credit}
@@ -365,7 +368,7 @@
 					</Carousel>
 				{/await}
 			</Container>
-			{#await tmdbMovie then movie}
+			{#await $tmdbMovie then movie}
 				<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
 					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">

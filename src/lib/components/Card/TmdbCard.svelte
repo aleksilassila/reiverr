@@ -25,7 +25,7 @@
 		tmdbId: item.id,
 		title,
 		subtitle,
-		backdropUrl: TMDB_POSTER_SMALL + item.poster_path,
+		backdropUrl: item.poster_path ? TMDB_POSTER_SMALL + item.poster_path : '',
 		type,
 		orientation: 'portrait',
 		rating: item.vote_average,

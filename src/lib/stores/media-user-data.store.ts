@@ -3,7 +3,7 @@ import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
 import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
-import { get, writable } from 'svelte/store';
+import { derived, get, writable, type Readable } from 'svelte/store';
 import type {
 	MediaSource,
 	MovieUserDataDto,
@@ -12,6 +12,13 @@ import type {
 } from '../apis/reiverr/reiverr.openapi';
 import type { MediaType } from '../types';
 import { reiverrApiNew, sources, user } from './user.store';
+import {
+	episodeUserDataStore,
+	movieUserDataStore,
+	seriesUserDataStore,
+	tmdbMovieDataStore,
+	tmdbSeriesDataStore
+} from './data.store';
 
 export type EpisodeData = {
 	season: number;
@@ -92,11 +99,11 @@ async function handleOpenStreamSelector(options: {
 function useUserLibrary(
 	mediaType: MediaType,
 	tmdbId: string,
-	userDataP: Promise<MovieUserDataDto | SeriesUserDataDto>
+	userDataP: Readable<MovieUserDataDto | SeriesUserDataDto | undefined>
 ) {
 	const inLibrary = writable<boolean>(undefined);
 
-	userDataP.then((d) => {
+	userDataP.subscribe((d) => {
 		inLibrary.set(d?.inLibrary ?? false);
 	});
 
@@ -136,12 +143,12 @@ function useUserLibrary(
 }
 
 function useIsWatched(
-	userData: Promise<MovieUserDataDto>,
+	userData: Readable<MovieUserDataDto | undefined>,
 	toggleFn: (userId: string, watched: boolean) => Promise<any>
 ) {
 	const isWatched = writable<boolean>(undefined);
 
-	userData.then((d) => {
+	userData.subscribe((d) => {
 		isWatched.set(d?.playState?.watched ?? false);
 	});
 
@@ -172,12 +179,10 @@ function useCanStream() {
 	};
 }
 
-export function useSeriesUserData(
-	tmdbId: string,
-	userData: Promise<SeriesUserDataDto>,
-	tmdbSeries: Promise<TmdbSeries2>
-) {
-	const libraryStore = useUserLibrary('Series', tmdbId, userData);
+export function useSeriesUserData(tmdbId: string) {
+	const userDataRequest = seriesUserDataStore.getRequest(tmdbId);
+	const tmdbSeriesRequest = tmdbSeriesDataStore.getRequest(Number(tmdbId));
+	const libraryStore = useUserLibrary('Series', tmdbId, userDataRequest);
 	const canStreamStore = useCanStream();
 	const episodesUserData = writable<EpisodeData[]>([]);
 	const nextEpisode = writable<EpisodeData>({
@@ -187,7 +192,9 @@ export function useSeriesUserData(
 		watched: false
 	});
 
-	Promise.all([userData, tmdbSeries]).then(([userData, tmdbSeries]) => {
+	derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(([userData, tmdbSeries]) => {
+		if (!tmdbSeries) return;
+
 		const episodesData: EpisodeData[] = [];
 		let foundNext = false;
 		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
@@ -241,11 +248,16 @@ export function useSeriesUserData(
 			}
 
 			return handleOpenStreamSelector({ tmdbId, season, episode, progress });
+		},
+		unsubscribe: () => {
+			userDataRequest.unsubscribe();
+			tmdbSeriesRequest.unsubscribe();
 		}
 	};
 }
 
-export function useMovieUserData(tmdbId: string, userData: Promise<MovieUserDataDto>) {
+export function useMovieUserData(tmdbId: string) {
+	const userData = movieUserDataStore.getRequest(tmdbId);
 	const libraryStore = useUserLibrary('Movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
@@ -253,11 +265,7 @@ export function useMovieUserData(tmdbId: string, userData: Promise<MovieUserData
 			watched
 		})
 	);
-	const progress = writable(0);
-
-	userData.then((d) => {
-		progress.set(d?.playState?.progress ?? 0);
-	});
+	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
 	return {
 		...libraryStore,
@@ -266,27 +274,22 @@ export function useMovieUserData(tmdbId: string, userData: Promise<MovieUserData
 		progress,
 		handleAutoplay: async () => handleAutoplay({ tmdbId, progress: get(progress) }),
 		handleOpenStreamSelector: async () =>
-			handleOpenStreamSelector({ tmdbId, progress: get(progress) })
+			handleOpenStreamSelector({ tmdbId, progress: get(progress) }),
+		unsubscribe: () => userData.unsubscribe()
 	};
 }
 
-export function useEpisodeUserData(
-	tmdbId: string,
-	season: number,
-	episode: number,
-	userData: Promise<MovieUserDataDto>
-) {
+export function useEpisodeUserData(tmdbId: string, season: number, episode: number) {
+	const userData = episodeUserDataStore.getRequest(tmdbId, season, episode);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
-		reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
-			watched
-		})
+		reiverrApiNew.users
+			.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+				watched
+			})
+			.finally(() => seriesUserDataStore.refresh(tmdbId))
 	);
-	const progress = writable(0);
-
-	userData.then((d) => {
-		progress.set(d?.playState?.progress ?? 0);
-	});
+	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
 	return {
 		...canStreamStore,
@@ -295,6 +298,7 @@ export function useEpisodeUserData(
 		handleAutoplay: async () =>
 			handleAutoplay({ tmdbId, season, episode, progress: get(progress) }),
 		handleOpenStreamSelector: async () =>
-			handleOpenStreamSelector({ tmdbId, season, episode, progress: get(progress) })
+			handleOpenStreamSelector({ tmdbId, season, episode, progress: get(progress) }),
+		unsubscribe: () => userData.unsubscribe()
 	};
 }

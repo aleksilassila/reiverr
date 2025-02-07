@@ -14,7 +14,7 @@
 	export let tvdbId: number | undefined = undefined;
 	export let jellyfinId: string = '';
 	export let type: TitleType = 'movie';
-	export let backdropUrl: string;
+	export let backdropUrl: string = '';
 	export let group = false;
 
 	export let title = '';
@@ -33,7 +33,6 @@
 
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
-
 </script>
 
 <svelte:window on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth))} />
@@ -79,7 +78,13 @@
 			bind:hasFocus
 		>
 			<!--{#if !group}-->
-			<LazyImg src={backdropUrl} class="absolute inset-0" />
+			{#if backdropUrl}
+				<LazyImg src={backdropUrl} class="absolute inset-0" />
+			{:else}
+				<div class="absolute inset-0 bg-secondary-700 header4 flex items-center justify-center">
+					{title}
+				</div>
+			{/if}
 			<!--{:else}-->
 			<!--	<LazyImg src={backdropUrl} class="absolute inset-0 opacity-10 " />-->
 			<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->

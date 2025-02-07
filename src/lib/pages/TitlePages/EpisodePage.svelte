@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
-	import { Check, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
-	import { writable } from 'svelte/store';
+	import { Check, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
+	import { onDestroy } from 'svelte';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import {
 		type EpisodeFileResource,
@@ -15,23 +15,17 @@
 	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
 	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
 	import ButtonGhost from '../../components/Ghosts/ButtonGhost.svelte';
-	import HeroInfoTitle from '../../components/HeroInfo/HeroInfoTitle.svelte';
 	import MMAddToSonarrDialog from '../../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
 	import SonarrMediaManagerModal from '../../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
 	import { createModal } from '../../components/Modal/modal.store';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
-	import { useActionRequest } from '../../stores/data.store';
-	import { reiverrApiNew, user } from '../../stores/user.store';
-	import { formatSize, formatThousands, retry } from '../../utils';
+	import { formatThousands, retry } from '../../utils';
 	import TitleProperties from './TitleProperties.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
-	const episodeUserData = reiverrApiNew.users
-		.getEpisodeUserData($user?.id as string, id, Number(season), Number(episode))
-		.then((r) => r.data);
 	// const streams = getStreams();
 
 	// const availableForStreaming = writable(false);
@@ -41,8 +35,9 @@
 		handleOpenStreamSelector,
 		canStream,
 		isWatched,
-		toggleIsWatched
-	} = useEpisodeUserData(id, Number(season), Number(episode), episodeUserData);
+		toggleIsWatched,
+		unsubscribe
+	} = useEpisodeUserData(id, Number(season), Number(episode));
 
 	// streams.forEach((p) =>
 	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
@@ -218,6 +213,10 @@
 	// 		);
 	// 	}
 	// }
+
+	onDestroy(() => {
+		unsubscribe();
+	})
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>

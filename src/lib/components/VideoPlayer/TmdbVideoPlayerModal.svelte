@@ -6,13 +6,18 @@
 	import VideoPlayerModal from './VideoPlayerModal.svelte';
 	import { getQualities } from '../../apis/jellyfin/qualities';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
-	import type { VideoStreamDto } from '../../apis/reiverr/reiverr.openapi';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import { onDestroy, onMount } from 'svelte';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import Modal from '../Modal/Modal.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
 	import { modalStackTop } from '../Modal/modal.store';
+	import type { StreamDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import {
+		episodeUserDataStore,
+		movieUserDataStore,
+		seriesUserDataStore
+	} from '$lib/stores/data.store';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -46,14 +51,14 @@
 
 	let reportProgressInterval: ReturnType<typeof setInterval>;
 
-	let videoStreamP: Promise<VideoStreamDto>;
+	let videoStreamP: Promise<StreamDto>;
 
 	// const movieP = tmdbApi.getTmdbMovie(Number(tmdbId)).then((r) => {
 	// 	title = r?.title || '';
 	// 	subtitle = '';
 	// });
 
-	function reportProgress() {
+	async function reportProgress() {
 		const userId = get(user)?.id;
 
 		if (!userId) {
@@ -63,12 +68,12 @@
 
 		if (video?.readyState === 4 && video?.currentTime > 0 && video?.duration > 0)
 			if (season !== undefined && episode !== undefined) {
-				reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+				await reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
 					progress: video.currentTime / video?.duration,
 					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
 			} else {
-				reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+				await reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
 					progress: video.currentTime / video?.duration,
 					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
@@ -210,9 +215,14 @@
 
 	onDestroy(() => {
 		if (reportProgressInterval) clearInterval(reportProgressInterval);
-		reportProgress();
-
-		// if (id && sessionId && progressTime) reportPlaybackStopped(id, sessionId, progressTime);
+		reportProgress().then(() => {
+			if (season !== undefined && episode !== undefined) {
+				seriesUserDataStore.refresh(tmdbId);
+				episodeUserDataStore.refresh(tmdbId, season, episode);
+			} else {
+				movieUserDataStore.refresh(tmdbId);
+			}
+		});
 	});
 </script>
 

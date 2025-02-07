@@ -19,37 +19,24 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
-	import JellyfinEpisodeGrid from '$lib/pages/TitlePages/SeriesPage/JellyfinEpisodeGrid.svelte';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
-	import { useRequest } from '$lib/stores/data.store';
+	import { tmdbSeriesDataStore, useRequest } from '$lib/stores/data.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
 	import { formatSize, formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import {
-		Bookmark,
-		Cross1,
-		DotFilled,
-		ExternalLink,
-		Minus,
-		Play,
-		Plus,
-		Trash
-	} from 'radix-icons-svelte';
-	import { get, writable } from 'svelte/store';
-	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
-	import FileDetailsDialog from './FileDetailsDialog.svelte';
-	import EpisodeGrid from './EpisodeGrid.svelte';
+	import { Bookmark, Cross1, ExternalLink, Minus, Play, Plus, Trash } from 'radix-icons-svelte';
+	import { get } from 'svelte/store';
 	import TitleProperties from '../TitleProperties.svelte';
+	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
+	import EpisodeGrid from './EpisodeGrid.svelte';
+	import FileDetailsDialog from './FileDetailsDialog.svelte';
+	import { onDestroy } from 'svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
 
-	const { promise: tmdbSeries, data: tmdbSeriesData } = useRequest(tmdbApi.getTmdbSeries, tmdbId);
-
-	const showUserData = reiverrApiNew.users
-		.getSeriesUserData($user?.id as string, id)
-		.then((r) => r.data);
+	const { promise: tmdbSeries, ...tmdbSeriesData } = tmdbSeriesDataStore.getRequest(tmdbId);
 
 	const {
 		inLibrary,
@@ -59,24 +46,18 @@
 		episodesUserData,
 		handleAutoplay,
 		handleOpenStreamSelector,
-		canStream
-	} = useSeriesUserData(
-		id,
-		showUserData,
-		// @ts-ignore
-		$tmdbSeries
-	);
-
-	//
+		canStream,
+		unsubscribe
+	} = useSeriesUserData(id);
 
 	// const streams = getStreams();
 	// streams.forEach((p) =>
 	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
 	// );
 
-	let tmdbSeasons = $tmdbSeries.then((series) =>
-		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
-	);
+	// let tmdbSeasons = $tmdbSeries.then((series) =>
+	// 	tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
+	// );
 	let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, tmdbId);
 
@@ -270,6 +251,9 @@
 	// 		);
 	// 	}
 	// }
+	onDestroy(() => {
+		unsubscribe();
+	});
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>

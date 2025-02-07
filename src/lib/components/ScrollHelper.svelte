@@ -11,8 +11,6 @@
 		const verticalScrollParent = getScrollParent(div, 'vertical');
 		const horizontalScrollParent = getScrollParent(div, 'horizontal');
 
-		console.log('verticalScrollParent', verticalScrollParent);
-
 		function handler() {
 			scrollTop = verticalScrollParent ? verticalScrollParent.scrollTop : scrollTop;
 			scrollLeft = horizontalScrollParent ? horizontalScrollParent.scrollLeft : scrollLeft;

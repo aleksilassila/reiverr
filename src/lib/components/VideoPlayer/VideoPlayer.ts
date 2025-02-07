@@ -1,12 +1,10 @@
 import { get, writable } from 'svelte/store';
-import { modalStack } from '../Modal/modal.store';
 import { jellyfinItemsStore } from '../../stores/data.store';
-import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
 import { reiverrApiNew, sources } from '../../stores/user.store';
+import { modalStack } from '../Modal/modal.store';
 import { createErrorNotification } from '../Notifications/notification.store';
-import VideoPlayerModal from './VideoPlayerModal.svelte';
-import MovieVideoPlayerModal from './MovieVideoPlayerModal.svelte';
-import type { MovieUserDataDto } from '../../apis/reiverr/reiverr.openapi';
+import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
+import TmdbVideoPlayerModal from './TmdbVideoPlayerModal.svelte';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -60,7 +58,7 @@ function usePlayerState() {
 		const { tmdbId, season, episode, sourceId, key, progress } = options;
 
 		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
-		modalStack.create(MovieVideoPlayerModal, {
+		modalStack.create(TmdbVideoPlayerModal, {
 			tmdbId,
 			episode,
 			season,
@@ -99,7 +97,7 @@ function usePlayerState() {
 		}
 
 		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
-		modalStack.create(MovieVideoPlayerModal, {
+		modalStack.create(TmdbVideoPlayerModal, {
 			tmdbId,
 			sourceId,
 			key,
@@ -139,7 +137,7 @@ function usePlayerState() {
 
 		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
 		console.log('sourceId', season, episode);
-		modalStack.create(MovieVideoPlayerModal, {
+		modalStack.create(TmdbVideoPlayerModal, {
 			tmdbId,
 			episode,
 			season,

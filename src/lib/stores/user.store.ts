@@ -4,6 +4,7 @@ import axios from 'axios';
 import type { operations } from '../apis/reiverr/reiverr.generated';
 import { type Session, sessions } from './session.store';
 import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
+import { tick } from 'svelte';
 
 export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;
 
@@ -116,4 +117,13 @@ function useUser() {
 }
 
 export const { user, sources, isAppInitialized } = useUser();
-// isAppInitialized.subscribe((i) => console.log('isAppInitialized', i));
+export const awaitAppInitialization = () =>
+	new Promise((resolve) => {
+		let unsubscribe = isAppInitialized.subscribe(async (i) => {
+			if (i) {
+				resolve(undefined);
+				await tick();
+				unsubscribe();
+			}
+		});
+	});

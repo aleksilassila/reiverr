@@ -1,20 +1,7 @@
-import { derived, type Readable, writable } from 'svelte/store';
-import { settings } from './settings.store';
-import { jellyfinApi, type JellyfinItem } from '../apis/jellyfin/jellyfin-api';
-import { type EpisodeDownload, sonarrApi, type SonarrSeries } from '../apis/sonarr/sonarr-api';
-import { radarrApi, type MovieDownload } from '../apis/radarr/radarr-api';
-
-async function waitForSettings() {
-	return new Promise((resolve) => {
-		let resolved = false;
-		settings.subscribe((settings) => {
-			if (settings?.initialised && !resolved) {
-				resolved = true;
-				resolve(settings);
-			}
-		});
-	});
-}
+import { derived, get, type Readable, writable } from 'svelte/store';
+import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
+import { tmdbApi } from '../apis/tmdb/tmdb-api';
+import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
 
 type AwaitableStoreValue<R, T = { data?: R }> = {
 	loading: boolean;
@@ -28,7 +15,7 @@ export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 
 	async function refresh() {
 		store.update((s) => ({ ...s, loading: true }));
-		return waitForSettings().then(() =>
+		return awaitAppInitialization().then(() =>
 			fn().then((data) => {
 				store.set({ loading: false, data });
 				return data;
@@ -55,200 +42,6 @@ export function _createDataFetchStore<T>(fn: () => Promise<T>) {
 }
 
 export const jellyfinItemsStore = _createDataFetchStore(() => jellyfinApi.getLibraryItems());
-
-export function createJellyfinItemStore(tmdbId: number | Promise<number>) {
-	const store = writable<{ loading: boolean; item?: JellyfinItem }>({
-		loading: true,
-		item: undefined
-	});
-
-	jellyfinItemsStore.subscribe(async (s) => {
-		const awaited = await tmdbId;
-
-		store.set({
-			loading: s.loading,
-			item: s.data?.find((i) => i.ProviderIds?.Tmdb === String(awaited))
-		});
-	});
-
-	return {
-		subscribe: store.subscribe,
-		send: jellyfinItemsStore.send,
-		refreshIn: jellyfinItemsStore.refreshIn,
-		promise: new Promise<JellyfinItem | undefined>((resolve) => {
-			store.subscribe((s) => {
-				if (!s.loading) resolve(s.item);
-			});
-		})
-	};
-}
-
-export const sonarrSeriesStore = _createDataFetchStore(sonarrApi.getDownloads);
-export const radarrMoviesStore = _createDataFetchStore(radarrApi.getRadarrMovies);
-
-export function createRadarrMovieStore(tmdbId: number) {
-	const store = derived(radarrMoviesStore, (s) => {
-		return {
-			loading: s.loading,
-			item: s.data?.find((i) => i.tmdbId === tmdbId)
-		};
-	});
-
-	return {
-		subscribe: store.subscribe,
-		send: radarrMoviesStore.send,
-		refreshIn: radarrMoviesStore.refreshIn
-	};
-}
-
-export function createSonarrSeriesStore(name: Promise<string> | string) {
-	function shorten(str: string) {
-		return str.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-	}
-
-	const store = writable<{ loading: boolean; item?: SonarrSeries }>({
-		loading: true,
-		item: undefined
-	});
-
-	sonarrSeriesStore.subscribe(async (s) => {
-		const awaited = await name;
-
-		store.set({
-			loading: s.loading,
-			item: s.data?.find(
-				(i) =>
-					shorten(i.titleSlug || '') === shorten(awaited) ||
-					i.alternateTitles?.find((t) => shorten(t.title || '') === shorten(awaited))
-			)
-		});
-	});
-
-	return {
-		subscribe: store.subscribe,
-		send: sonarrSeriesStore.send,
-		refreshIn: sonarrSeriesStore.refreshIn
-	};
-}
-
-export const sonarrDownloadsStore = _createDataFetchStore(sonarrApi.getDownloads);
-export const radarrDownloadsStore = _createDataFetchStore(radarrApi.getDownloads);
-export const servarrDownloadsStore = (() => {
-	const store = derived([sonarrDownloadsStore, radarrDownloadsStore], ([sonarr, radarr]) => {
-		return {
-			loading: sonarr.loading || radarr.loading,
-			radarrDownloads: radarr.data,
-			sonarrDownloads: sonarr.data
-		};
-	});
-
-	return {
-		subscribe: store.subscribe
-	};
-})();
-
-export function createRadarrDownloadStore(
-	radarrMovieStore: ReturnType<typeof createRadarrMovieStore>
-) {
-	const store = writable<{ loading: boolean; downloads?: MovieDownload[] }>({
-		loading: true,
-		downloads: undefined
-	});
-
-	const combinedStore = derived(
-		[radarrMovieStore, radarrDownloadsStore],
-		([movieStore, downloadsStore]) => ({ movieStore, downloadsStore })
-	);
-
-	combinedStore.subscribe(async (data) => {
-		const movie = data.movieStore.item;
-		const downloads = data.downloadsStore.data;
-
-		if (!movie || !downloads) return;
-
-		store.set({
-			loading: false,
-			downloads: downloads?.filter((d) => d.movie.tmdbId === movie?.tmdbId)
-		});
-	});
-
-	return {
-		subscribe: store.subscribe,
-		send: async () => radarrDownloadsStore.send()
-	};
-}
-
-export function createSonarrDownloadStore(
-	sonarrItemStore: ReturnType<typeof createSonarrSeriesStore>
-) {
-	const store = writable<{ loading: boolean; downloads?: EpisodeDownload[] }>({
-		loading: true,
-		downloads: undefined
-	});
-
-	const combinedStore = derived(
-		[sonarrItemStore, sonarrDownloadsStore],
-		([itemStore, downloadsStore]) => ({ itemStore, downloadsStore })
-	);
-
-	combinedStore.subscribe(async (data) => {
-		const item = data.itemStore.item;
-		const downloads = data.downloadsStore.data;
-
-		if (!item || !downloads) return;
-
-		store.set({
-			loading: false,
-			downloads: downloads?.filter((d) => d.series.id === item?.id)
-		});
-	});
-
-	return {
-		subscribe: store.subscribe,
-		send: async () => sonarrDownloadsStore.send()
-	};
-}
-
-export const useActionRequests = <P extends Record<string, (...args: any[]) => Promise<any>>>(
-	values: P
-) => {
-	const initialFetching: Record<keyof P, boolean> = {} as any;
-	Object.keys(values).forEach((key) => {
-		initialFetching[key as keyof P] = false;
-	});
-
-	const fetching = writable(initialFetching);
-
-	const initialData: Record<keyof P, Awaited<ReturnType<P[keyof P]>> | undefined> = {} as any;
-	Object.keys(values).forEach((key) => {
-		initialData[key as keyof P] = undefined;
-	});
-
-	const data = writable(initialData);
-
-	const methods: P = {} as any;
-	Object.keys(values).forEach((key) => {
-		// @ts-expect-error
-		methods[key as keyof P] = async (...args: any[]) => {
-			fetching.update((f) => ({ ...f, [key]: true }));
-			values[key as keyof P]?.(...args)
-				.then((d) => data.update((prev) => ({ ...prev, [key]: d })))
-				.finally(() => {
-					fetching.update((f) => ({ ...f, [key]: false }));
-				});
-		};
-	});
-
-	return {
-		requests: methods,
-		data: {
-			subscribe: data.subscribe
-		},
-		isFetching: {
-			subscribe: fetching.subscribe
-		}
-	};
-};
 
 export const useDependantRequest = <P extends (...args: A) => Promise<any>, A extends any[], S>(
 	fn: P,
@@ -329,38 +122,113 @@ export const useActionRequest = <P extends (...args: A) => Promise<any>, A exten
 	};
 };
 
-export const useActionRequest2 = <P extends (...args: A) => Promise<any>, A extends any[]>(
-	fn: P
-) => {
-	const request = writable<ReturnType<P>>(undefined);
-	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
-	const isFetching = writable(false);
+export function useRequest3<TResponse>(fn: () => Promise<TResponse>) {
+	const promise = writable<Promise<TResponse>>(null!);
+	const store = writable<AwaitableStoreValue<TResponse>>({
+		loading: true,
+		data: undefined
+	});
+	const isLoading = derived(store, (s) => s.loading);
+	const data = derived(store, (s) => s.data);
 
-	function send(...args: Parameters<P>): ReturnType<P> {
-		isFetching.set(true);
-		// @ts-ignore
-		const p: ReturnType<P> = fn(...args)
-			.then((res) => {
-				data.set(res);
-				return res;
-			})
-			.finally(() => {
-				isFetching.set(false);
+	async function refresh() {
+		const initialRequest = get(promise) === null;
+		store.update((s) => ({ ...s, loading: true }));
+		const p = awaitAppInitialization().then(() => {
+			return fn().then((data) => {
+				store.set({ loading: false, data });
+				if (!initialRequest) promise.set(Promise.resolve(data));
+				return data;
 			});
-
-		request.set(p);
+		});
+		if (initialRequest) promise.set(p);
 		return p;
 	}
 
-	return {
-		promise: request,
-		data: {
-			subscribe: data.subscribe
-		},
+	let updateTimeout: NodeJS.Timeout;
+	function refreshIn(ms = 1000) {
+		return new Promise((resolve) => {
+			clearTimeout(updateTimeout);
+			updateTimeout = setTimeout(() => {
+				refresh().then(resolve);
+			}, ms);
+		});
+	}
 
-		isFetching: {
-			subscribe: isFetching.subscribe
-		},
-		send
+	refresh();
+
+	return {
+		subscribe: data.subscribe,
+		isLoading: isLoading,
+		refresh,
+		refreshIn,
+		promise: { subscribe: promise.subscribe }
 	};
-};
+}
+
+export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
+	fn: (...args: TArgs) => Promise<TResponse>
+) {
+	type Res = ReturnType<typeof useRequest3<TResponse>>;
+	const requests: Map<string, { subscribers: symbol[]; request: Res }> = new Map();
+
+	function getRequest(...args: TArgs): Res & { unsubscribe: () => void } {
+		const id = Symbol();
+		let request = requests.get(JSON.stringify(args))?.request;
+
+		if (!request) {
+			request = useRequest3(() => fn(...args));
+			requests.set(JSON.stringify(args), {
+				subscribers: [id],
+				request
+			});
+		} else {
+			requests.get(JSON.stringify(args))?.subscribers.push(id);
+		}
+
+		return {
+			...request,
+			unsubscribe: () => {
+				const subscribers = requests.get(JSON.stringify(args))?.subscribers;
+				const index = subscribers?.indexOf(id);
+				if (index !== undefined && index !== -1) {
+					subscribers?.splice(index, 1);
+				}
+
+				if (subscribers?.length === 0) {
+					requests.delete(JSON.stringify(args));
+				}
+			}
+		};
+	}
+
+	const refresh = async (...args: TArgs) => {
+		const request = requests.get(JSON.stringify(args))?.request;
+
+		if (request) {
+			return request.refresh();
+		}
+	};
+
+	return {
+		getRequest,
+		refresh
+	};
+}
+
+export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
+export const seriesUserDataStore = useRequestsStore((id: string) =>
+	reiverrApiNew.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
+);
+
+export const tmdbMovieDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbMovie(id));
+export const movieUserDataStore = useRequestsStore((id: string) =>
+	reiverrApiNew.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)
+);
+
+export const episodeUserDataStore = useRequestsStore(
+	(id: string, season: number, episode: number) =>
+		reiverrApiNew.users
+			.getEpisodeUserData(get(user)?.id as string, id, season, episode)
+			.then((r) => r.data)
+);

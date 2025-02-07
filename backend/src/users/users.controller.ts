@@ -170,7 +170,7 @@ export class UsersController {
     description: 'User movie data found',
     type: MovieUserDataDto,
   })
-  async getUserMovieData(
+  async getMovieUserData(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieUserDataDto> {

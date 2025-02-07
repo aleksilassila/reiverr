@@ -794,10 +794,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags users
-		 * @name GetUserMovieData
+		 * @name GetMovieUserData
 		 * @request GET:/api/users/{userId}/user-data/movie/tmdb/{tmdbId}
 		 */
-		getUserMovieData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+		getMovieUserData: (userId: string, tmdbId: string, params: RequestParams = {}) =>
 			this.request<MovieUserDataDto, any>({
 				path: `/api/users/${userId}/user-data/movie/tmdb/${tmdbId}`,
 				method: 'GET',
