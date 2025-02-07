@@ -13,9 +13,6 @@ vite.config.ts.timestamp-*
 /config/*.sqlite
 /dist
 
-backend/plugins/*
-!backend/plugins/plugin-types
-
 # Logs
 logs
 *.log
