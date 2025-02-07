@@ -1,6 +1,6 @@
 import { derived, get, type Readable, writable } from 'svelte/store';
 import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-import { tmdbApi } from '../apis/tmdb/tmdb-api';
+import { tmdbApi, type TmdbMovieFull2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
 
 type AwaitableStoreValue<R, T = { data?: R }> = {
@@ -216,19 +216,36 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	};
 }
 
-export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
-export const seriesUserDataStore = useRequestsStore((id: string) =>
-	reiverrApiNew.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
-);
-
 export const tmdbMovieDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbMovie(id));
+export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
+
 export const movieUserDataStore = useRequestsStore((id: string) =>
 	reiverrApiNew.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)
 );
-
+export const seriesUserDataStore = useRequestsStore((id: string) =>
+	reiverrApiNew.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
+);
 export const episodeUserDataStore = useRequestsStore(
 	(id: string, season: number, episode: number) =>
 		reiverrApiNew.users
 			.getEpisodeUserData(get(user)?.id as string, id, season, episode)
 			.then((r) => r.data)
+);
+
+export const libraryItemsDataStore = useRequestsStore(() =>
+	reiverrApiNew.users
+		.getLibraryItems(get(user)?.id as string)
+		.then((r) =>
+			Promise.all(
+				r.data.items.map((i) =>
+					i.mediaType === 'Movie'
+						? tmdbApi
+								.getTmdbMovie(Number(i.tmdbId))
+								.then((movie) => ({ tmdbMovie: movie!, playStates: i.playStates }))
+						: tmdbApi
+								.getTmdbSeries(Number(i.tmdbId))
+								.then((series) => ({ tmdbSeries: series!, playStates: i.playStates }))
+				)
+			).then((i) => i.filter((i) => ('tmdbMovie' in i ? !!i.tmdbMovie : !!i.tmdbSeries)))
+		)
 );

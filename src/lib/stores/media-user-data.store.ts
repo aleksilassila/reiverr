@@ -14,6 +14,7 @@ import type { MediaType } from '../types';
 import { reiverrApiNew, sources, user } from './user.store';
 import {
 	episodeUserDataStore,
+	libraryItemsDataStore,
 	movieUserDataStore,
 	seriesUserDataStore,
 	tmdbMovieDataStore,
@@ -118,7 +119,10 @@ function useUserLibrary(
 		const success = await reiverrApiNew.users
 			.addLibraryItem(userId, tmdbId, { mediaType })
 			.then((r) => r.data.success);
-		if (success) inLibrary.set(true);
+		if (success) {
+			inLibrary.set(true);
+			libraryItemsDataStore.refresh();
+		}
 	}
 
 	async function handleRemoveFromLibrary() {
@@ -132,7 +136,10 @@ function useUserLibrary(
 		const success = await reiverrApiNew.users
 			.removeLibraryItem(userId, tmdbId)
 			.then((r) => r.data.success);
-		if (success) inLibrary.set(false);
+		if (success) {
+			inLibrary.set(false);
+			libraryItemsDataStore.refresh();
+		}
 	}
 
 	return {

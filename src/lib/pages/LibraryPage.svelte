@@ -12,58 +12,42 @@
 	} from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import CardGrid from '../components/CardGrid.svelte';
-	import Carousel from '../components/Carousel/Carousel.svelte';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../selectable';
 	import { reiverrApiNew, sources, user } from '../stores/user.store';
+	import { libraryItemsDataStore } from '$lib/stores/data.store';
 
-	let availableTmdbItems: (TmdbMovie2 | TmdbSeries2)[] = [];
-	const libraryItems = reiverrApiNew.users
-		.getLibraryItems($user?.id as string)
-		.then((r) =>
-			Promise.all(
-				r.data.items.map((i) =>
-					i.mediaType === 'Movie'
-						? tmdbApi
-								.getTmdbMovie(Number(i.tmdbId))
-								.then((movie) => ({ tmdbMovie: movie as TmdbMovieFull2, playStates: i.playStates }))
-						: tmdbApi
-								.getTmdbSeries(Number(i.tmdbId))
-								.then((series) => ({ tmdbSeries: series as TmdbSeries2, playStates: i.playStates }))
-				)
-			).then((i) => i.filter((i) => ('tmdbMovie' in i ? !!i.tmdbMovie : !!i.tmdbSeries)))
-		);
+	// let availableTmdbItems: (TmdbMovie2 | TmdbSeries2)[] = [];
+	const { promise: libraryItems } = libraryItemsDataStore.getRequest();
 
-	$: console.log('libraryItems', libraryItems);
+	// $: indexableSources = $sources.filter((s) => s.capabilities.indexing).map((s) => s.source);
 
-	$: indexableSources = $sources.filter((s) => s.capabilities.indexing).map((s) => s.source);
+	// async function updateAvailableItems() {
+	// 	const initialUpdate = availableTmdbItems.length === 0;
+	// 	const allItems: TmdbMovie2[] = [];
 
-	async function updateAvailableItems() {
-		const initialUpdate = availableTmdbItems.length === 0;
-		const allItems: TmdbMovie2[] = [];
+	// 	console.log(get(sources), get(sources).length);
 
-		console.log(get(sources), get(sources).length);
+	// 	await Promise.all(
+	// 		get(sources).map(async (s) => {
+	// 			if (s.capabilities.indexing) {
+	// 				const items: TmdbMovie2[] = await reiverrApiNew.sources
+	// 					.getSourceMovieIndex(s.source.id)
+	// 					.then((r) => r.data.items)
+	// 					.then((items) => {
+	// 						return Promise.all(items.map((item) => tmdbApi.getTmdbMovie(Number(item.id)))).then(
+	// 							(i) => i.filter((i) => !!i) as TmdbMovieFull2[]
+	// 						);
+	// 					});
 
-		await Promise.all(
-			get(sources).map(async (s) => {
-				if (s.capabilities.indexing) {
-					const items: TmdbMovie2[] = await reiverrApiNew.sources
-						.getSourceMovieIndex(s.source.id)
-						.then((r) => r.data.items)
-						.then((items) => {
-							return Promise.all(items.map((item) => tmdbApi.getTmdbMovie(Number(item.id)))).then(
-								(i) => i.filter((i) => !!i) as TmdbMovieFull2[]
-							);
-						});
+	// 				allItems.push(...items);
+	// 				if (initialUpdate) availableTmdbItems = [...availableTmdbItems, ...items];
+	// 			}
+	// 		})
+	// 	);
 
-					allItems.push(...items);
-					if (initialUpdate) availableTmdbItems = [...availableTmdbItems, ...items];
-				}
-			})
-		);
-
-		if (!initialUpdate) availableTmdbItems = allItems;
-	}
+	// 	if (!initialUpdate) availableTmdbItems = allItems;
+	// }
 
 	const libraryItemsP = jellyfinApi.getLibraryItems();
 	const sonarrDownloads: Promise<TmdbSeries2[]> = sonarrApi
@@ -97,7 +81,7 @@
 	// }));
 
 	onMount(() => {
-		updateAvailableItems();
+		// updateAvailableItems();
 	});
 </script>
 
@@ -145,7 +129,7 @@
 			{/each}
 		</CardGrid>
 	</div> -->
-	{#await libraryItems then items}
+	{#await $libraryItems then items}
 		<div class="px-32">
 			<div class="mb-6">
 				<div class="header2">My Library</div>
