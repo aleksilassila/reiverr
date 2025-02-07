@@ -1,15 +1,12 @@
 <script lang="ts">
-	import type { ShowcaseItemProps } from './HeroShowcase';
-	import { ChevronRight, DotFilled } from 'radix-icons-svelte';
-	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import classNames from 'classnames';
-	import Card from '../Card/Card.svelte';
-	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
-	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
-	import SidebarMargin from '../SidebarMargin.svelte';
-	import { get } from 'svelte/store';
-	import { registrars } from '../../selectable.js';
+	import { DotFilled } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { get } from 'svelte/store';
+	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
+	import { registrars } from '../../selectable.js';
+	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
+	import type { ShowcaseItemProps } from './HeroShowcase';
 
 	const dispatch = createEventDispatcher<{
 		select: ShowcaseItemProps | undefined;

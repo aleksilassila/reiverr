@@ -68,7 +68,7 @@
 			on:select={({ detail }) => navigate(`/movie/${detail?.id}`)}
 		/>
 	</div>
-	<div class="my-16 space-y-8">
+	<div class="my-16 space-y-8 relative z-10">
 		{#await continueWatching then continueWatching}
 			{#if continueWatching?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>

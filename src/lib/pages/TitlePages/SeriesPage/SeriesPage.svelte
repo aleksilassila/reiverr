@@ -409,7 +409,7 @@
 			</HeroCarousel>
 		</Container>
 		<div
-			class={classNames('transition-opacity', {
+			class={classNames('transition-opacity relative z-10', {
 				// 'opacity-0': hideInterface
 			})}
 		>

@@ -346,75 +346,76 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<Container on:enter={scrollIntoView({ top: 0 })} class="">
-			{#await tmdbMovie then movie}
-				<Carousel scrollClass="px-32" class="mb-8">
-					<div slot="header">Show Cast</div>
-					{#each movie?.credits?.cast?.slice(0, 15) || [] as credit}
-						<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
-					{/each}
-				</Carousel>
-			{/await}
-			{#await recommendations then recommendations}
-				<Carousel scrollClass="px-32" class="mb-8">
-					<div slot="header">Recommendations</div>
-					{#each recommendations || [] as recommendation}
-						<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />
-					{/each}
-				</Carousel>
-			{/await}
-		</Container>
-		{#await tmdbMovie then movie}
-			<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
-				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
-				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
-					<div class="flex-1">
-						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Directed By</h2>
-							<div>
-								{movie?.credits.crew
-									?.filter((c) => c.job === 'Director')
-									?.map((c) => c.name)
-									.join(', ')}
-							</div>
-						</div>
-						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Written By</h2>
-							<div>
-								{movie?.credits.crew
-									?.filter((c) => c.job === 'Writer')
-									?.map((c) => c.name)
-									.join(', ')}
-							</div>
-						</div>
-					</div>
-					<div class="flex-1">
-						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Languages</h2>
-							<div>
-								{movie?.spoken_languages?.map((language) => language.name).join(', ')}
-							</div>
-						</div>
-						<div class="mb-8">
-							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Release Date</h2>
-							<div>
-								{new Date(movie?.release_date || 0).toLocaleDateString('en-US', {
-									year: 'numeric',
-									month: 'short',
-									day: 'numeric'
-								})}
-							</div>
-						</div>
-					</div>
-				</div>
+		<div class="relative z-10">
+			<Container on:enter={scrollIntoView({ top: 0 })} class="">
+				{#await tmdbMovie then movie}
+					<Carousel scrollClass="px-32" class="mb-8">
+						<div slot="header">Show Cast</div>
+						{#each movie?.credits?.cast?.slice(0, 15) || [] as credit}
+							<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
+						{/each}
+					</Carousel>
+				{/await}
+				{#await recommendations then recommendations}
+					<Carousel scrollClass="px-32" class="mb-8">
+						<div slot="header">Recommendations</div>
+						{#each recommendations || [] as recommendation}
+							<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />
+						{/each}
+					</Carousel>
+				{/await}
 			</Container>
-		{/await}
+			{#await tmdbMovie then movie}
+				<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
+					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
+					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
+						<div class="flex-1">
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Directed By</h2>
+								<div>
+									{movie?.credits.crew
+										?.filter((c) => c.job === 'Director')
+										?.map((c) => c.name)
+										.join(', ')}
+								</div>
+							</div>
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Written By</h2>
+								<div>
+									{movie?.credits.crew
+										?.filter((c) => c.job === 'Writer')
+										?.map((c) => c.name)
+										.join(', ')}
+								</div>
+							</div>
+						</div>
+						<div class="flex-1">
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Languages</h2>
+								<div>
+									{movie?.spoken_languages?.map((language) => language.name).join(', ')}
+								</div>
+							</div>
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Release Date</h2>
+								<div>
+									{new Date(movie?.release_date || 0).toLocaleDateString('en-US', {
+										year: 'numeric',
+										month: 'short',
+										day: 'numeric'
+									})}
+								</div>
+							</div>
+						</div>
+					</div>
+				</Container>
+			{/await}
 
-		<!-- {#if streams.length}
+			<!-- {#if streams.length}
 			<MovieStreams sources={streams} {createStreamDetailsDialog} />
 		{/if} -->
 
-		<!-- {#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}
+			<!-- {#await Promise.all([tmdbMovie, radarrFiles, radarrDownloads]) then [movie, files, downloads]}
 			{#if files?.length || downloads?.length}
 				<Container
 					class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
@@ -524,5 +525,6 @@
 				</Container>
 			{/if}
 		{/await} -->
+		</div>
 	</div>
 </DetachedPage>
