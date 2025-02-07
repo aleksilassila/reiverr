@@ -33,9 +33,11 @@ async function getStreams(
 					? reiverrApiNew.sources
 							.getEpisodeStreams(source.source.id, tmdbId, season, episode)
 							.then((r) => r.data?.candidates ?? [])
+							.catch((e) => [])
 					: reiverrApiNew.sources
 							.getMovieStreams(source.source.id, tmdbId)
-							.then((r) => r.data?.candidates ?? []))
+							.then((r) => r.data?.candidates ?? [])
+							.catch((e) => []))
 			};
 		})
 	);

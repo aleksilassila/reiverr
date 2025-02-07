@@ -15,7 +15,7 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { useRequest } from '$lib/stores/data.store';
-	import { useMovieUserData } from '$lib/stores/library.store';
+	import { useMovieUserData } from '$lib/stores/media-user-data.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';

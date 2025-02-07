@@ -17,7 +17,7 @@
 	import { TMDB_BACKDROP_SMALL } from '../../../constants';
 	import { scrollIntoView, Selectable } from '../../../selectable';
 	import ManageSeasonCard from './ManageSeasonCard.svelte';
-	import type { EpisodeData } from '$lib/stores/library.store';
+	import type { EpisodeData } from '$lib/stores/media-user-data.store';
 	import type { Readable } from 'svelte/store';
 
 	export let tmdbId: number;

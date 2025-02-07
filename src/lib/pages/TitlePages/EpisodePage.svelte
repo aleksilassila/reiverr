@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { useEpisodeUserData } from '$lib/stores/library.store';
+	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
 	import { Check, DotFilled, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
 	import { writable } from 'svelte/store';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';

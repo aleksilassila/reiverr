@@ -215,6 +215,7 @@ export class SourcesController {
 
     const catalogue = await plugin.getMovieCatalogue?.(
       {
+        userId: user.id,
         settings,
         token,
       },
@@ -247,6 +248,7 @@ export class SourcesController {
 
     const catalogue = await plugin.getEpisodeCatalogue?.(
       {
+        userId: user.id,
         settings,
         token,
       },
@@ -282,6 +284,7 @@ export class SourcesController {
     const metadata = await this.getMovieMetadata(tmdbId);
 
     const streams = await plugin.getMovieStreams?.(tmdbId, metadata, {
+      userId: user.id,
       settings,
       token,
     });
@@ -319,6 +322,7 @@ export class SourcesController {
     const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
 
     const streams = await plugin.getEpisodeStreams?.(tmdbId, metadata, {
+      userId: user.id,
       settings,
       token,
     });
@@ -360,6 +364,7 @@ export class SourcesController {
         metadata,
         key || '',
         {
+          userId: user.id,
           settings,
           token,
         },
@@ -418,6 +423,7 @@ export class SourcesController {
         metadata,
         key || '',
         {
+          userId: user.id,
           settings,
           token,
         },
@@ -467,7 +473,11 @@ export class SourcesController {
     const targetUrl = query.reiverr_proxy_url || undefined;
 
     await plugin.proxyHandler?.(req, res, {
-      context: { settings, token },
+      context: {
+        userId: user.id,
+        token,
+        settings,
+      },
       uri: `/${params[0]}?${req.url.split('?').slice(1).join('?') || ''}`,
       targetUrl,
     });

@@ -22,7 +22,7 @@
 	import JellyfinEpisodeGrid from '$lib/pages/TitlePages/SeriesPage/JellyfinEpisodeGrid.svelte';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { useRequest } from '$lib/stores/data.store';
-	import { useSeriesUserData } from '$lib/stores/library.store';
+	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
 	import { formatSize, formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
