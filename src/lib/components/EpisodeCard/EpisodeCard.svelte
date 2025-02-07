@@ -13,6 +13,7 @@
 	export let isWatched = false;
 	export let progress = 0;
 	export let runtime = 0;
+	export let releaseDate = 0;
 
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
@@ -20,7 +21,6 @@
 	$: isOnDeck = handlePlay !== undefined;
 
 	let hasFocus: Readable<boolean>;
-
 	let dimensions = getCardDimensions(window.innerWidth, 'landscape');
 </script>
 
@@ -49,6 +49,11 @@
 				<!--		<Check class="text-secondary-800" size={19} />-->
 				<!--	</div>-->
 				<!--{/if}-->
+				<!-- {#if isWatched}
+					<div class="rounded-full p-1 bg-primary-500 self-start">
+						<Check class="text-secondary-800" size={16} />
+					</div>
+				{/if} -->
 			</div>
 			<div class="flex-1 flex flex-col justify-end">
 				<!--				<h2 class="text-zinc-300 font-medium">Episode {episodeNumber}</h2>-->
@@ -127,7 +132,15 @@
 		</div>
 		<div class="self-start">
 			<div class="text-secondary-300 font-medium">
-				{#if runtime > 0}
+				{#if releaseDate > 0 && releaseDate > Date.now()}
+					{new Date(releaseDate).toLocaleTimeString('en-US', {
+						month: 'short',
+						day: 'numeric',
+						weekday: 'short',
+						hour: 'numeric',
+						minute: 'numeric'
+					})}
+				{:else if runtime > 0}
 					{runtime} Min
 				{/if}
 			</div>

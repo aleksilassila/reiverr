@@ -21,6 +21,7 @@
 	import classNames from 'classnames';
 	import { Bookmark, Check, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
 	import { writable } from 'svelte/store';
+	import TitleProperties from '../TitleProperties.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -88,6 +89,32 @@
 	// async function getFiles(item: typeof radarrItem) {
 	// 	return item.then((item) => (item ? radarrApi.getFilesByMovieId(item?.id || -1) : []));
 	// }
+
+	let titleProperties: { href?: string; label: string }[] = [];
+	$: {
+		tmdbMovie.then((movie) => {
+			if (movie?.release_date) {
+				titleProperties.push({
+					label: new Date(movie.release_date).getFullYear().toString()
+				});
+			}
+
+			if (movie?.vote_average) {
+				titleProperties.push({
+					label: `${movie.vote_average.toFixed(1)} TMDB (${formatThousands(
+						movie.vote_count ?? 0
+					)})`,
+					href: `https://www.themoviedb.org/movie/${movie.id}`
+				});
+			}
+
+			if (movie?.genres) {
+				titleProperties.push({
+					label: movie.genres.map((g) => g.name).join(', ')
+				});
+			}
+		});
+	}
 
 	async function getDownloads(item: typeof radarrItem) {
 		return item.then((item) => (item ? radarrApi.getDownloadsById(item?.id || -1) : []));
@@ -204,7 +231,7 @@
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await tmdbMovie then movie}
 						{#if movie}
-							<div
+							<!-- <div
 								class={classNames(
 									'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
 									{
@@ -214,15 +241,18 @@
 								)}
 							>
 								{movie?.title}
-							</div>
-							<div
+							</div> -->
+							<TitleProperties
+								title={movie.title ?? ''}
+								properties={titleProperties}
+								overview={movie.overview ?? ''}
+							/>
+							<!-- <div
 								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
 							>
 								<p class="flex-shrink-0">
 									{new Date(movie.release_date || Date.now())?.getFullYear()}
 								</p>
-								<!-- <DotFilled />
-								<p class="flex-shrink-0">{movie.runtime}</p> -->
 								<DotFilled />
 								<p class="flex-shrink-0">
 									<a href={'https://www.themoviedb.org/movie/' + movie.id}>
@@ -233,10 +263,10 @@
 								<p class="flex-shrink-0">
 									{movie.genres?.map((g) => g.name).join(', ')}
 								</p>
-							</div>
-							<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
+							</div> -->
+							<!-- <div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
 								{movie.overview}
-							</div>
+							</div> -->
 						{/if}
 					{/await}
 					<!-- {#await Promise.all([$jellyfinItemP, $radarrItemP]) then [jellyfinItem, radarrItem]} -->

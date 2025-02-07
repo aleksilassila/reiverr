@@ -40,6 +40,7 @@
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
+	import TitleProperties from '../TitleProperties.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -105,6 +106,36 @@
 
 	const episodeCards = useRegistrar();
 	let scrollTop: number;
+
+	let titleProperties: { href?: string; label: string }[] = [];
+	$: {
+		$tmdbSeries.then((series) => {
+			if (series && series.status !== 'Ended') {
+				titleProperties.push({
+					label: `Since ${new Date(series.first_air_date || Date.now())?.getFullYear()}`
+				});
+			} else if (series) {
+				titleProperties.push({
+					label: `Ended ${new Date(series.last_air_date || Date.now())?.getFullYear()}`
+				});
+			}
+
+			if (series?.vote_average) {
+				titleProperties.push({
+					label: `${series.vote_average.toFixed(1)} TMDB (${formatThousands(
+						series.vote_count ?? 0
+					)})`,
+					href: `https://www.themoviedb.org/tv/${id}`
+				});
+			}
+
+			if (series?.genres) {
+				titleProperties.push({
+					label: series.genres.map((g) => g.name).join(', ')
+				});
+			}
+		});
+	}
 
 	// let hideInterface = false;
 	// modalStack.top.subscribe((modal) => {
@@ -267,7 +298,7 @@
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbSeries then series}
 						{#if series}
-							<div
+							<!-- <div
 								class={classNames(
 									'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
 									{
@@ -277,8 +308,13 @@
 								)}
 							>
 								{series.name}
-							</div>
-							<div
+							</div> -->
+							<TitleProperties
+								title={series.name ?? ''}
+								properties={titleProperties}
+								overview={series.overview ?? ''}
+							/>
+							<!-- <div
 								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
 							>
 								<p class="flex-shrink-0">
@@ -288,8 +324,6 @@
 										Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}
 									{/if}
 								</p>
-								<!-- <DotFilled />
-								<p class="flex-shrink-0">{movie.runtime}</p> -->
 								<DotFilled />
 								<p class="flex-shrink-0">
 									<a href={'https://www.themoviedb.org/tv/' + series.id}
@@ -300,18 +334,12 @@
 								<p class="flex-shrink-0">
 									{series.genres?.map((g) => g.name).join(', ')}
 								</p>
-							</div>
-							<div
+							</div> -->
+							<!-- <div
 								class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4 text-lg"
 							>
 								{series.overview}
-								<!-- <div class="line-clamp-3">
-									{series.overview}
-								</div>
-								<div>
-									{series.genres?.map((g) => g.name).join(', ')}
-								</div> -->
-							</div>
+							</div> -->
 						{/if}
 					{/await}
 					{#await nextJellyfinEpisode then nextJellyfinEpisode}

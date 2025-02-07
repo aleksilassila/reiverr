@@ -16,8 +16,9 @@
 	backdropUrl={TMDB_BACKDROP_SMALL + (episode.still_path || series?.backdrop_path)}
 	{handlePlay}
 	{isWatched}
-	progress={progress}
+	{progress}
 	runtime={episode.runtime}
+	releaseDate={episode.air_date ? new Date(episode.air_date).getTime() : 0}
 	on:enter
 	on:mount
 	on:clickOrSelect

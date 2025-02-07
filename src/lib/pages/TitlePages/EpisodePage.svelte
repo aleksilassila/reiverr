@@ -22,7 +22,8 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { useActionRequest } from '../../stores/data.store';
 	import { reiverrApiNew, user } from '../../stores/user.store';
-	import { formatSize, retry } from '../../utils';
+	import { formatSize, formatThousands, retry } from '../../utils';
+	import TitleProperties from './TitleProperties.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
@@ -58,6 +59,23 @@
 	let jellyfinEpisode = jellyfinSeries.then((series) =>
 		jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
 	);
+
+	let titleProperties: { href?: string; label: string }[] = [];
+	$: {
+		tmdbEpisode.then((episode) => {
+			if (episode?.vote_average) {
+				titleProperties.push({
+					label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
+						episode.vote_count ?? 0
+					)})`,
+					href: `https://www.themoviedb.org/tv/${id}/season/${season}/episode/${episode}`
+				});
+			}
+			if (episode?.runtime) {
+				titleProperties.push({ label: `${episode.runtime} Minutes` });
+			}
+		});
+	}
 
 	// const { send: toggleMarkAs, isFetching: markAsLoading } = useActionRequest(async () => {
 	// 	const episode = await jellyfinEpisode;
@@ -224,42 +242,52 @@
 			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
 			</div>
-			<HeroInfoTitle title={tmdbEpisode?.name} />
-			<div
+			<!-- <HeroInfoTitle title={tmdbEpisode?.name} /> -->
+			<TitleProperties
+				title={tmdbEpisode?.name ?? ''}
+				properties={titleProperties}
+				overview={tmdbEpisode?.overview ?? ''}
+			/>
+			<!-- <div
 				class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
-			>
-				<!--				<p class="flex-shrink-0">-->
-				<!--{#if series.status !== 'Ended'}-->
-				<!--	Since {new Date(series.first_air_date || Date.now())?.getFullYear()}-->
-				<!--{:else}-->
-				<!--	Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}-->
-				<!--{/if}-->
-				<!--				</p>-->
-				<!-- <DotFilled /> -->
-				<p class="flex-shrink-0">
-					<a href={'https://www.themoviedb.org/movie/' + tmdbEpisode?.id}>
-						{tmdbEpisode?.vote_average} TMDB
-					</a>
-				</p>
-				<DotFilled />
-				<p class="flex-shrink-0">{tmdbEpisode?.runtime} Minutes</p>
+			> -->
+			<!--				<p class="flex-shrink-0">-->
+			<!--{#if series.status !== 'Ended'}-->
+			<!--	Since {new Date(series.first_air_date || Date.now())?.getFullYear()}-->
+			<!--{:else}-->
+			<!--	Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}-->
+			<!--{/if}-->
+			<!--				</p>-->
+			<!-- <DotFilled /> -->
+			<!-- {#if tmdbEpisode?.vote_average}
+					<p class="flex-shrink-0">
+						<a href={'https://www.themoviedb.org/movie/' + tmdbEpisode?.id}>
+							{tmdbEpisode?.vote_average} TMDB
+						</a>
+					</p>
+				{/if}
+				{#if tmdbEpisode?.runtime}
+					<DotFilled />
+					<p class="flex-shrink-0">{tmdbEpisode?.runtime} Minutes</p>
+				{/if}
 
 				{#await jellyfinEpisode then episode}
 					{#if episode?.MediaSources?.[0]?.Size}
-						<DotFilled />
 						<p class="flex-shrink-0">{formatSize(episode?.MediaSources?.[0]?.Size)}</p>
 					{/if}
-					{#if episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
+					{#if episode?.MediaSources?.[0]?.Size && episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
 						<DotFilled />
+					{/if}
+					{#if episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
 						<p class="flex-shrink-0">
 							{episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
 						</p>
 					{/if}
 				{/await}
-			</div>
-			<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
+			</div> -->
+			<!-- <div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
 				{tmdbEpisode?.overview}
-			</div>
+			</div> -->
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
 				<Button
 					class="mr-4"
