@@ -14,7 +14,8 @@ vite.config.ts.timestamp-*
 /dist
 
 backend/plugins/*
-!backend/plugins/plugin-types
+!backend/plugins/reiverr-plugin
+!backend/plugins/jellyfin-plugin
 
 # Logs
 logs

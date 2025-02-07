@@ -14,7 +14,7 @@ import {
   StreamCandidate,
   Subtitles,
   UserContext,
-} from 'plugin-types';
+} from '@aleksilassila/reiverr-plugin';
 import { Readable } from 'stream';
 import {
   JellyfinSettings,
@@ -68,7 +68,7 @@ class JellyfinProvider extends SourceProvider {
   }
 
   getMovieCatalogue = async (
-    userContext: JellyfinUserContext,
+    userContext: UserContext,
     pagination: PaginationParams,
   ): Promise<PaginatedResponse<IndexItem>> => {
     const items = (
@@ -93,7 +93,7 @@ class JellyfinProvider extends SourceProvider {
   getMovieStreams = async (
     tmdbId: string,
     metadata: MovieMetadata,
-    context: JellyfinUserContext,
+    context: UserContext,
     config?: PlaybackConfig,
   ): Promise<{ candidates: StreamCandidate[] }> => {
     return this.getMovieStream(tmdbId, metadata, '', context, config)
@@ -108,7 +108,7 @@ class JellyfinProvider extends SourceProvider {
   getEpisodeStreams = async (
     tmdbId: string,
     metadata: EpisodeMetadata,
-    context: JellyfinUserContext,
+    context: UserContext,
     config?: PlaybackConfig,
   ): Promise<{ candidates: StreamCandidate[] }> => {
     return this.getEpisodeStream(tmdbId, metadata, '', context, config)
@@ -124,7 +124,7 @@ class JellyfinProvider extends SourceProvider {
     tmdbId: string,
     metadata: MovieMetadata,
     key: string,
-    userContext: JellyfinUserContext,
+    userContext: UserContext,
     config?: PlaybackConfig,
   ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);
@@ -268,7 +268,7 @@ class JellyfinProvider extends SourceProvider {
     tmdbId: string,
     metadata: EpisodeMetadata,
     key: string,
-    userContext: JellyfinUserContext,
+    userContext: UserContext,
     config?: PlaybackConfig,
   ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);

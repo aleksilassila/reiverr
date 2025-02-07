@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PluginProvider, SourceProvider } from 'plugin-types';
+import { PluginProvider, SourceProvider } from '@aleksilassila/reiverr-plugin';
 
 @Injectable()
 export class SourcePluginsService {

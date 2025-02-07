@@ -18,7 +18,7 @@ import {
   StreamCandidate,
   StreamProperty,
   Stream,
-} from 'plugin-types';
+} from '@aleksilassila/reiverr-plugin';
 
 export class IndexItemDto implements IndexItem {
   @ApiProperty()

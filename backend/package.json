@@ -27,6 +27,7 @@
     "typeorm:revert-migration": "npm run typeorm -- -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
+    "@aleksilassila/reiverr-plugin": "^1.0.0",
     "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.11",
     "@nestjs/cache-manager": "^2.3.0",
     "@nestjs/common": "^10.0.0",
@@ -38,7 +39,6 @@
     "@types/express-http-proxy": "^1.6.6",
     "cache-manager": "^5.7.6",
     "express-http-proxy": "^2.0.0",
-    "plugin-types": "file:plugins/plugin-types",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
@@ -90,5 +90,9 @@
     "tabWidth": 2,
     "semi": true,
     "singleQuote": true
-  }
+  },
+  "workspaces": [
+    "plugins/reiverr-plugin",
+    "plugins/jellyfin.plugin"
+  ]
 }

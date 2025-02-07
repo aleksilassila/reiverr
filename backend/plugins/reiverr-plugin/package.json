@@ -1,0 +1,19 @@
+{
+  "name": "@aleksilassila/reiverr-plugin",
+  "version": "1.0.0",
+  "main": "dist/index",
+  "scripts": {
+    "build": "tsc",
+    "publish:patch": "npm version patch && npm publish",
+    "publish:minor": "npm version minor && npm publish",
+    "publish:major": "npm version major && npm publish"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "types": "./dist/index.d.ts",
+  "description": "",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
+}

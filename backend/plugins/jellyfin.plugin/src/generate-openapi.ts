@@ -1,5 +1,4 @@
 import { generateApi } from 'swagger-typescript-api';
-import * as path from 'path';
 
 generateApi({
   name: 'jellyfin.openapi.ts',

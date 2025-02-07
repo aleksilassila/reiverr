@@ -24,7 +24,7 @@ import {
   MovieMetadata,
   SourceProvider,
   SourceProviderError,
-} from 'plugin-types';
+} from '@aleksilassila/reiverr-plugin';
 import {
   GetAuthToken,
   GetAuthUser,
