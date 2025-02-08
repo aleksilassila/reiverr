@@ -149,22 +149,22 @@ class JellyfinProvider extends SourceProvider {
         */
 
     const startTimeTicks = movie.RunTimeTicks
-      ? Math.floor(movie.RunTimeTicks * config.progress)
+      ? Math.floor(movie.RunTimeTicks * config?.progress)
       : undefined;
-    const maxStreamingBitrate = config.bitrate || 0; //|| movie.MediaSources?.[0]?.Bitrate || 10000000
+    const maxStreamingBitrate = config?.bitrate || 0; //|| movie.MediaSources?.[0]?.Bitrate || 10000000
 
     const playbackInfo = await context.api.items.getPostedPlaybackInfo(
       movie.Id,
       {
-        DeviceProfile: config.deviceProfile,
+        DeviceProfile: config?.deviceProfile,
       },
       {
         userId: context.settings.userId,
         startTimeTicks: startTimeTicks || 0,
         ...(maxStreamingBitrate ? { maxStreamingBitrate } : {}),
         autoOpenLiveStream: true,
-        ...(config.audioStreamIndex
-          ? { audioStreamIndex: config.audioStreamIndex }
+        ...(config?.audioStreamIndex
+          ? { audioStreamIndex: config?.audioStreamIndex }
           : {}),
         mediaSourceId: movie.Id,
 
@@ -242,14 +242,14 @@ class JellyfinProvider extends SourceProvider {
         },
       ],
       audioStreamIndex:
-        config.audioStreamIndex ??
+        config?.audioStreamIndex ??
         mediasSource?.DefaultAudioStreamIndex ??
         audioStreams[0].index,
       audioStreams,
       duration: mediasSource.RunTimeTicks
         ? mediasSource.RunTimeTicks / 10_000_000
         : 0,
-      progress: config.progress ?? 0,
+      progress: config?.progress ?? 0,
       qualities,
       qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
@@ -399,14 +399,14 @@ class JellyfinProvider extends SourceProvider {
         },
       ],
       audioStreamIndex:
-        config.audioStreamIndex ??
+        config?.audioStreamIndex ??
         mediasSource?.DefaultAudioStreamIndex ??
         audioStreams[0].index,
       audioStreams,
       duration: mediasSource.RunTimeTicks
         ? mediasSource.RunTimeTicks / 10_000_000
         : 0,
-      progress: config.progress ?? 0,
+      progress: config?.progress ?? 0,
       qualities,
       qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
@@ -431,9 +431,16 @@ class JellyfinProvider extends SourceProvider {
 
     const url = settings.baseUrl + uri;
 
+    const headers = {};
+    for (const key in req.headers) {
+      if (key === 'host') continue;
+      headers[key] = req.headers[key];
+    }
+
     const proxyRes = await fetch(url, {
       method: req.method || 'GET',
       headers: {
+        ...headers,
         Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${settings.apiKey}"`,
       },
     }).catch((e) => {
@@ -444,7 +451,6 @@ class JellyfinProvider extends SourceProvider {
     if (!proxyRes) return;
 
     proxyRes.headers.forEach((value, name) => {
-      console.log('jellyfin proxy header', name, value);
       res.setHeader(name, value);
     });
 
