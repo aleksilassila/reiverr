@@ -1,36 +1,36 @@
 <script lang="ts">
-	import Container from '../Container.svelte';
-	import VideoElement from './VideoElement.svelte';
-	import type { PlaybackInfo, SubtitleInfo, Subtitles } from './VideoPlayer';
 	import classNames from 'classnames';
-	import ProgressBar from './ProgressBar.svelte';
+	import { ChatBubble, Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Selectable } from '../../selectable';
+	import Container from '../Container.svelte';
 	import { modalStack } from '../Modal/modal.store';
-	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
-	import { ChatBubble, Pause, TextAlignLeft } from 'radix-icons-svelte';
-	import IconButton from './IconButton.svelte';
-	import SelectAudioModal from './SelectAudioModal.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
-	import { createInfoNotification } from '../Notifications/notification.store';
+	import IconButton from './IconButton.svelte';
+	import ProgressBar from './ProgressBar.svelte';
+	import SelectAudioModal from './SelectAudioModal.svelte';
+	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
+	import VideoElement from './VideoElement.svelte';
+	import type { PlaybackInfo, SubtitleInfo, Subtitles } from './VideoPlayer';
 
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
 	export let title: string;
-	export let subtitle: string;
+	export let subtitle: string = ''
+	export let source: string = '';
 
 	export let modalHidden = false;
 
 	// Bindings
+	export let videoDidLoad = false;
 	export let paused = false;
-	export let seeking = false;
-	export let totalTime = 0;
-	export let progressTime = 0;
+	export let duration = 0;
+	export let currentTime = 0;
 	export let bufferedTime = 0;
+	let buffering = false;
 	export let muted = false;
 	export let volume = 1;
-	export let videoDidLoad = false;
-	let buffering = false;
+	let seeking = false;
 
 	export let video: HTMLVideoElement;
 
@@ -38,6 +38,11 @@
 	let showInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let hideInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let container: Selectable;
+
+	let clockTime = 0;
+	let clockInterval = setInterval(() => {
+		clockTime = Date.now();
+	}, 1000);
 
 	$: if (modalHidden) video?.pause();
 	else video?.play();
@@ -97,6 +102,7 @@
 	onDestroy(() => {
 		clearTimeout(showInterfaceTimeout);
 		clearTimeout(hideInterfaceTimeout);
+		clearInterval(clockInterval);
 	});
 </script>
 
@@ -110,14 +116,14 @@
 		}
 		handleShowInterface();
 	}}
+	on:click={() => (paused ? video?.play() : video?.pause())}
 >
 	<VideoElement
 		bind:playbackInfo
 		bind:subtitleInfo
 		bind:paused
-		bind:seeking
-		bind:totalTime
-		bind:progressTime
+		bind:duration
+		bind:currentTime
 		bind:bufferedTime
 		bind:muted
 		bind:volume
@@ -156,69 +162,85 @@
 		</div>
 	{/if}
 	<Container
-		class={classNames('absolute inset-x-12 bottom-8 transition-opacity flex flex-col', {
-			'opacity-0': !showInterface
-		})}
+		class={classNames(
+			'absolute inset-x-12 inset-y-8 transition-opacity flex flex-col justify-between',
+			{
+				'opacity-0': !showInterface
+			}
+		)}
 		bind:selectable={container}
 	>
-		<Container
-			direction="horizontal"
-			on:navigate={({ detail }) => {
-				if (detail.direction === 'up') {
-					detail.stopPropagation();
-					detail.preventNavigation();
-					handleHideInterface();
-				}
-			}}
-			class="flex justify-between px-2 py-4 items-end"
+		<div
+			class="flex justify-between items-center text-secondary-300 font-medium text-wider text-xl tracking-wide"
 		>
+			<div>@{source}</div>
+
 			<div>
-				<div class="text-secondary-300 font-medium text-wider text-xl mb-1 tracking-wide">
-					{subtitle}
+				Ends at {new Date(
+					clockTime + ((duration ?? 0) - (currentTime ?? 0)) * 1000
+				).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+			</div>
+		</div>
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<div on:click={(e) => e.stopPropagation()}>
+			<Container
+				direction="horizontal"
+				on:navigate={({ detail }) => {
+					if (detail.direction === 'up') {
+						detail.stopPropagation();
+						detail.preventNavigation();
+						handleHideInterface();
+					}
+				}}
+				class="flex justify-between px-2 py-4 items-end"
+			>
+				<div>
+					<div class="text-secondary-300 font-medium text-wider text-xl mb-1 tracking-wide">
+						{subtitle}
+					</div>
+					<h1 class="header4">{title}</h1>
 				</div>
-				<h1 class="header4">{title}</h1>
-			</div>
-			<div class="flex space-x-2">
-				<IconButton
-					on:clickOrSelect={() => {
-						// video.pause();
-						modalStack.create(SelectSubtitlesModal, {
-							subtitleInfo,
-							selectSubtitles
-						});
-					}}
-				>
-					<TextAlignLeft size={24} />
-				</IconButton>
-				<IconButton
-					on:clickOrSelect={() => {
-						// video.pause();
-						modalStack.create(SelectAudioModal, {
-							selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
-							audioTracks: playbackInfo?.audioTracks || [],
-							selectAudioStream
-							// onClose: () => video.play()
-						});
-					}}
-				>
-					<ChatBubble size={24} />
-				</IconButton>
-			</div>
-		</Container>
-		<ProgressBar
-			bind:seeking
-			on:jumpTo={(e) => {
-				video.currentTime = e.detail;
-			}}
-			on:playPause={() => {
-				if (paused) video.play();
-				else video.pause();
-			}}
-			bind:totalTime
-			bind:progressTime
-			bind:bufferedTime
-			bind:paused
-		/>
+				<div class="flex space-x-2">
+					<IconButton
+						on:clickOrSelect={() => {
+							// video.pause();
+							modalStack.create(SelectSubtitlesModal, {
+								subtitleInfo,
+								selectSubtitles
+							});
+						}}
+					>
+						<TextAlignLeft size={24} />
+					</IconButton>
+					<IconButton
+						on:clickOrSelect={() => {
+							// video.pause();
+							modalStack.create(SelectAudioModal, {
+								selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
+								audioTracks: playbackInfo?.audioTracks || [],
+								selectAudioStream
+								// onClose: () => video.play()
+							});
+						}}
+					>
+						<ChatBubble size={24} />
+					</IconButton>
+				</div>
+			</Container>
+			<ProgressBar
+				bind:seeking
+				on:jumpTo={(e) => {
+					video.currentTime = e.detail;
+					video.play();
+				}}
+				on:play={() => video.play()}
+				on:pause={() => video.pause()}
+				{duration}
+				{currentTime}
+				{bufferedTime}
+				bind:paused
+			/>
+		</div>
 	</Container>
 </Container>
 

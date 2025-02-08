@@ -1,23 +1,24 @@
 <script lang="ts">
-	import { get } from 'svelte/store';
-	import { sessions } from '../../stores/session.store';
-	import { reiverrApiNew, user } from '../../stores/user.store';
-	import type { PlaybackInfo, SubtitleInfo, Subtitles, VideoPlayerContext } from './VideoPlayer';
-	import VideoPlayerModal from './VideoPlayerModal.svelte';
-	import { getQualities } from '../../apis/jellyfin/qualities';
-	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import { onDestroy, onMount } from 'svelte';
-	import { createLocalStorageStore } from '../../stores/localstorage.store';
-	import Modal from '../Modal/Modal.svelte';
-	import VideoPlayer from './VideoPlayer.svelte';
-	import { modalStackTop } from '../Modal/modal.store';
 	import type { StreamDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import {
 		episodeUserDataStore,
 		movieUserDataStore,
-		seriesUserDataStore
+		seriesUserDataStore,
+		tmdbMovieDataStore,
+		tmdbSeriesDataStore
 	} from '$lib/stores/data.store';
+	import { onDestroy, onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
+	import { createLocalStorageStore } from '../../stores/localstorage.store';
+	import { sessions } from '../../stores/session.store';
+	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { modalStackTop } from '../Modal/modal.store';
+	import Modal from '../Modal/Modal.svelte';
+	import type { PlaybackInfo, SubtitleInfo, Subtitles, VideoPlayerContext } from './VideoPlayer';
+	import VideoPlayer from './VideoPlayer.svelte';
+
+	export let modalId: symbol;
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -26,15 +27,22 @@
 	export let key: string = '';
 	export let progress: number = 0;
 
-	export let modalId: symbol;
-	export let hidden: boolean = false;
-
 	let title: string = '';
 	let subtitle: string = '';
 
-	let sourceUri = '';
+	const { unsubscribe, ...request } = (
+		season !== undefined && episode !== undefined ? tmdbSeriesDataStore : tmdbMovieDataStore
+	).getRequest(Number(tmdbId));
 
-	let playerContext: VideoPlayerContext | undefined;
+	request.subscribe((item) => {
+		if (!item) return;
+		if ('title' in item) {
+			title = item.title ?? title;
+		} else if ('name' in item) {
+			title = `Episode ${episode}`;
+			subtitle = item.name ?? '';
+		}
+	});
 
 	type MediaLanguageStore = {
 		subtitles?: string;
@@ -43,8 +51,6 @@
 
 	let video: HTMLVideoElement;
 	let paused: boolean;
-	let progressTime: number;
-	let videoDuration: number;
 
 	let playbackInfo: PlaybackInfo | undefined;
 	let subtitleInfo: SubtitleInfo | undefined;
@@ -170,7 +176,9 @@
 			// (item?.UserData?.PlaybackPositionTicks || 0) / 10_000_000 ||
 			// undefined
 		};
-		videoDuration = stream.duration;
+
+		// title = stream.title;
+		// subtitle = stream.subtitle;
 
 		// if (mediaSourceId) reportPlaybackStarted(id, sessionId, mediaSourceId);
 
@@ -183,7 +191,9 @@
 		);
 	};
 
-	onMount(() => refreshVideoStream());
+	onMount(() => {
+		refreshVideoStream();
+	});
 	/*
     title
     subtitle
@@ -232,8 +242,8 @@
 		modalHidden={$modalStackTop?.id !== modalId}
 		{title}
 		{subtitle}
+		source={`${sourceId}`}
 		bind:paused
-		bind:progressTime
 		bind:video
 		bind:subtitleInfo
 	/>

@@ -10,17 +10,16 @@
 	export let playbackInfo: PlaybackInfo | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
 
+	export let video: HTMLVideoElement;
+
+	export let videoDidLoad = false;
 	export let paused = false;
-	export let seeking = false;
-	export let totalTime = 0;
-	export let progressTime = 0;
+	export let duration = 0;
+	export let currentTime = 0;
 	export let bufferedTime = 0;
+	export let buffering = false;
 	export let muted = false;
 	export let volume = 1;
-	export let videoDidLoad = false;
-	export let buffering = false;
-
-	export let video: HTMLVideoElement;
 
 	// let hls: Hls | undefined;
 
@@ -102,12 +101,10 @@
 <video
 	bind:this={video}
 	bind:paused
-	bind:duration={totalTime}
+	bind:duration
 	bind:volume
 	bind:muted
-	on:timeupdate={() => {
-		progressTime = !seeking && videoDidLoad ? video.currentTime : progressTime;
-	}}
+	bind:currentTime
 	on:progress={handleProgress}
 	on:loadeddata={() => {
 		// console.log('video loaded', video.currentTime, video.duration, playbackInfo?.progress);
