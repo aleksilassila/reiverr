@@ -166,13 +166,21 @@ export interface PaginatedResponseDto {
 export interface MovieDto {
 	id?: string;
 	tmdbId: string;
+	tmdbMovie?: object;
+}
+
+export interface Series {
+	id?: string;
+	tmdbId: string;
+	tmdbSeries?: object;
 }
 
 export interface LibraryItemDto {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
-	metadata?: MovieDto;
+	movieMetadata?: MovieDto;
+	seriesMetadata?: Series;
 }
 
 export interface SuccessResponseDto {

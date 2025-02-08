@@ -140,7 +140,7 @@
 			{:then items} -->
 				{#each items as item}
 					<TmdbCard
-						item={'tmdbMovie' in item ? item.tmdbMovie : item.tmdbSeries}
+						item={item.metadata}
 						progress={item.playStates?.[0]?.progress || 0}
 						on:enter={scrollIntoView({ all: 64 })}
 						size="dynamic"

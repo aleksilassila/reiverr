@@ -12,9 +12,31 @@
 	import { navigate } from '../components/StackRouter/StackRouter';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { derived } from 'svelte/store';
 
-	const continueWatching = jellyfinApi.getContinueWatchingSeries();
-	const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
+	const { ...libraryData } = libraryItemsDataStore.getRequest();
+	const libraryContinueWatching = derived(libraryData, (libraryData) => {
+		if (!libraryData) return [];
+
+		const series = libraryData.filter((i) => i.mediaType === 'Series' && i.playStates?.length);
+
+		series.sort((a, b) => {
+			const aMax = Math.max(
+				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+			);
+			const bMax = Math.max(
+				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+			);
+
+			return bMax - aMax;
+		});
+
+		return series.map((i) => i.metadata);
+	});
+
+	// const continueWatching = jellyfinApi.getContinueWatchingSeries();
+	// const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
 
 	const nowStreaming = getNowStreaming();
 	const upcomingSeries = fetchUpcomingSeries();
@@ -62,7 +84,16 @@
 		/>
 	</div>
 	<div class="my-16 space-y-8 relative z-10">
-		{#await continueWatching then continueWatching}
+		{#if $libraryContinueWatching.length}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Continue Watching</span>
+				{#each $libraryContinueWatching as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/if}
+
+		<!-- {#await continueWatching then continueWatching}
 			{#if continueWatching?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">Continue Watching</span>
@@ -82,7 +113,7 @@
 					{/if}
 				{/await}
 			{/if}
-		{/await}
+		{/await} -->
 
 		{#await popular then popular}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>

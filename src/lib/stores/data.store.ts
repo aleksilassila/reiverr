@@ -1,6 +1,11 @@
 import { derived, get, type Readable, writable } from 'svelte/store';
 import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-import { tmdbApi, type TmdbMovieFull2, type TmdbSeries2 } from '../apis/tmdb/tmdb-api';
+import {
+	tmdbApi,
+	type TmdbMovieFull2,
+	type TmdbSeries2,
+	type TmdbSeriesFull2
+} from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
 
 type AwaitableStoreValue<R, T = { data?: R }> = {
@@ -236,16 +241,12 @@ export const libraryItemsDataStore = useRequestsStore(() =>
 	reiverrApiNew.users
 		.getLibraryItems(get(user)?.id as string)
 		.then((r) =>
-			Promise.all(
-				r.data.items.map((i) =>
-					i.mediaType === 'Movie'
-						? tmdbApi
-								.getTmdbMovie(Number(i.tmdbId))
-								.then((movie) => ({ tmdbMovie: movie!, playStates: i.playStates }))
-						: tmdbApi
-								.getTmdbSeries(Number(i.tmdbId))
-								.then((series) => ({ tmdbSeries: series!, playStates: i.playStates }))
-				)
-			).then((i) => i.filter((i) => ('tmdbMovie' in i ? !!i.tmdbMovie : !!i.tmdbSeries)))
+			r.data.items.map((i) => ({
+				...i,
+				metadata:
+					(i.movieMetadata?.tmdbMovie as TmdbMovieFull2) ||
+					(i.seriesMetadata?.tmdbSeries as TmdbSeriesFull2)
+			}))
 		)
+		.then((i) => i.filter((i) => !!i.metadata))
 );

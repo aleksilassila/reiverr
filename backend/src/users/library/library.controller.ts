@@ -43,7 +43,10 @@ export class LibraryController {
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     // const user = await this.userService.findOne(userId);
 
-    const items = await this.libraryService.getLibraryItems(userId, pagination);
+    const items = await this.libraryService.getLibraryItemsWithMetadata(
+      userId,
+      pagination,
+    );
 
     return {
       items,

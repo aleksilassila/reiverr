@@ -10,9 +10,14 @@ import { PlayStateService } from './play-state/play-state.service';
 import { LibraryController } from './library/library.controller';
 import { PlayStateController } from './play-state/play-state.controller';
 import { SourcePluginsModule } from 'src/source-plugins/source-plugins.module';
+import { MetadataModule } from 'src/metadata/metadata.module';
 
 @Module({
-  imports: [DatabaseModule, forwardRef(() => SourcePluginsModule)],
+  imports: [
+    DatabaseModule,
+    forwardRef(() => SourcePluginsModule),
+    forwardRef(() => MetadataModule),
+  ],
   providers: [
     ...userProviders,
     UsersService,

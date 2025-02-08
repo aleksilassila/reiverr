@@ -17,6 +17,7 @@ export class Movie {
   @Column({ unique: true })
   tmdbId: string;
 
+  @ApiProperty({ required: false, type: 'object' })
   @Column('json')
   tmdbMovie: TmdbMovieFull;
 
@@ -34,6 +35,7 @@ export class Series {
   @Column({ unique: true })
   tmdbId: string;
 
+  @ApiProperty({ required: false, type: 'object' })
   @Column('json')
   tmdbSeries: TmdbSeriesFull;
 

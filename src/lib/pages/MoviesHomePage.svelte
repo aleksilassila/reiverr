@@ -1,19 +1,39 @@
 <script lang="ts">
-	import Container from '$components/Container.svelte';
-	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
-	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
-	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';
-	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { scrollIntoView } from '../selectable';
+	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { derived } from 'svelte/store';
 	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { formatDateToYearMonthDay } from '../utils';
+	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import { navigate } from '../components/StackRouter/StackRouter';
+	import Carousel from '../components/Carousel/Carousel.svelte';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';
+	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
+	import { navigate } from '../components/StackRouter/StackRouter';
+	import { scrollIntoView } from '../selectable';
+	import { formatDateToYearMonthDay } from '../utils';
 
-	const continueWatching = jellyfinApi.getContinueWatching('movie');
-	const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
+	const { ...libraryData } = libraryItemsDataStore.getRequest();
+	const libraryContinueWatching = derived(libraryData, (libraryData) => {
+		if (!libraryData) return [];
+
+		const movies = libraryData.filter((i) => i.mediaType === 'Movie' && i.playStates?.length);
+
+		movies.sort((a, b) => {
+			const aMax = Math.max(
+				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+			);
+			const bMax = Math.max(
+				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+			);
+
+			return bMax - aMax;
+		});
+
+		return movies.map((i) => i.metadata);
+	});
+
+	// const continueWatching = jellyfinApi.getContinueWatching('movie');
+	// const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
 
 	const popularMovies = tmdbApi.getPopularMovies();
 
@@ -69,7 +89,16 @@
 		/>
 	</div>
 	<div class="my-16 space-y-8 relative z-10">
-		{#await continueWatching then continueWatching}
+		{#if $libraryContinueWatching.length}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Continue Watching</span>
+				{#each $libraryContinueWatching as item}
+					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+				{/each}
+			</Carousel>
+		{/if}
+
+		<!-- {#await continueWatching then continueWatching}
 			{#if continueWatching?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">Continue Watching</span>
@@ -89,7 +118,7 @@
 					{/if}
 				{/await}
 			{/if}
-		{/await}
+		{/await} -->
 
 		{#await popularMovies then popularMovies}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
