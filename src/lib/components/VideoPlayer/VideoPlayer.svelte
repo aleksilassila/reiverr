@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { ChatBubble, Pause, TextAlignLeft } from 'radix-icons-svelte';
+	import { Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Selectable } from '../../selectable';
 	import Container from '../Container.svelte';
@@ -8,15 +8,15 @@
 	import Spinner from '../Utils/Spinner.svelte';
 	import IconButton from './IconButton.svelte';
 	import ProgressBar from './ProgressBar.svelte';
-	import SelectAudioModal from './SelectAudioModal.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import VideoElement from './VideoElement.svelte';
-	import type { PlaybackInfo, SubtitleInfo, Subtitles } from './VideoPlayer';
+	import type { SubtitleInfo, VideoSource } from './VideoPlayer';
+	import type { SubtitlesDto } from '$lib/apis/reiverr/reiverr.openapi';
 
-	export let playbackInfo: PlaybackInfo | undefined;
+	export let videoSource: VideoSource | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
 	export let title: string;
-	export let subtitle: string = ''
+	export let subtitle: string = '';
 	export let source: string = '';
 
 	export let modalHidden = false;
@@ -65,7 +65,7 @@
 		}, 200);
 	}
 
-	function selectSubtitles(subtitles?: Subtitles) {
+	function selectSubtitles(subtitles?: SubtitlesDto) {
 		if (subtitleInfo) {
 			subtitleInfo.selectSubtitles(subtitles);
 		} else {
@@ -74,7 +74,7 @@
 	}
 
 	function selectAudioStream(index: number) {
-		if (playbackInfo) playbackInfo.selectAudioTrack(index);
+		if (videoSource) videoSource.selectAudioTrack(index);
 		else console.error('No playback info when selecting audio stream');
 	}
 
@@ -119,8 +119,7 @@
 	on:click={() => (paused ? video?.play() : video?.pause())}
 >
 	<VideoElement
-		bind:playbackInfo
-		bind:subtitleInfo
+		bind:videoSource
 		bind:paused
 		bind:duration
 		bind:currentTime
@@ -130,6 +129,7 @@
 		bind:videoDidLoad
 		bind:video
 		bind:buffering
+		subtitles={subtitleInfo?.subtitles}
 	/>
 
 	<!-- Overlay -->
@@ -201,30 +201,31 @@
 					<h1 class="header4">{title}</h1>
 				</div>
 				<div class="flex space-x-2">
-					<IconButton
+					{#if subtitleInfo?.availableSubtitles?.length}
+						<IconButton
+							on:clickOrSelect={() => {
+								// video.pause();
+								modalStack.create(SelectSubtitlesModal, {
+									subtitles: subtitleInfo.availableSubtitles,
+									selectedSubtitles: subtitleInfo.subtitles,
+									selectSubtitles
+								});
+							}}
+						>
+							<TextAlignLeft size={24} />
+						</IconButton>
+					{/if}
+					<!-- <IconButton
 						on:clickOrSelect={() => {
-							// video.pause();
-							modalStack.create(SelectSubtitlesModal, {
-								subtitleInfo,
-								selectSubtitles
-							});
-						}}
-					>
-						<TextAlignLeft size={24} />
-					</IconButton>
-					<IconButton
-						on:clickOrSelect={() => {
-							// video.pause();
 							modalStack.create(SelectAudioModal, {
 								selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
 								audioTracks: playbackInfo?.audioTracks || [],
 								selectAudioStream
-								// onClose: () => video.play()
 							});
 						}}
 					>
 						<ChatBubble size={24} />
-					</IconButton>
+					</IconButton> -->
 				</div>
 			</Container>
 			<ProgressBar

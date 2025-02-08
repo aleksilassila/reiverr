@@ -2,7 +2,7 @@
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 	import VideoPlayer from './VideoPlayer.svelte';
-	import type { PlaybackInfo, Subtitles, SubtitleInfo, AudioTrack } from './VideoPlayer';
+	import type { VideoSource, Subtitles, SubtitleInfo, AudioTrack } from './VideoPlayer';
 	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { getQualities } from '../../apis/jellyfin/qualities';
@@ -38,7 +38,7 @@
 	let paused: boolean;
 	let progressTime: number;
 
-	let playbackInfo: PlaybackInfo | undefined;
+	let playbackInfo: VideoSource | undefined;
 	let subtitleInfo: SubtitleInfo | undefined;
 	let sessionId: string | undefined;
 
@@ -199,7 +199,7 @@
 
 <Modal class="bg-black">
 	<VideoPlayer
-		{playbackInfo}
+		videoSource={playbackInfo}
 		modalHidden={$modalStackTop?.id !== modalId}
 		{title}
 		{subtitle}

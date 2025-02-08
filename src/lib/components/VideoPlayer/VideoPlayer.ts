@@ -5,18 +5,12 @@ import { modalStack } from '../Modal/modal.store';
 import { createErrorNotification } from '../Notifications/notification.store';
 import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
 import TmdbVideoPlayerModal from './TmdbVideoPlayerModal.svelte';
+import type { SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
 	availableSubtitles: Subtitles[];
 	selectSubtitles: (subtitles?: Subtitles) => void;
-};
-
-export type Subtitles = {
-	url: string;
-	srclang: string;
-	kind: 'subtitles' | 'captions' | 'descriptions';
-	language: string;
 };
 
 export type AudioTrack = {
@@ -27,13 +21,13 @@ export type AudioTrack = {
 export interface VideoPlayerContext {
 	title?: string;
 	subtitle?: string;
-	playbackInfo?: PlaybackInfo;
+	playbackInfo?: VideoSource;
 }
 
-export type PlaybackInfo = {
-	playbackUrl: string;
+export type VideoSource = {
+	src: string;
 	directPlay: boolean;
-	backdrop?: string;
+	backdropUrl?: string;
 	progress?: number;
 
 	audioStreamIndex: number;

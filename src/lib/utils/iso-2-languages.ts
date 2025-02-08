@@ -1,4 +1,11 @@
-export const ISO_2_LANGUAGES = {
+export const ISO_2_LANGUAGES: {
+	[key: string]: {
+		name: string;
+		iso6392B?: string;
+		iso6392T?: string;
+		iso6391?: string;
+	};
+} = {
 	aar: {
 		name: 'Afar',
 		iso6392B: 'aar',

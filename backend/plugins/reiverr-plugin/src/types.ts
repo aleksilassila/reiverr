@@ -51,10 +51,10 @@ export type Quality = {
 };
 
 export type Subtitles = {
-  index: number;
-  uri: string;
+  src: string;
+  lang: string;
+  kind: 'subtitles' | 'captions' | 'descriptions';
   label: string;
-  codec: string | undefined;
 };
 
 export type StreamProperty = {
@@ -70,7 +70,7 @@ export type StreamCandidate = {
 };
 
 export type Stream = StreamCandidate & {
-  uri: string;
+  src: string;
   directPlay: boolean;
   progress: number;
   duration: number;

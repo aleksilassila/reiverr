@@ -159,16 +159,16 @@ export class QualityDto implements Quality {
 
 export class SubtitlesDto implements Subtitles {
   @ApiProperty()
-  index: number;
-
+  src: string;
   @ApiProperty()
-  uri: string;
-
+  lang: string;
+  @ApiProperty({
+    type: 'string',
+    enum: ['subtitles', 'captions', 'descriptions'],
+  })
+  kind: 'subtitles' | 'captions' | 'descriptions';
   @ApiProperty()
   label: string;
-
-  @ApiProperty({ required: false })
-  codec: string | undefined;
 }
 
 export class VideoStreamPropertyDto implements StreamProperty {
@@ -197,7 +197,7 @@ export class StreamCandidateDto implements StreamCandidate {
 
 export class StreamDto extends StreamCandidateDto implements Stream {
   @ApiProperty()
-  uri: string;
+  src: string;
 
   @ApiProperty()
   directPlay: boolean;

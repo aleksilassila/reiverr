@@ -490,17 +490,17 @@ export interface QualityDto {
 }
 
 export interface SubtitlesDto {
-	index: number;
-	uri: string;
+	src: string;
+	lang: string;
+	kind: 'subtitles' | 'captions' | 'descriptions';
 	label: string;
-	codec?: string;
 }
 
 export interface StreamDto {
 	key: string;
 	title: string;
 	properties: VideoStreamPropertyDto[];
-	uri: string;
+	src: string;
 	directPlay: boolean;
 	/** Duration in seconds */
 	duration: number;

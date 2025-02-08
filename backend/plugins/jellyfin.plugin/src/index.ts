@@ -208,10 +208,11 @@ class JellyfinProvider extends SourceProvider {
     const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
-      index: i,
-      uri: this.proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      src:
+        this.proxyUrl + `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
+      lang: s.Language,
+      kind: 'subtitles',
       label: s.DisplayTitle,
-      codec: s.Codec,
     }));
 
     return {
@@ -253,7 +254,7 @@ class JellyfinProvider extends SourceProvider {
       qualities,
       qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
-      uri: playbackUri,
+      src: playbackUri,
       // uri:
       //   proxyUrl +
       //   '/stream_new2/H4sIAAAAAAAAAw3OWXKDIAAA0Cvhggn9TBqSuJARBcU_CloiYp2Ojcvpm3eCB2EXASWjIAwRUkd4AF7XdYdQAY0kVPIjDTghrElZT0EJqGlv5I_64V5UOk58vOSO7F8bcjKYnvmusRg0zLe5Lv2YaWsSUpFMuTXOAAS5O66s_H5RBpbWrmftnV4JuIdZ8LNrf1laHs_FTqkMmro4z7CsSS7sRNpx2liFotJ5TPY45Q6tms3R45NSdYWGWZ6yvTm14.lXAV7r67IyOy85n5JHjQeFzV0z0guHo2YcrCzQQoEumgIZxrlQgQir2m4suLyPK22t6eX7nmG.Sn8SxRNdH7dBNKMxxGucvgyj8Lind4D.AeRg7d1BAQAA/master.m3u8' +
@@ -365,10 +366,11 @@ class JellyfinProvider extends SourceProvider {
     const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
-      index: i,
-      uri: this.proxyUrl + s.DeliveryUrl + `reiverr_token=${userContext.token}`,
+      src:
+        this.proxyUrl + `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
+      lang: s.Language,
+      kind: 'subtitles',
       label: s.DisplayTitle,
-      codec: s.Codec,
     }));
 
     return {
@@ -410,7 +412,7 @@ class JellyfinProvider extends SourceProvider {
       qualities,
       qualityIndex: getClosestBitrate(qualities, bitrate).index,
       subtitles,
-      uri: playbackUri,
+      src: playbackUri,
       // uri:
       //   proxyUrl +
       //   '/stream_new2/H4sIAAAAAAAAAw3OWXKDIAAA0Cvhggn9TBqSuJARBcU_CloiYp2Ojcvpm3eCB2EXASWjIAwRUkd4AF7XdYdQAY0kVPIjDTghrElZT0EJqGlv5I_64V5UOk58vOSO7F8bcjKYnvmusRg0zLe5Lv2YaWsSUpFMuTXOAAS5O66s_H5RBpbWrmftnV4JuIdZ8LNrf1laHs_FTqkMmro4z7CsSS7sRNpx2liFotJ5TPY45Q6tms3R45NSdYWGWZ6yvTm14.lXAV7r67IyOy85n5JHjQeFzV0z0guHo2YcrCzQQoEumgIZxrlQgQir2m4suLyPK22t6eX7nmG.Sn8SxRNdH7dBNKMxxGucvgyj8Lind4D.AeRg7d1BAQAA/master.m3u8' +

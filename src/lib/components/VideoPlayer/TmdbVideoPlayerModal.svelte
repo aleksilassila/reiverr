@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { StreamDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { StreamDto, SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 	import {
 		episodeUserDataStore,
 		movieUserDataStore,
@@ -15,7 +15,7 @@
 	import { reiverrApiNew, user } from '../../stores/user.store';
 	import { modalStackTop } from '../Modal/modal.store';
 	import Modal from '../Modal/Modal.svelte';
-	import type { PlaybackInfo, SubtitleInfo, Subtitles, VideoPlayerContext } from './VideoPlayer';
+	import type { SubtitleInfo, VideoSource } from './VideoPlayer';
 	import VideoPlayer from './VideoPlayer.svelte';
 
 	export let modalId: symbol;
@@ -52,7 +52,7 @@
 	let video: HTMLVideoElement;
 	let paused: boolean;
 
-	let playbackInfo: PlaybackInfo | undefined;
+	let videoSource: VideoSource | undefined;
 	let subtitleInfo: SubtitleInfo | undefined;
 
 	let reportProgressInterval: ReturnType<typeof setInterval>;
@@ -102,12 +102,7 @@
 						audioStreamIndex,
 						deviceProfile: getDeviceProfile() as any
 				  })
-		)
-			.then((r) => r.data)
-			.then((d) => ({
-				...d,
-				uri: d.uri
-			}));
+		).then((r) => r.data);
 
 		const stream = await videoStreamP;
 
@@ -118,17 +113,10 @@
 
 		let subtitles: Subtitles | undefined;
 
-		const availableSubtitles: Subtitles[] = stream.subtitles.map((s) => ({
-			kind: 'subtitles',
-			srclang: s.label,
-			url: get(sessions).activeSession?.baseUrl + s.uri,
-			language: s.label
-		}));
-
 		const selectSubtitles = (subtitles?: Subtitles) => {
 			mediaLanguagesStore.update((prev) => ({
 				...prev,
-				subtitles: subtitles?.srclang || ''
+				subtitles: subtitles?.lang || ''
 			}));
 
 			if (subtitleInfo) {
@@ -147,11 +135,14 @@
 
 		subtitleInfo = {
 			subtitles,
-			availableSubtitles,
+			availableSubtitles: stream.subtitles.map((s) => ({
+				...s,
+				src: `${get(sessions).activeSession?.baseUrl || ''}${s.src}`
+			})),
 			selectSubtitles
 		};
 
-		playbackInfo = {
+		videoSource = {
 			audioStreamIndex: 0, // audioStreamIndex ?? mediaSource?.DefaultAudioStreamIndex ?? -1,
 			audioTracks: [],
 			// mediaSource?.MediaStreams?.filter((s) => s.Type === 'Audio').map((s) => ({
@@ -165,8 +156,8 @@
 			// 	playbackPosition: progressTime * 10_000_000
 			// }),
 			directPlay: stream.directPlay,
-			playbackUrl: (get(sessions).activeSession?.baseUrl || '') + stream.uri,
-			backdrop:
+			src: (get(sessions).activeSession?.baseUrl || '') + stream.src,
+			backdropUrl:
 				//  item?.BackdropImageTags?.length
 				// 	? `${$user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
 				// 	:
@@ -238,7 +229,7 @@
 
 <Modal class="bg-black">
 	<VideoPlayer
-		{playbackInfo}
+		{videoSource}
 		modalHidden={$modalStackTop?.id !== modalId}
 		{title}
 		{subtitle}

@@ -54,7 +54,7 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'h-12 flex items-center group',
+			'h-12 flex-1 flex items-center group',
 			secondaryAction ? 'rounded-l-xl' : 'rounded-xl',
 			(type === 'primary' || type === 'primary-dark') && (secondaryAction ? 'pl-6 pr-5' : 'px-6'),
 			_disabled ? 'cursor-not-allowed pointer-events-none opacity-40' : 'cursor-pointer',
@@ -83,7 +83,9 @@
 				'!bg-red-500': confirmDanger && armed
 			})}
 		>
-			<div class="flex-1 text-center text-nowrap flex items-center justify-center relative">
+			<div
+				class="flex-1 text-center text-nowrap flex items-center justify-center relative *:flex-1"
+			>
 				{#if $$slots.icon}
 					<div class="mr-2">
 						<slot name="icon" />
