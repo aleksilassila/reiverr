@@ -22,6 +22,7 @@
 					.getClient(session.baseUrl, session.token)
 					.GET('/users/{id}', { params: { path: { id: session.id } } })
 					.then((r) => ({ session, user: r.data }))
+					.catch((e) => ({ session, user: undefined, error: e }))
 			)
 		).then((us) => us.filter((u) => !!u.user));
 	}
@@ -32,6 +33,7 @@
 	}
 </script>
 
+{console.log('UsersPage')}
 <DetachedPage sidebar={false} class="px-32 py-16 h-full flex flex-col items-center justify-center">
 	{#await users then users}
 		{#if users?.length}

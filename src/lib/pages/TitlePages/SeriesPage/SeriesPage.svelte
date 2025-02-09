@@ -27,7 +27,7 @@
 	import classNames from 'classnames';
 	import { Bookmark, Cross1, ExternalLink, Minus, Play, Plus, Trash } from 'radix-icons-svelte';
 	import { get } from 'svelte/store';
-	import TitleProperties from '../TitleProperties.svelte';
+	import TitleProperties from '../HeroTitleInfo.svelte';
 	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
 	import FileDetailsDialog from './FileDetailsDialog.svelte';
@@ -367,10 +367,10 @@
 									<Play size={19} slot="icon" />
 								</Button> -->
 							<!-- {:else} -->
-							<Button class="mr-4" action={() => handleRequestSeason(1)}>
+							<!-- <Button class="mr-4" action={() => handleRequestSeason(1)}>
 								Request
 								<Plus size={19} slot="icon" />
-							</Button>
+							</Button> -->
 							<!-- {/if} -->
 
 							{#if PLATFORM_WEB}

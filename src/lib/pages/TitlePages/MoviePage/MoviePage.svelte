@@ -17,11 +17,11 @@
 	import { tmdbMovieDataStore, useRequest } from '$lib/stores/data.store';
 	import { useMovieUserData } from '$lib/stores/media-user-data.store';
 	import { reiverrApiNew, user } from '$lib/stores/user.store';
-	import { formatThousands } from '$lib/utils';
+	import { formatMinutesToTime, formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Bookmark, Check, DotFilled, ExternalLink, Minus, Play, Plus } from 'radix-icons-svelte';
 	import { writable } from 'svelte/store';
-	import TitleProperties from '../TitleProperties.svelte';
+	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import { onDestroy } from 'svelte';
 
 	export let id: string;
@@ -92,9 +92,9 @@
 	let titleProperties: { href?: string; label: string }[] = [];
 	$: {
 		$tmdbMovie.then((movie) => {
-			if (movie?.release_date) {
+			if (movie?.runtime) {
 				titleProperties.push({
-					label: new Date(movie.release_date).getFullYear().toString()
+					label: formatMinutesToTime(movie.runtime)
 				});
 			}
 
@@ -245,8 +245,8 @@
 							>
 								{movie?.title}
 							</div> -->
-							<TitleProperties
-								title={movie.title ?? ''}
+							<HeroTitleInfo
+								title={`${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})`}
 								properties={titleProperties}
 								overview={movie.overview ?? ''}
 							/>
@@ -307,10 +307,10 @@
 								Remove from Library
 							</Button>
 						{/if}
-						<Button class="mr-4" action={handleRequest} disabled={$inLibrary === undefined}>
+						<!-- <Button class="mr-4" action={handleRequest} disabled={$inLibrary === undefined}>
 							Request
 							<Plus size={19} slot="icon" />
-						</Button>
+						</Button> -->
 						<!--{#if radarrItem}-->
 						<!--	<Button class="mr-4" on:clickOrSelect={() => openMovieMediaManager(Number(id))}>-->
 						<!--		{#if jellyfinItem}-->

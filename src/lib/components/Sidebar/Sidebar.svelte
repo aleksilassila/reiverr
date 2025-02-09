@@ -105,7 +105,7 @@
 	<!-- Background -->
 	<div
 		class={classNames(
-			'absolute inset-y-0 left-0 w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
+			'absolute inset-y-0 left-0 min-w-[40rem] w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
 			{
 				'opacity-0': !$isNavBarOpen,
 				'group-hover:opacity-100 pointer-events-none': true
@@ -146,7 +146,7 @@
 			<Person class="w-8 h-8" />
 			<span
 				class={classNames(
-					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 text-nowrap',
 					{
 						'opacity-0 pointer-events-none': $isNavBarOpen === false,
 						'group-hover:opacity-100 group-hover:pointer-events-auto': true

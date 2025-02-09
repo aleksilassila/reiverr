@@ -20,7 +20,7 @@
 	import { createModal } from '../../components/Modal/modal.store';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands, retry } from '../../utils';
-	import TitleProperties from './TitleProperties.svelte';
+	import TitleProperties from './HeroTitleInfo.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
@@ -216,7 +216,7 @@
 
 	onDestroy(() => {
 		unsubscribe();
-	})
+	});
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -306,38 +306,38 @@
 					{/if}
 					<Check slot="icon" size={19} />
 				</Button>
-				{#await Promise.all([jellyfinEpisode, sonarrEpisode])}
+				<!-- {#await Promise.all([jellyfinEpisode, sonarrEpisode])}
 					<ButtonGhost>Play</ButtonGhost>
 					<ButtonGhost>Manage Media</ButtonGhost>
 					<ButtonGhost>Delete Files</ButtonGhost>
 				{:then [jellyfinEpisode]}
 					{#if jellyfinEpisode?.MediaSources?.length}
-						<!-- <Button
+						<Button
 							on:clickOrSelect={() =>
 								jellyfinEpisode?.Id && playerState.streamJellyfinId(jellyfinEpisode.Id)}
 						>
 							Play
 							<Play size={19} slot="icon" />
-						</Button> -->
+						</Button>
 					{:else}
 						<Button action={handleRequestEpisode}>
 							Request
 							<Plus size={19} slot="icon" />
 						</Button>
 					{/if}
-				{/await}
+				{/await} -->
 				<!--				<Button-->
 				<!--					on:clickOrSelect={() =>-->
 				<!--						openEpisodeMediaManager(Number(id), Number(season), Number(episode))}-->
 				<!--					>Manage Media <File slot="icon" size={19} /></Button-->
 				<!--				>-->
-				{#await sonarrFiles then files}
+				<!-- {#await sonarrFiles then files}
 					{#if files?.length}
-						<Button on:clickOrSelect={() => createConfirmDeleteFiles(files)}
-							>Delete Files <Trash slot="icon" size={19} /></Button
-						>
+						<Button on:clickOrSelect={() => createConfirmDeleteFiles(files)}>
+							Delete Files <Trash slot="icon" size={19} />
+						</Button>
 					{/if}
-				{/await}
+				{/await} -->
 
 				{#if PLATFORM_WEB}
 					<Button>

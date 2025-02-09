@@ -122,7 +122,7 @@ function useUser() {
 export const { user, sources, isAppInitialized } = useUser();
 export const awaitAppInitialization = () =>
 	new Promise((resolve) => {
-		let unsubscribe = isAppInitialized.subscribe(async (i) => {
+		const unsubscribe = isAppInitialized.subscribe(async (i) => {
 			if (i) {
 				resolve(undefined);
 				await tick();

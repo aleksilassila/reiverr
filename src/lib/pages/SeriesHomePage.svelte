@@ -1,19 +1,15 @@
 <script lang="ts">
 	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
-	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-	import Carousel from '../components/Carousel/Carousel.svelte';
-	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
-	import { getShowcasePropsFromTmdbSeries } from '../components/HeroShowcase/HeroShowcase';
-	import { scrollIntoView } from '../selectable';
-	import JellyfinCard from '../components/Card/JellyfinCard.svelte';
-	import { formatDateToYearMonthDay } from '../utils';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import { navigate } from '../components/StackRouter/StackRouter';
-	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { derived } from 'svelte/store';
+	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
+	import Carousel from '../components/Carousel/Carousel.svelte';
+	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { scrollIntoView } from '../selectable';
+	import { formatDateToYearMonthDay } from '../utils';
 
 	const { ...libraryData } = libraryItemsDataStore.getRequest();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
@@ -34,9 +30,6 @@
 
 		return series.map((i) => i.metadata);
 	});
-
-	// const continueWatching = jellyfinApi.getContinueWatchingSeries();
-	// const recentlyAdded = jellyfinApi.getRecentlyAdded('series');
 
 	const nowStreaming = getNowStreaming();
 	const upcomingSeries = fetchUpcomingSeries();
@@ -77,11 +70,7 @@
 
 <DetachedPage class="flex flex-col relative">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
-		<HeroShowcase
-			items={recommendations.then(({ top10 }) => getShowcasePropsFromTmdbSeries(top10))}
-			on:enter={scrollIntoView({ top: 0 })}
-			on:select={({ detail }) => navigate(`/series/${detail?.id}`)}
-		/>
+		<TmdbSeriesHeroShowcase series={recommendations.then(({ top10 }) => top10)} />
 	</div>
 	<div class="my-16 space-y-8 relative z-10">
 		{#if $libraryContinueWatching.length}
@@ -92,28 +81,6 @@
 				{/each}
 			</Carousel>
 		{/if}
-
-		<!-- {#await continueWatching then continueWatching}
-			{#if continueWatching?.length}
-				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">Continue Watching</span>
-					{#each continueWatching as item (item.Id)}
-						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-					{/each}
-				</Carousel>
-			{:else}
-				{#await recentlyAdded then recentlyAdded}
-					{#if recentlyAdded?.length}
-						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-							<span slot="header">Recently Added</span>
-							{#each recentlyAdded as item (item.Id)}
-								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-							{/each}
-						</Carousel>
-					{/if}
-				{/await}
-			{/if}
-		{/await} -->
 
 		{#await popular then popular}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
@@ -129,7 +96,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -151,7 +118,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -173,7 +140,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -186,7 +153,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -201,7 +168,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}
@@ -214,7 +181,7 @@
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">{TMDB_SERIES_GENRES.find((g) => g.id == genre)?.name}</span>
+					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
 						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 					{/each}

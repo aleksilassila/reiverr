@@ -1,19 +1,30 @@
 <script lang="ts">
-	import classNames from 'classnames';
-	import { DotFilled } from 'radix-icons-svelte';
+	import HeroTitleInfo from '$lib/pages/TitlePages/HeroTitleInfo.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { get } from 'svelte/store';
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import { registrars } from '../../selectable.js';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
-	import type { ShowcaseItemProps } from './HeroShowcase';
+
+	type ShowcaseItem = {
+		id: number;
+		type: 'movie' | 'tv';
+		posterUri: string;
+		backdropUri: string;
+		trailerUrl?: string;
+		title: string;
+		overview: string;
+		infoProperties: { label: string; href?: string }[];
+		url?: string;
+	};
+
+	export let items: Promise<ShowcaseItem[]> = Promise.resolve([]);
 
 	const dispatch = createEventDispatcher<{
-		select: ShowcaseItemProps | undefined;
+		select: ShowcaseItem | undefined;
 	}>();
 
-	export let items: Promise<ShowcaseItemProps[]> = Promise.resolve([]);
-	let awaitedItems: undefined | ShowcaseItemProps[];
+	let awaitedItems: undefined | ShowcaseItem[];
 	items.then((items) => (awaitedItems = items));
 
 	function openItem() {
@@ -24,7 +35,7 @@
 </script>
 
 <HeroCarousel
-	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUrl}`))}
+	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`))}
 	bind:index={showcaseIndex}
 	on:enter
 	on:navigate={({ detail }) => {
@@ -50,46 +61,20 @@
 				<div class="flex-1 flex items-end">
 					<div class="mr-8">
 						<!--						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />-->
+						<!-- svelte-ignore a11y-click-events-have-key-events -->
 						<div
 							class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
-							style={`background-image: url("${TMDB_POSTER_SMALL + item.posterUrl}")`}
+							style={`background-image: url("${TMDB_POSTER_SMALL + item.posterUri}")`}
 							on:click={openItem}
 						/>
 					</div>
 					<div class="flex flex-col">
-						<div
-							class={classNames(
-								'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 max-w-xl mt-2',
-								{
-									'text-4xl sm:text-5xl 2xl:text-6xl': item?.title.length < 15,
-									'text-3xl sm:text-4xl 2xl:text-5xl': item?.title.length >= 15
-								}
-							)}
-							on:click={openItem}
-						>
-							{item?.title}
-						</div>
-						<div
-							class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
-						>
-							<p class="flex-shrink-0">{item.year}</p>
-							<!-- <DotFilled />
-								<p class="flex-shrink-0">{item.runtime}</p> -->
-							<DotFilled />
-							<p class="flex-shrink-0"><a href={item.url}>{item.rating} TMDB</a></p>
-						</div>
-						<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-2xl mt-4">
-							{item.overview}
-						</div>
-						<!-- <div class="flex items-center">
-								{#each item?.genres.slice(0, 3) as genre}
-									<span
-										class="backdrop-blur-lg rounded-full bg-zinc-400 bg-opacity-20 p-1.5 px-4 font-medium text-sm flex-grow-0 mr-4"
-									>
-										{genre}
-									</span>
-								{/each}
-							</div> -->
+						<HeroTitleInfo
+							title={item.title}
+							properties={item.infoProperties}
+							overview={item.overview ?? ''}
+							onClickTitle={openItem}
+						/>
 					</div>
 				</div>
 			{/if}

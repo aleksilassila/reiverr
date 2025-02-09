@@ -8,13 +8,17 @@
 		label?: string;
 	}[] = [];
 	export let overview: string;
+	export let onClickTitle: (() => void) | undefined = undefined;
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
 	class={classNames('text-left font-medium tracking-wider text-stone-200 mt-1', {
 		'text-4xl sm:text-5xl 2xl:text-6xl': title.length || 0 < 15,
-		'text-3xl sm:text-4xl 2xl:text-5xl': title.length || 0 >= 15
+		'text-3xl sm:text-4xl 2xl:text-5xl': title.length || 0 >= 15,
+		'hover:text-amber-200 cursor-pointer': !!onClickTitle
 	})}
+	on:click={onClickTitle}
 >
 	{title}
 </div>

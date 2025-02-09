@@ -1,14 +1,11 @@
 <script lang="ts">
+	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { derived } from 'svelte/store';
-	import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
 	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { getShowcasePropsFromTmdbMovie } from '../components/HeroShowcase/HeroShowcase';
-	import HeroShowcase from '../components/HeroShowcase/HeroShowcase.svelte';
-	import { navigate } from '../components/StackRouter/StackRouter';
 	import { scrollIntoView } from '../selectable';
 	import { formatDateToYearMonthDay } from '../utils';
 
@@ -32,17 +29,14 @@
 		return movies.map((i) => i.metadata);
 	});
 
-	// const continueWatching = jellyfinApi.getContinueWatching('movie');
-	// const recentlyAdded = jellyfinApi.getRecentlyAdded('movie');
-
 	const popularMovies = tmdbApi.getPopularMovies();
 
 	const newDigitalReleases = getDigitalReleases();
 	const upcomingMovies = getUpcomingMovies();
 	const recommendedMovies = tmdbApi.getRecommendedMovies();
 	const mostRecommendedGenres: Promise<number[]> = recommendedMovies.then(({ genreIdToMovie }) => {
-		const allGenres = Object.keys(genreIdToMovie);
-		allGenres.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a].length || 0));
+		const allGenres = Object.keys(genreIdToMovie).map((k) => Number(k));
+		allGenres.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0));
 		return allGenres;
 	});
 
@@ -82,11 +76,7 @@
 
 <DetachedPage class="flex flex-col relative">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
-		<HeroShowcase
-			items={recommendedMovies.then(({ top10 }) => getShowcasePropsFromTmdbMovie(top10))}
-			on:enter={scrollIntoView({ top: 0 })}
-			on:select={({ detail }) => navigate(`/movie/${detail?.id}`)}
-		/>
+		<TmdbMoviesHeroShowcase movies={recommendedMovies.then(({ top10 }) => top10)} />
 	</div>
 	<div class="my-16 space-y-8 relative z-10">
 		{#if $libraryContinueWatching.length}
@@ -97,28 +87,6 @@
 				{/each}
 			</Carousel>
 		{/if}
-
-		<!-- {#await continueWatching then continueWatching}
-			{#if continueWatching?.length}
-				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-					<span slot="header">Continue Watching</span>
-					{#each continueWatching as item (item.Id)}
-						<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-					{/each}
-				</Carousel>
-			{:else}
-				{#await recentlyAdded then recentlyAdded}
-					{#if recentlyAdded?.length}
-						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-							<span slot="header">Recently Added</span>
-							{#each recentlyAdded as item (item.Id)}
-								<JellyfinCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-							{/each}
-						</Carousel>
-					{/if}
-				{/await}
-			{/if}
-		{/await} -->
 
 		{#await popularMovies then popularMovies}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
