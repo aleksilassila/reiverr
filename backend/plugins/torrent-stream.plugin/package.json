@@ -1,5 +1,5 @@
 {
-  "name": "jellyfin.plugin",
+  "name": "torrent-stream.plugin",
   "version": "1.0.0",
   "main": "src/index",
   "scripts": {
@@ -12,9 +12,14 @@
     "@types/axios": "^0.14.4",
     "axios": "^1.7.8",
     "express-http-proxy": "^2.1.1",
-    "@aleksilassila/reiverr-plugin": "^1.0.0",
-    "swagger-typescript-api": "^13.0.23"
+    "fast-xml-parser": "^4.5.1",
+    "@aleksilassila/reiverr-plugin": "file:../reiverr-plugin",
+    "swagger-typescript-api": "^13.0.23",
+    "torrent-stream": "^1.2.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/express-http-proxy": "^1.6.6",
+    "@types/torrent-stream": "^0.0.9"
+  },
   "description": ""
 }

@@ -93,6 +93,7 @@
   },
   "workspaces": [
     "plugins/reiverr-plugin",
-    "plugins/jellyfin.plugin"
+    "plugins/jellyfin.plugin",
+    "plugins/torrent-stream.plugin"
   ]
 }

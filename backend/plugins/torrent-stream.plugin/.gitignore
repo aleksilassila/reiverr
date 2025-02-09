@@ -12,11 +12,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 /config/*.sqlite
 /dist
-
-backend/plugins/*
-!backend/plugins/reiverr-plugin
-!backend/plugins/jellyfin.plugin
-!backend/plugins/torrent-stream.plugin
+stream-cache.json
 
 # Logs
 logs
