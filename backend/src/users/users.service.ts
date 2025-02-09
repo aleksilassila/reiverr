@@ -79,10 +79,14 @@ export class UsersService {
   }
 
   async update(
-    user: User,
+    userId: string,
     callerUser: User,
     updateUserDto: UpdateUserDto,
   ): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) throw new Error('Update user: User not found');
+
     if (updateUserDto.name) user.name = updateUserDto.name;
 
     if (updateUserDto.oldPassword !== updateUserDto.password) {

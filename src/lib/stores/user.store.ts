@@ -62,7 +62,10 @@ function useUser() {
 		if (!user) return;
 
 		const updated = updateFn(user);
-		const { user: update, error } = await reiverrApi.updateUser(updated.id, updated);
+		const { user: update, error } = await reiverrApiNew.users
+			.updateUser(updated.id, updated)
+			.then((r) => ({ user: r.data, error: undefined }))
+			.catch((e) => ({ error: e, user: undefined }));
 
 		if (update) {
 			initializedStores.update((i) => ({ ...i, user: true }));

@@ -138,10 +138,8 @@ export class UsersController {
       throw new NotFoundException();
     }
 
-    const user = await this.usersService.findOne(id);
-
     const updated = await this.usersService
-      .update(user, callerUser, updateUserDto)
+      .update(id, callerUser, updateUserDto)
       .catch((e) => {
         console.error(e);
         if (e === UserServiceError.PasswordMismatch) {
