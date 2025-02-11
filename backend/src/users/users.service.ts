@@ -33,30 +33,34 @@ export class UsersService {
       );
   }
 
-  async findOne(id: string): Promise<User> {
-    return this.userRepository
-      .findOne({
-        where: { id },
-        relations: {
-          mediaSources: true,
-        },
-      })
-      .then((u) => this.filterMediaSources(u));
+  async findOne(id: string): Promise<User | undefined> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: {
+        mediaSources: true,
+      },
+    });
+
+    if (!user) return undefined;
+
+    return this.filterMediaSources(user);
   }
 
-  async findOneByName(name: string): Promise<User> {
-    return this.userRepository
-      .findOne({
-        where: { name },
-        relations: {
-          mediaSources: true,
-        },
-      })
-      .then((u) => this.filterMediaSources(u));
+  async findOneByName(name: string): Promise<User | undefined> {
+    const user = await this.userRepository.findOne({
+      where: { name },
+      relations: {
+        mediaSources: true,
+      },
+    });
+
+    if (!user) return undefined;
+
+    return this.filterMediaSources(user);
   }
 
   // The rest
-  async create(userCreateDto: CreateUserDto): Promise<User> {
+  async create(userCreateDto: CreateUserDto): Promise<User | undefined> {
     if (!userCreateDto.name) throw UserServiceError.UsernameRequired;
 
     const user = this.userRepository.create();
@@ -67,7 +71,7 @@ export class UsersService {
 
     try {
       user.profilePicture = Buffer.from(
-        userCreateDto.profilePicture.split(';base64,').pop() as string,
+        userCreateDto.profilePicture?.split(';base64,').pop() as string,
         'base64',
       );
     } catch (e) {
@@ -82,7 +86,7 @@ export class UsersService {
     userId: string,
     callerUser: User,
     updateUserDto: UpdateUserDto,
-  ): Promise<User> {
+  ): Promise<User | undefined> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) throw new Error('Update user: User not found');

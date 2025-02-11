@@ -70,7 +70,11 @@
 
 <DetachedPage class="flex flex-col relative">
 	<div class="h-[calc(100vh-12rem)] flex px-32">
-		<TmdbSeriesHeroShowcase series={recommendations.then(({ top10 }) => top10)} />
+		<TmdbSeriesHeroShowcase
+			series={recommendations.then(({ top10 }) =>
+				top10.length ? top10 : upcomingSeries.then((s) => s.slice(0, 10))
+			)}
+		/>
 	</div>
 	<div class="my-16 space-y-8 relative z-10">
 		{#if $libraryContinueWatching.length}

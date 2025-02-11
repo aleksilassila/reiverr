@@ -107,6 +107,10 @@ export class UsersController {
       else throw new InternalServerErrorException();
     });
 
+    if (!user) {
+      throw new InternalServerErrorException();
+    }
+
     return UserDto.fromEntity(user);
   }
 
@@ -131,6 +135,10 @@ export class UsersController {
           throw new BadRequestException('Password mismatch');
         } else throw new InternalServerErrorException();
       });
+
+    if (!updated) {
+      throw new InternalServerErrorException();
+    }
 
     return UserDto.fromEntity(updated);
   }

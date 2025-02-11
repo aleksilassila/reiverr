@@ -10,5 +10,7 @@ services:
     build:
       context: .
       target: development
+    environment:
+      - NODE_ENV=development
     ports:
       - 5173:5173

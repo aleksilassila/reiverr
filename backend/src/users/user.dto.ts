@@ -23,7 +23,7 @@ export class UserDto extends OmitType(User, [
       // pluginSettings: entity.pluginSettings,
     };
 
-    delete out.password;
+    delete (out as any).password;
 
     return out;
   }
