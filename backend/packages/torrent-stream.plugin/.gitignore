@@ -13,6 +13,7 @@ vite.config.ts.timestamp-*
 /config/*.sqlite
 /dist
 stream-cache.json
+torrent-stream-downloads
 
 # Logs
 logs

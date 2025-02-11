@@ -34,8 +34,8 @@ Content Playback Plugins
 
 - Offers a plugin API that allows users to access media from various external sources
 - Currently built-in plugins for streaming content are:
-  - [Jellyfin plugin](backend/plugins/jellyfin.plugin/README.md)
-  - [Torrent-Stream plugin](backend/plugins/torrent-stream.plugin/README.md) (requires Jackett)
+  - [Jellyfin plugin](backend/packages/jellyfin.plugin/README.md)
+  - [Torrent-Stream plugin](backend/packages/torrent-stream.plugin/README.md) (requires Jackett)
 
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 

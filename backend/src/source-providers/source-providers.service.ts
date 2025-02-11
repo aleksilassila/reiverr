@@ -1,20 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PluginProvider, SourceProvider } from '@aleksilassila/reiverr-plugin';
 
 @Injectable()
 export class SourceProvidersService {
+  private logger = new Logger(SourceProvidersService.name);
   private providers: Record<string, SourceProvider> = {};
 
   constructor() {
-    console.log('Loading source plugins...');
+    this.providers = {
+      ...this.loadPlugins(path.join(require.main.path, '..', '..', 'packages')),
+      ...this.loadPlugins(path.join(require.main.path, '..', '..', 'plugins')),
+    };
 
-    this.providers = this.loadPlugins(
-      path.join(require.main.path, '..', '..', 'plugins'),
-    );
-
-    console.log(
+    this.logger.log(
       `Loaded source plugins: ${Object.keys(this.providers).join(', ')}`,
     );
   }
@@ -24,6 +24,7 @@ export class SourceProvidersService {
   }
 
   private loadPlugins(rootDirectory: string): Record<string, SourceProvider> {
+    this.logger.log(`Loading plugins from ${rootDirectory}`);
     const pluginDirectories = fs.readdirSync(rootDirectory);
 
     const pluginPaths = [];
@@ -47,7 +48,7 @@ export class SourceProvidersService {
           plugins[plugin.name] = plugin;
         });
       } catch (e) {
-        console.error(`Failed to load plugin from ${pluginPath}: ${e}`);
+        this.logger.error(`Failed to load plugin from ${pluginPath}: ${e}`);
       }
     }
 
