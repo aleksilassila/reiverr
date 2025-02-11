@@ -6,8 +6,8 @@
 ![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
 ![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
 
-Reiverr is a project that aims to create a single UI for interacting with TMDB, Jellyfin, Radarr and Sonarr, as well as
-be an alternative to Overseerr.
+Reiverr is a project that aims to create a single UI for interacting with TMDB, streaming content
+from various sources and be an alternative to Overseerr.
 
 This project is still in early stages, and many features are still missing / being tested and changed.
 Contributions are welcome! See [contributing](#Contributing) for more information.
@@ -26,17 +26,16 @@ or only care about the web app, you might want to check out the
 TMDB Discovery:
 
 - Discover trending movies and TV shows
-- Get personalized recommendations based on your ratings
-- ~~Browse movies and TV shows by genre or network~~
+- Get personalized recommendations based on your TMDB ratings
 - View details about movies and TV shows, such as cast, crew, ratings & a trailer.
 - Movie & TV show search
 
-Local Library & Playback
+Content Playback Plugins
 
-- Stream Movies & TV shows (from Jellyfin library)
-- Create requests for movies & TV shows in Radarr & Sonarr
-- Manage local library files
-- ~~View Radarr & Sonarr stats (disk space, items, etc.)~~
+- Offers a plugin API that allows users to access media from various external sources
+- Currently built-in plugins for streaming content are:
+  - [Jellyfin plugin](backend/plugins/jellyfin.plugin/README.md)
+  - [Torrent-Stream plugin](backend/plugins/torrent-stream.plugin/README.md) (requires Jackett)
 
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
@@ -52,6 +51,7 @@ docker run -it --init \
   --restart unless-stopped \
   -p 9494:9494 \
   -v /path/to/appdata/config:/config \
+  -v /path/to/appdata/plugins:/plugins \
   ghcr.io/aleksilassila/reiverr:latest
 ```
 
@@ -121,19 +121,20 @@ you can react to it with a thumbs up.
 
 The roadmap includes plans to support the following platforms in the future:
 
+- Android TV / WebOS
 - Windows Desktop App
 - MacOS Desktop App
-- Android TV / WebOS
 
 # Post Installation
 
 To create the first user account, you can log in with any credentials and an admin account will be created.
 Alternatively, you can define the admin username and password using environment variables,
 as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
-To get most out of Reiverr, it is recommended to connect to TMDB, Jellyfin, Radarr and Sonarr.
+To get access to media playback, connect to plugins by adding media sources in the settings.
+Additional plugins can be installed by dropping them in the `/plugins` folder.
+To get most out of Reiverr, it is recommended to also connect to TMDB.
 
-> Hint: Radarr & Sonarr API keys can be found under Settings > General in their respective web UIs.
-> Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+> Hint: Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
 
 # Contributing
 
@@ -184,6 +185,25 @@ To get started with development:
   [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
   - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is
     css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
+
+## Plugins
+
+If you'd like to develop your own plugin, easiest way to get started
+is by getting your hands dirty and checking how things are done in
+the built-in plugins. Couple of things to note:
+
+- Plugins have to implement (and default export) the `PluginProvider`
+  class that can be imported from the [](backend/packages/reiverr-plugin)
+  package.
+  - To install
+    [the github npm registry package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin), follow the steps outlined here:
+    [Working with the npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
+    (you'll need a .npmrc file)
+  - The built-in packages use npm workspaces, which doesn't work if
+    you're developing outisde of the repository
+- For a better understanding of the anatomy of a plugin, see the documentation
+  in the following file:
+  [reiverr-plugin/src/plugin.ts](backend/packages/reiverr-plugin/src/plugin.ts)
 
 ## Useful resources
 
