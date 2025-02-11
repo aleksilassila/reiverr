@@ -4,3 +4,7 @@ build
 .idea
 .env
 .DS_Store
+
+backend/plugins
+!backend/plugins/torrent-stream.plugin
+!backend/plugins/jellyfin.plugin

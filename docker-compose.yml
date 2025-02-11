@@ -9,4 +9,3 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend/config:/usr/src/app/config
-      - ./backend/plugins:/usr/src/app/plugins

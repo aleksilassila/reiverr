@@ -92,7 +92,7 @@
     "singleQuote": true
   },
   "workspaces": [
-    "plugins/reiverr-plugin",
+    "packages/reiverr-plugin",
     "plugins/jellyfin.plugin",
     "plugins/torrent-stream.plugin"
   ]

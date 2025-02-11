@@ -12,7 +12,18 @@ import {
   StreamCandidate,
 } from './types';
 
+/**
+ * PluginProvider is a class that provides a list of SourceProvider instances.
+ * This is so that you can provide multiple SourceProviders in a single plugin.
+ *
+ * The plugin should default export a class that extends PluginProvider.
+ *
+ * @see SourceProvider
+ */
 export class PluginProvider {
+  /**
+   * @returns {SourceProvider[]} A list of SourceProvider instances that the plugin provides.
+   */
   static getPlugins(): SourceProvider[] {
     return [];
   }
