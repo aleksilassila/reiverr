@@ -21,13 +21,35 @@ export type SourceProviderSettingsTemplate = Record<
   SourceProviderSettingsLink | SourceProviderSettingsInput
 >;
 
+/**
+ * UserContext is used to pass the user-specific configuration to the SourceProvider methods.
+ */
 export type UserContext = {
+  /**
+   * An id unique to each Reiverr user
+   */
   userId: string;
+
+  /**
+   * The access token of the user that can be used to authenticate requests to the backend
+   * (e.g. proxy requests)
+   */
   token: string;
+  /**
+   * The id of the MediaSource instance that the user is using to access the SourceProvider
+   */
   sourceId: string;
+
+  /**
+   * @see SourceProviderSettings
+   */
   settings: SourceProviderSettings;
 };
 
+/**
+ * The settings/configuration defined in the `SourceProvider` and
+ * provided by the user's MediaSource instance
+ */
 export type SourceProviderSettings = Record<string, any>;
 
 export type ValidationResponse = {
@@ -59,14 +81,44 @@ export type Subtitles = {
 };
 
 export type StreamProperty = {
+  /**
+   * The label of the property
+   * @example "Resolution"
+   */
   label: string;
+
+  /**
+   * Used for sorting and filtering, or displayed if `formatted` is not provided.
+   * @example 1080
+   */
   value: string | number;
+
+  /**
+   * The formatted value of the property
+   * @example "1080p"
+   */
   formatted: string | undefined;
 };
 
+/**
+ * `StreamCandidate` represents a stream that can be played by the user,
+ * and contains all the information that is presented to the user in the
+ * stream selection UI.
+ */
 export type StreamCandidate = {
+  /**
+   * Unique id for the stream, that can be used to later stream the specific stream.
+   */
   key: string;
+
+  /**
+   * Title of the stream, presented to the user.
+   */
   title: string;
+
+  /**
+   * A list of properties that are shown to the user in the stream selection UI.
+   */
   properties: StreamProperty[];
 };
 

@@ -20,13 +20,11 @@ import {
  *
  * @see SourceProvider
  */
-export class PluginProvider {
+export abstract class PluginProvider {
   /**
    * @returns {SourceProvider[]} A list of SourceProvider instances that the plugin provides.
    */
-  static getPlugins(): SourceProvider[] {
-    return [];
-  }
+  abstract getPlugins(): SourceProvider[];
 }
 
 export class SettingsManager {
@@ -41,21 +39,48 @@ export class SettingsManager {
   });
 }
 
+/**
+ * SourceProvider is a class that provides a set of methods to interact with a streaming source.
+ *
+ * Important distinction between SourceProvider and MediaSource:
+ * An user doesn't directly add a SourceProvider to their account, but instead users can configure
+ * `MediaSources`. MediaSource is essentially all the user-specific configuration that SourceProvider
+ * needs to function. This way different users can have different configurations for the same
+ * SourceProvider - for example, two users can use the same JellyfinPlugin (JellyfinSourceProvider)
+ * to access two different Jellyfin servers, because they access the provider with their own
+ * MediaSource instances.
+ *
+ * UserContext is used to pass the user-specific configuration to the SourceProvider methods.
+ *
+ * @see UserContext
+ * @see PluginProvider
+ */
 export abstract class SourceProvider {
   abstract name: string;
 
   settingsManager: SettingsManager = new SettingsManager();
 
+  /**
+   * Returns an index of all movies available in the source.
+   */
   getMovieCatalogue?: (
     context: UserContext,
     pagination: PaginationParams,
   ) => Promise<PaginatedResponse<IndexItem>>;
 
+  /**
+   * Returns an index of all episodes available in the source.
+   */
   getEpisodeCatalogue?: (
     context: UserContext,
     pagination: PaginationParams,
   ) => Promise<PaginatedResponse<IndexItem>>;
 
+  /**
+   * Returns a list of stream candidates for a movie that the user can choose to stream from.
+   *
+   * @see StreamCandidate
+   */
   getMovieStreams?: (
     tmdbId: string,
     metadata: MovieMetadata,
@@ -63,6 +88,11 @@ export abstract class SourceProvider {
     config?: PlaybackConfig,
   ) => Promise<{ candidates: StreamCandidate[] }>;
 
+  /**
+   * Returns a list of stream candidates for an episode that the user can choose to stream from.
+   *
+   * @see StreamCandidate
+   */
   getEpisodeStreams?: (
     tmdbId: string,
     metadata: EpisodeMetadata,
@@ -70,6 +100,11 @@ export abstract class SourceProvider {
     config?: PlaybackConfig,
   ) => Promise<{ candidates: StreamCandidate[] }>;
 
+  /**
+   * Returns a specific stream for a movie that the user can stream from.
+   *
+   * @see Stream
+   */
   getMovieStream?: (
     tmdbId: string,
     metadata: MovieMetadata,
@@ -78,6 +113,11 @@ export abstract class SourceProvider {
     config?: PlaybackConfig,
   ) => Promise<Stream | undefined>;
 
+  /**
+   * Returns a specific stream for an episode that the user can stream from.
+   *
+   * @see Stream
+   */
   getEpisodeStream?: (
     tmdbId: string,
     metadata: EpisodeMetadata,
@@ -86,6 +126,14 @@ export abstract class SourceProvider {
     config?: PlaybackConfig,
   ) => Promise<Stream | undefined>;
 
+  /**
+   * This method will be called when the client makes a request to the provider's
+   * proxy endpoint (e.g. /api/proxy/:providerName/:path). This can be used to
+   * relay video streams and subtitles to the client, by making a request to an
+   * external service and then returning the response to the client. Ideally,
+   * the stream url pointed to by a `Stream` object should use the proxy endpoint
+   * so that the plugin can handle the video requests here.
+   */
   proxyHandler?: (
     req: any,
     res: any,

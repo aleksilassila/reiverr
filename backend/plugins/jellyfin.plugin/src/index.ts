@@ -31,7 +31,7 @@ import {
 } from './utils';
 
 export default class JellyfinPluginProvider extends PluginProvider {
-  static getPlugins(): SourceProvider[] {
+  getPlugins(): SourceProvider[] {
     return [new JellyfinProvider()];
   }
 }

@@ -57,10 +57,7 @@ type MediaSourceConnection = {
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {
-  constructor(
-    private mediaSourcesService: MediaSourcesService,
-    private sourceProvidersService: SourceProvidersService,
-  ) {}
+  constructor(private mediaSourcesService: MediaSourcesService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

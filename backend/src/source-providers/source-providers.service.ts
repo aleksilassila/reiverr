@@ -42,7 +42,7 @@ export class SourceProvidersService {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const pluginModule = require(pluginPath);
-        const provider: typeof PluginProvider = pluginModule.default;
+        const provider: PluginProvider = new pluginModule.default();
         provider.getPlugins().forEach((plugin) => {
           plugins[plugin.name] = plugin;
         });

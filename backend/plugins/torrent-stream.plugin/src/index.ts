@@ -26,7 +26,7 @@ import {
 } from './utils';
 
 export default class TorrentPluginsProvider extends PluginProvider {
-  static getPlugins(): SourceProvider[] {
+  getPlugins(): SourceProvider[] {
     return [new TorrentProvider()];
   }
 }

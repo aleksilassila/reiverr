@@ -130,6 +130,7 @@ The roadmap includes plans to support the following platforms in the future:
 To create the first user account, you can log in with any credentials and an admin account will be created.
 Alternatively, you can define the admin username and password using environment variables,
 as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
+
 To get access to media playback, connect to plugins by adding media sources in the settings.
 Additional plugins can be installed by dropping them in the `/plugins` folder.
 To get most out of Reiverr, it is recommended to also connect to TMDB.
@@ -195,9 +196,9 @@ the built-in plugins. Couple of things to note:
 - Plugins have to implement (and default export) the `PluginProvider`
   class that can be imported from the [](backend/packages/reiverr-plugin)
   package.
-  - To install
-    [the github npm registry package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin), follow the steps outlined here:
-    [Working with the npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
+  - To install the
+    [reiverr-plugin package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin) from Github's npm registry, follow the steps outlined here:
+    [Working with the Github npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
     (you'll need a .npmrc file)
   - The built-in packages use npm workspaces, which doesn't work if
     you're developing outisde of the repository
@@ -209,8 +210,6 @@ the built-in plugins. Couple of things to note:
 
 - https://developer.themoviedb.org/reference
 - https://api.jellyfin.org/
-- https://sonarr.tv/docs/api/
-- https://radarr.video/docs/api/
 - https://github.com/jellyfin/jellyfin-web
 - Network tab in the browser in Jellyfin, Radarr & Sonarr web UIs
 
