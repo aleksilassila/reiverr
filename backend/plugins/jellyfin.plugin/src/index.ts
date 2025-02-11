@@ -39,8 +39,8 @@ export default class JellyfinPluginProvider extends PluginProvider {
 class JellyfinProvider extends SourceProvider {
   name: string = 'jellyfin';
 
-  private get proxyUrl() {
-    return `/api/sources/${this.name}/proxy`;
+  private getProxyUrl(sourceId: string) {
+    return `/api/sources/${sourceId}/proxy`;
   }
 
   settingsManager: SettingsManager = new JellyfinSettingsManager();
@@ -177,7 +177,7 @@ class JellyfinProvider extends SourceProvider {
     const mediasSource = playbackInfo.data?.MediaSources?.[0];
 
     const playbackUri =
-      this.proxyUrl +
+      this.getProxyUrl(userContext.sourceId) +
       (mediasSource?.TranscodingUrl ||
         `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
       `&reiverr_token=${userContext.token}`;
@@ -209,7 +209,8 @@ class JellyfinProvider extends SourceProvider {
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
       src:
-        this.proxyUrl + `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
+        this.getProxyUrl(userContext.sourceId) +
+        `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
       lang: s.Language,
       kind: 'subtitles',
       label: s.DisplayTitle,
@@ -335,7 +336,7 @@ class JellyfinProvider extends SourceProvider {
     const mediasSource = playbackInfo.data?.MediaSources?.[0];
 
     const playbackUri =
-      this.proxyUrl +
+      this.getProxyUrl(userContext.sourceId) +
       (mediasSource?.TranscodingUrl ||
         `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${context.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
       `&reiverr_token=${userContext.token}`;
@@ -367,7 +368,8 @@ class JellyfinProvider extends SourceProvider {
       (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
       src:
-        this.proxyUrl + `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
+        this.getProxyUrl(userContext.sourceId) +
+        `${s.DeliveryUrl}&reiverr_token=${userContext.token}`,
       lang: s.Language,
       kind: 'subtitles',
       label: s.DisplayTitle,

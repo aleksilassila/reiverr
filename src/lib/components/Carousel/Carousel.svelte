@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconButton from '../IconButton.svelte';
+	import IconButton from '../FloatingIconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
@@ -26,7 +26,7 @@
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		<div class="header2">
+		<div class="h3">
 			<slot name="header" />
 		</div>
 		<div

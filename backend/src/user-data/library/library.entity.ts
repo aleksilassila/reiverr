@@ -1,18 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MediaType } from 'src/common/common.dto';
+import { User } from 'src/users/user.entity';
 import {
   Column,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { User } from '../user.entity';
 import { PlayState } from '../play-state/play-state.entity';
-import { MediaType } from 'src/common/common.dto';
 
 @Entity()
 @Unique(['tmdbId', 'userId'])

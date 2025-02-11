@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto, UpdateUserDto } from './user.dto';
 import { USER_REPOSITORY } from './user.providers';
-import { SourcePluginsService } from 'src/source-plugins/source-plugins.service';
+import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 
 export enum UserServiceError {
   PasswordMismatch = 'PasswordMismatch',
@@ -16,8 +16,8 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
-    @Inject(forwardRef(() => SourcePluginsService))
-    private readonly sourcePluginsService: SourcePluginsService,
+    @Inject(forwardRef(() => SourceProvidersService))
+    private readonly sourceProvidersService: SourceProvidersService,
   ) {}
 
   // Finds
@@ -143,12 +143,12 @@ export class UsersService {
   }
 
   private async filterMediaSources(user: User): Promise<User> {
-    const mediaSources = await this.sourcePluginsService.getPlugins();
+    const providers = await this.sourceProvidersService.getProviders();
 
     return {
       ...user,
       mediaSources: user.mediaSources.filter(
-        (source) => !!mediaSources[source.id],
+        (source) => !!providers[source.pluginId],
       ),
     };
   }

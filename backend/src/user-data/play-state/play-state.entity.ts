@@ -9,10 +9,9 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from '../user.entity';
 import { LibraryItem } from '../library/library.entity';
-import { UserDto } from '../user.dto';
 import { MediaType } from 'src/common/common.dto';
+import { User } from 'src/users/user.entity';
 
 @Entity()
 @Unique(['tmdbId', 'userId', 'season', 'episode'])

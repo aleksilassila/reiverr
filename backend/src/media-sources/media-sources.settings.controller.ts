@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
   InternalServerErrorException,
   NotFoundException,
   Param,
@@ -11,32 +10,31 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserAccessControl, GetAuthUser } from 'src/auth/auth.guard';
-import { UsersService } from '../users.service';
-import { User } from '../user.entity';
-import { UserDto } from '../user.dto';
-import { CreateSourceDto } from './user-source.dto';
+import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
+import { UserDto } from 'src/users/user.dto';
+import { User } from 'src/users/user.entity';
+import { UsersService } from 'src/users/users.service';
+import { UpdateOrCreateMediaSourceDto } from './media-source.dto';
 import {
-  UserSourcesService,
-  UserSourcesServiceError,
-} from './user-sources.service';
+  MediaSourcesService,
+  MediaSourcesServiceError,
+} from './media-sources.service';
 
 @ApiTags('users')
 @Controller('users/:userId/sources')
 @UseGuards(UserAccessControl)
-export class UserSourcesController {
+export class MediaSourcesSettingsController {
   constructor(
     private usersService: UsersService,
-    private userSourcesService: UserSourcesService,
+    private mediaSourcesService: MediaSourcesService,
   ) {}
 
-  @Put(':sourceId')
+  @Put()
   @ApiOkResponse({ description: 'Source updated', type: UserDto })
   async updateSource(
     @GetAuthUser() callerUser: User,
-    @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
-    @Body() sourceDto: CreateSourceDto,
+    @Body() sourceDto: UpdateOrCreateMediaSourceDto,
   ): Promise<UserDto> {
     const user = await this.usersService.findOne(userId);
 
@@ -44,10 +42,10 @@ export class UserSourcesController {
       throw new NotFoundException('User not found');
     }
 
-    const updatedUser = await this.userSourcesService
-      .updateUserSource(user, sourceId, sourceDto, callerUser)
+    const updatedUser = await this.mediaSourcesService
+      .updateOrCreateMediaSource(user, sourceDto, callerUser)
       .catch((e) => {
-        if (e === UserSourcesServiceError.Unauthorized) {
+        if (e === MediaSourcesServiceError.Unauthorized) {
           throw new UnauthorizedException();
         } else {
           throw new InternalServerErrorException('Failed to update source');
@@ -68,8 +66,7 @@ export class UserSourcesController {
     @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
   ): Promise<UserDto> {
-    const updatedUser = await this.userSourcesService.deleteUserSource(
-      userId,
+    const updatedUser = await this.mediaSourcesService.deleteMediaSource(
       sourceId,
       callerUser,
     );

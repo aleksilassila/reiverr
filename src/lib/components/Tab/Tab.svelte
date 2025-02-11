@@ -8,6 +8,7 @@
 	export let index: number = tab;
 	export let openTab: Writable<number>;
 	export let size: 'hug' | 'stretch' = 'hug';
+	export let direction: 'horizontal' | 'vertical' = 'horizontal';
 
 	let selectable: Selectable;
 
@@ -46,11 +47,22 @@
 	disabled={!active}
 >
 	<div
-		class={classNames($$restProps.class, 'transition-[transform,opacity]', {
-			'opacity-0 pointer-events-none': !active,
-			'-translate-x-10': !active && $openTab >= index,
-			'translate-x-10': !active && $openTab < index
-		})}
+		class={classNames(
+			$$restProps.class,
+			'transition-[transform,opacity]',
+			{
+				'opacity-0 pointer-events-none': !active
+			},
+			direction === 'horizontal'
+				? {
+						'-translate-x-10': !active && $openTab >= index,
+						'translate-x-10': !active && $openTab < index
+				  }
+				: {
+						'-translate-y-10': !active && $openTab >= index,
+						'translate-y-10': !active && $openTab < index
+				  }
+		)}
 	>
 		<slot />
 	</div>

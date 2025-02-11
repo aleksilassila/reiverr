@@ -1,18 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import {
-  GetAuthUser,
-  OptionalAccessControl,
-  UserAccessControl,
-} from 'src/auth/auth.guard';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-} from 'src/common/common.decorator';
-import { PaginationParamsDto } from 'src/common/common.dto';
-import { LibraryService } from 'src/users/library/library.service';
-import { User } from 'src/users/user.entity';
-import { MovieDto } from './metadata.dto';
+import { Controller } from '@nestjs/common';
 import { MetadataService } from './metadata.service';
 
 // @UseGuards(OptionalAccessControl)

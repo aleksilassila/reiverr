@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
 	import HeroShowcaseBackground from './HeroBackground.svelte';
-	import IconButton from '../IconButton.svelte';
+	import IconButton from '../FloatingIconButton.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
 	import type { Readable, Writable } from 'svelte/store';

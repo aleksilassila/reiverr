@@ -10,7 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from 'src/auth/auth.guard';
-import { LibraryService } from './library.service';
+import {
+  GetPaginationParams,
+  PaginatedApiOkResponse,
+} from 'src/common/common.decorator';
 import {
   MediaType,
   PaginatedResponseDto,
@@ -18,22 +21,13 @@ import {
   SuccessResponseDto,
 } from 'src/common/common.dto';
 import { LibraryItemDto } from './library.dto';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-} from 'src/common/common.decorator';
-import { UsersService } from '../users.service';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { PlayStateService } from '../play-state/play-state.service';
+import { LibraryService } from './library.service';
 
 @ApiTags('users')
 @Controller('users/:userId/library')
 @UseGuards(UserAccessControl)
 export class LibraryController {
-  constructor(
-    private userService: UsersService,
-    private libraryService: LibraryService,
-  ) {}
+  constructor(private libraryService: LibraryService) {}
 
   @Get()
   @PaginatedApiOkResponse(LibraryItemDto)

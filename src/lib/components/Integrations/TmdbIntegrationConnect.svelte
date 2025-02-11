@@ -51,7 +51,7 @@
 	}
 </script>
 
-<h1 class="header2 mb-2">Connect a TMDB Account</h1>
+<h1 class="h3 mb-2">Connect a TMDB Account</h1>
 <div class="body mb-8">
 	To connect your TMDB account, log in via the link below and then click "Complete Connection".
 </div>

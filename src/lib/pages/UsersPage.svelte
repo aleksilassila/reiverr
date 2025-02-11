@@ -37,7 +37,7 @@
 <DetachedPage sidebar={false} class="px-32 py-16 h-full flex flex-col items-center justify-center">
 	{#await users then users}
 		{#if users?.length}
-			<h1 class="header4 mb-16">Who is watching?</h1>
+			<h1 class="h1 mb-16">Who is watching?</h1>
 			<Container direction="grid" gridCols={4} class="flex space-x-8 mb-16">
 				{#each users as item}
 					{@const user = item.user}
@@ -47,9 +47,7 @@
 							url={user?.profilePicture || profilePictures.keanu}
 							on:clickOrSelect={() => user && handleSwitchUser(item)}
 						/>
-						<div
-							class={classNames('text-center header1', { '!text-secondary-100': hasFocusWithin })}
-						>
+						<div class={classNames('text-center h4', { '!text-secondary-100': hasFocusWithin })}>
 							{user?.name}
 						</div>
 					</Container>

@@ -198,7 +198,7 @@
 					<div class="text-secondary-300 font-medium text-wider text-xl mb-1 tracking-wide">
 						{subtitle}
 					</div>
-					<h1 class="header4">{title}</h1>
+					<h1 class="h1">{title}</h1>
 				</div>
 				<div class="flex space-x-2">
 					{#if subtitleInfo?.availableSubtitles?.length}

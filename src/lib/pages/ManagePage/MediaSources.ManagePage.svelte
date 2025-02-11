@@ -8,22 +8,18 @@
 	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 	import { get } from 'svelte/store';
 	import { createErrorNotification } from '../../components/Notifications/notification.store';
-	import PluginButton from './PluginButton.ManagePage.svelte';
+	import MediaSourceButton from './MediaSourceButton.ManagePage.svelte';
 
-	const availableSources = [];
-	const allPlugins = reiverrApiNew.sources.getSourcePlugins().then((r) => r.data);
-	let enabledPlugins = getEnabledPlugins();
-	$: availablePlugins = Promise.all([allPlugins, enabledPlugins]).then(
-		([allPlugins, enabledPlugins]) => allPlugins.filter((p) => !enabledPlugins.includes(p))
-	);
+	const allPlugins = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
+	let userSources = getUserMediaSources();
 
-	function getEnabledPlugins() {
+	function getUserMediaSources() {
 		return reiverrApiNew.users
 			.findUserById($user?.id || '')
-			.then((r) => r.data.mediaSources?.map((source) => source.id) || []);
+			.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? []);
 	}
 
-	async function addSource(sourceId: string) {
+	async function addSource(pluginId: string) {
 		const userId = get(user)?.id;
 
 		if (!userId) {
@@ -31,27 +27,27 @@
 			return;
 		}
 
-		await reiverrApiNew.users.updateSource(sourceId, userId, { enabled: false });
-		enabledPlugins = getEnabledPlugins();
+		await reiverrApiNew.users.updateSource(userId, { pluginId, enabled: false });
+		userSources = getUserMediaSources();
 	}
 </script>
 
 <div>
 	<div class="mb-8">
-		<h1 class="header2 mb-1">Media Soruces</h1>
+		<h1 class="h3 mb-1">Media Soruces</h1>
 		<p class="body">
 			External media soruces allow reiverr to play content from different sources. Additional media
 			sources can be added via external plugins.
 		</p>
 	</div>
-	<Container class="flex gap-4 mb-4">
-		{#await enabledPlugins then enabledPlugins}
-			{#each enabledPlugins as plugin}
-				<PluginButton {plugin} />
+	<Container class="flex flex-col gap-4 mb-4 max-w-sm">
+		{#await userSources then userSources}
+			{#each userSources as source}
+				<MediaSourceButton mediaSource={source} />
 			{/each}
 		{/await}
 	</Container>
-	{#await availablePlugins then availablePlugins}
+	{#await allPlugins then availablePlugins}
 		<Button
 			icon={Plus}
 			disabled={!availablePlugins.length}
@@ -59,7 +55,8 @@
 				createModal(SelectDialog, {
 					options: availablePlugins,
 					handleSelectOption: addSource,
-					title: 'Add Media Sources'
+					title: 'Add Media Source',
+					subtitle: 'Select a source provider'
 				})}
 		>
 			Add Source

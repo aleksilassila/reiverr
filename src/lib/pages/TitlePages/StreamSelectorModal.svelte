@@ -51,7 +51,7 @@
 							'text-primary-100': hasFocus
 						})}
 					>
-						{capitalize(source.id)}
+						{capitalize(source.name)}
 						{#if hasFocus}
 							<ChevronRight class="w-8 h-8 ml-4" />
 						{/if}

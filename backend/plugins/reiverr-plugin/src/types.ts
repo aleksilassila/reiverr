@@ -24,6 +24,7 @@ export type SourceProviderSettingsTemplate = Record<
 export type UserContext = {
   userId: string;
   token: string;
+  sourceId: string;
   settings: SourceProviderSettings;
 };
 

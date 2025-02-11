@@ -47,6 +47,8 @@ export interface Settings {
 
 export interface MediaSource {
 	id: string;
+	pluginId: string;
+	name: string;
 	userId: string;
 	user: string;
 	/** @default false */
@@ -54,6 +56,7 @@ export interface MediaSource {
 	/** @default false */
 	adminControlled?: boolean;
 	pluginSettings?: object;
+	priority: number;
 }
 
 export interface PlayState {
@@ -149,99 +152,10 @@ export interface SeriesUserDataDto {
 	playStates: PlayStateDto[];
 }
 
-export interface CreateSourceDto {
-	pluginSettings?: object;
-	/** @default false */
-	enabled?: boolean;
-	/** @default false */
-	adminControlled?: boolean;
-}
-
 export interface PaginatedResponseDto {
 	total: number;
 	page: number;
 	itemsPerPage: number;
-}
-
-export interface MovieDto {
-	id?: string;
-	tmdbId: string;
-	tmdbMovie?: object;
-}
-
-export interface Series {
-	id?: string;
-	tmdbId: string;
-	tmdbSeries?: object;
-}
-
-export interface LibraryItemDto {
-	tmdbId: string;
-	mediaType: 'Movie' | 'Series' | 'Episode';
-	playStates?: PlayStateDto[];
-	movieMetadata?: MovieDto;
-	seriesMetadata?: Series;
-}
-
-export interface SuccessResponseDto {
-	success: boolean;
-}
-
-export interface UpdatePlayStateDto {
-	id?: string;
-	tmdbId?: number;
-	mediaType?: 'Movie' | 'Series' | 'Episode';
-	season?: number;
-	episode?: number;
-	/**
-	 * Whether the user has watched this media
-	 * @default false
-	 */
-	watched?: boolean;
-	/**
-	 * A number between 0 and 1
-	 * @default false
-	 * @example 0.5
-	 */
-	progress?: number;
-	/** Last time the user played this media */
-	lastPlayedAt?: string;
-}
-
-export interface SignInDto {
-	name: string;
-	password: string;
-}
-
-export interface SignInResponse {
-	accessToken: string;
-	user: UserDto;
-}
-
-export interface PluginSettingsTemplateDto {
-	/** @example {"setting1":"string","setting2":{"type":"link","url":"https://example.com"}} */
-	settings: Record<string, any>;
-}
-
-export interface PluginSettingsDto {
-	/** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
-	settings: Record<string, any>;
-}
-
-export interface ValidationResponseDto {
-	/** @example true */
-	isValid: boolean;
-	/** @example {"setting1":"error message","setting2":"another error message"} */
-	errors: Record<string, string>;
-	/** @example {"setting1":"new value","setting2":"another new value"} */
-	replace: Record<string, any>;
-}
-
-export interface SourceProviderCapabilitiesDto {
-	moviePlayback: boolean;
-	episodePlayback: boolean;
-	movieIndexing: boolean;
-	episodeIndexing: boolean;
 }
 
 export interface IndexItemDto {
@@ -511,6 +425,99 @@ export interface StreamDto {
 	qualities: QualityDto[];
 	qualityIndex: number;
 	subtitles: SubtitlesDto[];
+}
+
+export interface UpdateOrCreateMediaSourceDto {
+	pluginId: string;
+	pluginSettings?: object;
+	id?: string;
+	name?: string;
+	/** @default false */
+	enabled?: boolean;
+	/** @default false */
+	adminControlled?: boolean;
+	priority?: number;
+}
+
+export interface MovieDto {
+	id?: string;
+	tmdbId: string;
+	tmdbMovie?: object;
+}
+
+export interface Series {
+	id?: string;
+	tmdbId: string;
+	tmdbSeries?: object;
+}
+
+export interface LibraryItemDto {
+	tmdbId: string;
+	mediaType: 'Movie' | 'Series' | 'Episode';
+	playStates?: PlayStateDto[];
+	movieMetadata?: MovieDto;
+	seriesMetadata?: Series;
+}
+
+export interface SuccessResponseDto {
+	success: boolean;
+}
+
+export interface UpdatePlayStateDto {
+	id?: string;
+	tmdbId?: number;
+	mediaType?: 'Movie' | 'Series' | 'Episode';
+	season?: number;
+	episode?: number;
+	/**
+	 * Whether the user has watched this media
+	 * @default false
+	 */
+	watched?: boolean;
+	/**
+	 * A number between 0 and 1
+	 * @default false
+	 * @example 0.5
+	 */
+	progress?: number;
+	/** Last time the user played this media */
+	lastPlayedAt?: string;
+}
+
+export interface SignInDto {
+	name: string;
+	password: string;
+}
+
+export interface SignInResponse {
+	accessToken: string;
+	user: UserDto;
+}
+
+export interface PluginSettingsTemplateDto {
+	/** @example {"setting1":"string","setting2":{"type":"link","url":"https://example.com"}} */
+	settings: Record<string, any>;
+}
+
+export interface PluginSettingsDto {
+	/** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
+	settings: Record<string, any>;
+}
+
+export interface ValidationResponseDto {
+	/** @example true */
+	isValid: boolean;
+	/** @example {"setting1":"error message","setting2":"another error message"} */
+	errors: Record<string, string>;
+	/** @example {"setting1":"new value","setting2":"another new value"} */
+	replace: Record<string, any>;
+}
+
+export interface SourceProviderCapabilitiesDto {
+	moviePlayback: boolean;
+	episodePlayback: boolean;
+	movieIndexing: boolean;
+	episodeIndexing: boolean;
 }
 
 import type {
@@ -854,16 +861,15 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags users
 		 * @name UpdateSource
-		 * @request PUT:/api/users/{userId}/sources/{sourceId}
+		 * @request PUT:/api/users/{userId}/sources
 		 */
 		updateSource: (
-			sourceId: string,
 			userId: string,
-			data: CreateSourceDto,
+			data: UpdateOrCreateMediaSourceDto,
 			params: RequestParams = {}
 		) =>
 			this.request<UserDto, any>({
-				path: `/api/users/${userId}/sources/${sourceId}`,
+				path: `/api/users/${userId}/sources`,
 				method: 'PUT',
 				body: data,
 				type: ContentType.Json,
@@ -1022,217 +1028,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				...params
 			})
 	};
-	api = {
-		/**
-		 * No description
-		 *
-		 * @name SignIn
-		 * @request POST:/api/auth
-		 */
-		signIn: (data: SignInDto, params: RequestParams = {}) =>
-			this.request<
-				SignInResponse,
-				{
-					/** @example 401 */
-					statusCode: number;
-					/** @example "Unauthorized" */
-					message: string;
-					/** @example "Unauthorized" */
-					error?: string;
-				}
-			>({
-				path: `/api/auth`,
-				method: 'POST',
-				body: data,
-				type: ContentType.Json,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name GetHello
-		 * @request GET:/api
-		 */
-		getHello: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api`,
-				method: 'GET',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyGet
-		 * @request GET:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyGet: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'GET',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyPost
-		 * @request POST:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyPost: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'POST',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyPut
-		 * @request PUT:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyPut: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'PUT',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyDelete
-		 * @request DELETE:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyDelete: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'DELETE',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyPatch
-		 * @request PATCH:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyPatch: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'PATCH',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyOptions
-		 * @request OPTIONS:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyOptions: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'OPTIONS',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxyHead
-		 * @request HEAD:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxyHead: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'HEAD',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @name TmdbProxySearch
-		 * @request SEARCH:/api/tmdb/v3/proxy/*
-		 */
-		tmdbProxySearch: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api/tmdb/v3/proxy/*`,
-				method: 'SEARCH',
-				...params
-			})
-	};
 	sources = {
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourcePlugins
-		 * @request GET:/api/sources
-		 */
-		getSourcePlugins: (params: RequestParams = {}) =>
-			this.request<string[], any>({
-				path: `/api/sources`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourceSettingsTemplate
-		 * @request GET:/api/sources/{sourceId}/settings/template
-		 */
-		getSourceSettingsTemplate: (sourceId: string, params: RequestParams = {}) =>
-			this.request<PluginSettingsTemplateDto, any>({
-				path: `/api/sources/${sourceId}/settings/template`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name ValidateSourceSettings
-		 * @request POST:/api/sources/{sourceId}/settings/validate
-		 */
-		validateSourceSettings: (
-			sourceId: string,
-			data: PluginSettingsDto,
-			params: RequestParams = {}
-		) =>
-			this.request<ValidationResponseDto, any>({
-				path: `/api/sources/${sourceId}/settings/validate`,
-				method: 'POST',
-				body: data,
-				type: ContentType.Json,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetSourceCapabilities
-		 * @request GET:/api/sources/{sourceId}/capabilities
-		 */
-		getSourceCapabilities: (sourceId: string, params: RequestParams = {}) =>
-			this.request<SourceProviderCapabilitiesDto, any>({
-				path: `/api/sources/${sourceId}/capabilities`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
 		/**
 		 * No description
 		 *
@@ -1594,6 +1390,217 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			this.request<void, any>({
 				path: `/api/sources/${sourceId}/proxy/*`,
 				method: 'SEARCH',
+				...params
+			})
+	};
+	api = {
+		/**
+		 * No description
+		 *
+		 * @name SignIn
+		 * @request POST:/api/auth
+		 */
+		signIn: (data: SignInDto, params: RequestParams = {}) =>
+			this.request<
+				SignInResponse,
+				{
+					/** @example 401 */
+					statusCode: number;
+					/** @example "Unauthorized" */
+					message: string;
+					/** @example "Unauthorized" */
+					error?: string;
+				}
+			>({
+				path: `/api/auth`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name GetHello
+		 * @request GET:/api
+		 */
+		getHello: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api`,
+				method: 'GET',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyGet
+		 * @request GET:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyGet: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'GET',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyPost
+		 * @request POST:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyPost: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'POST',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyPut
+		 * @request PUT:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyPut: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'PUT',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyDelete
+		 * @request DELETE:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyDelete: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'DELETE',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyPatch
+		 * @request PATCH:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyPatch: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'PATCH',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyOptions
+		 * @request OPTIONS:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyOptions: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'OPTIONS',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxyHead
+		 * @request HEAD:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxyHead: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'HEAD',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name TmdbProxySearch
+		 * @request SEARCH:/api/tmdb/v3/proxy/*
+		 */
+		tmdbProxySearch: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/tmdb/v3/proxy/*`,
+				method: 'SEARCH',
+				...params
+			})
+	};
+	providers = {
+		/**
+		 * No description
+		 *
+		 * @tags providers
+		 * @name GetSourceProviders
+		 * @request GET:/api/providers
+		 */
+		getSourceProviders: (params: RequestParams = {}) =>
+			this.request<string[], any>({
+				path: `/api/providers`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags providers
+		 * @name GetSourceSettingsTemplate
+		 * @request GET:/api/providers/{providerId}/settings/template
+		 */
+		getSourceSettingsTemplate: (providerId: string, params: RequestParams = {}) =>
+			this.request<PluginSettingsTemplateDto, any>({
+				path: `/api/providers/${providerId}/settings/template`,
+				method: 'GET',
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags providers
+		 * @name ValidateSourceSettings
+		 * @request POST:/api/providers/{providerId}/settings/validate
+		 */
+		validateSourceSettings: (
+			providerId: string,
+			data: PluginSettingsDto,
+			params: RequestParams = {}
+		) =>
+			this.request<ValidationResponseDto, any>({
+				path: `/api/providers/${providerId}/settings/validate`,
+				method: 'POST',
+				body: data,
+				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags providers
+		 * @name GetSourceCapabilities
+		 * @request GET:/api/providers/{providerId}/capabilities
+		 */
+		getSourceCapabilities: (providerId: string, params: RequestParams = {}) =>
+			this.request<SourceProviderCapabilitiesDto, any>({
+				path: `/api/providers/${providerId}/capabilities`,
+				method: 'GET',
+				format: 'json',
 				...params
 			})
 	};

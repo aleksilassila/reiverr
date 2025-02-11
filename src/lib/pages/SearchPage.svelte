@@ -40,7 +40,7 @@
 <DetachedPage class="px-32 py-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
-		class={classNames('header2 pb-3 border-b-2 w-full mb-4', {
+		class={classNames('h3 pb-3 border-b-2 w-full mb-4', {
 			'border-secondary-700': true
 			// 'border-secondary-700': !$inputFocused,
 			// 'border-secondary-400': $inputFocused

@@ -1,13 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PluginSettings } from 'plugins/plugin-types';
+import { SourceProviderSettings } from '@aleksilassila/reiverr-plugin';
 import { User } from 'src/users/user.entity';
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class MediaSource {
   @ApiProperty({ required: true, type: 'string' })
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ApiProperty({ required: true, type: 'string' })
+  @Column()
+  pluginId: string;
+
+  @ApiProperty()
+  @Column()
+  name: string;
 
   @ApiProperty({ required: true, type: 'string' })
   @PrimaryColumn()
@@ -28,6 +43,9 @@ export class MediaSource {
 
   @ApiProperty({ required: false, type: 'object' })
   @Column('json', { default: '{}' })
-  pluginSettings: PluginSettings = {};
-  // Add other fields as necessary
+  pluginSettings: SourceProviderSettings = {};
+
+  @ApiProperty()
+  @Column({ default: 0 })
+  priority: number = 0;
 }

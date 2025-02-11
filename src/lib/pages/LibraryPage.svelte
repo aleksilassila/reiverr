@@ -102,7 +102,7 @@
 	{/await} -->
 	<!-- <div class="px-32">
 		<div class="mb-6">
-			<div class="header2">Library</div>
+			<div class="h3">Library</div>
 		</div>
 		<CardGrid>
 			{#await libraryItemsP}
@@ -121,7 +121,7 @@
 	</div> -->
 	<!-- <div class="px-32">
 		<div class="mb-6">
-			<div class="header2">Available for streaming</div>
+			<div class="h3">Available for streaming</div>
 		</div>
 		<CardGrid>
 			{#each availableTmdbItems as item}
@@ -132,7 +132,7 @@
 	{#await $libraryItems then items}
 		<div class="px-32">
 			<div class="mb-6">
-				<div class="header2">My Library</div>
+				<div class="h3">My Library</div>
 			</div>
 			<CardGrid>
 				<!-- {#await libraryItemsP}

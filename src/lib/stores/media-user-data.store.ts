@@ -1,4 +1,3 @@
-import type { TmdbSeries2 } from '$lib/apis/tmdb/tmdb-api';
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
@@ -11,15 +10,14 @@ import type {
 	StreamCandidateDto
 } from '../apis/reiverr/reiverr.openapi';
 import type { MediaType } from '../types';
-import { reiverrApiNew, sources, user } from './user.store';
 import {
 	episodeUserDataStore,
 	libraryItemsDataStore,
 	movieUserDataStore,
 	seriesUserDataStore,
-	tmdbMovieDataStore,
 	tmdbSeriesDataStore
 } from './data.store';
+import { reiverrApiNew, sources, user } from './user.store';
 
 export type EpisodeData = {
 	season: number;

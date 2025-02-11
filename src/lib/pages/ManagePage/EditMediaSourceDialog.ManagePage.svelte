@@ -1,38 +1,47 @@
 <script lang="ts">
-	import { get, writable } from 'svelte/store';
 	import Container from '$components/Container.svelte';
+	import type { ValidationResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { Pencil1, Trash } from 'radix-icons-svelte';
+	import { get, writable } from 'svelte/store';
 	import Button from '../../components/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';
 	import { modalStack } from '../../components/Modal/modal.store';
 	import TextField from '../../components/TextField.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { reiverrApiNew, user } from '../../stores/user.store';
-	import { capitalize } from '../../utils';
-	import type { ValidationResponsekDto } from '../../apis/reiverr/reiverr.openapi';
-	import { Trash } from 'radix-icons-svelte';
-
-	export let plugin: string;
 
 	export let modalId: symbol;
 
+	export let sourceId: string;
+
+	const name = writable('');
+	const priority = writable<number | undefined>(undefined);
 	const settings = writable<Record<string, any>>({});
 
-	const pluginSettingsTemplate = reiverrApiNew.sources
-		.getSourceSettingsTemplate(plugin)
-		.then((r) => r.data);
-
-	const previousSettingsP = reiverrApiNew.users
+	const mediaSource = reiverrApiNew.users
 		.findUserById(get(user)?.id || '')
-		.then((r) => r.data)
-		.then((user) => user.mediaSources?.find((s) => s.id === plugin)?.pluginSettings)
-		.then((previousSettings) => settings.set(previousSettings || {}));
+		.then((r) => r.data.mediaSources?.find((s) => s.id === sourceId)!);
 
-	let validationResponse: ValidationResponsekDto | undefined;
+	mediaSource.then((source) => {
+		if (!source) throw new Error('Media source not found');
+		const previousSettings = source.pluginSettings;
+		settings.set(previousSettings || {});
+		name.set(source.name ?? source.pluginId);
+		priority.set(source.priority);
+		sourceId = source.id;
+	});
+
+	const pluginSettingsTemplate = mediaSource.then((source) =>
+		reiverrApiNew.providers.getSourceSettingsTemplate(source.pluginId).then((r) => r.data)
+	);
+
+	let validationResponse: ValidationResponseDto | undefined;
 
 	async function handleSave() {
 		// validationResponse = undefined;
-		validationResponse = await reiverrApiNew.sources
-			.validateSourceSettings(plugin, { settings: $settings })
+		const source = await mediaSource;
+		validationResponse = await reiverrApiNew.providers
+			.validateSourceSettings(source.pluginId, { settings: $settings })
 			.then((r) => r.data);
 
 		if (validationResponse?.isValid) {
@@ -42,7 +51,10 @@
 			Object.keys(validationResponse?.replace).forEach((key) => {
 				replacedSettings[key] = validationResponse?.replace[key];
 			});
-			await reiverrApiNew.users.updateSource(plugin, get(user)?.id || '', {
+			await reiverrApiNew.users.updateSource(get(user)?.id || '', {
+				id: sourceId,
+				name: $name,
+				pluginId: source.pluginId,
 				pluginSettings: replacedSettings,
 				enabled: true
 			});
@@ -51,17 +63,24 @@
 	}
 
 	async function handleRemovePlugin() {
-		await reiverrApiNew.users.deleteSource(plugin, get(user)?.id || '');
+		await mediaSource.then((s) => reiverrApiNew.users.deleteSource(s.id, get(user)?.id || ''));
 		await user.refreshUser();
 		modalStack.close(modalId);
 	}
 </script>
 
 <Dialog>
-	<h1 class="header2">{capitalize(plugin)}</h1>
-	<p class="body mb-8">Edit media source settings</p>
-	{#await Promise.all([pluginSettingsTemplate, previousSettingsP]) then [pluginSettingsTemplate]}
+	{#await Promise.all([mediaSource, pluginSettingsTemplate])}
+		Loading...
+	{:then [mediaSource, pluginSettingsTemplate]}
+		<h1 class="h3">
+			{mediaSource.name}
+		</h1>
+		<p class="body mb-4">Edit media source settings</p>
 		<Container class="flex flex-col gap-4 mb-8">
+			<TextField on:change={({ detail }) => name.set(detail)} value={$name} placeholder="Name">
+				Name
+			</TextField>
 			{#if pluginSettingsTemplate?.settings}
 				{#each Object.keys(pluginSettingsTemplate.settings) as key}
 					{@const template = pluginSettingsTemplate.settings[key]}
@@ -86,15 +105,11 @@
 			{/if}
 		</Container>
 
-		<div class="mb-4">
+		<Container direction="horizontal" class="flex gap-4">
+			<Button type="primary-dark" class="flex-1" action={handleSave} icon={Pencil1}>Save</Button>
 			<Button type="primary-dark" confirmDanger action={handleRemovePlugin} icon={Trash}>
 				Remove media source
 			</Button>
-		</div>
-
-		<Container direction="horizontal" class="grid grid-cols-2 gap-4">
-			<Button type="primary-dark" on:clickOrSelect={() => modalStack.close(modalId)}>Cancel</Button>
-			<Button type="primary-dark" action={handleSave}>Save</Button>
 		</Container>
 	{/await}
 </Dialog>

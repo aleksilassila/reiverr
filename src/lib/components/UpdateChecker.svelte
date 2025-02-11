@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Cross2 } from 'radix-icons-svelte';
-	import IconButton from './IconButton.svelte';
+	import IconButton from './FloatingIconButton.svelte';
 	import axios from 'axios';
 	import Button from './Button.svelte';
 	import { skippedVersion } from '../stores/localstorage.store';

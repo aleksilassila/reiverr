@@ -81,7 +81,7 @@
 			{#if backdropUrl}
 				<LazyImg src={backdropUrl} class="absolute inset-0" />
 			{:else}
-				<div class="absolute inset-0 bg-secondary-700 header4 flex items-center justify-center">
+				<div class="absolute inset-0 bg-secondary-700 h1 flex items-center justify-center">
 					{title}
 				</div>
 			{/if}

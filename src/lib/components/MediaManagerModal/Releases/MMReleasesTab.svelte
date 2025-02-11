@@ -64,10 +64,10 @@
 </script>
 
 <Container trapFocus class="py-8 h-full flex flex-col">
-	<h1 class="header4 mx-12">
+	<h1 class="h1 mx-12">
 		<slot name="title" />
 	</h1>
-	<h2 class="header1 mx-12 mb-8">
+	<h2 class="h4 mx-12 mb-8">
 		<slot name="subtitle" />
 	</h2>
 

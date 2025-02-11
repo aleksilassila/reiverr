@@ -1,4 +1,4 @@
-import { OmitType, PartialType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { PlayState } from './play-state.entity';
 
 export class PlayStateDto extends PlayState {}
@@ -24,3 +24,25 @@ export class PlayStateDto extends PlayState {}
 export class UpdatePlayStateDto extends PartialType(
   OmitType(PlayStateDto, ['userId']),
 ) {}
+
+export class MovieUserDataDto {
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty()
+  inLibrary: boolean;
+
+  @ApiProperty({ type: PlayStateDto, required: false })
+  playState?: PlayStateDto;
+}
+
+export class SeriesUserDataDto {
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty()
+  inLibrary: boolean;
+
+  @ApiProperty({ type: [PlayStateDto] })
+  playStates: PlayStateDto[];
+}

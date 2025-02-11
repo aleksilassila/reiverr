@@ -24,7 +24,7 @@
 	<div class="flex items-center justify-center text-secondary-500 mb-4">
 		<InfoCircled size={64} />
 	</div>
-	<h1 class="header2 text-center">Update Available</h1>
+	<h1 class="h3 text-center">Update Available</h1>
 	<div class="body mb-8 text-center">Reiverr {version} is now available.</div>
 	<Container class="space-y-4">
 		<Button type="primary-dark" on:clickOrSelect={dismiss}>Dismiss</Button>

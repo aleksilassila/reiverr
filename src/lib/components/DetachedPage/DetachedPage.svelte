@@ -4,6 +4,12 @@
 	import { get } from 'svelte/store';
 	import Sidebar from '../Sidebar/Sidebar.svelte';
 	import classNames from 'classnames';
+	import type { ContainerProps } from '../Container.type';
+
+	interface $$Props extends ContainerProps {
+		topmost?: boolean;
+		sidebar?: boolean;
+	}
 
 	export let topmost = true;
 	export let sidebar = true;
@@ -45,7 +51,7 @@
 	{#if sidebar}
 		<Sidebar />
 	{/if}
-	<Container on:back={handleGoToTop} focusOnMount class={classNames($$restProps.class)}>
+	<Container {...$$restProps} on:back={handleGoToTop} focusOnMount>
 		<slot {handleGoBack} registrar={topSelectable.registrar} />
 	</Container>
 </Container>

@@ -6,7 +6,7 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import { PaginatedResponse, PaginationParams } from 'plugins/plugin-types';
+import { PaginatedResponse, PaginationParams } from '@aleksilassila/reiverr-plugin';
 
 export const PickAndPartial = <T, K extends keyof T>(
   clazz: Type<T>,

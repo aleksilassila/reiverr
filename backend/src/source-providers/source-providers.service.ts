@@ -4,23 +4,23 @@ import * as path from 'path';
 import { PluginProvider, SourceProvider } from '@aleksilassila/reiverr-plugin';
 
 @Injectable()
-export class SourcePluginsService {
-  private plugins: Record<string, SourceProvider> = {};
+export class SourceProvidersService {
+  private providers: Record<string, SourceProvider> = {};
 
   constructor() {
     console.log('Loading source plugins...');
 
-    this.plugins = this.loadPlugins(
+    this.providers = this.loadPlugins(
       path.join(require.main.path, '..', '..', 'plugins'),
     );
 
     console.log(
-      `Loaded source plugins: ${Object.keys(this.plugins).join(', ')}`,
+      `Loaded source plugins: ${Object.keys(this.providers).join(', ')}`,
     );
   }
 
-  async getPlugins(): Promise<Record<string, SourceProvider>> {
-    return this.plugins;
+  async getProviders(): Promise<Record<string, SourceProvider>> {
+    return this.providers;
   }
 
   private loadPlugins(rootDirectory: string): Record<string, SourceProvider> {
@@ -54,7 +54,7 @@ export class SourcePluginsService {
     return plugins;
   }
 
-  getPlugin(pluginName: string): SourceProvider | undefined {
-    return this.plugins[pluginName];
+  getProvider(pluginName: string): SourceProvider | undefined {
+    return this.providers[pluginName];
   }
 }

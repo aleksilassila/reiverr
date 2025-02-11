@@ -55,7 +55,7 @@
 <Container focusOnMount class="h-full w-full flex items-center justify-center" on:back={handleBack}>
 	<Panel class="grid max-w-lg" size="dynamic">
 		<Tab {...tab} tab={Tabs.Welcome} on:back={({ detail }) => detail.stopPropagation()}>
-			<h1 class="header2 mb-2 w-full">Welcome to Reiverr</h1>
+			<h1 class="h3 mb-2 w-full">Welcome to Reiverr</h1>
 			<div class="body mb-8">
 				Looks like this is a new account. This setup will get you started with connecting your
 				services to get most out of Reiverr.
@@ -76,7 +76,7 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Tmdb}>
-			<h1 class="header2 mb-2">Connect a TMDB Account</h1>
+			<h1 class="h3 mb-2">Connect a TMDB Account</h1>
 			<div class="body mb-8">
 				Connect to TMDB for personalized recommendations based on your movie reviews and
 				preferences.
@@ -144,7 +144,7 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Jellyfin}>
-			<h1 class="header2 mb-2">Connect to Jellyfin</h1>
+			<h1 class="h3 mb-2">Connect to Jellyfin</h1>
 			<div class="mb-8 body">Connect to Jellyfin to watch movies and tv shows.</div>
 
 			<JellyfinIntegration
@@ -207,7 +207,7 @@
 				detail.stopPropagation();
 			}}
 		>
-			<h1 class="header1 mb-2 w-96">Select User</h1>
+			<h1 class="h4 mb-2 w-96">Select User</h1>
 			<div class="flex flex-col space-y-4" />
 			{#await jellyfinUsers then users}
 				{#each users || [] as user}
@@ -225,7 +225,7 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Sonarr}>
-			<h1 class="header2 mb-2">Connect to Sonarr</h1>
+			<h1 class="h3 mb-2">Connect to Sonarr</h1>
 			<div class="mb-8">Connect to Sonarr for requesting and managing tv shows.</div>
 
 			<SonarrIntegration let:stale let:handleSave let:empty let:unchanged>
@@ -249,7 +249,7 @@
 		</Tab>
 
 		<Tab {...tab} tab={Tabs.Radarr}>
-			<h1 class="header2 mb-2">Connect to Radarr</h1>
+			<h1 class="h3 mb-2">Connect to Radarr</h1>
 			<div class="mb-8">Connect to Radarr for requesting and managing movies.</div>
 
 			<RadarrIntegration let:stale let:handleSave let:empty let:unchanged>
@@ -276,7 +276,7 @@
 			<div class="flex items-center justify-center text-secondary-500 mb-4">
 				<CheckCircled size={64} />
 			</div>
-			<h1 class="header2 text-center w-full">All Set!</h1>
+			<h1 class="h3 text-center w-full">All Set!</h1>
 			<div class="body mb-8 text-center">Reiverr is now ready to use.</div>
 
 			<Container direction="horizontal" class="inline-flex space-x-4 w-full">

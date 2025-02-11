@@ -39,8 +39,8 @@ function useUser() {
 				?.map(async (s) => {
 					out.push({
 						source: s,
-						capabilities: await reiverrApiNew.sources
-							.getSourceCapabilities(s.id, s.pluginSettings ?? ({} as any))
+						capabilities: await reiverrApiNew.providers
+							.getSourceCapabilities(s.pluginId, s.pluginSettings ?? ({} as any))
 							.then((r) => r.data)
 							.catch(() => ({
 								episodeIndexing: false,

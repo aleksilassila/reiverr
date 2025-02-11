@@ -34,8 +34,8 @@
 		{#if backgroundUrl}
 			<div class="h-24" />
 		{/if}
-		<h1 class="header2">{title}</h1>
-		<h2 class="header1 mb-4">{subtitle}</h2>
+		<h1 class="h3">{title}</h1>
+		<h2 class="h4 mb-4">{subtitle}</h2>
 		<div
 			class="grid grid-cols-[1fr_max-content] font-medium mb-16
 			[&>*:nth-child(odd)]:text-secondary-300 [&>*:nth-child(even)]:text-right [&>*:nth-child(even)]:text-secondary-100 *:py-1"

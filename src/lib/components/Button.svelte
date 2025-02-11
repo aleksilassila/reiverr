@@ -49,7 +49,7 @@
 <AnimatedSelection
 	hasFocus={$hasFocus || $hasSecondaryFocus}
 	enabled={!disabled}
-	class={classNames('flex items-center font-medium tracking-wide ', {}, $$restProps.class)}
+	class={classNames('inline-flex items-center font-medium tracking-wide ', {}, $$restProps.class)}
 >
 	<Container
 		bind:hasFocus
@@ -83,9 +83,7 @@
 				'!bg-red-500': confirmDanger && armed
 			})}
 		>
-			<div
-				class="flex-1 text-center text-nowrap flex items-center justify-center relative *:flex-1"
-			>
+			<div class="flex-1 text-center text-nowrap flex items-center justify-center relative">
 				{#if $$slots.icon}
 					<div class="mr-2">
 						<slot name="icon" />

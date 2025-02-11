@@ -1,6 +1,9 @@
-import type { PluginSettings, UserContext } from '../../plugin-types';
+import type {
+  SourceProviderSettings,
+  UserContext,
+} from '@aleksilassila/reiverr-plugin';
 
-export interface TorrentSettings extends PluginSettings {
+export interface TorrentSettings extends SourceProviderSettings {
   apiKey: string;
   baseUrl: string;
 }

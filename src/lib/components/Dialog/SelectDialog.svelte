@@ -4,6 +4,7 @@
 	import SelectItem from '../SelectItem.svelte';
 	import { modalStack } from '../Modal/modal.store';
 
+	// TODO: Add labels to the options
 	export let title: string = 'Select';
 	export let subtitle: string = '';
 	export let options: string[];
@@ -21,7 +22,7 @@
 <Dialog>
 	<div class="mb-4">
 		<slot>
-			<h1 class="header1">{title}</h1>
+			<h1 class="h4">{title}</h1>
 			<p class="text-secondary-300">{subtitle}</p>
 		</slot>
 	</div>

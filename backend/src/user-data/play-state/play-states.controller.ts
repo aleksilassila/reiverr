@@ -3,23 +3,20 @@ import {
   Controller,
   Delete,
   Param,
-  ParseEnumPipe,
   ParseIntPipe,
   Put,
-  Query,
   UseGuards,
 } from '@nestjs/common';
-import { PlayStateService } from './play-state.service';
+import { ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from 'src/auth/auth.guard';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UpdatePlayStateDto } from './play-state.dto';
-import { MediaType } from 'src/common/common.dto';
+import { PlayStatesService } from './play-states.service';
 
 @ApiTags('users')
 @Controller('users/:userId/play-state')
 @UseGuards(UserAccessControl)
-export class PlayStateController {
-  constructor(private playStateService: PlayStateService) {}
+export class PlayStatesController {
+  constructor(private playStateService: PlayStatesService) {}
 
   @Put('movie/tmdb/:tmdbId')
   // @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })

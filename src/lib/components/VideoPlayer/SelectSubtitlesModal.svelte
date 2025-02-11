@@ -15,7 +15,7 @@
 </script>
 
 <Dialog {modalId}>
-	<h1 class="header2 mb-4 flex items-center space-x-4">
+	<h1 class="h3 mb-4 flex items-center space-x-4">
 		<span>Subtitles</span>
 		<TextAlignLeft size={32} />
 	</h1>

@@ -21,6 +21,7 @@ export class SignInResponse {
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+  
   @HttpCode(HttpStatus.OK)
   @Post()
   @ApiOkResponse({ description: 'User found', type: SignInResponse })

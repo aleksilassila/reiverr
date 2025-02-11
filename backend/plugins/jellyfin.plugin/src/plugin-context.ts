@@ -4,7 +4,6 @@ import {
 } from '@aleksilassila/reiverr-plugin';
 import { Api as JellyfinApi } from './jellyfin.openapi';
 import { JELLYFIN_DEVICE_ID } from './utils';
-import { PluginSettings } from 'plugins/plugin-types';
 
 export interface JellyfinSettings extends SourceProviderSettings {
   apiKey: string;
@@ -21,7 +20,7 @@ export class PluginContext {
   settings: JellyfinSettings;
   token: string;
 
-  constructor(settings: PluginSettings, token = '') {
+  constructor(settings: SourceProviderSettings, token = '') {
     this.token = token;
     this.settings = settings as JellyfinSettings;
     this.api = new JellyfinApi({

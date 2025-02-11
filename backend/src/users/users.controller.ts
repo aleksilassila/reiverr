@@ -1,3 +1,4 @@
+import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 import {
   BadRequestException,
   Body,
@@ -7,41 +8,25 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
-  ParseIntPipe,
   Post,
   Put,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { UserServiceError, UsersService } from './users.service';
-import {
-  UserAccessControl,
-  GetAuthUser,
-  OptionalAccessControl,
-} from '../auth/auth.guard';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
-  CreateUserDto,
-  MovieUserDataDto,
-  SeriesUserDataDto,
-  UpdateUserDto,
-  UserDto,
-} from './user.dto';
+  GetAuthUser,
+  OptionalAccessControl,
+  UserAccessControl,
+} from '../auth/auth.guard';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
-import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
-import { LibraryService } from './library/library.service';
-import { PlayStateService } from './play-state/play-state.service';
-import { PlayState } from './play-state/play-state.entity';
-import { PlayStateDto } from './play-state/play-state.dto';
+import { UserServiceError, UsersService } from './users.service';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(
-    private usersService: UsersService,
-    private libraryService: LibraryService,
-    private playStateService: PlayStateService,
-  ) {}
+  constructor(private usersService: UsersService) {}
 
   // @UseGuards(AuthGuard)
   // @Get()
@@ -160,77 +145,5 @@ export class UsersController {
     }
 
     await this.usersService.remove(id);
-  }
-
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/movie/tmdb/:tmdbId')
-  @ApiOkResponse({
-    description: 'User movie data found',
-    type: MovieUserDataDto,
-  })
-  async getMovieUserData(
-    @Param('userId') userId: string,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService.findMoviePlayState(
-      userId,
-      tmdbId,
-    );
-
-    return {
-      tmdbId,
-      inLibrary: !!libraryItem,
-      playState: playState,
-    };
-  }
-
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/tmdb/:tmdbId')
-  @ApiOkResponse({
-    description: 'User series data found',
-    type: SeriesUserDataDto,
-  })
-  async getSeriesUserData(
-    @Param('userId') userId: string,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<SeriesUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService.findSeriesPlayStates(
-      userId,
-      tmdbId,
-    );
-
-    return {
-      tmdbId,
-      inLibrary: !!libraryItem,
-      playStates: playState,
-    };
-  }
-
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/tmdb/:tmdbId/season/:season/episode/:episode')
-  @ApiOkResponse({
-    description: 'User series data found',
-    type: MovieUserDataDto,
-  })
-  async getEpisodeUserData(
-    @Param('userId') userId: string,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-    @Param('episode', ParseIntPipe) episode: number,
-  ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService
-      .findSeriesPlayStates(userId, tmdbId, season, episode)
-      .then((states) =>
-        states.find((s) => s.season === season && s.episode === episode),
-      );
-
-    return {
-      tmdbId,
-      inLibrary: !!libraryItem,
-      playState: playState,
-    };
   }
 }

@@ -15,7 +15,7 @@
 </script>
 
 <Dialog>
-	<h1 class="header1 mb-2">Users</h1>
+	<h1 class="h4 mb-2">Users</h1>
 	<div class="space-y-4">
 		{#each users as user}
 			<SelectItem

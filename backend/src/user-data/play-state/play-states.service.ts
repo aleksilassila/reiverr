@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdatePlayStateDto } from './play-state.dto';
-import { USER_PLAY_STATE_REPOSITORY } from '../user.providers';
-import { PlayState } from './play-state.entity';
-import { Repository } from 'typeorm';
 import { MediaType } from 'src/common/common.dto';
+import { Repository } from 'typeorm';
+import { UpdatePlayStateDto } from './play-state.dto';
+import { PlayState } from './play-state.entity';
+import { USER_PLAY_STATE_REPOSITORY } from './play-state.providers';
 
 @Injectable()
-export class PlayStateService {
+export class PlayStatesService {
   constructor(
     @Inject(USER_PLAY_STATE_REPOSITORY)
     private readonly playStateRepository: Repository<PlayState>,

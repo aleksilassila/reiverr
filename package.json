@@ -20,7 +20,7 @@
 		"test:unit": "vitest",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
-		"openapi:update": "npm run --prefix backend §generate && npm run openapi:codegen",
+		"openapi:update": "npm run --prefix backend generate && npm run openapi:codegen",
 		"openapi:codegen": "openapi-typescript \"backend/swagger-spec.json\" -o src/lib/apis/reiverr/reiverr.generated.d.ts",
 		"openapi:generate": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag",
 		"openapi:generate-tmdb": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag"

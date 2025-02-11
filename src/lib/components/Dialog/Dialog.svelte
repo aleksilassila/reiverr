@@ -21,7 +21,7 @@
 			/* For a11y*/
 		}}
 	>
-		<Panel {size} class={$$restProps.class}>
+		<Panel {size} class={$$restProps.class} onClose={handleClose}>
 			<slot close={handleClose} />
 		</Panel>
 	</div>

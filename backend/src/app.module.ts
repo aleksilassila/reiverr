@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { DatabaseModule } from './database/database.module';
+import { MediaSourcesModule } from './media-sources/media-sources.module';
 import { MetadataModule } from './metadata/metadata.module';
-import { SourcePluginsModule } from './source-plugins/source-plugins.module';
+import { SourceProvidersModule } from './source-providers/source-providers.module';
+import { UserDataModule } from './user-data/user-data.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { SourcePluginsModule } from './source-plugins/source-plugins.module';
       rootPath: join(__dirname, '../dist'),
     }),
     MetadataModule,
-    SourcePluginsModule,
+    SourceProvidersModule,
+    MediaSourcesModule,
+    UserDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -4,6 +4,9 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from '../selectable';
 	import classNames from 'classnames';
+	import type { ContainerProps } from './Container.type';
+
+	type $$Props = ContainerProps;
 
 	/**
 	 * The basis for d-pad navigation. It's a mess, but it works™️
@@ -20,14 +23,14 @@
 		playPause: KeyEvent;
 	}>();
 
-	export let name: string = '';
-	export let direction: 'vertical' | 'horizontal' | 'grid' = 'vertical';
-	export let gridCols: number = 0;
-	export let focusOnMount = false;
-	export let trapFocus = false;
-	export let debugOutline = false;
-	export let focusOnClick = false;
-	export let focusedChild = false;
+	export let name: Required<ContainerProps>['name'] = '';
+	export let direction: Required<ContainerProps>['direction'] = 'vertical';
+	export let gridCols: Required<ContainerProps>['gridCols'] = 0;
+	export let focusOnMount: Required<ContainerProps>['focusOnMount'] = false;
+	export let trapFocus: Required<ContainerProps>['trapFocus'] = false;
+	export let debugOutline: Required<ContainerProps>['debugOutline'] = false;
+	export let focusOnClick: Required<ContainerProps>['focusOnClick'] = false;
+	export let focusedChild: Required<ContainerProps>['focusedChild'] = false;
 
 	export let disabled = false;
 
@@ -95,7 +98,7 @@
 	export const focusIndex = rest.focusIndex;
 	export const activeChild = rest.activeChild;
 
-	export let tag = 'div';
+	export let tag: Required<ContainerProps>['tag'] = 'div';
 
 	$: selectable.setIsDisabled(disabled);
 	$: selectable.setGridColumns(gridCols);

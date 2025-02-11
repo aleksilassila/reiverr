@@ -1,8 +1,8 @@
 <div {...$$restProps}>
-	<div class="header4">
+	<div class="h1">
 		<slot name="title" />
 	</div>
-	<div class="header1">
+	<div class="h4">
 		<slot name="subtitle" />
 	</div>
 </div>
