@@ -1,9 +1,9 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { User } from './user.entity';
-import { CreateUserDto, UpdateUserDto } from './user.dto';
-import { USER_REPOSITORY } from './user.providers';
+import { Inject, Injectable } from '@nestjs/common';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
+import { Repository } from 'typeorm';
+import { CreateUserDto, UpdateUserDto } from './user.dto';
+import { User } from './user.entity';
+import { USER_REPOSITORY } from './user.providers';
 
 export enum UserServiceError {
   PasswordMismatch = 'PasswordMismatch',
@@ -16,7 +16,7 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
-    @Inject(forwardRef(() => SourceProvidersService))
+    @Inject(SourceProvidersService)
     private readonly sourceProvidersService: SourceProvidersService,
   ) {}
 
