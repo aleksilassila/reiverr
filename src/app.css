@@ -83,6 +83,10 @@ html[data-useragent*='Tizen'] .selectable-secondary {
 	@apply focus-within:outline outline-2 outline-[#f0cd6dc2] outline-offset-2;
 }
 
+.h5 {
+	@apply font-medium text-lg text-secondary-100;
+}
+
 .h4 {
 	@apply font-semibold text-xl text-secondary-100;
 }

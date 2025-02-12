@@ -2,8 +2,13 @@
 	import { flip } from 'svelte/animate';
 	import { fly, fade } from 'svelte/transition';
 	import { notificationStack } from './notification.store';
+	import { onDestroy } from 'svelte';
 
 	export let persistent = false;
+
+	onDestroy(() => {
+		notificationStack.destroy([]);	
+	})
 </script>
 
 <div class="fixed top-8 right-8 z-50 flex flex-col">

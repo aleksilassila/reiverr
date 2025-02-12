@@ -18,9 +18,14 @@ function useNotificationStack() {
 		return id;
 	}
 
+	function destroy() {
+		notifications.set([]);
+	}
+
 	return {
 		subscribe: notifications.subscribe,
-		create
+		create,
+		destroy
 	};
 }
 
@@ -29,7 +34,8 @@ export const createErrorNotification = (title: string, message?: string) => {
 	console.error(message);
 	notificationStack.create(Notification, {
 		title: message ? title : 'Unexpected error occurred',
-		body: message ?? title
+		body: message ?? title,
+		type: 'error'
 	});
 };
 export const createInfoNotification = (title: string, message?: string) => {

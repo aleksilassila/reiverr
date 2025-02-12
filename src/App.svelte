@@ -5,7 +5,6 @@
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import { stackRouter } from './lib/components/StackRouter/StackRouter';
-	import OnboardingPage from './lib/pages/OnboardingPage.svelte';
 	import { onMount } from 'svelte';
 	import axios from 'axios';
 	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
@@ -17,8 +16,15 @@
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
 	import { createErrorNotification } from './lib/components/Notifications/notification.store';
+	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
 
-	user.subscribe((s) => console.log('user', s));
+	user.subscribe((s) => {
+		console.log('user', s);
+		if (s?.onboardingDone === false) {
+			console.log('ONBOARDING');
+			createModal(OnboardingDialog, {});
+		}
+	});
 	sessions.subscribe((s) => console.log('sessions', s));
 
 	// onMount(() => {
@@ -66,8 +72,6 @@
 	<SplashScreen />
 {:else if $user === null}
 	<UsersPage />
-{:else if $user.onboardingDone === false}
-	<OnboardingPage />
 {:else}
 	<!--		<Router primary={false}>-->
 	<!--		<Container class="flex flex-col relative" direction="horizontal" trapFocus>-->

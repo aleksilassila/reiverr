@@ -11,6 +11,10 @@
 	import { reiverrApiNew, user } from '../../stores/user.store';
 	import { capitalize } from '$lib/utils';
 	import { mediaSourcesDataStore } from '$lib/stores/data.store';
+	import {
+		createErrorNotification,
+		createInfoNotification
+	} from '$lib/components/Notifications/notification.store';
 
 	export let modalId: symbol;
 
@@ -61,12 +65,23 @@
 				replacedSettings[key] = res?.replace[key];
 			});
 		}
-		await reiverrApiNew.users.updateSource(get(user)?.id || '', {
-			id: sourceId,
-			name: $name,
-			pluginId: source.pluginId,
-			pluginSettings: replacedSettings
-		});
+		const updatedSource = await reiverrApiNew.users
+			.updateSource(get(user)?.id || '', {
+				id: sourceId,
+				name: $name,
+				pluginId: source.pluginId,
+				pluginSettings: replacedSettings
+			})
+			.then((r) => r.data)
+			.then((user) => user.mediaSources?.find((s) => s.id === sourceId));
+		if (updatedSource?.enabled) {
+			createInfoNotification('Media source updated', `${updatedSource.name} has been enabled`);
+		} else {
+			createErrorNotification(
+				'Incomplete configuration',
+				`${updatedSource?.name} has been disabled`
+			);
+		}
 		await mediaSourcesDataStore.refresh();
 		modalStack.close(modalId);
 	}

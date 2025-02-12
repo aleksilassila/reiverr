@@ -21,14 +21,10 @@
 </script>
 
 {#if visible && !persistent}
-	<div class={classNames('bg-primary-800 rounded-xl px-6 py-2 w-80', {})}>
-		{#if !body}
-			<h1>{title}</h1>
-		{:else}
-			<div>
-				<h1>{title}</h1>
-				<div>{body}</div>
-			</div>
+	<div class={classNames('bg-primary-800 rounded-xl px-6 py-4 w-80 shadow-xl', {})}>
+		<h1 class="mb-1 h5">{title}</h1>
+		{#if body}
+			<div class="text-secondary-400">{body}</div>
 		{/if}
 	</div>
 {/if}
