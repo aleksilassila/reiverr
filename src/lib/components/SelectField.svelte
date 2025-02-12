@@ -7,7 +7,7 @@
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
 	export let color: 'secondary' | 'primary' = 'secondary';
-	export let value: string;
+	export let value: string = '';
 	export let disabled: boolean = false;
 	export let action: (() => Promise<any>) | undefined = undefined;
 

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import type { EpisodeData } from '$lib/stores/media-user-data.store';
 	import classNames from 'classnames';
-	import type { JellyfinItem } from '../../../apis/jellyfin/jellyfin-api';
+	import type { Readable } from 'svelte/store';
 	import {
 		tmdbApi,
 		type TmdbEpisode,
@@ -14,11 +15,7 @@
 	import ScrollHelper from '../../../components/ScrollHelper.svelte';
 	import { navigate } from '../../../components/StackRouter/StackRouter';
 	import { playerState } from '../../../components/VideoPlayer/VideoPlayer';
-	import { TMDB_BACKDROP_SMALL } from '../../../constants';
 	import { scrollIntoView, Selectable } from '../../../selectable';
-	import ManageSeasonCard from './ManageSeasonCard.svelte';
-	import type { EpisodeData } from '$lib/stores/media-user-data.store';
-	import type { Readable } from 'svelte/store';
 
 	export let tmdbId: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull2 | undefined>;
@@ -26,7 +23,7 @@
 	export let episodesUserData: EpisodeData[];
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
-	export let handleRequestSeason: (season: number) => Promise<any>;
+	// export let handleRequestSeason: (season: number) => Promise<any>;
 	export let tmdbSeasons = tmdbSeries.then((series) =>
 		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
 	);
@@ -126,11 +123,11 @@
 					/>
 				{/key}
 			{/each}
-			<ManageSeasonCard
+			<!-- <ManageSeasonCard
 				backdropUrl={TMDB_BACKDROP_SMALL + tmdbSeries?.backdrop_path}
 				on:clickOrSelect={() => handleRequestSeason(seasonIndex + 1)}
 				on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-			/>
+			/> -->
 		</CardGrid>
 	{/await}
 </Container>

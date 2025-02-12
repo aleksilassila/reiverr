@@ -11,7 +11,7 @@ export class MediaSourceDto extends PickAndPartial(
 export class UpdateOrCreateMediaSourceDto extends PickAndPartial(
   MediaSource,
   ['pluginSettings', 'pluginId'],
-  ['enabled', 'id', 'adminControlled', 'name', 'priority'],
+  ['id', 'adminControlled', 'name', 'priority'],
 ) {}
 
 export class UpdateMediaSourceDto extends OmitType(

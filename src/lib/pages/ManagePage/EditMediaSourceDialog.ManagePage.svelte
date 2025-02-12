@@ -9,6 +9,8 @@
 	import TextField from '../../components/TextField.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { capitalize } from '$lib/utils';
+	import { mediaSourcesDataStore } from '$lib/stores/data.store';
 
 	export let modalId: symbol;
 
@@ -37,34 +39,42 @@
 
 	let validationResponse: ValidationResponseDto | undefined;
 
-	async function handleSave() {
-		// validationResponse = undefined;
+	async function validateForm() {
 		const source = await mediaSource;
+
 		validationResponse = await reiverrApiNew.providers
 			.validateSourceSettings(source.pluginId, { settings: $settings })
 			.then((r) => r.data);
 
-		if (validationResponse?.isValid) {
-			const replacedSettings = {
-				...get(settings)
-			};
-			Object.keys(validationResponse?.replace).forEach((key) => {
-				replacedSettings[key] = validationResponse?.replace[key];
+		return validationResponse;
+	}
+
+	async function handleSave() {
+		const source = await mediaSource;
+		const res = await validateForm();
+
+		const replacedSettings = {
+			...get(settings)
+		};
+		if (res?.replace) {
+			Object.keys(res?.replace).forEach((key) => {
+				replacedSettings[key] = res?.replace[key];
 			});
-			await reiverrApiNew.users.updateSource(get(user)?.id || '', {
-				id: sourceId,
-				name: $name,
-				pluginId: source.pluginId,
-				pluginSettings: replacedSettings,
-				enabled: true
-			});
-			modalStack.close(modalId);
 		}
+		await reiverrApiNew.users.updateSource(get(user)?.id || '', {
+			id: sourceId,
+			name: $name,
+			pluginId: source.pluginId,
+			pluginSettings: replacedSettings
+		});
+		await mediaSourcesDataStore.refresh();
+		modalStack.close(modalId);
 	}
 
 	async function handleRemovePlugin() {
 		await mediaSource.then((s) => reiverrApiNew.users.deleteSource(s.id, get(user)?.id || ''));
 		await user.refreshUser();
+		await mediaSourcesDataStore.refresh();
 		modalStack.close(modalId);
 	}
 </script>
@@ -74,7 +84,7 @@
 		Loading...
 	{:then [mediaSource, pluginSettingsTemplate]}
 		<h1 class="h3">
-			{mediaSource.name}
+			{capitalize(mediaSource.pluginId)}
 		</h1>
 		<p class="body mb-4">Edit media source settings</p>
 		<Container class="flex flex-col gap-4 mb-8">
@@ -83,6 +93,7 @@
 			</TextField>
 			{#if pluginSettingsTemplate?.settings}
 				{#each Object.keys(pluginSettingsTemplate.settings) as key}
+					{@const stale = mediaSource.pluginSettings?.[key] !== $settings[key]}
 					{@const template = pluginSettingsTemplate.settings[key]}
 					{#if template.type === 'string' || template.type === 'number' || template.type === 'password'}
 						<TextField
@@ -90,6 +101,7 @@
 							on:change={({ detail }) => settings.update((s) => ({ ...s, [key]: detail }))}
 							value={$settings[key] || ''}
 							placeholder={template.placeholder}
+							on:blur={() => stale && validateForm()}
 						>
 							{template.label}
 						</TextField>
@@ -106,9 +118,11 @@
 		</Container>
 
 		<Container direction="horizontal" class="flex gap-4">
-			<Button type="primary-dark" class="flex-1" action={handleSave} icon={Pencil1}>Save</Button>
 			<Button type="primary-dark" confirmDanger action={handleRemovePlugin} icon={Trash}>
 				Remove media source
+			</Button>
+			<Button focusedChild type="primary-dark" class="flex-1" action={handleSave} icon={Pencil1}>
+				Save
 			</Button>
 		</Container>
 	{/await}

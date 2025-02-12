@@ -58,32 +58,32 @@
 	// let tmdbSeasons = $tmdbSeries.then((series) =>
 	// 	tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
 	// );
-	let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
 	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, tmdbId);
+	// let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
 
-	$: sonarrDownloads = getDownloads(sonarrItem);
-	$: sonarrFiles = getFiles(sonarrItem);
-	$: sonarrSeasonNumbers = Promise.all([sonarrFiles, sonarrDownloads]).then(
-		([files, downloads]) => [
-			...new Set(files.map((item) => item.seasonNumber || -1)),
-			...new Set(downloads.map((item) => item.seasonNumber || -1))
-		]
-	);
-	$: sonarrEpisodes = Promise.all([sonarrItem, sonarrSeasonNumbers])
-		.then(([item, seasons]) =>
-			Promise.all(seasons.map((s) => sonarrApi.getEpisodes(item?.id || -1, s)))
-		)
-		.then((items) => items.flat());
+	// $: sonarrDownloads = getDownloads(sonarrItem);
+	// $: sonarrFiles = getFiles(sonarrItem);
+	// $: sonarrSeasonNumbers = Promise.all([sonarrFiles, sonarrDownloads]).then(
+	// 	([files, downloads]) => [
+	// 		...new Set(files.map((item) => item.seasonNumber || -1)),
+	// 		...new Set(downloads.map((item) => item.seasonNumber || -1))
+	// 	]
+	// );
+	// $: sonarrEpisodes = Promise.all([sonarrItem, sonarrSeasonNumbers])
+	// 	.then(([item, seasons]) =>
+	// 		Promise.all(seasons.map((s) => sonarrApi.getEpisodes(item?.id || -1, s)))
+	// 	)
+	// 	.then((items) => items.flat());
 
-	const jellyfinSeries = getJellyfinSeries(id);
+	// const jellyfinSeries = getJellyfinSeries(id);
 
-	const jellyfinEpisodes = jellyfinSeries.then(
-		(s) => (s && jellyfinApi.getJellyfinEpisodes(s.Id)) || []
-	);
+	// const jellyfinEpisodes = jellyfinSeries.then(
+	// 	(s) => (s && jellyfinApi.getJellyfinEpisodes(s.Id)) || []
+	// );
 
-	const nextJellyfinEpisode = jellyfinEpisodes.then((items) =>
-		items.find((i) => i.UserData?.Played === false)
-	);
+	// const nextJellyfinEpisode = jellyfinEpisodes.then((items) =>
+	// 	items.find((i) => i.UserData?.Played === false)
+	// );
 
 	const episodeCards = useRegistrar();
 	let scrollTop: number;
@@ -142,76 +142,76 @@
 	// 	return out;
 	// }
 
-	function getJellyfinSeries(id: string) {
-		return jellyfinApi.getLibraryItemFromTmdbId(id);
-	}
+	// function getJellyfinSeries(id: string) {
+	// 	return jellyfinApi.getLibraryItemFromTmdbId(id);
+	// }
 
-	const onGrabRelease = () => setTimeout(() => (sonarrDownloads = getDownloads(sonarrItem)), 8000);
+	// const onGrabRelease = () => setTimeout(() => (sonarrDownloads = getDownloads(sonarrItem)), 8000);
 
-	function handleAddedToSonarr() {
-		sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
-		sonarrItem.then(
-			(sonarrItem) =>
-				sonarrItem &&
-				createModal(SonarrMediaManagerModal, {
-					season: 1,
-					sonarrItem,
-					onGrabRelease
-				})
-		);
-	}
+	// function handleAddedToSonarr() {
+	// 	sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
+	// 	sonarrItem.then(
+	// 		(sonarrItem) =>
+	// 			sonarrItem &&
+	// 			createModal(SonarrMediaManagerModal, {
+	// 				season: 1,
+	// 				sonarrItem,
+	// 				onGrabRelease
+	// 			})
+	// 	);
+	// }
 
-	async function handleRequestSeason(season: number) {
-		return sonarrItem.then((sonarrItem) => {
-			const tmdbSeries = get(tmdbSeriesData);
-			if (sonarrItem) {
-				createModal(SonarrMediaManagerModal, {
-					season,
-					sonarrItem,
-					onGrabRelease
-				});
-			} else if (tmdbSeries) {
-				createModal(MmAddToSonarrDialog, {
-					title: tmdbSeries.name || '',
-					tmdbId: tmdbSeries.id || -1,
-					backdropUri: tmdbSeries.backdrop_path || '',
-					onComplete: handleAddedToSonarr
-				});
-			} else {
-				console.error('No series found');
-			}
-		});
-	}
+	// async function handleRequestSeason(season: number) {
+	// 	return sonarrItem.then((sonarrItem) => {
+	// 		const tmdbSeries = get(tmdbSeriesData);
+	// 		if (sonarrItem) {
+	// 			createModal(SonarrMediaManagerModal, {
+	// 				season,
+	// 				sonarrItem,
+	// 				onGrabRelease
+	// 			});
+	// 		} else if (tmdbSeries) {
+	// 			createModal(MmAddToSonarrDialog, {
+	// 				title: tmdbSeries.name || '',
+	// 				tmdbId: tmdbSeries.id || -1,
+	// 				backdropUri: tmdbSeries.backdrop_path || '',
+	// 				onComplete: handleAddedToSonarr
+	// 			});
+	// 		} else {
+	// 			console.error('No series found');
+	// 		}
+	// 	});
+	// }
 
-	async function getFiles(item: typeof sonarrItem) {
-		return item.then((item) => (item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : []));
-	}
+	// async function getFiles(item: typeof sonarrItem) {
+	// 	return item.then((item) => (item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : []));
+	// }
 
-	async function getDownloads(item: typeof sonarrItem) {
-		return item.then((item) => (item ? sonarrApi.getDownloadsBySeriesId(item?.id || -1) : []));
-	}
+	// async function getDownloads(item: typeof sonarrItem) {
+	// 	return item.then((item) => (item ? sonarrApi.getDownloadsBySeriesId(item?.id || -1) : []));
+	// }
 
-	function createConfirmDeleteSeasonDialog(files: EpisodeFileResource[]) {
-		createModal(ConfirmDialog, {
-			header: 'Delete Season Files?',
-			body: `Are you sure you want to delete all ${files.length} file(s) from season ${files[0]?.seasonNumber}?`,
-			confirm: () =>
-				sonarrApi
-					.deleteSonarrEpisodes(files.map((f) => f.id || -1))
-					.then(() => (sonarrFiles = getFiles(sonarrItem)))
-		});
-	}
+	// function createConfirmDeleteSeasonDialog(files: EpisodeFileResource[]) {
+	// 	createModal(ConfirmDialog, {
+	// 		header: 'Delete Season Files?',
+	// 		body: `Are you sure you want to delete all ${files.length} file(s) from season ${files[0]?.seasonNumber}?`,
+	// 		confirm: () =>
+	// 			sonarrApi
+	// 				.deleteSonarrEpisodes(files.map((f) => f.id || -1))
+	// 				.then(() => (sonarrFiles = getFiles(sonarrItem)))
+	// 	});
+	// }
 
-	function createConfirmCancelDownloadsDialog(downloads: EpisodeDownload[]) {
-		createModal(ConfirmDialog, {
-			header: 'Cancel Season Downloads?',
-			body: `Are you sure you want to cancel all ${downloads.length} download(s) from season ${downloads[0]?.seasonNumber}?`,
-			confirm: () =>
-				sonarrApi
-					.cancelDownloads(downloads.map((f) => f.id || -1))
-					.then(() => (sonarrDownloads = getDownloads(sonarrItem)))
-		});
-	}
+	// function createConfirmCancelDownloadsDialog(downloads: EpisodeDownload[]) {
+	// 	createModal(ConfirmDialog, {
+	// 		header: 'Cancel Season Downloads?',
+	// 		body: `Are you sure you want to cancel all ${downloads.length} download(s) from season ${downloads[0]?.seasonNumber}?`,
+	// 		confirm: () =>
+	// 			sonarrApi
+	// 				.cancelDownloads(downloads.map((f) => f.id || -1))
+	// 				.then(() => (sonarrDownloads = getDownloads(sonarrItem)))
+	// 	});
+	// }
 
 	// async function handlePlay() {
 	// 	const awaitedStreams = await Promise.all(
@@ -326,37 +326,37 @@
 							</div> -->
 						{/if}
 					{/await}
-					{#await nextJellyfinEpisode then nextJellyfinEpisode}
-						<Container
-							direction="horizontal"
-							class="flex mt-8"
-							focusOnMount
-							on:back={handleGoBack}
-							on:mount={registrar}
+					<Container
+						direction="horizontal"
+						class="flex mt-8"
+						focusOnMount
+						on:back={handleGoBack}
+						on:mount={registrar}
+					>
+						<Button
+							class="mr-4"
+							action={handleAutoplay}
+							secondaryAction={handleOpenStreamSelector}
+							disabled={!$canStream}
 						>
-							<Button
-								class="mr-4"
-								action={handleAutoplay}
-								secondaryAction={handleOpenStreamSelector}
-								disabled={!$canStream}
-							>
-								{#if $nextEpisode?.episode && $nextEpisode?.season}
-									Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
-								{:else}
-									Play
-								{/if}
-								<Play size={19} slot="icon" />
-							</Button>
-							{#if !$inLibrary}
-								<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
-									Add to Library
-								</Button>
+							{#if $nextEpisode?.episode && $nextEpisode?.season}
+								Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
 							{:else}
-								<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
-									Remove from Library
-								</Button>
+								Play
 							{/if}
-							<!-- {#if nextJellyfinEpisode}
+							<Play size={19} slot="icon" />
+						</Button>
+						{#if !$inLibrary}
+							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
+								Add to Library
+							</Button>
+						{:else}
+							<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
+								Remove from Library
+							</Button>
+						{/if}
+						<!-- {#await nextJellyfinEpisode then nextJellyfinEpisode} -->
+						<!-- {#if nextJellyfinEpisode}
 								<Button
 									class="mr-4"
 									on:clickOrSelect={() =>
@@ -366,29 +366,29 @@
 									{nextJellyfinEpisode?.IndexNumber}
 									<Play size={19} slot="icon" />
 								</Button> -->
-							<!-- {:else} -->
-							<!-- <Button class="mr-4" action={() => handleRequestSeason(1)}>
+						<!-- {:else} -->
+						<!-- <Button class="mr-4" action={() => handleRequestSeason(1)}>
 								Request
 								<Plus size={19} slot="icon" />
 							</Button> -->
-							<!-- {/if} -->
+						<!-- {/if} -->
+						<!-- {/await} -->
 
-							{#if PLATFORM_WEB}
-								<Button
-									class="mr-4"
-									on:clickOrSelect={() =>
-										window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
-								>
-									Open In TMDB
-									<ExternalLink size={19} slot="icon-after" />
-								</Button>
-								<Button class="mr-4">
-									Open In Jellyfin
-									<ExternalLink size={19} slot="icon-after" />
-								</Button>
-							{/if}
-						</Container>
-					{/await}
+						{#if PLATFORM_WEB}
+							<Button
+								class="mr-4"
+								on:clickOrSelect={() =>
+									window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
+							>
+								Open In TMDB
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+							<Button class="mr-4">
+								Open In Jellyfin
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+						{/if}
+					</Container>
 				</div>
 			</HeroCarousel>
 		</Container>
@@ -414,7 +414,6 @@
 				tmdbSeries={$tmdbSeries}
 				{nextEpisode}
 				episodesUserData={$episodesUserData}
-				{handleRequestSeason}
 			/>
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 				{#await $tmdbSeries then series}
@@ -463,13 +462,12 @@
 					</div>
 				</Container>
 			{/await}
-			{#await Promise.all( [sonarrSeasonNumbers, sonarrFiles, sonarrEpisodes, sonarrDownloads] ) then [seasons, files, episodes, downloads]}
+			<!-- {#await Promise.all( [sonarrSeasonNumbers, sonarrFiles, sonarrEpisodes, sonarrDownloads] ) then [seasons, files, episodes, downloads]}
 				{#if files?.length}
 					<Container
 						class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
 						on:enter={scrollIntoView({ top: 32 })}
 					>
-						<!--						<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">Local Files</h1>-->
 						<div class="space-y-16">
 							{#each seasons as season}
 								{@const seasonEpisodes = episodes.filter((e) => e.seasonNumber === season)}
@@ -495,8 +493,6 @@
 													{
 														'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
 														'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
-														// 'bg-primary-700 focus-within:border-primary-500': selected,
-														// 'bg-secondary-800 focus-within:border-zinc-300': !selected
 													}
 												)}
 												on:clickOrSelect={() => {
@@ -579,7 +575,7 @@
 						</div>
 					</Container>
 				{/if}
-			{/await}
+			{/await} -->
 		</div>
 	</div>
 </DetachedPage>

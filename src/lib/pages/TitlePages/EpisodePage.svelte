@@ -46,14 +46,14 @@
 	// let isWatched = false;
 
 	const tmdbEpisode = tmdbApi.getEpisode(Number(id), Number(season), Number(episode));
-	let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
-	$: sonarrEpisode = getSonarrEpisode(sonarrItem);
-	let sonarrFiles = getFiles(sonarrItem, sonarrEpisode);
+	// let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+	// $: sonarrEpisode = getSonarrEpisode(sonarrItem);
+	// let sonarrFiles = getFiles(sonarrItem, sonarrEpisode);
 
-	const jellyfinSeries = jellyfinApi.getLibraryItemFromTmdbId(id);
-	let jellyfinEpisode = jellyfinSeries.then((series) =>
-		jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
-	);
+	// const jellyfinSeries = jellyfinApi.getLibraryItemFromTmdbId(id);
+	// let jellyfinEpisode = jellyfinSeries.then((series) =>
+	// 	jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
+	// );
 
 	let titleProperties: { href?: string; label: string }[] = [];
 	$: {
@@ -111,69 +111,69 @@
 	// 	return out;
 	// }
 
-	async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
-		return sonarrItem.then((sonarrItem) => {
-			if (!sonarrItem?.id) return;
+	// async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
+	// 	return sonarrItem.then((sonarrItem) => {
+	// 		if (!sonarrItem?.id) return;
 
-			return sonarrApi
-				.getEpisodes(sonarrItem.id, Number(season))
-				.then((episodes) => episodes.find((e) => e.episodeNumber === Number(episode)));
-		});
-	}
+	// 		return sonarrApi
+	// 			.getEpisodes(sonarrItem.id, Number(season))
+	// 			.then((episodes) => episodes.find((e) => e.episodeNumber === Number(episode)));
+	// 	});
+	// }
 
-	async function handleAddedToSonarr() {
-		sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
-		return retry(() => getSonarrEpisode(sonarrItem)).then((sonarrEpisode) => {
-			sonarrEpisode &&
-				createModal(SonarrMediaManagerModal, {
-					sonarrItem: sonarrEpisode,
-					onGrabRelease: () => {}
-				});
-		});
-	}
+	// async function handleAddedToSonarr() {
+	// 	sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
+	// 	return retry(() => getSonarrEpisode(sonarrItem)).then((sonarrEpisode) => {
+	// 		sonarrEpisode &&
+	// 			createModal(SonarrMediaManagerModal, {
+	// 				sonarrItem: sonarrEpisode,
+	// 				onGrabRelease: () => {}
+	// 			});
+	// 	});
+	// }
 
-	async function handleRequestEpisode() {
-		return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
-			if (sonarrEpisode) {
-				createModal(SonarrMediaManagerModal, {
-					sonarrItem: sonarrEpisode,
-					onGrabRelease: () => {} // TODO
-				});
-			} else if (tmdbEpisode) {
-				createModal(MMAddToSonarrDialog, {
-					tmdbId: Number(id),
-					backdropUri: tmdbEpisode.still_path || '',
-					title: tmdbEpisode.name || '',
-					onComplete: handleAddedToSonarr
-				});
-			} else {
-				console.error('No series found');
-			}
-		});
-	}
+	// async function handleRequestEpisode() {
+	// 	return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
+	// 		if (sonarrEpisode) {
+	// 			createModal(SonarrMediaManagerModal, {
+	// 				sonarrItem: sonarrEpisode,
+	// 				onGrabRelease: () => {} // TODO
+	// 			});
+	// 		} else if (tmdbEpisode) {
+	// 			createModal(MMAddToSonarrDialog, {
+	// 				tmdbId: Number(id),
+	// 				backdropUri: tmdbEpisode.still_path || '',
+	// 				title: tmdbEpisode.name || '',
+	// 				onComplete: handleAddedToSonarr
+	// 			});
+	// 		} else {
+	// 			console.error('No series found');
+	// 		}
+	// 	});
+	// }
 
-	function createConfirmDeleteFiles(files: EpisodeFileResource[]) {
-		createModal(ConfirmDialog, {
-			header: 'Delete Season Files?',
-			body: `Are you sure you want to delete all ${files.length} file(s)?`,
-			confirm: () =>
-				sonarrApi
-					.deleteSonarrEpisodes(files.map((f) => f.id || -1))
-					.then(() => (sonarrFiles = getFiles(sonarrItem, sonarrEpisode)))
-		});
-	}
+	// function createConfirmDeleteFiles(files: EpisodeFileResource[]) {
+	// 	createModal(ConfirmDialog, {
+	// 		header: 'Delete Season Files?',
+	// 		body: `Are you sure you want to delete all ${files.length} file(s)?`,
+	// 		confirm: () =>
+	// 			sonarrApi
+	// 				.deleteSonarrEpisodes(files.map((f) => f.id || -1))
+	// 				.then(() => (sonarrFiles = getFiles(sonarrItem, sonarrEpisode)))
+	// 	});
+	// }
 
-	function getFiles(
-		sonarrItem: Promise<SonarrSeries | undefined>,
-		sonarrEpisode: Promise<SonarrEpisode | undefined>
-	) {
-		return Promise.all([sonarrItem, sonarrEpisode]).then(([sonarrItem, sonarrEpisode]) => {
-			if (!sonarrItem?.id) return [];
-			return sonarrApi
-				.getFilesBySeriesId(sonarrItem.id)
-				.then((files) => files.filter((f) => sonarrEpisode?.episodeFileId === f.id));
-		});
-	}
+	// function getFiles(
+	// 	sonarrItem: Promise<SonarrSeries | undefined>,
+	// 	sonarrEpisode: Promise<SonarrEpisode | undefined>
+	// ) {
+	// 	return Promise.all([sonarrItem, sonarrEpisode]).then(([sonarrItem, sonarrEpisode]) => {
+	// 		if (!sonarrItem?.id) return [];
+	// 		return sonarrApi
+	// 			.getFilesBySeriesId(sonarrItem.id)
+	// 			.then((files) => files.filter((f) => sonarrEpisode?.episodeFileId === f.id));
+	// 	});
+	// }
 
 	// async function handlePlay() {
 	// 	const awaitedStreams = await Promise.all(

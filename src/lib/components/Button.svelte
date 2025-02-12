@@ -6,19 +6,33 @@
 	import { type ComponentType, createEventDispatcher } from 'svelte';
 	import type { Selectable } from '../selectable';
 	import { DotsVertical } from 'radix-icons-svelte';
+	import type { ContainerProps } from './Container.type';
+
+	type $$Props = {
+		disabled?: boolean;
+		focusOnMount?: boolean;
+		focusedChild?: boolean;
+		type?: 'primary' | 'secondary' | 'primary-dark';
+		confirmDanger?: boolean;
+		action?: (() => Promise<any>) | null;
+		secondaryAction?: (() => Promise<any> | any) | null;
+		icon?: ComponentType;
+		iconAfter?: ComponentType;
+		iconAbsolute?: ComponentType;
+	} & ContainerProps;
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
-	export let disabled: boolean = false;
-	export let focusOnMount: boolean = false;
-	export let focusedChild = false;
-	export let type: 'primary' | 'secondary' | 'primary-dark' = 'primary';
-	export let confirmDanger = false;
-	export let action: (() => Promise<any>) | null = null;
-	export let secondaryAction: (() => Promise<any> | any) | null = null;
-	export let icon: ComponentType | undefined = undefined;
-	export let iconAfter: ComponentType | undefined = undefined;
-	export let iconAbsolute: ComponentType | undefined = undefined;
+	export let disabled: Required<$$Props>['disabled'] = false;
+	export let focusOnMount: Required<$$Props>['focusOnMount'] = false;
+	export let focusedChild: Required<$$Props>['focusedChild'] = false;
+	export let type: Required<$$Props>['type'] = 'primary';
+	export let confirmDanger: Required<$$Props>['confirmDanger'] = false;
+	export let action: Required<$$Props>['action'] = null;
+	export let secondaryAction: Required<$$Props>['secondaryAction'] = null;
+	export let icon: $$Props['icon'] = undefined;
+	export let iconAfter: $$Props['iconAfter'] = undefined;
+	export let iconAbsolute: $$Props['iconAbsolute'] = undefined;
 
 	let actionIsFetching = false;
 	$: _disabled = disabled || actionIsFetching;

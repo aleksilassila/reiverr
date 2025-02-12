@@ -61,6 +61,7 @@
 				selected: hasFocus,
 				unselected: !hasFocus
 			})}
+			on:blur
 			{type}
 			{value}
 			on:input={handleChange}

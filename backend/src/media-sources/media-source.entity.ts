@@ -41,7 +41,7 @@ export class MediaSource {
   @Column({ default: false })
   adminControlled: boolean;
 
-  @ApiProperty({ required: false, type: 'object' })
+  @ApiProperty({ required: false, type: 'object', additionalProperties: true })
   @Column('json', { default: '{}' })
   pluginSettings: SourceProviderSettings = {};
 

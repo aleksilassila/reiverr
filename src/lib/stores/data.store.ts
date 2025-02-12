@@ -250,3 +250,9 @@ export const libraryItemsDataStore = useRequestsStore(() =>
 		)
 		.then((i) => i.filter((i) => !!i.metadata))
 );
+
+export const mediaSourcesDataStore = useRequestsStore(() =>
+		reiverrApiNew.users
+			.findUserById(get(user)?.id || '')
+			.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
+);

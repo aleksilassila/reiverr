@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { UpdateOrCreateMediaSourceDto } from './media-source.dto';
 import { MediaSource } from './media-source.entity';
 import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
+import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 
 export enum MediaSourcesServiceError {
   SourceNotFound = 'SourceNotFound',
@@ -16,6 +17,7 @@ export class MediaSourcesService {
   constructor(
     @Inject(MEIDA_SOURCE_REPOSITORY)
     private readonly mediaSourceRepository: Repository<MediaSource>,
+    private sourceProvidersService: SourceProvidersService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -86,8 +88,20 @@ export class MediaSourcesService {
 
     source.adminControlled =
       sourceDto.adminControlled ?? source.adminControlled;
-    source.enabled = sourceDto.enabled ?? source.enabled;
-    source.pluginSettings = sourceDto.pluginSettings ?? source.pluginSettings;
+    if (sourceDto.pluginSettings !== undefined) {
+      let valid = false;
+      const provider = this.sourceProvidersService.getProvider(source.pluginId);
+
+      if (provider) {
+        const validationRes = await provider.settingsManager.validateSettings(
+          sourceDto.pluginSettings,
+        );
+        valid = validationRes.isValid;
+      }
+
+      source.pluginSettings = sourceDto.pluginSettings;
+      source.enabled = !!valid;
+    }
     source.name = sourceDto.name ?? source.name;
 
     let priority = 0;

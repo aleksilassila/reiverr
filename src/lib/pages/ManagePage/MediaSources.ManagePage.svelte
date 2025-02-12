@@ -9,15 +9,12 @@
 	import { get } from 'svelte/store';
 	import { createErrorNotification } from '../../components/Notifications/notification.store';
 	import MediaSourceButton from './MediaSourceButton.ManagePage.svelte';
+	import { scrollIntoView } from '$lib/selectable';
+	import { mediaSourcesDataStore } from '$lib/stores/data.store';
 
 	const allPlugins = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
-	let userSources = getUserMediaSources();
 
-	function getUserMediaSources() {
-		return reiverrApiNew.users
-			.findUserById($user?.id || '')
-			.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? []);
-	}
+	const { promise: userSources } = mediaSourcesDataStore.getRequest();
 
 	async function addSource(pluginId: string) {
 		const userId = get(user)?.id;
@@ -27,12 +24,12 @@
 			return;
 		}
 
-		await reiverrApiNew.users.updateSource(userId, { pluginId, enabled: false });
-		userSources = getUserMediaSources();
+		await reiverrApiNew.users.updateSource(userId, { pluginId });
+		await mediaSourcesDataStore.refresh();
 	}
 </script>
 
-<div>
+<Container on:enter={scrollIntoView({ vertical: 128 })}>
 	<div class="mb-8">
 		<h1 class="h3 mb-1">Media Soruces</h1>
 		<p class="body">
@@ -41,7 +38,7 @@
 		</p>
 	</div>
 	<Container class="flex flex-col gap-4 mb-4 max-w-sm">
-		{#await userSources then userSources}
+		{#await $userSources then userSources}
 			{#each userSources as source}
 				<MediaSourceButton mediaSource={source} />
 			{/each}
@@ -62,4 +59,4 @@
 			Add Source
 		</Button>
 	{/await}
-</div>
+</Container>

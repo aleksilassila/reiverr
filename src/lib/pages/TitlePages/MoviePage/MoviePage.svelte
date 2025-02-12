@@ -51,10 +51,10 @@
 
 	const { promise: tmdbMovie } = tmdbMovieDataStore.getRequest(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
-	const { promise: jellyfinItemP } = useRequest(
-		(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
-		id
-	);
+	// const { promise: jellyfinItemP } = useRequest(
+	// 	(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),
+	// 	id
+	// );
 
 	// function getStreams() {
 	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
@@ -76,8 +76,8 @@
 	// 	tmdbId
 	// );
 
-	let radarrItem = radarrApi.getMovieByTmdbId(tmdbId);
-	$: radarrDownloads = getDownloads(radarrItem);
+	// let radarrItem = radarrApi.getMovieByTmdbId(tmdbId);
+	// $: radarrDownloads = getDownloads(radarrItem);
 	// $: radarrFiles = getFiles(radarrItem);
 
 	// const { requests, isFetching, data } = useActionRequests({
@@ -115,34 +115,34 @@
 		});
 	}
 
-	async function getDownloads(item: typeof radarrItem) {
-		return item.then((item) => (item ? radarrApi.getDownloadsById(item?.id || -1) : []));
-	}
+	// async function getDownloads(item: typeof radarrItem) {
+	// 	return item.then((item) => (item ? radarrApi.getDownloadsById(item?.id || -1) : []));
+	// }
 
-	function handleAddedToRadarr() {
-		radarrItem = radarrApi.getMovieByTmdbId(tmdbId);
-		radarrItem.then(
-			(radarrItem) =>
-				radarrItem && createModal(MovieMediaManagerModal, { radarrItem, onGrabRelease })
-		);
-	}
+	// function handleAddedToRadarr() {
+	// 	radarrItem = radarrApi.getMovieByTmdbId(tmdbId);
+	// 	radarrItem.then(
+	// 		(radarrItem) =>
+	// 			radarrItem && createModal(MovieMediaManagerModal, { radarrItem, onGrabRelease })
+	// 	);
+	// }
 
-	const onGrabRelease = () => setTimeout(() => (radarrDownloads = getDownloads(radarrItem)), 8000);
+	// const onGrabRelease = () => setTimeout(() => (radarrDownloads = getDownloads(radarrItem)), 8000);
 
-	async function handleRequest() {
-		return radarrItem.then((radarrItem) => {
-			if (radarrItem) createModal(MovieMediaManagerModal, { radarrItem, onGrabRelease });
-			else
-				return $tmdbMovie.then((tmdbMovie) => {
-					createModal(MMAddToRadarrDialog, {
-						title: tmdbMovie?.title || '',
-						tmdbId,
-						backdropUri: tmdbMovie?.backdrop_path || '',
-						onComplete: handleAddedToRadarr
-					});
-				});
-		});
-	}
+	// async function handleRequest() {
+	// 	return radarrItem.then((radarrItem) => {
+	// 		if (radarrItem) createModal(MovieMediaManagerModal, { radarrItem, onGrabRelease });
+	// 		else
+	// 			return $tmdbMovie.then((tmdbMovie) => {
+	// 				createModal(MMAddToRadarrDialog, {
+	// 					title: tmdbMovie?.title || '',
+	// 					tmdbId,
+	// 					backdropUri: tmdbMovie?.backdrop_path || '',
+	// 					onComplete: handleAddedToRadarr
+	// 				});
+	// 			});
+	// 	});
+	// }
 
 	// function createConfirmDeleteSeasonDialog(files: MovieFileResource[]) {
 	// 	createModal(ConfirmDialog, {
