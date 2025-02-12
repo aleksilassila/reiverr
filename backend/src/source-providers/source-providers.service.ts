@@ -45,13 +45,18 @@ export class SourceProvidersService {
 
     for (const pluginPath of pluginPaths) {
       try {
+        const supportedPluginVersion = getReiverrPluginVersion();
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const pluginModule = require(pluginPath);
         const provider: PluginProvider =
           new pluginModule.default() as PluginProvider;
         provider.getPlugins().forEach((plugin) => {
-          if (plugin._isCompatibleWith(getReiverrPluginVersion())) {
+          if (plugin._isCompatibleWith(supportedPluginVersion)) {
             plugins[plugin.name] = plugin;
+          } else {
+            this.logger.warn(
+              `Plugin ${plugin.name}@${plugin._getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
+            );
           }
         });
       } catch (e) {

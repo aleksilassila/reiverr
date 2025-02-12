@@ -141,11 +141,14 @@ export abstract class SourceProvider {
     options: { context: UserContext; uri: string; targetUrl?: string },
   ) => Promise<any>;
 
+  _getPluginVersion(): string {
+    return getReiverrPluginVersion();
+  }
+
   _isCompatibleWith(version: string): boolean {
     const pluginVersion = getReiverrPluginVersion();
     const pluginVersionParts = pluginVersion.split('.');
     const versionParts = version.split('.');
-    console.log('comparing versions', pluginVersion, version);
 
     if (
       !pluginVersionParts.length ||
