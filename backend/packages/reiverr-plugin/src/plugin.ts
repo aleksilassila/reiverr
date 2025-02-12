@@ -11,6 +11,7 @@ import {
   Stream,
   StreamCandidate,
 } from './types';
+import * as packageJson from '../package.json';
 
 /**
  * PluginProvider is a class that provides a list of SourceProvider instances.
@@ -139,4 +140,27 @@ export abstract class SourceProvider {
     res: any,
     options: { context: UserContext; uri: string; targetUrl?: string },
   ) => Promise<any>;
+
+  _isCompatibleWith(version: string): boolean {
+    const pluginVersion = getReiverrPluginVersion();
+    const pluginVersionParts = pluginVersion.split('.');
+    const versionParts = version.split('.');
+    console.log('comparing versions', pluginVersion, version);
+
+    if (
+      !pluginVersionParts.length ||
+      pluginVersionParts.length !== versionParts.length
+    ) {
+      return false;
+    }
+
+    return (
+      pluginVersionParts[0] === versionParts[0] &&
+      Number(pluginVersionParts[1]) >= Number(versionParts[1])
+    );
+  }
+}
+
+export function getReiverrPluginVersion(): string {
+  return packageJson.version;
 }

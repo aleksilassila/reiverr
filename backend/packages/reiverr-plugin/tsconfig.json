@@ -14,7 +14,8 @@
     "incremental": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
-    "lib": ["es6"]
+    "lib": ["es6"],
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "package.json"]
 }

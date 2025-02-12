@@ -1,12 +1,9 @@
 {
   "name": "@aleksilassila/reiverr-plugin",
-  "version": "1.0.0",
-  "main": "dist/index",
+  "version": "2.0.0",
+  "main": "dist/src/index",
   "scripts": {
-    "build": "tsc",
-    "publish:patch": "npm version patch && npm publish",
-    "publish:minor": "npm version minor && npm publish",
-    "publish:major": "npm version major && npm publish"
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",

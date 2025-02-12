@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PluginProvider, SourceProvider } from '@aleksilassila/reiverr-plugin';
+import {
+  PluginProvider,
+  SourceProvider,
+  getReiverrPluginVersion,
+} from '@aleksilassila/reiverr-plugin';
 
 @Injectable()
 export class SourceProvidersService {
@@ -43,9 +47,12 @@ export class SourceProvidersService {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const pluginModule = require(pluginPath);
-        const provider: PluginProvider = new pluginModule.default();
+        const provider: PluginProvider =
+          new pluginModule.default() as PluginProvider;
         provider.getPlugins().forEach((plugin) => {
-          plugins[plugin.name] = plugin;
+          if (plugin._isCompatibleWith(getReiverrPluginVersion())) {
+            plugins[plugin.name] = plugin;
+          }
         });
       } catch (e) {
         this.logger.error(`Failed to load plugin from ${pluginPath}: ${e}`);
