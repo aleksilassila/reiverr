@@ -13,6 +13,10 @@ export class SourceProvidersService {
   private providers: Record<string, SourceProvider> = {};
 
   constructor() {
+    this.logger.log(
+      'Using Reiverr plugin API version ' + getReiverrPluginVersion(),
+    );
+
     this.providers = {
       ...this.loadPlugins(path.join(require.main.path, '..', '..', 'packages')),
       ...this.loadPlugins(path.join(require.main.path, '..', '..', 'plugins')),
