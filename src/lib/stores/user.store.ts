@@ -52,6 +52,8 @@ function useUser() {
 				}) ?? []
 		);
 
+		out.sort((a, b) => a.source.priority - b.source.priority);
+
 		sources.set(out);
 		initializedStores.update((i) => ({ ...i, sources: i.user }));
 	});

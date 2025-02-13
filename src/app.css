@@ -107,6 +107,10 @@ html[data-useragent*='Tizen'] .selectable-secondary {
 	@apply font-medium text-lg text-secondary-300;
 }
 
+.h-ghost {
+	@apply text-2xl font-semibold text-secondary-500;
+}
+
 .error {
 	@apply text-red-500;
 }

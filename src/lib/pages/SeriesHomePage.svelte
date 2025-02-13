@@ -10,6 +10,7 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../selectable';
 	import { formatDateToYearMonthDay } from '../utils';
+	import Container from '$lib/components/Container.svelte';
 
 	const { ...libraryData } = libraryItemsDataStore.getRequest();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
@@ -69,13 +70,13 @@
 </script>
 
 <DetachedPage class="flex flex-col relative">
-	<div class="h-[calc(100vh-12rem)] flex px-32">
+	<Container class="h-[calc(100vh-12rem)] flex px-32" on:enter={scrollIntoView({ top: 0 })}>
 		<TmdbSeriesHeroShowcase
 			series={recommendations.then(({ top10 }) =>
 				top10.length ? top10 : upcomingSeries.then((s) => s.slice(0, 10))
 			)}
 		/>
-	</div>
+	</Container>
 	<div class="my-16 space-y-8 relative z-10">
 		{#if $libraryContinueWatching.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>

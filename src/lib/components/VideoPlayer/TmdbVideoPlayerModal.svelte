@@ -2,6 +2,7 @@
 	import type { StreamDto, SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 	import {
 		episodeUserDataStore,
+		libraryItemsDataStore,
 		movieUserDataStore,
 		seriesUserDataStore,
 		tmdbMovieDataStore,
@@ -223,6 +224,7 @@
 			} else {
 				movieUserDataStore.refresh(tmdbId);
 			}
+			libraryItemsDataStore.refresh();
 		});
 	});
 </script>

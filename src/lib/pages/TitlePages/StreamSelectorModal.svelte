@@ -41,10 +41,22 @@
 />
 
 <Modal {modalId}>
-	<Container class="h-screen py-16 px-32 bg-primary-800 space-y-8 overflow-y-auto">
+	<Container
+		class="h-screen py-16 px-32 bg-primary-800 space-y-8 overflow-y-auto flex flex-col"
+		on:back={(e) => {
+			if (selectedSource !== undefined) {
+				selectedSource = undefined;
+				e.detail.stopPropagation();
+			}
+		}}
+	>
 		{#if !selectedSource}
 			{#each $sources as { source }}
-				<Container on:clickOrSelect={() => selectSource(source)} let:hasFocus>
+				<Container
+					on:clickOrSelect={() => selectSource(source)}
+					let:hasFocus
+					class="cursor-pointer"
+				>
 					<span
 						class={classNames('text-3xl font-semibold flex items-center', {
 							'text-secondary-400': !hasFocus,
@@ -57,17 +69,20 @@
 						{/if}
 					</span>
 				</Container>
+			{:else}
+				<div class="h-ghost m-auto">No sources available</div>
 			{/each}
 		{:else}
 			{@const s = selectedSource}
 			{#await streams[selectedSource.id]}
-				Loading...
+				<h1 class="h-ghost m-auto">Loading...</h1>
 			{:then streams}
 				{#each streams ?? [] as stream}
 					<Container
 						on:clickOrSelect={() => selectStream(s, stream)}
 						on:enter={scrollIntoView({ vertical: 64 })}
 						let:hasFocus
+						class="cursor-pointer"
 					>
 						<span
 							class={classNames('text-3xl font-semibold flex items-center', {
@@ -84,6 +99,8 @@
 							{stream.properties?.map((p) => `${p.label}: ${p.formatted || p.value}`).join(', ')}
 						</span>
 					</Container>
+				{:else}
+					<div class="h-ghost m-auto">No streams available</div>
 				{/each}
 			{/await}
 		{/if}
