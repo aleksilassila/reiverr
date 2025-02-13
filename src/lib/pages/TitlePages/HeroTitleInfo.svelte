@@ -42,6 +42,6 @@
 	{/each}
 </div>
 
-<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
+<div class="body line-clamp-3 opacity-75 max-w-4xl mt-4">
 	{overview}
 </div>

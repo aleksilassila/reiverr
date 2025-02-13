@@ -8,6 +8,7 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '../selectable';
+	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
 	export let id: string;
 	$: person = tmdbApi.getPerson(Number(id));
@@ -30,6 +31,32 @@
 			);
 		}
 	});
+
+	let infoProperties: { href?: string; label: string }[] = [];
+	$: {
+		person.then((person) => {
+			if (person.birthday) {
+				infoProperties.push({
+					label: `Born ${new Date(person.birthday).toLocaleDateString('en-US', {
+						year: 'numeric',
+						month: 'long',
+						day: 'numeric'
+					})} (${Math.floor(
+						(new Date().getTime() - new Date(person.birthday).getTime()) / 1000 / 60 / 60 / 24 / 365
+					)} years old)`
+				});
+			}
+
+			if (person.movie_credits.cast?.length || person.tv_credits.cast?.length) {
+				infoProperties.push({
+					label: `${
+						(person.movie_credits.cast?.length || 0) + (person.tv_credits.cast?.length || 0)
+					} Credits`,
+					href: `https://www.themoviedb.org/person/${id}`
+				});
+			}
+		});
+	}
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
@@ -48,39 +75,11 @@
 				/>
 
 				<div class="flex flex-col justify-end">
-					<div
-						class={classNames(
-							'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
-							{
-								'text-4xl sm:text-5xl 2xl:text-6xl': person.name?.length || 0 < 15,
-								'text-3xl sm:text-4xl 2xl:text-5xl': person.name?.length || 0 >= 15
-							}
-						)}
-					>
-						{person.name}
-					</div>
-					<div
-						class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
-					>
-						<p class="flex-shrink-0">
-							Born {new Date(person.birthday || 0).toLocaleDateString('en-US', {
-								year: 'numeric',
-								month: 'long',
-								day: 'numeric'
-							})}
-						</p>
-						<!-- <DotFilled />
-													<p class="flex-shrink-0">{movie.runtime}</p> -->
-						<DotFilled />
-						<p class="flex-shrink-0">
-							<a href={'https://www.themoviedb.org/person/' + id}>
-								{(person.movie_credits.cast?.length || 0) + (person.tv_credits.cast?.length || 0)} Credits</a
-							>
-						</p>
-					</div>
-					<div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4 text-lg">
-						{person.biography}
-					</div>
+					<HeroTitleInfo
+						title={person.name ?? ''}
+						overview={person.biography ?? ''}
+						properties={infoProperties}
+					/>
 				</div>
 			</div>
 
