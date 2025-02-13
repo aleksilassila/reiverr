@@ -30,7 +30,7 @@
     "typeorm:revert-migration": "npm run typeorm -- -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
-    "@aleksilassila/reiverr-plugin": "^1.0.0",
+    "@aleksilassila/reiverr-plugin": "*",
     "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.11",
     "@nestjs/cache-manager": "^2.3.0",
     "@nestjs/common": "^10.0.0",
