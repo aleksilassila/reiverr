@@ -6,20 +6,15 @@
 ![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
 ![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
 
-Reiverr is a project that aims to create a single UI for interacting with TMDB, streaming content
-from various sources and be an alternative to Overseerr.
+Reiverr is a project that aims to create a single UI for interacting with TMDB, streaming content from various sources and be an alternative to Overseerr.
 
-This project is still in early stages, and many features are still missing / being tested and changed.
-Contributions are welcome! See [contributing](#Contributing) for more information.
+This project is still in early stages, and many features are still missing / being tested and changed. Contributions are welcome! See [contributing](#Contributing) for more information.
 
 ![Demo Video](images/reiverr-demo.gif)
 
 ## Reiverr 1.0
 
-This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind.
-It still lacks many features of the previous version. If you want a more stable experience,
-or only care about the web app, you might want to check out the
-[1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
+This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind. It still lacks many features of the previous version. If you want a more stable experience, or only care about the web app, you might want to check out the [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
 
 # List of major features
 
@@ -95,11 +90,9 @@ services:
 
 ### Tizen / Samsung Smart TVs
 
-To be able to use Reiverr on TVs, you'll still need to host the backend server on a separate device.
-See the above methods for instructions on how to set up the backend / web app.
+To be able to use Reiverr on TVs, you'll still need to host the backend server on a separate device. See the above methods for instructions on how to set up the backend / web app.
 
-There are plans to attempt getting the app to the official store. In the meantime, you have to manually build and install
-the app using Tizen Studio or the CLI, following roughly these steps:
+There are plans to attempt getting the app to the official store. In the meantime, you have to manually build and install the app using Tizen Studio or the CLI, following roughly these steps:
 
 1. Follow the manual installation steps above to install the dependencies (npm install)
 2. Download either Tizen Studio or the CLI tools from the [official website](https://developer.tizen.org/development/tizen-studio/download)
@@ -112,10 +105,7 @@ the app using Tizen Studio or the CLI, following roughly these steps:
    \
    Alternatively, you can open the project in Tizen Studio and install the project on a device from there. For more instructions on run a project on a device, see [here](https://docs.tizen.org/application/web/get-started/tv/first-samsung-tv-app/#run-on-a-target-device).
 
-If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions),
-open an [issue](https://github.com/aleksilassila/reiverr/issues)
-or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented,
-you can react to it with a thumbs up.
+If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions), open an [issue](https://github.com/aleksilassila/reiverr/issues) or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
 
 ## Other Platforms
 
@@ -127,42 +117,27 @@ The roadmap includes plans to support the following platforms in the future:
 
 # Post Installation
 
-To create the first user account, you can log in with any credentials and an admin account will be created.
-Alternatively, you can define the admin username and password using environment variables,
-as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
+To create the first user account, you can log in with any credentials and an admin account will be created. Alternatively, you can define the admin username and password using environment variables, as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
 
-To get access to media playback, connect to plugins by adding media sources in the settings.
-Additional plugins can be installed by dropping them in the `/plugins` folder.
-To get most out of Reiverr, it is recommended to also connect to TMDB.
+To get access to media playback, connect to plugins by adding media sources in the settings. Additional plugins can be installed by dropping them in the `/plugins` folder. To get most out of Reiverr, it is recommended to also connect to TMDB.
 
 > Hint: Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
 
 # Contributing
 
-Unlike the most Servarr projects, this one is built with Svelte and NestJS. If you haven't used Svelte before,
-don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to
-get started.
+Unlike the most Servarr projects, this one is built with Svelte and NestJS. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
 
-To see a list of missing features & known bugs that you can help with,
-see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7). Feel free to also create your own
-issues for bug reports or feature requests, as well as discussions for general questions.
-Issues with the `community` label are issues that I can't or won't work on myself, and are
-left for the community to pick up. Feel free to work on any issues though, even without the label.
+To see a list of missing features & known bugs that you can help with, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7). Feel free to also create your own issues for bug reports or feature requests, as well as discussions for general questions. Issues with the `community` label are issues that I can't or won't work on myself, and are left for the community to pick up. Feel free to work on any issues though, even without the label.
 
 Before you contribute:
 
-- If you are taking on an existing bug or feature ticket, it is encouraged to comment on the issue or mark yourself
-  as an assignee at some point to avoid multiple people working on the same thing.
+- If you are taking on an existing bug or feature ticket, it is encouraged to comment on the issue or mark yourself as an assignee at some point to avoid multiple people working on the same thing.
 - If the ticket is vague or missing information, please ask for clarification in the comments.
-- UI style should match the rest of the project, and it is a good idea to discuss the design beforehand,
-  especially for larger design choices (issues labelled with `design`).
+- UI style should match the rest of the project, and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with `design`).
 - [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
-- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is
-  a work in progress.
+- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
 
-I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them.
-If you are a designer and would like to help, contributions are much appreciated! Also the project
-is still missing a logo :)
+I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated! Also the project is still missing a logo :)
 
 # Development
 
@@ -178,33 +153,19 @@ To get started with development:
 
 ## Notes
 
-- 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc.
-  [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource
-  for how to design for TVs.
-- The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that
-  you might not be able to use the latest browser features, or that you'll have to use a polyfill.
-  [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
-  - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is
-    css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
+- 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc. [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource for how to design for TVs.
+- The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that you might not be able to use the latest browser features, or that you'll have to use a polyfill. [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
+  - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
 
 ## Plugins
 
-If you'd like to develop your own plugin, easiest way to get started
-is by getting your hands dirty and checking how things are done in
-the built-in plugins. Couple of things to note:
+If you'd like to develop your own plugin, easiest way to get started is by getting your hands dirty and checking how things are done in the built-in plugins. Couple of things to note:
 
-- Plugins have to implement (and default export) the `PluginProvider`
-  class that can be imported from the [](backend/packages/reiverr-plugin)
-  package.
-  - To install the
-    [reiverr-plugin package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin) from Github's npm registry, follow the steps outlined here:
-    [Working with the Github npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
-    (you'll need a .npmrc file)
-  - The built-in packages use npm workspaces, which doesn't work if
-    you're developing outisde of the repository
-- For a better understanding of the anatomy of a plugin, see the documentation
-  in the following file:
-  [reiverr-plugin/src/plugin.ts](backend/packages/reiverr-plugin/src/plugin.ts)
+- Plugins are npm packages, that contain a `package.json` in a folder with `.plugin` extension.
+- Plugins have to implement (and default export) the `PluginProvider` class that can be imported from the [](backend/packages/reiverr-plugin) package.
+  - To install the [reiverr-plugin package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin) from Github's npm registry, follow the steps outlined here: [Working with the Github npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package) (you'll need a .npmrc file and an access token to a Github account)
+  - The built-in packages use npm workspaces, which doesn't work if you're developing outisde of the repository
+- For a better understanding of the anatomy of a plugin, see the documentation in the following file: [reiverr-plugin/src/plugin.ts](backend/packages/reiverr-plugin/src/plugin.ts)
 
 ## Useful resources
 

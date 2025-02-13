@@ -112,15 +112,21 @@ class EngineCache {
 
     const promise = new Promise<TorrentStream.TorrentEngine>((res, rej) => {
       const engine = torrentStream(magnetLink, {
-        tmp:
-          process.env.TORRENT_STREAM_DOWNLOADS ||
-          path.join(__dirname, '..', '..', 'torrent-stream-downloads'),
+        tmp: process.env.TORRENT_STREAM_DOWNLOADS?.startsWith('/')
+          ? process.env.TORRENT_STREAM_DOWNLOADS
+          : path.join(
+              __dirname,
+              '..',
+              '..',
+              process.env.TORRENT_STREAM_DOWNLOADS ??
+                'torrent-stream-downloads',
+            ),
       });
       engine.on('ready', () => {
         res(engine);
       });
-      engine.on('download', (e) => console.log('onDownload', magnetLink, e));
-      engine.on('upload', (e) => console.log('onUpload', magnetLink, e));
+      engine.on('download', (e) => console.info('onDownload', magnetLink, e));
+      engine.on('upload', (e) => console.info('onUpload', magnetLink, e));
     });
 
     this.engineCache[magnetLink] = promise;
