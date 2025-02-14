@@ -105,8 +105,10 @@
 {#if import.meta.env.DEV}
 	<NavigationDebugger />
 {/if}
-<svelte:window
+<!-- <svelte:window
 	on:keydown={handleKeyboardNavigation}
 	on:error={handleError}
 	on:unhandledrejection={handleError}
-/>
+/> -->
+
+<svelte:window on:keydown={handleKeyboardNavigation} on:error={handleError} />

@@ -9,7 +9,7 @@
     "build": "npm run build -w packages/reiverr-plugin && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "set NODE_ENV=development&& nest start --watch",
+    "start:dev": "export NODE_ENV=development || set NODE_ENV=development&& nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "npm run typeorm:run-migrations && node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

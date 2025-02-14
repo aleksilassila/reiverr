@@ -1,11 +1,5 @@
-import { derived, get, type Readable, writable } from 'svelte/store';
-import { jellyfinApi } from '../apis/jellyfin/jellyfin-api';
-import {
-	tmdbApi,
-	type TmdbMovieFull2,
-	type TmdbSeries2,
-	type TmdbSeriesFull2
-} from '../apis/tmdb/tmdb-api';
+import { derived, get, writable } from 'svelte/store';
+import { tmdbApi, type TmdbMovieFull2, type TmdbSeriesFull2 } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
 
 type AwaitableStoreValue<TData> = {
@@ -14,86 +8,7 @@ type AwaitableStoreValue<TData> = {
 	promise: Promise<TData>;
 };
 
-export const useDependantRequest = <P extends (...args: A) => Promise<any>, A extends any[], S>(
-	fn: P,
-	store: Readable<S>,
-	subscribeFn: (store: S) => Parameters<P> | undefined
-) => {
-	const isLoading = writable(true);
-	const r = useActionRequest<P, A>(fn);
-
-	store.subscribe(($data) => {
-		const args = subscribeFn($data);
-		if (!args) return;
-		r.send(...args).finally(() => isLoading.set(false));
-	});
-
-	return {
-		...r,
-		refresh: r.send,
-		isLoading: {
-			subscribe: isLoading.subscribe
-		}
-	};
-};
-
-export const useRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
-	fn: P,
-	...args: Parameters<P>
-) => {
-	const isLoading = writable(true);
-	const r = useActionRequest<P, A>(fn);
-
-	r.send(...args).finally(() => isLoading.set(false));
-
-	return {
-		...r,
-		refresh: r.send,
-		isLoading: {
-			subscribe: isLoading.subscribe
-		}
-	};
-};
-
-export const useActionRequest = <P extends (...args: A) => Promise<any>, A extends any[]>(
-	fn: P
-) => {
-	const request = writable<ReturnType<P>>(undefined);
-	const data = writable<Awaited<ReturnType<P>> | undefined>(undefined);
-	const isFetching = writable(false);
-
-	function send(...args: Parameters<P>): ReturnType<P> {
-		isFetching.set(true);
-		// @ts-ignore
-		const p: ReturnType<P> = fn(...args)
-			.then((res) => {
-				data.set(res);
-				return res;
-			})
-			.finally(() => {
-				isFetching.set(false);
-			});
-
-		request.set(p);
-		return p;
-	}
-
-	return {
-		promise: {
-			subscribe: request.subscribe
-		},
-		data: {
-			subscribe: data.subscribe
-		},
-
-		isFetching: {
-			subscribe: isFetching.subscribe
-		},
-		send
-	};
-};
-
-export function useRequest3<TResponse>(fn: () => Promise<TResponse>) {
+export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 	async function _createPromise() {
 		return awaitAppInitialization().then(() => fn());
 	}
@@ -142,7 +57,7 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	fn: (...args: TArgs) => Promise<TResponse>,
 	options: { persistant?: boolean } = {}
 ) {
-	type Res = ReturnType<typeof useRequest3<TResponse>>;
+	type Res = ReturnType<typeof useRequest<TResponse>>;
 	const requests: Map<string, { subscribers: symbol[]; request: Res }> = new Map();
 
 	function subscribe(...args: TArgs): Res & { unsubscribe: () => void } {
@@ -150,7 +65,7 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 		let request = requests.get(JSON.stringify(args))?.request;
 
 		if (!request) {
-			request = useRequest3(() => fn(...args));
+			request = useRequest(() => fn(...args));
 			requests.set(JSON.stringify(args), {
 				subscribers: [id],
 				request
@@ -198,6 +113,9 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 
 export const tmdbMovieDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbMovie(id));
 export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
+export const tmdbEpisodeDataStore = useRequestsStore(
+	(tmdbId: number, season: number, episode: number) => tmdbApi.getEpisode(tmdbId, season, episode)
+);
 
 export const movieUserDataStore = useRequestsStore((id: string) =>
 	reiverrApiNew.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)

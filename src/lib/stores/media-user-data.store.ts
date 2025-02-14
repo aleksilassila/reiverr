@@ -226,6 +226,7 @@ export function useSeriesUserData(tmdbId: string) {
 	});
 
 	return {
+		tmdbSeries: tmdbSeriesRequest.promise,
 		...libraryStore,
 		...canStreamStore,
 		nextEpisode,

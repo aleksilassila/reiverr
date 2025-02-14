@@ -1,34 +1,23 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
-	import { Check, ExternalLink, Play, Plus, Trash } from 'radix-icons-svelte';
+	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import { jellyfinApi } from '../../apis/jellyfin/jellyfin-api';
-	import {
-		type EpisodeFileResource,
-		sonarrApi,
-		type SonarrEpisode,
-		type SonarrSeries
-	} from '../../apis/sonarr/sonarr-api';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../../components/Button.svelte';
 	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import ConfirmDialog from '../../components/Dialog/ConfirmDialog.svelte';
-	import ButtonGhost from '../../components/Ghosts/ButtonGhost.svelte';
-	import MMAddToSonarrDialog from '../../components/MediaManagerModal/MMAddToSonarrDialog.svelte';
-	import SonarrMediaManagerModal from '../../components/MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import { createModal } from '../../components/Modal/modal.store';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
-	import { formatThousands, retry } from '../../utils';
+	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
+	import { tmdbEpisodeDataStore } from '$lib/stores/data.store';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
-	// const streams = getStreams();
+	const { promise: tmdbEpisode, unsubscribe: unsubscribeTmdbEpisode } =
+		tmdbEpisodeDataStore.subscribe(Number(id), Number(season), Number(episode));
 
-	// const availableForStreaming = writable(false);
 	const {
 		progress,
 		handleAutoplay,
@@ -39,188 +28,29 @@
 		unsubscribe
 	} = useEpisodeUserData(id, Number(season), Number(episode));
 
-	// streams.forEach((p) =>
-	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
-	// );
-
-	// let isWatched = false;
-
-	const tmdbEpisode = tmdbApi.getEpisode(Number(id), Number(season), Number(episode));
-	// let sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
-	// $: sonarrEpisode = getSonarrEpisode(sonarrItem);
-	// let sonarrFiles = getFiles(sonarrItem, sonarrEpisode);
-
-	// const jellyfinSeries = jellyfinApi.getLibraryItemFromTmdbId(id);
-	// let jellyfinEpisode = jellyfinSeries.then((series) =>
-	// 	jellyfinApi.getEpisode(series?.Id || '', Number(season), Number(episode))
-	// );
-
 	let titleProperties: { href?: string; label: string }[] = [];
-	$: {
-		tmdbEpisode.then((episode) => {
-			if (episode?.vote_average) {
-				titleProperties.push({
-					label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
-						episode.vote_count ?? 0
-					)})`,
-					href: `https://www.themoviedb.org/tv/${id}/season/${season}/episode/${episode}`
-				});
-			}
-			if (episode?.runtime) {
-				titleProperties.push({ label: `${episode.runtime} Minutes` });
-			}
-		});
-	}
-
-	// const { send: toggleMarkAs, isFetching: markAsLoading } = useActionRequest(async () => {
-	// 	const episode = await jellyfinEpisode;
-
-	// 	const jellyfinId = episode?.Id;
-	// 	if (!jellyfinId) return;
-
-	// 	if (isWatched) {
-	// 		return jellyfinApi.markAsUnwatched(jellyfinId).then((ok) => (isWatched = !ok));
-	// 	} else {
-	// 		return jellyfinApi.markAsWatched(jellyfinId).then((ok) => (isWatched = ok));
-	// 	}
-	// });
-
-	// jellyfinEpisode.then((e) => {
-	// 	isWatched = e?.UserData?.Played || false;
-	// });
-
-	// function getStreams() {
-	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
-
-	// 	for (const source of get(sources)) {
-	// 		out.push({
-	// 			source: source.source,
-	// 			streams: episodeUserData.then((userData) => {
-	// 				const { season: s, episode: e } = userData.playState ?? {
-	// 					season: Number(season),
-	// 					episode: Number(episode)
-	// 				};
-
-	// 				return reiverrApiNew.sources
-	// 					.getEpisodeStreams(source.source.id, id, s ?? 1, e ?? 1)
-	// 					.then((r) => r.data?.streams ?? []);
-	// 			})
-	// 		});
-	// 	}
-
-	// 	return out;
-	// }
-
-	// async function getSonarrEpisode(sonarrItem: Promise<SonarrSeries | undefined>) {
-	// 	return sonarrItem.then((sonarrItem) => {
-	// 		if (!sonarrItem?.id) return;
-
-	// 		return sonarrApi
-	// 			.getEpisodes(sonarrItem.id, Number(season))
-	// 			.then((episodes) => episodes.find((e) => e.episodeNumber === Number(episode)));
-	// 	});
-	// }
-
-	// async function handleAddedToSonarr() {
-	// 	sonarrItem = sonarrApi.getSeriesByTmdbId(Number(id));
-	// 	return retry(() => getSonarrEpisode(sonarrItem)).then((sonarrEpisode) => {
-	// 		sonarrEpisode &&
-	// 			createModal(SonarrMediaManagerModal, {
-	// 				sonarrItem: sonarrEpisode,
-	// 				onGrabRelease: () => {}
-	// 			});
-	// 	});
-	// }
-
-	// async function handleRequestEpisode() {
-	// 	return Promise.all([sonarrEpisode, tmdbEpisode]).then(([sonarrEpisode, tmdbEpisode]) => {
-	// 		if (sonarrEpisode) {
-	// 			createModal(SonarrMediaManagerModal, {
-	// 				sonarrItem: sonarrEpisode,
-	// 				onGrabRelease: () => {} // TODO
-	// 			});
-	// 		} else if (tmdbEpisode) {
-	// 			createModal(MMAddToSonarrDialog, {
-	// 				tmdbId: Number(id),
-	// 				backdropUri: tmdbEpisode.still_path || '',
-	// 				title: tmdbEpisode.name || '',
-	// 				onComplete: handleAddedToSonarr
-	// 			});
-	// 		} else {
-	// 			console.error('No series found');
-	// 		}
-	// 	});
-	// }
-
-	// function createConfirmDeleteFiles(files: EpisodeFileResource[]) {
-	// 	createModal(ConfirmDialog, {
-	// 		header: 'Delete Season Files?',
-	// 		body: `Are you sure you want to delete all ${files.length} file(s)?`,
-	// 		confirm: () =>
-	// 			sonarrApi
-	// 				.deleteSonarrEpisodes(files.map((f) => f.id || -1))
-	// 				.then(() => (sonarrFiles = getFiles(sonarrItem, sonarrEpisode)))
-	// 	});
-	// }
-
-	// function getFiles(
-	// 	sonarrItem: Promise<SonarrSeries | undefined>,
-	// 	sonarrEpisode: Promise<SonarrEpisode | undefined>
-	// ) {
-	// 	return Promise.all([sonarrItem, sonarrEpisode]).then(([sonarrItem, sonarrEpisode]) => {
-	// 		if (!sonarrItem?.id) return [];
-	// 		return sonarrApi
-	// 			.getFilesBySeriesId(sonarrItem.id)
-	// 			.then((files) => files.filter((f) => sonarrEpisode?.episodeFileId === f.id));
-	// 	});
-	// }
-
-	// async function handlePlay() {
-	// 	const awaitedStreams = await Promise.all(
-	// 		streams.map(async (p) => ({ ...p, streams: await p.streams }))
-	// 	).then((d) => d.filter((p) => p.streams.length > 0));
-
-	// 	if (awaitedStreams.length > 1) {
-	// 		modalStack.create(SelectDialog, {
-	// 			title: 'Select Media Source',
-	// 			subtitle: 'Select the media source you want to use',
-	// 			options: awaitedStreams.map((p) => p.source.id),
-	// 			handleSelectOption: (sourceId) => {
-	// 				const s = awaitedStreams.find((p) => p.source.id === sourceId);
-	// 				const key = s?.streams[0]?.key;
-	// 				episodeUserData.then((userData) =>
-	// 					playerState.streamEpisode(
-	// 						id,
-	// 						userData.playState?.season ?? Number(season) ?? 1,
-	// 						userData.playState?.episode ?? Number(episode) ?? 1,
-	// 						{ userData, sourceId, key }
-	// 					)
-	// 				);
-	// 			}
-	// 		});
-	// 	} else if (awaitedStreams.length === 1) {
-	// 		const asd = awaitedStreams.find((p) => p.streams.length > 0);
-	// 		const sourceId = asd?.source.id;
-	// 		const key = asd?.streams[0]?.key;
-
-	// 		episodeUserData.then((userData) =>
-	// 			playerState.streamEpisode(
-	// 				id,
-	// 				userData.playState?.season ?? 1,
-	// 				userData.playState?.episode ?? 1,
-	// 				{ userData, sourceId, key }
-	// 			)
-	// 		);
-	// 	}
-	// }
+	$tmdbEpisode.then((episode) => {
+		if (episode?.vote_average) {
+			titleProperties.push({
+				label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
+					episode.vote_count ?? 0
+				)})`,
+				href: `https://www.themoviedb.org/tv/${id}/season/${season}/episode/${episode}`
+			});
+		}
+		if (episode?.runtime) {
+			titleProperties.push({ label: `${episode.runtime} Minutes` });
+		}
+	});
 
 	onDestroy(() => {
 		unsubscribe();
+		unsubscribeTmdbEpisode();
 	});
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
-	{#await tmdbEpisode then tmdbEpisode}
+	{#await $tmdbEpisode then tmdbEpisode}
 		<div
 			class="bg-center bg-cover absolute inset-x-0 h-screen -z-10"
 			style={`background-image: url('${TMDB_IMAGES_ORIGINAL + tmdbEpisode?.still_path}')`}
@@ -229,8 +59,6 @@
 			<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 			<div class="flex-1 bg-secondary-500" />
 		</div>
-
-		<!-- <HeroCarousel /> -->
 
 		<Container
 			on:back={handleGoBack}
@@ -241,52 +69,11 @@
 			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
 			</div>
-			<!-- <HeroInfoTitle title={tmdbEpisode?.name} /> -->
 			<TitleProperties
 				title={tmdbEpisode?.name ?? ''}
 				properties={titleProperties}
 				overview={tmdbEpisode?.overview ?? ''}
 			/>
-			<!-- <div
-				class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
-			> -->
-			<!--				<p class="flex-shrink-0">-->
-			<!--{#if series.status !== 'Ended'}-->
-			<!--	Since {new Date(series.first_air_date || Date.now())?.getFullYear()}-->
-			<!--{:else}-->
-			<!--	Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}-->
-			<!--{/if}-->
-			<!--				</p>-->
-			<!-- <DotFilled /> -->
-			<!-- {#if tmdbEpisode?.vote_average}
-					<p class="flex-shrink-0">
-						<a href={'https://www.themoviedb.org/movie/' + tmdbEpisode?.id}>
-							{tmdbEpisode?.vote_average} TMDB
-						</a>
-					</p>
-				{/if}
-				{#if tmdbEpisode?.runtime}
-					<DotFilled />
-					<p class="flex-shrink-0">{tmdbEpisode?.runtime} Minutes</p>
-				{/if}
-
-				{#await jellyfinEpisode then episode}
-					{#if episode?.MediaSources?.[0]?.Size}
-						<p class="flex-shrink-0">{formatSize(episode?.MediaSources?.[0]?.Size)}</p>
-					{/if}
-					{#if episode?.MediaSources?.[0]?.Size && episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
-						<DotFilled />
-					{/if}
-					{#if episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
-						<p class="flex-shrink-0">
-							{episode?.MediaSources?.[0]?.MediaStreams?.[0]?.DisplayTitle}
-						</p>
-					{/if}
-				{/await}
-			</div> -->
-			<!-- <div class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4">
-				{tmdbEpisode?.overview}
-			</div> -->
 			<Container direction="horizontal" class="flex mt-8 space-x-4">
 				<Button
 					class="mr-4"
@@ -306,38 +93,6 @@
 					{/if}
 					<Check slot="icon" size={19} />
 				</Button>
-				<!-- {#await Promise.all([jellyfinEpisode, sonarrEpisode])}
-					<ButtonGhost>Play</ButtonGhost>
-					<ButtonGhost>Manage Media</ButtonGhost>
-					<ButtonGhost>Delete Files</ButtonGhost>
-				{:then [jellyfinEpisode]}
-					{#if jellyfinEpisode?.MediaSources?.length}
-						<Button
-							on:clickOrSelect={() =>
-								jellyfinEpisode?.Id && playerState.streamJellyfinId(jellyfinEpisode.Id)}
-						>
-							Play
-							<Play size={19} slot="icon" />
-						</Button>
-					{:else}
-						<Button action={handleRequestEpisode}>
-							Request
-							<Plus size={19} slot="icon" />
-						</Button>
-					{/if}
-				{/await} -->
-				<!--				<Button-->
-				<!--					on:clickOrSelect={() =>-->
-				<!--						openEpisodeMediaManager(Number(id), Number(season), Number(episode))}-->
-				<!--					>Manage Media <File slot="icon" size={19} /></Button-->
-				<!--				>-->
-				<!-- {#await sonarrFiles then files}
-					{#if files?.length}
-						<Button on:clickOrSelect={() => createConfirmDeleteFiles(files)}>
-							Delete Files <Trash slot="icon" size={19} />
-						</Button>
-					{/if}
-				{/await} -->
 
 				{#if PLATFORM_WEB}
 					<Button>

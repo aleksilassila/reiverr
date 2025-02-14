@@ -10,10 +10,9 @@
 	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
-	import { tmdbSeriesDataStore, useRequest } from '$lib/stores/data.store';
+	import { tmdbSeriesDataStore } from '$lib/stores/data.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { formatThousands } from '$lib/utils';
-	import classNames from 'classnames';
 	import { Bookmark, ExternalLink, Minus, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import TitleProperties from '../HeroTitleInfo.svelte';
@@ -22,9 +21,8 @@
 	export let id: string;
 	const tmdbId = Number(id);
 
-	const { promise: tmdbSeries, ...tmdbSeriesData } = tmdbSeriesDataStore.subscribe(tmdbId);
-
 	const {
+		tmdbSeries,
 		inLibrary,
 		handleAddToLibrary,
 		handleRemoveFromLibrary,
@@ -36,207 +34,38 @@
 		unsubscribe
 	} = useSeriesUserData(id);
 
-	// const streams = getStreams();
-	// streams.forEach((p) =>
-	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
-	// );
-
-	// let tmdbSeasons = $tmdbSeries.then((series) =>
-	// 	tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
-	// );
-	const { promise: recommendations } = useRequest(tmdbApi.getSeriesRecommendations, tmdbId);
-	// let sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
-
-	// $: sonarrDownloads = getDownloads(sonarrItem);
-	// $: sonarrFiles = getFiles(sonarrItem);
-	// $: sonarrSeasonNumbers = Promise.all([sonarrFiles, sonarrDownloads]).then(
-	// 	([files, downloads]) => [
-	// 		...new Set(files.map((item) => item.seasonNumber || -1)),
-	// 		...new Set(downloads.map((item) => item.seasonNumber || -1))
-	// 	]
-	// );
-	// $: sonarrEpisodes = Promise.all([sonarrItem, sonarrSeasonNumbers])
-	// 	.then(([item, seasons]) =>
-	// 		Promise.all(seasons.map((s) => sonarrApi.getEpisodes(item?.id || -1, s)))
-	// 	)
-	// 	.then((items) => items.flat());
-
-	// const jellyfinSeries = getJellyfinSeries(id);
-
-	// const jellyfinEpisodes = jellyfinSeries.then(
-	// 	(s) => (s && jellyfinApi.getJellyfinEpisodes(s.Id)) || []
-	// );
-
-	// const nextJellyfinEpisode = jellyfinEpisodes.then((items) =>
-	// 	items.find((i) => i.UserData?.Played === false)
-	// );
+	$: recommendations = tmdbApi.getSeriesRecommendations(tmdbId);
 
 	const episodeCards = useRegistrar();
 	let scrollTop: number;
 
 	let titleProperties: { href?: string; label: string }[] = [];
-	$: {
-		$tmdbSeries.then((series) => {
-			if (series && series.status !== 'Ended') {
-				titleProperties.push({
-					label: `Since ${new Date(series.first_air_date || Date.now())?.getFullYear()}`
-				});
-			} else if (series) {
-				titleProperties.push({
-					label: `Ended ${new Date(series.last_air_date || Date.now())?.getFullYear()}`
-				});
-			}
+	$tmdbSeries.then((series) => {
+		if (series && series.status !== 'Ended') {
+			titleProperties.push({
+				label: `Since ${new Date(series.first_air_date || Date.now())?.getFullYear()}`
+			});
+		} else if (series) {
+			titleProperties.push({
+				label: `Ended ${new Date(series.last_air_date || Date.now())?.getFullYear()}`
+			});
+		}
 
-			if (series?.vote_average) {
-				titleProperties.push({
-					label: `${series.vote_average.toFixed(1)} TMDB (${formatThousands(
-						series.vote_count ?? 0
-					)})`,
-					href: `https://www.themoviedb.org/tv/${id}`
-				});
-			}
+		if (series?.vote_average) {
+			titleProperties.push({
+				label: `${series.vote_average.toFixed(1)} TMDB (${formatThousands(
+					series.vote_count ?? 0
+				)})`,
+				href: `https://www.themoviedb.org/tv/${id}`
+			});
+		}
 
-			if (series?.genres) {
-				titleProperties.push({
-					label: series.genres.map((g) => g.name).join(', ')
-				});
-			}
-		});
-	}
-
-	// let hideInterface = false;
-	// modalStack.top.subscribe((modal) => {
-	// 	hideInterface = !!modal;
-	// });
-
-	// function getStreams() {
-	// 	const out: { source: MediaSource; streams: Promise<VideoStreamCandidateDto[]> }[] = [];
-
-	// 	for (const source of get(sources)) {
-	// 		out.push({
-	// 			source: source.source,
-	// 			streams: showUserData.then((userData) => {
-	// 				const { season, episode } = userData.playState ?? {};
-
-	// 				return reiverrApiNew.sources
-	// 					.getEpisodeStreams(source.source.id, id, season ?? 1, episode ?? 1)
-	// 					.then((r) => r.data?.streams ?? []);
-	// 			})
-	// 		});
-	// 	}
-
-	// 	return out;
-	// }
-
-	// function getJellyfinSeries(id: string) {
-	// 	return jellyfinApi.getLibraryItemFromTmdbId(id);
-	// }
-
-	// const onGrabRelease = () => setTimeout(() => (sonarrDownloads = getDownloads(sonarrItem)), 8000);
-
-	// function handleAddedToSonarr() {
-	// 	sonarrItem = sonarrApi.getSeriesByTmdbId(tmdbId);
-	// 	sonarrItem.then(
-	// 		(sonarrItem) =>
-	// 			sonarrItem &&
-	// 			createModal(SonarrMediaManagerModal, {
-	// 				season: 1,
-	// 				sonarrItem,
-	// 				onGrabRelease
-	// 			})
-	// 	);
-	// }
-
-	// async function handleRequestSeason(season: number) {
-	// 	return sonarrItem.then((sonarrItem) => {
-	// 		const tmdbSeries = get(tmdbSeriesData);
-	// 		if (sonarrItem) {
-	// 			createModal(SonarrMediaManagerModal, {
-	// 				season,
-	// 				sonarrItem,
-	// 				onGrabRelease
-	// 			});
-	// 		} else if (tmdbSeries) {
-	// 			createModal(MmAddToSonarrDialog, {
-	// 				title: tmdbSeries.name || '',
-	// 				tmdbId: tmdbSeries.id || -1,
-	// 				backdropUri: tmdbSeries.backdrop_path || '',
-	// 				onComplete: handleAddedToSonarr
-	// 			});
-	// 		} else {
-	// 			console.error('No series found');
-	// 		}
-	// 	});
-	// }
-
-	// async function getFiles(item: typeof sonarrItem) {
-	// 	return item.then((item) => (item ? sonarrApi.getFilesBySeriesId(item?.id || -1) : []));
-	// }
-
-	// async function getDownloads(item: typeof sonarrItem) {
-	// 	return item.then((item) => (item ? sonarrApi.getDownloadsBySeriesId(item?.id || -1) : []));
-	// }
-
-	// function createConfirmDeleteSeasonDialog(files: EpisodeFileResource[]) {
-	// 	createModal(ConfirmDialog, {
-	// 		header: 'Delete Season Files?',
-	// 		body: `Are you sure you want to delete all ${files.length} file(s) from season ${files[0]?.seasonNumber}?`,
-	// 		confirm: () =>
-	// 			sonarrApi
-	// 				.deleteSonarrEpisodes(files.map((f) => f.id || -1))
-	// 				.then(() => (sonarrFiles = getFiles(sonarrItem)))
-	// 	});
-	// }
-
-	// function createConfirmCancelDownloadsDialog(downloads: EpisodeDownload[]) {
-	// 	createModal(ConfirmDialog, {
-	// 		header: 'Cancel Season Downloads?',
-	// 		body: `Are you sure you want to cancel all ${downloads.length} download(s) from season ${downloads[0]?.seasonNumber}?`,
-	// 		confirm: () =>
-	// 			sonarrApi
-	// 				.cancelDownloads(downloads.map((f) => f.id || -1))
-	// 				.then(() => (sonarrDownloads = getDownloads(sonarrItem)))
-	// 	});
-	// }
-
-	// async function handlePlay() {
-	// 	const awaitedStreams = await Promise.all(
-	// 		streams.map(async (p) => ({ ...p, streams: await p.streams }))
-	// 	).then((d) => d.filter((p) => p.streams.length > 0));
-
-	// 	if (awaitedStreams.length > 1) {
-	// 		modalStack.create(SelectDialog, {
-	// 			title: 'Select Media Source',
-	// 			subtitle: 'Select the media source you want to use',
-	// 			options: awaitedStreams.map((p) => p.source.id),
-	// 			handleSelectOption: (sourceId) => {
-	// 				const s = awaitedStreams.find((p) => p.source.id === sourceId);
-	// 				const key = s?.streams[0]?.key;
-	// 				showUserData.then((userData) =>
-	// 					playerState.streamEpisode(
-	// 						id,
-	// 						userData.playState?.season ?? 1,
-	// 						userData.playState?.episode ?? 1,
-	// 						{ userData, sourceId, key }
-	// 					)
-	// 				);
-	// 			}
-	// 		});
-	// 	} else if (awaitedStreams.length === 1) {
-	// 		const asd = awaitedStreams.find((p) => p.streams.length > 0);
-	// 		const sourceId = asd?.source.id;
-	// 		const key = asd?.streams[0]?.key;
-
-	// 		showUserData.then((userData) =>
-	// 			playerState.streamEpisode(
-	// 				id,
-	// 				userData.playState?.season ?? 1,
-	// 				userData.playState?.episode ?? 1,
-	// 				{ userData, sourceId, key }
-	// 			)
-	// 		);
-	// 	}
-	// }
+		if (series?.genres) {
+			titleProperties.push({
+				label: series.genres.map((g) => g.name).join(', ')
+			});
+		}
+	});
 
 	onDestroy(() => {
 		unsubscribe();
@@ -269,48 +98,11 @@
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbSeries then series}
 						{#if series}
-							<!-- <div
-								class={classNames(
-									'text-left font-medium tracking-wider text-stone-200 hover:text-amber-200 mt-2',
-									{
-										'text-4xl sm:text-5xl 2xl:text-6xl': series.name?.length || 0 < 15,
-										'text-3xl sm:text-4xl 2xl:text-5xl': series.name?.length || 0 >= 15
-									}
-								)}
-							>
-								{series.name}
-							</div> -->
 							<TitleProperties
 								title={series.name ?? ''}
 								properties={titleProperties}
 								overview={series.overview ?? ''}
 							/>
-							<!-- <div
-								class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2"
-							>
-								<p class="flex-shrink-0">
-									{#if series.status !== 'Ended'}
-										Since {new Date(series.first_air_date || Date.now())?.getFullYear()}
-									{:else}
-										Ended {new Date(series.last_air_date || Date.now())?.getFullYear()}
-									{/if}
-								</p>
-								<DotFilled />
-								<p class="flex-shrink-0">
-									<a href={'https://www.themoviedb.org/tv/' + series.id}
-										>{series.vote_average} TMDB ({formatThousands(series.vote_count ?? 0)})</a
-									>
-								</p>
-								<DotFilled />
-								<p class="flex-shrink-0">
-									{series.genres?.map((g) => g.name).join(', ')}
-								</p>
-							</div> -->
-							<!-- <div
-								class="text-stone-300 font-medium line-clamp-3 opacity-75 max-w-4xl mt-4 text-lg"
-							>
-								{series.overview}
-							</div> -->
 						{/if}
 					{/await}
 					<Container
@@ -342,25 +134,6 @@
 								Remove from Library
 							</Button>
 						{/if}
-						<!-- {#await nextJellyfinEpisode then nextJellyfinEpisode} -->
-						<!-- {#if nextJellyfinEpisode}
-								<Button
-									class="mr-4"
-									on:clickOrSelect={() =>
-										nextJellyfinEpisode?.Id && playerState.streamJellyfinId(nextJellyfinEpisode.Id)}
-								>
-									Play Season {nextJellyfinEpisode?.ParentIndexNumber} Episode
-									{nextJellyfinEpisode?.IndexNumber}
-									<Play size={19} slot="icon" />
-								</Button> -->
-						<!-- {:else} -->
-						<!-- <Button class="mr-4" action={() => handleRequestSeason(1)}>
-								Request
-								<Plus size={19} slot="icon" />
-							</Button> -->
-						<!-- {/if} -->
-						<!-- {/await} -->
-
 						{#if PLATFORM_WEB}
 							<Button
 								class="mr-4"
@@ -379,21 +152,7 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<div
-			class={classNames('transition-opacity relative z-10', {
-				// 'opacity-0': hideInterface
-			})}
-		>
-			<!-- <JellyfinEpisodeGrid
-				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
-				on:mount={episodeCards.registrar}
-				id={Number(id)}
-				tmdbSeries={$tmdbSeries}
-				{tmdbSeasons}
-				{jellyfinEpisodes}
-				currentJellyfinEpisode={nextJellyfinEpisode}
-				{handleRequestSeason}
-			/> -->
+		<div class={'transition-opacity relative z-10'}>
 			<EpisodeGrid
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}
@@ -411,7 +170,7 @@
 						{/each}
 					</Carousel>
 				{/await}
-				{#await $recommendations then recommendations}
+				{#await recommendations then recommendations}
 					<Carousel scrollClass="px-32" class="mb-8">
 						<div slot="header">Recommendations</div>
 						{#each recommendations || [] as recommendation}
@@ -449,120 +208,6 @@
 					</div>
 				</Container>
 			{/await}
-			<!-- {#await Promise.all( [sonarrSeasonNumbers, sonarrFiles, sonarrEpisodes, sonarrDownloads] ) then [seasons, files, episodes, downloads]}
-				{#if files?.length}
-					<Container
-						class="flex-1 bg-secondary-950 pt-8 pb-16 px-32 flex flex-col"
-						on:enter={scrollIntoView({ top: 32 })}
-					>
-						<div class="space-y-16">
-							{#each seasons as season}
-								{@const seasonEpisodes = episodes.filter((e) => e.seasonNumber === season)}
-								{@const seasonFiles = files.filter((f) => f.seasonNumber === season)}
-								{@const seasonDownloads = downloads.filter((d) => d.seasonNumber === season)}
-
-								<div>
-									<div class="flex justify-between">
-										<h2 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">
-											Season {season} Files
-										</h2>
-									</div>
-
-									<Container direction="grid" gridCols={2} class="grid grid-cols-2 gap-8">
-										{#each seasonEpisodes as episode}
-											{@const file = seasonFiles.find((f) => f.id === episode.episodeFileId)}
-											{@const download = seasonDownloads.find((d) => d.episodeId === episode.id)}
-
-											<Container
-												class={classNames(
-													'flex space-x-8 items-center text-zinc-300 font-medium relative overflow-hidden',
-													'px-8 py-4 border-2 border-transparent rounded-xl',
-													{
-														'bg-secondary-800 focus-within:bg-primary-700 focus-within:border-primary-500': true,
-														'hover:bg-primary-700 hover:border-primary-500 cursor-pointer': true
-													}
-												)}
-												on:clickOrSelect={() => {
-													if (file)
-														modalStack.create(FileDetailsDialog, {
-															file,
-															title: episode?.title || '',
-															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
-															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
-															onDelete: () => (sonarrFiles = getFiles(sonarrItem))
-														});
-													else if (download)
-														modalStack.create(DownloadDetailsDialog, {
-															download,
-															title: episode?.title || '',
-															subtitle: `Season ${episode?.seasonNumber} Episode ${episode?.episodeNumber}`,
-															backgroundUrl: episode?.images?.[0]?.remoteUrl || '',
-															onCancel: () => (sonarrDownloads = getDownloads(sonarrItem))
-														});
-												}}
-												on:enter={scrollIntoView({ vertical: 128 })}
-												focusOnClick
-											>
-												{#if download}
-													<div
-														class="absolute inset-0 bg-secondary-50/10"
-														style={`width: ${
-															(((download.size || 0) - (download.sizeleft || 0)) /
-																(download.size || 1)) *
-															100
-														}%`}
-													/>
-												{/if}
-												<div class="flex-1">
-													<h1 class="text-lg">
-														{episode?.episodeNumber}. {episode?.title}
-													</h1>
-												</div>
-												{#if file}
-													<div>
-														{file?.mediaInfo?.runTime}
-													</div>
-													<div>
-														{formatSize(file?.size || 0)}
-													</div>
-													<div>
-														{file?.quality?.quality?.name}
-													</div>
-												{:else if download}
-													<div>
-														{formatSize((download?.size || 0) - (download?.sizeleft || 1))} / {formatSize(
-															download?.size || 0
-														)}
-													</div>
-													<div>
-														{download?.quality?.quality?.name}
-													</div>
-												{/if}
-											</Container>
-										{/each}
-									</Container>
-									<Container direction="horizontal" class="flex mt-8">
-										{#if seasonFiles?.length}
-											<Button on:clickOrSelect={() => createConfirmDeleteSeasonDialog(seasonFiles)}>
-												<Trash size={19} slot="icon" />
-												Delete Season Files
-											</Button>
-										{/if}
-										{#if seasonDownloads?.length}
-											<Button
-												on:clickOrSelect={() => createConfirmCancelDownloadsDialog(seasonDownloads)}
-											>
-												<Cross1 size={19} slot="icon" />
-												Cancel Season Downloads
-											</Button>
-										{/if}
-									</Container>
-								</div>
-							{/each}
-						</div>
-					</Container>
-				{/if}
-			{/await} -->
 		</div>
 	</div>
 </DetachedPage>

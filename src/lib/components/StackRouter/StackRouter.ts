@@ -1,19 +1,18 @@
-import { derived, get, writable } from 'svelte/store';
 import { type ComponentType } from 'svelte';
+import { derived, get, writable } from 'svelte/store';
+import LibraryPage from '../../pages/LibraryPage.svelte';
+import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
+import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
+import PageNotFound from '../../pages/PageNotFound.svelte';
+import PersonPage from '../../pages/PersonPage.svelte';
+import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
 import EpisodePage from '../../pages/TitlePages/EpisodePage.svelte';
-import { modalStack } from '../Modal/modal.store';
-import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
-import LibraryPage from '../../pages/LibraryPage.svelte';
-import SearchPage from '../../pages/SearchPage.svelte';
-import PageNotFound from '../../pages/PageNotFound.svelte';
-import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
-import PersonPage from '../../pages/PersonPage.svelte';
-import UsersPage from '../../pages/UsersPage.svelte';
-import StreamSelectorPage from '../../pages/TitlePages/StreamSelectorModal.svelte';
-import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
 import MoviePage from '../../pages/TitlePages/MoviePage/MoviePage.svelte';
+import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
 import UiComponents from '../../pages/UIComponents.svelte';
+import UsersPage from '../../pages/UsersPage.svelte';
+import { modalStack } from '../Modal/modal.store';
 
 interface Page {
 	id: symbol;
