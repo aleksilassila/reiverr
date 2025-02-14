@@ -49,7 +49,7 @@
 	}
 
 	function handleError(event: any) {
-		createErrorNotification(event.error.message);
+		createErrorNotification(event?.error?.message ?? 'An error occurred');
 	}
 
 	onMount(() => {
@@ -105,4 +105,8 @@
 {#if import.meta.env.DEV}
 	<NavigationDebugger />
 {/if}
-<svelte:window on:keydown={handleKeyboardNavigation} on:error={handleError} />
+<svelte:window
+	on:keydown={handleKeyboardNavigation}
+	on:error={handleError}
+	on:unhandledrejection={handleError}
+/>

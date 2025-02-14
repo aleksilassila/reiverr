@@ -10,7 +10,7 @@
 		"dev": "vite",
 		"build": "npm run --prefix backend build && vite build --mode production --outDir backend/dist/dist",
 		"build:tizen": "set VITE_PLATFORM=tv&& vite build --mode production --outDir tizen/dist",
-		"preview": "vite preview",
+		"preview": "npm run build && npm run --prefix backend start:prod",
 		"preview:tizen": "set VITE_PLATFORM=tv&& vite build --outDir tizen/dist && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",

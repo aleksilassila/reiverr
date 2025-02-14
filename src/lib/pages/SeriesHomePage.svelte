@@ -11,8 +11,9 @@
 	import { scrollIntoView } from '../selectable';
 	import { formatDateToYearMonthDay } from '../utils';
 	import Container from '$lib/components/Container.svelte';
+	import { onDestroy } from 'svelte';
 
-	const { ...libraryData } = libraryItemsDataStore.getRequest();
+	const { ...libraryData } = libraryItemsDataStore.subscribe();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
 		if (!libraryData) return [];
 
@@ -67,6 +68,10 @@
 			})
 			.then((res) => res.data?.results || []);
 	}
+
+	onDestroy(() => {
+		libraryData.unsubscribe();
+	});
 </script>
 
 <DetachedPage class="flex flex-col relative">

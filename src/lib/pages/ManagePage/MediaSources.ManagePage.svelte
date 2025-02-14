@@ -14,7 +14,7 @@
 
 	const allPlugins = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
 
-	const { promise: userSources } = mediaSourcesDataStore.getRequest();
+	const { promise: userSources } = mediaSourcesDataStore.subscribe();
 
 	async function addSource(pluginId: string) {
 		const userId = get(user)?.id;

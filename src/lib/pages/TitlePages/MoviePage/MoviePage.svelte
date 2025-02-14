@@ -49,7 +49,7 @@
 	// 	p.streams.then((s) => availableForStreaming.update((p) => p || s.length > 0))
 	// );
 
-	const { promise: tmdbMovie } = tmdbMovieDataStore.getRequest(tmdbId);
+	const { promise: tmdbMovie } = tmdbMovieDataStore.subscribe(tmdbId);
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 	// const { promise: jellyfinItemP } = useRequest(
 	// 	(id: string) => jellyfinApi.getLibraryItemFromTmdbId(id),

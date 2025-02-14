@@ -6,7 +6,7 @@
 	import Container from '../Container.svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import Spinner from '../Utils/Spinner.svelte';
-	import IconButton from './IconButton.svelte';
+	import IconButton from '../IconButton.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import VideoElement from './VideoElement.svelte';

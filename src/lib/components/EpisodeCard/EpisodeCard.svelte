@@ -9,7 +9,7 @@
 	export let episodeNumber: number;
 	export let episodeName: string;
 	export let backdropUrl: string;
-	export let handlePlay: (() => void) | undefined = undefined;
+	// export let handlePlay: (() => void) | undefined = undefined;
 	export let isWatched = false;
 	export let progress = 0;
 	export let runtime = 0;
@@ -18,7 +18,7 @@
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
 
-	$: isOnDeck = handlePlay !== undefined;
+	// $: isOnDeck = handlePlay !== undefined;
 
 	let hasFocus: Readable<boolean>;
 	let dimensions = getCardDimensions(window.innerWidth, 'landscape');
@@ -38,7 +38,6 @@
 		on:clickOrSelect
 		on:enter
 		on:mount
-		on:playPause={handlePlay}
 		bind:hasFocus
 		focusOnClick
 	>
@@ -77,17 +76,17 @@
 			style={`background-image: url('${backdropUrl}')`}
 		/>
 		<!-- Background Overlay / Tint -->
-		<div
+		<!-- <div
 			class={classNames('absolute inset-0', {
 				// 'bg-gradient-to-t from-secondary-900/75 from-10% to-40%': isOnDeck,
-				'bg-primary-950/50': !isOnDeck
+				'bg-primary-950/50': !true
 				// 'to-secondary-900/25': !isOnDeck && $hasFocus
 
 				// isOnDeck || $hasFocus,
 				// 'bg-gradient-to-t from-secondary-900/75 from-10% to-40% to-secondary-900/25':
 				// 	!isOnDeck && !$hasFocus
 			})}
-		/>
+		/> -->
 		<!-- <div
 			class={classNames(
 				'opacity-0 group-hover:opacity-100 absolute inset-0 z-20 flex items-center justify-center'

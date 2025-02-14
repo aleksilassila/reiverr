@@ -1,42 +1,28 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { jellyfinApi } from '$lib/apis/jellyfin/jellyfin-api';
-	import {
-		type EpisodeDownload,
-		type EpisodeFileResource,
-		sonarrApi
-	} from '$lib/apis/sonarr/sonarr-api';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
-	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
 	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
-	import MmAddToSonarrDialog from '$lib/components/MediaManagerModal/MMAddToSonarrDialog.svelte';
-	import SonarrMediaManagerModal from '$lib/components/MediaManagerModal/SonarrMediaManagerModal.svelte';
-	import { createModal, modalStack } from '$lib/components/Modal/modal.store';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { tmdbSeriesDataStore, useRequest } from '$lib/stores/data.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
-	import { reiverrApiNew, user } from '$lib/stores/user.store';
-	import { formatSize, formatThousands } from '$lib/utils';
+	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, Cross1, ExternalLink, Minus, Play, Plus, Trash } from 'radix-icons-svelte';
-	import { get } from 'svelte/store';
-	import TitleProperties from '../HeroTitleInfo.svelte';
-	import DownloadDetailsDialog from './DownloadDetailsDialog.svelte';
-	import EpisodeGrid from './EpisodeGrid.svelte';
-	import FileDetailsDialog from './FileDetailsDialog.svelte';
+	import { Bookmark, ExternalLink, Minus, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
+	import TitleProperties from '../HeroTitleInfo.svelte';
+	import EpisodeGrid from './EpisodeGrid.svelte';
 
 	export let id: string;
 	const tmdbId = Number(id);
 
-	const { promise: tmdbSeries, ...tmdbSeriesData } = tmdbSeriesDataStore.getRequest(tmdbId);
+	const { promise: tmdbSeries, ...tmdbSeriesData } = tmdbSeriesDataStore.subscribe(tmdbId);
 
 	const {
 		inLibrary,
@@ -251,6 +237,7 @@
 	// 		);
 	// 	}
 	// }
+
 	onDestroy(() => {
 		unsubscribe();
 	});

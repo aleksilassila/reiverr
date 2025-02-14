@@ -1,6 +1,6 @@
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
-import { playerState } from '$lib/components/VideoPlayer/VideoPlayer';
+import { streamTmdbItem } from '$lib/components/VideoPlayer/VideoPlayer';
 import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
 import { derived, get, writable, type Readable } from 'svelte/store';
 import type {
@@ -60,16 +60,26 @@ async function handleAutoplay(options: {
 	const awaitedStreams = await getStreams(tmdbId, season, episode);
 
 	const firstSource = awaitedStreams.find((p) => p.streams.length > 0);
-	const sourceId = firstSource?.source.id;
+	const source = firstSource?.source;
 	const key = firstSource?.streams[0]?.key;
 
-	if (season !== undefined && episode !== undefined) {
-		playerState.streamEpisode(tmdbId, season, episode, {
-			progress,
-			sourceId,
-			key
-		});
+	if (!source) {
+		createErrorNotification('No source found');
+		return;
 	}
+	if (!key) {
+		createErrorNotification('No key found');
+		return;
+	}
+
+	streamTmdbItem({
+		tmdbId,
+		season,
+		episode,
+		progress,
+		source,
+		key
+	});
 }
 
 async function handleOpenStreamSelector(options: {
@@ -84,13 +94,13 @@ async function handleOpenStreamSelector(options: {
 		getStreams: (s) =>
 			getStreams(tmdbId, season, episode).then((r) => r.find((p) => p.source === s)?.streams ?? []),
 		selectStream: (source, stream) =>
-			playerState.streamTmdbItem({
+			streamTmdbItem({
 				tmdbId,
 				season,
 				episode,
 				progress,
 				key: stream.key,
-				sourceId: source.id
+				source
 			})
 	});
 }
@@ -185,8 +195,8 @@ function useCanStream() {
 }
 
 export function useSeriesUserData(tmdbId: string) {
-	const userDataRequest = seriesUserDataStore.getRequest(tmdbId);
-	const tmdbSeriesRequest = tmdbSeriesDataStore.getRequest(Number(tmdbId));
+	const userDataRequest = seriesUserDataStore.subscribe(tmdbId);
+	const tmdbSeriesRequest = tmdbSeriesDataStore.subscribe(Number(tmdbId));
 	const libraryStore = useUserLibrary('Series', tmdbId, userDataRequest);
 	const canStreamStore = useCanStream();
 	const episodesUserData = writable<EpisodeData[]>([]);
@@ -262,7 +272,7 @@ export function useSeriesUserData(tmdbId: string) {
 }
 
 export function useMovieUserData(tmdbId: string) {
-	const userData = movieUserDataStore.getRequest(tmdbId);
+	const userData = movieUserDataStore.subscribe(tmdbId);
 	const libraryStore = useUserLibrary('Movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
@@ -285,7 +295,7 @@ export function useMovieUserData(tmdbId: string) {
 }
 
 export function useEpisodeUserData(tmdbId: string, season: number, episode: number) {
-	const userData = episodeUserDataStore.getRequest(tmdbId, season, episode);
+	const userData = episodeUserDataStore.subscribe(tmdbId, season, episode);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
 		reiverrApiNew.users

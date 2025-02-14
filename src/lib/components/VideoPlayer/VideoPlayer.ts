@@ -1,11 +1,6 @@
-import { get, writable } from 'svelte/store';
-import { jellyfinItemsStore } from '../../stores/data.store';
-import { reiverrApiNew, sources } from '../../stores/user.store';
+import type { MediaSource, SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 import { modalStack } from '../Modal/modal.store';
-import { createErrorNotification } from '../Notifications/notification.store';
-import JellyfinVideoPlayerModal from './JellyfinVideoPlayerModal.svelte';
 import TmdbVideoPlayerModal from './TmdbVideoPlayerModal.svelte';
-import type { SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -35,129 +30,25 @@ export type VideoSource = {
 	selectAudioTrack: (index: number) => void;
 };
 
-const initialValue = { visible: false, jellyfinId: '', sourceId: '' };
-export type PlayerStateValue = typeof initialValue;
+export async function streamTmdbItem(options: {
+	tmdbId: string;
+	season?: number;
+	episode?: number;
+	source: MediaSource;
+	key: string;
+	progress?: number;
+}) {
+	const { tmdbId, season, episode, progress, source, key } = options;
 
-function usePlayerState() {
-	const store = writable<PlayerStateValue>(initialValue);
-
-	async function streamTmdbItem(options: {
-		tmdbId: string;
-		season?: number;
-		episode?: number;
-		sourceId: string;
-		key: string;
-		progress?: number;
-	}) {
-		const { tmdbId, season, episode, sourceId, key, progress } = options;
-
-		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
-		modalStack.create(TmdbVideoPlayerModal, {
-			tmdbId,
-			episode,
-			season,
-			sourceId,
-			key,
-			progress
-		});
-	}
-
-	async function streamTmdbMovie(
-		tmdbId: string,
-		options: {
-			sourceId?: string;
-			key?: string;
-			progress?: number;
-		}
-	) {
-		let { sourceId, key } = options;
-		const { progress = 0 } = options;
-
-		if (!sourceId) {
-			const streams = await Promise.all(
-				get(sources).map((s) =>
-					reiverrApiNew.sources
-						.getMovieStreams(s.source.id, tmdbId)
-						.then((r) => ({ source: s.source, streams: r.data.candidates }))
-				)
-			);
-			sourceId = streams?.[0]?.source.id || '';
-			key = streams?.[0]?.streams?.[0]?.key || '';
-		}
-
-		if (!sourceId) {
-			createErrorNotification('Could not find a suitable source');
-			return;
-		}
-
-		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
-		modalStack.create(TmdbVideoPlayerModal, {
-			tmdbId,
-			sourceId,
-			key,
-			progress
-		});
-	}
-
-	async function streamTmdbEpisode(
-		tmdbId: string,
-		season: number,
-		episode: number,
-		options: {
-			sourceId?: string;
-			key?: string;
-			progress?: number;
-		} = {}
-	) {
-		let { sourceId, key } = options;
-		const { progress = 0 } = options;
-
-		if (!sourceId) {
-			const streams = await Promise.all(
-				get(sources).map((s) =>
-					reiverrApiNew.sources
-						.getEpisodeStreams(s.source.id, tmdbId, season, episode)
-						.then((r) => ({ source: s.source, streams: r.data.candidates }))
-				)
-			);
-			sourceId = streams?.[0]?.source.id || '';
-			key = streams?.[0]?.streams?.[0]?.key || '';
-		}
-
-		if (!sourceId) {
-			createErrorNotification('Could not find a suitable source');
-			return;
-		}
-
-		store.set({ visible: true, jellyfinId: tmdbId, sourceId });
-		console.log('sourceId', season, episode);
-		modalStack.create(TmdbVideoPlayerModal, {
-			tmdbId,
-			episode,
-			season,
-			sourceId,
-			key,
-			progress
-		});
-	}
-
-	return {
-		...store,
-		streamMovie: streamTmdbMovie,
-		streamEpisode: streamTmdbEpisode,
-		streamTmdbItem,
-		streamJellyfinId: (id: string) => {
-			store.set({ visible: true, jellyfinId: id, sourceId: '' });
-			modalStack.create(JellyfinVideoPlayerModal, { id });
-		},
-		close: () => {
-			store.set({ visible: false, jellyfinId: '', sourceId: '' });
-			jellyfinItemsStore.send();
-		}
-	};
+	modalStack.create(TmdbVideoPlayerModal, {
+		tmdbId,
+		episode,
+		season,
+		source,
+		key,
+		progress
+	});
 }
-
-export const playerState = usePlayerState();
 
 export function getBrowserSpecificMediaFunctions() {
 	// These functions are different in every browser

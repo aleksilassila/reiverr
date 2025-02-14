@@ -9,8 +9,9 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../selectable';
 	import { formatDateToYearMonthDay } from '../utils';
+	import { onDestroy } from 'svelte';
 
-	const { ...libraryData } = libraryItemsDataStore.getRequest();
+	const { ...libraryData } = libraryItemsDataStore.subscribe();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
 		if (!libraryData) return [];
 
@@ -73,6 +74,10 @@
 			})
 			.then((res) => res.data?.results || []);
 	}
+
+	onDestroy(() => {
+		libraryData.unsubscribe();
+	});
 </script>
 
 <DetachedPage class="flex flex-col relative">

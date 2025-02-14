@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { StreamDto, SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
+	import type {
+		MediaSource,
+		StreamDto,
+		SubtitlesDto as Subtitles
+	} from '$lib/apis/reiverr/reiverr.openapi';
 	import {
 		episodeUserDataStore,
 		libraryItemsDataStore,
@@ -24,7 +28,7 @@
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
 	export let episode: number | undefined = undefined;
-	export let sourceId: string;
+	export let source: MediaSource;
 	export let key: string = '';
 	export let progress: number = 0;
 
@@ -33,7 +37,7 @@
 
 	const { unsubscribe, ...request } = (
 		season !== undefined && episode !== undefined ? tmdbSeriesDataStore : tmdbMovieDataStore
-	).getRequest(Number(tmdbId));
+	).subscribe(Number(tmdbId));
 
 	request.subscribe((item) => {
 		if (!item) return;
@@ -91,13 +95,13 @@
 		console.log('refreshVideoStream', season, episode);
 		videoStreamP = (
 			season !== undefined && episode !== undefined
-				? reiverrApiNew.sources.getEpisodeStream(sourceId, tmdbId, season, episode, key, {
+				? reiverrApiNew.sources.getEpisodeStream(source.id, tmdbId, season, episode, key, {
 						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
 						progress,
 						audioStreamIndex,
 						deviceProfile: getDeviceProfile() as any
 				  })
-				: reiverrApiNew.sources.getMovieStream(tmdbId, sourceId, key, {
+				: reiverrApiNew.sources.getMovieStream(tmdbId, source.id, key, {
 						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
 						progress,
 						audioStreamIndex,
@@ -235,7 +239,7 @@
 		modalHidden={$modalStackTop?.id !== modalId}
 		{title}
 		{subtitle}
-		source={`${sourceId}`}
+		source={source.name}
 		bind:paused
 		bind:video
 		bind:subtitleInfo

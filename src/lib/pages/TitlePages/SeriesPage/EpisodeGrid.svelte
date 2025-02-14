@@ -14,7 +14,6 @@
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import ScrollHelper from '../../../components/ScrollHelper.svelte';
 	import { navigate } from '../../../components/StackRouter/StackRouter';
-	import { playerState } from '../../../components/VideoPlayer/VideoPlayer';
 	import { scrollIntoView, Selectable } from '../../../selectable';
 
 	export let tmdbId: number;
@@ -111,12 +110,6 @@
 						series={tmdbSeries}
 						on:mount={(e) => handleMountCard(e.detail, episode)}
 						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-						handlePlay={() =>
-							playerState.streamEpisode(
-								String(tmdbId),
-								episode.season_number ?? 1,
-								episode.episode_number ?? 1
-							)}
 						isWatched={userData?.watched || false}
 						progress={userData?.progress}
 						on:clickOrSelect={() => handleOpenEpisodePage(episode)}

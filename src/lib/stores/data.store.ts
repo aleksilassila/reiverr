@@ -8,45 +8,11 @@ import {
 } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
 
-type AwaitableStoreValue<R, T = { data?: R }> = {
+type AwaitableStoreValue<TData> = {
 	loading: boolean;
-} & T;
-
-export function _createDataFetchStore<T>(fn: () => Promise<T>) {
-	const store = writable<AwaitableStoreValue<T>>({
-		loading: true,
-		data: undefined
-	});
-
-	async function refresh() {
-		store.update((s) => ({ ...s, loading: true }));
-		return awaitAppInitialization().then(() =>
-			fn().then((data) => {
-				store.set({ loading: false, data });
-				return data;
-			})
-		);
-	}
-
-	let updateTimeout: NodeJS.Timeout;
-	function refreshIn(ms = 1000) {
-		return new Promise((resolve) => {
-			clearTimeout(updateTimeout);
-			updateTimeout = setTimeout(() => {
-				refresh().then(resolve);
-			}, ms);
-		});
-	}
-
-	return {
-		subscribe: store.subscribe,
-		send: refresh,
-		refreshIn,
-		promise: refresh()
-	};
-}
-
-export const jellyfinItemsStore = _createDataFetchStore(() => jellyfinApi.getLibraryItems());
+	data?: TData;
+	promise: Promise<TData>;
+};
 
 export const useDependantRequest = <P extends (...args: A) => Promise<any>, A extends any[], S>(
 	fn: P,
@@ -128,26 +94,25 @@ export const useActionRequest = <P extends (...args: A) => Promise<any>, A exten
 };
 
 export function useRequest3<TResponse>(fn: () => Promise<TResponse>) {
-	const promise = writable<Promise<TResponse>>(null!);
+	async function _createPromise() {
+		return awaitAppInitialization().then(() => fn());
+	}
+
+	const initialPromise = _createPromise();
 	const store = writable<AwaitableStoreValue<TResponse>>({
 		loading: true,
-		data: undefined
+		data: undefined,
+		promise: initialPromise
 	});
-	const isLoading = derived(store, (s) => s.loading);
-	const data = derived(store, (s) => s.data);
+	initialPromise.then((data) => store.update((s) => ({ ...s, loading: false, data })));
 
 	async function refresh() {
-		const initialRequest = get(promise) === null;
 		store.update((s) => ({ ...s, loading: true }));
-		const p = awaitAppInitialization().then(() => {
-			return fn().then((data) => {
-				store.set({ loading: false, data });
-				if (!initialRequest) promise.set(Promise.resolve(data));
-				return data;
-			});
+
+		return _createPromise().then((data) => {
+			store.set({ loading: false, data, promise: Promise.resolve(data) });
+			return data;
 		});
-		if (initialRequest) promise.set(p);
-		return p;
 	}
 
 	let updateTimeout: NodeJS.Timeout;
@@ -160,24 +125,27 @@ export function useRequest3<TResponse>(fn: () => Promise<TResponse>) {
 		});
 	}
 
-	refresh();
+	const data = derived(store, (s) => s.data);
+	const isLoading = derived(store, (s) => s.loading);
+	const promise = derived(store, (s) => s.promise);
 
 	return {
 		subscribe: data.subscribe,
-		isLoading: isLoading,
+		isLoading,
+		promise,
 		refresh,
-		refreshIn,
-		promise: { subscribe: promise.subscribe }
+		refreshIn
 	};
 }
 
 export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
-	fn: (...args: TArgs) => Promise<TResponse>
+	fn: (...args: TArgs) => Promise<TResponse>,
+	options: { persistant?: boolean } = {}
 ) {
 	type Res = ReturnType<typeof useRequest3<TResponse>>;
 	const requests: Map<string, { subscribers: symbol[]; request: Res }> = new Map();
 
-	function getRequest(...args: TArgs): Res & { unsubscribe: () => void } {
+	function subscribe(...args: TArgs): Res & { unsubscribe: () => void } {
 		const id = Symbol();
 		let request = requests.get(JSON.stringify(args))?.request;
 
@@ -195,16 +163,22 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 			...request,
 			unsubscribe: () => {
 				const subscribers = requests.get(JSON.stringify(args))?.subscribers;
-				const index = subscribers?.indexOf(id);
-				if (index !== undefined && index !== -1) {
+				const index = subscribers?.indexOf(id) ?? -1;
+				if (index !== -1) {
 					subscribers?.splice(index, 1);
 				}
 
-				if (subscribers?.length === 0) {
+				if (subscribers?.length === 0 && options.persistant !== true) {
 					requests.delete(JSON.stringify(args));
 				}
 			}
 		};
+	}
+
+	function _get(...args: TArgs) {
+		const res = subscribe(...args);
+		res.unsubscribe();
+		return get(res.promise);
 	}
 
 	const refresh = async (...args: TArgs) => {
@@ -216,7 +190,8 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	};
 
 	return {
-		getRequest,
+		subscribe,
+		get: _get,
 		refresh
 	};
 }
@@ -237,22 +212,24 @@ export const episodeUserDataStore = useRequestsStore(
 			.then((r) => r.data)
 );
 
-export const libraryItemsDataStore = useRequestsStore(() =>
-	reiverrApiNew.users
-		.getLibraryItems(get(user)?.id as string)
-		.then((r) =>
-			r.data.items.map((i) => ({
-				...i,
-				metadata:
-					(i.movieMetadata?.tmdbMovie as TmdbMovieFull2) ||
-					(i.seriesMetadata?.tmdbSeries as TmdbSeriesFull2)
-			}))
-		)
-		.then((i) => i.filter((i) => !!i.metadata))
+export const libraryItemsDataStore = useRequestsStore(
+	() =>
+		reiverrApiNew.users
+			.getLibraryItems(get(user)?.id as string)
+			.then((r) =>
+				r.data.items.map((i) => ({
+					...i,
+					metadata:
+						(i.movieMetadata?.tmdbMovie as TmdbMovieFull2) ||
+						(i.seriesMetadata?.tmdbSeries as TmdbSeriesFull2)
+				}))
+			)
+			.then((i) => i.filter((i) => !!i.metadata)),
+	{ persistant: true }
 );
 
 export const mediaSourcesDataStore = useRequestsStore(() =>
-		reiverrApiNew.users
-			.findUserById(get(user)?.id || '')
-			.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
+	reiverrApiNew.users
+		.findUserById(get(user)?.id || '')
+		.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
 );
