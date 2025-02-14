@@ -26,7 +26,7 @@ export type EpisodeData = {
 	progress: number;
 };
 
-async function getStreams(
+async function getAllStreams(
 	tmdbId: string,
 	season?: number,
 	episode?: number
@@ -35,18 +35,27 @@ async function getStreams(
 		get(sources).map(async (source) => {
 			return {
 				source: source.source,
-				streams: await (season !== undefined && episode !== undefined
-					? reiverrApiNew.sources
-							.getEpisodeStreams(source.source.id, tmdbId, season, episode)
-							.then((r) => r.data?.candidates ?? [])
-							.catch((e) => [])
-					: reiverrApiNew.sources
-							.getMovieStreams(source.source.id, tmdbId)
-							.then((r) => r.data?.candidates ?? [])
-							.catch((e) => []))
+				streams: await getStreams(source.source, tmdbId, season, episode)
 			};
 		})
 	);
+}
+
+async function getStreams(
+	source: MediaSource,
+	tmdbId: string,
+	season?: number,
+	episode?: number
+): Promise<StreamCandidateDto[]> {
+	return season !== undefined && episode !== undefined
+		? reiverrApiNew.sources
+				.getEpisodeStreams(source.id, tmdbId, season, episode)
+				.then((r) => r.data?.candidates ?? [])
+				.catch((e) => [])
+		: reiverrApiNew.sources
+				.getMovieStreams(source.id, tmdbId)
+				.then((r) => r.data?.candidates ?? [])
+				.catch((e) => []);
 }
 
 async function handleAutoplay(options: {
@@ -57,7 +66,7 @@ async function handleAutoplay(options: {
 }) {
 	const { tmdbId, season, episode, progress } = options;
 
-	const awaitedStreams = await getStreams(tmdbId, season, episode);
+	const awaitedStreams = await getAllStreams(tmdbId, season, episode);
 
 	const firstSource = awaitedStreams.find((p) => p.streams.length > 0);
 	const source = firstSource?.source;
@@ -79,29 +88,6 @@ async function handleAutoplay(options: {
 		progress,
 		source,
 		key
-	});
-}
-
-async function handleOpenStreamSelector(options: {
-	tmdbId: string;
-	season?: number;
-	episode?: number;
-	progress?: number;
-}) {
-	const { tmdbId, season, episode, progress } = options;
-
-	createModal(StreamSelectorModal, {
-		getStreams: (s) =>
-			getStreams(tmdbId, season, episode).then((r) => r.find((p) => p.source === s)?.streams ?? []),
-		selectStream: (source, stream) =>
-			streamTmdbItem({
-				tmdbId,
-				season,
-				episode,
-				progress,
-				key: stream.key,
-				source
-			})
 	});
 }
 
@@ -255,14 +241,28 @@ export function useSeriesUserData(tmdbId: string) {
 			return handleAutoplay({ tmdbId, season, episode, progress });
 		},
 		handleOpenStreamSelector: async () => {
-			const { season, episode, progress } = get(nextEpisode) ?? {};
+			const { season, episode } = get(nextEpisode) ?? {};
 
 			if (season === undefined || episode === undefined) {
 				createErrorNotification('Could not find next episode');
 				return;
 			}
 
-			return handleOpenStreamSelector({ tmdbId, season, episode, progress });
+			createModal(StreamSelectorModal, {
+				getStreams: (s) => getStreams(s, tmdbId, season, episode),
+				selectStream: (source, stream) => {
+					return streamTmdbItem({
+						tmdbId,
+						season,
+						episode,
+						progress: get(nextEpisode)?.progress,
+						key: stream.key,
+						source
+					});
+				}
+			});
+
+			// return handleOpenStreamSelector({ tmdbId, season, episode, progress });
 		},
 		unsubscribe: () => {
 			userDataRequest.unsubscribe();
@@ -288,8 +288,18 @@ export function useMovieUserData(tmdbId: string) {
 		...isWatchedStore,
 		progress,
 		handleAutoplay: async () => handleAutoplay({ tmdbId, progress: get(progress) }),
-		handleOpenStreamSelector: async () =>
-			handleOpenStreamSelector({ tmdbId, progress: get(progress) }),
+		handleOpenStreamSelector: async () => {
+			createModal(StreamSelectorModal, {
+				getStreams: (s) => getStreams(s, tmdbId),
+				selectStream: (source, stream) =>
+					streamTmdbItem({
+						tmdbId,
+						progress: get(progress),
+						key: stream.key,
+						source
+					})
+			});
+		},
 		unsubscribe: () => userData.unsubscribe()
 	};
 }
@@ -312,8 +322,20 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 		progress,
 		handleAutoplay: async () =>
 			handleAutoplay({ tmdbId, season, episode, progress: get(progress) }),
-		handleOpenStreamSelector: async () =>
-			handleOpenStreamSelector({ tmdbId, season, episode, progress: get(progress) }),
+		handleOpenStreamSelector: async () => {
+			createModal(StreamSelectorModal, {
+				getStreams: (s) => getStreams(s, tmdbId, season, episode),
+				selectStream: (source, stream) =>
+					streamTmdbItem({
+						tmdbId,
+						season,
+						episode,
+						progress: get(progress),
+						key: stream.key,
+						source
+					})
+			});
+		},
 		unsubscribe: () => userData.unsubscribe()
 	};
 }

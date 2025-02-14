@@ -1,10 +1,10 @@
-import { derived, get, writable } from 'svelte/store';
-import { getReiverrApiNew, reiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
 import axios from 'axios';
-import type { operations } from '../apis/reiverr/reiverr.generated';
-import { type Session, sessions } from './session.store';
-import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
 import { tick } from 'svelte';
+import { derived, get, writable } from 'svelte/store';
+import { getReiverrApiNew, type ReiverrUser } from '../apis/reiverr/reiverr-api';
+import type { operations } from '../apis/reiverr/reiverr.generated';
+import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
+import { type Session, sessions } from './session.store';
 
 export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;
 
