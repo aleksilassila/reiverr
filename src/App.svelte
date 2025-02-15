@@ -44,8 +44,10 @@
 
 	async function fetchLatestVersion() {
 		return axios
-			.get('https://api.github.com/repos/aleksilassila/reiverr/tags')
-			.then((res) => res.data?.find((v: { name: string }) => v.name.startsWith('v2'))?.name);
+			.get('https://api.github.com/repos/aleksilassila/reiverr/releases')
+			.then(
+				(res) => res.data?.find((v: { tag_name: string }) => v.tag_name.startsWith('v2'))?.tag_name
+			);
 	}
 
 	function handleError(event: any) {
