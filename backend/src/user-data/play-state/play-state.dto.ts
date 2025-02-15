@@ -1,4 +1,4 @@
-import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
 import { PlayState } from './play-state.entity';
 
 export class PlayStateDto extends PlayState {}
@@ -22,8 +22,13 @@ export class PlayStateDto extends PlayState {}
 // }
 
 export class UpdatePlayStateDto extends PartialType(
-  OmitType(PlayStateDto, ['userId']),
+  PickType(PlayStateDto, ['season', 'episode', 'watched', 'progress']),
 ) {}
+
+export class BulkUpdatePlayStateDto {
+  @ApiProperty({ type: UpdatePlayStateDto, isArray: true })
+  playStates: UpdatePlayStateDto[];
+}
 
 export class MovieUserDataDto {
   @ApiProperty()

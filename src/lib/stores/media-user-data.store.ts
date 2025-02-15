@@ -161,9 +161,14 @@ function useIsWatched(
 			return;
 		}
 
-		return toggleFn(userId, !watched).finally(() => {
-			isWatched.set(!watched);
-		});
+		return toggleFn(userId, !watched)
+			.then(async (r) => {
+				await libraryItemsDataStore.refresh();
+				return r;
+			})
+			.finally(() => {
+				isWatched.set(!watched);
+			});
 	}
 
 	return {
@@ -192,6 +197,7 @@ export function useSeriesUserData(tmdbId: string) {
 		progress: 0,
 		watched: false
 	});
+	const isWatched = derived(episodesUserData, (episodes) => episodes.every((e) => e.watched));
 
 	derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(([userData, tmdbSeries]) => {
 		if (!tmdbSeries) return;
@@ -225,12 +231,37 @@ export function useSeriesUserData(tmdbId: string) {
 		episodesUserData.set(episodesData);
 	});
 
+	async function toggleIsWatched() {
+		const watched = get(isWatched);
+		const userId = get(user)?.id;
+
+		if (!userId) {
+			return;
+		}
+
+		return reiverrApiNew.users
+			.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
+				playStates: get(episodesUserData).map((e) => ({
+					season: e.season,
+					episode: e.episode,
+					watched: !watched
+				}))
+			})
+			.then(async (states) => {
+				await seriesUserDataStore.refresh(tmdbId);
+				await libraryItemsDataStore.refresh();
+				return states;
+			});
+	}
+
 	return {
 		tmdbSeries: tmdbSeriesRequest.promise,
 		...libraryStore,
 		...canStreamStore,
 		nextEpisode,
 		episodesUserData,
+		isWatched,
+		toggleIsWatched,
 		handleAutoplay: async () => {
 			const { season, episode, progress } = get(nextEpisode) ?? {};
 

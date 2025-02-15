@@ -13,7 +13,7 @@
 	import { tmdbSeriesDataStore } from '$lib/stores/data.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { formatThousands } from '$lib/utils';
-	import { Bookmark, ExternalLink, Minus, Play } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
@@ -31,6 +31,8 @@
 		handleAutoplay,
 		handleOpenStreamSelector,
 		canStream,
+		isWatched,
+		toggleIsWatched,
 		unsubscribe
 	} = useSeriesUserData(id);
 
@@ -125,6 +127,7 @@
 							{/if}
 							<Play size={19} slot="icon" />
 						</Button>
+
 						{#if !$inLibrary}
 							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
 								Add to Library
@@ -134,6 +137,16 @@
 								Remove from Library
 							</Button>
 						{/if}
+
+						<Button class="mr-4" action={toggleIsWatched}>
+							{#if $isWatched}
+								Mark as Unwatched
+							{:else}
+								Mark as Watched
+							{/if}
+							<Check slot="icon" size={19} />
+						</Button>
+
 						{#if PLATFORM_WEB}
 							<Button
 								class="mr-4"

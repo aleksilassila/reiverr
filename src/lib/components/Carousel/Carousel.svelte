@@ -12,6 +12,7 @@
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
 	export let scrollClass = '';
+	export let header = '';
 
 	function handleOnBack({ detail }: BackEvent) {
 		const focusIndex = get(detail.selectable.focusIndex);
@@ -26,9 +27,13 @@
 
 <div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		<div class="h3">
-			<slot name="header" />
-		</div>
+		{#if header}
+			<div class="h3">{header}</div>
+		{:else}
+			<div class="h3">
+				<slot name="header" />
+			</div>
+		{/if}
 		<div
 			class={classNames(
 				'flex gap-2 ml-4',

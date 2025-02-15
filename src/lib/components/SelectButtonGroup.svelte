@@ -39,18 +39,18 @@
 			{@const first = index === 0}
 			{@const last = index === options.length - 1}
 			{#if !first}
-				<div class="w-0.5 h-full bg-secondary-700" />
+				<div class="h-[1px] w-full bg-secondary-700" />
 			{/if}
 			<Container
 				on:clickOrSelect={() => dispatch('select', option.value ?? option.label)}
 				let:hasFocus
+				class="group"
 			>
 				<div
 					class={classNames('h-12 px-6 py-3 border-2 flex items-center justify-between', {
-						'cursor-pointer hover:border-primary-500': !option.disabled,
+						'cursor-pointer border-transparent group-focus-within:border-primary-500 hover:border-primary-500':
+							!option.disabled,
 						'cursor-not-allowed pointer-events-none opacity-40': option.disabled,
-						'border-primary-500': hasFocus,
-						'border-transparent': !hasFocus,
 						'rounded-t-xl': first,
 						'rounded-b-xl': last
 					})}

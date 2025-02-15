@@ -47,11 +47,12 @@
 	focusOnMount
 	direction="horizontal"
 	on:mount
+	let:hasFocus
 >
 	{#if sidebar}
 		<Sidebar />
 	{/if}
 	<Container {...$$restProps} on:back={handleGoToTop} focusOnMount>
-		<slot {handleGoBack} registrar={topSelectable.registrar} />
+		<slot {handleGoBack} registrar={topSelectable.registrar} {hasFocus} />
 	</Container>
 </Container>

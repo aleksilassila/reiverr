@@ -477,9 +477,6 @@ export interface SeriesUserDataDto {
 }
 
 export interface UpdatePlayStateDto {
-	id?: string;
-	tmdbId?: number;
-	mediaType?: 'Movie' | 'Series' | 'Episode';
 	season?: number;
 	episode?: number;
 	/**
@@ -493,8 +490,10 @@ export interface UpdatePlayStateDto {
 	 * @example 0.5
 	 */
 	progress?: number;
-	/** Last time the user played this media */
-	lastPlayedAt?: string;
+}
+
+export interface BulkUpdatePlayStateDto {
+	playStates: UpdatePlayStateDto[];
 }
 
 export interface MovieDto {
@@ -937,7 +936,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags users
 		 * @name UpdateEpisodePlayStateByTmdbId
-		 * @request PUT:/api/users/{userId}/play-state/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 * @request PUT:/api/users/{userId}/play-state/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
 		 */
 		updateEpisodePlayStateByTmdbId: (
 			userId: string,
@@ -948,7 +947,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			params: RequestParams = {}
 		) =>
 			this.request<void, any>({
-				path: `/api/users/${userId}/play-state/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+				path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'PUT',
 				body: data,
 				type: ContentType.Json,
@@ -960,7 +959,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags users
 		 * @name DeleteEpisodePlayStateByTmdbId
-		 * @request DELETE:/api/users/{userId}/play-state/show/tmdb/{tmdbId}/season/{season}/episode/{episode}
+		 * @request DELETE:/api/users/{userId}/play-state/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
 		 */
 		deleteEpisodePlayStateByTmdbId: (
 			userId: string,
@@ -970,8 +969,29 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			params: RequestParams = {}
 		) =>
 			this.request<void, any>({
-				path: `/api/users/${userId}/play-state/show/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+				path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'DELETE',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags users
+		 * @name UpdateSeriesPlayStatesByTmdbId
+		 * @request PUT:/api/users/{userId}/play-state/series/tmdb/{tmdbId}
+		 */
+		updateSeriesPlayStatesByTmdbId: (
+			userId: string,
+			tmdbId: string,
+			data: BulkUpdatePlayStateDto,
+			params: RequestParams = {}
+		) =>
+			this.request<void, any>({
+				path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}`,
+				method: 'PUT',
+				body: data,
+				type: ContentType.Json,
 				...params
 			}),
 

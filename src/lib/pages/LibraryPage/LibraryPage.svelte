@@ -74,14 +74,14 @@
 						new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 20
 				);
 
-				console.log(a.tmdbId, b.tmdbId, aReleaseDate, bReleaseDate);
-
 				return aReleaseDate > bReleaseDate ? 1 : -1;
 			});
 
 			return categorizedItems;
 		}
 	);
+
+	let didMount = false;
 
 	function sortItems(
 		items: LibraryItemWithMetadata[] | undefined,
@@ -142,7 +142,7 @@
 	});
 </script>
 
-<DetachedPage class="py-16 space-y-8 min-h-screen flex flex-col">
+<DetachedPage class="py-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
 	{#if !$isLoading}
 		<div class="h-full flex-1 flex flex-col">
 			<div class="px-32 flex items-center justify-between">
@@ -153,12 +153,12 @@
 			</div>
 			{#if $libraryItemsCategorized.main.length + $libraryItemsCategorized.upcoming.length + $libraryItemsCategorized.watched.length}
 				{#if $libraryItemsCategorized.upcoming.length}
-					<div class="mb-6">
-						<div class="px-32 flex items-center justify-between">
-							<div class="h3">Upcoming</div>
-							<div />
-						</div>
-						<Carousel scrollClass="px-32" on:enter={scrollIntoView({ bottom: 0 })}>
+					<div class="mt-6">
+						<Carousel
+							header="Upcoming"
+							scrollClass="px-32"
+							on:enter={scrollIntoView({ bottom: 0 })}
+						>
 							{#key viewSettingsKey}
 								{#each $libraryItemsCategorized.upcoming as item}
 									<TmdbCard
@@ -172,9 +172,13 @@
 					</div>
 				{/if}
 				{#if $libraryItemsCategorized.main.length}
-					<div class="mb-16">
-						<div class="px-32 mb-8 h3">My Library</div>
-						<CardGrid class="px-32" focusOnMount>
+					<div class="my-6">
+						<div class="px-32 mb-6 h3">My Library</div>
+						<CardGrid
+							class="px-32"
+							focusOnMount={hasFocus || !didMount}
+							on:mount={() => (didMount = true)}
+						>
 							{#key viewSettingsKey}
 								{#each $libraryItemsCategorized.main as item, index (item.tmdbId)}
 									<TmdbCard
@@ -191,9 +195,9 @@
 					</div>
 				{/if}
 				{#if $libraryItemsCategorized.watched.length}
-					<div>
-						<div class="px-32 mb-8 h3">Watched</div>
-						<CardGrid class="px-32">
+					<div class="mt-6 px-32">
+						<div class="mb-6 h3">Watched</div>
+						<CardGrid>
 							{#key viewSettingsKey}
 								{#each $libraryItemsCategorized.watched as item (item.tmdbId)}
 									<TmdbCard

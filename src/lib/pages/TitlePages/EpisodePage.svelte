@@ -85,7 +85,7 @@
 					<Play size={19} slot="icon" />
 				</Button>
 
-				<Button on:clickOrSelect={toggleIsWatched}>
+				<Button action={toggleIsWatched}>
 					{#if $isWatched}
 						Mark as Unwatched
 					{:else}

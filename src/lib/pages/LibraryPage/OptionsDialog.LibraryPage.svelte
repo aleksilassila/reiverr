@@ -3,7 +3,6 @@
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
 	import { libraryViewSettings } from '$lib/stores/localstorage.store';
-	import { MixerHorizontal } from 'radix-icons-svelte';
 
 	const sortByOptions = [
 		{ label: 'Date Added', value: 'date-added' },

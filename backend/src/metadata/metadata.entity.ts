@@ -46,21 +46,11 @@ export class Series {
   updatedAt: Date;
 
   isStale() {
-    console.log(this.updatedAt);
     if (!this.updatedAt) return true;
 
-    console.log(
-      new Date().getTime() - this.updatedAt.getTime(),
-      TMDB_CACHE_TTL,
-    );
     if (new Date().getTime() - this.updatedAt.getTime() > TMDB_CACHE_TTL)
       return true;
 
-    console.log(
-      'Checking if series is stale',
-      this.tmdbSeries.name,
-      this.tmdbSeries.next_episode_to_air?.air_date,
-    );
     if (
       this.tmdbSeries?.next_episode_to_air?.air_date &&
       new Date() > new Date(this.tmdbSeries.next_episode_to_air.air_date)

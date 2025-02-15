@@ -107,14 +107,6 @@
 							Play
 							<Play size={19} slot="icon" />
 						</Button>
-						<Button class="mr-4" on:clickOrSelect={toggleIsWatched}>
-							{#if $isWatched}
-								Mark as Unwatched
-							{:else}
-								Mark as Watched
-							{/if}
-							<Check slot="icon" size={19} />
-						</Button>
 
 						{#if !$inLibrary}
 							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
@@ -125,6 +117,16 @@
 								Remove from Library
 							</Button>
 						{/if}
+
+						<Button class="mr-4" action={toggleIsWatched}>
+							{#if $isWatched}
+								Mark as Unwatched
+							{:else}
+								Mark as Watched
+							{/if}
+							<Check slot="icon" size={19} />
+						</Button>
+
 						{#if PLATFORM_WEB}
 							<Button
 								class="mr-4"

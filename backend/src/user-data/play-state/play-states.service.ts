@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MediaType } from 'src/common/common.dto';
 import { Repository } from 'typeorm';
-import { UpdatePlayStateDto } from './play-state.dto';
+import { BulkUpdatePlayStateDto, UpdatePlayStateDto } from './play-state.dto';
 import { PlayState } from './play-state.entity';
 import { USER_PLAY_STATE_REPOSITORY } from './play-state.providers';
 
@@ -45,19 +45,63 @@ export class PlayStatesService {
     return playStates;
   }
 
-  async updateOrCreateMoviePlayState(
+  async getPlayState(
     userId: string,
     tmdbId: string,
-    playState: UpdatePlayStateDto,
+    season?: number,
+    episode?: number,
+  ): Promise<PlayState | undefined> {
+    return this.playStateRepository.findOne({
+      where: {
+        userId,
+        tmdbId,
+        ...(season ? { season } : {}),
+        ...(episode ? { episode } : {}),
+      },
+    });
+  }
+
+  private async getOrCreatePlayState(
+    userId: string,
+    tmdbId: string,
+    options: {
+      season?: number;
+      episode?: number;
+      mediaType: MediaType;
+      save?: boolean;
+    },
   ) {
-    let state = await this.findMoviePlayState(userId, tmdbId);
+    let state = await this.getPlayState(
+      userId,
+      tmdbId,
+      options.season,
+      options.episode,
+    );
 
     if (!state) {
       state = this.playStateRepository.create();
       state.userId = userId;
       state.tmdbId = tmdbId;
-      state.mediaType = MediaType.Movie;
+      state.season = options.season;
+      state.episode = options.episode;
+      state.mediaType = options.mediaType;
     }
+
+    if (options.save) {
+      return this.playStateRepository.save(state);
+    }
+
+    return state;
+  }
+
+  async updateOrCreateMoviePlayState(
+    userId: string,
+    tmdbId: string,
+    playState: UpdatePlayStateDto,
+  ) {
+    const state = await this.getOrCreatePlayState(userId, tmdbId, {
+      mediaType: MediaType.Movie,
+    });
 
     state.progress = playState.progress;
     state.watched = playState.watched;
@@ -72,28 +116,14 @@ export class PlayStatesService {
     episode: number,
     playState: UpdatePlayStateDto,
   ) {
-    let state = await this.findSeriesPlayStates(
-      userId,
-      tmdbId,
+    const state = await this.getOrCreatePlayState(userId, tmdbId, {
       season,
       episode,
-    ).then((states) =>
-      states.find(
-        (state) => state.season === season && state.episode === episode,
-      ),
-    );
+      mediaType: MediaType.Episode,
+    });
 
-    if (!state) {
-      state = this.playStateRepository.create();
-      state.userId = userId;
-      state.tmdbId = tmdbId;
-      state.season = season;
-      state.episode = episode;
-      state.mediaType = MediaType.Episode;
-    }
-
-    state.progress = playState.progress;
-    state.watched = playState.watched;
+    state.progress = playState.progress ?? state.progress;
+    state.watched = playState.watched ?? state.watched;
 
     return this.playStateRepository.save(state);
   }
@@ -109,12 +139,33 @@ export class PlayStatesService {
     season: number,
     episode: number,
   ) {
-    const state = await this.findSeriesPlayStates(
-      userId,
-      tmdbId,
-      season,
-      episode,
+    const state = await this.getPlayState(userId, tmdbId, season, episode);
+
+    if (state) {
+      return await this.playStateRepository.remove(state);
+    }
+  }
+
+  async updateOrCreateSeriesPlayStates(
+    userId: string,
+    tmdbId: string,
+    playStates: UpdatePlayStateDto[],
+  ) {
+    const states = await Promise.all(
+      playStates.map(async (updatedState) => {
+        const state = await this.getOrCreatePlayState(userId, tmdbId, {
+          season: updatedState.season,
+          episode: updatedState.episode,
+          mediaType: MediaType.Episode,
+        });
+
+        state.progress = updatedState.progress ?? state.progress;
+        state.watched = updatedState.watched ?? state.watched;
+
+        return this.playStateRepository.save(state);
+      }),
     );
-    return await this.playStateRepository.remove(state);
+
+    return states;
   }
 }

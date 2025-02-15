@@ -81,11 +81,12 @@ export class UserDataController {
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<MovieUserDataDto> {
     const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService
-      .findSeriesPlayStates(userId, tmdbId, season, episode)
-      .then((states) =>
-        states.find((s) => s.season === season && s.episode === episode),
-      );
+    const playState = await this.playStateService.getPlayState(
+      userId,
+      tmdbId,
+      season,
+      episode,
+    );
 
     return {
       tmdbId,
