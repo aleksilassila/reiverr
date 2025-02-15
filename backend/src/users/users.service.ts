@@ -70,10 +70,12 @@ export class UsersService {
     user.isAdmin = userCreateDto.isAdmin;
 
     try {
-      user.profilePicture = Buffer.from(
-        userCreateDto.profilePicture?.split(';base64,').pop() as string,
-        'base64',
-      );
+      if (userCreateDto.profilePicture) {
+        user.profilePicture = Buffer.from(
+          userCreateDto.profilePicture.split(';base64,').pop() as string,
+          'base64',
+        );
+      }
     } catch (e) {
       console.error(e);
     }
