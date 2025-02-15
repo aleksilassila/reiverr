@@ -1,12 +1,6 @@
-import { derived, get, writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { tmdbApi, type TmdbMovieFull2, type TmdbSeriesFull2 } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
-
-type AwaitableStoreValue<TData> = {
-	loading: boolean;
-	data?: TData;
-	promise: Promise<TData>;
-};
 
 export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 	async function _createPromise() {
@@ -14,19 +8,22 @@ export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 	}
 
 	const initialPromise = _createPromise();
-	const store = writable<AwaitableStoreValue<TResponse>>({
-		loading: true,
-		data: undefined,
-		promise: initialPromise
+	const promise = writable(initialPromise);
+	const isLoading = writable(true);
+	const data = writable<TResponse | undefined>(undefined);
+	initialPromise.then((d) => {
+		data.set(d);
+		isLoading.set(false);
 	});
-	initialPromise.then((data) => store.update((s) => ({ ...s, loading: false, data })));
 
 	async function refresh() {
-		store.update((s) => ({ ...s, loading: true }));
+		isLoading.set(true);
 
-		return _createPromise().then((data) => {
-			store.set({ loading: false, data, promise: Promise.resolve(data) });
-			return data;
+		return _createPromise().then((d) => {
+			data.set(d);
+			promise.set(Promise.resolve(d));
+			isLoading.set(false);
+			return d;
 		});
 	}
 
@@ -39,10 +36,6 @@ export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 			}, ms);
 		});
 	}
-
-	const data = derived(store, (s) => s.data);
-	const isLoading = derived(store, (s) => s.loading);
-	const promise = derived(store, (s) => s.promise);
 
 	return {
 		subscribe: data.subscribe,
