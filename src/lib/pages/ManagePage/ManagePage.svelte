@@ -1,28 +1,23 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import Button from '../../components/Button.svelte';
-	import Toggle from '../../components/Toggle.svelte';
-	import { localSettings } from '../../stores/localstorage.store';
 	import classNames from 'classnames';
-	import Tab from '../../components/Tab/Tab.svelte';
-	import { useTabs } from '../../components/Tab/Tab';
-	import SonarrIntegration from '../../components/Integrations/SonarrIntegration.svelte';
-	import RadarrIntegration from '../../components/Integrations/RadarrIntegration.svelte';
-	import type { JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
-	import JellyfinIntegration from '../../components/Integrations/JellyfinIntegration.svelte';
-	import JellyfinIntegrationUsersDialog from '../../components/Integrations/JellyfinIntegrationUsersDialog.svelte';
+	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
+	import { reiverrApi } from '../../apis/reiverr/reiverr-api';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import SelectField from '../../components/SelectField.svelte';
-	import { ArrowRight, Exit, Pencil2, Plus, Trash } from 'radix-icons-svelte';
+	import Button from '../../components/Button.svelte';
+	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
+	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
+	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
 	import TmdbIntegrationConnectDialog from '../../components/Integrations/TmdbIntegrationConnectDialog.svelte';
 	import { createModal } from '../../components/Modal/modal.store';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import { user } from '../../stores/user.store';
-	import { sessions } from '../../stores/session.store';
-	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
+	import SelectField from '../../components/SelectField.svelte';
+	import { useTabs } from '../../components/Tab/Tab';
+	import Tab from '../../components/Tab/Tab.svelte';
+	import Toggle from '../../components/Toggle.svelte';
 	import { scrollIntoView } from '../../selectable';
-	import { reiverrApi } from '../../apis/reiverr/reiverr-api';
-	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
+	import { localSettings } from '../../stores/localstorage.store';
+	import { sessions } from '../../stores/session.store';
+	import { user } from '../../stores/user.store';
 	import Plugins from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {

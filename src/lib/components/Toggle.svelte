@@ -18,10 +18,10 @@
 	};
 </script>
 
-<div class="flex items-center justify-between">
+<div class="flex items-center justify-between group">
 	<slot>
 		{#if label}
-			<label class="mr-2">
+			<label class="mr-4 font-medium text-secondary-200 group-focus-within:text-secondary-50">
 				{label}
 			</label>
 		{/if}

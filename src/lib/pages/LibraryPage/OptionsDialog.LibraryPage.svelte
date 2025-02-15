@@ -5,9 +5,9 @@
 	import { libraryViewSettings } from '$lib/stores/localstorage.store';
 
 	const sortByOptions = [
-		{ label: 'Date Added', value: 'date-added' },
 		{ label: 'Last Release Date', value: 'last-release-date' },
 		{ label: 'First Release Date', value: 'first-release-date' },
+		{ label: 'Date Added', value: 'date-added' },
 		{ label: 'Title', value: 'title' }
 	];
 
@@ -25,7 +25,7 @@
 	}
 </script>
 
-<Dialog let:close on:close class="space-y-8">
+<Dialog let:close on:close class="space-y-4">
 	<h1 class="h3 mb-4 flex items-center space-x-4">
 		<span>View Options</span>
 		<!-- <MixerHorizontal size={28} /> -->
@@ -45,7 +45,7 @@
 		on:select={({ detail: direction }) => updateSortByDirection(direction)}
 	/>
 
-	<div class="space-y-4">
+	<div class="space-y-2 font-medium">
 		<Toggle
 			label="Include upcoming"
 			checked={!$libraryViewSettings.separateUpcoming}

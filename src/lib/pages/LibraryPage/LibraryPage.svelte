@@ -1,28 +1,32 @@
 <script lang="ts">
+	import type { LibraryItemDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { TmdbMovieFull2, TmdbSeriesFull2 } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import Container from '$lib/components/Container.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { libraryViewSettings, type LibraryViewSettings } from '$lib/stores/localstorage.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
+	import { derived, writable } from 'svelte/store';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../../selectable';
 	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
-	import { libraryViewSettings, type LibraryViewSettings } from '$lib/stores/localstorage.store';
-	import type { LibraryItemDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import type { TmdbMovieFull2, TmdbSeriesFull2 } from '$lib/apis/tmdb/tmdb-api';
-	import Container from '$lib/components/Container.svelte';
-	import { derived } from 'svelte/store';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import TabItem from './TabItem.svelte';
 
 	type LibraryItemWithMetadata = LibraryItemDto & { metadata: TmdbSeriesFull2 | TmdbMovieFull2 };
+
+	let didMount = false;
+	let category = writable<'all' | 'series' | 'movies'>('all');
 
 	const { isLoading, unsubscribe, ...libraryItems } = libraryItemsDataStore.subscribe();
 
 	const sortedLibraryItems = derived(
-		[libraryItems, libraryViewSettings],
-		([$libraryItems, $libraryViewSettings]) => sortItems($libraryItems, $libraryViewSettings)
+		[libraryItems, libraryViewSettings, category],
+		([items, viewSettings, category]) => sortItems(items, viewSettings, category)
 	);
 
 	const libraryItemsCategorized = derived(
@@ -81,14 +85,20 @@
 		}
 	);
 
-	let didMount = false;
-
 	function sortItems(
 		items: LibraryItemWithMetadata[] | undefined,
-		viewSettings: LibraryViewSettings
+		viewSettings: LibraryViewSettings,
+		category: 'all' | 'series' | 'movies'
 	) {
+		const filtered =
+			category === 'all'
+				? items?.slice()
+				: items?.filter((i) =>
+						category === 'series' ? i.mediaType === 'Series' : i.mediaType === 'Movie'
+				  );
+
 		return (
-			items?.sort((a, b) => {
+			filtered?.sort((a, b) => {
 				const aCreatedAt = a.createdAt;
 				const bCreatedAt = b.createdAt;
 
@@ -145,78 +155,84 @@
 <DetachedPage class="py-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
 	{#if !$isLoading}
 		<div class="h-full flex-1 flex flex-col">
-			<div class="px-32 flex items-center justify-between">
-				<div />
+			<Container class="px-32 flex items-center justify-between" direction="horizontal">
+				<Container class="flex space-x-4" direction="horizontal">
+					<TabItem selected={$category === 'all'} on:select={() => category.set('all')}>All</TabItem
+					>
+					<TabItem selected={$category === 'series'} on:select={() => category.set('series')}>
+						Series
+					</TabItem>
+					<TabItem selected={$category === 'movies'} on:select={() => category.set('movies')}>
+						Movies
+					</TabItem>
+				</Container>
 				<Button icon={MixerHorizontal} on:clickOrSelect={() => createModal(OptionsDialog, {})}>
 					Options
 				</Button>
-			</div>
-			{#if $libraryItemsCategorized.main.length + $libraryItemsCategorized.upcoming.length + $libraryItemsCategorized.watched.length}
-				{#if $libraryItemsCategorized.upcoming.length}
-					<div class="mt-6">
-						<Carousel
-							header="Upcoming"
-							scrollClass="px-32"
-							on:enter={scrollIntoView({ bottom: 0 })}
-						>
-							{#key viewSettingsKey}
-								{#each $libraryItemsCategorized.upcoming as item}
-									<TmdbCard
-										on:enter={scrollIntoView({ horizontal: 128 })}
-										size="lg"
-										item={item.metadata}
-									/>
-								{/each}
-							{/key}
-						</Carousel>
-					</div>
+			</Container>
+			<Container focusOnMount={hasFocus || !didMount} on:mount={() => (didMount = true)}>
+				{#if $libraryItemsCategorized.main.length + $libraryItemsCategorized.upcoming.length + $libraryItemsCategorized.watched.length}
+					{#if $libraryItemsCategorized.upcoming.length}
+						<div class="mt-6">
+							<Carousel
+								header="Upcoming"
+								scrollClass="px-32"
+								on:enter={scrollIntoView({ bottom: 0 })}
+							>
+								{#key viewSettingsKey}
+									{#each $libraryItemsCategorized.upcoming as item (item.tmdbId)}
+										<TmdbCard
+											on:enter={scrollIntoView({ horizontal: 128 })}
+											size="lg"
+											item={item.metadata}
+										/>
+									{/each}
+								{/key}
+							</Carousel>
+						</div>
+					{/if}
+					{#if $libraryItemsCategorized.main.length}
+						<div class="my-6">
+							<div class="px-32 mb-6 h3">My Library</div>
+							<CardGrid class="px-32">
+								{#key viewSettingsKey}
+									{#each $libraryItemsCategorized.main as item, index (item.tmdbId)}
+										<TmdbCard
+											item={item.metadata}
+											progress={item.playStates?.[0]?.progress || 0}
+											on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
+											size="dynamic"
+											navigateWithType
+										/>
+									{/each}
+								{/key}
+							</CardGrid>
+						</div>
+					{/if}
+					{#if $libraryItemsCategorized.watched.length}
+						<div class="mt-6 px-32">
+							<div class="mb-6 h3">Watched</div>
+							<CardGrid>
+								{#key viewSettingsKey}
+									{#each $libraryItemsCategorized.watched as item (item.tmdbId)}
+										<TmdbCard
+											item={item.metadata}
+											progress={item.playStates?.[0]?.progress || 0}
+											on:enter={scrollIntoView({ vertical: 128 })}
+											size="dynamic"
+											navigateWithType
+										/>
+									{/each}
+								{/key}
+							</CardGrid>
+						</div>
+					{/if}
+				{:else}
+					<Container focusOnMount class="h-ghost m-auto">
+						You haven't added anything to your library
+					</Container>
 				{/if}
-				{#if $libraryItemsCategorized.main.length}
-					<div class="my-6">
-						<div class="px-32 mb-6 h3">My Library</div>
-						<CardGrid
-							class="px-32"
-							focusOnMount={hasFocus || !didMount}
-							on:mount={() => (didMount = true)}
-						>
-							{#key viewSettingsKey}
-								{#each $libraryItemsCategorized.main as item, index (item.tmdbId)}
-									<TmdbCard
-										item={item.metadata}
-										progress={item.playStates?.[0]?.progress || 0}
-										on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
-										size="dynamic"
-										navigateWithType
-										focusedChild={index === 0}
-									/>
-								{/each}
-							{/key}
-						</CardGrid>
-					</div>
-				{/if}
-				{#if $libraryItemsCategorized.watched.length}
-					<div class="mt-6 px-32">
-						<div class="mb-6 h3">Watched</div>
-						<CardGrid>
-							{#key viewSettingsKey}
-								{#each $libraryItemsCategorized.watched as item (item.tmdbId)}
-									<TmdbCard
-										item={item.metadata}
-										progress={item.playStates?.[0]?.progress || 0}
-										on:enter={scrollIntoView({ vertical: 128 })}
-										size="dynamic"
-										navigateWithType
-									/>
-								{/each}
-							{/key}
-						</CardGrid>
-					</div>
-				{/if}
-			{:else}
-				<Container focusOnMount class="h-ghost m-auto">
-					You haven't added anything to your library
-				</Container>
-			{/if}
+			</Container>
 		</div>
 	{/if}
 </DetachedPage>
