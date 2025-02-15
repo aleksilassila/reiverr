@@ -81,12 +81,37 @@ export interface PlayState {
 	lastPlayedAt: string;
 }
 
-export interface LibraryItem {
-	id?: string;
+export interface PlayStateDto {
+	id: string;
 	tmdbId: number;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	userId: string;
+	season?: number;
+	episode?: number;
+	/**
+	 * Whether the user has watched this media
+	 * @default false
+	 */
+	watched: boolean;
+	/**
+	 * A number between 0 and 1
+	 * @default false
+	 * @example 0.5
+	 */
+	progress: number;
+	/** Last time the user played this media */
+	lastPlayedAt: string;
+}
+
+export interface LibraryItem {
+	id?: string;
+	tmdbId: string;
+	mediaType: 'Movie' | 'Series' | 'Episode';
+	userId: string;
 	user?: string;
+	playStates?: PlayStateDto[];
+	updatedAt: string;
+	createdAt: string;
 }
 
 export interface UserDto {
@@ -439,28 +464,6 @@ export interface UpdateOrCreateMediaSourceDto {
 	priority?: number;
 }
 
-export interface PlayStateDto {
-	id: string;
-	tmdbId: number;
-	mediaType: 'Movie' | 'Series' | 'Episode';
-	userId: string;
-	season?: number;
-	episode?: number;
-	/**
-	 * Whether the user has watched this media
-	 * @default false
-	 */
-	watched: boolean;
-	/**
-	 * A number between 0 and 1
-	 * @default false
-	 * @example 0.5
-	 */
-	progress: number;
-	/** Last time the user played this media */
-	lastPlayedAt: string;
-}
-
 export interface MovieUserDataDto {
 	tmdbId: string;
 	inLibrary: boolean;
@@ -498,20 +501,24 @@ export interface MovieDto {
 	id?: string;
 	tmdbId: string;
 	tmdbMovie?: object;
+	updatedAt: string;
 }
 
 export interface Series {
 	id?: string;
 	tmdbId: string;
 	tmdbSeries?: object;
+	updatedAt: string;
 }
 
 export interface LibraryItemDto {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
+	createdAt: string;
 	movieMetadata?: MovieDto;
 	seriesMetadata?: Series;
+	watched?: boolean;
 }
 
 export interface SuccessResponseDto {

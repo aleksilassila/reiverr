@@ -48,6 +48,7 @@
 />
 
 <Container
+	{...$$restProps}
 	direction="grid"
 	gridCols={cols}
 	class={classNames(

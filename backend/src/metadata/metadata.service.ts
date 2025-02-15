@@ -5,6 +5,7 @@ import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
 import { TMDB_CACHE_TTL } from 'src/consts';
 import { TMDB_API, TmdbApi } from './tmdb/tmdb.providers';
 import { TmdbMovieFull } from './tmdb/tmdb.dto';
+import { TmdbService } from './tmdb/tmdb.service';
 
 @Injectable()
 export class MetadataService {
@@ -17,7 +18,14 @@ export class MetadataService {
 
     @Inject(SERIES_REPOSITORY)
     private seriesRepository: Repository<Series>,
+
+    private readonly tmdbService: TmdbService,
   ) {}
+
+  async clearMetadataCache() {
+    await this.movieRepository.clear();
+    await this.seriesRepository.clear();
+  }
 
   async getMovieByTmdbId(tmdbId: string): Promise<Movie | undefined> {
     let movie = await this.movieRepository.findOne({ where: { tmdbId } });
@@ -39,6 +47,8 @@ export class MetadataService {
       movie.tmdbMovie = tmdbMovie;
     }
 
+    await this.movieRepository.save(movie);
+
     return movie;
   }
 
@@ -54,19 +64,13 @@ export class MetadataService {
       series.tmdbId = tmdbId;
     }
 
-    if (
-      !series.updatedAt ||
-      new Date().getTime() - series.updatedAt.getTime() > TMDB_CACHE_TTL
-    ) {
-      const tmdbSeries = await this.tmdbApi.v3
-        .tvSeriesDetails(Number(tmdbId))
-        .then((r) => r.data)
-        .catch((e) => {
-          console.error('could not get metadata for series', tmdbId, e);
-          return e;
-        });
-      series.tmdbSeries = tmdbSeries;
+    if (series.isStale()) {
+      console.log('getting metadata for series', tmdbId);
+      const tmdbSeries = await this.tmdbService.getFullSeries(Number(tmdbId));
+      if (tmdbSeries) series.tmdbSeries = tmdbSeries;
     }
+
+    await this.seriesRepository.save(series);
 
     return series;
   }

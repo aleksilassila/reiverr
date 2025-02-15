@@ -3,16 +3,25 @@ import { get, writable } from 'svelte/store';
 export function createLocalStorageStore<T>(key: string, defaultValue: T) {
 	const store = writable<T>(JSON.parse(localStorage.getItem(key) || 'null') || defaultValue);
 
+	function writeValue(value: T) {
+		const strigified = JSON.stringify(value);
+		if (strigified === JSON.stringify(defaultValue)) {
+			localStorage.removeItem(key);
+		} else {
+			localStorage.setItem(key, strigified);
+		}
+	}
+
 	return {
 		subscribe: store.subscribe,
 		get: () => get(store),
 		set: (value: T) => {
-			localStorage.setItem(key, JSON.stringify(value));
+			writeValue(value);
 			store.set(value);
 		},
 		update: (updater: (value: T) => T) => {
 			const newValue = updater(get(store));
-			localStorage.setItem(key, JSON.stringify(newValue));
+			writeValue(newValue);
 			store.set(newValue);
 		},
 		remove: () => {
@@ -41,3 +50,20 @@ export const localSettings = createLocalStorageStore<{
 	checkForUpdates: true,
 	skippedVersion: ''
 });
+
+export type LibraryViewSettings = {
+	sortBy: 'date-added' | 'title' | 'first-release-date' | 'last-release-date';
+	sortDirection: 'asc' | 'desc';
+	separateUpcoming: boolean;
+	separateWatched: boolean;
+};
+
+export const libraryViewSettings = createLocalStorageStore<LibraryViewSettings>(
+	'library-view-settings',
+	{
+		sortBy: 'last-release-date',
+		sortDirection: 'desc',
+		separateUpcoming: true,
+		separateWatched: true
+	}
+);

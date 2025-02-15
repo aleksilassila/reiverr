@@ -52,6 +52,7 @@
 	{/if}
 	<AnimatedSelection hasFocus={$hasFocus}>
 		<Container
+			{...$$restProps}
 			{disabled}
 			on:clickOrSelect={() => {
 				if (tmdbId || tvdbId) navigate(`/${type}/${tmdbId || tvdbId}`);

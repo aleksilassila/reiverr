@@ -14,7 +14,7 @@ export class LibraryService {
     private readonly metadataService: MetadataService,
   ) {}
 
-  async getLibraryItemsWithMetadata(
+  async getLibraryItemDtos(
     userId: string,
     pagination: PaginationParamsDto,
   ): Promise<LibraryItemDto[]> {
@@ -22,16 +22,37 @@ export class LibraryService {
 
     return Promise.all(
       items.map(async (item) => {
+        const seriesMetadata =
+          item.mediaType === MediaType.Series
+            ? await this.metadataService.getSeriesByTmdbId(item.tmdbId)
+            : undefined;
+        let watched = false;
+
+        if (item.mediaType === MediaType.Movie) {
+          watched = item.playStates?.some((state) => state.watched) ?? false;
+        } else if (
+          item.mediaType === MediaType.Series &&
+          seriesMetadata.tmdbSeries?.last_episode_to_air
+        ) {
+          const { season_number: season, episode_number: episode } =
+            seriesMetadata.tmdbSeries.last_episode_to_air;
+          watched =
+            item.playStates?.some(
+              (state) =>
+                state.season === season &&
+                state.episode === episode &&
+                state.watched,
+            ) ?? false;
+        }
+
         return {
           ...item,
+          watched,
           movieMetadata:
             item.mediaType === MediaType.Movie
               ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
               : undefined,
-          seriesMetadata:
-            item.mediaType === MediaType.Series
-              ? await this.metadataService.getSeriesByTmdbId(item.tmdbId)
-              : undefined,
+          seriesMetadata,
         };
       }),
     );

@@ -1,27 +1,20 @@
 import {
+  Cache,
+  CACHE_MANAGER
+} from '@nestjs/cache-manager';
+import {
   All,
   Controller,
-  Get,
   Inject,
-  Next,
   Param,
   Req,
   Res,
-  UseGuards,
-  UseInterceptors,
+  UseGuards
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
-import { TMDB_CACHE_TTL, TMDB_API_KEY } from 'src/consts';
+import { TMDB_API_KEY, TMDB_CACHE_TTL } from 'src/consts';
 import { User } from 'src/users/user.entity';
-import { Readable } from 'stream';
-import { NextFunction, Request, Response } from 'express';
-import { MetadataService } from '../metadata.service';
-import {
-  Cache,
-  CACHE_MANAGER,
-  CacheInterceptor,
-  CacheTTL,
-} from '@nestjs/cache-manager';
 
 @UseGuards(UserAccessControl)
 @Controller('tmdb')

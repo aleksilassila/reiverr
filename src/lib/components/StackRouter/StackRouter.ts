@@ -1,6 +1,6 @@
 import { type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
-import LibraryPage from '../../pages/LibraryPage.svelte';
+import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
 import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';

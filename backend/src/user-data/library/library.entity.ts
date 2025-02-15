@@ -3,6 +3,7 @@ import { MediaType } from 'src/common/common.dto';
 import { User } from 'src/users/user.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -10,8 +11,10 @@ import {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { PlayState } from '../play-state/play-state.entity';
+import { PlayStateDto } from '../play-state/play-state.dto';
 
 @Entity()
 @Unique(['tmdbId', 'userId'])
@@ -20,7 +23,7 @@ export class LibraryItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ApiProperty({ required: true, type: 'number' })
+  @ApiProperty({ required: true })
   @Column({ unique: true })
   tmdbId: string;
 
@@ -37,6 +40,16 @@ export class LibraryItem {
   @JoinColumn({ name: 'userId' })
   user: User;
 
+  @ApiProperty({ type: [PlayStateDto], required: false })
   @OneToMany(() => PlayState, (playState) => playState.libraryItem)
   playStates?: PlayState[];
+
+  /** @deprecated */
+  @ApiProperty({ type: 'string' })
+  @UpdateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
+
+  @ApiProperty({ type: 'string' })
+  @CreateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 }

@@ -1,22 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { MovieDto } from 'src/metadata/metadata.dto';
-import { PlayStateDto } from '../play-state/play-state.dto';
-import { MediaType } from 'src/common/common.dto';
 import { Series } from 'src/metadata/metadata.entity';
+import { LibraryItem } from './library.entity';
 
-export class LibraryItemDto {
-  @ApiProperty()
-  tmdbId: string;
-
-  @ApiProperty({ enum: MediaType })
-  mediaType: MediaType;
-
-  @ApiProperty({ type: [PlayStateDto], required: false })
-  playStates?: PlayStateDto[];
-
+export class LibraryItemDto extends PickType(LibraryItem, [
+  'tmdbId',
+  'mediaType',
+  'playStates',
+  'createdAt',
+]) {
   @ApiProperty({ type: MovieDto, required: false })
   movieMetadata?: MovieDto;
 
   @ApiProperty({ type: Series, required: false })
   seriesMetadata?: Series;
+
+  @ApiProperty({ required: false })
+  watched?: boolean;
 }
