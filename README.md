@@ -79,12 +79,10 @@ services:
    - Node v18.14.0 or higher
    - NPM v9.3.1 or higher
 2. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
-3. Build the app:\
+3. Build & run the app:\
    `npm install`\
    `npm install --prefix backend`\
-   `npm run build`
-4. Start the app:\
-   `node backend/dist/src/main`
+   `npm run preview`
 
 #### Reiverr will be accessible via port 9494 by default.
 
