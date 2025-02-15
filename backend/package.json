@@ -25,9 +25,9 @@
     "openapi:generate-spec": "ts-node scripts/generate-openapi-spec.ts",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./dist/data-source.js",
-    "typeorm:generate-migration": "npm run typeorm -- -d ./dist/data-source.js migration:generate ./migrations/$npm_config_name",
-    "typeorm:create-migration": "npm run typeorm -- migration:create ./migrations/$npm_config_name",
-    "typeorm:revert-migration": "npm run typeorm -- -d ./dist/data-source.js migration:revert"
+    "typeorm:generate-migration": "ts-node ./node_modules/typeorm/cli -d ./dist/data-source.js migration:generate",
+    "typeorm:create-migration": "ts-node ./node_modules/typeorm/cli migration:create ./migrations/$npm_config_name",
+    "typeorm:revert-migration": "ts-node ./node_modules/typeorm/cli -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
     "@aleksilassila/reiverr-plugin": "*",
