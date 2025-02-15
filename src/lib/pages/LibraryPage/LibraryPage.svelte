@@ -170,7 +170,11 @@
 					Options
 				</Button>
 			</Container>
-			<Container focusOnMount={hasFocus || !didMount} on:mount={() => (didMount = true)}>
+			<Container
+				focusOnMount={hasFocus || !didMount}
+				on:mount={() => (didMount = true)}
+				focusedChild
+			>
 				{#if $libraryItemsCategorized.main.length + $libraryItemsCategorized.upcoming.length + $libraryItemsCategorized.watched.length}
 					{#if $libraryItemsCategorized.upcoming.length}
 						<div class="mt-6">

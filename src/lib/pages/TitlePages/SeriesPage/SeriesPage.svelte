@@ -10,7 +10,6 @@
 	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
-	import { tmdbSeriesDataStore } from '$lib/stores/data.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { formatThousands } from '$lib/utils';
 	import { Bookmark, Check, ExternalLink, Minus, Play } from 'radix-icons-svelte';

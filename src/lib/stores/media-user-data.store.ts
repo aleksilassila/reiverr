@@ -24,6 +24,7 @@ export type EpisodeData = {
 	episode: number;
 	watched: boolean;
 	progress: number;
+	upcoming: boolean;
 };
 
 async function getAllStreams(
@@ -195,9 +196,12 @@ export function useSeriesUserData(tmdbId: string) {
 		season: 1,
 		episode: 1,
 		progress: 0,
-		watched: false
+		watched: false,
+		upcoming: false
 	});
-	const isWatched = derived(episodesUserData, (episodes) => episodes.every((e) => e.watched));
+	const isWatched = derived(episodesUserData, (episodes) =>
+		episodes.every((e) => e.watched || e.upcoming)
+	);
 
 	derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(([userData, tmdbSeries]) => {
 		if (!tmdbSeries) return;
@@ -205,18 +209,17 @@ export function useSeriesUserData(tmdbId: string) {
 		const episodesData: EpisodeData[] = [];
 		let foundNext = false;
 		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
-			for (
-				let episode = 1;
-				episode <= (tmdbSeries.seasons?.[season - 1]?.episode_count ?? 0);
-				episode++
-			) {
+			const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
+			for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
 				const ep = userData?.playStates?.find((p) => p.season === season && p.episode === episode);
+				const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
 				if (!foundNext && !ep?.watched) {
 					nextEpisode.set({
 						season,
 						episode,
 						progress: ep?.progress ?? 0,
-						watched: ep?.watched ?? false
+						watched: ep?.watched ?? false,
+						upcoming
 					});
 					foundNext = true;
 				}
@@ -224,7 +227,8 @@ export function useSeriesUserData(tmdbId: string) {
 					season,
 					episode,
 					watched: ep?.watched ?? false,
-					progress: ep?.progress ?? 0
+					progress: ep?.progress ?? 0,
+					upcoming
 				});
 			}
 		}
@@ -241,11 +245,13 @@ export function useSeriesUserData(tmdbId: string) {
 
 		return reiverrApiNew.users
 			.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
-				playStates: get(episodesUserData).map((e) => ({
-					season: e.season,
-					episode: e.episode,
-					watched: !watched
-				}))
+				playStates: get(episodesUserData)
+					.filter((e) => !e.upcoming)
+					.map((e) => ({
+						season: e.season,
+						episode: e.episode,
+						watched: !watched
+					}))
 			})
 			.then(async (states) => {
 				await seriesUserDataStore.refresh(tmdbId);
