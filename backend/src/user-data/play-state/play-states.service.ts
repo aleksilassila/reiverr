@@ -82,8 +82,8 @@ export class PlayStatesService {
       state = this.playStateRepository.create();
       state.userId = userId;
       state.tmdbId = tmdbId;
-      state.season = options.season;
-      state.episode = options.episode;
+      if (options.season) state.season = options.season;
+      if (options.episode) state.episode = options.episode;
       state.mediaType = options.mediaType;
     }
 
@@ -103,8 +103,8 @@ export class PlayStatesService {
       mediaType: MediaType.Movie,
     });
 
-    state.progress = playState.progress;
-    state.watched = playState.watched;
+    if (playState.progress !== undefined) state.progress = playState.progress;
+    if (playState.watched !== undefined) state.watched = playState.watched;
 
     return this.playStateRepository.save(state);
   }
@@ -122,8 +122,8 @@ export class PlayStatesService {
       mediaType: MediaType.Episode,
     });
 
-    state.progress = playState.progress ?? state.progress;
-    state.watched = playState.watched ?? state.watched;
+    if (playState.progress !== undefined) state.progress = playState.progress;
+    if (playState.watched !== undefined) state.watched = playState.watched;
 
     return this.playStateRepository.save(state);
   }
@@ -159,8 +159,10 @@ export class PlayStatesService {
           mediaType: MediaType.Episode,
         });
 
-        state.progress = updatedState.progress ?? state.progress;
-        state.watched = updatedState.watched ?? state.watched;
+        if (updatedState.progress !== undefined)
+          state.progress = updatedState.progress;
+        if (updatedState.watched !== undefined)
+          state.watched = updatedState.watched;
 
         return this.playStateRepository.save(state);
       }),
