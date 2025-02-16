@@ -15,7 +15,9 @@
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
 		if (!libraryData) return [];
 
-		const movies = libraryData.filter((i) => i.mediaType === 'Movie' && i.playStates?.length);
+		const movies = libraryData.filter(
+			(i) => i.mediaType === 'Movie' && i.playStates?.length && !i.watched
+		);
 
 		movies.sort((a, b) => {
 			const aMax = Math.max(
@@ -30,6 +32,7 @@
 
 		return movies.map((i) => i.metadata);
 	});
+	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
 	const popularMovies = tmdbApi.getPopularMovies();
 
@@ -92,9 +95,11 @@
 		{#if $libraryContinueWatching.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
-				{#each $libraryContinueWatching as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-				{/each}
+				{#key libraryContinueWatchingKey}
+					{#each $libraryContinueWatching as item (item.id)}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				{/key}
 			</Carousel>
 		{/if}
 

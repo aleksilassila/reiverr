@@ -28,7 +28,7 @@ export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 	}
 
 	let updateTimeout: NodeJS.Timeout;
-	function refreshIn(ms = 1000) {
+	function refreshIn(ms = 1500) {
 		return new Promise((resolve) => {
 			clearTimeout(updateTimeout);
 			updateTimeout = setTimeout(() => {
@@ -97,10 +97,19 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 		}
 	};
 
+	const refreshIn = async (ms: number, ...args: TArgs) => {
+		const request = requests.get(JSON.stringify(args))?.request;
+
+		if (request) {
+			return request.refreshIn(ms);
+		}
+	};
+
 	return {
 		subscribe,
 		get: _get,
-		refresh
+		refresh,
+		refreshIn
 	};
 }
 

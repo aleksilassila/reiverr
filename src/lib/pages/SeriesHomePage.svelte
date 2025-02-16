@@ -17,7 +17,9 @@
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
 		if (!libraryData) return [];
 
-		const series = libraryData.filter((i) => i.mediaType === 'Series' && i.playStates?.length);
+		const series = libraryData.filter(
+			(i) => i.mediaType === 'Series' && i.playStates?.length && !i.watched
+		);
 
 		series.sort((a, b) => {
 			const aMax = Math.max(
@@ -32,6 +34,7 @@
 
 		return series.map((i) => i.metadata);
 	});
+	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
 	const nowStreaming = getNowStreaming();
 	const upcomingSeries = fetchUpcomingSeries();
@@ -86,9 +89,11 @@
 		{#if $libraryContinueWatching.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
-				{#each $libraryContinueWatching as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
-				{/each}
+				{#key libraryContinueWatchingKey}
+					{#each $libraryContinueWatching as item (item.id)}
+						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					{/each}
+				{/key}
 			</Carousel>
 		{/if}
 

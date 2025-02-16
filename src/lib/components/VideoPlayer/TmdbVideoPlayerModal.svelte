@@ -228,7 +228,7 @@
 			} else {
 				movieUserDataStore.refresh(tmdbId);
 			}
-			libraryItemsDataStore.refresh();
+			libraryItemsDataStore.refreshIn(1500);
 		});
 	});
 </script>

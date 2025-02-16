@@ -116,7 +116,7 @@ function useUserLibrary(
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(true);
-			libraryItemsDataStore.refresh();
+			libraryItemsDataStore.refreshIn(1500);
 		}
 	}
 
@@ -133,7 +133,7 @@ function useUserLibrary(
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(false);
-			libraryItemsDataStore.refresh();
+			libraryItemsDataStore.refreshIn(1500);
 		}
 	}
 
@@ -164,7 +164,7 @@ function useIsWatched(
 
 		return toggleFn(userId, !watched)
 			.then(async (r) => {
-				await libraryItemsDataStore.refresh();
+				await libraryItemsDataStore.refreshIn(1500);
 				return r;
 			})
 			.finally(() => {
@@ -255,7 +255,7 @@ export function useSeriesUserData(tmdbId: string) {
 			})
 			.then(async (states) => {
 				await seriesUserDataStore.refresh(tmdbId);
-				await libraryItemsDataStore.refresh();
+				await libraryItemsDataStore.refreshIn(1500);
 				return states;
 			});
 	}
