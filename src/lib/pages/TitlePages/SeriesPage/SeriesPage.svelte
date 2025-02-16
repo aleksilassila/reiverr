@@ -91,7 +91,7 @@
 					(series) =>
 						series?.images.backdrops
 							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-							?.map((i) => TMDB_IMAGES_ORIGINAL + i.file_path)
+							?.map((bd) => ({backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || ''}))
 							.slice(0, 5) || []
 				)}
 			>

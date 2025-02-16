@@ -35,7 +35,10 @@
 </script>
 
 <HeroCarousel
-	urls={items.then((items) => items.map((i) => `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`))}
+	urls={items.then((items) => items.map((i) => ({
+		backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
+		trailerUrl: i.trailerUrl || ''
+	})))}
 	bind:index={showcaseIndex}
 	on:enter
 	on:navigate={({ detail }) => {

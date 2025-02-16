@@ -10,7 +10,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	export let urls: Promise<string[]>;
+	export let urls: Promise<{ trailerUrl: string; backdropUrl: string }[]>;
 	export let index = 0;
 	export let hideInterface = false;
 

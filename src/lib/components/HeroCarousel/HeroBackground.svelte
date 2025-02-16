@@ -3,6 +3,7 @@
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import { isFirefox } from '../../utils/browser-detection';
+	import YouTubeBackground from '../YouTubeBackground.svelte';
 
 	export let urls: Promise<string[]>;
 	export let index: number;
@@ -36,45 +37,47 @@
 </script>
 
 <div class="fixed inset-0" style="-webkit-transform: translate3d(0,0,0);">
+	{#await urls then urlArray}
 	{#if !isFirefox()}
-		{#await urls then urls}
-			{#each urls as url, i}
-				<div
+		{#each urlArray as { trailerUrl, backdropUrl }, i}
+			{#if i === index}
+				{#if trailerUrl}
+					<YouTubeBackground videoId={trailerUrl} backgroundUrl={backdropUrl} />
+				{:else}
+					<div
+						class={classNames('absolute inset-0 bg-center bg-cover', {
+							'opacity-100': visibleIndex === i,
+							'opacity-0': visibleIndex !== i,
+							'scale-110': !hasFocus
+						})}
+						style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
+					/>
+				{/if}
+			{/if}
+		{/each}
+	{:else}
+		<div class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', { 'scale-110': !hasFocus })}
+			 style="perspective: 1px; -webkit-perspective: 1px;">
+			{#each urlArray as { backdropUrl }, i}
+				<div class="w-full h-full flex-shrink-0 relative"
+					 style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
+					 bind:this={htmlElements[i]}>
+					<div 
 					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
 						'opacity-0': visibleIndex !== i,
 						'scale-110': !hasFocus
 					})}
-					style={`background-image: url('${url}'); transition: opacity 500ms, transform 500ms;`}
-				/>
+					style={`background-image: url('${backdropUrl}'); ${
+							!PLATFORM_TV &&
+							'transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);'
+						 }`}
+					/>
+				</div>
 			{/each}
-		{/await}
-	{:else}
-		<div
-			class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', {
-				'scale-110': !hasFocus
-			})}
-			style="perspective: 1px; -webkit-perspective: 1px;"
-		>
-			{#await urls then urls}
-				{#each urls as url, i}
-					<div
-						class="w-full h-full flex-shrink-0 basis-auto relative"
-						style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
-						bind:this={htmlElements[i]}
-					>
-						<div
-							class="w-full h-full flex-shrink-0 basis-auto bg-center bg-cover absolute inset-0"
-							style={`background-image: url('${url}'); ${
-								!PLATFORM_TV &&
-								'transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);'
-							}`}
-						/>
-					</div>
-				{/each}
-			{/await}
 		</div>
 	{/if}
+{/await}
 </div>
 <div
 	class={classNames('absolute inset-0 flex flex-col transition-opacity', {

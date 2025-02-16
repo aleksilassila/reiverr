@@ -305,6 +305,35 @@ export class TmdbApi implements Api<paths> {
 	getPersonBackdrops = async (person_id: number) =>
 		this.getPersonTaggedImages(person_id).then((r) => r.filter((i) => (i.aspect_ratio || 0) > 1.5));
 
+	getMovieVideos = async (tmdbId: number) => {
+		return this.getClient()
+			.GET('/3/movie/{movie_id}/videos', {
+				params: {
+					path: {
+						movie_id: tmdbId
+					},
+					query: {
+						language: get(settings)?.language || 'en',
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	};
+	getSeriesVideos = async (tmdbId: number) => {
+		return this.getClient()
+			?.GET('/3/tv/{series_id}/videos', {
+				params: {
+					path: {
+						series_id: tmdbId
+					},
+					query: {
+						language: get(settings)?.language || 'en',
+					}
+				}
+			})
+			.then((res) => res.data?.results || []);
+	};
+
 	// OTHER
 
 	// USER
