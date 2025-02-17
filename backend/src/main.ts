@@ -24,7 +24,14 @@ async function createAdminUser(userService: UsersService) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: [
+      'error',
+      'warn',
+      'log',
+      ...(ENV === 'development' ? (['debug'] as const) : []),
+    ],
+  });
   app.setGlobalPrefix('api');
   app.enableCors();
   app.use(json({ limit: '50mb' }));

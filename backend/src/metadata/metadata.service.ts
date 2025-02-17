@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Movie, Series } from './metadata.entity';
 import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
@@ -9,6 +9,8 @@ import { TmdbService } from './tmdb/tmdb.service';
 
 @Injectable()
 export class MetadataService {
+  private logger = new Logger(MetadataService.name);
+
   constructor(
     @Inject(TMDB_API)
     private tmdbApi: TmdbApi,
@@ -39,11 +41,7 @@ export class MetadataService {
       !movie.updatedAt ||
       new Date().getTime() - movie.updatedAt.getTime() > TMDB_CACHE_TTL
     ) {
-      const tmdbMovie = await this.tmdbApi.v3
-        .movieDetails(Number(tmdbId), {
-          append_to_response: 'videos,credits,external_ids,images',
-        })
-        .then((r) => r.data as TmdbMovieFull);
+      const tmdbMovie = await this.tmdbService.getFullMovie(Number(tmdbId));
       movie.tmdbMovie = tmdbMovie;
     }
 
@@ -65,7 +63,7 @@ export class MetadataService {
     }
 
     if (series.isStale()) {
-      console.log('getting metadata for series', tmdbId);
+      this.logger.debug(`Caching series ${tmdbId}`);
       const tmdbSeries = await this.tmdbService.getFullSeries(Number(tmdbId));
       if (tmdbSeries) series.tmdbSeries = tmdbSeries;
     }

@@ -26,7 +26,7 @@
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./dist/data-source.js",
     "typeorm:generate-migration": "ts-node ./node_modules/typeorm/cli -d ./dist/data-source.js migration:generate",
-    "typeorm:create-migration": "ts-node ./node_modules/typeorm/cli migration:create ./migrations/$npm_config_name",
+    "typeorm:create-migration": "ts-node ./node_modules/typeorm/cli migration:create",
     "typeorm:revert-migration": "ts-node ./node_modules/typeorm/cli -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
