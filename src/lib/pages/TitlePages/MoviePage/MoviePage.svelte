@@ -12,9 +12,11 @@
 	import { tmdbMovieDataStore } from '$lib/stores/data.store';
 	import { useMovieUserData } from '$lib/stores/media-user-data.store';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
-	import { Bookmark, Check, ExternalLink, Minus, Play } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -54,8 +56,12 @@
 		);
 	});
 
-	let titleProperties: { href?: string; label: string }[] = [];
+	let titleProperties: TitleInfoProperty[] = [];
 	$tmdbMovie.then((movie) => {
+		const trailer = movie?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+
 		if (movie?.runtime) {
 			titleProperties.push({
 				label: formatMinutesToTime(movie.runtime)
@@ -72,6 +78,13 @@
 		if (movie?.genres) {
 			titleProperties.push({
 				label: movie.genres.map((g) => g.name).join(', ')
+			});
+		}
+
+		if ($localSettings.enableTrailers && trailer) {
+			titleProperties.push({
+				icon: Video,
+				href: `https://www.youtube.com/watch?v=${trailer}`
 			});
 		}
 	});

@@ -6,7 +6,11 @@
 	const STOP_WHEN_REMAINING = 12;
 
 	export let videoId: string | null = null;
-	export let play = false;
+	// Load video only if visible, pause with delay when not visible
+	export let visible = true;
+	// Play/pause video
+	export let play = true;
+	// Autoplay after load
 	export let autoplay = true;
 	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
@@ -20,14 +24,20 @@
 	let checkStopInterval: ReturnType<typeof setInterval>;
 	let autoplayTimeout: ReturnType<typeof setTimeout>;
 	let loadTimeout: ReturnType<typeof setTimeout>;
+	let pauseTimeout: ReturnType<typeof setTimeout>;
 
-	$: if (isInitialized && player?.playVideo && play) {
+	$: if (isInitialized && player?.playVideo && visible && play) {
+		clearTimeout(pauseTimeout);
 		player.playVideo();
 	} else if (isInitialized && player?.pauseVideo && !play) {
 		player.pauseVideo();
+	} else if (isInitialized && player?.pauseVideo && !visible) {
+		pauseTimeout = setTimeout(() => {
+			player.pauseVideo();
+		}, 1000);
 	}
 
-	$: if (didMount && !isInitialized && play) loadYouTubeAPI();
+	$: if (didMount && !isInitialized && visible && play) loadYouTubeAPI();
 	function loadYouTubeAPI() {
 		isInitialized = true;
 		console.log('Loading YouTube API for ' + videoId);
@@ -49,6 +59,7 @@
 		clearInterval(checkStopInterval);
 		clearTimeout(autoplayTimeout);
 		clearTimeout(loadTimeout);
+		clearTimeout(pauseTimeout);
 		isPlayerReady = false;
 
 		if (!player) return;
@@ -169,11 +180,11 @@
 	});
 	$: {
 		const el = document.getElementById(playerId);
-		if (el) el.style.opacity = isPlayerReady && play ? '1' : '0';
+		if (el) el.style.opacity = isPlayerReady && visible ? '1' : '0';
 	}
 </script>
 
-<div out:fade={{ delay: isPlayerReady && play ? 2000 : 0 }}>
+<div out:fade={{ delay: isPlayerReady && visible ? 1000 : 0 }}>
 	<div id={playerId} class="video-background" style="opacity: 0;" />
 </div>
 
@@ -185,7 +196,7 @@
 		width: 100vw;
 		height: 100vh;
 		transform: translate(-50%, -50%) scale(1.6);
-		transition: transform 0.5s ease-in-out, opacity 1s ease-in-out;
+		transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 		z-index: 0;
 	}
 

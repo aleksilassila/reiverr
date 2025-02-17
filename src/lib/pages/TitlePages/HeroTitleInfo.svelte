@@ -1,12 +1,10 @@
 <script lang="ts">
 	import classNames from 'classnames';
 	import { DotFilled } from 'radix-icons-svelte';
+	import type { TitleInfoProperty } from './HeroTitleInfo';
 
 	export let title: string;
-	export let properties: {
-		href?: string;
-		label?: string;
-	}[] = [];
+	export let properties: TitleInfoProperty[] = [];
 	export let overview: string;
 	export let onClickTitle: (() => void) | undefined = undefined;
 </script>
@@ -26,18 +24,28 @@
 <div
 	class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
 >
-	{#each properties.filter((p) => !!p.label) as property, i}
+	{#each properties.filter((p) => !!p.label || !!p.icon) as property, i}
 		{#if i !== 0}
 			<DotFilled />
 		{/if}
 		{#if property.href}
 			<p class="flex-shrink-0">
-				<a href={property.href} target="_blank">{property.label}</a>
+				<a href={property.href} target="_blank">
+					{#if property.label}
+						{property.label}
+					{:else if property.icon}
+						<svelte:component this={property.icon} size={22} />
+					{/if}
+				</a>
 			</p>
-		{:else}
+		{:else if property.label}
 			<p class="flex-shrink-0">
 				{property.label}
 			</p>
+		{:else if property.icon}
+			<span>
+				<svelte:component this={property.icon} size={22} />
+			</span>
 		{/if}
 	{/each}
 </div>

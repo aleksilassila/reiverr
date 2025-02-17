@@ -5,6 +5,8 @@
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import { registrars } from '../../selectable.js';
 	import HeroCarousel from '../HeroCarousel/HeroCarousel.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
+	import type { TitleInfoProperty } from '$lib/pages/TitlePages/HeroTitleInfo';
 
 	type ShowcaseItem = {
 		id: number;
@@ -14,7 +16,7 @@
 		videoUrl?: string;
 		title: string;
 		overview: string;
-		infoProperties: { label: string; href?: string }[];
+		infoProperties: TitleInfoProperty[];
 		url?: string;
 	};
 
@@ -38,7 +40,7 @@
 	items={items.then((items) =>
 		items.map((i) => ({
 			backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
-			videoUrl: i.videoUrl
+			videoUrl: $localSettings.autoplayTrailers ? i.videoUrl : undefined
 		}))
 	)}
 	bind:index={showcaseIndex}

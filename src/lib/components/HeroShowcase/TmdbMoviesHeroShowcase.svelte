@@ -4,6 +4,7 @@
 	import { navigate } from '../StackRouter/StackRouter';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import { Video } from 'radix-icons-svelte';
 
 	export let movies: Promise<TmdbMovie2[]>;
 
@@ -38,7 +39,12 @@
 									}
 							  ]
 							: []),
-						...(movie.genres ? [{ label: movie.genres.map((genre) => genre.name).join(', ') }] : [])
+						...(movie.genres
+							? [{ label: movie.genres.map((genre) => genre.name).join(', ') }]
+							: []),
+						...(videoUrl
+							? [{ icon: Video, href: `https://www.youtube.com/watch?v=${videoUrl}` }]
+							: [])
 					]
 				};
 			})

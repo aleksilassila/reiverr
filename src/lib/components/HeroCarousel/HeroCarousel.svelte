@@ -2,7 +2,7 @@
 	import Container from '../Container.svelte';
 	import HeroBackground from './HeroBackground.svelte';
 	import IconButton from '../FloatingIconButton.svelte';
-	import { ChevronRight } from 'radix-icons-svelte';
+	import { ChevronRight, ChevronUp } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import { createEventDispatcher } from 'svelte';
@@ -71,13 +71,25 @@
 	bind:hasFocusWithin={heroHasFocusWithin}
 	bind:focusIndex
 >
-	<HeroBackground {items} {index} hasFocus={backgroundHasFocus} heroHasFocus={$heroHasFocusWithin} {hideInterface} />
+	<HeroBackground
+		{items}
+		{index}
+		hasFocus={backgroundHasFocus}
+		heroHasFocus={$heroHasFocusWithin}
+		{hideInterface}
+	/>
 	<div
 		class={classNames('flex flex-1 z-10 transition-opacity', {
 			'opacity-0': hideInterface
 		})}
 	>
 		<slot />
+		<!-- <div
+			class="absolute inset-x-1/2 -translate-x-1/2 top-16 min-w-fit flex flex-col items-center justify-center"
+		>
+			<ChevronUp size={38} />
+			<div class="whitespace-nowrap">View Trailer</div>
+		</div> -->
 		<div class="flex flex-col justify-end ml-4">
 			<div class="flex flex-1 justify-end items-center">
 				<IconButton on:click={onNext}>

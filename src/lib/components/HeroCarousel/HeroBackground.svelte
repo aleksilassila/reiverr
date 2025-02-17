@@ -51,8 +51,12 @@
 					})}
 					style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
 				>
-					{#if videoUrl && i === visibleIndex && $localSettings.enableTrailers && $localSettings.autoplayTrailers}
-						<YouTubeVideo videoId={videoUrl} play={heroHasFocus} />
+					{#if videoUrl && i === visibleIndex && $localSettings.enableTrailers}
+						<YouTubeVideo
+							videoId={videoUrl}
+							autoplay={$localSettings.autoplayTrailers}
+							visible={$localSettings.autoplayTrailers ? heroHasFocus : hasFocus}
+						/>
 					{/if}
 				</div>
 			{/each}

@@ -12,10 +12,12 @@
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { formatThousands } from '$lib/utils';
-	import { Bookmark, Check, ExternalLink, Minus, Play } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -56,8 +58,12 @@
 		);
 	});
 
-	let titleProperties: { href?: string; label: string }[] = [];
+	let titleProperties: TitleInfoProperty[] = [];
 	$tmdbSeries.then((series) => {
+		const trailer = series?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+
 		if (series && series.status !== 'Ended') {
 			titleProperties.push({
 				label: `Since ${new Date(series.first_air_date || Date.now())?.getFullYear()}`
@@ -80,6 +86,13 @@
 		if (series?.genres) {
 			titleProperties.push({
 				label: series.genres.map((g) => g.name).join(', ')
+			});
+		}
+
+		if ($localSettings.enableTrailers && trailer) {
+			titleProperties.push({
+				icon: Video,
+				href: `https://www.youtube.com/watch?v=${trailer}`
 			});
 		}
 	});
