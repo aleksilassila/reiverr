@@ -11,7 +11,7 @@
 		type: 'movie' | 'tv';
 		posterUri: string;
 		backdropUri: string;
-		trailerUrl?: string;
+		videoUrl?: string;
 		title: string;
 		overview: string;
 		infoProperties: { label: string; href?: string }[];
@@ -35,10 +35,12 @@
 </script>
 
 <HeroCarousel
-	urls={items.then((items) => items.map((i) => ({
-		backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
-		trailerUrl: i.trailerUrl || ''
-	})))}
+	items={items.then((items) =>
+		items.map((i) => ({
+			backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
+			videoUrl: i.videoUrl
+		}))
+	)}
 	bind:index={showcaseIndex}
 	on:enter
 	on:navigate={({ detail }) => {

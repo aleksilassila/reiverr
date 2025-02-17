@@ -40,6 +40,22 @@
 	const episodeCards = useRegistrar();
 	let scrollTop: number;
 
+	$: images = $tmdbSeries.then((series) => {
+		const trailer = series?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+
+		return (
+			series?.images.backdrops
+				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+				?.map((bd, i) => ({
+					backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || '',
+					videoUrl: trailer && i === 0 ? trailer : undefined
+				}))
+				.slice(0, 5) || []
+		);
+	});
+
 	let titleProperties: { href?: string; label: string }[] = [];
 	$tmdbSeries.then((series) => {
 		if (series && series.status !== 'Ended') {
@@ -86,15 +102,7 @@
 				}
 			}}
 		>
-			<HeroCarousel
-				urls={$tmdbSeries.then(
-					(series) =>
-						series?.images.backdrops
-							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-							?.map((bd) => ({backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || ''}))
-							.slice(0, 5) || []
-				)}
-			>
+			<HeroCarousel items={images}>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbSeries then series}

@@ -44,11 +44,15 @@ export const localSettings = createLocalStorageStore<{
 	useCssTransitions: boolean;
 	checkForUpdates: boolean;
 	skippedVersion: string;
+	enableTrailers: boolean;
+	autoplayTrailers: boolean;
 }>('settings', {
 	animateScrolling: true,
 	useCssTransitions: true,
 	checkForUpdates: true,
-	skippedVersion: ''
+	skippedVersion: '',
+	enableTrailers: true,
+	autoplayTrailers: true
 });
 
 export type LibraryViewSettings = {

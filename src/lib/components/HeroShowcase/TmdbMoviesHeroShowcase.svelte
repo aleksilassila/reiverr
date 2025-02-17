@@ -7,14 +7,13 @@
 
 	export let movies: Promise<TmdbMovie2[]>;
 
-	$: items = movies.then(async (movies) => {
-		return Promise.all(
+	$: items = movies
+		.then(async (movies) =>
 			movies.map(async (movie) => {
-				const trailerUrl = movie.id
-					? await tmdbApi.getMovieVideos(movie.id).then((videos) =>
-							videos.find((video) => video.type === 'Trailer' && video.site === 'YouTube')?.key || ''
-					  )
-					: '';
+				const movieFull = await tmdbApi.getTmdbMovie(movie.id ?? 0);
+				const videoUrl = movieFull?.videos?.results?.find(
+					(video) => video.type === 'Trailer' && video.site === 'YouTube'
+				)?.key;
 
 				return {
 					id: movie.id ?? 0,
@@ -23,7 +22,7 @@
 					backdropUri: movie.backdrop_path ?? '',
 					title: movie.title ?? '',
 					overview: movie.overview ?? '',
-					trailerUrl: trailerUrl ?? '',
+					videoUrl,
 					infoProperties: [
 						...(movie.release_date
 							? [{ label: new Date(movie.release_date).getFullYear().toString() }]
@@ -43,8 +42,8 @@
 					]
 				};
 			})
-		);
-	});
+		)
+		.then((i) => Promise.all(i));
 </script>
 
 <HeroShowcase on:select={({ detail }) => navigate(`/movie/${detail?.id}`)} {items} />

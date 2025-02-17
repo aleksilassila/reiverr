@@ -10,20 +10,19 @@
 	$: items = series.then(async (series) => {
 		return Promise.all(
 			series.map(async (series) => {
-				const trailerUrl = series.id
-					? await tmdbApi.getSeriesVideos(series.id).then((videos) =>
-							videos.find((video) => video.type === 'Trailer' && video.site === 'YouTube')?.key || ''
-					  )
-					: '';
+				const seriesFull = await tmdbApi.getTmdbSeries(series.id ?? 0);
+				const videoUrl = seriesFull?.videos?.results?.find(
+					(video) => video.type === 'Trailer' && video.site === 'YouTube'
+				)?.key;
 
 				return {
 					id: series.id ?? 0,
-					type: 'series' as const,
+					type: 'tv' as const,
 					posterUri: series.poster_path ?? '',
 					backdropUri: series.backdrop_path ?? '',
 					title: series.name ?? '',
 					overview: series.overview ?? '',
-					trailerUrl: trailerUrl ?? '',
+					videoUrl,
 					infoProperties: [
 						...(series.status !== 'Ended'
 							? [{ label: `Since ${new Date(series.first_air_date ?? 0).getFullYear()}` }]

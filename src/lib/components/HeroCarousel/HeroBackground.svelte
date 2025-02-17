@@ -3,11 +3,14 @@
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import { isFirefox } from '../../utils/browser-detection';
-	import YouTubeBackground from '../YouTubeBackground.svelte';
+	import YouTubeVideo from '../YoutubeVideo.svelte';
+	import { fade } from 'svelte/transition';
+	import { localSettings } from '$lib/stores/localstorage.store';
 
-	export let urls: Promise<string[]>;
+	export let items: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index: number;
 	export let hasFocus = true;
+	export let heroHasFocus = false;
 	export let hideInterface = false;
 	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
@@ -37,47 +40,52 @@
 </script>
 
 <div class="fixed inset-0" style="-webkit-transform: translate3d(0,0,0);">
-	{#await urls then urlArray}
-	{#if !isFirefox()}
-		{#each urlArray as { trailerUrl, backdropUrl }, i}
-			{#if i === index}
-				{#if trailerUrl}
-					<YouTubeBackground videoId={trailerUrl} backgroundUrl={backdropUrl} />
-				{:else}
-					<div
-						class={classNames('absolute inset-0 bg-center bg-cover', {
-							'opacity-100': visibleIndex === i,
-							'opacity-0': visibleIndex !== i,
-							'scale-110': !hasFocus
-						})}
-						style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
-					/>
-				{/if}
-			{/if}
-		{/each}
-	{:else}
-		<div class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', { 'scale-110': !hasFocus })}
-			 style="perspective: 1px; -webkit-perspective: 1px;">
-			{#each urlArray as { backdropUrl }, i}
-				<div class="w-full h-full flex-shrink-0 relative"
-					 style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
-					 bind:this={htmlElements[i]}>
-					<div 
+	{#if true}
+		{#await items then items}
+			{#each items as { videoUrl, backdropUrl }, i}
+				<div
 					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
 						'opacity-0': visibleIndex !== i,
 						'scale-110': !hasFocus
 					})}
-					style={`background-image: url('${backdropUrl}'); ${
-							!PLATFORM_TV &&
-							'transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);'
-						 }`}
-					/>
+					style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
+				>
+					{#if videoUrl && i === visibleIndex && $localSettings.enableTrailers && $localSettings.autoplayTrailers}
+						<YouTubeVideo videoId={videoUrl} play={heroHasFocus} />
+					{/if}
 				</div>
 			{/each}
+		{/await}
+	{:else}
+		<div
+			class={classNames('flex overflow-hidden h-full w-full transition-transform duration-500', {
+				'scale-110': !hasFocus
+			})}
+			style="perspective: 1px; -webkit-perspective: 1px;"
+		>
+			{#await items then items}
+				{#each items as { backdropUrl, videoUrl }, i}
+					<div
+						class="w-full h-full flex-shrink-0 basis-auto relative"
+						style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
+						bind:this={htmlElements[i]}
+					>
+						<div
+							class="w-full h-full flex-shrink-0 basis-auto bg-center bg-cover absolute inset-0"
+							style={`background-image: url('${backdropUrl}'); ${
+								!PLATFORM_TV &&
+								'transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);'
+							}`}
+						/>
+						<!-- {#if videoUrl && mountVideo}
+							<YouTubeBackground videoId={videoUrl} backgroundUrl={backdropUrl} />
+						{/if} -->
+					</div>
+				{/each}
+			{/await}
 		</div>
 	{/if}
-{/await}
 </div>
 <div
 	class={classNames('absolute inset-0 flex flex-col transition-opacity', {

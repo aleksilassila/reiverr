@@ -1,0 +1,222 @@
+<script lang="ts">
+	import { PLATFORM_TV } from '$lib/constants';
+	import { onDestroy, onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
+
+	const STOP_WHEN_REMAINING = 12;
+
+	export let videoId: string | null = null;
+	export let play = false;
+	export let autoplay = true;
+	export let autoplayDelay = 2000;
+	export let loadTime = PLATFORM_TV ? 2500 : 1000;
+
+	const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
+
+	let didMount = false;
+	let isInitialized = false;
+	let player: YT['Player'];
+	let isPlayerReady = false;
+	let checkStopInterval: ReturnType<typeof setInterval>;
+	let autoplayTimeout: ReturnType<typeof setTimeout>;
+	let loadTimeout: ReturnType<typeof setTimeout>;
+
+	$: if (isInitialized && player?.playVideo && play) {
+		player.playVideo();
+	} else if (isInitialized && player?.pauseVideo && !play) {
+		player.pauseVideo();
+	}
+
+	$: if (didMount && !isInitialized && play) loadYouTubeAPI();
+	function loadYouTubeAPI() {
+		isInitialized = true;
+		console.log('Loading YouTube API for ' + videoId);
+		if (!window.YT) {
+			const tag = document.createElement('script');
+			tag.src = 'https://www.youtube.com/iframe_api';
+			document.head.appendChild(tag);
+			(window as any).onYouTubeIframeAPIReady = () => {
+				setupPlayer();
+			};
+		} else {
+			setupPlayer();
+		}
+	}
+
+	function destroyPlayer() {
+		console.log('Destroying player');
+
+		clearInterval(checkStopInterval);
+		clearTimeout(autoplayTimeout);
+		clearTimeout(loadTimeout);
+		isPlayerReady = false;
+
+		if (!player) return;
+
+		try {
+			player.destroy();
+		} catch (e) {
+			console.warn('Error destroying player.', e);
+		}
+	}
+
+	function setupPlayer() {
+		if (!window.YT || !videoId) return;
+
+		setTimeout(() => {
+			if (!window.YT) return;
+
+			player = new window.YT.Player(playerId, {
+				videoId: videoId,
+				playerVars: {
+					autoplay: 0,
+					controls: 0,
+					modestbranding: 1,
+					rel: 0,
+					iv_load_policy: 3,
+					start: 3,
+					fs: 0,
+					disablekb: 1,
+					cc_load_policy: 0,
+					mute: 1
+				},
+				events: {
+					onReady: () => {
+						player?.playVideo();
+						play = true;
+						if (loadTime) {
+							loadTimeout = setTimeout(() => {
+								isPlayerReady = true;
+								console.log('Playing video');
+							}, loadTime);
+						} else {
+							isPlayerReady = true;
+							console.log('Playing video');
+						}
+					},
+					onStateChange: handlePlayerStateChange,
+					onError: handlePlayerError
+				}
+			});
+		}, 200);
+	}
+
+	function handlePlayerError(event: any) {
+		const errorMessages: Record<number, string> = {
+			2: 'Invalid video ID.',
+			5: 'Playback error.',
+			100: 'Video not found.',
+			101: 'Embedding restricted by the owner.',
+			150: 'Embedding restricted by the owner.'
+		};
+
+		console.error('YouTube Player Error:', errorMessages[event.data] || 'Unknown error.');
+		destroyPlayer();
+	}
+
+	function handlePlayerStateChange(event: any) {
+		if (!isPlayerReady) return;
+
+		if (event.data === window.YT.PlayerState.PLAYING) {
+			// setTimeout(() => (showBackgroundImage = false), 1000);
+
+			clearInterval(checkStopInterval);
+
+			checkStopInterval = setInterval(() => {
+				if (
+					!player
+					// showBackgroundImageError ||
+				) {
+					clearInterval(checkStopInterval);
+					return;
+				}
+
+				const remainingTime = player.getDuration() - player.getCurrentTime();
+
+				if (remainingTime <= STOP_WHEN_REMAINING) {
+					try {
+						player.pauseVideo();
+						player.seekTo(0);
+						player.playVideo();
+					} catch (e) {
+						console.warn('Error looping video.', e);
+					}
+				}
+			}, 1000);
+		} else if (event.data === window.YT.PlayerState.ENDED) {
+			try {
+				player.seekTo(0);
+				player.playVideo();
+			} catch (e) {
+				console.warn('Error restarting video.', e);
+			}
+		}
+	}
+
+	onMount(() => {
+		if (autoplay) {
+			autoplayTimeout = setTimeout(() => {
+				play = true;
+				didMount = true;
+			}, autoplayDelay);
+		} else {
+			didMount = true;
+		}
+	});
+
+	onDestroy(() => {
+		destroyPlayer();
+	});
+	$: {
+		const el = document.getElementById(playerId);
+		if (el) el.style.opacity = isPlayerReady && play ? '1' : '0';
+	}
+</script>
+
+<div out:fade={{ delay: isPlayerReady && play ? 2000 : 0 }}>
+	<div id={playerId} class="video-background" style="opacity: 0;" />
+</div>
+
+<style>
+	.video-background {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 100vw;
+		height: 100vh;
+		transform: translate(-50%, -50%) scale(1.6);
+		transition: transform 0.5s ease-in-out, opacity 1s ease-in-out;
+		z-index: 0;
+	}
+
+	@media (max-width: 1200px) {
+		.video-background {
+			transform: translate(-50%, -50%) scale(2);
+		}
+	}
+
+	@media (max-width: 800px) {
+		.video-background {
+			transform: translate(-50%, -50%) scale(2.5);
+		}
+	}
+
+	@media (max-width: 500px) {
+		.video-background {
+			transform: translate(-50%, -50%) scale(3);
+		}
+	}
+
+	.background-image {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		pointer-events: none;
+		z-index: 1;
+		background-size: cover;
+		background-position: center;
+		opacity: 1;
+	}
+</style>
