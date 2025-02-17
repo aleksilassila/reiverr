@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
-	import HeroShowcaseBackground from './HeroBackground.svelte';
+	import HeroBackground from './HeroBackground.svelte';
 	import IconButton from '../FloatingIconButton.svelte';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
@@ -10,13 +10,13 @@
 
 	const dispatch = createEventDispatcher();
 
-	export let urls: Promise<string[]>;
+	export let items: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index = 0;
 	export let hideInterface = false;
 
 	let length = 0;
 
-	$: urls.then((urls) => (length = urls.length));
+	$: items.then((urls) => (length = urls.length));
 
 	function onNext() {
 		if (index === length - 1) {
@@ -42,9 +42,9 @@
 		return true;
 	}
 
-	let hasFocusWithin: Readable<boolean>;
+	let heroHasFocusWithin: Readable<boolean>;
 	let focusIndex: Writable<number>;
-	$: backgroundHasFocus = $hasFocusWithin && $focusIndex === 0;
+	$: backgroundHasFocus = $heroHasFocusWithin && $focusIndex === 0;
 </script>
 
 <Container
@@ -68,10 +68,10 @@
 			dispatch('navigate', detail);
 		}
 	}}
-	bind:hasFocusWithin
+	bind:hasFocusWithin={heroHasFocusWithin}
 	bind:focusIndex
 >
-	<HeroShowcaseBackground {urls} {index} hasFocus={backgroundHasFocus} {hideInterface} />
+	<HeroBackground {items} {index} hasFocus={backgroundHasFocus} heroHasFocus={$heroHasFocusWithin} {hideInterface} />
 	<div
 		class={classNames('flex flex-1 z-10 transition-opacity', {
 			'opacity-0': hideInterface

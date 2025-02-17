@@ -9,4 +9,6 @@
     <name>Reiverr</name>
     <tizen:profile name="tv-samsung"/>
     <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+    <tizen:allow-navigation>*</tizen:allow-navigation>
+    <access origin="http://youtube.com" subdomains="true"/>
 </widget>

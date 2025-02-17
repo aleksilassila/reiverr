@@ -3,10 +3,14 @@
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import { isFirefox } from '../../utils/browser-detection';
+	import YouTubeVideo from '../YoutubeVideo.svelte';
+	import { fade } from 'svelte/transition';
+	import { localSettings } from '$lib/stores/localstorage.store';
 
-	export let urls: Promise<string[]>;
+	export let items: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index: number;
 	export let hasFocus = true;
+	export let heroHasFocus = false;
 	export let hideInterface = false;
 	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
@@ -36,17 +40,21 @@
 </script>
 
 <div class="fixed inset-0" style="-webkit-transform: translate3d(0,0,0);">
-	{#if !isFirefox()}
-		{#await urls then urls}
-			{#each urls as url, i}
+	{#if true}
+		{#await items then items}
+			{#each items as { videoUrl, backdropUrl }, i}
 				<div
 					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
 						'opacity-0': visibleIndex !== i,
 						'scale-110': !hasFocus
 					})}
-					style={`background-image: url('${url}'); transition: opacity 500ms, transform 500ms;`}
-				/>
+					style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
+				>
+					{#if videoUrl && i === visibleIndex && $localSettings.enableTrailers && $localSettings.autoplayTrailers}
+						<YouTubeVideo videoId={videoUrl} play={heroHasFocus} />
+					{/if}
+				</div>
 			{/each}
 		{/await}
 	{:else}
@@ -56,8 +64,8 @@
 			})}
 			style="perspective: 1px; -webkit-perspective: 1px;"
 		>
-			{#await urls then urls}
-				{#each urls as url, i}
+			{#await items then items}
+				{#each items as { backdropUrl, videoUrl }, i}
 					<div
 						class="w-full h-full flex-shrink-0 basis-auto relative"
 						style="transform-style: preserve-3d; -webkit-transform-style: preserve-3d; overflow: hidden;"
@@ -65,11 +73,14 @@
 					>
 						<div
 							class="w-full h-full flex-shrink-0 basis-auto bg-center bg-cover absolute inset-0"
-							style={`background-image: url('${url}'); ${
+							style={`background-image: url('${backdropUrl}'); ${
 								!PLATFORM_TV &&
 								'transform: translateZ(-5px) scale(6); -webkit-transform: translateZ(-5px) scale(6);'
 							}`}
 						/>
+						<!-- {#if videoUrl && mountVideo}
+							<YouTubeBackground videoId={videoUrl} backgroundUrl={backdropUrl} />
+						{/if} -->
 					</div>
 				{/each}
 			{/await}

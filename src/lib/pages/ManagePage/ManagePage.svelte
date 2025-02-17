@@ -332,6 +332,22 @@
 							localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
 					/>
 				</div>
+				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
+					<label class="mr-2">Enable Trailers</label>
+					<Toggle
+						checked={$localSettings.enableTrailers}
+						on:change={({ detail }) =>
+							localSettings.update((p) => ({ ...p, enableTrailers: detail }))}
+					/>
+				</div>
+				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
+					<label class="mr-2">Autoplay Trailers</label>
+					<Toggle
+						checked={$localSettings.autoplayTrailers}
+						on:change={({ detail }) =>
+							localSettings.update((p) => ({ ...p, autoplayTrailers: detail }))}
+					/>
+				</div>
 			</Tab>
 
 			<Tab {...tab} direction="vertical" tab={Tabs.About}>

@@ -37,6 +37,23 @@
 
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 
+	$: images = $tmdbMovie.then((movie) => {
+		const trailer = movie?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+
+		return (
+			movie?.images.backdrops
+				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+				?.map((bd, i) => ({
+					backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || '',
+
+					videoUrl: trailer && i === 0 ? trailer : undefined
+				}))
+				.slice(0, 5) || []
+		);
+	});
+
 	let titleProperties: { href?: string; label: string }[] = [];
 	$tmdbMovie.then((movie) => {
 		if (movie?.runtime) {
@@ -71,15 +88,7 @@
 			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 999 })}
 		>
-			<HeroCarousel
-				urls={$tmdbMovie.then(
-					(movie) =>
-						movie?.images.backdrops
-							?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-							?.map((bd) => TMDB_IMAGES_ORIGINAL + bd.file_path || '')
-							.slice(0, 5) || []
-				)}
-			>
+			<HeroCarousel items={images}>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbMovie then movie}
