@@ -12,6 +12,9 @@
 	import { formatDateToYearMonthDay } from '../utils';
 	import Container from '$lib/components/Container.svelte';
 	import { onDestroy } from 'svelte';
+	import { setScrollContext } from '$lib/stores/scroll.store';
+
+	const { registerScroll } = setScrollContext();
 
 	const { ...libraryData } = libraryItemsDataStore.subscribe();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
@@ -78,6 +81,7 @@
 </script>
 
 <DetachedPage class="flex flex-col relative">
+	<div use:registerScroll />
 	<Container class="h-[calc(100vh-12rem)] flex px-32" on:enter={scrollIntoView({ top: 0 })}>
 		<TmdbSeriesHeroShowcase
 			series={recommendations.then(({ top10 }) =>

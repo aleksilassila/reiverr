@@ -17,6 +17,7 @@
 	import { useTabs } from '../Tab/Tab';
 	import { user } from '../../stores/user.store';
 	import { sessions } from '../../stores/session.store';
+	import { getUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 
 	enum Tabs {
 		Users,
@@ -28,6 +29,8 @@
 	}
 
 	const tab = useTabs(Tabs.Series);
+
+	const { visibleStyle } = getUiVisibilityContext();
 
 	let selectedIndex = 0;
 	let activeIndex = -1;
@@ -52,7 +55,7 @@
 		// if (index === activeIndex) {
 		// 	if (get(selectable.hasFocusWithin)) Selectable.giveFocus('right');
 		// }
-		selectable.focusChild(index);
+		selectable.focusChild(index, { setFocusedElement: false });
 		const path =
 			{
 				[Tabs.Users]: '/users',
@@ -101,6 +104,7 @@
 	bind:focusIndex
 	bind:selectable
 	on:mount={registrars.sidebar.registrar}
+	style={$visibleStyle}
 >
 	<!-- Background -->
 	<div

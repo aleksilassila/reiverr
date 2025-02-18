@@ -17,6 +17,8 @@
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { setScrollContext } from '$lib/stores/scroll.store';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -36,6 +38,9 @@
 		toggleIsWatched,
 		unsubscribe
 	} = useMovieUserData(id);
+
+	const { visibleStyle } = setUiVisibilityContext();
+	const { registerScroll } = setScrollContext();
 
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 
@@ -96,7 +101,7 @@
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
-	<div class="relative">
+	<div class="relative" use:registerScroll>
 		<Container
 			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 999 })}
@@ -167,7 +172,7 @@
 				</div>
 			</HeroCarousel>
 		</Container>
-		<div class="relative z-10">
+		<div class="relative z-10" style={$visibleStyle}>
 			<Container on:enter={scrollIntoView({ top: 0 })} class="">
 				{#await $tmdbMovie then movie}
 					<Carousel scrollClass="px-32" class="mb-8">

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { PLATFORM_TV } from '../../constants';
+	import { localSettings } from '$lib/stores/localstorage.store';
+	import { getUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
-	import { isFirefox } from '../../utils/browser-detection';
+	import { PLATFORM_TV } from '../../constants';
 	import YouTubeVideo from '../YoutubeVideo.svelte';
-	import { fade } from 'svelte/transition';
-	import { localSettings } from '$lib/stores/localstorage.store';
+
+	const { visibleStyle } = getUiVisibilityContext();
 
 	export let items: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index: number;
 	export let hasFocus = true;
-	export let heroHasFocus = false;
-	export let hideInterface = false;
+	export let videoVisible = false;
 	let visibleIndex = -2;
 	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
@@ -47,7 +47,7 @@
 					class={classNames('absolute inset-0 bg-center bg-cover', {
 						'opacity-100': visibleIndex === i,
 						'opacity-0': visibleIndex !== i,
-						'scale-110': !hasFocus
+						'scale-110': !hasFocus && !PLATFORM_TV
 					})}
 					style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
 				>
@@ -55,7 +55,8 @@
 						<YouTubeVideo
 							videoId={videoUrl}
 							autoplay={$localSettings.autoplayTrailers}
-							visible={$localSettings.autoplayTrailers ? heroHasFocus : hasFocus}
+							visible={videoVisible}
+							muted={!hasFocus}
 						/>
 					{/if}
 				</div>
@@ -92,10 +93,8 @@
 	{/if}
 </div>
 <div
-	class={classNames('absolute inset-0 flex flex-col transition-opacity', {
-		'opacity-0': hideInterface
-	})}
-	style="-webkit-transform: translate3d(0,0,0);"
+	class={classNames('absolute inset-0 flex flex-col')}
+	style={`-webkit-transform: translate3d(0,0,0); ${$visibleStyle}`}
 >
 	<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 	<div class="flex-1 bg-secondary-900" />

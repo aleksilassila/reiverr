@@ -11,31 +11,40 @@
 	// Play/pause video
 	export let play = true;
 	// Autoplay after load
+	export let muted = true;
 	export let autoplay = true;
 	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
 
 	const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
 
+	// Component did mount
 	let didMount = false;
+	// Did load script, makes sure we only load the script once
 	let isInitialized = false;
-	let player: YT['Player'];
+	// Player is ready to play, true after initialization and loadTime
 	let isPlayerReady = false;
+	let player: YT['Player'];
 	let checkStopInterval: ReturnType<typeof setInterval>;
 	let autoplayTimeout: ReturnType<typeof setTimeout>;
 	let loadTimeout: ReturnType<typeof setTimeout>;
 	let pauseTimeout: ReturnType<typeof setTimeout>;
 
-	$: if (isInitialized && player?.playVideo && visible && play) {
+	$: if (isPlayerReady && player?.playVideo && visible && play) {
 		clearTimeout(pauseTimeout);
 		player.playVideo();
-	} else if (isInitialized && player?.pauseVideo && !play) {
+	} else if (isPlayerReady && player?.pauseVideo && !play) {
+		// Pause immediately when unpaused
 		player.pauseVideo();
-	} else if (isInitialized && player?.pauseVideo && !visible) {
+	} else if (isPlayerReady && player?.pauseVideo && !visible) {
+		// Pause with delay when not visible
 		pauseTimeout = setTimeout(() => {
 			player.pauseVideo();
 		}, 1000);
 	}
+
+	$: if (isInitialized && isPlayerReady && muted) mute();
+	$: if (isInitialized && isPlayerReady && !muted) unMute();
 
 	$: if (didMount && !isInitialized && visible && play) loadYouTubeAPI();
 	function loadYouTubeAPI() {
@@ -164,6 +173,27 @@
 		}
 	}
 
+	function mute() {
+		if (!player) return;
+
+		console.log('Muting video');
+
+		player?.setVolume?.(0);
+	}
+
+	function unMute() {
+		if (!player) return;
+
+		console.log('Unmuting video');
+
+		// @ts-expect-error
+		if (PLATFORM_TV || navigator?.getAutoplayPolicy?.('mediaelement') === 'allowed') {
+			player?.unMute?.();
+		}
+
+		player?.setVolume?.(100);
+	}
+
 	onMount(() => {
 		if (autoplay) {
 			autoplayTimeout = setTimeout(() => {
@@ -184,7 +214,7 @@
 	}
 </script>
 
-<div out:fade={{ delay: isPlayerReady && visible ? 1000 : 0 }}>
+<div out:fade={isPlayerReady && visible ? { delay: 1000 } : { duration: 0, delay: 0 }}>
 	<div id={playerId} class="video-background" style="opacity: 0;" />
 </div>
 

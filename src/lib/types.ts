@@ -45,6 +45,11 @@ declare global {
 		playVideo(): void;
 		stopVideo(): void;
 		seekTo(seconds: number, allowSeekAhead?: boolean): void;
+		mute(): void;
+		unMute(): void;
+		isMuted(): boolean;
+		setVolume(volume: number): void;
+		getVolume(): number;
 	};
 
 	// Youtube API

@@ -66,7 +66,7 @@
 />
 
 <DetachedPage class="flex flex-col pt-16 h-screen space-y-16 px-32" direction="horizontal">
-	<div class="border-b-2 border-secondary-700 pb-4">
+	<div class="border-b-2 border-secondary-700 pb-4 space-y-2">
 		<h1 class="h1">Settings</h1>
 		<p class="body">Manage your settings and integrations.</p>
 	</div>

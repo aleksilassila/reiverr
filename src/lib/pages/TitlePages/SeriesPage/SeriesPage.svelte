@@ -7,17 +7,18 @@
 	import DetachedPage from '$lib/components/DetachedPage/DetachedPage.svelte';
 	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import ScrollHelper from '$lib/components/ScrollHelper.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { localSettings } from '$lib/stores/localstorage.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
+	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { formatThousands } from '$lib/utils';
 	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
-	import { localSettings } from '$lib/stores/localstorage.store';
-	import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 	export let id: string;
 	const tmdbId = Number(id);
@@ -37,10 +38,12 @@
 		unsubscribe
 	} = useSeriesUserData(id);
 
+	const { visibleStyle } = setUiVisibilityContext();
+	const { registerScroll } = setScrollContext();
+
 	$: recommendations = tmdbApi.getSeriesRecommendations(tmdbId);
 
 	const episodeCards = useRegistrar();
-	let scrollTop: number;
 
 	$: images = $tmdbSeries.then((series) => {
 		const trailer = series?.videos?.results?.find(
@@ -103,8 +106,7 @@
 </script>
 
 <DetachedPage let:handleGoBack let:registrar>
-	<ScrollHelper bind:scrollTop />
-	<div class="relative">
+	<div class="relative" use:registerScroll>
 		<Container
 			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 0 })}
@@ -117,75 +119,71 @@
 		>
 			<HeroCarousel items={images}>
 				<Container />
-				<div class="h-full flex-1 flex flex-col justify-end">
-					{#await $tmdbSeries then series}
-						{#if series}
-							<TitleProperties
-								title={series.name ?? ''}
-								properties={titleProperties}
-								overview={series.overview ?? ''}
-							/>
-						{/if}
-					{/await}
-					<Container
-						direction="horizontal"
-						class="flex mt-8"
-						focusOnMount
-						on:back={handleGoBack}
-						on:mount={registrar}
+				{#await $tmdbSeries then series}
+					{#if series}
+						<TitleProperties
+							title={series.name ?? ''}
+							properties={titleProperties}
+							overview={series.overview ?? ''}
+						/>
+					{/if}
+				{/await}
+				<Container
+					direction="horizontal"
+					class="flex mt-8"
+					focusOnMount
+					on:back={handleGoBack}
+					on:mount={registrar}
+				>
+					<Button
+						class="mr-4"
+						action={handleAutoplay}
+						secondaryAction={handleOpenStreamSelector}
+						disabled={!$canStream}
 					>
+						{#if $nextEpisode?.episode && $nextEpisode?.season}
+							Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
+						{:else}
+							Play
+						{/if}
+						<Play size={19} slot="icon" />
+					</Button>
+
+					{#if !$inLibrary}
+						<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+					{:else}
+						<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
+							Remove from Library
+						</Button>
+					{/if}
+
+					<Button class="mr-4" action={toggleIsWatched}>
+						{#if $isWatched}
+							Mark as Unwatched
+						{:else}
+							Mark as Watched
+						{/if}
+						<Check slot="icon" size={19} />
+					</Button>
+
+					{#if PLATFORM_WEB}
 						<Button
 							class="mr-4"
-							action={handleAutoplay}
-							secondaryAction={handleOpenStreamSelector}
-							disabled={!$canStream}
+							on:clickOrSelect={() =>
+								window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
 						>
-							{#if $nextEpisode?.episode && $nextEpisode?.season}
-								Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
-							{:else}
-								Play
-							{/if}
-							<Play size={19} slot="icon" />
+							Open In TMDB
+							<ExternalLink size={19} slot="icon-after" />
 						</Button>
-
-						{#if !$inLibrary}
-							<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>
-								Add to Library
-							</Button>
-						{:else}
-							<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
-								Remove from Library
-							</Button>
-						{/if}
-
-						<Button class="mr-4" action={toggleIsWatched}>
-							{#if $isWatched}
-								Mark as Unwatched
-							{:else}
-								Mark as Watched
-							{/if}
-							<Check slot="icon" size={19} />
+						<Button class="mr-4">
+							Open In Jellyfin
+							<ExternalLink size={19} slot="icon-after" />
 						</Button>
-
-						{#if PLATFORM_WEB}
-							<Button
-								class="mr-4"
-								on:clickOrSelect={() =>
-									window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
-							>
-								Open In TMDB
-								<ExternalLink size={19} slot="icon-after" />
-							</Button>
-							<Button class="mr-4">
-								Open In Jellyfin
-								<ExternalLink size={19} slot="icon-after" />
-							</Button>
-						{/if}
-					</Container>
-				</div>
+					{/if}
+				</Container>
 			</HeroCarousel>
 		</Container>
-		<div class={'transition-opacity relative z-10'}>
+		<div style={$visibleStyle}>
 			<EpisodeGrid
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}

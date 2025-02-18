@@ -46,12 +46,16 @@ export function useStackRouter({
 	maxDepth?: number;
 }) {
 	const { initialPages, initialIndexes } = getInitialValues();
-	const indexes = writable<Indexes>(initialIndexes);
-	const pageStack = writable<Page[]>(initialPages);
-	const visibleStack = derived([indexes, pageStack], ([$indexes, $stack]) => {
-		return $stack.slice(
-			maxDepth ? Math.max($indexes.bottom, $indexes.top - maxDepth + 1) : $indexes.bottom,
-			$indexes.top + 1
+	const pageStack = writable<{ pages: Page[]; indexes: Indexes }>({
+		pages: initialPages,
+		indexes: initialIndexes
+	});
+	const visibleStack = derived(pageStack, ($stack) => {
+		return $stack.pages.slice(
+			maxDepth
+				? Math.max($stack.indexes.bottom, $stack.indexes.top - maxDepth + 1)
+				: $stack.indexes.bottom,
+			$stack.indexes.top + 1
 		);
 	});
 
@@ -126,46 +130,41 @@ export function useStackRouter({
 		const replaceStack = page.route.root || options.replaceStack || false;
 
 		pageStack.update((prev) => {
-			const idxs = get(indexes);
-			if (replaceStack) return [page];
-			else {
-				prev.splice(idxs.top + 1, Infinity, page);
-				return prev;
-			}
-		});
+			let pages = prev.pages;
+			let idxs = prev.indexes;
 
-		if (replaceStack) {
-			const stack = get(pageStack);
-			indexes.update((prev) => {
+			if (replaceStack) pages = [page];
+			else pages.splice(idxs.top + 1, Infinity, page);
+
+			if (replaceStack) {
 				const indexes: Indexes = {
 					id: Math.random().toString(36).slice(2),
-					bottom: stack.length - 1,
-					top: stack.length - 1
+					bottom: pages.length - 1,
+					top: pages.length - 1
 				};
 				history.pushState(indexes, '', routeString);
-				return indexes;
-			});
-		} else {
-			indexes.update((prev) => {
-				const indexes: Indexes = { id: prev.id, bottom: prev.bottom, top: prev.top + 1 };
+				idxs = indexes;
+			} else {
+				const indexes: Indexes = { id: idxs.id, bottom: idxs.bottom, top: idxs.top + 1 };
 				history.pushState(indexes, '', routeString);
-				return indexes;
-			});
-		}
+				idxs = indexes;
+			}
+
+			return { pages, indexes: idxs };
+		});
 	};
 
 	const handlePopState = (e: PopStateEvent) => {
 		const newIndexes: Indexes = e.state;
-		const prevIndexes = get(indexes);
+		const prevIndexes = get(pageStack);
 
 		modalStack.reset();
 
-		if (prevIndexes.id === newIndexes.id) {
-			indexes.set(newIndexes);
+		if (prevIndexes.indexes.id === newIndexes.id) {
+			pageStack.update((p) => ({ ...p, indexes: newIndexes }));
 		} else {
 			const initialValues = getInitialValues();
-			indexes.set(initialValues.initialIndexes);
-			pageStack.set(initialValues.initialPages);
+			pageStack.set({ indexes: initialValues.initialIndexes, pages: initialValues.initialPages });
 		}
 	};
 

@@ -12,9 +12,11 @@
 	import CardGrid from '../../../components/CardGrid.svelte';
 	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import ScrollHelper from '../../../components/ScrollHelper.svelte';
 	import { navigate } from '../../../components/StackRouter/StackRouter';
 	import { scrollIntoView, Selectable } from '../../../selectable';
+	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
+
+	const { topVisible } = getScrollContext();
 
 	export let tmdbId: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull2 | undefined>;
@@ -28,8 +30,6 @@
 	);
 
 	let seasonIndex = 0;
-	let scrollTop: number;
-	$: translateUp = scrollTop < 140;
 
 	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
 		navigate(`/series/${tmdbId}/season/${episode.season_number}/episode/${episode.episode_number}`);
@@ -56,18 +56,16 @@
 	}
 </script>
 
-<ScrollHelper bind:scrollTop />
-
 <Container
 	on:enter
 	class={classNames('transition-transform mx-32', {
-		'-translate-y-16': translateUp
+		'-translate-y-16': $topVisible
 	})}
 >
 	{#await Promise.all([tmdbSeries, tmdbSeasons]) then [tmdbSeries, tmdbSeasons]}
 		<UICarousel
 			class={classNames('flex transition-opacity mb-8', {
-				'opacity-0': translateUp
+				'opacity-0': $topVisible
 			})}
 			on:enter={scrollIntoView({ horizontal: 64 })}
 		>

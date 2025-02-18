@@ -615,7 +615,6 @@ export class Selectable {
 
 		return (htmlElement: HTMLElement) => {
 			selectable.setHtmlElement(htmlElement);
-			// console.debug('Registering', selectable);
 			Selectable._initializationStack.push(selectable);
 			Selectable.initializeTreeStructure();
 
