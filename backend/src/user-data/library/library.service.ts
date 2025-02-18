@@ -67,8 +67,9 @@ export class LibraryService {
       relations: {
         playStates: true,
       },
-      take: pagination.itemsPerPage,
-      skip: pagination.itemsPerPage * (pagination.page - 1),
+      // TODO: Implement pagination
+      // take: pagination.itemsPerPage,
+      // skip: pagination.itemsPerPage * (pagination.page - 1),
     });
   }
 
