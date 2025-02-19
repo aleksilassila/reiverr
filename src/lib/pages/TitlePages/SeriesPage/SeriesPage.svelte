@@ -183,7 +183,7 @@
 				</Container>
 			</HeroCarousel>
 		</Container>
-		<div style={$visibleStyle}>
+		<div class="relative z-10" style={$visibleStyle}>
 			<EpisodeGrid
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}

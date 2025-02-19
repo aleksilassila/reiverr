@@ -41,6 +41,16 @@
 		if (episode?.runtime) {
 			titleProperties.push({ label: `${episode.runtime} Minutes` });
 		}
+
+		if (episode?.air_date) {
+			titleProperties.push({
+				label: `Aired on ${new Date(episode.air_date).toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric'
+				})}`
+			});
+		}
 	});
 
 	onDestroy(() => {
