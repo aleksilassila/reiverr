@@ -59,8 +59,6 @@ export function useStackRouter({
 		);
 	});
 
-	visibleStack.subscribe((v) => console.log('visibleStack', v));
-
 	function getInitialValues() {
 		const initialUrl = window.location.pathname;
 		const initialPages = [routeStringToRoute(initialUrl)];

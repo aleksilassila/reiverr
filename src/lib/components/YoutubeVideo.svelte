@@ -2,6 +2,9 @@
 	import { PLATFORM_TV } from '$lib/constants';
 	import { onDestroy, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import { createErrorNotification } from './Notifications/notification.store';
+	import Spinner from './Utils/Spinner.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
 
 	const STOP_WHEN_REMAINING = 12;
 
@@ -15,6 +18,7 @@
 	export let autoplay = true;
 	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
+	export let fullscreen = false;
 
 	const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -131,6 +135,10 @@
 		};
 
 		console.error('YouTube Player Error:', errorMessages[event.data] || 'Unknown error.');
+		createErrorNotification(
+			'Could not play trailer',
+			errorMessages[event.data] || 'Unknown error.'
+		);
 		destroyPlayer();
 	}
 
@@ -213,6 +221,14 @@
 		if (el) el.style.opacity = isPlayerReady && visible ? '1' : '0';
 	}
 </script>
+
+{#if isInitialized && !isPlayerReady && fullscreen}
+	<div
+		class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+	>
+		<Spinner class="w-12 h-12" />
+	</div>
+{/if}
 
 <div out:fade={isPlayerReady && visible ? { delay: 1000 } : { duration: 0, delay: 0 }}>
 	<div id={playerId} class="video-background" style="opacity: 0;" />

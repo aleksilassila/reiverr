@@ -6,7 +6,7 @@
 	import { PLATFORM_TV } from '../../constants';
 	import YouTubeVideo from '../YoutubeVideo.svelte';
 
-	const { visibleStyle } = getUiVisibilityContext();
+	const { visible, visibleStyle } = getUiVisibilityContext();
 
 	export let items: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index: number;
@@ -57,6 +57,7 @@
 							autoplay={$localSettings.autoplayTrailers}
 							visible={videoVisible}
 							muted={!hasFocus}
+							fullscreen={$visible === false}
 						/>
 					{/if}
 				</div>
