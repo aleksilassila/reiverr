@@ -1083,19 +1083,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		/**
 		 * No description
 		 *
-		 * @name GetHello
-		 * @request GET:/api
-		 */
-		getHello: (params: RequestParams = {}) =>
-			this.request<void, any>({
-				path: `/api`,
-				method: 'GET',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
 		 * @name TmdbProxyGet
 		 * @request GET:/api/tmdb/v3/proxy/*
 		 */
@@ -1194,6 +1181,34 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			this.request<void, any>({
 				path: `/api/tmdb/v3/proxy/*`,
 				method: 'SEARCH',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @name GetHello
+		 * @request GET:/api
+		 */
+		getHello: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api`,
+				method: 'GET',
+				...params
+			})
+	};
+	metadata = {
+		/**
+		 * No description
+		 *
+		 * @tags metadata
+		 * @name ClearCache
+		 * @request POST:/api/metadata/clear-cache
+		 */
+		clearCache: (params: RequestParams = {}) =>
+			this.request<void, any>({
+				path: `/api/metadata/clear-cache`,
+				method: 'POST',
 				...params
 			})
 	};

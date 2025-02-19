@@ -17,7 +17,7 @@
 	import { scrollIntoView } from '../../selectable';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
-	import { user } from '../../stores/user.store';
+	import { reiverrApiNew, user } from '../../stores/user.store';
 	import Plugins from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {
@@ -366,7 +366,8 @@
 				{#if tizenMediaKey}
 					<div>Tizen media key: {tizenMediaKey}</div>
 				{/if}
-				<div class="flex space-x-4 mt-4">
+				<div class="flex flex-col items-start space-y-4 mt-4">
+					<Button action={() => reiverrApiNew.metadata.clearCache()}>Clear TMDB Cache</Button>
 					<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
 				</div>
 			</Tab>

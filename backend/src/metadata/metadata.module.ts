@@ -7,6 +7,7 @@ import { MetadataService } from './metadata.service';
 import { TmdbController } from './tmdb/tmdb.controller';
 import { tmdbProviders } from './tmdb/tmdb.providers';
 import { TmdbService } from './tmdb/tmdb.service';
+import { MetadataController } from './metadata.controller';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { TmdbService } from './tmdb/tmdb.service';
     ...tmdbProviders,
     TmdbService,
   ],
-  controllers: [TmdbController],
+  controllers: [TmdbController, MetadataController],
   exports: [MetadataService],
 })
 export class MetadataModule {}
