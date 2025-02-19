@@ -162,14 +162,10 @@ function useIsWatched(
 			return;
 		}
 
-		return toggleFn(userId, !watched)
-			.then(async (r) => {
-				await libraryItemsDataStore.refreshIn(1500);
-				return r;
-			})
-			.finally(() => {
-				isWatched.set(!watched);
-			});
+		return toggleFn(userId, !watched).finally(() => {
+			isWatched.set(!watched);
+			libraryItemsDataStore.refreshIn(1500);
+		});
 	}
 
 	return {
@@ -255,8 +251,10 @@ export function useSeriesUserData(tmdbId: string) {
 			})
 			.then(async (states) => {
 				await seriesUserDataStore.refresh(tmdbId);
-				await libraryItemsDataStore.refreshIn(1500);
 				return states;
+			})
+			.finally(() => {
+				libraryItemsDataStore.refreshIn(1500);
 			});
 	}
 
