@@ -1,4 +1,4 @@
-import scrollbarHide from 'tailwind-scrollbar-hide'
+import scrollbarHide from 'tailwind-scrollbar-hide';
 
 /**
  * https://huemint.com/website-monochrome/#palette=353633-fbfdff

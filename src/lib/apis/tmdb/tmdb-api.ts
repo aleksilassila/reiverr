@@ -313,7 +313,7 @@ export class TmdbApi implements Api<paths> {
 						movie_id: tmdbId
 					},
 					query: {
-						language: get(settings)?.language || 'en',
+						language: get(settings)?.language || 'en'
 					}
 				}
 			})
@@ -327,7 +327,7 @@ export class TmdbApi implements Api<paths> {
 						series_id: tmdbId
 					},
 					query: {
-						language: get(settings)?.language || 'en',
+						language: get(settings)?.language || 'en'
 					}
 				}
 			})

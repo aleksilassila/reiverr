@@ -7,8 +7,8 @@
 	export let persistent = false;
 
 	onDestroy(() => {
-		notificationStack.destroy([]);	
-	})
+		notificationStack.destroy([]);
+	});
 </script>
 
 <div class="fixed top-8 right-8 z-50 flex flex-col">

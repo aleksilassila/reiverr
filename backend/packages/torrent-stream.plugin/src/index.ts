@@ -136,7 +136,11 @@ class TorrentProvider extends SourceProvider {
       throw new Error('Torrent not found');
     }
 
-    const src = `${this.getProxyUrl(context.sourceId)}/magnet?link=${encodeURIComponent(torrent?.link)}&reiverr_token=${context.token}`;
+    const src = `${this.getProxyUrl(
+      context.sourceId,
+    )}/magnet?link=${encodeURIComponent(torrent?.link)}&reiverr_token=${
+      context.token
+    }`;
 
     const files = await getFiles(context.userId, torrent.link);
 
@@ -146,7 +150,11 @@ class TorrentProvider extends SourceProvider {
       .filter((f) => subtitleExtensions.some((ext) => f.name.endsWith(ext)))
       .map((f) => ({
         kind: 'subtitles',
-        src: `${this.getProxyUrl(context.sourceId)}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${context.token}&file=${f.name}`,
+        src: `${this.getProxyUrl(
+          context.sourceId,
+        )}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${
+          context.token
+        }&file=${f.name}`,
         label: f.name,
         lang: 'unknown',
       }));
@@ -193,7 +201,11 @@ class TorrentProvider extends SourceProvider {
       throw new Error('Torrent not found');
     }
 
-    const src = `${this.getProxyUrl(context.sourceId)}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${context.token}&season=${metadata.season}&episode=${metadata.episode}`;
+    const src = `${this.getProxyUrl(
+      context.sourceId,
+    )}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${
+      context.token
+    }&season=${metadata.season}&episode=${metadata.episode}`;
 
     const files = await getFiles(context.userId, torrent.link);
 
@@ -201,7 +213,11 @@ class TorrentProvider extends SourceProvider {
       .filter((f) => subtitleExtensions.some((ext) => f.name.endsWith(ext)))
       .map((f) => ({
         kind: 'subtitles',
-        src: `${this.getProxyUrl(context.sourceId)}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${context.token}&file=${f.name}`,
+        src: `${this.getProxyUrl(
+          context.sourceId,
+        )}/magnet?link=${encodeURIComponent(torrent.link)}&reiverr_token=${
+          context.token
+        }&file=${f.name}`,
         label: f.name,
         lang: 'unknown',
       }));
@@ -259,7 +275,9 @@ class TorrentProvider extends SourceProvider {
               const name = f.name.toUpperCase();
               return (
                 name.includes(
-                  `S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`,
+                  `S${season.toString().padStart(2, '0')}E${episode
+                    .toString()
+                    .padStart(2, '0')}`,
                 ) ||
                 name.includes(`S${season.toString()}E${episode.toString()}`)
               );

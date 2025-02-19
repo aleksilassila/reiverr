@@ -12,3 +12,24 @@ node_modules
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+.github
+.husky
+**/.DS_Store
+**/.env
+**/.env.*
+**/build/
+**/coverage/
+**/dist/
+**/docker-compose.*
+**/node_modules/
+
+# Ignore files for PNPM, NPM and YARN
+package-lock.json
+package.json
+pnpm-lock.yaml
+yarn.lock
+
+backend\packages\jellyfin.plugin\src\jellyfin.openapi.ts
+backend\swagger-spec.json
+**/*.generated.d.ts

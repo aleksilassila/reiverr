@@ -7,7 +7,8 @@
 	export let scrollLeft: number = 0;
 
 	const scrollStore = getScrollContext();
-	if (!scrollStore.scrollLeft || !scrollStore.scrollTop) console.error('ScrollHelper requires ScrollStore');
+	if (!scrollStore.scrollLeft || !scrollStore.scrollTop)
+		console.error('ScrollHelper requires ScrollStore');
 
 	$: scrollStore.scrollTop?.set(scrollTop);
 	$: scrollStore.scrollLeft?.set(scrollLeft);

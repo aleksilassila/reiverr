@@ -91,7 +91,9 @@ export const getEpisodeTorrents = (
       params: {
         apikey: settings.apiKey,
         t: 'tvsearch',
-        q: `${series} S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`,
+        q: `${series} S${season.toString().padStart(2, '0')}E${episode
+          .toString()
+          .padStart(2, '0')}`,
         // q: `${series}`, // `${series} S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`
         // season: season,
         // episode: episode,

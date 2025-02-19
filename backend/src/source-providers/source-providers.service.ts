@@ -59,7 +59,9 @@ export class SourceProvidersService {
             plugins[plugin.name] = plugin;
           } else {
             this.logger.warn(
-              `Plugin ${plugin.name}@${plugin._getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
+              `Plugin ${
+                plugin.name
+              }@${plugin._getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
             );
           }
         });
