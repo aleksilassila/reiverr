@@ -20,7 +20,7 @@
 	// Play/pause video
 	export let play = true;
 	// Autoplay after load
-	export let hasFocus = false;
+	export let muted = false;
 	export let autoplay = true;
 	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
@@ -56,8 +56,8 @@
 		}, 1000);
 	}
 
-	$: if (isInitialized && isPlayerReady && !hasFocus) mute();
-	$: if (isInitialized && isPlayerReady && hasFocus) unMute();
+	$: if (isInitialized && isPlayerReady && muted) mute();
+	$: if (isInitialized && isPlayerReady && !muted) unMute();
 
 	$: if (didMount && !isInitialized && visible && play) loadYouTubeAPI();
 	function loadYouTubeAPI() {
@@ -82,6 +82,8 @@
 		clearTimeout(autoplayTimeout);
 		clearTimeout(loadTimeout);
 		clearTimeout(pauseTimeout);
+		didMount = false;
+		isInitialized = false;
 		isPlayerReady = false;
 
 		if (!player) return;
@@ -117,8 +119,8 @@
 				},
 				events: {
 					onReady: () => {
-						// player?.playVideo();
-						// play = true;
+						player?.playVideo();
+						play = true;
 						if (loadTime) {
 							loadTimeout = setTimeout(() => {
 								isPlayerReady = true;

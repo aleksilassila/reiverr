@@ -19,14 +19,13 @@
 
 	export let itemsP: Promise<{ backdropUrl: string; videoUrl?: string }[]>;
 	export let index = 0;
-	export let hasFocus = false;
 	export let autoFocusVideo = false;
-	let fullscreen = false;
-	let isVideoPlaying = false;
-	let visibleIndex = -2;
-	let visibleIndexTimeout: ReturnType<typeof setTimeout>;
 
-	let selectable: Selectable;
+	let hasFocus = false;
+	let videoHasFocus = false;
+	let isVideoPlaying = false;
+	let bgIndex = -2;
+	let bgIndexTimeout: ReturnType<typeof setTimeout>;
 
 	let items: Awaited<typeof itemsP> = [];
 	$: itemsP.then((urls) => (items = urls));
@@ -38,6 +37,13 @@
 		}
 	}
 
+	let heroHasFocusWithin: Readable<boolean>;
+	let focusIndex: Writable<number>;
+	$: hasFocus = $heroHasFocusWithin && $focusIndex === 0;
+	$: visible?.set(!videoHasFocus || !isVideoPlaying || !$topVisible);
+
+	topVisible?.subscribe((v) => !v && handleFocusVideo(true));
+
 	function onNext() {
 		if (index === items.length - 1) {
 			return false;
@@ -46,9 +52,9 @@
 		}
 
 		if (autoFocusVideo && items[index]?.videoUrl) {
-			fullscreen = true;
+			videoHasFocus = true;
 		} else if (!items[index]?.videoUrl) {
-			fullscreen = false;
+			videoHasFocus = false;
 		}
 
 		return true;
@@ -62,9 +68,9 @@
 		}
 
 		if (autoFocusVideo && items[index]?.videoUrl) {
-			fullscreen = true;
+			videoHasFocus = true;
 		} else if (!items[index]?.videoUrl) {
-			fullscreen = false;
+			videoHasFocus = false;
 		}
 
 		return true;
@@ -75,35 +81,28 @@
 		return true;
 	}
 
-	let heroHasFocusWithin: Readable<boolean>;
-	let focusIndex: Writable<number>;
-	$: hasFocus = $heroHasFocusWithin && $focusIndex === 0;
-	$: visible?.set(!fullscreen || !isVideoPlaying || !$topVisible);
-
-	topVisible?.subscribe((v) => !v && handleClickFocus(true));
-	function handleClickFocus(unfocusOnly = false) {
-		if (fullscreen) {
-			fullscreen = false;
+	function handleFocusVideo(unfocusOnly = false) {
+		if (videoHasFocus) {
+			videoHasFocus = false;
 		} else if (!unfocusOnly && items[index]?.videoUrl) {
-			fullscreen = true;
+			videoHasFocus = true;
 		}
 	}
 
-	$: updateVisibleIndex(index);
-	function updateVisibleIndex(index: number) {
-		if (visibleIndexTimeout) {
-			clearTimeout(visibleIndexTimeout);
-		}
-		visibleIndexTimeout = setTimeout(
+	$: updateBgIndex(index);
+	function updateBgIndex(index: number) {
+		clearTimeout(bgIndexTimeout);
+
+		bgIndexTimeout = setTimeout(
 			() => {
-				visibleIndex = index;
+				bgIndex = index;
 			},
-			visibleIndex === -2 ? 1000 : 500
+			bgIndex === -2 ? 1000 : 500
 		);
-		visibleIndex = -1;
+		bgIndex = -1;
 	}
 
-	onDestroy(() => visibleIndexTimeout && clearTimeout(visibleIndexTimeout));
+	onDestroy(() => bgIndexTimeout && clearTimeout(bgIndexTimeout));
 </script>
 
 <Container
@@ -113,17 +112,15 @@
 	on:navigate={(event) => {
 		const detail = event.detail;
 
-		if (fullscreen) {
-			handleClickFocus(true);
+		if (videoHasFocus) {
+			handleFocusVideo(true);
 			if (detail.willLeaveContainer) {
 				detail.preventNavigation();
 				detail.stopPropagation();
 			}
 			return;
-		} else if (detail.direction === 'up' && items[index]?.videoUrl) {
-			handleClickFocus();
-			// detail.preventNavigation();
-			// detail.stopPropagation();
+		} else if (detail.direction === 'up') {
+			handleFocusVideo();
 			return;
 		}
 
@@ -144,7 +141,6 @@
 	}}
 	bind:hasFocusWithin={heroHasFocusWithin}
 	bind:focusIndex
-	bind:selectable
 >
 	<!-- <HeroBackground
 		{items}
@@ -159,18 +155,18 @@
 				{#each items as { videoUrl, backdropUrl }, i}
 					<div
 						class={classNames('absolute inset-0 bg-center bg-cover', {
-							'opacity-100': visibleIndex === i,
-							'opacity-0': visibleIndex !== i,
+							'opacity-100': bgIndex === i,
+							'opacity-0': bgIndex !== i,
 							'scale-110': !hasFocus && !PLATFORM_TV
 						})}
 						style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
 					>
-						{#if videoUrl && i === visibleIndex && $localSettings.enableTrailers}
+						{#if videoUrl && i === index && $localSettings.enableTrailers}
 							<YoutubeVideo
 								videoId={videoUrl}
 								autoplay={$localSettings.autoplayTrailers}
-								visible={$localSettings.autoplayTrailers ? $topVisible ?? true : fullscreen}
-								hasFocus={fullscreen}
+								visible={$localSettings.autoplayTrailers ? $topVisible ?? true : videoHasFocus}
+								muted={!videoHasFocus}
 								on:play={() => {
 									isVideoPlaying = true;
 								}}
@@ -181,7 +177,7 @@
 									if (autoFocusVideo) {
 										onNext();
 									} else {
-										handleClickFocus(true);
+										handleFocusVideo(true);
 									}
 								}}
 							/>
@@ -230,9 +226,9 @@
 
 	<div class={classNames('flex flex-1 z-10')}>
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<div class="flex-1 flex flex-col justify-end" on:click|self={() => handleClickFocus()}>
+		<div class="flex-1 flex flex-col justify-end" on:click|self={() => handleFocusVideo()}>
 			<div style={$visibleStyle}>
-				<slot focusVideo={handleClickFocus} />
+				<slot focusVideo={handleFocusVideo} />
 			</div>
 		</div>
 		<!-- <div
