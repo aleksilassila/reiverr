@@ -2,6 +2,9 @@
 	import Container from '$lib/components/Container.svelte';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
@@ -9,10 +12,9 @@
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
 	import { scrollIntoView } from '../selectable';
 	import { formatDateToYearMonthDay } from '../utils';
-	import { onDestroy } from 'svelte';
-	import { setScrollContext } from '$lib/stores/scroll.store';
 
 	const { registerScroll } = setScrollContext();
+	const { visibleStyle } = setUiVisibilityContext();
 
 	const { ...libraryData } = libraryItemsDataStore.subscribe();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
@@ -95,7 +97,7 @@
 			)}
 		/>
 	</Container>
-	<div class="my-16 space-y-8 relative z-10">
+	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
 		{#if $libraryContinueWatching.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>

@@ -37,19 +37,14 @@
 </script>
 
 <HeroCarousel
-	items={items.then((items) =>
+	itemsP={items.then((items) =>
 		items.map((i) => ({
 			backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
-			videoUrl: $localSettings.autoplayTrailers ? i.videoUrl : undefined
+			videoUrl: i.videoUrl
 		}))
 	)}
 	bind:index={showcaseIndex}
 	on:enter
-	on:navigate={({ detail }) => {
-		if (detail.direction === 'up') {
-			get(registrars.sidebar)?.focus();
-		}
-	}}
 	on:select={openItem}
 >
 	{#await items}

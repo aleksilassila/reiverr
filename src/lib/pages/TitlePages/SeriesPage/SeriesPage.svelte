@@ -117,7 +117,7 @@
 				}
 			}}
 		>
-			<HeroCarousel items={images}>
+			<HeroCarousel itemsP={images} autoFocusVideo>
 				<Container />
 				{#await $tmdbSeries then series}
 					{#if series}

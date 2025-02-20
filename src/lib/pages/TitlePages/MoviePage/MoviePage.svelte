@@ -106,7 +106,7 @@
 			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 			on:enter={scrollIntoView({ top: 999 })}
 		>
-			<HeroCarousel items={images}>
+			<HeroCarousel itemsP={images} autoFocusVideo>
 				<Container />
 				<div class="h-full flex-1 flex flex-col justify-end">
 					{#await $tmdbMovie then movie}

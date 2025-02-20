@@ -13,8 +13,10 @@
 	import Container from '$lib/components/Container.svelte';
 	import { onDestroy } from 'svelte';
 	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 
 	const { registerScroll } = setScrollContext();
+	const { visibleStyle } = setUiVisibilityContext();
 
 	const { ...libraryData } = libraryItemsDataStore.subscribe();
 	const libraryContinueWatching = derived(libraryData, (libraryData) => {
@@ -89,7 +91,7 @@
 			)}
 		/>
 	</Container>
-	<div class="my-16 space-y-8 relative z-10">
+	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
 		{#if $libraryContinueWatching.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
