@@ -15,6 +15,7 @@
 		createErrorNotification,
 		createInfoNotification
 	} from '$lib/components/Notifications/notification.store';
+	import { sources } from '$lib/stores/sources.store';
 
 	export let modalId: symbol;
 
@@ -55,41 +56,50 @@
 
 	async function handleSave() {
 		const source = await mediaSource;
-		const res = await validateForm();
 
-		const replacedSettings = {
-			...get(settings)
-		};
-		if (res?.replace) {
-			Object.keys(res?.replace).forEach((key) => {
-				replacedSettings[key] = res?.replace[key];
-			});
-		}
-		const updatedSource = await reiverrApiNew.users
-			.updateSource(get(user)?.id || '', {
-				id: sourceId,
-				name: $name,
-				pluginId: source.pluginId,
-				pluginSettings: replacedSettings
-			})
-			.then((r) => r.data)
-			.then((user) => user.mediaSources?.find((s) => s.id === sourceId));
-		if (updatedSource?.enabled) {
-			createInfoNotification('Media source updated', `${updatedSource.name} has been enabled`);
+		const updateResponse = await sources.updateSource({
+			...source,
+			name: $name,
+			pluginSettings: get(settings)
+		});
+
+		if (updateResponse?.validationResponse?.isValid) {
+			createInfoNotification(
+				'Media source updated',
+				`${updateResponse.mediaSource.name} has been enabled`
+			);
+			modalStack.close(modalId);
 		} else {
 			createErrorNotification(
 				'Incomplete configuration',
-				`${updatedSource?.name} has been disabled`
+				`${updateResponse.mediaSource.name} has been disabled`
 			);
+			validationResponse = updateResponse.validationResponse;
 		}
-		await mediaSourcesDataStore.refresh();
-		modalStack.close(modalId);
+
+		// const updatedSource = await reiverrApiNew.users
+		// 	.updateSource(get(user)?.id || '', {
+		// 		id: sourceId,
+		// 		name: $name,
+		// 		pluginId: source.pluginId,
+		// 		pluginSettings: get(settings)
+		// 	})
+		// 	.then((r) => r.data)
+		// 	.then((user) => user.mediaSources?.find((s) => s.id === sourceId));
+		// if (updatedSource?.enabled) {
+		// 	createInfoNotification('Media source updated', `${updatedSource.name} has been enabled`);
+		// 	modalStack.close(modalId);
+		// } else {
+		// 	createErrorNotification(
+		// 		'Incomplete configuration',
+		// 		`${updatedSource?.name} has been disabled`
+		// 	);
+		// }
+		// await mediaSourcesDataStore.refresh();
 	}
 
 	async function handleRemovePlugin() {
-		await mediaSource.then((s) => reiverrApiNew.users.deleteSource(s.id, get(user)?.id || ''));
-		await user.refreshUser();
-		await mediaSourcesDataStore.refresh();
+		await sources.deleteSource(sourceId);
 		modalStack.close(modalId);
 	}
 </script>
@@ -116,7 +126,6 @@
 							on:change={({ detail }) => settings.update((s) => ({ ...s, [key]: detail }))}
 							value={$settings[key] || ''}
 							placeholder={template.placeholder}
-							on:blur={() => stale && validateForm()}
 						>
 							{template.label}
 						</TextField>

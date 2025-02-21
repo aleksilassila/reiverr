@@ -6,6 +6,7 @@ import { UpdateOrCreateMediaSourceDto } from './media-source.dto';
 import { MediaSource } from './media-source.entity';
 import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
+import { ValidationResponse } from '@aleksilassila/reiverr-plugin';
 
 export enum MediaSourcesServiceError {
   SourceNotFound = 'SourceNotFound',
@@ -58,7 +59,7 @@ export class MediaSourcesService {
     user: User,
     sourceDto: UpdateOrCreateMediaSourceDto,
     callerUser: User = user,
-  ): Promise<User> {
+  ) {
     if (!callerUser.isAdmin || callerUser.id !== user.id) {
       throw MediaSourcesServiceError.Unauthorized;
     }
@@ -88,18 +89,21 @@ export class MediaSourcesService {
 
     source.adminControlled =
       sourceDto.adminControlled ?? source.adminControlled;
+    let validationResponse: ValidationResponse | undefined;
     if (sourceDto.pluginSettings !== undefined) {
       let valid = false;
       const provider = this.sourceProvidersService.getProvider(source.pluginId);
 
       if (provider) {
-        const validationRes = await provider.settingsManager.validateSettings(
+        validationResponse = await provider.settingsManager.validateSettings(
           sourceDto.pluginSettings,
         );
-        valid = validationRes.isValid;
+        valid = validationResponse.isValid;
+        source.pluginSettings = validationResponse.settings;
+      } else {
+        source.pluginSettings = sourceDto.pluginSettings;
       }
 
-      source.pluginSettings = sourceDto.pluginSettings;
       source.enabled = !!valid;
     }
     source.name = sourceDto.name ?? source.name;
@@ -120,8 +124,10 @@ export class MediaSourcesService {
       priority++;
     }
 
-    await this.mediaSourceRepository.save(source);
-    return this.usersService.findOne(user.id);
+    return {
+      mediaSource: await this.mediaSourceRepository.save(source),
+      validationResponse,
+    };
   }
 
   getMediaSourceSettings(user: User, sourceId: string) {

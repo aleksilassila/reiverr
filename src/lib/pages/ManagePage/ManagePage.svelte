@@ -18,7 +18,7 @@
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApiNew, user } from '../../stores/user.store';
-	import Plugins from './MediaSources.ManagePage.svelte';
+	import MediaSources from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {
 		Account,
@@ -208,7 +208,7 @@
 					</Container>
 				</div>
 
-				<Plugins />
+				<MediaSources />
 
 				<div>
 					<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>

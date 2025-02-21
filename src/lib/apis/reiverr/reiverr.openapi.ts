@@ -169,7 +169,7 @@ export interface ValidationResponseDto {
 	/** @example {"setting1":"error message","setting2":"another error message"} */
 	errors: Record<string, string>;
 	/** @example {"setting1":"new value","setting2":"another new value"} */
-	replace: Record<string, any>;
+	settings: Record<string, any>;
 }
 
 export interface SourceProviderCapabilitiesDto {
@@ -462,6 +462,24 @@ export interface UpdateOrCreateMediaSourceDto {
 	/** @default false */
 	adminControlled?: boolean;
 	priority?: number;
+}
+
+export interface MediaSourceDto {
+	id: string;
+	pluginId: string;
+	name: string;
+	userId: string;
+	/** @default false */
+	enabled?: boolean;
+	/** @default false */
+	adminControlled?: boolean;
+	priority: number;
+	pluginSettings?: Record<string, any>;
+}
+
+export interface UpdateMediaSourceResponse {
+	mediaSource: MediaSourceDto;
+	validationResponse?: ValidationResponseDto;
 }
 
 export interface MovieUserDataDto {
@@ -821,7 +839,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			data: UpdateOrCreateMediaSourceDto,
 			params: RequestParams = {}
 		) =>
-			this.request<UserDto, any>({
+			this.request<UpdateMediaSourceResponse, any>({
 				path: `/api/users/${userId}/sources`,
 				method: 'PUT',
 				body: data,

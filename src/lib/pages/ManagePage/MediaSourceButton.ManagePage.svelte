@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { MediaSource } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSource, MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import classNames from 'classnames';
 	import { createModal } from '../../components/Modal/modal.store';
 	import { capitalize } from '../../utils';
 	import EditPluginDialog from './EditMediaSourceDialog.ManagePage.svelte';
 
-	export let mediaSource: MediaSource;
+	export let mediaSource: MediaSourceDto;
 
 	function handleEditPluginSettings() {
 		createModal(EditPluginDialog, { sourceId: mediaSource.id });

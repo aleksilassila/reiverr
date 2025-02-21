@@ -4,13 +4,17 @@ export enum SourceProviderError {
   StreamNotFound = 'StreamNotFound',
 }
 
-export type SourceProviderSettingsLink = {
+export type SourceProviderSetting = {
+  required?: boolean;
+};
+
+export type SourceProviderSettingsLink = SourceProviderSetting & {
   type: 'link';
   url: string;
   label: string;
 };
 
-export type SourceProviderSettingsInput = {
+export type SourceProviderSettingsInput = SourceProviderSetting & {
   type: 'string' | 'number' | 'boolean' | 'password';
   label: string;
   placeholder: string;
@@ -55,7 +59,7 @@ export type SourceProviderSettings = Record<string, any>;
 export type ValidationResponse = {
   isValid: boolean;
   errors: Record<string, string>;
-  replace: Record<string, any>;
+  settings: Record<string, any>;
 };
 
 export type AudioStream = {

@@ -2,31 +2,17 @@
 	import { Plus } from 'radix-icons-svelte';
 
 	import Container from '$components/Container.svelte';
-	import Button from '../../components/Button.svelte';
-	import { reiverrApiNew, user } from '../../stores/user.store';
-	import { createModal } from '../../components/Modal/modal.store';
-	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
-	import { get } from 'svelte/store';
-	import { createErrorNotification } from '../../components/Notifications/notification.store';
-	import MediaSourceButton from './MediaSourceButton.ManagePage.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { mediaSourcesDataStore } from '$lib/stores/data.store';
+	import { sources } from '$lib/stores/sources.store';
+	import Button from '../../components/Button.svelte';
+	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
+	import { createModal } from '../../components/Modal/modal.store';
+	import { reiverrApiNew } from '../../stores/user.store';
+	import MediaSourceButton from './MediaSourceButton.ManagePage.svelte';
 
-	const allPlugins = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
+	const allProviders = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
 
-	const { promise: userSources } = mediaSourcesDataStore.subscribe();
-
-	async function addSource(pluginId: string) {
-		const userId = get(user)?.id;
-
-		if (!userId) {
-			createErrorNotification('User not found');
-			return;
-		}
-
-		await reiverrApiNew.users.updateSource(userId, { pluginId });
-		await mediaSourcesDataStore.refresh();
-	}
+	const { isLoading, addSource, ...userSources } = sources;
 </script>
 
 <Container on:enter={scrollIntoView({ vertical: 128 })}>
@@ -38,20 +24,22 @@
 		</p>
 	</div>
 	<Container class="flex flex-col gap-4 mb-4 max-w-sm">
-		{#await $userSources then userSources}
-			{#each userSources as source}
+		{#if $isLoading}
+			<p>Loading...</p>
+		{:else}
+			{#each $userSources as source}
 				<MediaSourceButton mediaSource={source} />
 			{/each}
-		{/await}
+		{/if}
 	</Container>
-	{#await allPlugins then availablePlugins}
+	{#await allProviders then availablePlugins}
 		<Button
 			icon={Plus}
 			disabled={!availablePlugins.length}
 			on:clickOrSelect={() =>
 				createModal(SelectDialog, {
 					options: availablePlugins,
-					handleSelectOption: addSource,
+					handleSelectOption: (id) => addSource(id),
 					title: 'Add Media Source',
 					subtitle: 'Select a source provider'
 				})}

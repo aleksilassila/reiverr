@@ -1,6 +1,6 @@
 {
   "name": "@aleksilassila/reiverr-plugin",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "main": "dist/src/index",
   "types": "./dist/src/index.d.ts",
   "scripts": {

@@ -36,7 +36,7 @@ export class SettingsManager {
   ) => Promise<ValidationResponse> = async () => ({
     isValid: true,
     errors: {},
-    replace: {},
+    settings: {},
   });
 }
 

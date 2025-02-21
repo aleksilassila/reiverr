@@ -35,7 +35,7 @@ export class JellyfinSettingsManager extends SettingsManager {
     if (isValid) {
       const context = new PluginContext(settings as any);
       let [user, err] = await context.api.users
-        .getUserById(settings.userId)
+        .getUserById(settings.userId, { timeout: 5000 })
         .then((res) => [res.data, undefined])
         .catch((err) => [undefined, err.message]);
 
@@ -64,7 +64,7 @@ export class JellyfinSettingsManager extends SettingsManager {
     return {
       isValid,
       errors,
-      replace,
+      settings: { ...settings, ...replace },
     };
   };
 
@@ -73,16 +73,19 @@ export class JellyfinSettingsManager extends SettingsManager {
       type: 'string',
       label: 'Base URL',
       placeholder: 'http://localhost:8096',
+      required: true,
     },
     apiKey: {
       type: 'password',
       label: 'API Key',
       placeholder: '',
+      required: true,
     },
     userId: {
       type: 'string',
       label: 'Username or User ID',
       placeholder: 'username or user id',
+      required: true,
     },
   });
 }

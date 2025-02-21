@@ -1,4 +1,3 @@
-import { BaseItemKind, ItemFields } from './jellyfin.openapi';
 import {
   EpisodeMetadata,
   IndexItem,
@@ -16,11 +15,8 @@ import {
   UserContext,
 } from '@aleksilassila/reiverr-plugin';
 import { Readable } from 'stream';
-import {
-  JellyfinSettings,
-  JellyfinUserContext,
-  PluginContext,
-} from './plugin-context';
+import { BaseItemKind, ItemFields } from './jellyfin.openapi';
+import { JellyfinSettings, PluginContext } from './plugin-context';
 import { JellyfinSettingsManager } from './settings';
 import {
   bitrateQualities,

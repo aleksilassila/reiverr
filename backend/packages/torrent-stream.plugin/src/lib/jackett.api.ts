@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { XMLParser } from 'fast-xml-parser';
 import { StreamCandidate } from '@aleksilassila/reiverr-plugin';
 import { TorrentSettings } from '../types';
@@ -193,4 +193,25 @@ export function getStreamCandidates(
       ],
     };
   });
+}
+
+export async function testConnection(settings: TorrentSettings) {
+  return axios
+    .get(`/api`, {
+      baseURL: settings.baseUrl,
+      params: {
+        apikey: settings.apiKey,
+      },
+      timeout: 5000,
+    })
+    .then((res) => {
+      if (res.status >= 400) {
+        return 'Could not connect to Jackett: ' + res.statusText;
+      }
+
+      const data = jackettXmlParser.parse(res.data);
+      if (data.error) {
+        return data.error['@_description'] || 'Unknown error';
+      }
+    });
 }

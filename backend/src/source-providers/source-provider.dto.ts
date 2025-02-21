@@ -123,7 +123,7 @@ export class ValidationResponseDto implements ValidationResponse {
     type: 'object',
     additionalProperties: true,
   })
-  replace: Record<string, any>;
+  settings: Record<string, any>;
 }
 
 export class AudioStreamDto implements AudioStream {

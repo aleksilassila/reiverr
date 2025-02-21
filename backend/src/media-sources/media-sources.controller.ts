@@ -69,9 +69,8 @@ export class ServiceOwnershipValidator implements CanActivate {
 
     if (!sourceId) return true;
 
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -303,9 +302,8 @@ export class MediaSourcesController {
     @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -370,9 +368,8 @@ export class MediaSourcesController {
   }
 
   async getConnection(sourceId: string) {
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource.pluginId || !mediaSource.enabled) {
       throw new BadRequestException('Source not configured');
