@@ -45,7 +45,9 @@ export class MetadataService {
       movie.tmdbMovie = tmdbMovie;
     }
 
-    await this.movieRepository.save(movie);
+    await this.movieRepository.upsert(movie, {
+      conflictPaths: ['tmdbId'],
+    });
 
     return movie;
   }
@@ -68,7 +70,9 @@ export class MetadataService {
       if (tmdbSeries) series.tmdbSeries = tmdbSeries;
     }
 
-    await this.seriesRepository.save(series);
+    await this.seriesRepository.upsert(series, {
+      conflictPaths: ['tmdbId'],
+    });
 
     return series;
   }
