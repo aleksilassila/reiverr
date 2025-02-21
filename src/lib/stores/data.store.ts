@@ -1,6 +1,9 @@
-import { get, writable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import { tmdbApi, type TmdbMovieFull2, type TmdbSeriesFull2 } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
+import { tick } from 'svelte';
+
+type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 
 export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 	async function _createPromise() {
@@ -39,21 +42,59 @@ export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 
 	return {
 		subscribe: data.subscribe,
-		isLoading,
-		promise,
+		isLoading: { subscribe: isLoading.subscribe },
+		promise: { subscribe: promise.subscribe },
 		refresh,
 		refreshIn
 	};
 }
 
+export function useDerivedRequest<TResponse, TResponse2>(
+	request: Request<TResponse2>,
+	fn: (r: TResponse2) => Promise<TResponse>
+): Request<TResponse> {
+	const isLoading = writable(true);
+	const data = writable<TResponse | undefined>(undefined);
+	const promise = derived(request.promise, async (p) => {
+		isLoading.set(true);
+
+		return p
+			.then((r) => fn(r))
+			.then((d) => {
+				data.set(d);
+				return d;
+			})
+			.finally(() => {
+				isLoading.set(false);
+			});
+	});
+
+	return {
+		subscribe: data.subscribe,
+		isLoading: { subscribe: isLoading.subscribe },
+		promise: { subscribe: promise.subscribe },
+		refresh: async () => {
+			await request.refresh();
+			await tick();
+			return get(promise);
+		},
+		refreshIn: async (ms?: number) => {
+			await request.refreshIn(ms);
+			await tick();
+			return get(promise);
+		}
+	};
+}
+
+type RequestStoreRequest<TResponse> = Request<TResponse> & { unsubscribe: () => void };
+
 export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	fn: (...args: TArgs) => Promise<TResponse>,
 	options: { persistant?: boolean } = {}
 ) {
-	type Res = ReturnType<typeof useRequest<TResponse>>;
-	const requests: Map<string, { subscribers: symbol[]; request: Res }> = new Map();
+	const requests: Map<string, { subscribers: symbol[]; request: Request<TResponse> }> = new Map();
 
-	function subscribe(...args: TArgs): Res & { unsubscribe: () => void } {
+	function subscribe(...args: TArgs): RequestStoreRequest<TResponse> {
 		const id = Symbol();
 		let request = requests.get(JSON.stringify(args))?.request;
 
@@ -113,6 +154,27 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	};
 }
 
+export function useDerivedRequestsStore<TArgs extends Array<unknown>, TResponse, TResponse2>(
+	dataStore: ReturnType<typeof useRequestsStore<TArgs, TResponse>>,
+	fn: (res: TResponse) => Promise<TResponse2>
+) {
+	type Res = ReturnType<typeof useRequest<TResponse2>>;
+	function subscribe(...args: TArgs): RequestStoreRequest<TResponse2> {
+		const request = dataStore.subscribe(...args);
+		const derivedRequest = useDerivedRequest(request, fn);
+
+		return {
+			...derivedRequest,
+			unsubscribe: request.unsubscribe
+		};
+	}
+
+	return {
+		...dataStore,
+		subscribe
+	};
+}
+
 export const tmdbMovieDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbMovie(id));
 export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
 export const tmdbEpisodeDataStore = useRequestsStore(
@@ -133,20 +195,33 @@ export const episodeUserDataStore = useRequestsStore(
 );
 
 export const libraryItemsDataStore = useRequestsStore(
-	() =>
-		reiverrApiNew.users
-			.getLibraryItems(get(user)?.id as string)
-			.then((r) =>
-				r.data.items.map((i) => ({
-					...i,
-					metadata:
-						(i.movieMetadata?.tmdbMovie as TmdbMovieFull2) ||
-						(i.seriesMetadata?.tmdbSeries as TmdbSeriesFull2)
-				}))
-			)
-			.then((i) => i.filter((i) => !!i.metadata)),
+	() => reiverrApiNew.users.getLibraryItems(get(user)?.id as string).then((r) => r.data.items),
 	{ persistant: true }
 );
+
+// const continueWatchingDataStore = useDerivedRequestsStore(
+// 	libraryItemsDataStore,
+// 	async (libraryData) => {
+// 		if (!libraryData) return [];
+
+// 		const movies = libraryData.filter(
+// 			(i) => i.mediaType === 'Movie' && i.playStates?.length && !i.watched
+// 		);
+
+// 		movies.sort((a, b) => {
+// 			const aMax = Math.max(
+// 				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+// 			);
+// 			const bMax = Math.max(
+// 				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
+// 			);
+
+// 			return bMax - aMax;
+// 		});
+
+// 		return movies.map((i) => i.metadata);
+// 	}
+// );
 
 export const mediaSourcesDataStore = useRequestsStore(() =>
 	reiverrApiNew.users

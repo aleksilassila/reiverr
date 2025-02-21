@@ -514,27 +514,37 @@ export interface BulkUpdatePlayStateDto {
 	playStates: UpdatePlayStateDto[];
 }
 
-export interface MovieDto {
-	id?: string;
-	tmdbId: string;
-	tmdbMovie?: object;
-	updatedAt: string;
+export interface NextEpisodeToAir {
+	air_date?: string;
 }
 
-export interface Series {
-	id?: string;
-	tmdbId: string;
-	tmdbSeries?: object;
-	updatedAt: string;
+export interface Season {
+	air_date?: string;
+	episode_count?: number;
+	id?: number;
+	name?: string;
+	overview?: string;
+	poster_path?: string;
+	season_number?: number;
+	vote_average?: number;
 }
 
-export interface LibraryItemDto {
+export interface LibraryItemDto2 {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
 	createdAt: string;
-	movieMetadata?: MovieDto;
-	seriesMetadata?: Series;
+	id?: number;
+	poster_path?: string;
+	vote_average?: number;
+	title?: string;
+	release_date?: string;
+	runtime?: number;
+	name?: string;
+	first_air_date?: string;
+	last_air_date?: string;
+	next_episode_to_air?: NextEpisodeToAir;
+	seasons?: Season[];
 	watched?: boolean;
 }
 
@@ -1023,7 +1033,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getLibraryItems: (userId: string, params: RequestParams = {}) =>
 			this.request<
 				PaginatedResponseDto & {
-					items: LibraryItemDto[];
+					items: LibraryItemDto2[];
 				},
 				any
 			>({

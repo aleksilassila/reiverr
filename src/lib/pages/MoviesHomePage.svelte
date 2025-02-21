@@ -35,7 +35,7 @@
 			return bMax - aMax;
 		});
 
-		return movies.map((i) => i.metadata);
+		return movies;
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 

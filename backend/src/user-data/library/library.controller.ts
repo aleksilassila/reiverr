@@ -20,7 +20,7 @@ import {
   PaginationParamsDto,
   SuccessResponseDto,
 } from 'src/common/common.dto';
-import { LibraryItemDto } from './library.dto';
+import { LibraryItemDto, LibraryItemDto2 } from './library.dto';
 import { LibraryService } from './library.service';
 
 @ApiTags('users')
@@ -30,11 +30,11 @@ export class LibraryController {
   constructor(private libraryService: LibraryService) {}
 
   @Get()
-  @PaginatedApiOkResponse(LibraryItemDto)
+  @PaginatedApiOkResponse(LibraryItemDto2)
   async getLibraryItems(
     @GetPaginationParams() pagination: PaginationParamsDto,
     @Param('userId') userId: string,
-  ): Promise<PaginatedResponseDto<LibraryItemDto>> {
+  ): Promise<PaginatedResponseDto<LibraryItemDto2>> {
     // const user = await this.userService.findOne(userId);
 
     const items = await this.libraryService.getLibraryItemDtos(

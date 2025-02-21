@@ -37,7 +37,7 @@
 			return bMax - aMax;
 		});
 
-		return series.map((i) => i.metadata);
+		return series
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 

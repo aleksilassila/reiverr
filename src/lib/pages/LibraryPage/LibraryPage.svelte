@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LibraryItemDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { LibraryItemDto2 } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbMovieFull2, TmdbSeriesFull2 } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -17,8 +17,6 @@
 	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
 	import TabItem from './TabItem.svelte';
 
-	type LibraryItemWithMetadata = LibraryItemDto & { metadata: TmdbSeriesFull2 | TmdbMovieFull2 };
-
 	let didMount = false;
 	let category = writable<'all' | 'series' | 'movies'>('all');
 
@@ -33,9 +31,9 @@
 		[sortedLibraryItems, libraryViewSettings],
 		([items, viewSettings]) => {
 			let categorizedItems = {
-				upcoming: [] as LibraryItemWithMetadata[],
-				main: [] as LibraryItemWithMetadata[],
-				watched: [] as LibraryItemWithMetadata[]
+				upcoming: [] as LibraryItemDto2[],
+				main: [] as LibraryItemDto2[],
+				watched: [] as LibraryItemDto2[]
 			};
 
 			if (!viewSettings.separateUpcoming && !viewSettings.separateWatched) {
@@ -44,15 +42,11 @@
 
 			for (const item of items) {
 				const releaseDate = new Date(
-					('release_date' in item.metadata && item.metadata.release_date) ||
-						(item.watched &&
-							'next_episode_to_air' in item.metadata &&
-							(item.metadata.next_episode_to_air as any)?.air_date) ||
-						0
+					item.release_date || (item.watched && (item.next_episode_to_air as any)?.air_date) || 0
 				);
 				const hasFutureReleases = item.watched
-					? 'seasons' in item.metadata && item.metadata.seasons?.some((s) => s.air_date === null)
-					: 'last_air_date' in item.metadata && item.metadata.last_air_date === null;
+					? item.seasons?.some((s) => s.air_date === null)
+					: item.last_air_date === null;
 
 				if (viewSettings.separateUpcoming && (releaseDate > new Date() || hasFutureReleases)) {
 					categorizedItems.upcoming.push(item);
@@ -65,16 +59,14 @@
 
 			categorizedItems.upcoming.sort((a, b) => {
 				const aReleaseDate = new Date(
-					('release_date' in a.metadata && a.metadata.release_date) ||
-						('next_episode_to_air' in a.metadata &&
-							(a.metadata.next_episode_to_air as any)?.air_date) ||
+					a.release_date ||
+						a.next_episode_to_air?.air_date ||
 						new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 20
 				);
 
 				const bReleaseDate = new Date(
-					('release_date' in b.metadata && b.metadata.release_date) ||
-						('next_episode_to_air' in b.metadata &&
-							(b.metadata.next_episode_to_air as any)?.air_date) ||
+					b.release_date ||
+						(b.next_episode_to_air as any)?.air_date ||
 						new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 20
 				);
 
@@ -86,7 +78,7 @@
 	);
 
 	function sortItems(
-		items: LibraryItemWithMetadata[] | undefined,
+		items: LibraryItemDto2[] | undefined,
 		viewSettings: LibraryViewSettings,
 		category: 'all' | 'series' | 'movies'
 	) {
@@ -102,32 +94,18 @@
 				const aCreatedAt = a.createdAt;
 				const bCreatedAt = b.createdAt;
 
-				const aReleaseDate = ('release_date' in a.metadata && a.metadata.release_date) || '';
-				const bReleaseDate = ('release_date' in b.metadata && b.metadata.release_date) || '';
+				const aReleaseDate = a.release_date || '';
+				const bReleaseDate = b.release_date || '';
 
-				const aFirstAirDate =
-					('first_air_date' in a.metadata && a.metadata.first_air_date) || aReleaseDate;
-				const bFirstAirDate =
-					('first_air_date' in b.metadata && b.metadata.first_air_date) || bReleaseDate;
+				const aFirstAirDate = a.first_air_date || aReleaseDate;
+				const bFirstAirDate = b.first_air_date || bReleaseDate;
 
-				const aLastAirDate =
-					('last_air_date' in a.metadata && a.metadata.last_air_date) ||
-					aFirstAirDate ||
-					aReleaseDate;
-				const bLastAirDate =
-					('last_air_date' in b.metadata && b.metadata.last_air_date) ||
-					bFirstAirDate ||
-					bReleaseDate;
+				const aLastAirDate = a.last_air_date || aFirstAirDate || aReleaseDate;
+				const bLastAirDate = b.last_air_date || bFirstAirDate || bReleaseDate;
 
-				const aTitle =
-					('title' in a.metadata && a.metadata.title) ||
-					('name' in a.metadata && a.metadata.name) ||
-					'';
+				const aTitle = a.title || a.name || '';
 
-				const bTitle =
-					('title' in b.metadata && b.metadata.title) ||
-					('name' in b.metadata && b.metadata.name) ||
-					'';
+				const bTitle = b.title || b.name || '';
 
 				const direction = viewSettings.sortDirection === 'asc' ? 1 : -1;
 				if (viewSettings.sortBy === 'date-added') {
@@ -185,11 +163,7 @@
 							>
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.upcoming as item (item.tmdbId)}
-										<TmdbCard
-											on:enter={scrollIntoView({ horizontal: 128 })}
-											size="lg"
-											item={item.metadata}
-										/>
+										<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
 									{/each}
 								{/key}
 							</Carousel>
@@ -202,7 +176,7 @@
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.main as item, index (item.tmdbId)}
 										<TmdbCard
-											item={item.metadata}
+											{item}
 											progress={item.playStates?.[0]?.progress || 0}
 											on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
 											size="dynamic"
@@ -220,7 +194,7 @@
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.watched as item (item.tmdbId)}
 										<TmdbCard
-											item={item.metadata}
+											{item}
 											progress={item.playStates?.[0]?.progress || 0}
 											on:enter={scrollIntoView({ vertical: 128 })}
 											size="dynamic"

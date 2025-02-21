@@ -9,7 +9,7 @@ import { TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto';
 import { TMDB_CACHE_TTL } from 'src/consts';
 
 @Entity()
-export class Movie {
+export class MovieMetadata {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -28,7 +28,7 @@ export class Movie {
 }
 
 @Entity()
-export class Series {
+export class SeriesMetadata {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryGeneratedColumn('uuid')
   id: string;

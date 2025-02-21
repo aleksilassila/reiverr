@@ -5,7 +5,9 @@
 	import { TMDB_POSTER_SMALL } from '../../constants';
 	import type { TitleType } from '../../types';
 
-	export let item: TmdbMovie2 | TmdbSeries2;
+	export let item:
+		| Pick<TmdbMovie2, 'id' | 'title' | 'release_date' | 'poster_path' | 'vote_average' | 'runtime'>
+		| Pick<TmdbSeries2, 'id' | 'name' | 'first_air_date' | 'poster_path' | 'vote_average'>;
 	export let progress = 0;
 	let title = '';
 	let subtitle = '';

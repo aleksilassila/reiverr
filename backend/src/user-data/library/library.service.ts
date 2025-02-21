@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { LibraryItem } from './library.entity';
 import { MediaType, PaginationParamsDto } from 'src/common/common.dto';
-import { LibraryItemDto } from './library.dto';
+import { LibraryItemDto, LibraryItemDto2 } from './library.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
 
@@ -17,7 +17,7 @@ export class LibraryService {
   async getLibraryItemDtos(
     userId: string,
     pagination: PaginationParamsDto,
-  ): Promise<LibraryItemDto[]> {
+  ): Promise<LibraryItemDto2[]> {
     const items = await this.getLibraryItems(userId, pagination);
 
     return Promise.all(
@@ -26,34 +26,16 @@ export class LibraryService {
           item.mediaType === MediaType.Series
             ? await this.metadataService.getSeriesByTmdbId(item.tmdbId)
             : undefined;
-        let watched = false;
+        const movieMetadata =
+          item.mediaType === MediaType.Movie
+            ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
+            : undefined;
 
-        if (item.mediaType === MediaType.Movie) {
-          watched = item.playStates?.some((state) => state.watched) ?? false;
-        } else if (
-          item.mediaType === MediaType.Series &&
-          seriesMetadata.tmdbSeries?.last_episode_to_air
-        ) {
-          const { season_number: season, episode_number: episode } =
-            seriesMetadata.tmdbSeries.last_episode_to_air;
-          watched =
-            item.playStates?.some(
-              (state) =>
-                state.season === season &&
-                state.episode === episode &&
-                state.watched,
-            ) ?? false;
-        }
-
-        return {
-          ...item,
-          watched,
-          movieMetadata:
-            item.mediaType === MediaType.Movie
-              ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
-              : undefined,
+        return LibraryItemDto2.create({
+          libraryItem: item,
           seriesMetadata,
-        };
+          movieMetadata,
+        });
       }),
     );
   }
