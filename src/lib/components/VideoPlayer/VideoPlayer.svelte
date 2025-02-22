@@ -132,10 +132,20 @@
 		subtitles={subtitleInfo?.subtitles}
 	/>
 
-	<!-- Overlay -->
+	<!-- Overlay secondary-950/75 -->
 	<div
 		class={classNames(
-			'absolute inset-0 bg-gradient-to-b from-transparent from-60% to-secondary-950/75 transition-opacity pointer-events-none',
+			'absolute inset-0 transition-opacity pointer-events-none',
+			'bg-gradient-to-b from-secondary-950/75 from-0% to-[100px] to-transparent',
+			{
+				'opacity-0': !showInterface
+			}
+		)}
+	/>
+	<div
+		class={classNames(
+			'absolute inset-0 transition-opacity pointer-events-none',
+			'bg-gradient-to-t from-secondary-950/75 from-0% to-[300px] to-transparent',
 			{
 				'opacity-0': !showInterface
 			}
@@ -148,17 +158,18 @@
 	>
 		<!--		Title-->
 	</Container>
-	{#if buffering || !videoDidLoad}
-		<div
-			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-		>
-			<Spinner class="w-12 h-12" />
-		</div>
-	{:else if paused && showInterface}
+
+	{#if paused && showInterface && !seeking}
 		<div
 			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
 		>
 			<Pause class="w-12 h-12" />
+		</div>
+	{:else if (buffering && !paused) || !videoDidLoad}
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+		>
+			<Spinner class="w-12 h-12" />
 		</div>
 	{/if}
 	<Container
