@@ -136,16 +136,13 @@ export function getStreamCandidates(
 
     const seeders = Number(getTorrentAttribute(torrent, 'seeders')) || 0;
     const peers = Number(getTorrentAttribute(torrent, 'peers')) || 0;
-    const size = Number(torrent.size) || 0;
+    const sizePerFile = (Number(torrent.size) || 0) / files;
 
     const swarmSize = seeders + peers;
 
     const sizePerPeer =
-      swarmSize > 0 && files > 0 ? size / files / swarmSize : 0;
-    const bitratePerPeer =
-      runtime > 0 && files > 0 && swarmSize > 0
-        ? size / files / runtime / swarmSize
-        : 0;
+      swarmSize > 0 && files > 0 ? sizePerFile / swarmSize : 0;
+    const bitrate = runtime > 0 && files > 0 ? sizePerFile / runtime : 0;
 
     return {
       key:
@@ -166,30 +163,30 @@ export function getStreamCandidates(
         },
         {
           label: 'Size' + (files > 1 ? '/file' : ''),
-          value: size / files,
-          formatted: formatSize(size / files),
+          value: sizePerFile,
+          formatted: formatSize(sizePerFile),
         },
         ...(files > 1
           ? [{ label: 'Files', value: files, formatted: undefined }]
           : []),
-        ...(bitratePerPeer > 0
+        ...(bitrate > 0
           ? [
               {
-                label: 'Bitrate/peer',
-                value: bitratePerPeer,
-                formatted: formatBitrate(bitratePerPeer),
+                label: 'Bitrate',
+                value: bitrate,
+                formatted: formatBitrate(bitrate),
               },
             ]
           : []),
-        ...(bitratePerPeer === 0 && sizePerPeer > 0
-          ? [
-              {
-                label: 'Size/peer',
-                value: sizePerPeer,
-                formatted: formatSize(sizePerPeer),
-              },
-            ]
-          : []),
+        // ...(bitrate === 0 && sizePerPeer > 0
+        //   ? [
+        //       {
+        //         label: 'Size/peer',
+        //         value: sizePerPeer,
+        //         formatted: formatSize(sizePerPeer),
+        //       },
+        //     ]
+        //   : []),
       ],
     };
   });

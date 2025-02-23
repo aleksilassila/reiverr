@@ -5,7 +5,10 @@ import * as torrentStream from 'torrent-stream';
 class FileCache<T> {
   private cache: T;
 
-  constructor(private cacheFile: string, private defaultValue: T) {
+  constructor(
+    private cacheFile: string,
+    private defaultValue: T,
+  ) {
     this.cache = this.readStreamCache();
   }
 
@@ -145,7 +148,9 @@ class EngineCache {
         magnetLink,
         activeTorrent.infoHash === magnetLink,
       );
-      await this.destroyEngine(activeTorrent.infoHash);
+      await this.destroyEngine(activeTorrent.infoHash).finally(() => {
+        console.log('destroyed');
+      });
     }
 
     this.userTorrentMetadata.update((metadata) => {

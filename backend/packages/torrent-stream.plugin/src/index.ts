@@ -279,7 +279,11 @@ class TorrentProvider extends SourceProvider {
                     .toString()
                     .padStart(2, '0')}`,
                 ) ||
-                name.includes(`S${season.toString()}E${episode.toString()}`)
+                name.includes(`S${season.toString()}E${episode.toString()}`) ||
+                name.includes(
+                  `${season.toString().padStart(2, '0')}X${episode.toString().padStart(2, '0')}`,
+                ) ||
+                name.includes(`${season.toString()}X${episode.toString()}`)
               );
             }) || videoFiles[0]
           : videoFiles[0];

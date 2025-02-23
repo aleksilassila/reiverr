@@ -136,7 +136,7 @@
 	<div
 		class={classNames(
 			'absolute inset-0 transition-opacity pointer-events-none',
-			'bg-gradient-to-b from-secondary-950/75 from-0% to-[100px] to-transparent',
+			'bg-gradient-to-b from-secondary-950/75 from-0% to-[150px] to-transparent',
 			{
 				'opacity-0': !showInterface
 			}
