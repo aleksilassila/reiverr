@@ -3,18 +3,13 @@
 	import type { EpisodeData } from '$lib/stores/media-user-data.store';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
-	import {
-		tmdbApi,
-		type TmdbEpisode,
-		type TmdbSeasonEpisode,
-		type TmdbSeriesFull2
-	} from '../../../apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbEpisode, type TmdbSeriesFull2 } from '../../../apis/tmdb/tmdb-api';
 	import CardGrid from '../../../components/CardGrid.svelte';
 	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { navigate } from '../../../components/StackRouter/StackRouter';
 	import { scrollIntoView, Selectable } from '../../../selectable';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
+	import StackLink from '$lib/components/StackRouter/StackLink.svelte';
 
 	const { topVisible } = getScrollContext();
 
@@ -30,10 +25,6 @@
 	);
 
 	let seasonIndex = 0;
-
-	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
-		navigate(`/series/${tmdbId}/season/${episode.season_number}/episode/${episode.episode_number}`);
-	}
 
 	function handleMountSeasonButton(s: Selectable, seasonNumber: number) {
 		nextEpisode.subscribe((episode) => {
@@ -103,15 +94,18 @@
 					(e) => e.season === episode.season_number && e.episode === episode.episode_number
 				)}
 				{#key episode.id}
-					<TmdbEpisodeCard
-						{episode}
-						series={tmdbSeries}
-						on:mount={(e) => handleMountCard(e.detail, episode)}
-						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-						isWatched={userData?.watched || false}
-						progress={userData?.progress}
-						on:clickOrSelect={() => handleOpenEpisodePage(episode)}
-					/>
+					<StackLink
+						to="/series/{tmdbId}/season/{episode.season_number}/episode/{episode.episode_number}"
+					>
+						<TmdbEpisodeCard
+							{episode}
+							series={tmdbSeries}
+							on:mount={(e) => handleMountCard(e.detail, episode)}
+							on:enter={scrollIntoView({ top: 92, bottom: 128 })}
+							isWatched={userData?.watched || false}
+							progress={userData?.progress}
+						/>
+					</StackLink>
 				{/key}
 			{/each}
 			<!-- <ManageSeasonCard

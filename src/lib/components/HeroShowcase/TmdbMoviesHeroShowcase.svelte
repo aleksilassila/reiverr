@@ -1,16 +1,18 @@
 <script lang="ts">
 	import type { TmdbMovie2 } from '$lib/apis/tmdb/tmdb-api';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
-	import { navigate } from '../StackRouter/StackRouter';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import { Video } from 'radix-icons-svelte';
+	import StackLink from '../StackRouter/StackLink.svelte';
 
 	export let movies: Promise<TmdbMovie2[]>;
+	let selectedMovieId: number | undefined = -1;
 
 	$: items = movies
-		.then(async (movies) =>
-			movies.map(async (movie) => {
+		.then(async (movies) => {
+			selectedMovieId = movies[0]?.id;
+			return movies.map(async (movie) => {
 				const movieFull = await tmdbApi.getTmdbMovie(movie.id ?? 0);
 				const videoUrl = movieFull?.videos?.results?.find(
 					(video) => video.type === 'Trailer' && video.site === 'YouTube'
@@ -47,9 +49,16 @@
 							: [])
 					]
 				};
-			})
-		)
+			});
+		})
 		.then((i) => Promise.all(i));
 </script>
 
-<HeroShowcase on:select={({ detail }) => navigate(`/movie/${detail?.id}`)} {items} />
+<StackLink on:click to="/movie/{selectedMovieId}">
+	<HeroShowcase
+		on:enter={({ detail }) => {
+			selectedMovieId = detail?.id;
+		}}
+		{items}
+	/>
+</StackLink>

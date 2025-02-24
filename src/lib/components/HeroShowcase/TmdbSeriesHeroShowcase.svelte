@@ -1,14 +1,16 @@
 <script lang="ts">
 	import type { TmdbSeries2 } from '$lib/apis/tmdb/tmdb-api';
 	import { formatThousands } from '$lib/utils';
-	import { navigate } from '../StackRouter/StackRouter';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import { Video } from 'radix-icons-svelte';
+	import StackLink from '../StackRouter/StackLink.svelte';
 
 	export let series: Promise<TmdbSeries2[]>;
+	let selectedSeriesId: number | undefined = -1;
 
 	$: items = series.then(async (series) => {
+		selectedSeriesId = series[0]?.id;
 		return Promise.all(
 			series.map(async (series) => {
 				const seriesFull = await tmdbApi.getTmdbSeries(series.id ?? 0);
@@ -53,4 +55,11 @@
 	});
 </script>
 
-<HeroShowcase on:select={({ detail }) => navigate(`/series/${detail?.id}`)} {items} />
+<StackLink on:click to="/series/{selectedSeriesId}">
+	<HeroShowcase
+		on:enter={({ detail }) => {
+			selectedSeriesId = detail?.id;
+		}}
+		{items}
+	/>
+</StackLink>
