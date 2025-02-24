@@ -32,7 +32,7 @@
 			},
 			$$restProps.class
 		)}
-		on:click
+		on:click|stopPropagation|preventDefault
 	>
 		<slot />
 	</button>

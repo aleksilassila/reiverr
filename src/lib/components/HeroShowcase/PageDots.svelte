@@ -24,7 +24,7 @@
 		>
 			<div class={classNames('h-[3px] bg-zinc-200 rounded-full', {})} />
 		</div> -->
-		<div on:click={() => onJump(i)}>
+		<div on:click|preventDefault|stopPropagation={() => onJump(i)}>
 			<div
 				class={classNames(
 					'cursor-pointer transition-transform hover:scale-125 hover:opacity-50 p-1.5 xl:p-2.5',

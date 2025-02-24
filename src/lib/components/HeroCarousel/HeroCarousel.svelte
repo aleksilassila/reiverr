@@ -57,6 +57,7 @@
 			videoHasFocus = false;
 		}
 
+		dispatch('enter');
 		return true;
 	}
 
@@ -106,7 +107,7 @@
 </script>
 
 <Container
-	class="flex-1 flex"
+	class="flex-1 flex h-full"
 	on:enter
 	on:select
 	on:navigate={(event) => {

@@ -7,8 +7,8 @@
 	import Container from '../Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import AnimatedSelection from '../AnimateScale.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
 	import { getCardDimensions } from '../../utils';
+	import StackLink from '../StackRouter/StackLink.svelte';
 
 	export let tmdbId: number | undefined = undefined;
 	export let tvdbId: number | undefined = undefined;
@@ -54,9 +54,6 @@
 		<Container
 			{...$$restProps}
 			{disabled}
-			on:clickOrSelect={() => {
-				if (tmdbId || tvdbId) navigate(`/${type}/${tmdbId || tvdbId}`);
-			}}
 			on:enter
 			class={classNames(
 				'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
@@ -79,72 +76,73 @@
 			bind:hasFocus
 		>
 			<!--{#if !group}-->
-			{#if backdropUrl}
-				<LazyImg src={backdropUrl} class="absolute inset-0" />
-			{:else}
-				<div class="absolute inset-0 bg-secondary-700 h1 flex items-center justify-center">
-					{title}
-				</div>
-			{/if}
-			<!--{:else}-->
-			<!--	<LazyImg src={backdropUrl} class="absolute inset-0 opacity-10 " />-->
-			<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
-			<!--	<LazyImg-->
-			<!--		src={backdropUrl}-->
-			<!--		class="absolute inset-0 scale-95 translate-y-[0.5rem] rounded-xl opacity-25"-->
-			<!--	/>-->
-			<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
-			<!--	<LazyImg-->
-			<!--		src={backdropUrl}-->
-			<!--		class="absolute inset-0 scale-90 translate-y-[1.125rem] rounded-xl "-->
-			<!--	/>-->
-			<!--{/if}-->
-			<!-- This is the tinted and blurred hover overlay -->
-			<!--		<div-->
-			<!--			class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"-->
-			<!--			style="filter: blur(50px); transform: scale(3);"-->
-			<!--		>-->
-			<!--			<LazyImg src={backdropUrl} />-->
-			<!--		</div>-->
+			<StackLink to={tmdbId || tvdbId ? `/${type}/${tmdbId || tvdbId}` : ''}>
+				{#if backdropUrl}
+					<LazyImg src={backdropUrl} class="absolute inset-0" />
+				{:else}
+					<div class="absolute inset-0 bg-secondary-700 h1 flex items-center justify-center">
+						{title}
+					</div>
+				{/if}
+				<!--{:else}-->
+				<!--	<LazyImg src={backdropUrl} class="absolute inset-0 opacity-10 " />-->
+				<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
+				<!--	<LazyImg-->
+				<!--		src={backdropUrl}-->
+				<!--		class="absolute inset-0 scale-95 translate-y-[0.5rem] rounded-xl opacity-25"-->
+				<!--	/>-->
+				<!--	<div class="absolute inset-0 bg-white/10 opacity-10" />-->
+				<!--	<LazyImg-->
+				<!--		src={backdropUrl}-->
+				<!--		class="absolute inset-0 scale-90 translate-y-[1.125rem] rounded-xl "-->
+				<!--	/>-->
+				<!--{/if}-->
+				<!-- This is the tinted and blurred hover overlay -->
+				<!--		<div-->
+				<!--			class="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity bg-black"-->
+				<!--			style="filter: blur(50px); transform: scale(3);"-->
+				<!--		>-->
+				<!--			<LazyImg src={backdropUrl} />-->
+				<!--		</div>-->
 
-			<!-- Mouse hover details -->
-			<!--		<div-->
-			<!--			class={classNames(-->
-			<!--				'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',-->
-			<!--				{-->
-			<!--					'py-2 px-3': true-->
-			<!--				}-->
-			<!--			)}-->
-			<!--		>-->
-			<!--			<div class="flex justify-self-start justify-between">-->
-			<!--				<slot name="top-left">-->
-			<!--					<div>-->
-			<!--						<h1 class="text-zinc-100 font-bold line-clamp-2 text-lg">{title}</h1>-->
-			<!--						<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>-->
-			<!--					</div>-->
-			<!--				</slot>-->
-			<!--				<slot name="top-right">-->
-			<!--					<div />-->
-			<!--				</slot>-->
-			<!--			</div>-->
-			<!--			<div class="flex justify-self-end justify-between">-->
-			<!--				<slot name="bottom-left">-->
-			<!--					<div>-->
-			<!--						{#if rating}-->
-			<!--							<h2 class="flex items-center gap-1.5 text-sm text-zinc-300 font-medium">-->
-			<!--								<Star />{rating.toFixed(1)}-->
-			<!--							</h2>-->
-			<!--						{/if}-->
-			<!--					</div>-->
-			<!--				</slot>-->
-			<!--				<slot name="bottom-right">-->
-			<!--					<div />-->
-			<!--				</slot>-->
-			<!--			</div>-->
-			<!--		</div>-->
+				<!-- Mouse hover details -->
+				<!--		<div-->
+				<!--			class={classNames(-->
+				<!--				'flex-1 flex flex-col justify-between bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity z-[1]',-->
+				<!--				{-->
+				<!--					'py-2 px-3': true-->
+				<!--				}-->
+				<!--			)}-->
+				<!--		>-->
+				<!--			<div class="flex justify-self-start justify-between">-->
+				<!--				<slot name="top-left">-->
+				<!--					<div>-->
+				<!--						<h1 class="text-zinc-100 font-bold line-clamp-2 text-lg">{title}</h1>-->
+				<!--						<h2 class="text-zinc-300 text-sm font-medium line-clamp-2">{subtitle}</h2>-->
+				<!--					</div>-->
+				<!--				</slot>-->
+				<!--				<slot name="top-right">-->
+				<!--					<div />-->
+				<!--				</slot>-->
+				<!--			</div>-->
+				<!--			<div class="flex justify-self-end justify-between">-->
+				<!--				<slot name="bottom-left">-->
+				<!--					<div>-->
+				<!--						{#if rating}-->
+				<!--							<h2 class="flex items-center gap-1.5 text-sm text-zinc-300 font-medium">-->
+				<!--								<Star />{rating.toFixed(1)}-->
+				<!--							</h2>-->
+				<!--						{/if}-->
+				<!--					</div>-->
+				<!--				</slot>-->
+				<!--				<slot name="bottom-right">-->
+				<!--					<div />-->
+				<!--				</slot>-->
+				<!--			</div>-->
+				<!--		</div>-->
 
-			<!-- Play Button -->
-			<!-- {#if jellyfinId}
+				<!-- Play Button -->
+				<!-- {#if jellyfinId}
 				<div class="absolute inset-0 flex items-center justify-center z-[1]">
 					<PlayButton
 						on:click={(e) => {
@@ -155,13 +153,14 @@
 					/>
 				</div>
 			{/if} -->
-			{#if progress && progress > lowerLimit && progress < upperLimit}
-				<div
-					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
-				>
-					<ProgressBar {progress} />
-				</div>
-			{/if}
+				{#if progress && progress > lowerLimit && progress < upperLimit}
+					<div
+						class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
+					>
+						<ProgressBar {progress} />
+					</div>
+				{/if}
+			</StackLink>
 		</Container>
 	</AnimatedSelection>
 </div>

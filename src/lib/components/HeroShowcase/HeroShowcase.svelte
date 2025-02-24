@@ -21,6 +21,7 @@
 
 	const dispatch = createEventDispatcher<{
 		select: ShowcaseItem | undefined;
+		enter: ShowcaseItem | undefined;
 	}>();
 
 	let awaitedItems: undefined | ShowcaseItem[];
@@ -31,6 +32,16 @@
 	}
 
 	let showcaseIndex = 0;
+
+	const getItem = async () => {
+		try {
+			if (!awaitedItems) return;
+			const item = awaitedItems[showcaseIndex];
+			dispatch('enter', item);
+		} catch (error) {
+			console.error(error);
+		}
+	};
 </script>
 
 <HeroCarousel
@@ -41,7 +52,7 @@
 		}))
 	)}
 	bind:index={showcaseIndex}
-	on:enter
+	on:enter={getItem}
 	on:select={openItem}
 >
 	{#await items}

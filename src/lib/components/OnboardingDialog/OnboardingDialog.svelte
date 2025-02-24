@@ -3,8 +3,8 @@
 	import Button from '../Button.svelte';
 	import Container from '../Container.svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
 	import { user } from '$lib/stores/user.store';
+	import StackLink from '../StackRouter/StackLink.svelte';
 
 	export let modalId: symbol;
 
@@ -23,16 +23,9 @@
 		recommendations and configure media sources to stream content.
 	</div>
 	<Container direction="horizontal" class="space-x-4">
-		<Button
-			type="primary-dark"
-			iconAfter={ArrowRight}
-			on:click={() => {
-				navigate('/manage');
-				close();
-			}}
-		>
-			Go to settings
-		</Button>
+		<StackLink to="/manage">
+			<Button on:click={close} type="primary-dark" iconAfter={ArrowRight}>Go to settings</Button>
+		</StackLink>
 		<Button type="primary-dark" on:clickOrSelect={() => close()}>Dismiss</Button>
 	</Container>
 </Dialog>
