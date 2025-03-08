@@ -61,8 +61,6 @@ export type NavigationHandler = (
 ) => void;
 export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
 
-export type ActiveChildStore = typeof Selectable.prototype.activeChild;
-
 enum FocusOrder {
 	First,
 	Last
@@ -116,22 +114,9 @@ export class Selectable {
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
 	focusIndex: Writable<number> = writable(0);
-
-	activeChild = (() => {
-		const store = derived(this.focusIndex, (focusIndex) => {
-			return this.children[focusIndex];
-		});
-
-		const set = (selectable: Selectable) => {
-			const index = this.children.indexOf(selectable);
-			if (index !== -1) this.focusIndex.set(index);
-		};
-
-		return {
-			subscribe: store.subscribe,
-			set
-		};
-	})();
+	activeChild = derived(this.focusIndex, (focusIndex) => {
+		return this.children[focusIndex];
+	});
 	hasFocus: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
 		return $focusedObject === this;
 	});
@@ -183,6 +168,26 @@ export class Selectable {
 					parent.focusIndex.update((prev) => (index === -1 ? prev : index));
 
 					propagateFocusUpdates(options, parent);
+				}
+			}
+		}
+
+		function recursiveSetFocusIndex(
+			_this: Selectable,
+			direction: FlowDirection,
+			order: FocusOrder
+		) {
+			for (const child of _this.children) {
+				recursiveSetFocusIndex(child, direction, order);
+			}
+
+			console.log('CALLED');
+
+			if (_this.direction === direction || _this.gridColumns) {
+				if (order === FocusOrder.First) {
+					_this.focusIndex.set(0);
+				} else {
+					_this.focusIndex.set(_this.children.length - 1);
 				}
 			}
 		}
@@ -260,14 +265,14 @@ export class Selectable {
 									continue;
 								} else if (child === previousChild) {
 									if (order !== undefined) {
-										child.recursiveSetFocusIndex(direction, order);
+										recursiveSetFocusIndex(child, direction, order);
 										break;
 									}
 									order = FocusOrder.Last;
 								}
 
 								if (order !== undefined) {
-									child.recursiveSetFocusIndex(direction, order);
+									recursiveSetFocusIndex(child, direction, order);
 								}
 							}
 						}
@@ -793,20 +798,6 @@ export class Selectable {
 		}
 
 		return parents;
-	}
-
-	private recursiveSetFocusIndex(direction: FlowDirection, order: FocusOrder) {
-		for (const child of this.children) {
-			child.recursiveSetFocusIndex(direction, order);
-		}
-
-		if (this.direction === direction || this.gridColumns) {
-			if (order === FocusOrder.First) {
-				this.focusIndex.set(0);
-			} else {
-				this.focusIndex.set(this.children.length - 1);
-			}
-		}
 	}
 
 	private getCommonParent(other: Selectable): Selectable | undefined {
