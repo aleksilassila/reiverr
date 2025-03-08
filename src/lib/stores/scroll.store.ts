@@ -1,4 +1,4 @@
-import { getScrollParent } from '$lib/utils';
+import { getScrollParent } from '$lib/scroll-into-view';
 import { getContext, hasContext, setContext } from 'svelte';
 import type { Action } from 'svelte/action';
 import { get, writable } from 'svelte/store';

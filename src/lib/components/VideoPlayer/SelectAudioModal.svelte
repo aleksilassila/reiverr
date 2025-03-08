@@ -2,7 +2,7 @@
 	import type { AudioTrack, SubtitleInfo, Subtitles } from './VideoPlayer';
 	import Button from '../Button.svelte';
 	import { modalStack } from '../Modal/modal.store.js';
-	import { scrollIntoView } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { ChatBubble, Check, TextAlignLeft } from 'radix-icons-svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';

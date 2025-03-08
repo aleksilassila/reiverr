@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import classNames from 'classnames';
 	import {
 		Bookmark,
 		CardStack,
@@ -8,16 +10,14 @@
 		MagnifyingGlass,
 		Person
 	} from 'radix-icons-svelte';
-	import classNames from 'classnames';
-	import { get, type Readable, writable, type Writable } from 'svelte/store';
-	import Container from '../Container.svelte';
-	import { registrars, Selectable } from '../../selectable';
-	import { stackRouter, navigate } from '../StackRouter/StackRouter';
 	import { onMount } from 'svelte';
-	import { useTabs } from '../Tab/Tab';
-	import { user } from '../../stores/user.store';
+	import { type Readable, writable, type Writable } from 'svelte/store';
+	import { Selectable } from '../../selectable';
 	import { sessions } from '../../stores/session.store';
-	import { getUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { user } from '../../stores/user.store';
+	import Container from '../Container.svelte';
+	import { navigate, stackRouter } from '../StackRouter/StackRouter';
+	import { useTabs } from '../Tab/Tab';
 
 	enum Tabs {
 		Users,
@@ -103,7 +103,6 @@
 	bind:hasFocusWithin={isNavBarOpen}
 	bind:focusIndex
 	bind:selectable
-	on:mount={registrars.sidebar.registrar}
 	style={$visibleStyle}
 >
 	<!-- Background -->

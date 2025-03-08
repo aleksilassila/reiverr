@@ -2,7 +2,7 @@
 	import { formatMinutesToTime, formatSize } from '../../../utils.js';
 	import type { RadarrRelease } from '../../../apis/radarr/radarr-api';
 	import type { SonarrRelease } from '../../../apis/sonarr/sonarr-api';
-	import { scrollIntoView } from '../../../selectable';
+	import { scrollIntoView } from '$lib/selectable.js';
 	import { Check, Download } from 'radix-icons-svelte';
 	import TableRow from '../../Table/TableRow.svelte';
 	import type { GrabReleaseFn } from '../MediaManagerModal';

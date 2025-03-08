@@ -13,7 +13,8 @@
 	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { navigate } from '../../../components/StackRouter/StackRouter';
-	import { scrollIntoView, Selectable } from '../../../selectable';
+	import { Selectable } from '../../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
 
 	const { topVisible } = getScrollContext();

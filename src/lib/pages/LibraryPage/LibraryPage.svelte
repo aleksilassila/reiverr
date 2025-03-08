@@ -13,7 +13,7 @@
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import { scrollIntoView } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
 	import TabItem from './TabItem.svelte';
 

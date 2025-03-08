@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from '../Button.svelte';
 	import { modalStack } from '../Modal/modal.store.js';
-	import { scrollIntoView } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { Check, TextAlignLeft } from 'radix-icons-svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';

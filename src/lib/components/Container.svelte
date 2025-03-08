@@ -5,6 +5,7 @@
 	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from '../selectable';
 	import classNames from 'classnames';
 	import type { ContainerProps } from './Container.type';
+	import type { Readable } from 'svelte/store';
 
 	type $$Props = ContainerProps;
 
@@ -34,7 +35,7 @@
 
 	export let disabled = false;
 
-	const { registerer, ...rest } = new Selectable(name)
+	export const selectable = new Selectable(name)
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
 		.setTrapFocus(trapFocus)
@@ -65,7 +66,7 @@
 		})
 		.setOnSelect(() => {
 			dispatch('select');
-			dispatch('clickOrSelect', rest.container);
+			dispatch('clickOrSelect', selectable);
 		})
 		.setOnBack((selectable, options) => {
 			function stopPropagation() {
@@ -89,14 +90,13 @@
 
 			dispatch('playPause', { selectable, options, stopPropagation, bubble });
 		})
-		.setAsFocusedChild(focusedChild)
-		.getStores();
+		.setAsFocusedChild(focusedChild);
 
-	export const selectable = rest.container;
-	export const hasFocus = rest.hasFocus;
-	export const hasFocusWithin = rest.hasFocusWithin;
-	export const focusIndex = rest.focusIndex;
-	export const activeChild = rest.activeChild;
+	export const hasFocus = selectable.hasFocus;
+	export const hasFocusWithin = selectable.hasFocusWithin;
+	export const focusIndex: Readable<number> = selectable.focusIndex;
+	export const activeChild = selectable.activeChild;
+	const registerer = selectable.createRegisterer();
 
 	export let tag: Required<ContainerProps>['tag'] = 'div';
 
@@ -109,16 +109,16 @@
 		}
 
 		dispatch('click', e);
-		dispatch('clickOrSelect', rest.container);
+		dispatch('clickOrSelect', selectable);
 	}
 
 	onMount(() => {
-		rest.container._mountSelectable(focusOnMount);
+		selectable._mountSelectable(focusOnMount);
 
-		dispatch('mount', rest.container);
+		dispatch('mount', selectable);
 
 		return () => {
-			rest.container._unmountContainer();
+			selectable._unmountContainer();
 		};
 	});
 </script>

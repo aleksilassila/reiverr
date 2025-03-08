@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TableRow from '../../Table/TableRow.svelte';
-	import { scrollIntoView } from '../../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import type { FileResource } from '../../../apis/combined-types';
 	import { formatSize } from '../../../utils';
 	import TableButton from '../../Table/TableButton.svelte';

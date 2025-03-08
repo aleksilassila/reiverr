@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '$lib/constants';
-	import { Cross1 } from 'radix-icons-svelte';
+	import { Cross1, Play } from 'radix-icons-svelte';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { createErrorNotification } from './Notifications/notification.store';
@@ -19,8 +19,8 @@
 	export let visible = true;
 	// Play/pause video
 	export let play = true;
+	export let hasFocus = false;
 	// Autoplay after load
-	export let muted = false;
 	export let autoplay = true;
 	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
@@ -56,8 +56,8 @@
 		}, 1000);
 	}
 
-	$: if (isInitialized && isPlayerReady && muted) mute();
-	$: if (isInitialized && isPlayerReady && !muted) unMute();
+	$: if (isInitialized && isPlayerReady && !hasFocus) mute();
+	$: if (isInitialized && isPlayerReady && hasFocus) unMute();
 
 	$: if (didMount && !isInitialized && visible && play) loadYouTubeAPI();
 	function loadYouTubeAPI() {
@@ -120,7 +120,6 @@
 				events: {
 					onReady: () => {
 						player?.playVideo();
-						play = true;
 						if (loadTime) {
 							loadTimeout = setTimeout(() => {
 								isPlayerReady = true;
@@ -246,6 +245,12 @@
 		out:fade
 	>
 		<Cross1 class="w-12 h-12" />
+	</div>
+{:else if hasFocus && !play}
+	<div
+		class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+	>
+		<Play class="w-12 h-12" />
 	</div>
 {:else if isInitialized && !isPlayerReady}
 	<div

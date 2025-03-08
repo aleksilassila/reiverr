@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '$lib/constants';
-	import { Selectable } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { getUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher, onDestroy } from 'svelte';
-	import { type Readable, type Writable } from 'svelte/store';
+	import { get, type Readable, type Writable } from 'svelte/store';
 	import Container from '../Container.svelte';
 	import IconButton from '../FloatingIconButton.svelte';
 	import PageDots from '../HeroShowcase/PageDots.svelte';
@@ -24,6 +23,7 @@
 	let hasFocus = false;
 	let videoHasFocus = false;
 	let isVideoPlaying = false;
+	let videoShouldPlay = !!get(localSettings).autoplayTrailers;
 	let bgIndex = -2;
 	let bgIndexTimeout: ReturnType<typeof setTimeout>;
 
@@ -108,7 +108,15 @@
 <Container
 	class="flex-1 flex"
 	on:enter
-	on:select
+	on:select={(e) => {
+		console.log('select', e.detail);
+		if (videoHasFocus) {
+			videoShouldPlay = !videoShouldPlay;
+			return;
+		}
+
+		dispatch('select', e.detail);
+	}}
 	on:navigate={(event) => {
 		const detail = event.detail;
 
@@ -166,7 +174,8 @@
 								videoId={videoUrl}
 								autoplay={$localSettings.autoplayTrailers}
 								visible={$localSettings.autoplayTrailers ? $topVisible ?? true : videoHasFocus}
-								muted={!videoHasFocus}
+								hasFocus={videoHasFocus}
+								bind:play={videoShouldPlay}
 								on:play={() => {
 									isVideoPlaying = true;
 								}}

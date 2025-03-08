@@ -3,7 +3,7 @@
 	import { Cross1 } from 'radix-icons-svelte';
 	import type { Download } from '../../../apis/combined-types';
 	import type { CancelDownloadFn } from '../MediaManagerModal';
-	import { scrollIntoView } from '../../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import Container from '../../Container.svelte';
 	import classNames from 'classnames';
 	import { modalStack } from '../../Modal/modal.store';

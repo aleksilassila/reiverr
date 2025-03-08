@@ -14,7 +14,7 @@
 	import { useTabs } from '../../components/Tab/Tab';
 	import Tab from '../../components/Tab/Tab.svelte';
 	import Toggle from '../../components/Toggle.svelte';
-	import { scrollIntoView } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApiNew, user } from '../../stores/user.store';

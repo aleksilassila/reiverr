@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
-	import { type BackEvent, scrollIntoView, type Selectable } from '../../selectable';
+	import { type BackEvent, type Selectable } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import {
 		movieAvailabilities,

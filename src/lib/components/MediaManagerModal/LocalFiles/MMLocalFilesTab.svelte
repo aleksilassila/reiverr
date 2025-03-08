@@ -8,7 +8,7 @@
 	import Container from '../../Container.svelte';
 	import Button from '../../Button.svelte';
 	import { Cross1, Trash } from 'radix-icons-svelte';
-	import { scrollIntoView } from '../../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import type {
 		CancelDownloadFn,
 		CancelDownloadsFn,

@@ -11,7 +11,8 @@
 	} from '../../apis/sonarr/sonarr-api';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 	import classNames from 'classnames';
-	import { type BackEvent, scrollIntoView, Selectable } from '../../selectable';
+	import { type BackEvent, Selectable } from '../../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { fade } from 'svelte/transition';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { formatSize } from '../../utils';

@@ -10,7 +10,7 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { scrollIntoView } from '../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { formatDateToYearMonthDay } from '../utils';
 
 	const { registerScroll } = setScrollContext();

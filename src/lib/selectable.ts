@@ -1,6 +1,5 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
-import { getScrollParent } from './utils';
-import { localSettings } from './stores/localstorage.store';
+import { type Offsets, scrollElementIntoView } from './scroll-into-view';
 
 export type BackEvent = CustomEvent<KeyEvent>;
 
@@ -26,11 +25,6 @@ export type EnterEvent = {
 	stopPropagation: () => void;
 };
 
-const createFocusHandlerOptions = (): FocusEventOptions => ({
-	setFocusedElement: true,
-	propagate: true
-});
-
 type NavigateEventOptions = {
 	target?: Selectable;
 	preventNavigation: boolean;
@@ -47,16 +41,6 @@ export type NavigateEvent = {
 	stopPropagation: () => void;
 };
 
-const createNavigateHandlerOptions = (
-	target: Selectable | undefined,
-	direction: Direction
-): NavigateEventOptions => ({
-	target,
-	preventNavigation: false,
-	propagate: true,
-	direction
-});
-
 type KeyEventOptions = {
 	propagate: boolean;
 	target: Selectable;
@@ -68,11 +52,6 @@ export type KeyEvent = {
 	stopPropagation: () => void;
 	bubble: () => void;
 };
-
-const createKeyEventOptions = (target: Selectable): KeyEventOptions => ({
-	propagate: true,
-	target
-});
 
 export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
 export type NavigationHandler = (
@@ -88,6 +67,26 @@ enum FocusOrder {
 	First,
 	Last
 }
+
+const createFocusHandlerOptions = (): FocusEventOptions => ({
+	setFocusedElement: true,
+	propagate: true
+});
+
+const createNavigateHandlerOptions = (
+	target: Selectable | undefined,
+	direction: Direction
+): NavigateEventOptions => ({
+	target,
+	preventNavigation: false,
+	propagate: true,
+	direction
+});
+
+const createKeyEventOptions = (target: Selectable): KeyEventOptions => ({
+	propagate: true,
+	target
+});
 
 export class Selectable {
 	id: number;
@@ -607,15 +606,10 @@ export class Selectable {
 	/**
 	 * This only sets the htmlElement. See {@link _mountSelectable} for the rest of the initialization.
 	 */
-	private static createRegisterer(
-		_selectable?: Selectable,
-		flowDirection: FlowDirection = 'vertical'
-	): Registerer {
-		const selectable = _selectable || new Selectable().setDirection(flowDirection);
-
+	createRegisterer(): Registerer {
 		return (htmlElement: HTMLElement) => {
-			selectable.setHtmlElement(htmlElement);
-			Selectable._initializationStack.push(selectable);
+			this.setHtmlElement(htmlElement);
+			Selectable._initializationStack.push(this);
 			Selectable.initializeTreeStructure();
 
 			return {
@@ -676,38 +670,6 @@ export class Selectable {
 		};
 	}
 
-	static getRegisterer(flowDirection: FlowDirection = 'vertical'): Registerer {
-		return (htmlElement: HTMLElement) =>
-			this.createRegisterer(undefined, flowDirection)(htmlElement);
-	}
-
-	getRegisterer(): Registerer {
-		return (htmlElement: HTMLElement) => Selectable.createRegisterer(this)(htmlElement);
-	}
-
-	static getStores(element: HTMLElement) {
-		return Selectable.objects.get(element)?.getStores();
-	}
-
-	getStores(): {
-		container: Selectable;
-		hasFocus: Readable<boolean>;
-		hasFocusWithin: Readable<boolean>;
-		registerer: Registerer;
-		focusIndex: Writable<number>;
-		activeChild: ActiveChildStore;
-	} {
-		return {
-			container: this,
-			hasFocus: this.hasFocus,
-			hasFocusWithin: this.hasFocusWithin,
-			registerer: this.getRegisterer(),
-			focusIndex: this.focusIndex,
-			activeChild: this.activeChild
-		};
-	}
-
-	private _addChildCountTemp = 0;
 	/**
 	 * @return {Selectable | undefined} child to be focused
 	 */
@@ -937,8 +899,6 @@ export class Selectable {
 }
 
 export function handleKeyboardNavigation(event: KeyboardEvent) {
-	// console.time('handleKeyboardNavigation');
-
 	const currentlyFocusedObject = get(Selectable.focusedObject);
 
 	if (!currentlyFocusedObject) {
@@ -971,144 +931,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	}
 
 	event.preventDefault();
-
-	// console.timeEnd('handleKeyboardNavigation');
 }
-
-Selectable.focusedObject.subscribe((e) => console.debug('Focused object', e));
-
-type Offsets = Partial<
-	Record<
-		'top' | 'bottom' | 'left' | 'right' | 'horizontal' | 'vertical' | 'all',
-		number | undefined
-	>
->;
-export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets = { all: 16 }) => {
-	if (offsets.vertical !== undefined) {
-		offsets.top = offsets.vertical;
-		offsets.bottom = offsets.vertical;
-	}
-
-	if (offsets.horizontal !== undefined) {
-		offsets.left = offsets.horizontal;
-		offsets.right = offsets.horizontal;
-	}
-
-	if (offsets.all !== undefined) {
-		offsets.top = offsets.all;
-		offsets.bottom = offsets.all;
-		offsets.left = offsets.all;
-		offsets.right = offsets.all;
-	}
-
-	const scrollBehavior: ScrollBehavior = get(localSettings).animateScrolling ? 'smooth' : 'instant';
-
-	const boundingRect = htmlElement.getBoundingClientRect();
-	const verticalParent = getScrollParent(htmlElement, 'vertical');
-	const horizontalParent = getScrollParent(htmlElement, 'horizontal');
-
-	if (verticalParent && (offsets.top !== undefined || offsets.bottom !== undefined)) {
-		const parentBoundingRect = verticalParent.getBoundingClientRect();
-
-		let top = -1;
-
-		if (offsets.top !== undefined && offsets.bottom !== undefined) {
-			const topClipsAbove = boundingRect.y - parentBoundingRect.y < offsets.top;
-			const bottomClipsBelow =
-				boundingRect.y + boundingRect.height >
-				parentBoundingRect.y + parentBoundingRect.height - offsets.bottom;
-
-			const distanceToParentTop = verticalParent.scrollTop + boundingRect.y - parentBoundingRect.y;
-			const distanceToParentBottom =
-				verticalParent.scrollHeight -
-				verticalParent.scrollTop -
-				(boundingRect.y - parentBoundingRect.y) -
-				boundingRect.height;
-
-			const reverse =
-				boundingRect.height > verticalParent.clientHeight - offsets.top - offsets.bottom;
-
-			if (
-				(topClipsAbove && !bottomClipsBelow && !reverse) ||
-				(!topClipsAbove && bottomClipsBelow && reverse)
-			) {
-				top = distanceToParentTop - offsets.top;
-			} else if (
-				(!topClipsAbove && bottomClipsBelow && !reverse) ||
-				(topClipsAbove && !bottomClipsBelow && reverse)
-			) {
-				top =
-					verticalParent.scrollHeight -
-					verticalParent.clientHeight -
-					distanceToParentBottom +
-					offsets.bottom;
-			}
-		} else if (offsets.top !== undefined) {
-			top = boundingRect.y - parentBoundingRect.y + verticalParent.scrollTop - offsets.top;
-		} else if (offsets.bottom !== undefined) {
-			top =
-				boundingRect.y -
-				parentBoundingRect.y +
-				htmlElement.clientHeight +
-				verticalParent.scrollTop +
-				offsets.bottom -
-				verticalParent.clientHeight;
-		}
-
-		if (top !== -1) {
-			verticalParent.scrollTo({
-				behavior: scrollBehavior,
-				top
-			});
-		}
-	}
-	if (horizontalParent && (offsets.left !== undefined || offsets.right !== undefined)) {
-		const parentBoundingRect = horizontalParent.getBoundingClientRect();
-
-		let left = -1;
-
-		if (offsets.left !== undefined && offsets.right !== undefined) {
-			left =
-				boundingRect.x - parentBoundingRect.x < offsets.left
-					? boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left
-					: boundingRect.x - parentBoundingRect.x + htmlElement.clientWidth >
-					  horizontalParent.clientWidth - offsets.right
-					? boundingRect.x -
-					  parentBoundingRect.x +
-					  htmlElement.clientWidth +
-					  horizontalParent.scrollLeft +
-					  offsets.right -
-					  horizontalParent.clientWidth
-					: -1;
-		} else if (offsets.left !== undefined) {
-			left = boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left;
-		} else if (offsets.right !== undefined) {
-			left =
-				boundingRect.x -
-				parentBoundingRect.x +
-				htmlElement.clientWidth +
-				horizontalParent.scrollLeft +
-				offsets.right -
-				horizontalParent.clientWidth;
-		}
-
-		if (left !== -1) {
-			horizontalParent.scrollTo({
-				behavior: scrollBehavior,
-				left
-			});
-		}
-	}
-};
-
-export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>) => void =
-	(...args) =>
-	(e) => {
-		const element = e.detail.selectable.getHtmlElement();
-		if (element) {
-			scrollElementIntoView(element, ...args);
-		}
-	};
 
 export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable | undefined> => {
 	const selectable = writable<Selectable | undefined>();
@@ -1131,54 +954,13 @@ export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable |
 	};
 };
 
-export const useRegistrars = <T extends string | number>(): {
-	registrar: (key: T) => Registrar;
-	get: (key: T) => Readable<Selectable | undefined>;
-} => {
-	const map = new Map<T, Writable<Selectable | undefined>>();
-
-	const registrar =
-		(key: T): Registrar =>
-		(e) => {
-			if (!map.has(key)) {
-				map.set(key, writable<Selectable | undefined>());
-			}
-
-			const store = map.get(key);
-			store?.update((prev) => {
-				if (prev) {
-					console.warn('Overwriting existing selectable', prev, e.detail);
-				}
-
-				return e.detail;
-			});
-
-			return () => store?.set(undefined);
-		};
-
-	const get = (key: T): Readable<Selectable | undefined> => {
-		const store = map.get(key);
-		if (!store) {
-			const newStore = writable<Selectable | undefined>();
-			map.set(key, newStore);
-			return newStore;
-		} else {
-			return store;
+export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>) => void =
+	(...args) =>
+	(e) => {
+		const element = e.detail.selectable.getHtmlElement();
+		if (element) {
+			scrollElementIntoView(element, ...args);
 		}
 	};
 
-	return {
-		registrar,
-		get
-	};
-};
-
-const sidebar = useRegistrar();
-const episodeCards = useRegistrar();
-
-export const registrars = {
-	sidebar: sidebar,
-	seriesPage: {
-		episodeCards
-	}
-};
+Selectable.focusedObject.subscribe((e) => console.debug('Focused object', e));

@@ -137,28 +137,6 @@ export function capitalize(str: string) {
 	return strings.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
 }
 
-export function getScrollParent(
-	node: HTMLElement,
-	direction: 'vertical' | 'horizontal'
-): HTMLElement | undefined {
-	const parent = node.parentElement;
-
-	if (parent) {
-		const { overflow } = window.getComputedStyle(parent);
-
-		if (
-			(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
-			(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
-		) {
-			return parent;
-		} else if (overflow.split(' ').every((o) => o === 'auto' || o === 'scroll')) {
-			return parent;
-		} else {
-			return getScrollParent(parent, direction);
-		}
-	}
-}
-
 export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean) {
 	const unsubscribe = store.subscribe((v) => {
 		if (fn(v)) {

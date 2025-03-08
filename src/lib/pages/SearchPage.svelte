@@ -6,7 +6,7 @@
 	import CardGrid from '../components/CardGrid.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import { type ComponentProps, onDestroy } from 'svelte';
-	import { scrollIntoView } from '../selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import type { Readable } from 'svelte/store';
 	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';

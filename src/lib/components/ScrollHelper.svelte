@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getScrollParent } from '../utils';
+	import { getScrollParent } from '$lib/scroll-into-view';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 
 	export let scrollTop: number = 0;

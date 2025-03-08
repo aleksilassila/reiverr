@@ -8,7 +8,8 @@
 	import HeroCarousel from '$lib/components/HeroCarousel/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
-	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { useRegistrar } from '$lib/selectable';
+	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { useSeriesUserData } from '$lib/stores/media-user-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';

@@ -7,7 +7,7 @@
 	import CardGrid from '../components/CardGrid.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Container from '$components/Container.svelte';
-	import { scrollIntoView } from '../selectable';
+	import { scrollIntoView } from '$lib/selectable.js';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
 	export let id: string;
