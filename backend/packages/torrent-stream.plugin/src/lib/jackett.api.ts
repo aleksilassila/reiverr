@@ -85,13 +85,14 @@ export const getEpisodeTorrents = (
   season: number,
   episode: number,
 ): JackettResponse => {
+  const nameEscaped = series.replace("'", '');
   const torrents = axios
     .get(`/api`, {
       baseURL: settings.baseUrl,
       params: {
         apikey: settings.apiKey,
         t: 'tvsearch',
-        q: `${series} S${season.toString().padStart(2, '0')}E${episode
+        q: `${nameEscaped} S${season.toString().padStart(2, '0')}E${episode
           .toString()
           .padStart(2, '0')}`,
         // q: `${series}`, // `${series} S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`
@@ -99,7 +100,8 @@ export const getEpisodeTorrents = (
         // episode: episode,
       },
     })
-    .then((res) => jackettXmlParser.parse(res.data)?.rss?.channel?.item ?? []);
+    .then((res) => jackettXmlParser.parse(res.data)?.rss?.channel?.item ?? [])
+    .then((items) => (Array.isArray(items) ? items : [items]));
 
   const seasonPacks = axios
     .get(`/api`, {
@@ -107,13 +109,14 @@ export const getEpisodeTorrents = (
       params: {
         apikey: settings.apiKey,
         t: 'tvsearch',
-        q: `${series}`,
+        q: `${nameEscaped}`,
         // q: `${series}`, // `${series} S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`
         season: season,
         // episode: episode,
       },
     })
-    .then((res) => jackettXmlParser.parse(res.data)?.rss?.channel?.item ?? []);
+    .then((res) => jackettXmlParser.parse(res.data)?.rss?.channel?.item ?? [])
+    .then((items) => (Array.isArray(items) ? items : [items]));
 
   const combined = Promise.all([torrents, seasonPacks]).then(
     ([torrents, seasonPacks]) => [...torrents, ...seasonPacks],
