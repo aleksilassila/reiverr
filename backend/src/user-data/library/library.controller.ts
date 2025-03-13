@@ -20,7 +20,7 @@ import {
   PaginationParamsDto,
   SuccessResponseDto,
 } from 'src/common/common.dto';
-import { LibraryItemDto, LibraryItemDto2 } from './library.dto';
+import { LibraryItemDto2 } from './library.dto';
 import { LibraryService } from './library.service';
 
 @ApiTags('users')

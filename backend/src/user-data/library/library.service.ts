@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { LibraryItem } from './library.entity';
 import { MediaType, PaginationParamsDto } from 'src/common/common.dto';
-import { LibraryItemDto, LibraryItemDto2 } from './library.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
+import { Repository } from 'typeorm';
+import { LibraryItemDto2 } from './library.dto';
+import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
 
 @Injectable()
@@ -30,6 +30,7 @@ export class LibraryService {
           item.mediaType === MediaType.Movie
             ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
             : undefined;
+
 
         return LibraryItemDto2.create({
           libraryItem: item,

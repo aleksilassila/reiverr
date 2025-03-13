@@ -37,17 +37,24 @@ export class MetadataService {
       movie.tmdbId = tmdbId;
     }
 
-    if (
-      !movie.updatedAt ||
-      new Date().getTime() - movie.updatedAt.getTime() > TMDB_CACHE_TTL
-    ) {
-      const tmdbMovie = await this.tmdbService.getFullMovie(Number(tmdbId));
-      movie.tmdbMovie = tmdbMovie;
-    }
+    if (movie.isStale()) {
+      const updatedMovie = this.tmdbService
+        .getFullMovie(Number(tmdbId))
+        .then(async (tmdbMovie) => {
+          if (tmdbMovie) {
+            movie.tmdbMovie = tmdbMovie;
+            movie.updatedAt = new Date();
+          }
 
-    await this.movieRepository.upsert(movie, {
-      conflictPaths: ['tmdbId'],
-    });
+          await this.movieRepository.upsert(movie, {
+            conflictPaths: ['tmdbId'],
+          });
+
+          return movie;
+        });
+
+      if (movie.isOutdated()) return updatedMovie;
+    }
 
     return movie;
   }
@@ -66,13 +73,23 @@ export class MetadataService {
 
     if (series.isStale()) {
       this.logger.debug(`Caching series ${tmdbId}`);
-      const tmdbSeries = await this.tmdbService.getFullSeries(Number(tmdbId));
-      if (tmdbSeries) series.tmdbSeries = tmdbSeries;
-    }
+      const updatedSeries = this.tmdbService
+        .getFullSeries(Number(tmdbId))
+        .then(async (tmdbSeries) => {
+          if (tmdbSeries) {
+            series.tmdbSeries = tmdbSeries;
+            series.updatedAt = new Date();
+          }
 
-    await this.seriesRepository.upsert(series, {
-      conflictPaths: ['tmdbId'],
-    });
+          await this.seriesRepository.upsert(series, {
+            conflictPaths: ['tmdbId'],
+          });
+
+          return series;
+        });
+
+      if (series.isOutdated()) return updatedSeries;
+    }
 
     return series;
   }

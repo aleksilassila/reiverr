@@ -25,6 +25,36 @@ export class MovieMetadata {
   @ApiProperty({ type: 'string' })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  /**
+   * Requires update before serving
+   */
+  isOutdated() {
+    const releaseDate = this.tmdbMovie?.release_date;
+
+    if (!this.tmdbMovie) return true;
+    if (!this.updatedAt) return true;
+    if (
+      releaseDate &&
+      new Date() > new Date(releaseDate) &&
+      new Date(this.updatedAt) < new Date(releaseDate)
+    )
+      return true;
+
+    return false;
+  }
+
+  /**
+   * Can be lazily updated after serving
+   */
+  isStale() {
+    if (this.isOutdated()) return true;
+
+    if (new Date().getTime() - this.updatedAt.getTime() > TMDB_CACHE_TTL)
+      return true;
+
+    return false;
+  }
 }
 
 @Entity()
@@ -45,18 +75,32 @@ export class SeriesMetadata {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  isStale() {
+  /**
+   * Requires update before serving
+   */
+  isOutdated() {
+    const nextAirDate = this.tmdbSeries?.next_episode_to_air?.air_date;
+
+    if (!this.tmdbSeries) return true;
     if (!this.updatedAt) return true;
+    if (
+      nextAirDate &&
+      new Date() > new Date(nextAirDate) &&
+      new Date(this.updatedAt) < new Date(nextAirDate)
+    )
+      return true;
+
+    return false;
+  }
+
+  /**
+   * Can be lazily updated after serving
+   */
+  isStale() {
+    if (this.isOutdated()) return true;
 
     if (new Date().getTime() - this.updatedAt.getTime() > TMDB_CACHE_TTL)
       return true;
-
-    if (
-      this.tmdbSeries?.next_episode_to_air?.air_date &&
-      new Date() > new Date(this.tmdbSeries.next_episode_to_air.air_date)
-    ) {
-      return true;
-    }
 
     return false;
   }
