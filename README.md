@@ -90,18 +90,13 @@ services:
 
 To be able to use Reiverr on TVs, you'll still need to host the backend server on a separate device. See the above methods for instructions on how to set up the backend / web app.
 
-There are plans to attempt getting the app to the official store. In the meantime, you have to manually build and install the app using Tizen Studio or the CLI, following roughly these steps:
+Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker image to build and install the application on tizen. To get started:
 
-1. Follow the manual installation steps above to install the dependencies (npm install)
-2. Download either Tizen Studio or the CLI tools from the [official website](https://developer.tizen.org/development/tizen-studio/download)
-3. [Connect Tizen Studio to your TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
-4. Use the following command to build and install the app on your TV:\
-   \
-   `npm run build:tizen;C:\tizen-studio\tools\ide\bin\tizen.bat build-web -- tizen;C:\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -o .\tizen -- .\tizen\.buildResult\;C:\tizen-studio\tools\ide\bin\tizen.bat install -n .\tizen\Reiverr.wgt -t QE55Q64TAUXXC`.\
-   \
-   You may need to replace the paths for Tizen Studio tools according to your installation location, as well as the device identifier, which was in my case the tv model number.\
-   \
-   Alternatively, you can open the project in Tizen Studio and install the project on a device from there. For more instructions on run a project on a device, see [here](https://docs.tizen.org/application/web/get-started/tv/first-samsung-tv-app/#run-on-a-target-device).
+1. [Enable developer mode on your TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
+2. Obtain your TV's IP address
+3. Run `npm run deploy:tizen <TV_IP>` to build and install the app on your TV
+
+For troubleshooting and more detailed instructions, you can see [the repository](https://github.com/Georift/install-jellyfin-tizen) that this build method is based on. In case the installation requires custom certificates, refer to the above repository. Certificate password can be provided as secondary argument after the ip.
 
 If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions), open an [issue](https://github.com/aleksilassila/reiverr/issues) or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
 
@@ -110,8 +105,6 @@ If you have any questions or run into issues or bugs, you can start a [discussio
 The roadmap includes plans to support the following platforms in the future:
 
 - Android TV / WebOS
-- Windows Desktop App
-- MacOS Desktop App
 
 # Post Installation
 

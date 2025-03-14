@@ -1,0 +1,5 @@
+<profile name="custom">
+<profileitem ca="" distributor="0" key="/certificates/author.p12" password="_CERTIFICATEPASSWORD_" rootca=""/>
+<profileitem ca="" distributor="1" key="/certificates/distributor.p12" password="_CERTIFICATEPASSWORD_" rootca=""/>
+<profileitem ca="" distributor="2" key="" password="" rootca=""/>
+</profile>
