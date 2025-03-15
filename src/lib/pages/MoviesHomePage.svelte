@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Container from '$lib/components/Container.svelte';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
+	import { scrollIntoView } from '$lib/selectable';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
@@ -9,8 +10,6 @@
 	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { scrollIntoView } from '$lib/selectable';
 	import { formatDateToYearMonthDay } from '../utils';
 
 	const { registerScroll } = setScrollContext();
@@ -88,7 +87,7 @@
 	});
 </script>
 
-<DetachedPage class="flex flex-col relative">
+<div class="flex flex-col relative">
 	<div use:registerScroll />
 	<Container class="h-[calc(100vh-12rem)] flex px-32" on:enter={scrollIntoView({ top: 0 })}>
 		<TmdbMoviesHeroShowcase
@@ -221,4 +220,4 @@
 		<!-- TRENDING PEOPLE -->
 		<!-- Watchlist -->
 	</div>
-</DetachedPage>
+</div>

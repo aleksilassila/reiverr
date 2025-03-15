@@ -1,15 +1,27 @@
 <script lang="ts">
+	import { derived } from 'svelte/store';
 	import { type StackRouterStore } from './StackRouter';
+	import Sidebar from '../Sidebar/Sidebar.svelte';
+	import StackRouterPage from './StackRouterPage.svelte';
 
 	export let stack: StackRouterStore;
+	const topComponent = derived(stack, ($stack) => $stack[$stack.length - 1]);
 </script>
 
 <svelte:window on:popstate={stack.handlePopState} />
 
+{#if $topComponent?.route.sidebar !== false}
+	<Sidebar />
+{/if}
+
 {#each $stack as page, index (page.id)}
-	<svelte:component
-		this={page.route.component}
-		{...page.props}
-		topmost={index === $stack.length - 1}
-	/>
+	{@const topmost = index === $stack.length - 1}
+	<StackRouterPage
+		hidden={!topmost}
+		hasSidebar={page.route.sidebar !== false}
+		let:handleGoBack
+		let:registrar
+	>
+		<svelte:component this={page.route.component} {...page.props} {handleGoBack} {registrar} />
+	</StackRouterPage>
 {/each}

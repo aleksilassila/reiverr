@@ -1,15 +1,14 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { MagnifyingGlass } from 'radix-icons-svelte';
-	import classNames from 'classnames';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import CardGrid from '../components/CardGrid.svelte';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import { type ComponentProps, onDestroy } from 'svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import AnimateScale from '../components/AnimateScale.svelte';
+	import classNames from 'classnames';
+	import { MagnifyingGlass } from 'radix-icons-svelte';
+	import { type ComponentProps, onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
+	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import AnimateScale from '../components/AnimateScale.svelte';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
+	import CardGrid from '../components/CardGrid.svelte';
 
 	let searchQuery = '';
 	let typingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -37,7 +36,7 @@
 	});
 </script>
 
-<DetachedPage class="px-32 py-16 h-screen flex flex-col">
+<div class="px-32 py-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
 		class={classNames('h3 pb-3 border-b-2 w-full mb-4', {
@@ -81,4 +80,4 @@
 			{/await}
 		{/if}
 	</div>
-</DetachedPage>
+</div>

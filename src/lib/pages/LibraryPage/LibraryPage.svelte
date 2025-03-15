@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { LibraryItemDto2 } from '$lib/apis/reiverr/reiverr.openapi';
-	import type { TmdbMovieFull2, TmdbSeriesFull2 } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
+	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
+	import { scrollIntoView } from '$lib/selectable';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { libraryViewSettings, type LibraryViewSettings } from '$lib/stores/localstorage.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
@@ -12,10 +13,11 @@
 	import { derived, writable } from 'svelte/store';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
-	import { scrollIntoView } from '$lib/selectable';
 	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
 	import TabItem from './TabItem.svelte';
+
+	export let registrar: StackRouterPageProps['registrar'];
+	export let handleGoBack: StackRouterPageProps['handleGoBack'];
 
 	let didMount = false;
 	let category = writable<'all' | 'series' | 'movies'>('all');
@@ -130,7 +132,7 @@
 	});
 </script>
 
-<DetachedPage class="py-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
+<Container class="py-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
 	{#if !$isLoading}
 		<div class="h-full flex-1 flex flex-col">
 			<Container class="px-32 flex items-center justify-between" direction="horizontal">
@@ -213,4 +215,4 @@
 			</Container>
 		</div>
 	{/if}
-</DetachedPage>
+</Container>

@@ -18,6 +18,7 @@
 	import Container from '../Container.svelte';
 	import { navigate, stackRouter } from '../StackRouter/StackRouter';
 	import { useTabs } from '../Tab/Tab';
+	import { sidebarRegistrar, unfocusSidebar } from './sidebar';
 
 	enum Tabs {
 		Users,
@@ -93,7 +94,7 @@
 
 <Container
 	class={classNames(
-		'flex flex-col items-stretch fixed z-20 left-0 inset-y-0 group',
+		'flex flex-col items-stretch fixed z-10 left-0 inset-y-0 group',
 		'py-8 w-24 select-none',
 		{
 			//'max-w-[64px]': !$isNavBarOpen,
@@ -103,6 +104,14 @@
 	bind:hasFocusWithin={isNavBarOpen}
 	bind:focusIndex
 	bind:selectable
+	on:navigate={({ detail }) => {
+		if (detail.direction === 'right') {
+			detail.preventNavigation();
+			unfocusSidebar();
+		}
+	}}
+	on:back={() => unfocusSidebar()}
+	on:mount={sidebarRegistrar.registrar}
 	style={$visibleStyle}
 >
 	<!-- Background -->

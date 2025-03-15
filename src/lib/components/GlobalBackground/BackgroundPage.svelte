@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '$lib/constants';
-	import type { BackgroundPage } from './background-stack.store';
+	import { fade } from 'svelte/transition';
+	import type { BackgroundPage } from './BackgroundStack';
 
 	export let page: BackgroundPage;
 	export let hasFocus: boolean;
@@ -11,15 +12,30 @@
 	$: mediaId = page.mediaId;
 	$: nextMediaId = nextPage?.mediaId;
 
-	$: console.log('nextPage', nextPage);
-	$: console.log('$nextMediaId', nextMediaId);
-
 	let hidden = false;
 	let hiddenTimeout: ReturnType<typeof setTimeout>;
 	let bgIndex = -2;
 	let bgIndexTimeout: ReturnType<typeof setTimeout>;
 
-	$: hidden = !!nextPage;
+	$: updateHidden(!!nextPage);
+	function updateHidden(newValue: boolean) {
+		clearTimeout(hiddenTimeout);
+		if (newValue) {
+			hidden = true;
+		} else if (hidden) {
+			hiddenTimeout = setTimeout(() => {
+				hidden = false;
+			}, 200);
+		}
+
+		// if (hidden) {
+		// 	hiddenTimeout = setTimeout(() => {
+		// 		hidden = false;
+		// 	}, 200);
+		// } else if (!!nextPage) {
+		// 	hidden = true;
+		// }
+	}
 	// $: updateHidden($mediaId, $nextMediaId);
 	// function updateHidden(id: string | undefined, nextId: string | undefined) {
 	// 	console.log('updateHidden', id, nextId);
@@ -60,7 +76,8 @@
 		class:opacity-0={bgIndex !== i || hidden}
 		class:opacity-100={bgIndex === i && !hidden}
 		class:scale-110={!hasFocus && !PLATFORM_TV}
-		style={`background-image: url('${backdropUrl}'); transition: opacity 500ms, transform 500ms;`}
+		style={`background-image: url('${backdropUrl}'); transition: opacity 200ms, transform 200ms;`}
+		in:fade|global={{ duration: 200, delay: 200 }}
 	>
 		<!-- {#if videoUrl && i === index && $localSettings.enableTrailers}
 					<YoutubeVideo

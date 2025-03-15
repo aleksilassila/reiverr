@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { TMDB_POSTER_SMALL } from '../constants.js';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import classNames from 'classnames';
-	import { DotFilled } from 'radix-icons-svelte';
-	import CardGrid from '../components/CardGrid.svelte';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Container from '$components/Container.svelte';
+	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
 	import { scrollIntoView } from '$lib/selectable.js';
+	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import TmdbCard from '../components/Card/TmdbCard.svelte';
+	import CardGrid from '../components/CardGrid.svelte';
+	import { TMDB_POSTER_SMALL } from '../constants.js';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
 	export let id: string;
+	export let registrar: StackRouterPageProps['registrar'];
+	export let handleGoBack: StackRouterPageProps['handleGoBack'];
+
 	$: person = tmdbApi.getPerson(Number(id));
 	$: titles = person.then((person) => {
 		if (person.known_for_department === 'Acting') {
@@ -59,37 +60,35 @@
 	}
 </script>
 
-<DetachedPage let:handleGoBack let:registrar>
-	{#await person then person}
-		<Container
-			focusOnMount
-			on:back={handleGoBack}
-			on:mount={registrar}
-			class="px-32 py-16 space-y-16"
-		>
-			<div class="flex space-x-8">
-				<Container
-					on:enter={scrollIntoView({ vertical: 128 })}
-					class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
-					style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
+{#await person then person}
+	<Container
+		focusOnMount
+		on:back={handleGoBack}
+		on:mount={registrar}
+		class="px-32 py-16 space-y-16"
+	>
+		<div class="flex space-x-8">
+			<Container
+				on:enter={scrollIntoView({ vertical: 128 })}
+				class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
+				style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
+			/>
+
+			<div class="flex flex-col justify-end">
+				<HeroTitleInfo
+					title={person.name ?? ''}
+					overview={person.biography ?? ''}
+					properties={infoProperties}
 				/>
-
-				<div class="flex flex-col justify-end">
-					<HeroTitleInfo
-						title={person.name ?? ''}
-						overview={person.biography ?? ''}
-						properties={infoProperties}
-					/>
-				</div>
 			</div>
+		</div>
 
-			<CardGrid>
-				{#await titles then titles}
-					{#each titles as title}
-						<TmdbCard item={title} on:enter={scrollIntoView({ vertical: 128 })} />
-					{/each}
-				{/await}
-			</CardGrid>
-		</Container>
-	{/await}
-</DetachedPage>
+		<CardGrid>
+			{#await titles then titles}
+				{#each titles as title}
+					<TmdbCard item={title} on:enter={scrollIntoView({ vertical: 128 })} />
+				{/each}
+			{/await}
+		</CardGrid>
+	</Container>
+{/await}

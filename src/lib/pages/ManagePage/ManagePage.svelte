@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
 	import { reiverrApi } from '../../apis/reiverr/reiverr-api';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../../components/Button.svelte';
-	import DetachedPage from '../../components/DetachedPage/DetachedPage.svelte';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
 	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
 	import TmdbIntegrationConnectDialog from '../../components/Integrations/TmdbIntegrationConnectDialog.svelte';
@@ -14,7 +14,6 @@
 	import { useTabs } from '../../components/Tab/Tab';
 	import Tab from '../../components/Tab/Tab.svelte';
 	import Toggle from '../../components/Toggle.svelte';
-	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApiNew, user } from '../../stores/user.store';
@@ -65,7 +64,7 @@
 	}}
 />
 
-<DetachedPage class="flex flex-col pt-16 h-screen space-y-16 px-32" direction="horizontal">
+<Container class="flex flex-col pt-16 h-screen space-y-16 px-32" direction="horizontal">
 	<div class="border-b-2 border-secondary-700 pb-4 space-y-2">
 		<h1 class="h1">Settings</h1>
 		<p class="body">Manage your settings and integrations.</p>
@@ -373,4 +372,4 @@
 			</Tab>
 		</Container>
 	</div>
-</DetachedPage>
+</Container>

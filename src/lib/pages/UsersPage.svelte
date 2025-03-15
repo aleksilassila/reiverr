@@ -1,17 +1,16 @@
 <script lang="ts">
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { type Session, sessions } from '../stores/session.store.js';
-	import { reiverrApi } from '../apis/reiverr/reiverr-api';
 	import Container from '$components/Container.svelte';
-	import Button from '../components/Button.svelte';
 	import classNames from 'classnames';
-	import { navigate } from '../components/StackRouter/StackRouter';
-	import { createModal } from '../components/Modal/modal.store';
+	import { Plus, Trash } from 'radix-icons-svelte';
+	import { reiverrApi } from '../apis/reiverr/reiverr-api';
+	import Button from '../components/Button.svelte';
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
 	import Login from '../components/LoginForm.svelte';
-	import { Plus, Trash } from 'radix-icons-svelte';
+	import { createModal } from '../components/Modal/modal.store';
 	import ProfileIcon from '../components/ProfileIcon.svelte';
+	import { navigate } from '../components/StackRouter/StackRouter';
 	import { profilePictures } from '../profile-pictures';
+	import { type Session, sessions } from '../stores/session.store.js';
 
 	$: users = getUsers($sessions.sessions);
 
@@ -33,8 +32,7 @@
 	}
 </script>
 
-{console.log('UsersPage')}
-<DetachedPage sidebar={false} class="px-32 py-16 h-full flex flex-col items-center justify-center">
+<div class="px-32 py-16 h-full flex flex-col items-center justify-center">
 	{#await users then users}
 		{#if users?.length}
 			<h1 class="h1 mb-16">Who is watching?</h1>
@@ -75,4 +73,4 @@
 			</div>
 		{/if}
 	{/await}
-</DetachedPage>
+</div>

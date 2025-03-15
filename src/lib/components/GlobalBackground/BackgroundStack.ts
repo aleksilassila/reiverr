@@ -101,7 +101,16 @@ export function focusGlobalBackground() {
 export function unfocusGlobalBackground() {
 	if (lastFocused) {
 		lastFocused.focus();
+		lastFocused = undefined;
 	} else {
 		console.error('[Background Stack]: No focused object to return to');
+	}
+}
+
+export function toggleFocusGlobalBackground() {
+	if (lastFocused) {
+		unfocusGlobalBackground();
+	} else {
+		focusGlobalBackground();
 	}
 }

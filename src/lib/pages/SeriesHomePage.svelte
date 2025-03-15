@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
+	import Container from '$lib/components/Container.svelte';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
+	import { scrollIntoView } from '$lib/selectable';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import DetachedPage from '../components/DetachedPage/DetachedPage.svelte';
-	import { scrollIntoView } from '$lib/selectable';
 	import { formatDateToYearMonthDay } from '../utils';
-	import Container from '$lib/components/Container.svelte';
-	import { onDestroy } from 'svelte';
-	import { setScrollContext } from '$lib/stores/scroll.store';
-	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 
 	const { registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
@@ -82,7 +81,7 @@
 	});
 </script>
 
-<DetachedPage class="flex flex-col relative">
+<div class="flex flex-col relative">
 	<div use:registerScroll />
 	<Container class="h-[calc(100vh-12rem)] flex px-32" on:enter={scrollIntoView({ top: 0 })}>
 		<TmdbSeriesHeroShowcase
@@ -215,4 +214,4 @@
 		<!-- TRENDING PEOPLE -->
 		<!-- Watchlist -->
 	</div>
-</DetachedPage>
+</div>

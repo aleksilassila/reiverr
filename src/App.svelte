@@ -17,6 +17,8 @@
 	import UsersPage from './lib/pages/UsersPage.svelte';
 	import { createErrorNotification } from './lib/components/Notifications/notification.store';
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
+	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
+	import StackRouterPage from '$lib/components/StackRouter/StackRouterPage.svelte';
 
 	user.subscribe((s) => {
 		console.log('user', s);
@@ -69,35 +71,20 @@
 </script>
 
 <I18n />
+
 <!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
 {#if !$isAppInitialized || $user === undefined}
 	<SplashScreen />
-{:else if $user === null}
-	<UsersPage />
 {:else}
-	<!--		<Router primary={false}>-->
-	<!--		<Container class="flex flex-col relative" direction="horizontal" trapFocus>-->
-	<!--				<Route path="series/*">-->
-	<!--					<SeriesHomePage />-->
-	<!--				</Route>-->
-	<!--				<Route path="movies/*">-->
-	<!--					<MoviesHomePage />-->
-	<!--				</Route>-->
-	<!--				<Route path="library/*">-->
-	<!--					<LibraryPage />-->
-	<!--				</Route>-->
-	<!--				<Route path="manage">-->
-	<!--					<ManagePage />-->
-	<!--				</Route>-->
-	<!--				<Route path="search">-->
-	<!--					<SearchPage />-->
-	<!--				</Route>-->
-	<!--				<Route path="*">-->
-	<!--					<PageNotFound />-->
-	<!--				</Route>-->
-	<StackRouter stack={stackRouter} />
-	<!--		</Container>-->
-	<!--		</Router>-->
+	<GlobalBackgroundStack>
+		{#if $user === null}
+			<StackRouterPage hasSidebar={false}>
+				<UsersPage />
+			</StackRouterPage>
+		{:else}
+			<StackRouter stack={stackRouter} />
+		{/if}
+	</GlobalBackgroundStack>
 {/if}
 
 <ModalStack />

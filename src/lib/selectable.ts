@@ -181,8 +181,6 @@ export class Selectable {
 				recursiveSetFocusIndex(child, direction, order);
 			}
 
-			console.log('CALLED');
-
 			if (_this.direction === direction || _this.gridColumns) {
 				if (order === FocusOrder.First) {
 					_this.focusIndex.set(0);

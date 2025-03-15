@@ -30,6 +30,7 @@ interface Route {
 	// possibly sharing props that are a subset of the child's props.
 	// Child's props are also passed to these.
 	parent?: Route;
+	sidebar?: boolean;
 }
 
 export type StackRouterStore = ReturnType<typeof useStackRouter>;
@@ -188,7 +189,8 @@ export function useStackRouter({
 const usersRoute: Route = {
 	path: '/users',
 	root: true,
-	component: UsersPage
+	component: UsersPage,
+	sidebar: false
 };
 
 const seriesHomeRoute: Route = {
