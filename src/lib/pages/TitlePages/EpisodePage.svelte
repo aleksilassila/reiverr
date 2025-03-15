@@ -109,10 +109,6 @@
 						Open In TMDB
 						<ExternalLink size={19} slot="icon-after" />
 					</Button>
-					<Button>
-						Open In Jellyfin
-						<ExternalLink size={19} slot="icon-after" />
-					</Button>
 				{/if}
 			</Container>
 		</Container>
