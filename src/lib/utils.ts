@@ -154,7 +154,7 @@ export function getCardDimensions(
 	const margin = 128;
 	const gap = 32;
 
-	const cols = Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap));
+	const cols = Math.max(1, Math.floor((gap - 2 * margin + viewportWidth) / (minWidth + gap)));
 	const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
 
 	const newWidth = minWidth * scale;

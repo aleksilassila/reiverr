@@ -835,6 +835,15 @@ export class Selectable {
 		return this.parent;
 	}
 
+	getRootParent(): Selectable | undefined {
+		let parent = this.parent;
+		while (parent?.parent) {
+			parent = parent.parent;
+		}
+
+		return parent;
+	}
+
 	setIsDisabled(disabled: boolean) {
 		this.disabled = disabled;
 		return this;
