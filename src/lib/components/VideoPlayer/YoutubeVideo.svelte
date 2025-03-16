@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '$lib/constants';
+	import classNames from 'classnames';
 	import { Cross1, Play } from 'radix-icons-svelte';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { createErrorNotification } from './Notifications/notification.store';
-	import Spinner from './Utils/Spinner.svelte';
+	import { createErrorNotification } from '../Notifications/notification.store';
+	import Spinner from '../Utils/Spinner.svelte';
+	import type { VideoPlayerProps } from './VideoPlayer';
+	import { getVideoZoomLevel } from '$lib/utils';
+	import { destroyBackgroundVideo } from '../GlobalBackground/BackgroundStack';
 
 	const STOP_WHEN_REMAINING = 12;
 
@@ -15,15 +19,14 @@
 	}>();
 
 	export let videoId: string | null = null;
-	// Load video only if visible, pause with delay when not visible
-	export let visible = true;
-	// Play/pause video
-	export let play = true;
-	export let hasFocus = false;
-	// Autoplay after load
-	export let autoplay = true;
-	export let autoplayDelay = 2000;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
+
+	export let load: VideoPlayerProps['beginPlay'] = true;
+	export let paused: VideoPlayerProps['paused'] = false;
+	export let muted: VideoPlayerProps['muted'] = false;
+	export let hasFocus: VideoPlayerProps['hasFocus'] = true;
+
+	let userPaused = false;
 
 	const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -35,31 +38,19 @@
 	let isPlayerReady = false;
 	let player: YT['Player'];
 	let checkStopInterval: ReturnType<typeof setInterval>;
-	let autoplayTimeout: ReturnType<typeof setTimeout>;
 	let loadTimeout: ReturnType<typeof setTimeout>;
-	let pauseTimeout: ReturnType<typeof setTimeout>;
 	let errorTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
+	let zoom = getVideoZoomLevel({
+		viewportWidth: window.innerWidth,
+		viewportHeight: window.innerHeight
+	});
 
-	$: if (isPlayerReady && player?.playVideo && visible && play) {
-		clearTimeout(pauseTimeout);
-		player.playVideo();
-		dispatch('play');
-	} else if (isPlayerReady && player?.pauseVideo && !play) {
-		// Pause immediately when unpaused
-		player.pauseVideo();
-		dispatch('pause');
-	} else if (isPlayerReady && player?.pauseVideo && !visible) {
-		// Pause with delay when not visible
-		pauseTimeout = setTimeout(() => {
-			player.pauseVideo();
-			dispatch('pause');
-		}, 1000);
-	}
+	$: if (isPlayerReady && load && !paused && !userPaused) play();
+	$: if (isPlayerReady && load && (paused || userPaused)) pause();
+	$: if (isInitialized && isPlayerReady && muted) mute();
+	$: if (isInitialized && isPlayerReady && !muted) unMute();
 
-	$: if (isInitialized && isPlayerReady && !hasFocus) mute();
-	$: if (isInitialized && isPlayerReady && hasFocus) unMute();
-
-	$: if (didMount && !isInitialized && visible && play) loadYouTubeAPI();
+	$: if (didMount && !isInitialized && load) loadYouTubeAPI();
 	function loadYouTubeAPI() {
 		isInitialized = true;
 		console.log('Loading YouTube API for ' + videoId);
@@ -79,9 +70,7 @@
 		console.log('Destroying player');
 
 		clearInterval(checkStopInterval);
-		clearTimeout(autoplayTimeout);
 		clearTimeout(loadTimeout);
-		clearTimeout(pauseTimeout);
 		didMount = false;
 		isInitialized = false;
 		isPlayerReady = false;
@@ -189,13 +178,30 @@
 				}
 			}, 1000);
 		} else if (event.data === window.YT.PlayerState.ENDED) {
-			try {
-				player.seekTo(0);
-				player.playVideo();
-			} catch (e) {
-				console.warn('Error restarting video.', e);
-			}
+			destroyBackgroundVideo();
+			console.log('Video ended');
+
+			// try {
+			// 	player.seekTo(0);
+			// 	player.playVideo();
+			// } catch (e) {
+			// 	console.warn('Error restarting video.', e);
+			// }
 		}
+	}
+
+	function play() {
+		if (!player?.playVideo) return;
+
+		player?.playVideo?.();
+		dispatch('play');
+	}
+
+	function pause() {
+		if (!player?.pauseVideo) return;
+
+		player?.pauseVideo?.();
+		dispatch('pause');
 	}
 
 	function mute() {
@@ -220,48 +226,66 @@
 	}
 
 	onMount(() => {
-		if (autoplay) {
-			autoplayTimeout = setTimeout(() => {
-				play = true;
-				didMount = true;
-			}, autoplayDelay);
-		} else {
-			didMount = true;
-		}
+		// if (beginPlay) {
+		// 	autoplayTimeout = setTimeout(() => {
+		// 		play = true;
+		// 		didMount = true;
+		// 	}, autoplayDelay);
+		// } else {
+		didMount = true;
+		// }
 	});
 
 	onDestroy(() => {
 		destroyPlayer();
 	});
-	$: {
-		const el = document.getElementById(playerId);
-		if (el) el.style.opacity = isPlayerReady && visible ? '1' : '0';
-	}
+	// $: {
+	// 	const el = document.getElementById(playerId);
+	// 	if (el) el.style.opacity = isPlayerReady && visible ? '1' : '0';
+	// }
 </script>
 
-{#if errorTimeout}
-	<div
-		class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-		out:fade
-	>
-		<Cross1 class="w-12 h-12" />
-	</div>
-{:else if hasFocus && !play}
-	<div
-		class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-	>
-		<Play class="w-12 h-12" />
-	</div>
-{:else if isInitialized && !isPlayerReady}
-	<div
-		class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-	>
-		<Spinner class="w-12 h-12" />
-	</div>
-{/if}
+{@debug isPlayerReady, hasFocus}
 
-<div out:fade={isPlayerReady && visible ? { delay: 1000 } : { duration: 0, delay: 0 }}>
-	<div id={playerId} class="video-background" style="opacity: 0;" />
+<svelte:window
+	on:resize={() =>
+		(zoom = getVideoZoomLevel({
+			viewportWidth: window.innerWidth,
+			viewportHeight: window.innerHeight
+		}))}
+/>
+
+<div
+	class={classNames('relative h-full w-full transition-opacity bg-black', {
+		'opacity-0': !hasFocus && !isPlayerReady
+	})}
+>
+	<div id={playerId} class="video-background" />
+
+	{#if errorTimeout}
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+			out:fade
+		>
+			<Cross1 class="w-12 h-12" />
+		</div>
+		<!-- {:else if hasFocus && !play} -->
+	{:else if (!load || paused || userPaused) && hasFocus}
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+		>
+			<Play class="w-12 h-12" />
+		</div>
+	{:else if isInitialized && !isPlayerReady && hasFocus}
+		<div
+			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
+		>
+			<Spinner class="w-12 h-12" />
+		</div>
+	{/if}
+
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div on:click={() => (userPaused = !userPaused)} class="absolute inset-0" />
 </div>
 
 <style>
@@ -270,13 +294,14 @@
 		top: 50%;
 		left: 50%;
 		width: 100vw;
-		height: 100vh;
-		transform: translate(-50%, -50%) scale(1.6);
+		height: 150vh;
+		transform: translate(-50%, -50%);
 		transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 		z-index: 0;
+		pointer-events: none;
 	}
 
-	@media (max-width: 1200px) {
+	/* @media (max-width: 1200px) {
 		.video-background {
 			transform: translate(-50%, -50%) scale(2);
 		}
@@ -292,7 +317,7 @@
 		.video-background {
 			transform: translate(-50%, -50%) scale(3);
 		}
-	}
+	} */
 
 	.background-image {
 		position: fixed;

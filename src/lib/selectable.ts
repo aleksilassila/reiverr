@@ -299,6 +299,9 @@ export class Selectable {
 		return false;
 	}
 
+	/**
+	 * Focuses child if parent has focus, otherwise sets focusIndex to child index
+	 */
 	activate() {
 		const parent = this.parent;
 		if (!parent) {
@@ -314,6 +317,17 @@ export class Selectable {
 			const index = parent.children.indexOf(this);
 			if (index === -1) console.error('Child not found in parent when activating', this, parent);
 			this.parent?.focusIndex.update((prev) => (index >= 0 ? index : prev));
+		}
+	}
+
+	/**
+	 * @see {@link Selectable.activate}
+	 * @param index index of child to activate
+	 */
+	activateChild(index: number) {
+		const child = this.children[index];
+		if (child) {
+			child.activate();
 		}
 	}
 

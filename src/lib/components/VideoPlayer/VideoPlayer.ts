@@ -1,6 +1,17 @@
 import type { MediaSource, SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
-import { modalStack } from '../Modal/modal.store';
-import TmdbVideoPlayerModal from './TmdbVideoPlayerModal.svelte';
+import {
+	focusGlobalBackground,
+	globalVideo,
+	playBackgroundVideo
+} from '../GlobalBackground/BackgroundStack';
+import TmdbVideoPlayer from './TmdbVideoPlayer.svelte';
+
+export type VideoPlayerProps = {
+	beginPlay: boolean;
+	paused: boolean;
+	muted: boolean;
+	hasFocus: boolean;
+};
 
 export type SubtitleInfo = {
 	subtitles?: Subtitles;
@@ -40,7 +51,7 @@ export async function streamTmdbItem(options: {
 }) {
 	const { tmdbId, season, episode, progress, source, key } = options;
 
-	modalStack.create(TmdbVideoPlayerModal, {
+	playBackgroundVideo(TmdbVideoPlayer, {
 		tmdbId,
 		episode,
 		season,
@@ -48,6 +59,30 @@ export async function streamTmdbItem(options: {
 		key,
 		progress
 	});
+
+	globalVideo.set({
+		id: Symbol(),
+		component: TmdbVideoPlayer,
+		props: {
+			tmdbId,
+			episode,
+			season,
+			source,
+			key,
+			progress
+		}
+	});
+
+	focusGlobalBackground();
+
+	// modalStack.create(TmdbVideoPlayerModal, {
+	// 	tmdbId,
+	// 	episode,
+	// 	season,
+	// 	source,
+	// 	key,
+	// 	progress
+	// });
 }
 
 export function getBrowserSpecificMediaFunctions() {

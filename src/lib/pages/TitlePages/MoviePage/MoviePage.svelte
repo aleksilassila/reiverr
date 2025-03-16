@@ -99,6 +99,8 @@
 				href: `https://www.youtube.com/watch?v=${trailer}`
 			});
 		}
+
+		titleProperties = titleProperties;
 	});
 
 	onDestroy(() => {

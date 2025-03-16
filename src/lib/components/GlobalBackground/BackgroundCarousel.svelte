@@ -14,7 +14,7 @@
 	export let backgrounds: Background[];
 	export let focusIndex: number;
 
-	$: $carousel?.focusChild(focusIndex);
+	$: $carousel?.activateChild(focusIndex);
 </script>
 
 <Carousel
@@ -23,6 +23,7 @@
 	on:mount={carousel.registrar}
 	horizontalScroll
 	controls={false}
+	focusFirstOnBack={false}
 >
 	{#each backgrounds as background, index}
 		<BackgroundCard

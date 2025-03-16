@@ -9,6 +9,7 @@
 
 	export let hideControls = false;
 	export let horizontalScroll = false;
+	export let focusFirstOnBack = true;
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
@@ -20,7 +21,7 @@
 	function handleOnBack({ detail }: BackEvent) {
 		const focusIndex = get(detail.selectable.focusIndex);
 
-		if (focusIndex !== 0) {
+		if (focusIndex !== 0 && focusFirstOnBack) {
 			const didFocus = detail.selectable.focusChild(0);
 
 			if (didFocus) detail.stopPropagation();

@@ -1,17 +1,21 @@
 <script lang="ts">
+	import type { SubtitlesDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import classNames from 'classnames';
 	import { Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Selectable } from '../../selectable';
 	import Container from '../Container.svelte';
+	import IconButton from '../IconButton.svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import Spinner from '../Utils/Spinner.svelte';
-	import IconButton from '../IconButton.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import VideoElement from './VideoElement.svelte';
-	import type { SubtitleInfo, VideoSource } from './VideoPlayer';
-	import type { SubtitlesDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { SubtitleInfo, VideoPlayerProps, VideoSource } from './VideoPlayer';
+
+	export let paused: VideoPlayerProps['paused'];
+	export let muted: VideoPlayerProps['muted'];
+	export let beginPlay: VideoPlayerProps['beginPlay'];
 
 	export let videoSource: VideoSource | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -23,12 +27,12 @@
 
 	// Bindings
 	export let videoDidLoad = false;
-	export let paused = false;
+	export let userPaused = false;
 	export let duration = 0;
 	export let currentTime = 0;
 	export let bufferedTime = 0;
 	let buffering = false;
-	export let muted = false;
+	export let userMuted = false;
 	export let volume = 1;
 	let seeking = false;
 
@@ -47,7 +51,7 @@
 	$: if (modalHidden) video?.pause();
 	else video?.play();
 	$: if (!seeking && !modalHidden) handleShowInterface();
-	$: if (paused) handleShowInterface();
+	$: if (userPaused) handleShowInterface();
 
 	function handleShowInterface() {
 		showInterface = true;
@@ -81,7 +85,7 @@
 	function handleShortcuts(e: KeyboardEvent) {
 		if (e.key === ' ' || e.key === 'k') {
 			e.preventDefault();
-			if (paused) video.play();
+			if (userPaused) video.play();
 			else video.pause();
 		} else if (e.key === 'm') {
 			e.preventDefault();
@@ -116,15 +120,15 @@
 		}
 		handleShowInterface();
 	}}
-	on:click={() => (paused ? video?.play() : video?.pause())}
+	on:click={() => (userPaused ? video?.play() : video?.pause())}
 >
 	<VideoElement
 		bind:videoSource
-		bind:paused
+		bind:paused={userPaused}
 		bind:duration
 		bind:currentTime
 		bind:bufferedTime
-		bind:muted
+		bind:muted={userMuted}
 		bind:volume
 		bind:videoDidLoad
 		bind:video
@@ -159,13 +163,13 @@
 		<!--		Title-->
 	</Container>
 
-	{#if paused && showInterface && !seeking}
+	{#if userPaused && showInterface && !seeking}
 		<div
 			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
 		>
 			<Pause class="w-12 h-12" />
 		</div>
-	{:else if (buffering && !paused) || !videoDidLoad}
+	{:else if (buffering && !userPaused) || !videoDidLoad}
 		<div
 			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
 		>
@@ -250,7 +254,7 @@
 				{duration}
 				{currentTime}
 				{bufferedTime}
-				bind:paused
+				bind:paused={userPaused}
 			/>
 		</div>
 	</Container>

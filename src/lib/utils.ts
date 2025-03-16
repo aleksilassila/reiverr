@@ -144,6 +144,19 @@ export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean)
 	});
 }
 
+export function getVideoZoomLevel(options: {
+	viewportWidth: number;
+	viewportHeight: number;
+	aspectRatio?: number;
+}) {
+	const { viewportWidth, viewportHeight, aspectRatio = 16 / 9 } = options;
+
+	const videoWidth = viewportWidth;
+	const videoHeight = videoWidth / aspectRatio;
+
+	return viewportHeight / videoHeight;
+}
+
 export function getCardDimensions(options: {
 	viewportWidth: number;
 	orientation?: 'portrait' | 'landscape';

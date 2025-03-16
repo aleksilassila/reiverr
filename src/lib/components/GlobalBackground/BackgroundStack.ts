@@ -1,16 +1,16 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import { getContext, hasContext, onDestroy, setContext, type ComponentType } from 'svelte';
+import { getContext, hasContext, onDestroy, setContext, tick, type ComponentType } from 'svelte';
 import { get, writable, type Writable } from 'svelte/store';
 
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
 export type Background = {
-	id?: string;
 	backdropUrl: string;
-	videoUrl?: string;
-	title?: string;
-	subtitle?: string;
 };
+
+// export type BackgroundVideo = {
+
+// }
 
 export type BackgroundPage = {
 	id: symbol;
@@ -20,12 +20,15 @@ export type BackgroundPage = {
 	index: Writable<number>;
 };
 
-export const globalVideo = writable<
-	{ component: ComponentType; props: Record<string, any> } | undefined
->(undefined);
 export const globalBackgroundStack = writable<BackgroundPage[]>([]);
-export const globalBackgroundRegistrar = useRegistrar();
+export const globalVideo = writable<
+	{ id: symbol; component: ComponentType; props: Record<string, any> } | undefined
+>(undefined);
+export const globalBackground = useRegistrar();
+
 let lastFocused: Selectable | undefined = undefined;
+
+globalBackgroundStack.subscribe(() => destroyBackgroundVideo());
 
 function _createBackgroundPage(
 	options: {
@@ -48,6 +51,7 @@ function _createBackgroundPage(
 		isTransparent
 	};
 	globalBackgroundStack.update((pages) => [...pages, initialPage]);
+	globalBackgroundStack.subscribe(console.log);
 	onDestroy(() => globalBackgroundStack.update((items) => items.filter((i) => i.id !== id)));
 
 	function setBackgrounds(items: Background[]) {
@@ -86,7 +90,7 @@ export function getBackgroundPage() {
 
 export function focusGlobalBackground() {
 	lastFocused = get(Selectable.focusedObject)?.getRootParent();
-	const backgroundSelectable = get(globalBackgroundRegistrar);
+	const backgroundSelectable = get(globalBackground);
 
 	if (!lastFocused) {
 		console.error('[Background Stack]: No focused object to return to');
@@ -105,9 +109,10 @@ export function unfocusGlobalBackground() {
 	if (lastFocused) {
 		lastFocused.focus();
 		lastFocused = undefined;
-	} else {
-		console.error('[Background Stack]: No focused object to return to');
 	}
+	//  else {
+	// 	console.error('[Background Stack]: No focused object to return to');
+	// }
 }
 
 export function toggleFocusGlobalBackground() {
@@ -116,4 +121,24 @@ export function toggleFocusGlobalBackground() {
 	} else {
 		focusGlobalBackground();
 	}
+}
+
+export function playBackgroundVideo(component: ComponentType, props: Record<string, any>) {
+	globalVideo.set({
+		id: Symbol(),
+		component,
+		props
+	});
+
+	focusGlobalBackground();
+}
+
+export async function destroyBackgroundVideo() {
+	console.log('destroying background video');
+	unfocusGlobalBackground();
+	// Idk why you need this
+	await tick();
+	console.log('destroying video');
+	globalVideo.set(undefined);
+	return tick();
 }

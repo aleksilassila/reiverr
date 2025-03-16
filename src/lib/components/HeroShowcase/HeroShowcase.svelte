@@ -1,14 +1,24 @@
 <script lang="ts">
 	import type { TitleInfoProperty } from '$lib/pages/TitlePages/HeroTitleInfo';
 	import HeroTitleInfo from '$lib/pages/TitlePages/HeroTitleInfo.svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { ChevronRight } from 'radix-icons-svelte';
+	import { createEventDispatcher, tick } from 'svelte';
+	import { get, type Readable } from 'svelte/store';
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import Container from '../Container.svelte';
-	import { getBackgroundPage } from '../GlobalBackground/BackgroundStack';
-	import HeroContainer from './HeroContainer.svelte';
-	import { ChevronRight } from 'radix-icons-svelte';
-	import PageDots from './PageDots.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
+	import {
+		destroyBackgroundVideo,
+		focusGlobalBackground,
+		getBackgroundPage,
+		globalBackground,
+		globalVideo,
+		toggleFocusGlobalBackground
+	} from '../GlobalBackground/BackgroundStack';
+	import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
+	import HeroContainer from './HeroContainer.svelte';
+	import PageDots from './PageDots.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
 
 	type ShowcaseItem = {
 		id: number;
@@ -31,17 +41,51 @@
 
 	let index = 0;
 	let awaitedItems: undefined | ShowcaseItem[];
+	let componentHasFocus: Readable<boolean>;
 
 	$: items.then((items) => {
 		awaitedItems = items;
 
 		background?.setBackgrounds(
 			items.map((i) => ({
-				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
-				videoUrl: i.videoUrl
+				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`
 			}))
 		);
 	});
+	$: {
+		awaitedItems?.[index];
+		updateTrailer();
+	}
+	function updateTrailer() {
+		if (get(componentHasFocus)) {
+			destroyBackgroundVideo();
+			if (get(localSettings).autoplayTrailers) {
+				playTrailer();
+			}
+		}
+	}
+
+	async function playTrailer() {
+		const videoId = awaitedItems?.[index]?.videoUrl;
+		if (!videoId) return;
+
+		await destroyBackgroundVideo();
+
+		if (videoId) {
+			globalVideo.set({
+				id: Symbol(),
+				component: YoutubeVideo,
+				props: {
+					videoId
+				}
+			});
+		}
+	}
+
+	function focusTrailer() {
+		if (!get(localSettings).autoplayTrailers) playTrailer();
+		toggleFocusGlobalBackground();
+	}
 
 	function onNext() {
 		if (!awaitedItems) return false;
@@ -96,7 +140,8 @@
 
 <HeroContainer>
 	<Container
-		class="contents"
+		bind:hasFocusWithin={componentHasFocus}
+		class="flex-1 flex items-end"
 		on:select={openItem}
 		on:enter
 		on:navigate={({ detail }) => {
@@ -112,7 +157,14 @@
 					detail.preventNavigation();
 					detail.stopPropagation();
 				}
+			} else if (detail.direction === 'up') {
+				focusTrailer();
+				detail.preventNavigation();
+				detail.stopPropagation();
 			}
+		}}
+		on:click={({ detail: e }) => {
+			if (e.target === e.currentTarget) focusTrailer();
 		}}
 	>
 		{#await items}
@@ -148,7 +200,7 @@
 				</div>
 			{/if}
 
-			<div class="flex flex-col justify-end ml-4">
+			<div class="self-stretch flex flex-col justify-end ml-4">
 				<div class="flex flex-1 justify-end items-center">
 					<FloatingIconButton on:click={onNext}>
 						<ChevronRight size={38} />

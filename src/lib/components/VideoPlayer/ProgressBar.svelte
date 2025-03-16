@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Container from '../Container.svelte';
-	import { createEventDispatcher } from 'svelte';
 	import classNames from 'classnames';
+	import { createEventDispatcher } from 'svelte';
 	import type { NavigateEvent } from '../../selectable';
-	import { formatMinutesToTime, formatSecondsToTime } from '../../utils';
+	import { formatSecondsToTime } from '../../utils';
+	import Container from '../Container.svelte';
 
 	export let duration: number;
 	export let currentTime: number;

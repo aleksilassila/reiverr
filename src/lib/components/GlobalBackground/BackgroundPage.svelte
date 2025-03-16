@@ -71,7 +71,7 @@
 	<div class="absolute inset-0 bg-secondary-900" />
 {/if} -->
 
-{#each $backgrounds as { videoUrl, backdropUrl }, i}
+{#each $backgrounds as { backdropUrl }, i}
 	<div
 		class="absolute inset-0 bg-center bg-cover"
 		class:opacity-0={bgIndex !== i || hidden}
