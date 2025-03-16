@@ -1,5 +1,4 @@
 import { type Readable, writable } from 'svelte/store';
-import type { Selectable } from './selectable';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -145,11 +144,25 @@ export function subscribeUntil<T>(store: Readable<T>, fn: (value: T) => boolean)
 	});
 }
 
-export function getCardDimensions(
-	viewportWidth: number,
-	type: 'portrait' | 'landscape' = 'portrait'
-) {
-	const minWidth = type === 'portrait' ? 240 : 400;
+export function getCardDimensions(options: {
+	viewportWidth: number;
+	orientation?: 'portrait' | 'landscape';
+	size?: 'sm' | 'md' | 'lg';
+}) {
+	const { viewportWidth, orientation = 'portrait', size = 'lg' } = options;
+
+	const minWidth =
+		orientation === 'portrait'
+			? {
+					sm: 160,
+					md: 200,
+					lg: 240
+			  }[size]
+			: {
+					sm: 300,
+					md: 350,
+					lg: 400
+			  }[size];
 
 	const margin = 128;
 	const gap = 32;
@@ -158,7 +171,7 @@ export function getCardDimensions(
 	const scale = -(gap * (cols - 1) + 2 * margin - viewportWidth) / (cols * minWidth);
 
 	const newWidth = minWidth * scale;
-	const newHeight = (type === 'portrait' ? 3 / 2 : 9 / 16) * newWidth;
+	const newHeight = (orientation === 'portrait' ? 3 / 2 : 9 / 16) * newWidth;
 
 	return {
 		width: newWidth,

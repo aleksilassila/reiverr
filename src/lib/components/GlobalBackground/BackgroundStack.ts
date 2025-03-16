@@ -1,10 +1,10 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import { getContext, hasContext, onDestroy, setContext } from 'svelte';
+import { getContext, hasContext, onDestroy, setContext, type ComponentType } from 'svelte';
 import { get, writable, type Writable } from 'svelte/store';
 
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
-type Background = {
+export type Background = {
 	id?: string;
 	backdropUrl: string;
 	videoUrl?: string;
@@ -20,6 +20,9 @@ export type BackgroundPage = {
 	index: Writable<number>;
 };
 
+export const globalVideo = writable<
+	{ component: ComponentType; props: Record<string, any> } | undefined
+>(undefined);
 export const globalBackgroundStack = writable<BackgroundPage[]>([]);
 export const globalBackgroundRegistrar = useRegistrar();
 let lastFocused: Selectable | undefined = undefined;

@@ -11,11 +11,18 @@
 
 	let hasFocus: Readable<boolean>;
 
-	let dimensions = getCardDimensions(window.innerWidth, 'landscape');
+	let dimensions = getCardDimensions({
+		viewportWidth: window.innerWidth,
+		orientation: 'landscape'
+	});
 </script>
 
 <svelte:window
-	on:resize={(e) => (dimensions = getCardDimensions(e.currentTarget.innerWidth, 'landscape'))}
+	on:resize={(e) =>
+		(dimensions = getCardDimensions({
+			viewportWidth: e.currentTarget.innerWidth,
+			orientation: 'landscape'
+		}))}
 />
 <AnimateScale hasFocus={$hasFocus}>
 	<Container

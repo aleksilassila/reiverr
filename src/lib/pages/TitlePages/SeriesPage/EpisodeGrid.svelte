@@ -98,7 +98,7 @@
 				</Container>
 			{/each}
 		</UICarousel>
-		<CardGrid type="landscape" on:mount>
+		<CardGrid orientation="landscape" on:mount>
 			{#each tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
 				{@const userData = episodesUserData.find(
 					(e) => e.season === episode.season_number && e.episode === episode.episode_number

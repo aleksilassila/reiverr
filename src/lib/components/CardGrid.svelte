@@ -5,9 +5,12 @@
 	import { getCardDimensions } from '../utils';
 
 	// export let direction: 'horizontal' | 'vertical' = 'vertical';
-	export let type: 'portrait' | 'landscape' = 'portrait';
+	export let orientation: 'portrait' | 'landscape' = 'portrait';
 
-	let cols = getCardDimensions(window.innerWidth, type).columns;
+	let cols = getCardDimensions({
+		viewportWidth: window.innerWidth,
+		orientation
+	}).columns;
 
 	// let cols: number = 1;
 	// const calculateRows = () => {
@@ -44,7 +47,11 @@
 </script>
 
 <svelte:window
-	on:resize={(e) => (cols = getCardDimensions(e.currentTarget.innerWidth, type).columns)}
+	on:resize={(e) =>
+		(cols = getCardDimensions({
+			viewportWidth: e.currentTarget.innerWidth,
+			orientation
+		}).columns)}
 />
 
 <Container

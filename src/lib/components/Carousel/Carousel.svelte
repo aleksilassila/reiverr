@@ -8,11 +8,14 @@
 	import { get } from 'svelte/store';
 
 	export let hideControls = false;
+	export let horizontalScroll = false;
 
 	let carousel: HTMLDivElement | undefined;
 	let scrollX = 0;
 	export let scrollClass = '';
 	export let header = '';
+	export let fadeWidth = 6;
+	export let controls = true;
 
 	function handleOnBack({ detail }: BackEvent) {
 		const focusIndex = get(detail.selectable.focusIndex);
@@ -34,47 +37,51 @@
 				<slot name="header" />
 			</div>
 		{/if}
-		<div
-			class={classNames(
-				'flex gap-2 ml-4',
-				//'sm:opacity-0 transition-opacity sm:group-hover/carousel:opacity-100',
-				{
-					hidden:
-						(carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0) ||
-						PLATFORM_TV ||
-						hideControls
-				}
-			)}
-		>
-			<IconButton
-				on:click={() => {
-					carousel?.scrollTo({
-						left: scrollX - (carousel?.clientWidth - 2 * 128 + 32),
-						behavior: 'smooth'
-					});
-				}}
+		{#if controls}
+			<div
+				class={classNames(
+					'flex gap-2 ml-4',
+					//'sm:opacity-0 transition-opacity sm:group-hover/carousel:opacity-100',
+					{
+						hidden:
+							(carousel?.scrollWidth || 0) === (carousel?.clientWidth || 0) ||
+							PLATFORM_TV ||
+							hideControls
+					}
+				)}
 			>
-				<ChevronLeft size={20} />
-			</IconButton>
-			<IconButton
-				on:click={() => {
-					carousel?.scrollTo({
-						left: scrollX + (carousel?.clientWidth - 2 * 128) + 32,
-						behavior: 'smooth'
-					});
-				}}
-			>
-				<ChevronRight size={20} />
-			</IconButton>
-		</div>
+				<IconButton
+					on:click={() => {
+						carousel?.scrollTo({
+							left: scrollX - (carousel?.clientWidth - 2 * 128 + 32),
+							behavior: 'smooth'
+						});
+					}}
+				>
+					<ChevronLeft size={20} />
+				</IconButton>
+				<IconButton
+					on:click={() => {
+						carousel?.scrollTo({
+							left: scrollX + (carousel?.clientWidth - 2 * 128) + 32,
+							behavior: 'smooth'
+						});
+					}}
+				>
+					<ChevronRight size={20} />
+				</IconButton>
+			</div>
+		{/if}
 	</div>
 
 	<div class="relative">
 		<Container
+			on:mount
 			direction="horizontal"
 			let:focusIndex
 			on:enter
 			{...$$restProps}
+			class=""
 			on:back={handleOnBack}
 		>
 			<div
@@ -83,10 +90,15 @@
 					'space-x-8 py-4 w-full',
 					scrollClass
 				)}
-				style="-webkit-mask-image: linear-gradient(to right, transparent, black 6rem, black calc(100% - 6rem), transparent);"
+				style={`-webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
 				bind:this={carousel}
 				tabindex="-1"
 				on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
+				on:wheel={(e) => {
+					if (horizontalScroll && e.deltaY) {
+						e.currentTarget.scrollLeft += e.deltaY;
+					}
+				}}
 			>
 				<slot {focusIndex} />
 			</div>

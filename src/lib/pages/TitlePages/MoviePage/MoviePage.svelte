@@ -172,7 +172,7 @@
 	<div class="relative z-10" style={$visibleStyle}>
 		<Container on:enter={scrollIntoView({ top: 0 })} class="">
 			{#await $tmdbMovie then movie}
-				<Carousel scrollClass="px-32" class="mb-8">
+				<Carousel scrollClass="px-32" class="mb-16">
 					<div slot="header">Show Cast</div>
 					{#each movie?.credits?.cast?.slice(0, 15) || [] as credit}
 						<TmdbPersonCard on:enter={scrollIntoView({ horizontal: 128 })} tmdbCredit={credit} />
@@ -180,7 +180,7 @@
 				</Carousel>
 			{/await}
 			{#await recommendations then recommendations}
-				<Carousel scrollClass="px-32" class="mb-8">
+				<Carousel scrollClass="px-32" class="mb-16">
 					<div slot="header">Recommendations</div>
 					{#each recommendations || [] as recommendation}
 						<TmdbCard item={recommendation} on:enter={scrollIntoView({ horizontal: 128 })} />

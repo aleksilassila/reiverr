@@ -2,6 +2,7 @@
 	import { PLATFORM_TV } from '$lib/constants';
 	import { fade } from 'svelte/transition';
 	import type { BackgroundPage } from './BackgroundStack';
+	import BackgroundCarousel from './BackgroundCarousel.svelte';
 
 	export let page: BackgroundPage;
 	export let hasFocus: boolean;
