@@ -12,6 +12,7 @@ export type FlowDirection = 'vertical' | 'horizontal';
 type FocusEventOptions = {
 	setFocusedElement: boolean | HTMLElement;
 	propagate: boolean;
+	/** Will attempt to set foucus index of every component between the old and new focued object to avoid jumps in focus when navigating */
 	cycleTo?: boolean;
 	onFocus?: (
 		superOnFocus: FocusHandler,
@@ -223,60 +224,60 @@ export class Selectable {
 			};
 			propagateFocusUpdates(_options, this);
 
-			if (_options.setFocusedElement) {
-				if (_options.cycleTo) {
-					const previouslyFocused = get(Selectable.focusedObject);
-					if (previouslyFocused) {
-						const parents = this.getParents();
-						const otherParents = [];
-						let commonParent: Selectable | undefined = undefined;
+			if (_options.cycleTo) {
+				const previouslyFocused = get(Selectable.focusedObject);
+				if (previouslyFocused) {
+					const parents = this.getParents();
+					const otherParents = [];
+					let commonParent: Selectable | undefined = undefined;
 
-						let el = previouslyFocused;
-						while (el) {
-							const parent = el.parent;
-							if (parent) otherParents.push(parent);
-							if (parent && parents.includes(parent)) {
-								commonParent = parent;
-								// const thisBeforeParent = parents[parents.indexOf(commonParent) - 1];
-								// after = thisBeforeParent
-								// 	? parent.children.indexOf(el) < parent.children.indexOf(thisBeforeParent)
-								// 	: false;
-								// thatChild = parents[parents.indexOf(commonParent) - 1];
-								break;
-							} else if (parent) {
-								el = parent;
-							} else break;
-						}
+					let el = previouslyFocused;
+					while (el) {
+						const parent = el.parent;
+						if (parent) otherParents.push(parent);
+						if (parent && parents.includes(parent)) {
+							commonParent = parent;
+							// const thisBeforeParent = parents[parents.indexOf(commonParent) - 1];
+							// after = thisBeforeParent
+							// 	? parent.children.indexOf(el) < parent.children.indexOf(thisBeforeParent)
+							// 	: false;
+							// thatChild = parents[parents.indexOf(commonParent) - 1];
+							break;
+						} else if (parent) {
+							el = parent;
+						} else break;
+					}
 
-						if (commonParent) {
-							const targetChild = parents[parents.indexOf(commonParent) - 1];
-							const previousChild = otherParents[otherParents.indexOf(commonParent) - 1];
+					if (commonParent) {
+						const targetChild = parents[parents.indexOf(commonParent) - 1];
+						const previousChild = otherParents[otherParents.indexOf(commonParent) - 1];
 
-							let order: FocusOrder | undefined = undefined;
-							const direction = commonParent.direction;
-							for (const child of commonParent.children) {
-								if (child === targetChild) {
-									if (order !== undefined) {
-										break;
-									}
-									order = FocusOrder.First;
-									continue;
-								} else if (child === previousChild) {
-									if (order !== undefined) {
-										recursiveSetFocusIndex(child, direction, order);
-										break;
-									}
-									order = FocusOrder.Last;
+						let order: FocusOrder | undefined = undefined;
+						const direction = commonParent.direction;
+						for (const child of commonParent.children) {
+							if (child === targetChild) {
+								if (order !== undefined) {
+									break;
 								}
-
+								order = FocusOrder.First;
+								continue;
+							} else if (child === previousChild) {
 								if (order !== undefined) {
 									recursiveSetFocusIndex(child, direction, order);
+									break;
 								}
+								order = FocusOrder.Last;
+							}
+
+							if (order !== undefined) {
+								recursiveSetFocusIndex(child, direction, order);
 							}
 						}
 					}
 				}
+			}
 
+			if (_options.setFocusedElement) {
 				if (_options.setFocusedElement === true) {
 					this.htmlElement.focus({ preventScroll: true });
 				} else {
