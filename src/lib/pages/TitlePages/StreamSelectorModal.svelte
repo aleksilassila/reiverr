@@ -7,6 +7,8 @@
 	import Modal from '../../components/Modal/Modal.svelte';
 	import { sources } from '../../stores/user.store';
 	import { capitalize } from '../../utils';
+	import { modalStack } from '$lib/components/Modal/modal.store';
+	import { tick } from 'svelte';
 
 	export let modalId: symbol;
 	export let getStreams: (source: MediaSource) => Promise<StreamCandidateDto[]>;
@@ -40,7 +42,7 @@
 	}}
 />
 
-<Modal {modalId}>
+<Modal {modalId} let:close>
 	<Container
 		class="h-screen py-16 px-32 bg-primary-800 space-y-8 overflow-y-auto flex flex-col"
 		on:back={(e) => {
@@ -79,7 +81,10 @@
 			{:then streams}
 				{#each streams ?? [] as stream}
 					<Container
-						on:clickOrSelect={() => selectStream(s, stream)}
+						on:clickOrSelect={() => {
+							close();
+							tick().then(() => selectStream(s, stream));
+						}}
 						on:enter={scrollIntoView({ vertical: 64 })}
 						let:hasFocus
 						class="cursor-pointer"

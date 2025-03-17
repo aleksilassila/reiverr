@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { PLATFORM_TV } from '$lib/constants';
+	import { isUserInactive } from '$lib/stores/user-activity.store';
+	import { getVideoZoomLevel } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Cross1, Play } from 'radix-icons-svelte';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import type { Readable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
+	import Container from '../Container.svelte';
+	import FloatingIconButton from '../FloatingIconButton.svelte';
+	import { visibleBackgrounds } from '../GlobalBackground/BackgroundStack';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import Spinner from '../Utils/Spinner.svelte';
 	import type { VideoPlayerProps } from './VideoPlayer';
-	import { getVideoZoomLevel } from '$lib/utils';
-	import { destroyBackgroundVideo } from '../GlobalBackground/BackgroundStack';
 
 	const STOP_WHEN_REMAINING = 12;
 
@@ -21,10 +25,10 @@
 	export let videoId: string | null = null;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
 
-	export let load: VideoPlayerProps['beginPlay'] = true;
+	export let load: VideoPlayerProps['load'] = true;
 	export let paused: VideoPlayerProps['paused'] = false;
 	export let muted: VideoPlayerProps['muted'] = false;
-	export let hasFocus: VideoPlayerProps['hasFocus'] = true;
+	let hasFocus: Readable<boolean>;
 
 	let userPaused = false;
 
@@ -178,7 +182,7 @@
 				}
 			}, 1000);
 		} else if (event.data === window.YT.PlayerState.ENDED) {
-			destroyBackgroundVideo();
+			visibleBackgrounds.destroyVideo();
 			console.log('Video ended');
 
 			// try {
@@ -245,8 +249,6 @@
 	// }
 </script>
 
-{@debug isPlayerReady, hasFocus}
-
 <svelte:window
 	on:resize={() =>
 		(zoom = getVideoZoomLevel({
@@ -255,38 +257,47 @@
 		}))}
 />
 
-<div
+<Container
+	bind:hasFocusWithin={hasFocus}
+	on:select={() => (userPaused = !userPaused)}
 	class={classNames('relative h-full w-full transition-opacity bg-black', {
-		'opacity-0': !hasFocus && !isPlayerReady
+		'opacity-0': !$hasFocus && !isPlayerReady
 	})}
 >
-	<div id={playerId} class="video-background" />
+	<div>
+		<div id={playerId} class="video-background" />
+	</div>
 
-	{#if errorTimeout}
-		<div
-			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-			out:fade
-		>
-			<Cross1 class="w-12 h-12" />
-		</div>
-		<!-- {:else if hasFocus && !play} -->
-	{:else if (!load || paused || userPaused) && hasFocus}
-		<div
-			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-		>
+	<div
+		class={classNames(
+			'absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black rounded-full *:p-2 transition-opacity bg-opacity-50',
+			{
+				'opacity-0': !$hasFocus
+			}
+		)}
+	>
+		{#if errorTimeout}
+			<div out:fade>
+				<Cross1 class="w-12 h-12" />
+			</div>
+		{:else if !load || paused || userPaused}
 			<Play class="w-12 h-12" />
-		</div>
-	{:else if isInitialized && !isPlayerReady && hasFocus}
-		<div
-			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
-		>
+		{:else if isInitialized && !isPlayerReady}
 			<Spinner class="w-12 h-12" />
-		</div>
-	{/if}
+		{/if}
+	</div>
 
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div on:click={() => (userPaused = !userPaused)} class="absolute inset-0" />
-</div>
+	<FloatingIconButton
+		class={classNames('absolute top-12 right-16 transition-opacity', {
+			'opacity-0': !$hasFocus || $isUserInactive
+		})}
+		on:click={() => visibleBackgrounds.destroyVideo()}
+	>
+		<Cross1 size={32} />
+	</FloatingIconButton>
+</Container>
 
 <style>
 	.video-background {

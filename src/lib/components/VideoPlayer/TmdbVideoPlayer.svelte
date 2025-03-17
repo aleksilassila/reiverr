@@ -18,13 +18,12 @@
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApiNew, user } from '../../stores/user.store';
-	import { modalStackTop } from '../Modal/modal.store';
 	import type { SubtitleInfo, VideoPlayerProps, VideoSource } from './VideoPlayer';
 	import VideoPlayer from './VideoPlayer.svelte';
 
+	export let load: VideoPlayerProps['load'] = true;
 	export let paused: VideoPlayerProps['paused'] = false;
 	export let muted: VideoPlayerProps['muted'] = false;
-	export let beginPlay: VideoPlayerProps['beginPlay'] = false;
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -236,7 +235,7 @@
 <VideoPlayer
 	{paused}
 	{muted}
-	{beginPlay}
+	{load}
 	{videoSource}
 	{title}
 	{subtitle}

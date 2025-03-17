@@ -1,24 +1,17 @@
 <script lang="ts">
 	import type { TitleInfoProperty } from '$lib/pages/TitlePages/HeroTitleInfo';
 	import HeroTitleInfo from '$lib/pages/TitlePages/HeroTitleInfo.svelte';
+	import { localSettings } from '$lib/stores/localstorage.store';
 	import { ChevronRight } from 'radix-icons-svelte';
-	import { createEventDispatcher, tick } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import { get, type Readable } from 'svelte/store';
 	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
-	import {
-		destroyBackgroundVideo,
-		focusGlobalBackground,
-		getBackgroundPage,
-		globalBackground,
-		globalVideo,
-		toggleFocusGlobalBackground
-	} from '../GlobalBackground/BackgroundStack';
+	import { getBackgroundPage } from '../GlobalBackground/BackgroundStack';
 	import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 	import HeroContainer from './HeroContainer.svelte';
 	import PageDots from './PageDots.svelte';
-	import { localSettings } from '$lib/stores/localstorage.store';
 
 	type ShowcaseItem = {
 		id: number;
@@ -48,7 +41,8 @@
 
 		background?.setBackgrounds(
 			items.map((i) => ({
-				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`
+				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
+				mediaId: String(i.id)
 			}))
 		);
 	});
@@ -57,34 +51,34 @@
 		updateTrailer();
 	}
 	function updateTrailer() {
-		if (get(componentHasFocus)) {
-			destroyBackgroundVideo();
-			if (get(localSettings).autoplayTrailers) {
-				playTrailer();
-			}
+		// destroyBackgroundVideo();
+		background?.destroyVideo();
+		if (get(localSettings).autoplayTrailers) {
+			playTrailer(true);
 		}
 	}
 
-	async function playTrailer() {
+	async function playTrailer(onBackground: boolean = false) {
 		const videoId = awaitedItems?.[index]?.videoUrl;
+		const tmdbId = awaitedItems?.[index]?.id;
 		if (!videoId) return;
 
-		await destroyBackgroundVideo();
+		background?.setVideo({
+			id: Symbol(),
+			component: YoutubeVideo,
+			props: {
+				videoId
+			},
+			mediaId: String(tmdbId)
+		});
 
-		if (videoId) {
-			globalVideo.set({
-				id: Symbol(),
-				component: YoutubeVideo,
-				props: {
-					videoId
-				}
-			});
-		}
+		if (!onBackground) background?.focus();
 	}
 
 	function focusTrailer() {
 		if (!get(localSettings).autoplayTrailers) playTrailer();
-		toggleFocusGlobalBackground();
+		else background?.focus();
+		// toggleFocusGlobalBackground();
 	}
 
 	function onNext() {

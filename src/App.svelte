@@ -19,6 +19,7 @@
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
 	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
 	import StackRouterPage from '$lib/components/StackRouter/StackRouterPage.svelte';
+	import { registerUserActivity } from '$lib/stores/user-activity.store';
 
 	user.subscribe((s) => {
 		console.log('user', s);
@@ -100,4 +101,9 @@
 	on:unhandledrejection={handleError}
 /> -->
 
-<svelte:window on:keydown={handleKeyboardNavigation} on:error={handleError} />
+<svelte:window
+	on:keydown={handleKeyboardNavigation}
+	on:error={handleError}
+	on:mousemove={registerUserActivity}
+	on:keydown={registerUserActivity}
+/>

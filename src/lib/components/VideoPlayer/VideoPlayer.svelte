@@ -3,7 +3,7 @@
 	import classNames from 'classnames';
 	import { Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Selectable } from '../../selectable';
+	import { useRegistrar, type Selectable } from '../../selectable';
 	import Container from '../Container.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { modalStack } from '../Modal/modal.store';
@@ -12,10 +12,11 @@
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import VideoElement from './VideoElement.svelte';
 	import type { SubtitleInfo, VideoPlayerProps, VideoSource } from './VideoPlayer';
+	import { get } from 'svelte/store';
 
+	export let load: VideoPlayerProps['load'];
 	export let paused: VideoPlayerProps['paused'];
 	export let muted: VideoPlayerProps['muted'];
-	export let beginPlay: VideoPlayerProps['beginPlay'];
 
 	export let videoSource: VideoSource | undefined;
 	export let subtitleInfo: SubtitleInfo | undefined;
@@ -41,7 +42,7 @@
 	let showInterface = true;
 	let showInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let hideInterfaceTimeout: ReturnType<typeof setTimeout>;
-	let container: Selectable;
+	let progressBar = useRegistrar();
 
 	let clockTime = 0;
 	let clockInterval = setInterval(() => {
@@ -65,7 +66,7 @@
 		showInterface = false;
 		clearTimeout(hideInterfaceTimeout);
 		hideInterfaceTimeout = setTimeout(() => {
-			container?.focusChild(1);
+			get(progressBar)?.activate();
 		}, 200);
 	}
 
@@ -111,16 +112,17 @@
 </script>
 
 <Container
-	class="w-full h-full relative"
+	class="w-full h-full relative bg-black"
 	on:mousemove={handleShowInterface}
 	on:navigate={({ detail }) => {
-		if (!showInterface) {
+		if (!showInterface && detail.direction !== 'down') {
 			detail.stopPropagation();
 			detail.preventNavigation();
 		}
 		handleShowInterface();
 	}}
 	on:click={() => (userPaused ? video?.play() : video?.pause())}
+	let:hasFocusWithin
 >
 	<VideoElement
 		bind:videoSource
@@ -142,7 +144,7 @@
 			'absolute inset-0 transition-opacity pointer-events-none',
 			'bg-gradient-to-b from-secondary-950/75 from-0% to-[150px] to-transparent',
 			{
-				'opacity-0': !showInterface
+				'opacity-0': !showInterface || !hasFocusWithin
 			}
 		)}
 	/>
@@ -151,13 +153,13 @@
 			'absolute inset-0 transition-opacity pointer-events-none',
 			'bg-gradient-to-t from-secondary-950/75 from-0% to-[300px] to-transparent',
 			{
-				'opacity-0': !showInterface
+				'opacity-0': !showInterface || !hasFocusWithin
 			}
 		)}
 	/>
 	<Container
 		class={classNames('absolute inset-x-12 top-8 transition-opacity', {
-			'opacity-0': !showInterface
+			'opacity-0': !showInterface || !hasFocusWithin
 		})}
 	>
 		<!--		Title-->
@@ -180,10 +182,9 @@
 		class={classNames(
 			'absolute inset-x-12 inset-y-8 transition-opacity flex flex-col justify-between',
 			{
-				'opacity-0': !showInterface
+				'opacity-0': !showInterface || !hasFocusWithin
 			}
 		)}
-		bind:selectable={container}
 	>
 		<div
 			class="flex justify-between items-center text-secondary-300 font-medium text-wider text-xl tracking-wide"
@@ -255,6 +256,7 @@
 				{currentTime}
 				{bufferedTime}
 				bind:paused={userPaused}
+				on:mount={progressBar.registrar}
 			/>
 		</div>
 	</Container>

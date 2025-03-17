@@ -1,6 +1,7 @@
+import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
-import { streamTmdbItem } from '$lib/components/VideoPlayer/VideoPlayer';
+import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
 import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
 import { derived, get, writable, type Readable } from 'svelte/store';
 import type {
@@ -59,13 +60,8 @@ async function getStreams(
 				.catch((e) => []);
 }
 
-async function handleAutoplay(options: {
-	tmdbId: string;
-	season?: number;
-	episode?: number;
-	progress?: number;
-}) {
-	const { tmdbId, season, episode, progress } = options;
+async function getAutoplayStream(options: { tmdbId: string; season?: number; episode?: number }) {
+	const { tmdbId, season, episode } = options;
 
 	const awaitedStreams = await getAllStreams(tmdbId, season, episode);
 
@@ -73,23 +69,10 @@ async function handleAutoplay(options: {
 	const source = firstSource?.source;
 	const key = firstSource?.streams[0]?.key;
 
-	if (!source) {
-		createErrorNotification('No source found');
-		return;
-	}
-	if (!key) {
-		createErrorNotification('No key found');
-		return;
-	}
-
-	streamTmdbItem({
-		tmdbId,
-		season,
-		episode,
-		progress,
+	return {
 		source,
 		key
-	});
+	};
 }
 
 function useUserLibrary(
@@ -183,6 +166,8 @@ function useCanStream() {
 }
 
 export function useSeriesUserData(tmdbId: string) {
+	const background = getBackgroundPage();
+
 	const userDataRequest = seriesUserDataStore.subscribe(tmdbId);
 	const tmdbSeriesRequest = tmdbSeriesDataStore.subscribe(Number(tmdbId));
 	const libraryStore = useUserLibrary('Series', tmdbId, userDataRequest);
@@ -274,7 +259,27 @@ export function useSeriesUserData(tmdbId: string) {
 				return;
 			}
 
-			return handleAutoplay({ tmdbId, season, episode, progress });
+			const { key, source } = await getAutoplayStream({ tmdbId, season, episode });
+
+			if (!key || !source) {
+				createErrorNotification('Autoplay failed', 'No stream found');
+				return;
+			}
+
+			background?.setVideo({
+				id: Symbol(),
+				component: TmdbVideoPlayer,
+				props: {
+					tmdbId,
+					season,
+					episode,
+					progress,
+					key,
+					source
+				}
+			});
+
+			background?.focus();
 		},
 		handleOpenStreamSelector: async () => {
 			const { season, episode } = get(nextEpisode) ?? {};
@@ -287,14 +292,20 @@ export function useSeriesUserData(tmdbId: string) {
 			createModal(StreamSelectorModal, {
 				getStreams: (s) => getStreams(s, tmdbId, season, episode),
 				selectStream: (source, stream) => {
-					return streamTmdbItem({
-						tmdbId,
-						season,
-						episode,
-						progress: get(nextEpisode)?.progress,
-						key: stream.key,
-						source
+					background?.setVideo({
+						id: Symbol(),
+						component: TmdbVideoPlayer,
+						props: {
+							tmdbId,
+							season,
+							episode,
+							progress: get(nextEpisode)?.progress,
+							key: stream.key,
+							source
+						}
 					});
+
+					background?.focus();
 				}
 			});
 
@@ -308,6 +319,7 @@ export function useSeriesUserData(tmdbId: string) {
 }
 
 export function useMovieUserData(tmdbId: string) {
+	const background = getBackgroundPage();
 	const userData = movieUserDataStore.subscribe(tmdbId);
 	const libraryStore = useUserLibrary('Movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
@@ -323,17 +335,44 @@ export function useMovieUserData(tmdbId: string) {
 		...canStreamStore,
 		...isWatchedStore,
 		progress,
-		handleAutoplay: async () => handleAutoplay({ tmdbId, progress: get(progress) }),
+		handleAutoplay: async () => {
+			const { key, source } = await getAutoplayStream({ tmdbId });
+
+			if (!key || !source) {
+				createErrorNotification('Autoplay failed', 'No stream found');
+				return;
+			}
+
+			background?.setVideo({
+				id: Symbol(),
+				component: TmdbVideoPlayer,
+				props: {
+					tmdbId,
+					progress: get(progress),
+					key,
+					source
+				}
+			});
+
+			background?.focus();
+		},
 		handleOpenStreamSelector: async () => {
 			createModal(StreamSelectorModal, {
 				getStreams: (s) => getStreams(s, tmdbId),
-				selectStream: (source, stream) =>
-					streamTmdbItem({
-						tmdbId,
-						progress: get(progress),
-						key: stream.key,
-						source
-					})
+				selectStream: (source, stream) => {
+					background?.setVideo({
+						id: Symbol(),
+						component: TmdbVideoPlayer,
+						props: {
+							tmdbId,
+							progress: get(progress),
+							key: stream.key,
+							source
+						}
+					});
+
+					background?.focus();
+				}
 			});
 		},
 		unsubscribe: () => userData.unsubscribe()
@@ -341,6 +380,8 @@ export function useMovieUserData(tmdbId: string) {
 }
 
 export function useEpisodeUserData(tmdbId: string, season: number, episode: number) {
+	const background = getBackgroundPage();
+
 	const userData = episodeUserDataStore.subscribe(tmdbId, season, episode);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
@@ -356,20 +397,49 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 		...canStreamStore,
 		...isWatchedStore,
 		progress,
-		handleAutoplay: async () =>
-			handleAutoplay({ tmdbId, season, episode, progress: get(progress) }),
+		handleAutoplay: async () => {
+			// getAutoplayStream({ tmdbId, season, episode, progress: get(progress) });
+			const { key, source } = await getAutoplayStream({ tmdbId, season, episode });
+
+			if (!key || !source) {
+				createErrorNotification('Autoplay failed', 'No stream found');
+				return;
+			}
+
+			background?.setVideo({
+				id: Symbol(),
+				component: TmdbVideoPlayer,
+				props: {
+					tmdbId,
+					season,
+					episode,
+					progress: get(progress),
+					key,
+					source
+				}
+			});
+
+			background?.focus();
+		},
 		handleOpenStreamSelector: async () => {
 			createModal(StreamSelectorModal, {
 				getStreams: (s) => getStreams(s, tmdbId, season, episode),
-				selectStream: (source, stream) =>
-					streamTmdbItem({
-						tmdbId,
-						season,
-						episode,
-						progress: get(progress),
-						key: stream.key,
-						source
-					})
+				selectStream: (source, stream) => {
+					background?.setVideo({
+						id: Symbol(),
+						component: TmdbVideoPlayer,
+						props: {
+							tmdbId,
+							season,
+							episode,
+							progress: get(progress),
+							key: stream.key,
+							source
+						}
+					});
+
+					background?.focus();
+				}
 			});
 		},
 		unsubscribe: () => userData.unsubscribe()

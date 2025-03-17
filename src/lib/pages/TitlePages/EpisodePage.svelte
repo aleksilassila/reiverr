@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import { type StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
 	import { tmdbEpisodeDataStore } from '$lib/stores/data.store';
 	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
@@ -9,9 +11,6 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import HeroContainer from '$lib/components/HeroShowcase/HeroContainer.svelte';
-	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;

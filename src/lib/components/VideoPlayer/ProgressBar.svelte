@@ -84,6 +84,7 @@
 		focusOnMount
 		on:navigate={handleNavigateEvent}
 		on:select={() => dispatch(paused ? 'play' : 'pause')}
+		on:mount
 	>
 		<div class="absolute inset-y-1 inset-x-2 rounded-full bg-zinc-300/50" />
 

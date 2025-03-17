@@ -28,7 +28,6 @@
 	{#each backgrounds as background, index}
 		<BackgroundCard
 			backdropUrl={background.backdropUrl}
-			videoUrl={background.videoUrl}
 			on:clickOrSelect={({ detail }) => {
 				dispatch('jumpTo', index);
 				const el = detail.getHtmlElement();

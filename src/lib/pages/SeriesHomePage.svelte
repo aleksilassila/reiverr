@@ -2,6 +2,7 @@
 	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
 
 	import Container from '$lib/components/Container.svelte';
+	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
@@ -13,6 +14,8 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 	import { formatDateToYearMonthDay } from '../utils';
+
+	createBackgroundPage();
 
 	const { registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();

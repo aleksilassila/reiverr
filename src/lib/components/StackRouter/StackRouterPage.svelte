@@ -6,8 +6,9 @@
 	import { focusSidebar } from '../Sidebar/sidebar';
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
+	import { onDestroy } from 'svelte';
 
-	createBackgroundPage();
+	// const background = createBackgroundPage();
 
 	export let hasSidebar = true;
 	export let hidden = false;
@@ -35,6 +36,8 @@
 			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
 		} else handleGoBack();
 	}
+
+	// onDestroy(() => background.destroy())
 </script>
 
 <Container

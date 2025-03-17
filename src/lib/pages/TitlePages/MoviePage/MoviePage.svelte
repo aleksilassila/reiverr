@@ -1,11 +1,14 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import { tmdbApi, type TmdbMovieFull2 } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
+	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
+	import YoutubeVideo from '$lib/components/VideoPlayer/YoutubeVideo.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { tmdbMovieDataStore } from '$lib/stores/data.store';
@@ -18,20 +21,15 @@
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 
 	export let id: string;
 	export let handleGoBack: StackRouterPageProps['handleGoBack'];
 	export let registrar: StackRouterPageProps['registrar'];
 
 	const tmdbId = Number(id);
-	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
-
-	const background = createBackgroundPage();
+	const background = createBackgroundPage({ mediaId: id });
 	const { promise: tmdbMovie, unsubscribe: unsubscribeTmdbMovie } =
 		tmdbMovieDataStore.subscribe(tmdbId);
-
 	const {
 		inLibrary,
 		progress,
@@ -48,6 +46,9 @@
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registerScroll } = setScrollContext();
 
+	let titleProperties: TitleInfoProperty[] = [];
+
+	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
 	$: $tmdbMovie.then((movie) => {
 		const trailer = movie?.videos?.results?.find(
 			(video) => video.type === 'Trailer' && video.site === 'YouTube'
@@ -68,11 +69,8 @@
 		background.setBackgrounds(backgrounds);
 	});
 
-	let titleProperties: TitleInfoProperty[] = [];
-	$tmdbMovie.then((movie) => {
-		const trailer = movie?.videos?.results?.find(
-			(video) => video.type === 'Trailer' && video.site === 'YouTube'
-		)?.key;
+	$tmdbMovie.then(async (movie) => {
+		const trailer = await getTrailerId(movie);
 
 		if (movie?.runtime) {
 			titleProperties.push({
@@ -102,6 +100,31 @@
 
 		titleProperties = titleProperties;
 	});
+	$: if ($localSettings.autoplayTrailers) {
+		playTrailer(true);
+	}
+
+	async function getTrailerId(movie?: TmdbMovieFull2) {
+		return movie?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+	}
+
+	async function playTrailer(onBackground?: boolean) {
+		const videoId = await $tmdbMovie.then(getTrailerId);
+		if (!videoId) return;
+
+		background.setVideo({
+			id: Symbol(),
+			component: YoutubeVideo,
+			props: {
+				videoId
+			},
+			mediaId: id
+		});
+
+		if (!onBackground) background.focus();
+	}
 
 	onDestroy(() => {
 		unsubscribe();
@@ -126,13 +149,12 @@
 			{/await}
 			<Container
 				direction="horizontal"
-				class="flex mt-8"
+				class="flex mt-8 space-x-4"
 				focusOnMount
 				on:back={handleGoBack}
 				on:mount={registrar}
 			>
 				<Button
-					class="mr-4"
 					action={handleAutoplay}
 					secondaryAction={handleOpenStreamSelector}
 					disabled={!$canStream}
@@ -141,15 +163,18 @@
 					<Play size={19} slot="icon" />
 				</Button>
 
+				<Button action={() => playTrailer()}>
+					<Video slot="icon" size={19} />
+					Play Trailer
+				</Button>
+
 				{#if !$inLibrary}
-					<Button class="mr-4" action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+					<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
 				{:else}
-					<Button class="mr-4" action={handleRemoveFromLibrary} icon={Minus}>
-						Remove from Library
-					</Button>
+					<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
 				{/if}
 
-				<Button class="mr-4" action={toggleIsWatched}>
+				<Button action={toggleIsWatched}>
 					{#if $isWatched}
 						Mark as Unwatched
 					{:else}
@@ -160,7 +185,6 @@
 
 				{#if PLATFORM_WEB}
 					<Button
-						class="mr-4"
 						on:clickOrSelect={() =>
 							window.open('https://www.themoviedb.org/movie/' + tmdbId, '_blank')}
 					>

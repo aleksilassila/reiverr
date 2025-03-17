@@ -2,7 +2,6 @@
 	import { PLATFORM_TV } from '$lib/constants';
 	import { fade } from 'svelte/transition';
 	import type { BackgroundPage } from './BackgroundStack';
-	import BackgroundCarousel from './BackgroundCarousel.svelte';
 
 	export let page: BackgroundPage;
 	export let hasFocus: boolean;
@@ -10,8 +9,6 @@
 
 	$: backgrounds = page.backgrounds;
 	$: index = page.index;
-	$: mediaId = page.mediaId;
-	$: nextMediaId = nextPage?.mediaId;
 
 	let hidden = false;
 	let hiddenTimeout: ReturnType<typeof setTimeout>;
@@ -28,30 +25,7 @@
 				hidden = false;
 			}, 200);
 		}
-
-		// if (hidden) {
-		// 	hiddenTimeout = setTimeout(() => {
-		// 		hidden = false;
-		// 	}, 200);
-		// } else if (!!nextPage) {
-		// 	hidden = true;
-		// }
 	}
-	// $: updateHidden($mediaId, $nextMediaId);
-	// function updateHidden(id: string | undefined, nextId: string | undefined) {
-	// 	console.log('updateHidden', id, nextId);
-	// 	if (nextId && nextId === id) {
-	// 		clearTimeout(hiddenTimeout);
-	// 		hiddenTimeout = setTimeout(() => {
-	// 			hidden = true;
-	// 		}, 2000);
-	// 	} else if (nextPage) {
-	// 		console.log('hiding');
-	// 		hidden = true;
-	// 	} else {
-	// 		hidden = false;
-	// 	}
-	// }
 
 	$: updateBgIndex($index);
 	function updateBgIndex(index: number) {

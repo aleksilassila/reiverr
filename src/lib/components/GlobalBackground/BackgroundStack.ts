@@ -1,34 +1,94 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import { getContext, hasContext, onDestroy, setContext, tick, type ComponentType } from 'svelte';
-import { get, writable, type Writable } from 'svelte/store';
+import { getContext, hasContext, onDestroy, setContext, type ComponentType } from 'svelte';
+import { derived, get, writable } from 'svelte/store';
 
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
 export type Background = {
 	backdropUrl: string;
+	mediaId?: string;
 };
 
-// export type BackgroundVideo = {
-
-// }
+export type BackgroundVideo = {
+	id: symbol;
+	component: ComponentType;
+	props: Record<string, any>;
+	mediaId?: string;
+};
 
 export type BackgroundPage = {
 	id: symbol;
-	mediaId: Writable<string | undefined>;
-	isTransparent: Writable<boolean>;
-	backgrounds: Writable<Background[]>;
-	index: Writable<number>;
+	isTransparent: boolean;
+	backgrounds: Background[];
+	index: number;
+	video?: BackgroundVideo;
 };
 
-export const globalBackgroundStack = writable<BackgroundPage[]>([]);
-export const globalVideo = writable<
-	{ id: symbol; component: ComponentType; props: Record<string, any> } | undefined
->(undefined);
 export const globalBackground = useRegistrar();
 
-let lastFocused: Selectable | undefined = undefined;
+export const backgroundPagesStack = writable<BackgroundPage[]>([]);
+export const visibleBackgrounds = (() => {
+	const store = derived(backgroundPagesStack, (pages) => {
+		const topPage = pages[pages.length - 1];
 
-globalBackgroundStack.subscribe(() => destroyBackgroundVideo());
+		return {
+			index: topPage?.index ?? 0,
+			backgrounds:
+				topPage?.backgrounds.map((b, i) => ({ ...b, visible: topPage.index === i })) ?? [],
+			video: topPage?.video
+		};
+	});
+
+	function jumpToBackground(index: number) {
+		backgroundPagesStack.update((pages) => {
+			const topPage = pages[pages.length - 1];
+			if (topPage) topPage.index = index;
+			return pages;
+		});
+	}
+
+	function nextBackground() {
+		backgroundPagesStack.update((pages) => {
+			const topPage = pages[pages.length - 1];
+			if (topPage) topPage.index = (topPage.index + 1) % topPage.backgrounds.length;
+			return pages;
+		});
+	}
+
+	function previousBackground() {
+		backgroundPagesStack.update((pages) => {
+			const topPage = pages[pages.length - 1];
+			if (topPage)
+				topPage.index =
+					(topPage.index - 1 + topPage.backgrounds.length) % topPage.backgrounds.length;
+			return pages;
+		});
+	}
+
+	function destroyVideo() {
+		const pages = get(backgroundPagesStack);
+		const topPage = pages[pages.length - 1];
+		if (!topPage?.video) return;
+
+		backgroundPagesStack.update((pages) => {
+			const topPage = pages[pages.length - 1];
+			if (topPage) topPage.video = undefined;
+			return pages;
+		});
+
+		unfocusGlobalBackground();
+	}
+
+	return {
+		subscribe: store.subscribe,
+		jumpToBackground,
+		nextBackground,
+		previousBackground,
+		destroyVideo
+	};
+})();
+
+let lastFocused: Selectable | undefined = undefined;
 
 function _createBackgroundPage(
 	options: {
@@ -36,42 +96,112 @@ function _createBackgroundPage(
 		mediaId?: string;
 	} = {}
 ) {
-	const { transparent = false, mediaId: initialMediaId } = options;
+	const { transparent = false, mediaId } = options;
+
+	const backgroundPages = get(backgroundPagesStack);
+	const previousPage = backgroundPages[backgroundPages.length - 1];
+	const reusedPage = previousPage?.backgrounds.find(
+		(b, i) => mediaId && b.mediaId === mediaId && i === previousPage.index
+	);
 
 	const id = Symbol();
-	const backgrounds = writable<Background[]>([]);
-	const index = writable<number>(0);
-	const isTransparent = writable(transparent);
-	const mediaId = writable<string | undefined>(initialMediaId);
-	const initialPage = {
+	const initialPage: BackgroundPage = {
 		id,
-		mediaId,
-		backgrounds,
-		index,
-		isTransparent
+		backgrounds: reusedPage ? [reusedPage] : [],
+		index: 0,
+		isTransparent: transparent,
+		video: mediaId && previousPage?.video?.mediaId === mediaId ? previousPage?.video : undefined
 	};
-	globalBackgroundStack.update((pages) => [...pages, initialPage]);
-	globalBackgroundStack.subscribe(console.log);
-	onDestroy(() => globalBackgroundStack.update((items) => items.filter((i) => i.id !== id)));
+	backgroundPagesStack.update((pages) => [...pages, initialPage]);
+	// backgroundPagesStack.subscribe(console.log);
 
-	function setBackgrounds(items: Background[]) {
-		backgrounds.set(items);
+	function updatePage(fn: (page: BackgroundPage) => BackgroundPage) {
+		backgroundPagesStack.update((pages) => {
+			const p = pages.find((p) => p.id === id);
+			if (p) {
+				return pages.map((page) => (page.id === id ? fn(page) : page));
+			}
+			return pages;
+		});
+	}
+
+	function setBackgrounds(unfilteredItems: Background[]) {
+		const items = unfilteredItems.filter((b) => b.backdropUrl);
+
+		const page = get(backgroundPagesStack).find((p) => p.id === id);
+		const currentBackground = page?.backgrounds[page.index];
+
+		const updatedIndex = items.findIndex(
+			(b) => b.mediaId && b.backdropUrl === currentBackground?.backdropUrl
+		);
+
+		updatePage((page) => ({
+			...page,
+			backgrounds: items,
+			index: updatedIndex !== -1 ? updatedIndex : 0
+		}));
 	}
 
 	function setIndex(i: number) {
-		index.set(i);
+		updatePage((page) => ({ ...page, index: i }));
 	}
 
-	function setMediaId(id: string) {
-		mediaId.set(id);
+	function nextBackground() {
+		updatePage((page) => ({ ...page, index: (page.index + 1) % page.backgrounds.length }));
 	}
+
+	function previousBackground() {
+		updatePage((page) => ({
+			...page,
+			index: (page.index - 1 + page.backgrounds.length) % page.backgrounds.length
+		}));
+	}
+
+	function setVideo(video: BackgroundVideo) {
+		const page = get(backgroundPagesStack).find((p) => p.id === id);
+		if (video.mediaId && video.mediaId === page?.video?.mediaId) return;
+
+		updatePage((page) => ({ ...page, video }));
+	}
+
+	function destroyVideo() {
+		updatePage((page) => ({ ...page, video: undefined }));
+	}
+
+	function focus() {
+		const pages = get(backgroundPagesStack);
+		const topPage = pages[pages.length - 1];
+		if (topPage && topPage.id === id) {
+			focusGlobalBackground();
+		}
+	}
+
+	function unfocus() {
+		const pages = get(backgroundPagesStack);
+		const topPage = pages[pages.length - 1];
+		if (topPage && topPage.id === id) {
+			unfocusGlobalBackground();
+		}
+	}
+
+	function destroy() {
+		backgroundPagesStack.update((items) => items.filter((i) => i.id !== id));
+	}
+
+	onDestroy(() => {
+		destroy();
+	});
 
 	return {
 		setBackgrounds,
 		setIndex,
-		/** @deprecated */
-		focus: focusGlobalBackground,
-		setMediaId
+		nextBackground,
+		previousBackground,
+		setVideo,
+		destroyVideo,
+		focus,
+		unfocus,
+		destroy
 	};
 }
 export const createBackgroundPage: typeof _createBackgroundPage = (...args) => {
@@ -102,6 +232,8 @@ export function focusGlobalBackground() {
 		return;
 	}
 
+	console.log('focusing global background', lastFocused);
+
 	backgroundSelectable.focus();
 }
 
@@ -121,24 +253,4 @@ export function toggleFocusGlobalBackground() {
 	} else {
 		focusGlobalBackground();
 	}
-}
-
-export function playBackgroundVideo(component: ComponentType, props: Record<string, any>) {
-	globalVideo.set({
-		id: Symbol(),
-		component,
-		props
-	});
-
-	focusGlobalBackground();
-}
-
-export async function destroyBackgroundVideo() {
-	console.log('destroying background video');
-	unfocusGlobalBackground();
-	// Idk why you need this
-	await tick();
-	console.log('destroying video');
-	globalVideo.set(undefined);
-	return tick();
 }
