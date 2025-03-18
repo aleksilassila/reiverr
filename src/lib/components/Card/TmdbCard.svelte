@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Card from './Card.svelte';
-	import type { TmdbMovie2, TmdbSeries2 } from '../../apis/tmdb/tmdb-api';
+	import type { TmdbMovie, TmdbSeries } from '../../apis/tmdb/tmdb-api';
 	import type { ComponentProps } from 'svelte';
 	import { TMDB_POSTER_SMALL } from '../../constants';
 	import type { TitleType } from '../../types';
 
 	export let item:
-		| Pick<TmdbMovie2, 'id' | 'title' | 'release_date' | 'poster_path' | 'vote_average' | 'runtime'>
-		| Pick<TmdbSeries2, 'id' | 'name' | 'first_air_date' | 'poster_path' | 'vote_average'>;
+		| Pick<TmdbMovie, 'id' | 'title' | 'release_date' | 'poster_path' | 'vote_average' | 'runtime'>
+		| Pick<TmdbSeries, 'id' | 'name' | 'first_air_date' | 'poster_path' | 'vote_average'>;
 	export let progress = 0;
 	let title = '';
 	let subtitle = '';

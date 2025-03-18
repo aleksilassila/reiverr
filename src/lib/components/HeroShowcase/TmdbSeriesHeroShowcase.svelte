@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { TmdbSeries2 } from '$lib/apis/tmdb/tmdb-api';
+	import type { TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
 	import { formatThousands } from '$lib/utils';
 	import { navigate } from '../StackRouter/StackRouter';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import { Video } from 'radix-icons-svelte';
 
-	export let series: Promise<TmdbSeries2[]>;
+	export let series: Promise<TmdbSeries[]>;
 
 	$: items = series.then(async (series) => {
 		return Promise.all(

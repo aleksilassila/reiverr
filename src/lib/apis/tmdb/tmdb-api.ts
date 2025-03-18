@@ -12,12 +12,12 @@ import type { paths as paths4 } from './tmdb4.generated';
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
 
-export type TmdbMovie2 =
+export type TmdbMovie =
 	operations['movie-details']['responses']['200']['content']['application/json'];
 export type TmdbMovieSmall = NonNullable<
 	operations['discover-movie']['responses']['200']['content']['application/json']['results']
 >[0];
-export type TmdbSeries2 =
+export type TmdbSeries =
 	operations['tv-series-details']['responses']['200']['content']['application/json'];
 export type TmdbSeriesSmall = NonNullable<
 	operations['discover-tv']['responses']['200']['content']['application/json']['results']
@@ -28,8 +28,8 @@ export type TmdbSeasonEpisode = NonNullable<TmdbSeason['episodes']>[0];
 export type TmdbPerson =
 	operations['person-details']['responses']['200']['content']['application/json'];
 export type TmdbCredit =
-	| NonNullable<TmdbSeriesFull2['aggregate_credits']['cast']>[0]
-	| NonNullable<TmdbMovieFull2['credits']['cast']>[0];
+	| NonNullable<TmdbSeriesFull['aggregate_credits']['cast']>[0]
+	| NonNullable<TmdbMovieFull['credits']['cast']>[0];
 export type TmdbEpisode =
 	operations['tv-episode-details']['responses']['200']['content']['application/json'];
 
@@ -40,14 +40,14 @@ export interface TmdbPersonFull extends TmdbPerson {
 	external_ids: operations['person-external-ids']['responses']['200']['content']['application/json'];
 }
 
-export interface TmdbMovieFull2 extends TmdbMovie2 {
+export interface TmdbMovieFull extends TmdbMovie {
 	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
 	credits: operations['movie-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['movie-external-ids']['responses']['200']['content']['application/json'];
 	images: operations['movie-images']['responses']['200']['content']['application/json'];
 }
 
-export interface TmdbSeriesFull2 extends TmdbSeries2 {
+export interface TmdbSeriesFull extends TmdbSeries {
 	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
 	aggregate_credits: operations['tv-series-aggregate-credits']['responses']['200']['content']['application/json'];
 	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
@@ -123,7 +123,7 @@ export class TmdbApi implements Api<paths> {
 					}
 				}
 			})
-			.then((res) => res.data as TmdbMovieFull2 | undefined);
+			.then((res) => res.data as TmdbMovieFull | undefined);
 	};
 
 	getPopularMovies = () =>
@@ -155,7 +155,7 @@ export class TmdbApi implements Api<paths> {
 					'Cache-Control': CACHE_ONE_DAY
 				}
 			})
-			.then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
+			.then((res) => res.data?.tv_results?.[0] as TmdbSeries | undefined);
 
 	getTmdbIdFromTvdbId = async (tvdbId: number) =>
 		getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
@@ -164,7 +164,7 @@ export class TmdbApi implements Api<paths> {
 			return id;
 		});
 
-	getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
+	getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull | undefined> =>
 		await this.getClient()
 			?.GET('/3/tv/{series_id}', {
 				params: {
@@ -180,7 +180,7 @@ export class TmdbApi implements Api<paths> {
 					'Cache-Control': CACHE_ONE_DAY
 				}
 			})
-			.then((res) => res.data as TmdbSeriesFull2 | undefined);
+			.then((res) => res.data as TmdbSeriesFull | undefined);
 
 	getTmdbSeriesSeason = async (tmdbId: number, season: number): Promise<TmdbSeason | undefined> =>
 		this.getClient()
@@ -572,7 +572,7 @@ export const getTmdbMovie = async (tmdbId: number) =>
 				...({ include_image_language: get(settings)?.language + ',en,null' } as any)
 			}
 		}
-	}).then((res) => res.data as TmdbMovieFull2 | undefined);
+	}).then((res) => res.data as TmdbMovieFull | undefined);
 
 export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 	TmdbApiOpen.GET('/3/find/{external_id}', {
@@ -587,7 +587,7 @@ export const getTmdbSeriesFromTvdbId = async (tvdbId: string) =>
 		headers: {
 			'Cache-Control': CACHE_ONE_DAY
 		}
-	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries2 | undefined);
+	}).then((res) => res.data?.tv_results?.[0] as TmdbSeries | undefined);
 
 export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
 	getTmdbSeriesFromTvdbId(String(tvdbId)).then((res: any) => {
@@ -596,7 +596,7 @@ export const getTmdbIdFromTvdbId = async (tvdbId: number) =>
 		return id;
 	});
 
-export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | undefined> =>
+export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull | undefined> =>
 	await TmdbApiOpen.GET('/3/tv/{series_id}', {
 		params: {
 			path: {
@@ -610,7 +610,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull2 | u
 		headers: {
 			'Cache-Control': CACHE_ONE_DAY
 		}
-	}).then((res) => res.data as TmdbSeriesFull2 | undefined);
+	}).then((res) => res.data as TmdbSeriesFull | undefined);
 
 export const getTmdbSeriesSeason = async (
 	tmdbId: number,

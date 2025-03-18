@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { TmdbMovie2 } from '$lib/apis/tmdb/tmdb-api';
+	import type { TmdbMovie } from '$lib/apis/tmdb/tmdb-api';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
 	import { navigate } from '../StackRouter/StackRouter';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import { Video } from 'radix-icons-svelte';
 
-	export let movies: Promise<TmdbMovie2[]>;
+	export let movies: Promise<TmdbMovie[]>;
 
 	$: items = movies
 		.then(async (movies) =>

@@ -7,7 +7,7 @@
 		tmdbApi,
 		type TmdbEpisode,
 		type TmdbSeasonEpisode,
-		type TmdbSeriesFull2
+		type TmdbSeriesFull
 	} from '../../../apis/tmdb/tmdb-api';
 	import CardGrid from '../../../components/CardGrid.svelte';
 	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
@@ -20,7 +20,7 @@
 	const { topVisible } = getScrollContext();
 
 	export let tmdbId: number;
-	export let tmdbSeries: Promise<TmdbSeriesFull2 | undefined>;
+	export let tmdbSeries: Promise<TmdbSeriesFull | undefined>;
 	export let nextEpisode: Readable<EpisodeData>;
 	export let episodesUserData: EpisodeData[];
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
