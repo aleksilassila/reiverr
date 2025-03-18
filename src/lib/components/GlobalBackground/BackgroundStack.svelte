@@ -5,7 +5,7 @@
 		unfocusGlobalBackground,
 		visibleBackgrounds
 	} from '$lib/components/GlobalBackground/BackgroundStack';
-	import { PLATFORM_TV } from '$lib/constants';
+	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { isUserInactive } from '$lib/stores/user-activity.store';
 	import classNames from 'classnames';
@@ -80,7 +80,6 @@
 		>
 			{#if $visibleBackgrounds.video}
 				{@const video = $visibleBackgrounds.video}
-				<!-- <div out:fade={{ duration: 200, delay: 50 }} in:fade={{ duration: 200 }}> -->
 				<Container
 					class={classNames('absolute inset-0 transition-opacity duration-500', {
 						'pointer-events-none': !$hasFocus
@@ -132,14 +131,16 @@
 						}}
 					/>
 				</Container>
-				<FloatingIconButton
-					class={classNames('absolute top-12 right-16 transition-opacity', {
-						'opacity-0': !$hasFocus || $isUserInactive
-					})}
-					on:click={() => unfocusGlobalBackground()}
-				>
-					<Cross1 size={32} />
-				</FloatingIconButton>
+				{#if PLATFORM_WEB}
+					<FloatingIconButton
+						class={classNames('absolute top-12 right-16 transition-opacity', {
+							'opacity-0': !$hasFocus || $isUserInactive
+						})}
+						on:click={() => unfocusGlobalBackground()}
+					>
+						<Cross1 size={32} />
+					</FloatingIconButton>
+				{/if}
 			{/if}
 		</Container>
 		<!-- For willLeaveContainer -->

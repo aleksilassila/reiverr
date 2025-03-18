@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PLATFORM_TV } from '$lib/constants';
+	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
 	import { isUserInactive } from '$lib/stores/user-activity.store';
 	import { getVideoZoomLevel } from '$lib/utils';
 	import classNames from 'classnames';
@@ -108,7 +108,7 @@
 					fs: 0,
 					disablekb: 1,
 					cc_load_policy: 0,
-					mute: 1
+					mute: 0
 				},
 				events: {
 					onReady: () => {
@@ -264,7 +264,10 @@
 		'opacity-0': !$hasFocus && !isPlayerReady
 	})}
 >
-	<div>
+	<div
+		class="absolute inset-0 pointer-events-none flex items-center justify-center"
+		style={`transform: scale(${zoom});`}
+	>
 		<div id={playerId} class="video-background" />
 	</div>
 
@@ -289,46 +292,23 @@
 
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div on:click={() => (userPaused = !userPaused)} class="absolute inset-0" />
-	<FloatingIconButton
-		class={classNames('absolute top-12 right-16 transition-opacity', {
-			'opacity-0': !$hasFocus || $isUserInactive
-		})}
-		on:click={() => visibleBackgrounds.destroyVideo()}
-	>
-		<Cross1 size={32} />
-	</FloatingIconButton>
+	{#if PLATFORM_WEB}
+		<FloatingIconButton
+			class={classNames('absolute top-12 right-16 transition-opacity', {
+				'opacity-0': !$hasFocus || $isUserInactive
+			})}
+			on:click={() => visibleBackgrounds.destroyVideo()}
+		>
+			<Cross1 size={32} />
+		</FloatingIconButton>
+	{/if}
 </Container>
 
 <style>
 	.video-background {
-		position: absolute;
-		top: 50%;
-		left: 50%;
 		width: 100vw;
 		height: 150vh;
-		transform: translate(-50%, -50%);
-		transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
-		z-index: 0;
-		pointer-events: none;
 	}
-
-	/* @media (max-width: 1200px) {
-		.video-background {
-			transform: translate(-50%, -50%) scale(2);
-		}
-	}
-
-	@media (max-width: 800px) {
-		.video-background {
-			transform: translate(-50%, -50%) scale(2.5);
-		}
-	}
-
-	@media (max-width: 500px) {
-		.video-background {
-			transform: translate(-50%, -50%) scale(3);
-		}
-	} */
 
 	.background-image {
 		position: fixed;
