@@ -88,14 +88,14 @@
 			{/if}
 
 			{#if playButton}
-				<div class="absolute inset-0 flex items-center justify-center z-10">
+				<div class="absolute inset-0 flex items-center justify-center">
 					<PlayButton />
 				</div>
 			{/if}
 
 			{#if progress && progress > lowerLimit && progress < upperLimit}
 				<div
-					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out z-[1]"
+					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out"
 				>
 					<ProgressBar {progress} />
 				</div>

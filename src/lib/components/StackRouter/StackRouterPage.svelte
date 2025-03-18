@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { useRegistrar } from '$lib/selectable';
-	import { get } from 'svelte/store';
-	import Container from '../Container.svelte';
-	import { createBackgroundPage } from '../GlobalBackground/BackgroundStack';
-	import { focusSidebar } from '../Sidebar/sidebar';
 	import classNames from 'classnames';
+	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
-	import { onDestroy } from 'svelte';
+	import Container from '../Container.svelte';
+	import { focusSidebar } from '../Sidebar/sidebar';
 
 	// const background = createBackgroundPage();
 
@@ -48,6 +46,7 @@
 			'opacity-0': hidden
 		}
 	)}
+	style="backface-visibility: hidden;"
 	trapFocus
 	focusOnMount
 	direction="horizontal"

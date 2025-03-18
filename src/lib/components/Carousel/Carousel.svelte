@@ -91,7 +91,7 @@
 					'space-x-8 py-4 w-full',
 					scrollClass
 				)}
-				style={`-webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
+				style={`backface-visibility: hidden; -webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
 				bind:this={carousel}
 				tabindex="-1"
 				on:scroll={() => (scrollX = carousel?.scrollLeft || scrollX)}
