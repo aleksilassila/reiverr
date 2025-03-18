@@ -80,7 +80,12 @@
 		>
 			<!--{#if !group}-->
 			{#if backdropUrl}
-				<LazyImg src={backdropUrl} class="absolute inset-0" />
+				<LazyImg
+					src={backdropUrl}
+					class="absolute inset-0"
+					width={dimensions.width}
+					height={dimensions.height}
+				/>
 			{:else}
 				<div class="absolute inset-0 bg-secondary-700 h1 flex items-center justify-center">
 					{title}

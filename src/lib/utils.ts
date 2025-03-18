@@ -187,8 +187,8 @@ export function getCardDimensions(options: {
 	const newHeight = (orientation === 'portrait' ? 3 / 2 : 9 / 16) * newWidth;
 
 	return {
-		width: newWidth,
-		height: newHeight,
+		width: Math.round(newWidth),
+		height: Math.round(newHeight),
 		columns: cols
 	};
 }

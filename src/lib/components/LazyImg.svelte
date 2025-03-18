@@ -3,6 +3,8 @@
 
 	export let src: string;
 	export let alt: string = '';
+	export let width: number | undefined = undefined;
+	export let height: number | undefined = undefined;
 
 	let loaded = false;
 
@@ -27,6 +29,8 @@
 		style="object-fit: cover; width: 100%; height: 100%;"
 		loading="lazy"
 		on:load={handleLoad}
+		{width}
+		{height}
 	/>
 	<slot />
 </div>
