@@ -99,7 +99,7 @@
 				<span slot="header">Continue Watching</span>
 				{#key libraryContinueWatchingKey}
 					{#each $libraryContinueWatching as item (item.id)}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				{/key}
 			</Carousel>
@@ -109,7 +109,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Popular</span>
 				{#each popular as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -121,7 +121,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -131,7 +131,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Now Streaming</span>
 				{#each nowStreaming as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -143,7 +143,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -153,7 +153,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Upcoming Series</span>
 				{#each upcomingSeries as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -165,7 +165,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -178,7 +178,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -193,7 +193,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -206,7 +206,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_SERIES_GENRES.find((g) => String(g.id) == genre)?.name}</span>
 					{#each genreItems || [] as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}

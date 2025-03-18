@@ -105,7 +105,7 @@
 				<span slot="header">Continue Watching</span>
 				{#key libraryContinueWatchingKey}
 					{#each $libraryContinueWatching as item (item.id)}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				{/key}
 			</Carousel>
@@ -115,7 +115,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Popular</span>
 				{#each popularMovies as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -127,7 +127,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -137,7 +137,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">New Digital Releases</span>
 				{#each nowStreaming as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -149,7 +149,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -159,7 +159,7 @@
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Upcoming Movies</span>
 				{#each upcomingSeries as item}
-					<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
 		{/await}
@@ -171,7 +171,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -184,7 +184,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -199,7 +199,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
@@ -212,7 +212,7 @@
 				<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 					<span slot="header">{TMDB_MOVIE_GENRES.find((g) => g.id == genre)?.name}</span>
 					{#each items as item}
-						<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 					{/each}
 				</Carousel>
 			{/if}
