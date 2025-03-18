@@ -31,7 +31,6 @@ export class LibraryService {
             ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
             : undefined;
 
-
         return LibraryItemDto2.create({
           libraryItem: item,
           seriesMetadata,

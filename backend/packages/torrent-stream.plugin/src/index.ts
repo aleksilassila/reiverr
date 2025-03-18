@@ -281,7 +281,9 @@ class TorrentProvider extends SourceProvider {
                 ) ||
                 name.includes(`S${season.toString()}E${episode.toString()}`) ||
                 name.includes(
-                  `${season.toString().padStart(2, '0')}X${episode.toString().padStart(2, '0')}`,
+                  `${season.toString().padStart(2, '0')}X${episode
+                    .toString()
+                    .padStart(2, '0')}`,
                 ) ||
                 name.includes(`${season.toString()}X${episode.toString()}`)
               );

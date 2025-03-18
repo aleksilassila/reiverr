@@ -5,10 +5,7 @@ import * as torrentStream from 'torrent-stream';
 class FileCache<T> {
   private cache: T;
 
-  constructor(
-    private cacheFile: string,
-    private defaultValue: T,
-  ) {
+  constructor(private cacheFile: string, private defaultValue: T) {
     this.cache = this.readStreamCache();
   }
 

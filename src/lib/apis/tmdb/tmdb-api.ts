@@ -1,13 +1,13 @@
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
-import type { operations, paths } from './tmdb.generated';
-import type { operations as operations4, paths as paths4 } from './tmdb4.generated';
 import { TMDB_API_KEY, TMDB_BACKDROP_SMALL } from '../../constants';
+import { sessions } from '../../stores/session.store';
 import { settings } from '../../stores/settings.store';
+import { user } from '../../stores/user.store';
 import type { TitleType } from '../../types';
 import type { Api } from '../api.interface';
-import { user } from '../../stores/user.store';
-import { sessions } from '../../stores/session.store';
+import type { operations, paths } from './tmdb.generated';
+import type { paths as paths4 } from './tmdb4.generated';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
