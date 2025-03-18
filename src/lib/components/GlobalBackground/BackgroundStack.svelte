@@ -20,9 +20,6 @@
 	let autoplayVideo = false;
 	let loadDelayTimeout: ReturnType<typeof setTimeout> | undefined;
 
-	let uiHidden = true;
-	let hiddenTimeout: ReturnType<typeof setTimeout>;
-
 	$: {
 		if ($visibleBackgrounds.video) {
 			autoplayVideo = false;

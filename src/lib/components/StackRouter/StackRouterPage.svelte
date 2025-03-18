@@ -40,7 +40,7 @@
 
 <Container
 	class={classNames(
-		'fixed inset-0 overflow-y-auto scrollbar-hide transition-opacity duration-200',
+		'fixed inset-0 overflow-y-auto scrollbar-hide transition-opacity duration-200 ease-linear',
 		{
 			'opacity-100': !hidden,
 			'opacity-0': hidden

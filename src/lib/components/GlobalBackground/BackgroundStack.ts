@@ -1,6 +1,8 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
+import { useTimeoutStore } from '$lib/utils';
 import { getContext, hasContext, onDestroy, setContext, type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
+import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
@@ -26,20 +28,25 @@ export type BackgroundPage = {
 
 export const globalBackground = useRegistrar();
 
+const fadeTimeout = useTimeoutStore(500, true);
 export const backgroundPagesStack = writable<BackgroundPage[]>([]);
 export const visibleBackgrounds = (() => {
-	const store = derived(backgroundPagesStack, (pages) => {
+	const store = derived([backgroundPagesStack, fadeTimeout], ([pages, $fadeTimeout]) => {
 		const topPage = pages[pages.length - 1];
 
 		return {
 			index: topPage?.index ?? 0,
 			backgrounds:
-				topPage?.backgrounds.map((b, i) => ({ ...b, visible: topPage.index === i })) ?? [],
+				topPage?.backgrounds.map((b, i) => ({
+					...b,
+					visible: topPage.index === i && !$fadeTimeout
+				})) ?? [],
 			video: topPage?.video
 		};
 	});
 
 	function jumpToBackground(index: number) {
+		fadeTimeout.reset();
 		backgroundPagesStack.update((pages) => {
 			const topPage = pages[pages.length - 1];
 			if (topPage) topPage.index = index;
@@ -48,6 +55,7 @@ export const visibleBackgrounds = (() => {
 	}
 
 	function nextBackground() {
+		fadeTimeout.reset();
 		backgroundPagesStack.update((pages) => {
 			const topPage = pages[pages.length - 1];
 			if (topPage) topPage.index = (topPage.index + 1) % topPage.backgrounds.length;
@@ -56,6 +64,7 @@ export const visibleBackgrounds = (() => {
 	}
 
 	function previousBackground() {
+		fadeTimeout.reset();
 		backgroundPagesStack.update((pages) => {
 			const topPage = pages[pages.length - 1];
 			if (topPage)
@@ -143,14 +152,17 @@ function _createBackgroundPage(
 	}
 
 	function setIndex(i: number) {
+		fadeTimeout.reset();
 		updatePage((page) => ({ ...page, index: i }));
 	}
 
 	function nextBackground() {
+		fadeTimeout.reset();
 		updatePage((page) => ({ ...page, index: (page.index + 1) % page.backgrounds.length }));
 	}
 
 	function previousBackground() {
+		fadeTimeout.reset();
 		updatePage((page) => ({
 			...page,
 			index: (page.index - 1 + page.backgrounds.length) % page.backgrounds.length
@@ -188,6 +200,21 @@ function _createBackgroundPage(
 		backgroundPagesStack.update((items) => items.filter((i) => i.id !== id));
 	}
 
+	function playYoutubeVideo(options: { tmdbId: string; videoId: string; onBackground?: boolean }) {
+		const { tmdbId, videoId, onBackground = false } = options;
+
+		setVideo({
+			id: Symbol(),
+			component: YoutubeVideo,
+			props: {
+				videoId
+			},
+			mediaId: tmdbId
+		});
+
+		if (!onBackground) focus();
+	}
+
 	onDestroy(() => {
 		destroy();
 	});
@@ -199,6 +226,7 @@ function _createBackgroundPage(
 		previousBackground,
 		setVideo,
 		destroyVideo,
+		playYoutubeVideo,
 		focus,
 		unfocus,
 		destroy

@@ -192,3 +192,27 @@ export function getCardDimensions(options: {
 		columns: cols
 	};
 }
+
+export function useTimeoutStore(duration: number, initialReset = false) {
+	const store = writable(true);
+
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+
+	function reset() {
+		store.set(true);
+		clearTimeout(timeout);
+
+		timeout = setTimeout(() => {
+			store.set(false);
+		}, duration);
+	}
+
+	if (initialReset) {
+		reset();
+	}
+
+	return {
+		subscribe: store.subscribe,
+		reset
+	};
+}

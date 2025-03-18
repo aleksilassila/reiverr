@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
 	import { scrollIntoView } from '$lib/selectable.js';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
@@ -7,6 +8,8 @@
 	import CardGrid from '../components/CardGrid.svelte';
 	import { TMDB_POSTER_SMALL } from '../constants.js';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
+
+	createBackgroundPage();
 
 	export let id: string;
 	export let registrar: StackRouterPageProps['registrar'];

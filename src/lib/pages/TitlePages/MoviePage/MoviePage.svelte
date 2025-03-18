@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { tmdbApi, type TmdbMovieFull2 } from '$lib/apis/tmdb/tmdb-api';
+	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -8,7 +8,6 @@
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
-	import YoutubeVideo from '$lib/components/VideoPlayer/YoutubeVideo.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { tmdbMovieDataStore } from '$lib/stores/data.store';
@@ -46,31 +45,26 @@
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registerScroll } = setScrollContext();
 
+	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];
 
 	$: recommendations = tmdbApi.getMovieRecommendations(tmdbId);
-	$: $tmdbMovie.then((movie) => {
-		const trailer = movie?.videos?.results?.find(
-			(video) => video.type === 'Trailer' && video.site === 'YouTube'
-		)?.key;
 
-		console.log(movie);
-
+	$tmdbMovie.then(async (movie) => {
 		const backgrounds =
 			movie?.images?.backdrops
 				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
 				?.map((bd, i) => ({
 					backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || '',
-
-					videoUrl: trailer && i === 0 ? trailer : undefined
+					mediaId: id
 				}))
 				.slice(0, 5) || [];
 
 		background.setBackgrounds(backgrounds);
-	});
 
-	$tmdbMovie.then(async (movie) => {
-		const trailer = await getTrailerId(movie);
+		trailerId = movie?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
 
 		if (movie?.runtime) {
 			titleProperties.push({
@@ -91,39 +85,17 @@
 			});
 		}
 
-		if ($localSettings.enableTrailers && trailer) {
+		if ($localSettings.enableTrailers && trailerId) {
 			titleProperties.push({
 				icon: Video,
-				href: `https://www.youtube.com/watch?v=${trailer}`
+				href: `https://www.youtube.com/watch?v=${trailerId}`
 			});
 		}
 
 		titleProperties = titleProperties;
 	});
-	$: if ($localSettings.autoplayTrailers) {
-		playTrailer(true);
-	}
-
-	async function getTrailerId(movie?: TmdbMovieFull2) {
-		return movie?.videos?.results?.find(
-			(video) => video.type === 'Trailer' && video.site === 'YouTube'
-		)?.key;
-	}
-
-	async function playTrailer(onBackground?: boolean) {
-		const videoId = await $tmdbMovie.then(getTrailerId);
-		if (!videoId) return;
-
-		background.setVideo({
-			id: Symbol(),
-			component: YoutubeVideo,
-			props: {
-				videoId
-			},
-			mediaId: id
-		});
-
-		if (!onBackground) background.focus();
+	$: if ($localSettings.autoplayTrailers && trailerId) {
+		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
 
 	onDestroy(() => {
@@ -163,10 +135,15 @@
 					<Play size={19} slot="icon" />
 				</Button>
 
-				<Button action={() => playTrailer()}>
-					<Video slot="icon" size={19} />
-					Play Trailer
-				</Button>
+				{#if trailerId}
+					<Button
+						on:clickOrSelect={() =>
+							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
+					>
+						<Video slot="icon" size={19} />
+						Play Trailer
+					</Button>
+				{/if}
 
 				{#if !$inLibrary}
 					<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>

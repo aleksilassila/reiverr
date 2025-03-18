@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { tmdbApi, type TmdbSeriesFull2 } from '$lib/apis/tmdb/tmdb-api';
+	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -8,7 +8,6 @@
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
-	import YoutubeVideo from '$lib/components/VideoPlayer/YoutubeVideo.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
@@ -47,16 +46,11 @@
 
 	const tmdbId = Number(id);
 	const episodeCards = useRegistrar();
+	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];
 
 	$: recommendations = tmdbApi.getSeriesRecommendations(tmdbId);
-
-	// Background images
-	$: $tmdbSeries.then((series) => {
-		const trailer = series?.videos?.results?.find(
-			(video) => video.type === 'Trailer' && video.site === 'YouTube'
-		)?.key;
-
+	$tmdbSeries.then((series) => {
 		const backgrounds =
 			series?.images.backdrops
 				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
@@ -67,10 +61,10 @@
 				.slice(0, 5) || [];
 
 		background.setBackgrounds(backgrounds);
-	});
 
-	$tmdbSeries.then(async (series) => {
-		const trailer = await getTrailerId(series);
+		trailerId = series?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
 
 		if (series && series.status !== 'Ended') {
 			titleProperties.push({
@@ -97,39 +91,17 @@
 			});
 		}
 
-		if ($localSettings.enableTrailers && trailer) {
+		if ($localSettings.enableTrailers && trailerId) {
 			titleProperties.push({
 				icon: Video,
-				href: `https://www.youtube.com/watch?v=${trailer}`
+				href: `https://www.youtube.com/watch?v=${trailerId}`
 			});
 		}
 
 		titleProperties = titleProperties;
 	});
-	$: if ($localSettings.autoplayTrailers) {
-		playTrailer(true);
-	}
-
-	async function getTrailerId(series?: TmdbSeriesFull2) {
-		return series?.videos?.results?.find(
-			(video) => video.type === 'Trailer' && video.site === 'YouTube'
-		)?.key;
-	}
-
-	async function playTrailer(onBackground?: boolean) {
-		const videoId = await $tmdbSeries.then(getTrailerId);
-		if (!videoId) return;
-
-		background.setVideo({
-			id: Symbol(),
-			component: YoutubeVideo,
-			props: {
-				videoId
-			},
-			mediaId: id
-		});
-
-		if (!onBackground) background.focus();
+	$: if ($localSettings.autoplayTrailers && trailerId) {
+		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
 
 	onDestroy(() => {
@@ -178,10 +150,15 @@
 					<Play size={19} slot="icon" />
 				</Button>
 
-				<Button action={() => playTrailer()}>
-					<Video slot="icon" size={19} />
-					Play Trailer
-				</Button>
+				{#if trailerId}
+					<Button
+						on:clickOrSelect={() =>
+							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
+					>
+						<Video slot="icon" size={19} />
+						Play Trailer
+					</Button>
+				{/if}
 
 				{#if !$inLibrary}
 					<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
