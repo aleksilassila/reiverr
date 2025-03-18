@@ -1,7 +1,6 @@
+import { getPublicReiverrApi } from '$lib/apis/reiverr/reiverr-api';
+import { AxiosError } from 'axios';
 import { createLocalStorageStore } from './localstorage.store';
-import type { operations } from '../apis/reiverr/reiverr.generated';
-import axios from 'axios';
-import { get } from 'svelte/store';
 
 export interface Session {
 	id: string;
@@ -22,17 +21,14 @@ function useSessions() {
 	}
 
 	async function addSession(baseUrl: string, name: string, password: string, activate = true) {
-		const res = await axios
-			.post<operations['AuthController_signIn']['responses']['200']['content']['application/json']>(
-				baseUrl + '/api/auth',
-				{
-					name,
-					password
-				}
-			)
-			.catch((e) => e.response);
-
-		if (res.status !== 200) return res;
+		const res = await getPublicReiverrApi(baseUrl)
+			.api.signIn({ name, password })
+			.catch((e: AxiosError) => {
+				if (e.response?.status && e.response?.status >= 500) throw new Error('Server error');
+				else if (e.response?.status && e.response?.status >= 400)
+					throw new Error('Invalid credentials');
+				else throw new Error('Could not connect to the server');
+			});
 
 		const session = {
 			id: res.data.user.id,

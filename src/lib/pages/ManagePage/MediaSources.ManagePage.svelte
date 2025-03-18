@@ -7,10 +7,10 @@
 	import Button from '../../components/Button.svelte';
 	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 	import { createModal } from '../../components/Modal/modal.store';
-	import { reiverrApiNew } from '../../stores/user.store';
+	import { reiverrApi } from '../../stores/user.store';
 	import MediaSourceButton from './MediaSourceButton.ManagePage.svelte';
 
-	const allProviders = reiverrApiNew.providers.getSourceProviders().then((r) => r.data);
+	const allProviders = reiverrApi.providers.getSourceProviders().then((r) => r.data);
 
 	const { isLoading, addSource, ...userSources } = sources;
 </script>

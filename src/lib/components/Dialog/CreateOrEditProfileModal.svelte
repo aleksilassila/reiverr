@@ -1,23 +1,24 @@
 <script lang="ts">
-	import Dialog from './Dialog.svelte';
-	import { reiverrApi, type ReiverrUser } from '../../apis/reiverr/reiverr-api';
-	import TextField from '../TextField.svelte';
+	import { EyeClosed, EyeOpen, Trash, Upload } from 'radix-icons-svelte';
+	import { get } from 'svelte/store';
+	import { type ReiverrUser } from '../../apis/reiverr/reiverr-api';
+	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
+	import { sessions } from '../../stores/session.store';
+	import { reiverrApi, user as userStore } from '../../stores/user.store';
 	import Button from '../Button.svelte';
-	import { ArrowUp, EyeClosed, EyeOpen, Trash, Upload } from 'radix-icons-svelte';
 	import Container from '../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
-	import Tab from '../Tab/Tab.svelte';
-	import { useTabs } from '../Tab/Tab';
-	import SelectField from '../SelectField.svelte';
-	import ProfileIcon from '../ProfileIcon.svelte';
-	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
 	import { createModal, modalStack } from '../Modal/modal.store';
-	import { user as userStore } from '../../stores/user.store';
-	import ConfirmDialog from './ConfirmDialog.svelte';
-	import { sessions } from '../../stores/session.store';
+	import ProfileIcon from '../ProfileIcon.svelte';
+	import SelectField from '../SelectField.svelte';
 	import { navigate } from '../StackRouter/StackRouter';
+	import { useTabs } from '../Tab/Tab';
+	import Tab from '../Tab/Tab.svelte';
+	import TextField from '../TextField.svelte';
 	import Toggle from '../Toggle.svelte';
-	import { get } from 'svelte/store';
+	import ConfirmDialog from './ConfirmDialog.svelte';
+	import Dialog from './Dialog.svelte';
+	import type { AxiosError } from 'axios';
 
 	enum Tabs {
 		EditProfile,
@@ -114,15 +115,16 @@
 						isAdmin
 						// password: newPassword
 				  }))
-				: (
-						await reiverrApi.updateUser(id, {
+				: await reiverrApi.users
+						.updateUser(id, {
 							name,
 							password: newPassword,
 							oldPassword,
 							profilePicture: profilePictureBase64,
 							isAdmin
 						})
-				  ).error;
+						.then(() => undefined)
+						.catch((e: AxiosError<any>) => e.response?.data?.message);
 
 		if (error) {
 			errorMessage = error;
@@ -133,12 +135,15 @@
 	}
 
 	async function create() {
-		const { error } = await reiverrApi.createUser({
-			name,
-			password: newPassword,
-			isAdmin,
-			profilePicture: profilePictureBase64
-		});
+		const error = await reiverrApi.users
+			.createUser({
+				name,
+				password: newPassword,
+				isAdmin,
+				profilePicture: profilePictureBase64
+			})
+			.then(() => undefined)
+			.catch((e: AxiosError<any>) => e.response?.data?.message);
 
 		if (error) {
 			errorMessage = error;
@@ -150,7 +155,11 @@
 
 	async function handleDeleteAccount() {
 		const self = user?.id === get(userStore)?.id;
-		const error = await reiverrApi.deleteUser(user?.id);
+		if (!user?.id) return;
+		const error = await reiverrApi.users
+			.deleteUser(user.id)
+			.then(() => undefined)
+			.catch((e: AxiosError<any>) => e.response?.data?.message);
 		if (error) {
 			errorMessage = error;
 		} else {

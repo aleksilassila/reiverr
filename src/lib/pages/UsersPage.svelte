@@ -2,7 +2,7 @@
 	import Container from '$components/Container.svelte';
 	import classNames from 'classnames';
 	import { Plus, Trash } from 'radix-icons-svelte';
-	import { reiverrApi } from '../apis/reiverr/reiverr-api';
+	import { getReiverrApi } from '../apis/reiverr/reiverr-api';
 	import Button from '../components/Button.svelte';
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
 	import Login from '../components/LoginForm.svelte';
@@ -17,9 +17,8 @@
 	async function getUsers(sessions: Session[]) {
 		return Promise.all(
 			sessions.map(async (session) =>
-				reiverrApi
-					.getClient(session.baseUrl, session.token)
-					.GET('/users/{id}', { params: { path: { id: session.id } } })
+				getReiverrApi(session)
+					.users.findUserById(session.id)
 					.then((r) => ({ session, user: r.data }))
 					.catch((e) => ({ session, user: undefined, error: e }))
 			)

@@ -1,7 +1,7 @@
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { get, writable } from 'svelte/store';
 import type { MediaSourceDto } from '../apis/reiverr/reiverr.openapi';
-import { reiverrApiNew, user } from './user.store';
+import { reiverrApi, user } from './user.store';
 
 function useSources() {
 	const sources = writable<MediaSourceDto[]>([]);
@@ -41,7 +41,7 @@ function useSources() {
 			return;
 		}
 
-		const { mediaSource: updated } = await reiverrApiNew.users
+		const { mediaSource: updated } = await reiverrApi.users
 			.updateSource(userId, { pluginId: providerId })
 			.then((r) => r.data);
 
@@ -49,7 +49,7 @@ function useSources() {
 	}
 
 	async function updateSource(mediaSource: MediaSourceDto) {
-		const updateResponse = await reiverrApiNew.users
+		const updateResponse = await reiverrApi.users
 			.updateSource(get(user)?.id || '', {
 				id: mediaSource.id,
 				name: mediaSource.name,
@@ -64,7 +64,7 @@ function useSources() {
 	}
 
 	async function deleteSource(mediaSourceId: string) {
-		await reiverrApiNew.users.deleteSource(mediaSourceId, get(user)?.id || '');
+		await reiverrApi.users.deleteSource(mediaSourceId, get(user)?.id || '');
 		sources.update((s) => s.filter((source) => source.id !== mediaSourceId));
 	}
 

@@ -1,12 +1,10 @@
-import axios from 'axios';
 import { tick } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
-import { getReiverrApiNew, type ReiverrUser } from '../apis/reiverr/reiverr-api';
-import type { operations } from '../apis/reiverr/reiverr.generated';
+import { getReiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
 import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr/reiverr.openapi';
 import { type Session, sessions } from './session.store';
 
-export let reiverrApiNew: ReturnType<typeof getReiverrApiNew>;
+export let reiverrApi: ReturnType<typeof getReiverrApi>;
 
 function useUser() {
 	const activeSession = derived(sessions, (sessions) => sessions.activeSession);
@@ -39,7 +37,7 @@ function useUser() {
 				?.map(async (s) => {
 					out.push({
 						source: s,
-						capabilities: await reiverrApiNew.providers
+						capabilities: await reiverrApi.providers
 							.getSourceCapabilities(s.pluginId, s.pluginSettings ?? ({} as any))
 							.then((r) => r.data)
 							.catch(() => ({
@@ -64,7 +62,7 @@ function useUser() {
 		if (!user) return;
 
 		const updated = updateFn(user);
-		const { user: update, error } = await reiverrApiNew.users
+		const { user: update, error } = await reiverrApi.users
 			.updateUser(updated.id, updated)
 			.then((r) => ({ user: r.data, error: undefined }))
 			.catch((e) => ({ error: e, user: undefined }));
@@ -86,20 +84,14 @@ function useUser() {
 
 		userStore.set(undefined);
 		lastActiveSession = activeSession;
-		const user = await axios
-			.get<
-				operations['UsersController_findById']['responses']['200']['content']['application/json']
-			>(activeSession.baseUrl + '/api/users/' + activeSession.id, {
-				headers: {
-					Authorization: 'Bearer ' + activeSession.token
-				}
-			})
+		const user = await getReiverrApi(activeSession)
+			.users.findUserById(activeSession.id)
 			.then((r) => r.data)
 			.catch(() => null);
 
 		if (lastActiveSession === activeSession) {
 			initializedStores.update((i) => ({ ...i, user: true }));
-			reiverrApiNew = getReiverrApiNew();
+			reiverrApi = getReiverrApi();
 			userStore.set(user);
 		}
 	}

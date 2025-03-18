@@ -8,7 +8,7 @@
 	import { modalStack } from '../../components/Modal/modal.store';
 	import TextField from '../../components/TextField.svelte';
 	import Toggle from '../../components/Toggle.svelte';
-	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { reiverrApi, user } from '../../stores/user.store';
 	import { capitalize } from '$lib/utils';
 	import { mediaSourcesDataStore } from '$lib/stores/data.store';
 	import {
@@ -25,7 +25,7 @@
 	const priority = writable<number | undefined>(undefined);
 	const settings = writable<Record<string, any>>({});
 
-	const mediaSource = reiverrApiNew.users
+	const mediaSource = reiverrApi.users
 		.findUserById(get(user)?.id || '')
 		.then((r) => r.data.mediaSources?.find((s) => s.id === sourceId)!);
 
@@ -39,7 +39,7 @@
 	});
 
 	const pluginSettingsTemplate = mediaSource.then((source) =>
-		reiverrApiNew.providers.getSourceSettingsTemplate(source.pluginId).then((r) => r.data)
+		reiverrApi.providers.getSourceSettingsTemplate(source.pluginId).then((r) => r.data)
 	);
 
 	let validationResponse: ValidationResponseDto | undefined;
@@ -47,7 +47,7 @@
 	async function validateForm() {
 		const source = await mediaSource;
 
-		validationResponse = await reiverrApiNew.providers
+		validationResponse = await reiverrApi.providers
 			.validateSourceSettings(source.pluginId, { settings: $settings })
 			.then((r) => r.data);
 
@@ -77,7 +77,7 @@
 			validationResponse = updateResponse.validationResponse;
 		}
 
-		// const updatedSource = await reiverrApiNew.users
+		// const updatedSource = await reiverrApi.users
 		// 	.updateSource(get(user)?.id || '', {
 		// 		id: sourceId,
 		// 		name: $name,

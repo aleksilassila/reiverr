@@ -1,7 +1,7 @@
 import { tick } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import { tmdbApi } from '../apis/tmdb/tmdb-api';
-import { awaitAppInitialization, reiverrApiNew, user } from './user.store';
+import { awaitAppInitialization, reiverrApi, user } from './user.store';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 
@@ -182,20 +182,20 @@ export const tmdbEpisodeDataStore = useRequestsStore(
 );
 
 export const movieUserDataStore = useRequestsStore((id: string) =>
-	reiverrApiNew.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)
+	reiverrApi.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)
 );
 export const seriesUserDataStore = useRequestsStore((id: string) =>
-	reiverrApiNew.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
+	reiverrApi.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
 );
 export const episodeUserDataStore = useRequestsStore(
 	(id: string, season: number, episode: number) =>
-		reiverrApiNew.users
+		reiverrApi.users
 			.getEpisodeUserData(get(user)?.id as string, id, season, episode)
 			.then((r) => r.data)
 );
 
 export const libraryItemsDataStore = useRequestsStore(
-	() => reiverrApiNew.users.getLibraryItems(get(user)?.id as string).then((r) => r.data.items),
+	() => reiverrApi.users.getLibraryItems(get(user)?.id as string).then((r) => r.data.items),
 	{ persistant: true }
 );
 
@@ -224,7 +224,7 @@ export const libraryItemsDataStore = useRequestsStore(
 // );
 
 export const mediaSourcesDataStore = useRequestsStore(() =>
-	reiverrApiNew.users
+	reiverrApi.users
 		.findUserById(get(user)?.id || '')
 		.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
 );

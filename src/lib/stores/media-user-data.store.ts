@@ -18,7 +18,7 @@ import {
 	seriesUserDataStore,
 	tmdbSeriesDataStore
 } from './data.store';
-import { reiverrApiNew, sources, user } from './user.store';
+import { reiverrApi, sources, user } from './user.store';
 
 export type EpisodeData = {
 	season: number;
@@ -50,11 +50,11 @@ async function getStreams(
 	episode?: number
 ): Promise<StreamCandidateDto[]> {
 	return season !== undefined && episode !== undefined
-		? reiverrApiNew.sources
+		? reiverrApi.sources
 				.getEpisodeStreams(source.id, tmdbId, season, episode)
 				.then((r) => r.data?.candidates ?? [])
 				.catch((e) => [])
-		: reiverrApiNew.sources
+		: reiverrApi.sources
 				.getMovieStreams(source.id, tmdbId)
 				.then((r) => r.data?.candidates ?? [])
 				.catch((e) => []);
@@ -94,7 +94,7 @@ function useUserLibrary(
 			return;
 		}
 
-		const success = await reiverrApiNew.users
+		const success = await reiverrApi.users
 			.addLibraryItem(userId, tmdbId, { mediaType })
 			.then((r) => r.data.success);
 		if (success) {
@@ -111,7 +111,7 @@ function useUserLibrary(
 			return;
 		}
 
-		const success = await reiverrApiNew.users
+		const success = await reiverrApi.users
 			.removeLibraryItem(userId, tmdbId)
 			.then((r) => r.data.success);
 		if (success) {
@@ -224,7 +224,7 @@ export function useSeriesUserData(tmdbId: string) {
 			return;
 		}
 
-		return reiverrApiNew.users
+		return reiverrApi.users
 			.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
 				playStates: get(episodesUserData)
 					.filter((e) => !e.upcoming)
@@ -324,7 +324,7 @@ export function useMovieUserData(tmdbId: string) {
 	const libraryStore = useUserLibrary('Movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
-		reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+		reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
 			watched
 		})
 	);
@@ -385,7 +385,7 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 	const userData = episodeUserDataStore.subscribe(tmdbId, season, episode);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
-		reiverrApiNew.users
+		reiverrApi.users
 			.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
 				watched
 			})

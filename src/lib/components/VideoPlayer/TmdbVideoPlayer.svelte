@@ -17,7 +17,7 @@
 	import getDeviceProfile from '../../apis/jellyfin/playback-profiles';
 	import { createLocalStorageStore } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
-	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { reiverrApi, user } from '../../stores/user.store';
 	import type { SubtitleInfo, VideoPlayerProps, VideoSource } from './VideoPlayer';
 	import VideoPlayer from './VideoPlayer.svelte';
 
@@ -78,12 +78,12 @@
 
 		if (video?.readyState === 4 && video?.currentTime > 0 && video?.duration > 0)
 			if (season !== undefined && episode !== undefined) {
-				await reiverrApiNew.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+				await reiverrApi.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
 					progress: video.currentTime / video?.duration,
 					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
 			} else {
-				await reiverrApiNew.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+				await reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
 					progress: video.currentTime / video?.duration,
 					...(video.currentTime / video?.duration > 0.9 && { watched: true })
 				});
@@ -94,13 +94,13 @@
 		console.log('refreshVideoStream', season, episode);
 		videoStreamP = (
 			season !== undefined && episode !== undefined
-				? reiverrApiNew.sources.getEpisodeStream(source.id, tmdbId, season, episode, key, {
+				? reiverrApi.sources.getEpisodeStream(source.id, tmdbId, season, episode, key, {
 						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
 						progress,
 						audioStreamIndex,
 						deviceProfile: getDeviceProfile() as any
 				  })
-				: reiverrApiNew.sources.getMovieStream(tmdbId, source.id, key, {
+				: reiverrApi.sources.getMovieStream(tmdbId, source.id, key, {
 						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
 						progress,
 						audioStreamIndex,

@@ -3,7 +3,6 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
-	import { reiverrApi } from '../../apis/reiverr/reiverr-api';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../../components/Button.svelte';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
@@ -16,7 +15,7 @@
 	import Toggle from '../../components/Toggle.svelte';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
-	import { reiverrApiNew, user } from '../../stores/user.store';
+	import { reiverrApi, user } from '../../stores/user.store';
 	import MediaSources from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {
@@ -34,7 +33,7 @@
 	let users = getUsers();
 
 	function getUsers() {
-		return $user?.isAdmin ? reiverrApi.getUsers() : undefined;
+		return $user?.isAdmin ? reiverrApi.users.findAllUsers().then((r) => r.data) : undefined;
 	}
 
 	function handleLogOut() {
@@ -366,7 +365,7 @@
 					<div>Tizen media key: {tizenMediaKey}</div>
 				{/if}
 				<div class="flex flex-col items-start space-y-4 mt-4">
-					<Button action={() => reiverrApiNew.metadata.clearCache()}>Clear TMDB Cache</Button>
+					<Button action={() => reiverrApi.metadata.clearCache()}>Clear TMDB Cache</Button>
 					<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
 				</div>
 			</Tab>
