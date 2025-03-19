@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
-
 	import Container from '$lib/components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
@@ -8,12 +6,12 @@
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { formatDateToYearMonthDay } from '../utils';
 
 	createBackgroundPage();
 
@@ -43,41 +41,10 @@
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
-	const nowStreaming = getNowStreaming();
-	const upcomingSeries = fetchUpcomingSeries();
+	const nowStreaming = tmdbApi.getNowStreamingSeries();
+	const upcomingSeries = tmdbApi.getUpcomingSeries();
 	const popular = tmdbApi.getPopularSeries();
-	const recommendations = tmdbApi.getRecommendedSeries();
-
-	function getNowStreaming() {
-		return TmdbApi.getClient()
-			.GET('/3/discover/tv', {
-				params: {
-					query: {
-						'air_date.gte': formatDateToYearMonthDay(new Date()),
-						'first_air_date.lte': formatDateToYearMonthDay(new Date()),
-						sort_by: 'popularity.desc'
-						// language: $settings.language,
-						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
-					}
-				}
-			})
-			.then((res) => res.data?.results || []);
-	}
-
-	function fetchUpcomingSeries() {
-		return TmdbApi.getClient()
-			.GET('/3/discover/tv', {
-				params: {
-					query: {
-						'first_air_date.gte': formatDateToYearMonthDay(new Date()),
-						sort_by: 'popularity.desc'
-						// language: $settings.language,
-						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
-					}
-				}
-			})
-			.then((res) => res.data?.results || []);
-	}
+	const recommendations = tmdbApi4.getRecommendedSeries();
 
 	onDestroy(() => {
 		libraryData.unsubscribe();

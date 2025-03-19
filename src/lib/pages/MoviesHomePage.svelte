@@ -8,10 +8,10 @@
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
-	import { TMDB_MOVIE_GENRES, TmdbApi, tmdbApi } from '../apis/tmdb/tmdb-api';
+	import { TMDB_MOVIE_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { formatDateToYearMonthDay } from '../utils';
+	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 
 	createBackgroundPage();
 
@@ -43,47 +43,14 @@
 
 	const popularMovies = tmdbApi.getPopularMovies();
 
-	const newDigitalReleases = getDigitalReleases();
-	const upcomingMovies = getUpcomingMovies();
-	const recommendedMovies = tmdbApi.getRecommendedMovies();
+	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
+	const upcomingMovies = tmdbApi.getUpcomingMovies();
+	const recommendedMovies = tmdbApi4.getRecommendedMovies();
 	const mostRecommendedGenres: Promise<number[]> = recommendedMovies.then(({ genreIdToMovie }) => {
 		const allGenres = Object.keys(genreIdToMovie).map((k) => Number(k));
 		allGenres.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0));
 		return allGenres;
 	});
-
-	function getUpcomingMovies() {
-		return TmdbApi.getClient()
-			.GET('/3/discover/movie', {
-				params: {
-					query: {
-						'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
-						sort_by: 'popularity.desc'
-						// language: $settings.language,
-						// region: $settings.discover.region,
-						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
-					}
-				}
-			})
-			.then((res) => res.data?.results || []);
-	}
-
-	function getDigitalReleases() {
-		return TmdbApi.getClient()
-			.GET('/3/discover/movie', {
-				params: {
-					query: {
-						with_release_type: 4,
-						sort_by: 'popularity.desc',
-						'release_date.lte': formatDateToYearMonthDay(new Date())
-						// language: $settings.language,
-						// with_original_language: parseIncludedLanguages($settings.discover.includedLanguages)
-						// region: $settings.discover.region
-					}
-				}
-			})
-			.then((res) => res.data?.results || []);
-	}
 
 	onDestroy(() => {
 		libraryData.unsubscribe();

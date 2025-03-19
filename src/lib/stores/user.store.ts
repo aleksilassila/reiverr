@@ -1,3 +1,4 @@
+import { getTmdbApi, getTmdbApi4 } from '$lib/apis/tmdb/tmdb-api';
 import { tick } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import { getReiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
@@ -5,6 +6,8 @@ import type { MediaSource, SourceProviderCapabilitiesDto } from '../apis/reiverr
 import { type Session, sessions } from './session.store';
 
 export let reiverrApi: ReturnType<typeof getReiverrApi>;
+export let tmdbApi: ReturnType<typeof getTmdbApi>;
+export let tmdbApi4: ReturnType<typeof getTmdbApi4>;
 
 function useUser() {
 	const activeSession = derived(sessions, (sessions) => sessions.activeSession);
@@ -92,6 +95,8 @@ function useUser() {
 		if (lastActiveSession === activeSession) {
 			initializedStores.update((i) => ({ ...i, user: true }));
 			reiverrApi = getReiverrApi();
+			tmdbApi = getTmdbApi();
+			tmdbApi4 = getTmdbApi4(user);
 			userStore.set(user);
 		}
 	}
