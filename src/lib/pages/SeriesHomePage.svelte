@@ -9,9 +9,10 @@
 	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
-	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api.js';
+	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
+	import { networks } from '$lib/components/Networks/networks';
 
 	createBackgroundPage();
 
@@ -41,9 +42,9 @@
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
+	const popular = tmdbApi.getPopularSeries();
 	const nowStreaming = tmdbApi.getNowStreamingSeries();
 	const upcomingSeries = tmdbApi.getUpcomingSeries();
-	const popular = tmdbApi.getPopularSeries();
 	const recommendations = tmdbApi4.getRecommendedSeries();
 
 	onDestroy(() => {
@@ -72,10 +73,10 @@
 			</Carousel>
 		{/if}
 
-		{#await popular then popular}
+		{#await nowStreaming then nowStreaming}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Popular</span>
-				{#each popular as item}
+				<span slot="header">Now Streaming</span>
+				{#each nowStreaming as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
@@ -94,10 +95,10 @@
 			{/if}
 		{/await}
 
-		{#await nowStreaming then nowStreaming}
+		{#await popular then popular}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Now Streaming</span>
-				{#each nowStreaming as item}
+				<span slot="header">Popular</span>
+				{#each popular as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>

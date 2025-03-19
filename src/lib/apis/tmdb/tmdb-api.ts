@@ -17,6 +17,7 @@ import {
 import { TmdbApi4Generated } from './tmdb-v4.openapi';
 import type { operations, paths } from './tmdb.generated';
 import type { paths as paths4 } from './tmdb4.generated';
+import { networks } from '$lib/components/Networks/networks';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -45,58 +46,122 @@ export const getTmdbApi4 = ($user = get(user)) => {
 };
 
 export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
-	// Discovery
+	getDiscoverySettings = () => {
+		const language = get(settings)?.language;
+		const region = get(settings)?.discover.region;
+		const minimumVotes = 25; //get(settings)?.discover.minimumVotes;
 
-	getNowStreamingSeries = () =>
+		return {
+			...(language ? { language } : {}),
+			...(region ? { region } : {}),
+			...(minimumVotes ? { 'vote_count.gte': minimumVotes } : {})
+		};
+	};
+
+	getSeriesFlters = () => {
+		const ignoredGenres = [10762, 10763, 10764, 10766, 10767, 16];
+		const types = [4];
+
+		return {
+			...(ignoredGenres?.length ? { without_genres: ignoredGenres.join('|') } : {}),
+			...(types?.length ? { with_type: types.join('|') } : {}),
+			with_networks: Object.values(networks)
+				.map((n) => n.tmdbNetworkId)
+				.join('|')
+			// include_null_first_air_dates: true
+		};
+	};
+
+	// Series Discovery
+
+	getPopularSeries = () =>
 		this.v3
 			.discoverTv({
+				...this.getDiscoverySettings(),
+				...this.getSeriesFlters(),
+				sort_by: 'popularity.desc',
 				// @ts-expect-error
-				'air_date.gte': formatDateToYearMonthDay(new Date()),
 				'first_air_date.lte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc'
+				'air_date.lte': formatDateToYearMonthDay(new Date()),
 			})
 			.then((res) => res.data.results || []);
 
 	getUpcomingSeries = () =>
 		this.v3
 			.discoverTv({
+				...this.getDiscoverySettings(),
+				...this.getSeriesFlters(),
+				sort_by: 'popularity.desc',
 				// @ts-expect-error
+				'vote_count.gte': 0,
 				'first_air_date.gte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc'
+				// 'first_air_date.lte': formatDateToYearMonthDay(
+				// 	new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+				// ),
+				include_null_first_air_dates: false
+				// @ts-ignore
+
+				// 'first_air_date.gte': formatDateToYearMonthDay(
+				// 	new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+				// ),
+				// 'first_air_date.lte': formatDateToYearMonthDay(
+				// 	new Date(Date.now() + 1000 * 60 * 60 * 24 * 28)
+				// )
 			})
 			.then((res) => res.data.results || []);
 
-	getUpcomingMovies = () =>
+	getNowStreamingSeries = () =>
 		this.v3
-			.discoverMovie({
+			.discoverTv({
+				...this.getDiscoverySettings(),
+				...this.getSeriesFlters(),
+				sort_by: 'popularity.desc',
+				with_watch_monetization_types: 'flatrate|ads|rent|buy',
+				watch_region: 'US',
 				// @ts-expect-error
-				'primary_release_date.gte': formatDateToYearMonthDay(new Date()),
-				sort_by: 'popularity.desc'
+				'air_date.gte': formatDateToYearMonthDay(new Date()),
+				'air_date.lte': formatDateToYearMonthDay(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7))
+				// 'first_air_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
 
-	getDigitalMovieReleases = () =>
+	// Movies Discovery
+
+	getPopularMovies = () =>
 		this.v3
 			.discoverMovie({
-				with_release_type: 4,
+				...this.getDiscoverySettings(),
 				sort_by: 'popularity.desc',
 				// @ts-expect-error
 				'release_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
 
-	getPopularSeries = () =>
+	getUpcomingMovies = () =>
 		this.v3
-			.tvSeriesPopularList({
-				language: get(settings)?.language
+			.discoverMovie({
+				...this.getDiscoverySettings(),
+				sort_by: 'popularity.desc',
+				// @ts-expect-error
+				'vote_count.gte': 0,
+				with_release_type: 3,
+				'release_date.gte': formatDateToYearMonthDay(
+					new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+				),
+				'release_date.lte': formatDateToYearMonthDay(
+					new Date(Date.now() + 1000 * 60 * 60 * 24 * 28)
+				)
 			})
 			.then((res) => res.data.results || []);
 
-	getPopularMovies = () =>
+	getDigitalMovieReleases = () =>
 		this.v3
-			.moviePopularList({
-				language: get(settings)?.language,
-				region: get(settings)?.discover.region
+			.discoverMovie({
+				...this.getDiscoverySettings(),
+				sort_by: 'popularity.desc',
+				with_release_type: 4,
+				// @ts-expect-error
+				'release_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
 

@@ -1,30 +1,17 @@
 <script lang="ts">
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
-	import type { TitleType } from '../../types';
 	import { getCardDimensions } from '../../utils';
 	import AnimatedSelection from '../AnimateScale.svelte';
 	import Container from '../Container.svelte';
 	import LazyImg from '../LazyImg.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
-	import { createEventDispatcher } from 'svelte';
-	import type { Selectable } from '$lib/selectable';
-	import PlayButton from '../PlayButton.svelte';
 
-	const dispatch = createEventDispatcher<{
-		clickOrSelect: Selectable;
-	}>();
-
-	/** @deprecated delete tmdb and navigation from card*/
-	export let tmdbId: number | undefined = undefined;
-	export let type: TitleType = 'movie';
 	export let backdropUrl: string = '';
-	export let playButton = false;
 	// export let group = false;
 
 	export let title = '';
-	export let progress = 0;
+	export let progress = 0; // keep
 	export let runtime = 0;
 
 	export let disabled = false;
@@ -64,39 +51,33 @@
 		<Container
 			{...$$restProps}
 			{disabled}
-			on:clickOrSelect={({ detail }) => {
-				if (tmdbId) navigate(`/${type}/${tmdbId}`);
-				dispatch('clickOrSelect', detail);
-			}}
+			on:clickOrSelect
 			on:enter
 			on:click
 			class={classNames(
 				'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
-				'selectable'
+				'selectable',
+				$$restProps.class
 			)}
 			style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
 			focusOnClick
 			bind:hasFocus
 		>
 			<!--{#if !group}-->
-			{#if backdropUrl}
-				<LazyImg
-					src={backdropUrl}
-					class="absolute inset-0"
-					width={dimensions.width}
-					height={dimensions.height}
-				/>
-			{:else}
-				<div class="absolute inset-0 bg-secondary-700 h1 flex items-center justify-center">
-					{title}
-				</div>
-			{/if}
-
-			{#if playButton}
-				<div class="absolute inset-0 flex items-center justify-center">
-					<PlayButton />
-				</div>
-			{/if}
+			<slot hasFocus={$hasFocus}>
+				{#if backdropUrl}
+					<LazyImg
+						src={backdropUrl}
+						class="absolute inset-0"
+						width={dimensions.width}
+						height={dimensions.height}
+					/>
+				{:else}
+					<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center">
+						{title}
+					</h1>
+				{/if}
+			</slot>
 
 			{#if progress && progress > lowerLimit && progress < upperLimit}
 				<div

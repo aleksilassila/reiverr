@@ -42,7 +42,6 @@
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
 	const popularMovies = tmdbApi.getPopularMovies();
-
 	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
 	const upcomingMovies = tmdbApi.getUpcomingMovies();
 	const recommendedMovies = tmdbApi4.getRecommendedMovies();
