@@ -13,6 +13,9 @@ import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
 import UiComponents from '../../pages/UIComponents.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
 import { modalStack } from '../Modal/modal.store';
+import NetworkPage from '$lib/pages/CollectionPages/NetworkPage.svelte';
+import ListPage from '$lib/pages/CollectionPages/ListPage.svelte';
+import CompanyPage from '$lib/pages/CollectionPages/CompanyPage.svelte';
 
 interface Page {
 	id: symbol;
@@ -212,6 +215,12 @@ const episodeRoute: Route = {
 	parent: seriesRoute
 };
 
+const networkRoute: Route = {
+	path: '/network/:network',
+	component: NetworkPage,
+	parent: seriesHomeRoute
+};
+
 const moviesHomeRoute: Route = {
 	path: '/movies',
 	component: MoviesHomePage,
@@ -221,6 +230,18 @@ const moviesHomeRoute: Route = {
 const movieRoute: Route = {
 	path: '/movie/:id',
 	component: MoviePage,
+	parent: moviesHomeRoute
+};
+
+const collectionRoute: Route = {
+	path: '/collection/:collection',
+	component: ListPage,
+	parent: moviesHomeRoute
+};
+
+const companyRoute: Route = {
+	path: '/company/:company',
+	component: CompanyPage,
 	parent: moviesHomeRoute
 };
 
@@ -265,8 +286,11 @@ export const stackRouter = useStackRouter({
 		seriesHomeRoute,
 		seriesRoute,
 		episodeRoute,
+		networkRoute,
 		moviesHomeRoute,
 		movieRoute,
+		collectionRoute,
+		companyRoute,
 		personRoute,
 		libraryRoute,
 		searchRoute,

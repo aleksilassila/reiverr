@@ -64,7 +64,7 @@
 			bind:hasFocus
 		>
 			<!--{#if !group}-->
-			<slot hasFocus={$hasFocus}>
+			<slot hasFocus={$hasFocus} width={dimensions.width} height={dimensions.height}>
 				{#if backdropUrl}
 					<LazyImg
 						src={backdropUrl}
@@ -73,7 +73,7 @@
 						height={dimensions.height}
 					/>
 				{:else}
-					<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center">
+					<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center p-4">
 						{title}
 					</h1>
 				{/if}

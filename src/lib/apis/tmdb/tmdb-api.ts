@@ -17,7 +17,7 @@ import {
 import { TmdbApi4Generated } from './tmdb-v4.openapi';
 import type { operations, paths } from './tmdb.generated';
 import type { paths as paths4 } from './tmdb4.generated';
-import { networks } from '$lib/components/Networks/networks';
+import { networks } from '$lib/components/Collection/collections';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -66,7 +66,7 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 			...(ignoredGenres?.length ? { without_genres: ignoredGenres.join('|') } : {}),
 			...(types?.length ? { with_type: types.join('|') } : {}),
 			with_networks: Object.values(networks)
-				.map((n) => n.tmdbNetworkId)
+				.map((n) => n.id)
 				.join('|')
 			// include_null_first_air_dates: true
 		};
@@ -82,7 +82,7 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 				sort_by: 'popularity.desc',
 				// @ts-expect-error
 				'first_air_date.lte': formatDateToYearMonthDay(new Date()),
-				'air_date.lte': formatDateToYearMonthDay(new Date()),
+				'air_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
 

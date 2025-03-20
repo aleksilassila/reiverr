@@ -73,7 +73,7 @@
 		<div class="flex space-x-8">
 			<Container
 				on:enter={scrollIntoView({ vertical: 128 })}
-				class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
+				class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer flex-shrink-0"
 				style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
 			/>
 

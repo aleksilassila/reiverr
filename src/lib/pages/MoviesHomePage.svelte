@@ -1,4 +1,11 @@
 <script lang="ts">
+	import CollectionCard from '$lib/components/Collection/CollectionCard.svelte';
+	import {
+		collectionsList,
+		companiesList,
+		type Collection
+	} from '$lib/components/Collection/collections';
+	import CompanyCard from '$lib/components/Collection/CompanyCard.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
@@ -6,12 +13,13 @@
 	import { libraryItemsDataStore } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { TMDB_MOVIE_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
+	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 
 	createBackgroundPage();
 
@@ -50,6 +58,19 @@
 		allGenres.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0));
 		return allGenres;
 	});
+
+	// const travisBellCollections: Promise<Collection[]> = tmdbApi.v3
+	// 	.accountLists('travisbell')
+	// 	.then((lists) => {
+	// 		return (
+	// 			lists.data.results?.map((l) => ({
+	// 				id: Number(l.id),
+	// 				name: String(l.name),
+	// 				route: String(l.id),
+	// 				backdropUrl: l.poster_path ? `${TMDB_BACKDROP_SMALL}${l.poster_path}` : undefined
+	// 			})) || []
+	// 		);
+	// 	});
 
 	onDestroy(() => {
 		libraryData.unsubscribe();
@@ -156,7 +177,21 @@
 			{/if}
 		{/await}
 
-		<!-- NETWORKS -->
+		<!-- {#await travisBellCollections then travisBellCollections}
+			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+				<span slot="header">Collections</span>
+				{#each travisBellCollections as collection}
+					<CollectionCard on:enter={scrollIntoView({ left: 128 })} {collection} />
+				{/each}
+			</Carousel>
+		{/await} -->
+
+		<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+			<span slot="header">Collections</span>
+			{#each collectionsList as collection}
+				<CollectionCard on:enter={scrollIntoView({ left: 128 })} {collection} />
+			{/each}
+		</Carousel>
 
 		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
 			{@const genre = genres[4] || -1}
@@ -183,6 +218,13 @@
 				</Carousel>
 			{/if}
 		{/await}
+
+		<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+			<span slot="header">Companies</span>
+			{#each companiesList as company}
+				<CompanyCard on:enter={scrollIntoView({ left: 128 })} {company} />
+			{/each}
+		</Carousel>
 
 		<!-- GENRES -->
 		<!-- TOP RATED -->

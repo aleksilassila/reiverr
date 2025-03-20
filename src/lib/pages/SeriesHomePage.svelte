@@ -12,7 +12,8 @@
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { networks } from '$lib/components/Networks/networks';
+	import { networks, networksList } from '$lib/components/Collection/collections';
+	import NetworkCard from '$lib/components/Collection/NetworkCard.svelte';
 
 	createBackgroundPage();
 
@@ -152,8 +153,6 @@
 			{/if}
 		{/await}
 
-		<!-- NETWORKS -->
-
 		{#await recommendations then { genreIdToMovie, topGenres }}
 			{@const genre = topGenres[4]}
 			{@const genreItems = genreIdToMovie[genre || '']}
@@ -179,6 +178,13 @@
 				</Carousel>
 			{/if}
 		{/await}
+
+		<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
+			<span slot="header">Networks</span>
+			{#each networksList as network}
+				<NetworkCard on:enter={scrollIntoView({ left: 128 })} {network} />
+			{/each}
+		</Carousel>
 
 		<!-- GENRES -->
 		<!-- TOP RATED -->
