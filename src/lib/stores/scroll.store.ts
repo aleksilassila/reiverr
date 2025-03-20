@@ -28,8 +28,8 @@ function useScrollStore() {
 
 			registrar = node;
 
-			const verticalScrollParent = getScrollParent(node, 'vertical');
-			const horizontalScrollParent = getScrollParent(node, 'horizontal');
+			const verticalScrollParent = getScrollParent(node, 'vertical', false);
+			const horizontalScrollParent = getScrollParent(node, 'horizontal', false);
 
 			function handler() {
 				scrollTop.update((prev) => (verticalScrollParent ? verticalScrollParent.scrollTop : prev));

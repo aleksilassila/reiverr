@@ -10,24 +10,28 @@ export type Offsets = Partial<
 
 export function getScrollParent(
 	node: HTMLElement,
-	direction: 'vertical' | 'horizontal'
+	direction: 'vertical' | 'horizontal',
+	overflowedOnly = true
 ): HTMLElement | undefined {
 	const parent = node.parentElement;
 
 	if (parent) {
-		const { overflow } = window.getComputedStyle(parent);
+		const style = window.getComputedStyle(parent);
+		const overflow = direction === 'vertical' ? style.overflowY : style.overflowX;
 
 		if (
-			(direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
-			(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth)
+			((direction === 'vertical' && parent.scrollHeight > parent.clientHeight) ||
+				(direction === 'horizontal' && parent.scrollWidth > parent.clientWidth) ||
+				!overflowedOnly) &&
+			(overflow === 'auto' || overflow === 'scroll')
 		) {
 			return parent;
-		} else if (overflow.split(' ').every((o) => o === 'auto' || o === 'scroll')) {
-			return parent;
 		} else {
-			return getScrollParent(parent, direction);
+			return getScrollParent(parent, direction, overflowedOnly);
 		}
 	}
+
+	return node;
 }
 
 export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets = { all: 16 }) => {

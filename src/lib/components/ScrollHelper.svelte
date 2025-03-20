@@ -16,8 +16,8 @@
 	let div: HTMLElement;
 
 	onMount(() => {
-		const verticalScrollParent = getScrollParent(div, 'vertical');
-		const horizontalScrollParent = getScrollParent(div, 'horizontal');
+		const verticalScrollParent = getScrollParent(div, 'vertical', false);
+		const horizontalScrollParent = getScrollParent(div, 'horizontal', false);
 
 		function handler() {
 			scrollTop = verticalScrollParent ? verticalScrollParent.scrollTop : scrollTop;
