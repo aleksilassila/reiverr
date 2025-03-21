@@ -49,7 +49,7 @@
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
-	const popularMovies = tmdbApi.getPopularMovies();
+	const popularMovies = tmdbApi.getTrendingMovies();
 	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
 	const upcomingMovies = tmdbApi.getUpcomingMovies();
 	const recommendedMovies = tmdbApi4.getRecommendedMovies();
@@ -98,10 +98,10 @@
 			</Carousel>
 		{/if}
 
-		{#await popularMovies then popularMovies}
+		{#await Promise.all( [popularMovies, newDigitalReleases, upcomingMovies] ) then [popularMovies, newDigitalReleases, upcomingMovies]}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Popular</span>
-				{#each popularMovies as item}
+				<span slot="header">Trending</span>
+				{#each popularMovies.filter((p) => !upcomingMovies.find((u) => u.id === p.id)) as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
@@ -220,7 +220,7 @@
 		{/await}
 
 		<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-			<span slot="header">Companies</span>
+			<span slot="header">Production Companies</span>
 			{#each companiesList as company}
 				<CompanyCard on:enter={scrollIntoView({ left: 128 })} {company} />
 			{/each}

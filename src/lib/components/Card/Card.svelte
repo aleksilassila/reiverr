@@ -63,7 +63,6 @@
 			focusOnClick
 			bind:hasFocus
 		>
-			<!--{#if !group}-->
 			<slot hasFocus={$hasFocus} width={dimensions.width} height={dimensions.height}>
 				{#if backdropUrl}
 					<LazyImg

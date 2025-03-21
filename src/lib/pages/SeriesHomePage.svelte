@@ -43,7 +43,7 @@
 	});
 	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
 
-	const popular = tmdbApi.getPopularSeries();
+	const popular = tmdbApi.getTrendingSeries();
 	const nowStreaming = tmdbApi.getNowStreamingSeries();
 	const upcomingSeries = tmdbApi.getUpcomingSeries();
 	const recommendations = tmdbApi4.getRecommendedSeries();
@@ -74,10 +74,10 @@
 			</Carousel>
 		{/if}
 
-		{#await nowStreaming then nowStreaming}
+		{#await Promise.all( [popular, nowStreaming, upcomingSeries] ) then [popular, nowStreaming, upcomingSeries]}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Now Streaming</span>
-				{#each nowStreaming as item}
+				<span slot="header">Trending Today</span>
+				{#each popular.filter((p) => !nowStreaming.find((n) => n.id === p.id) && !upcomingSeries.find((u) => u.id === p.id)) as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
@@ -96,10 +96,10 @@
 			{/if}
 		{/await}
 
-		{#await popular then popular}
+		{#await nowStreaming then nowStreaming}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
-				<span slot="header">Popular</span>
-				{#each popular as item}
+				<span slot="header">Streaming Now</span>
+				{#each nowStreaming as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>

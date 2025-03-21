@@ -10,7 +10,6 @@
 	export let handleGoBack: StackRouterPageProps['handleGoBack'];
 
 	const listId = collection.match(/^\d+$/) ? parseInt(collection) : collections[collection]?.id;
-	console.log('listId', listId);
 	const collectionName = collections[collection]?.name ?? capitalize(collection);
 
 	const items = listId

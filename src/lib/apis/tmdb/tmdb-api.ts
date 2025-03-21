@@ -74,6 +74,7 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 
 	// Series Discovery
 
+	/** @deprecated */
 	getPopularSeries = () =>
 		this.v3
 			.discoverTv({
@@ -85,6 +86,8 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 				'air_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
+
+	getTrendingSeries = () => this.v3.trendingTv('day').then((res) => res.data.results || []);
 
 	getUpcomingSeries = () =>
 		this.v3
@@ -127,6 +130,7 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 
 	// Movies Discovery
 
+	/** @deprecated */
 	getPopularMovies = () =>
 		this.v3
 			.discoverMovie({
@@ -136,6 +140,8 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 				'release_date.lte': formatDateToYearMonthDay(new Date())
 			})
 			.then((res) => res.data.results || []);
+
+	getTrendingMovies = () => this.v3.trendingMovies('week').then((res) => res.data.results || []);
 
 	getUpcomingMovies = () =>
 		this.v3
