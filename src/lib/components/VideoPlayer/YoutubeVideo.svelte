@@ -14,7 +14,7 @@
 	import Spinner from '../Utils/Spinner.svelte';
 	import type { VideoPlayerProps } from './VideoPlayer';
 
-	const STOP_WHEN_REMAINING = 12;
+	const STOP_WHEN_REMAINING = 0;
 
 	const dispatch = createEventDispatcher<{
 		watched: undefined;
@@ -172,9 +172,10 @@
 
 				if (remainingTime <= STOP_WHEN_REMAINING) {
 					try {
-						dispatch('watched');
-						player.pauseVideo();
-						player.seekTo(0);
+						// dispatch('watched');
+						// player.pauseVideo();
+						// player.seekTo(0);
+						visibleBackgrounds.destroyVideo();
 						// player.playVideo();
 					} catch (e) {
 						console.warn('Error looping video.', e);
