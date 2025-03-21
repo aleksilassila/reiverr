@@ -48,7 +48,7 @@ export const visibleBackgrounds = (() => {
 			backgrounds:
 				topPage?.backgrounds.map((b, i) => ({
 					...b,
-					visible: topPage.index === i
+					visible: topPage.index === i && !topPage.video
 				})) ?? [],
 			video: topPage?.video
 		};

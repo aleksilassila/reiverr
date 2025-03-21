@@ -266,7 +266,12 @@
 	})}
 >
 	<div
-		class="absolute inset-0 pointer-events-none flex items-center justify-center"
+		class={classNames(
+			'absolute inset-0 pointer-events-none flex items-center justify-center transition-opacity',
+			{
+				'opacity-0': !isPlayerReady
+			}
+		)}
 		style={`transform: scale(${zoom});`}
 	>
 		<div id={playerId} class="video-background" />
@@ -274,7 +279,7 @@
 
 	<div
 		class={classNames(
-			'absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black rounded-full *:p-2 transition-opacity bg-opacity-50',
+			'absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black rounded-full *:p-2 bg-opacity-50',
 			{
 				'opacity-0': !$hasFocus
 			}
