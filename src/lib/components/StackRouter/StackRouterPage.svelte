@@ -6,8 +6,6 @@
 	import Container from '../Container.svelte';
 	import { focusSidebar } from '../Sidebar/sidebar';
 
-	// const background = createBackgroundPage();
-
 	export let hasSidebar = true;
 	export let hidden = false;
 

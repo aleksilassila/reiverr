@@ -276,7 +276,8 @@ export function useSeriesUserData(tmdbId: string) {
 					progress,
 					key,
 					source
-				}
+				},
+				mediaId: tmdbId
 			});
 
 			background?.focus();
@@ -302,7 +303,8 @@ export function useSeriesUserData(tmdbId: string) {
 							progress: get(nextEpisode)?.progress,
 							key: stream.key,
 							source
-						}
+						},
+						mediaId: tmdbId
 					});
 
 					background?.focus();
@@ -351,7 +353,8 @@ export function useMovieUserData(tmdbId: string) {
 					progress: get(progress),
 					key,
 					source
-				}
+				},
+				mediaId: tmdbId
 			});
 
 			background?.focus();
@@ -368,7 +371,8 @@ export function useMovieUserData(tmdbId: string) {
 							progress: get(progress),
 							key: stream.key,
 							source
-						}
+						},
+						mediaId: tmdbId
 					});
 
 					background?.focus();
@@ -416,7 +420,8 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 					progress: get(progress),
 					key,
 					source
-				}
+				},
+				mediaId: tmdbId
 			});
 
 			background?.focus();
@@ -435,7 +440,8 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 							progress: get(progress),
 							key: stream.key,
 							source
-						}
+						},
+						mediaId: tmdbId
 					});
 
 					background?.focus();

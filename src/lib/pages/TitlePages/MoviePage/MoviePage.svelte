@@ -26,7 +26,7 @@
 	export let registrar: StackRouterPageProps['registrar'];
 
 	const tmdbId = Number(id);
-	const background = createBackgroundPage({ mediaId: id });
+	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
 	const { promise: tmdbMovie, unsubscribe: unsubscribeTmdbMovie } =
 		tmdbMovieDataStore.subscribe(tmdbId);
 	const {

@@ -89,15 +89,16 @@ let lastFocused: Selectable | undefined = undefined;
 function _createBackgroundPage(
 	options: {
 		transparent?: boolean;
-		mediaId?: string;
+		backgroundMediaId?: string;
+		videoMediaId?: string;
 	} = {}
 ) {
-	const { transparent = false, mediaId } = options;
+	const { transparent = false, backgroundMediaId, videoMediaId } = options;
 
 	const backgroundPages = get(backgroundPagesStack);
 	const previousPage = backgroundPages[backgroundPages.length - 1];
 	const reusedPage = previousPage?.backgrounds.find(
-		(b, i) => mediaId && b.mediaId === mediaId && i === previousPage.index
+		(b, i) => backgroundMediaId && b.mediaId === backgroundMediaId && i === previousPage.index
 	);
 
 	const id = Symbol();
@@ -106,7 +107,10 @@ function _createBackgroundPage(
 		backgrounds: reusedPage ? [reusedPage] : [],
 		index: 0,
 		isTransparent: transparent,
-		video: mediaId && previousPage?.video?.mediaId === mediaId ? previousPage?.video : undefined,
+		video:
+			videoMediaId && previousPage?.video?.mediaId === videoMediaId
+				? previousPage?.video
+				: undefined,
 		setBackgrounds,
 		setIndex,
 		nextBackground,
@@ -159,8 +163,17 @@ function _createBackgroundPage(
 	function destroyVideo() {
 		if (!page.video) return;
 
+		const video = page.video;
 		page.video = undefined;
-		backgroundPagesStack.update((p) => p);
+		backgroundPagesStack.update((p) => {
+			p.forEach((p) => {
+				if (video?.mediaId && p.video?.mediaId === video.mediaId) {
+					p.video = undefined;
+				}
+			});
+
+			return p;
+		});
 
 		unfocusGlobalBackground();
 	}

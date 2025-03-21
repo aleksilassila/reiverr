@@ -25,7 +25,7 @@
 	export let registrar: StackRouterPageProps['registrar'];
 	export let handleGoBack: StackRouterPageProps['handleGoBack'];
 
-	const background = createBackgroundPage({ mediaId: id });
+	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
 	const {
 		tmdbSeries,
 		inLibrary,

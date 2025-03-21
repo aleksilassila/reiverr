@@ -73,15 +73,15 @@
 		>
 			{#if $visibleBackgrounds.video}
 				{@const video = $visibleBackgrounds.video}
-				<div out:fade={{ duration: 200 }}>
-					<Container
-						class={classNames('absolute inset-0 transition-opacity duration-500', {
-							'pointer-events-none': !$hasFocus
-						})}
-						on:click={({ detail: e }) => e.stopPropagation()}
-						on:back={() => visibleBackgrounds.destroyVideo()}
-					>
-						{#key video.mediaId || video.id}
+				{#key video.id}
+					<div out:fade={{ duration: 200 }}>
+						<Container
+							class={classNames('absolute inset-0 transition-opacity duration-500', {
+								'pointer-events-none': !$hasFocus
+							})}
+							on:click={({ detail: e }) => e.stopPropagation()}
+							on:back={() => visibleBackgrounds.destroyVideo()}
+						>
 							<svelte:component
 								this={video.component}
 								{...video.props}
@@ -89,9 +89,9 @@
 								muted={!$hasFocus}
 								load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
 							/>
-						{/key}
-					</Container>
-				</div>
+						</Container>
+					</div>
+				{/key}
 				<!-- </div> -->
 			{:else}
 				<Container

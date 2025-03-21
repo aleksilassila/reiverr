@@ -19,7 +19,7 @@
 	export let handleGoBack: StackRouterPageProps['handleGoBack'];
 	export let registrar: StackRouterPageProps['registrar'];
 
-	const background = createBackgroundPage({ mediaId: id });
+	const background = createBackgroundPage({ videoMediaId: id });
 	const { promise: tmdbEpisode, unsubscribe: unsubscribeTmdbEpisode } =
 		tmdbEpisodeDataStore.subscribe(Number(id), Number(season), Number(episode));
 

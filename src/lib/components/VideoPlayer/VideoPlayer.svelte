@@ -111,6 +111,7 @@
 	});
 </script>
 
+<Container />
 <Container
 	class="w-full h-full relative bg-black"
 	on:mousemove={handleShowInterface}
@@ -157,13 +158,12 @@
 			}
 		)}
 	/>
-	<Container
+	<!-- <Container
 		class={classNames('absolute inset-x-12 top-8 transition-opacity', {
 			'opacity-0': !showInterface || !hasFocusWithin
 		})}
 	>
-		<!--		Title-->
-	</Container>
+	</Container> -->
 
 	{#if userPaused && showInterface && !seeking}
 		<div
@@ -202,7 +202,7 @@
 			<Container
 				direction="horizontal"
 				on:navigate={({ detail }) => {
-					if (detail.direction === 'up') {
+					if (detail.direction === 'up' && detail.willLeaveContainer) {
 						detail.stopPropagation();
 						detail.preventNavigation();
 						handleHideInterface();
