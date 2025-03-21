@@ -63,16 +63,7 @@
 		const tmdbId = awaitedItems?.[index]?.id;
 		if (!videoId) return;
 
-		background?.setVideo({
-			id: Symbol(),
-			component: YoutubeVideo,
-			props: {
-				videoId
-			},
-			mediaId: String(tmdbId)
-		});
-
-		if (!onBackground) background?.focus();
+		background?.playYoutubeVideo({ videoId, tmdbId: String(tmdbId), onBackground });
 	}
 
 	function focusTrailer() {

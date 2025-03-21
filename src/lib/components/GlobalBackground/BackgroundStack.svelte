@@ -14,6 +14,7 @@
 	import { fade } from 'svelte/transition';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
 	import BackgroundCarousel from './BackgroundCarousel.svelte';
+	import BackgroundBackdrop from './BackgroundBackdrop.svelte';
 
 	let hasFocus: Readable<boolean>;
 
@@ -48,21 +49,13 @@
 >
 	<div class="absolute inset-0 bg-secondary-900" />
 
-	{#each $visibleBackgrounds.backgrounds as { backdropUrl, visible }, index (backdropUrl)}
-		<div
-			class="absolute inset-0 bg-center bg-cover"
-			class:opacity-0={!visible}
-			class:opacity-100={visible}
-			class:scale-110={!hasFocus && !PLATFORM_TV}
-			style={`background-image: url('${backdropUrl}'); transition: opacity 200ms, transform 200ms;`}
-			in:fade|global={{ duration: 200, delay: 200 }}
-		/>
-	{/each}
+	{@debug $visibleBackgrounds}
 
-	<!-- {#each $backgroundPagesStack as page, i (page.id)}
-		{@const next = $backgroundPagesStack[i + 1]}
-		<BackgroundPage {page} hasFocus={$hasFocus} nextPage={next} />
-	{/each} -->
+	{#each $visibleBackgrounds.backgrounds as { backdropUrl, visible }, index (backdropUrl)}
+		{#key backdropUrl}
+			<BackgroundBackdrop {backdropUrl} {visible} hasFocus={$hasFocus} />
+		{/key}
+	{/each}
 
 	<Container class="contents">
 		<Container
@@ -127,7 +120,7 @@
 						backgrounds={$visibleBackgrounds.backgrounds}
 						focusIndex={$visibleBackgrounds.index}
 						on:jumpTo={({ detail: index }) => {
-							visibleBackgrounds.jumpToBackground(index);
+							visibleBackgrounds.setIndex(index);
 						}}
 					/>
 				</Container>

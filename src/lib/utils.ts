@@ -1,4 +1,4 @@
-import { type Readable, writable } from 'svelte/store';
+import { get, type Readable, writable } from 'svelte/store';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -199,7 +199,7 @@ export function useTimeoutStore(duration: number, initialReset = false) {
 	let timeout: ReturnType<typeof setTimeout> | undefined;
 
 	function reset() {
-		store.set(true);
+		if (!get(store)) store.set(true);
 		clearTimeout(timeout);
 
 		timeout = setTimeout(() => {
