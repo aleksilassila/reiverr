@@ -4,4 +4,4 @@
 	export let backdropUrl: string;
 </script>
 
-<Card {backdropUrl} orientation="landscape" size="sm" on:click on:clickOrSelect on:enter />
+<Card {...$$restProps} {backdropUrl} orientation="landscape" size="sm" on:click on:clickOrSelect on:enter />
