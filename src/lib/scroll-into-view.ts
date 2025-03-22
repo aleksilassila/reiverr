@@ -11,9 +11,10 @@ export type Offsets = Partial<
 export function getScrollParent(
 	node: HTMLElement,
 	direction: 'vertical' | 'horizontal',
-	overflowedOnly = true
+	overflowedOnly = true,
+	includeSelf = false
 ): HTMLElement | undefined {
-	const parent = node.parentElement;
+	const parent = includeSelf ? node : node.parentElement;
 
 	if (parent) {
 		const style = window.getComputedStyle(parent);
@@ -107,10 +108,7 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		}
 
 		if (top !== -1) {
-			verticalParent.scrollTo({
-				behavior: scrollBehavior,
-				top
-			});
+			smoothScrollTo({ element: verticalParent, top });
 		}
 	}
 	if (horizontalParent && (offsets.left !== undefined || offsets.right !== undefined)) {
@@ -144,10 +142,48 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		}
 
 		if (left !== -1) {
-			horizontalParent.scrollTo({
-				behavior: scrollBehavior,
-				left
-			});
+			smoothScrollTo({ element: horizontalParent, left });
 		}
 	}
 };
+
+const easeOutCubic = (t: number, d: number) => --t * t * t + 1;
+const animationHandles: Map<HTMLElement, number> = new Map();
+function smoothScrollTo(options: {
+	element: HTMLElement;
+	top?: number;
+	left?: number;
+	duration?: number;
+}) {
+	if (options.top === undefined && options.left === undefined) return;
+
+	const { element, top = 0, left = 0 } = options;
+
+	if (animationHandles.has(element)) {
+		cancelAnimationFrame(animationHandles.get(element)!);
+		animationHandles.delete(element);
+	}
+
+	const startY = element.scrollTop;
+	const startX = element.scrollLeft;
+	const yDifference =
+		Math.max(0, Math.min(element.scrollHeight - element.clientHeight, top)) - startY;
+	const xDifference =
+		Math.max(0, Math.min(element.scrollWidth - element.clientWidth, left)) - startX;
+	const startTime = performance.now();
+
+	const d = Math.max(Math.abs(yDifference), Math.abs(xDifference));
+	const duration = options.duration || Math.min(500, Math.max(250, d / 2));
+	console.log(duration, startY, top, yDifference, element.scrollHeight);
+
+	const animate = () => {
+		const progress = (performance.now() - startTime) / duration;
+		const amount = easeOutCubic(progress, d);
+		element.scrollTo({ top: startY + amount * yDifference, left: startX + amount * xDifference });
+		if (progress < 0.99) {
+			animationHandles.set(element, requestAnimationFrame(animate));
+		}
+	};
+
+	animationHandles.set(element, requestAnimationFrame(animate));
+}

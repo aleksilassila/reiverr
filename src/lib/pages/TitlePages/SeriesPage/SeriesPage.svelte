@@ -42,7 +42,7 @@
 	} = useSeriesUserData(id);
 
 	const { visibleStyle } = setUiVisibilityContext();
-	const { registerScroll } = setScrollContext();
+	const { registrar: scrollRegistrar } = setScrollContext();
 
 	const tmdbId = Number(id);
 	const episodeCards = useRegistrar();
@@ -109,7 +109,7 @@
 	});
 </script>
 
-<div class="relative" use:registerScroll>
+<div class="relative" use:scrollRegistrar>
 	<Container
 		class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
 		on:enter={scrollIntoView({ top: 0 })}

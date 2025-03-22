@@ -17,7 +17,7 @@
 
 	createBackgroundPage();
 
-	const { registerScroll } = setScrollContext();
+	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
 	const { ...libraryData } = libraryItemsDataStore.subscribe();

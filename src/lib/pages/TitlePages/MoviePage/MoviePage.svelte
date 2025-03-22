@@ -43,7 +43,7 @@
 	} = useMovieUserData(id);
 
 	const { visibleStyle } = setUiVisibilityContext();
-	const { registerScroll } = setScrollContext();
+	const { registrar: registerScroll } = setScrollContext();
 
 	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];

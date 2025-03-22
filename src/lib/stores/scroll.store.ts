@@ -9,7 +9,7 @@ function useScrollStore() {
 	const scrollTop = writable(0);
 	const scrollLeft = writable(0);
 	const topVisible = writable(false);
-	let registrar: HTMLElement | null = null;
+	let registrant: HTMLElement | null = null;
 
 	scrollTop.subscribe((v) => {
 		const visible = v < 100;
@@ -19,41 +19,39 @@ function useScrollStore() {
 		}
 	});
 
-	function getAction(): Action {
-		return (node) => {
-			if (registrar) {
-				console.error('Multiple scroll registrars detected');
-				return;
+	const registrar: Action = (node) => {
+		if (registrant) {
+			console.error('Multiple scroll registrars detected');
+			return;
+		}
+
+		registrant = node;
+
+		const verticalScrollParent = getScrollParent(node, 'vertical', false, true);
+		const horizontalScrollParent = getScrollParent(node, 'horizontal', false, true);
+
+		function handler() {
+			scrollTop.update((prev) => (verticalScrollParent ? verticalScrollParent.scrollTop : prev));
+			scrollLeft.update((prev) =>
+				horizontalScrollParent ? horizontalScrollParent.scrollLeft : prev
+			);
+		}
+
+		verticalScrollParent?.addEventListener('scroll', handler);
+
+		return {
+			destroy: () => {
+				registrant = null;
+				verticalScrollParent?.removeEventListener('scroll', handler);
 			}
-
-			registrar = node;
-
-			const verticalScrollParent = getScrollParent(node, 'vertical', false);
-			const horizontalScrollParent = getScrollParent(node, 'horizontal', false);
-
-			function handler() {
-				scrollTop.update((prev) => (verticalScrollParent ? verticalScrollParent.scrollTop : prev));
-				scrollLeft.update((prev) =>
-					horizontalScrollParent ? horizontalScrollParent.scrollLeft : prev
-				);
-			}
-
-			verticalScrollParent?.addEventListener('scroll', handler);
-
-			return {
-				destroy: () => {
-					registrar = null;
-					verticalScrollParent?.removeEventListener('scroll', handler);
-				}
-			};
 		};
-	}
+	};
 
 	return {
 		scrollTop,
 		scrollLeft,
 		topVisible,
-		registerScroll: getAction()
+		registrar
 	};
 }
 
