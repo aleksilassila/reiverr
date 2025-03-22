@@ -22,18 +22,10 @@
 
 <Container
 	on:back={handleGoBack}
-	on:mount={registrar}
-	class="*:px-32 flex flex-col h-screen relative"
+	class="py-16 *:px-32 flex flex-col h-screen overflow-y-auto overflow-x-hidden"
 >
-	<div
-		class={classNames(
-			'pt-16 pb-4 absolute top-0 inset-x-0 z-10 bg-gradient-to-b from-100% from-secondary-900 to-transparent transition-transform',
-			{
-				'-translate-y-12 ': !$topVisible
-			}
-		)}
-	>
-		<div class={classNames('transition-transform', {})}>
+	<slot name="header">
+		<div class="pt-8">
 			<h2 class="uppercase text-zinc-300 font-semibold tracking-wider">{subtitle}</h2>
 			<h1
 				class={classNames('text-left font-semibold tracking-wider text-stone-200 mt-1', {
@@ -44,14 +36,48 @@
 				{title}
 			</h1>
 		</div>
-	</div>
-	<div class="py-48 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide" use:registerScroll>
+	</slot>
+
+	<slot name="header-compact">
+		<div
+			class={classNames(
+				'py-6 absolute top-0 inset-x-0 z-10 bg-gradient-to-b from-100% from-secondary-900 to-transparent transition-all',
+				{
+					'opacity-0 pointer-events-none -translate-y-4': $topVisible
+				}
+			)}
+		>
+			<h2 class="uppercase text-zinc-300 font-semibold tracking-wider">{subtitle}</h2>
+			<h1
+				class={classNames('text-left font-semibold tracking-wider text-stone-200 mt-1', {
+					'text-3xl sm:text-4xl 2xl:text-5xl': title.length || 0 < 15,
+					'text-2xl sm:text-3xl 2xl:text-4xl': title.length || 0 >= 15
+				})}
+			>
+				{title}
+			</h1>
+		</div>
+	</slot>
+
+	<div class="pt-16" use:registerScroll>
 		{#await items}
 			Loading...
 		{:then items}
-			<CardGrid>
-				{#each items as item}
-					<TmdbCard on:enter={scrollIntoView({ top: 192 })} {item} />
+			<CardGrid let:columns
+			on:mount={registrar}
+			
+			>
+				{#each items as item, index}
+					<TmdbCard
+						on:enter={(e) => {
+							if (index < columns) {
+								scrollIntoView({ top: 500 })(e);
+							} else {
+								scrollIntoView({ top: 192 })(e);
+							}
+						}}
+						{item}
+					/>
 				{/each}
 			</CardGrid>
 		{/await}

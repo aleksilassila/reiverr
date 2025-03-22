@@ -13,11 +13,6 @@
 	const topSelectable = useRegistrar();
 
 	function handleGoBack() {
-		// if ('willLeaveContainer' in detail) {
-		// 	if (detail.direction !== 'left' || !detail.willLeaveContainer) return;
-		// 	detail.preventNavigation();
-		// }
-
 		const selectable = get(topSelectable);
 		if (selectable && get(selectable.focusIndex) === 0) {
 			history.back();
@@ -32,8 +27,6 @@
 			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
 		} else handleGoBack();
 	}
-
-	// onDestroy(() => background.destroy())
 </script>
 
 <Container

@@ -71,7 +71,7 @@
 	style={`grid-template-columns: repeat(${cols}, minmax(0, 1fr));`}
 	on:mount
 >
-	<slot />
+	<slot columns={cols} />
 </Container>
 
 <!--<svelte:window on:resize={calculateRows} />-->

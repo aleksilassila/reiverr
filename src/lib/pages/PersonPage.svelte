@@ -7,6 +7,7 @@
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import CardGrid from '../components/CardGrid.svelte';
 	import { TMDB_POSTER_SMALL } from '../constants.js';
+	import CollectionPage from './CollectionPages/CollectionPage.svelte';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
 	createBackgroundPage();
@@ -64,15 +65,15 @@
 </script>
 
 {#await person then person}
-	<Container
-		focusOnMount
-		on:back={handleGoBack}
-		on:mount={registrar}
-		class="px-32 py-16 space-y-16"
+	<CollectionPage
+		items={titles}
+		subtitle="Person"
+		title={person.name ?? 'Unknown'}
+		{registrar}
+		{handleGoBack}
 	>
-		<div class="flex space-x-8">
-			<Container
-				on:enter={scrollIntoView({ vertical: 128 })}
+		<div class="flex space-x-8" slot="header">
+			<div
 				class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer flex-shrink-0"
 				style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
 			/>
@@ -85,13 +86,5 @@
 				/>
 			</div>
 		</div>
-
-		<CardGrid>
-			{#await titles then titles}
-				{#each titles as title}
-					<TmdbCard item={title} on:enter={scrollIntoView({ vertical: 128 })} />
-				{/each}
-			{/await}
-		</CardGrid>
-	</Container>
+	</CollectionPage>
 {/await}
