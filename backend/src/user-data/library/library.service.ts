@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { MediaType, PaginationParamsDto } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import { Repository } from 'typeorm';
-import { LibraryItemDto2 } from './library.dto';
+import { LibraryItemDto } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
 
@@ -17,7 +17,7 @@ export class LibraryService {
   async getLibraryItemDtos(
     userId: string,
     pagination: PaginationParamsDto,
-  ): Promise<LibraryItemDto2[]> {
+  ): Promise<LibraryItemDto[]> {
     const items = await this.getLibraryItems(userId, pagination);
 
     return Promise.all(
@@ -31,7 +31,7 @@ export class LibraryService {
             ? await this.metadataService.getMovieByTmdbId(item.tmdbId)
             : undefined;
 
-        return LibraryItemDto2.create({
+        return LibraryItemDto.create({
           libraryItem: item,
           seriesMetadata,
           movieMetadata,

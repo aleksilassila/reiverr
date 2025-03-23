@@ -1,29 +1,8 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
-import { MovieDto } from 'src/metadata/metadata.dto';
-import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
-import { LibraryItem } from './library.entity';
-import {
-  TmdbMovie,
-  TmdbMovieFull,
-  TmdbSeries,
-} from 'src/metadata/tmdb/tmdb.dto';
 import { MediaType } from 'src/common/common.dto';
-
-export class LibraryItemDto extends PickType(LibraryItem, [
-  'tmdbId',
-  'mediaType',
-  'playStates',
-  'createdAt',
-]) {
-  @ApiProperty({ type: MovieDto, required: false })
-  movieMetadata?: MovieDto;
-
-  @ApiProperty({ type: SeriesMetadata, required: false })
-  seriesMetadata?: SeriesMetadata;
-
-  @ApiProperty({ required: false })
-  watched?: boolean;
-}
+import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
+import { TmdbMovie, TmdbSeries } from 'src/metadata/tmdb/tmdb.dto';
+import { LibraryItem } from './library.entity';
 
 class NextEpisodeToAir {
   @ApiProperty({ required: false })
@@ -56,7 +35,7 @@ class Season {
   vote_average?: number;
 }
 
-export class LibraryItemDto2
+export class LibraryItemDto
   extends PickType(LibraryItem, [
     'tmdbId',
     'mediaType',
@@ -113,7 +92,7 @@ export class LibraryItemDto2
     libraryItem: LibraryItem;
     movieMetadata?: MovieMetadata;
     seriesMetadata?: SeriesMetadata;
-  }): LibraryItemDto2 {
+  }): LibraryItemDto {
     const { libraryItem, movieMetadata, seriesMetadata } = options;
 
     if (!movieMetadata && !seriesMetadata) {

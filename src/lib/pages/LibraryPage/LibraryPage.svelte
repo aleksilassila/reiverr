@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LibraryItemDto2 } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { LibraryItemDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Container from '$lib/components/Container.svelte';
@@ -33,9 +33,9 @@
 		[sortedLibraryItems, libraryViewSettings],
 		([items, viewSettings]) => {
 			let categorizedItems = {
-				upcoming: [] as LibraryItemDto2[],
-				main: [] as LibraryItemDto2[],
-				watched: [] as LibraryItemDto2[]
+				upcoming: [] as LibraryItemDto[],
+				main: [] as LibraryItemDto[],
+				watched: [] as LibraryItemDto[]
 			};
 
 			if (!viewSettings.separateUpcoming && !viewSettings.separateWatched) {
@@ -80,7 +80,7 @@
 	);
 
 	function sortItems(
-		items: LibraryItemDto2[] | undefined,
+		items: LibraryItemDto[] | undefined,
 		viewSettings: LibraryViewSettings,
 		category: 'all' | 'series' | 'movies'
 	) {

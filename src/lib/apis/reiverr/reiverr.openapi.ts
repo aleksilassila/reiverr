@@ -529,7 +529,7 @@ export interface Season {
 	vote_average?: number;
 }
 
-export interface LibraryItemDto2 {
+export interface LibraryItemDto {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
@@ -1033,7 +1033,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getLibraryItems: (userId: string, params: RequestParams = {}) =>
 			this.request<
 				PaginatedResponseDto & {
-					items: LibraryItemDto2[];
+					items: LibraryItemDto[];
 				},
 				any
 			>({
