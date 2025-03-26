@@ -1,8 +1,8 @@
-import { writable } from 'svelte/store';
 import type { ComponentProps } from 'svelte';
-import Tab from './Tab.svelte';
+import { writable } from 'svelte/store';
+import type Tab from './Tab.svelte';
 
-export function useTabs(defaultTab: number, props: Pick<ComponentProps<Tab>, 'size'> = {}) {
+export function useTabs(defaultTab: number, props: Partial<ComponentProps<Tab>> = {}) {
 	const openTab = writable<number>(defaultTab);
 
 	const next = () => openTab.update((n) => n + 1);

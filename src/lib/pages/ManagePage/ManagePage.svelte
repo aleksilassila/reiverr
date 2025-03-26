@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
@@ -12,6 +13,7 @@
 	import SelectField from '../../components/SelectField.svelte';
 	import { useTabs } from '../../components/Tab/Tab';
 	import Tab from '../../components/Tab/Tab.svelte';
+	import TabSelect from '../../components/Tab/TabSelect.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
@@ -24,7 +26,7 @@
 		About
 	}
 
-	const tab = useTabs(Tabs.Interface, { size: 'stretch' });
+	const tab = useTabs(Tabs.Interface, { direction: 'vertical' });
 
 	let lastKeyCode = 0;
 	let lastKey = '';
@@ -68,71 +70,60 @@
 		<h1 class="h1">Settings</h1>
 		<p class="body">Manage your settings and integrations.</p>
 	</div>
-	<div class="flex-1 flex mx-auto h-full w-full overflow-y-hidden max-w-7xl items-start space-x-16">
+	<div class="flex-1 flex mx-auto h-full w-full max-w-7xl items-start space-x-16">
 		<Container direction="vertical" class="space-y-4 h3 w-52 lg:w-72 flex flex-col *:flex-1">
-			<Container
-				on:enter={() => tab.set(Tabs.Account)}
-				on:clickOrSelect={() => tab.set(Tabs.Account)}
-				let:hasFocus
-				focusOnClick
-				class={classNames('flex items-center cursor-pointer py-3 px-6 w-full rounded-xl', {
-					'bg-secondary-800': $tab === Tabs.Account
-				})}
-			>
+			<TabSelect tabValue={Tabs.Account} openTab={tab.openTab} let:hasFocus let:isActive>
 				<span
-					class={classNames('', {
-						'text-secondary-400': $tab !== Tabs.Account,
-						'text-secondary-200': $tab === Tabs.Account && !hasFocus,
-						'text-primary-500': hasFocus
-					})}
+					class={classNames(
+						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+						{
+							'bg-secondary-800': isActive,
+							'text-secondary-400': !isActive,
+							'text-secondary-200': isActive && !hasFocus,
+							'text-primary-500': hasFocus
+						},
+						$$restProps.class
+					)}
 				>
 					Account
 				</span>
-			</Container>
-			<Container
-				on:enter={() => tab.set(Tabs.Interface)}
-				on:clickOrSelect={() => tab.set(Tabs.Interface)}
-				let:hasFocus
-				focusOnClick
-				class={classNames('flex items-center cursor-pointer py-3 px-6 w-full rounded-xl', {
-					'bg-secondary-800': $tab === Tabs.Interface
-				})}
-			>
+			</TabSelect>
+			<TabSelect tabValue={Tabs.Interface} openTab={tab.openTab} let:hasFocus let:isActive>
 				<span
-					class={classNames('', {
-						'text-secondary-400': $tab !== Tabs.Interface,
-						'text-secondary-200': $tab === Tabs.Interface && !hasFocus,
-						'text-primary-500': hasFocus
-					})}
+					class={classNames(
+						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+						{
+							'bg-secondary-800': isActive,
+							'text-secondary-400': !isActive,
+							'text-secondary-200': isActive && !hasFocus,
+							'text-primary-500': hasFocus
+						},
+						$$restProps.class
+					)}
 				>
 					Options
 				</span>
-			</Container>
-			<Container
-				on:enter={() => tab.set(Tabs.About)}
-				on:clickOrSelect={() => tab.set(Tabs.About)}
-				let:hasFocus
-				focusOnClick
-				class={classNames('flex items-center cursor-pointer py-3 px-6 w-full rounded-xl', {
-					'bg-secondary-800': $tab === Tabs.About
-				})}
-			>
+			</TabSelect>
+			<TabSelect tabValue={Tabs.About} openTab={tab.openTab} let:hasFocus let:isActive>
 				<span
-					class={classNames('', {
-						'text-secondary-400': $tab !== Tabs.About,
-						'text-secondary-200': $tab === Tabs.About && !hasFocus,
-						'text-primary-500': hasFocus
-					})}
+					class={classNames(
+						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+						{
+							'bg-secondary-800': isActive,
+							'text-secondary-400': !isActive,
+							'text-secondary-200': isActive && !hasFocus,
+							'text-primary-500': hasFocus
+						},
+						$$restProps.class
+					)}
 				>
 					About
 				</span>
-			</Container>
+			</TabSelect>
 		</Container>
 
-		<Container
-			class="flex-1 grid w-full h-full overflow-y-hidden relative *:pb-16 *:overflow-y-auto *:scrollbar-hide -mx-4 px-4  *:-mx-4 *:px-4"
-		>
-			<Tab {...tab} direction="vertical" tab={Tabs.Account} class="space-y-16">
+		<TabContainer>
+			<Tab {...tab} tab={Tabs.Account} class="space-y-16 pb-16">
 				<div>
 					<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
 						<h1 class="h4 mb-4">My Profile</h1>
@@ -305,7 +296,7 @@
 				</div>
 			</Tab>
 
-			<Tab {...tab} direction="vertical" tab={Tabs.Interface} class="w-full">
+			<Tab {...tab} tab={Tabs.Interface}>
 				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 					<label class="mr-2">Animate scrolling</label>
 					<Toggle
@@ -348,7 +339,7 @@
 				</div>
 			</Tab>
 
-			<Tab {...tab} direction="vertical" tab={Tabs.About}>
+			<Tab {...tab} tab={Tabs.About}>
 				<div>
 					Version: {REIVERR_VERSION}
 				</div>
@@ -369,6 +360,6 @@
 					<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
 				</div>
 			</Tab>
-		</Container>
+		</TabContainer>
 	</div>
 </Container>

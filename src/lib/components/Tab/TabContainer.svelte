@@ -1,10 +1,8 @@
 <script lang="ts">
+	import classNames from 'classnames';
 	import Container from '../Container.svelte';
-	import type { NavigateEvent } from '../../selectable';
-
-	function handleNavigate({ detail }: CustomEvent<NavigateEvent>) {}
 </script>
 
-<Container on:navigate={handleNavigate}>
+<Container class={classNames('w-full h-full relative', $$restProps.class)}>
 	<slot />
 </Container>

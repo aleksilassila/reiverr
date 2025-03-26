@@ -7,8 +7,8 @@
 	export let tab: number;
 	export let index: number = tab;
 	export let openTab: Writable<number>;
-	export let size: 'hug' | 'stretch' = 'hug';
 	export let direction: 'horizontal' | 'vertical' = 'horizontal';
+	export let remount = false;
 
 	let selectable: Selectable;
 
@@ -34,24 +34,12 @@
 	}
 </script>
 
-<Container
-	class={classNames('col-start-1 col-end-1 row-start-1 row-end-1', {
-		'absolute pointer-events-none left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2':
-			!active && size === 'hug',
-		'absolute pointer-events-none inset-0': !active && size === 'stretch',
-		'': active
-	})}
-	bind:selectable
-	on:back
-	on:navigate={handleNavigate}
-	disabled={!active}
->
-	<div
+{#if !remount || active}
+	<Container
 		class={classNames(
-			$$restProps.class,
-			'transition-[transform,opacity]',
+			'absolute inset-0 transition-[transform,opacity] overflow-y-auto overflow-x-hidden scrollbar-hide',
 			{
-				'opacity-0 pointer-events-none': !active
+				'pointer-events-none opacity-0': !active
 			},
 			direction === 'horizontal'
 				? {
@@ -63,7 +51,13 @@
 						'translate-y-10': !active && $openTab < index
 				  }
 		)}
+		bind:selectable
+		on:back
+		on:navigate={handleNavigate}
+		disabled={!active}
 	>
-		<slot />
-	</div>
-</Container>
+		<div class={$$restProps.class}>
+			<slot {active} />
+		</div>
+	</Container>
+{/if}
