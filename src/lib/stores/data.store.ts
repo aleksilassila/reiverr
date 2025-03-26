@@ -119,6 +119,7 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 
 				if (subscribers?.length === 0 && options.persistant !== true) {
 					requests.delete(JSON.stringify(args));
+					console.log('deleting request', args);
 				}
 			}
 		};

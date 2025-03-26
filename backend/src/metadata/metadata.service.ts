@@ -44,6 +44,10 @@ export class MetadataService {
           if (tmdbMovie) {
             movie.tmdbMovie = tmdbMovie;
             movie.updatedAt = new Date();
+            movie.name = tmdbMovie.title;
+            movie.releaseDate = tmdbMovie.release_date
+              ? new Date(tmdbMovie.release_date)
+              : undefined;
           }
 
           await this.movieRepository.upsert(movie, {
@@ -79,6 +83,13 @@ export class MetadataService {
           if (tmdbSeries) {
             series.tmdbSeries = tmdbSeries;
             series.updatedAt = new Date();
+            series.firstReleaseDate = tmdbSeries.first_air_date
+              ? new Date(tmdbSeries.first_air_date)
+              : undefined;
+            series.lastReleaseDate = tmdbSeries.last_air_date
+              ? new Date(tmdbSeries.last_air_date)
+              : undefined;
+            series.name = tmdbSeries.name;
           }
 
           await this.seriesRepository.upsert(series, {

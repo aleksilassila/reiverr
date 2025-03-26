@@ -69,9 +69,8 @@ export class ServiceOwnershipValidator implements CanActivate {
 
     if (!sourceId) return true;
 
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -114,7 +113,12 @@ export class MediaSourcesController {
       pagination,
     );
 
-    return catalogue ?? { items: [], total: 0, itemsPerPage: 0, page: 0 };
+    return {
+      items: catalogue?.items ?? [],
+      itemsPerPage: catalogue?.itemsPerPage ?? pagination.itemsPerPage,
+      page: catalogue?.page ?? pagination.page,
+      total: catalogue?.total ?? 0,
+    };
   }
 
   @Get(':sourceId/catalogue/episodes')
@@ -303,9 +307,8 @@ export class MediaSourcesController {
     @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -370,9 +373,8 @@ export class MediaSourcesController {
   }
 
   async getConnection(sourceId: string) {
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource.pluginId || !mediaSource.enabled) {
       throw new BadRequestException('Source not configured');

@@ -21,7 +21,12 @@ import {
   SuccessResponseDto,
 } from 'src/common/common.dto';
 import { LibraryItemDto } from './library.dto';
-import { LibraryService } from './library.service';
+import {
+  LibraryService,
+  LibrarySortBy,
+  MyListFilter as MyListFilter,
+  SortByDirection,
+} from './library.service';
 
 @ApiTags('users')
 @Controller('users/:userId/library')
@@ -29,25 +34,32 @@ import { LibraryService } from './library.service';
 export class LibraryController {
   constructor(private libraryService: LibraryService) {}
 
-  @Get()
+  @Get('my-list')
+  @ApiQuery({ name: 'filter', enum: MyListFilter, required: false })
+  @ApiQuery({ name: 'sortBy', enum: LibrarySortBy, required: false })
+  @ApiQuery({ name: 'direction', enum: SortByDirection, required: false })
   @PaginatedApiOkResponse(LibraryItemDto)
   async getLibraryItems(
     @GetPaginationParams() pagination: PaginationParamsDto,
     @Param('userId') userId: string,
+    @Query('filter', new ParseEnumPipe(MyListFilter, { optional: true }))
+    filter?: MyListFilter,
+    @Query('sortBy', new ParseEnumPipe(LibrarySortBy, { optional: true }))
+    sortBy?: LibrarySortBy,
+    @Query('direction', new ParseEnumPipe(SortByDirection, { optional: true }))
+    direction?: SortByDirection,
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     // const user = await this.userService.findOne(userId);
 
-    const items = await this.libraryService.getLibraryItemDtos(
+    const items = await this.libraryService.getMyListDtos({
       userId,
       pagination,
-    );
+      filter,
+      sortBy,
+      direction,
+    });
 
-    return {
-      items,
-      itemsPerPage: pagination.itemsPerPage,
-      page: pagination.page,
-      total: items.length,
-    };
+    return items;
   }
 
   @Put('tmdb/:tmdbId')

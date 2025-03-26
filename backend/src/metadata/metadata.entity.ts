@@ -2,11 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   Column,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto';
 import { TMDB_CACHE_TTL } from 'src/consts';
+import { LibraryItem } from 'src/user-data/library/library.entity';
 
 @Entity()
 export class MovieMetadata {
@@ -18,9 +20,25 @@ export class MovieMetadata {
   @Column({ unique: true })
   tmdbId: string;
 
+  //
+
   @ApiProperty({ required: false, type: 'object' })
   @Column('json')
   tmdbMovie: TmdbMovieFull;
+
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  name?: string;
+
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  releaseDate?: Date;
+
+  //
+
+  @ApiProperty({ type: [LibraryItem], required: false })
+  @OneToMany(() => LibraryItem, (libraryItem) => libraryItem.seriesMetadata)
+  libraryItems?: LibraryItem[];
 
   @ApiProperty({ type: 'string' })
   @UpdateDateColumn()
@@ -67,9 +85,29 @@ export class SeriesMetadata {
   @Column({ unique: true })
   tmdbId: string;
 
+  //
+
   @ApiProperty({ required: false, type: 'object' })
   @Column('json')
   tmdbSeries: TmdbSeriesFull;
+
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  name?: string;
+
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  firstReleaseDate?: Date;
+
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  lastReleaseDate?: Date;
+
+  //
+
+  @ApiProperty({ type: [LibraryItem], required: false })
+  @OneToMany(() => LibraryItem, (libraryItem) => libraryItem.seriesMetadata)
+  libraryItems?: LibraryItem[];
 
   @ApiProperty({ type: 'string' })
   @UpdateDateColumn()

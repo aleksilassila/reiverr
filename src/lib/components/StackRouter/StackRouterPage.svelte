@@ -5,28 +5,13 @@
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import { focusSidebar } from '../Sidebar/sidebar';
+	import { createStackRouterControls } from './StackRouter';
 
 	export let hasSidebar = true;
 	export let hidden = false;
 
 	// Top element, that when focused and back is pressed, will exit the modal
-	const topSelectable = useRegistrar();
-
-	function handleGoBack() {
-		const selectable = get(topSelectable);
-		if (selectable && get(selectable.focusIndex) === 0) {
-			history.back();
-		} else {
-			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
-		}
-	}
-
-	function handleGoToTop() {
-		const selectable = get(topSelectable);
-		if (topSelectable) {
-			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
-		} else handleGoBack();
-	}
+	const { handleGoBack, handleGoToTop, registrar } = createStackRouterControls();
 </script>
 
 <Container
@@ -60,7 +45,7 @@
 				}
 			}}
 		>
-			<slot {handleGoBack} registrar={topSelectable.registrar} {hasFocus} />
+			<slot {handleGoBack} {registrar} {hasFocus} />
 		</Container>
 	</div>
 </Container>

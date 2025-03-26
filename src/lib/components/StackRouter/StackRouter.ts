@@ -1,4 +1,4 @@
-import { type ComponentType } from 'svelte';
+import { getContext, hasContext, setContext, type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
 import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
@@ -16,6 +16,7 @@ import { modalStack } from '../Modal/modal.store';
 import NetworkPage from '$lib/pages/CollectionPages/NetworkPage.svelte';
 import ListPage from '$lib/pages/CollectionPages/ListPage.svelte';
 import CompanyPage from '$lib/pages/CollectionPages/CompanyPage.svelte';
+import { useRegistrar } from '$lib/selectable';
 
 interface Page {
 	id: symbol;
@@ -323,6 +324,46 @@ export const stackRouter = useStackRouter({
 // 	// 	component: ManagePage
 // 	// }
 // } as const);
+
+function useStackRouterControls() {
+	const topSelectable = useRegistrar();
+
+	function handleGoBack() {
+		const selectable = get(topSelectable);
+		if (selectable && get(selectable.focusIndex) === 0) {
+			history.back();
+		} else {
+			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
+		}
+	}
+
+	function handleGoToTop() {
+		const selectable = get(topSelectable);
+		if (topSelectable) {
+			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
+		} else handleGoBack();
+	}
+
+	return {
+		handleGoBack,
+		handleGoToTop,
+		registrar: topSelectable.registrar
+	};
+}
+
+const STACK_ROUTER_CONTROLS = Symbol('STACK_ROUTER_CONTROLS');
+
+export function createStackRouterControls() {
+	const store = useStackRouterControls();
+	setContext(STACK_ROUTER_CONTROLS, store);
+	return store;
+}
+
+export function getStackRouterControls(): ReturnType<typeof useStackRouterControls> {
+	if (hasContext(STACK_ROUTER_CONTROLS)) return getContext(STACK_ROUTER_CONTROLS);
+	console.error('[StackRouterControls] Not found');
+	return { handleGoBack: () => {}, handleGoToTop: () => {}, registrar: () => () => {} };
+}
 
 export const navigate = stackRouter.navigate;
 export const back = stackRouter.back;

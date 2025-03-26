@@ -15,6 +15,7 @@ import {
 } from 'typeorm';
 import { PlayState } from '../play-state/play-state.entity';
 import { PlayStateDto } from '../play-state/play-state.dto';
+import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
 
 @Entity()
 @Unique(['tmdbId', 'userId'])
@@ -30,6 +31,22 @@ export class LibraryItem {
   @ApiProperty({ required: true, enum: MediaType })
   @Column()
   mediaType: MediaType;
+
+  @ApiProperty({ required: false, type: MovieMetadata })
+  @ManyToOne(() => MovieMetadata, {
+    createForeignKeyConstraints: false,
+    nullable: true,
+  })
+  @JoinColumn({ name: 'tmdbId', referencedColumnName: 'tmdbId' })
+  movieMetadata?: MovieMetadata;
+
+  @ApiProperty({ required: false, type: SeriesMetadata })
+  @ManyToOne(() => SeriesMetadata, {
+    createForeignKeyConstraints: false,
+    nullable: true,
+  })
+  @JoinColumn({ name: 'tmdbId', referencedColumnName: 'tmdbId' })
+  seriesMetadata?: SeriesMetadata;
 
   @ApiProperty({ required: true, type: 'string' })
   @PrimaryColumn()

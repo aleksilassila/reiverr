@@ -81,6 +81,27 @@ export interface PlayState {
 	lastPlayedAt: string;
 }
 
+export interface MovieMetadata {
+	id?: string;
+	tmdbId: string;
+	tmdbMovie?: object;
+	name?: string;
+	releaseDate?: string;
+	libraryItems?: any[][];
+	updatedAt: string;
+}
+
+export interface SeriesMetadata {
+	id?: string;
+	tmdbId: string;
+	tmdbSeries?: object;
+	name?: string;
+	firstReleaseDate?: string;
+	lastReleaseDate?: string;
+	libraryItems?: any[][];
+	updatedAt: string;
+}
+
 export interface PlayStateDto {
 	id: string;
 	tmdbId: number;
@@ -107,6 +128,8 @@ export interface LibraryItem {
 	id?: string;
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
+	movieMetadata?: MovieMetadata;
+	seriesMetadata?: SeriesMetadata;
 	userId: string;
 	user?: string;
 	playStates?: PlayStateDto[];
@@ -1028,17 +1051,26 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 *
 		 * @tags users
 		 * @name GetLibraryItems
-		 * @request GET:/api/users/{userId}/library
+		 * @request GET:/api/users/{userId}/library/my-list
 		 */
-		getLibraryItems: (userId: string, params: RequestParams = {}) =>
+		getLibraryItems: (
+			userId: string,
+			query?: {
+				filter?: 'movie' | 'series';
+				sortBy?: 'dateAdded' | 'name' | 'firstReleaseDate' | 'lastReleaseDate';
+				direction?: 'asc' | 'desc';
+			},
+			params: RequestParams = {}
+		) =>
 			this.request<
 				PaginatedResponseDto & {
 					items: LibraryItemDto[];
 				},
 				any
 			>({
-				path: `/api/users/${userId}/library`,
+				path: `/api/users/${userId}/library/my-list`,
 				method: 'GET',
+				query: query,
 				format: 'json',
 				...params
 			}),
