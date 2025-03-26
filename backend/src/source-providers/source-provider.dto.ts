@@ -1,28 +1,30 @@
 import {
+  AudioStream,
+  CatalogueItem,
+  PlaybackConfig,
+  Quality,
+  SourceProviderSettings,
+  SourceProviderSettingsInput,
+  SourceProviderSettingsLink,
+  SourceProviderSettingsTemplate,
+  Stream,
+  StreamCandidate,
+  StreamProperty,
+  Subtitles,
+  ValidationResponse,
+} from '@aleksilassila/reiverr-plugin';
+import {
   ApiProperty,
   ApiPropertyOptional,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { DeviceProfileDto } from './device-profile.dto';
-import {
-  AudioStream,
-  IndexItem,
-  PlaybackConfig,
-  SourceProviderSettings,
-  SourceProviderSettingsInput,
-  SourceProviderSettingsLink,
-  SourceProviderSettingsTemplate,
-  Quality,
-  Subtitles,
-  ValidationResponse,
-  StreamCandidate,
-  StreamProperty,
-  Stream,
-} from '@aleksilassila/reiverr-plugin';
 
-export class IndexItemDto implements IndexItem {
+export class CatalogueItemDto implements CatalogueItem {
   @ApiProperty()
   id: string;
+  @ApiProperty()
+  tmdbId: string;
 }
 
 class PluginSettingsLinkDto implements SourceProviderSettingsLink {

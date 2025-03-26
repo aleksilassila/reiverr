@@ -134,7 +134,7 @@
 	});
 </script>
 
-<Container class="py-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
+<Container class="pb-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
 	{#if !$isLoading}
 		<div class="h-full flex-1 flex flex-col">
 			<Container class="px-32 flex items-center justify-between" direction="horizontal">

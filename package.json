@@ -22,10 +22,9 @@
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
 		"openapi:update": "npm run --prefix backend generate && npm run openapi:codegen",
-		"openapi:codegen": "openapi-typescript \"backend/swagger-spec.json\" -o src/lib/apis/reiverr/reiverr.generated.d.ts",
-		"openapi:generate": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag",
-		"openapi:generate-tmdb": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/64542913e1f86100738e227f\" -o src/lib/apis/tmdb -n tmdb-v3.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApiGenerated",
-		"openapi:generate-tmdb-4": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/6453cc549c91cf004cd2a015\" -o src/lib/apis/tmdb -n tmdb-v4.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApi4Generated"
+		"openapi:generate:reiverr": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag",
+		"openapi:generate:tmdb": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/64542913e1f86100738e227f\" -o src/lib/apis/tmdb -n tmdb-v3.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApiGenerated",
+		"openapi:generate:tmdb-4": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/6453cc549c91cf004cd2a015\" -o src/lib/apis/tmdb -n tmdb-v4.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApi4Generated"
 	},
 	"devDependencies": {
 		"@jellyfin/sdk": "^0.8.2",

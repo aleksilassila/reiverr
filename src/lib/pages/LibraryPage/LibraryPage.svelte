@@ -15,8 +15,8 @@
 		.map((s) => s.source);
 </script>
 
-<Container class="py-16 px-32 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
-	<Container direction="horizontal" class="flex space-x-4">
+<Container class="pt-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>
+	<Container direction="horizontal" class="flex space-x-4 px-32">
 		<TabSelect tabValue={0} {...tab} let:hasFocus let:isActive>
 			<span
 				class={classNames('font-semibold text-2xl group-focus-within:text-primary-500', {

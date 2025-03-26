@@ -1,6 +1,6 @@
 import {
   EpisodeMetadata,
-  IndexItem,
+  CatalogueItem,
   MovieMetadata,
   PaginatedResponse,
   PaginationParams,
@@ -67,7 +67,7 @@ export abstract class SourceProvider {
   getMovieCatalogue?: (
     context: UserContext,
     pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<IndexItem>>;
+  ) => Promise<PaginatedResponse<CatalogueItem>>;
 
   /**
    * Returns an index of all episodes available in the source.
@@ -75,7 +75,7 @@ export abstract class SourceProvider {
   getEpisodeCatalogue?: (
     context: UserContext,
     pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<IndexItem>>;
+  ) => Promise<PaginatedResponse<CatalogueItem>>;
 
   /**
    * Returns a list of stream candidates for a movie that the user can choose to stream from.

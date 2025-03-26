@@ -1,6 +1,6 @@
 import {
+  CatalogueItem,
   EpisodeMetadata,
-  IndexItem,
   MovieMetadata,
   PaginatedResponse,
   PaginationParams,
@@ -66,7 +66,7 @@ class JellyfinProvider extends SourceProvider {
   getMovieCatalogue = async (
     userContext: UserContext,
     pagination: PaginationParams,
-  ): Promise<PaginatedResponse<IndexItem>> => {
+  ): Promise<PaginatedResponse<CatalogueItem>> => {
     const items = (
       await this.getLibraryItems(
         new PluginContext(userContext.settings, userContext.token),
@@ -82,6 +82,7 @@ class JellyfinProvider extends SourceProvider {
       itemsPerPage: pagination.itemsPerPage,
       items: items.slice(startIndex, endIndex).map((item) => ({
         id: item.ProviderIds?.Tmdb,
+        tmdbId: item.ProviderIds?.Tmdb,
       })),
     };
   };

@@ -40,7 +40,7 @@ import {
 } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import {
-  IndexItemDto,
+  CatalogueItemDto,
   PlaybackConfigDto,
   StreamCandidatesDto,
   StreamDto,
@@ -93,14 +93,14 @@ export class MediaSourcesController {
   ) {}
 
   @Get(':sourceId/catalogue/movies')
-  @PaginatedApiOkResponse(IndexItemDto)
+  @PaginatedApiOkResponse(CatalogueItemDto)
   async getMovieCatalogue(
     @GetAuthUser() user: User,
     @Param('sourceId')
     sourceId: string,
     @GetAuthToken() token: string,
     @GetPaginationParams() pagination: PaginationParamsDto,
-  ): Promise<PaginatedResponseDto<IndexItemDto>> {
+  ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
     const connection = await this.getConnection(sourceId);
 
     const catalogue = await connection.provider.getMovieCatalogue?.(
@@ -122,13 +122,13 @@ export class MediaSourcesController {
   }
 
   @Get(':sourceId/catalogue/episodes')
-  @PaginatedApiOkResponse(IndexItemDto)
+  @PaginatedApiOkResponse(CatalogueItemDto)
   async getEpisodeCatalogue(
     @GetAuthUser() user: User,
     @Param('sourceId') sourceId: string,
     @GetAuthToken() token: string,
     @GetPaginationParams() pagination: PaginationParamsDto,
-  ): Promise<PaginatedResponseDto<IndexItemDto>> {
+  ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
     const connection = await this.getConnection(sourceId);
 
     const catalogue = await connection.provider.getEpisodeCatalogue?.(

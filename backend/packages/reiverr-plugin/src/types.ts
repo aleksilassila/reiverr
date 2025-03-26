@@ -146,8 +146,9 @@ export type PlaybackConfig = {
   defaultLanguage: string | undefined;
 };
 
-export type IndexItem = {
+export type CatalogueItem = {
   id: string;
+  tmdbId: string;
 };
 
 export type PaginatedResponse<T> = {
