@@ -64,9 +64,8 @@ export class MediaSourcesSettingsController {
     }
 
     return {
-      mediaSource: await this.mediaSourcesService.getMediaSourceDto({
-        mediaSource: updatedSource,
-      }),
+      mediaSource:
+        await this.mediaSourcesService.getMediaSourceDto(updatedSource),
       validationResponse,
     };
   }
@@ -85,6 +84,6 @@ export class MediaSourcesSettingsController {
 
     const updatedUser = await this.usersService.findOne(userId);
 
-    return this.usersService.getUserDto({ user: updatedUser });
+    return this.usersService.getUserDto(updatedUser);
   }
 }

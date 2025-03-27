@@ -38,7 +38,7 @@ export class AuthController {
 
     return {
       accessToken: token,
-      user: this.usersService.getUserDto({ user }),
+      user: this.usersService.getUserDto(user),
     };
   }
 }

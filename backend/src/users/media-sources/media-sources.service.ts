@@ -137,11 +137,7 @@ export class MediaSourcesService {
       ?.find((source) => source.id === sourceId)?.pluginSettings;
   }
 
-  async getMediaSourceDto(options: {
-    mediaSource: MediaSource;
-  }): Promise<MediaSourceDto> {
-    const { mediaSource } = options;
-
+  async getMediaSourceDto(mediaSource: MediaSource): Promise<MediaSourceDto> {
     const sourceProvider = this.sourceProvidersService.getProvider(
       mediaSource.pluginId,
     );

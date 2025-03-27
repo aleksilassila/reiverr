@@ -149,12 +149,15 @@ export class UsersService {
     return adminCount === 0;
   }
 
-  async getUserDto(options: { user: User; caller?: User }): Promise<UserDto> {
-    const { user, caller = user } = options;
+  async getUserDto(
+    user: User,
+    options: { caller?: User } = {},
+  ): Promise<UserDto> {
+    const { caller = user } = options;
 
     const mediaSources = await Promise.all(
       user.mediaSources?.map((m) =>
-        this.mediaSourcesService.getMediaSourceDto({ mediaSource: m }),
+        this.mediaSourcesService.getMediaSourceDto(m),
       ) ?? [],
     );
 

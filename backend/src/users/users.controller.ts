@@ -54,7 +54,7 @@ export class UsersController {
     const users = await this.usersService.findAll();
 
     return Promise.all(
-      users.map((user) => this.usersService.getUserDto({ user: user })),
+      users.map((user) => this.usersService.getUserDto(user)),
     );
   }
 
@@ -76,7 +76,7 @@ export class UsersController {
       throw new NotFoundException();
     }
 
-    return this.usersService.getUserDto({ user: user });
+    return this.usersService.getUserDto(user);
   }
 
   // @Get('isSetupDone')
@@ -109,7 +109,7 @@ export class UsersController {
       throw new InternalServerErrorException();
     }
 
-    return this.usersService.getUserDto({ user: user });
+    return this.usersService.getUserDto(user);
   }
 
   @UseGuards(UserAccessControl)
@@ -138,9 +138,7 @@ export class UsersController {
       throw new InternalServerErrorException();
     }
 
-    return this.usersService.getUserDto({
-      user: updated,
-    });
+    return this.usersService.getUserDto(updated);
   }
 
   @UseGuards(UserAccessControl)
