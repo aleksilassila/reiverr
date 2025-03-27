@@ -1,32 +1,17 @@
 import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
+import { MediaSourceDto } from 'src/media-sources/media-source.dto';
 import { User } from './user.entity';
 
 export class UserDto extends OmitType(User, [
   'password',
   'profilePicture',
+  'mediaSources',
 ] as const) {
   @ApiProperty({ type: 'string' })
   profilePicture: string | null;
 
-  static fromEntity(entity: User, caller: User = entity): UserDto {
-    const out = {
-      ...entity,
-      // id: entity.id,
-      // name: entity.name,
-      // isAdmin: entity.isAdmin,
-      // settings: entity.settings,
-      // onboardingDone: entity.onboardingDone,
-      // mediaSources: entity.mediaSources,
-      password: '',
-      profilePicture:
-        'data:image;base64,' + entity.profilePicture?.toString('base64'),
-      // pluginSettings: entity.pluginSettings,
-    };
-
-    delete (out as any).password;
-
-    return out;
-  }
+  @ApiProperty({ type: [MediaSourceDto] })
+  mediaSources: MediaSourceDto[];
 }
 
 export class CreateUserDto extends PickType(User, [

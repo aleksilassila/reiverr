@@ -19,12 +19,13 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { DeviceProfileDto } from './device-profile.dto';
+import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
 
 export class CatalogueItemDto implements CatalogueItem {
   @ApiProperty()
-  id: string;
-  @ApiProperty()
   tmdbId: string;
+  @ApiProperty()
+  tmdbItem: TmdbItemDto;
 }
 
 class PluginSettingsLinkDto implements SourceProviderSettingsLink {

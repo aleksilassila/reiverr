@@ -10,6 +10,7 @@ import {
   ValidationResponse,
   Stream,
   StreamCandidate,
+  CatalogueSort,
 } from './types';
 import * as packageJson from '../package.json';
 
@@ -40,6 +41,52 @@ export class SettingsManager {
   });
 }
 
+export class CatalogueProvider {
+  getSortOptions?: () => Promise<CatalogueSort[]> = () =>
+    Promise.resolve([
+      {
+        label: 'Title',
+        name: 'title',
+      },
+    ]);
+
+  getSupportsSortDirection?: () => Promise<boolean> = () =>
+    Promise.resolve(false);
+
+  /**
+   * Returns an index of all items available in the source.
+   */
+  getCatalogue?: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<CatalogueItem>>;
+
+  /**
+   * Returns an index of all movies available in the source.
+   */
+  getMovieCatalogue?: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<CatalogueItem>>;
+
+  /**
+   * Returns an index of all series available in the source.
+   */
+  getSeriesCatalogue?: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<CatalogueItem>>;
+
+  /**
+   * Filters my list items to only include those that are not available in the source.
+   */
+  getMissingInCatalogue?: <T extends object = object>(
+    context: UserContext,
+    pagination: PaginationParams,
+    myListItems: Record<string, T>,
+  ) => Promise<PaginatedResponse<T>>;
+}
+
 /**
  * SourceProvider is a class that provides a set of methods to interact with a streaming source.
  *
@@ -61,21 +108,7 @@ export abstract class SourceProvider {
 
   settingsManager: SettingsManager = new SettingsManager();
 
-  /**
-   * Returns an index of all movies available in the source.
-   */
-  getMovieCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>>;
-
-  /**
-   * Returns an index of all episodes available in the source.
-   */
-  getEpisodeCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>>;
+  catalogueProvider: CatalogueProvider | undefined;
 
   /**
    * Returns a list of stream candidates for a movie that the user can choose to stream from.

@@ -36,7 +36,7 @@ export class UsersController {
   //     throw new NotFoundException();
   //   }
   //
-  //   return UserDto.fromEntity(user);
+  //   return this.usersService.getUserDto({ user });
   // }
 
   @UseGuards(UserAccessControl)
@@ -53,7 +53,9 @@ export class UsersController {
 
     const users = await this.usersService.findAll();
 
-    return users.map((user) => UserDto.fromEntity(user));
+    return Promise.all(
+      users.map((user) => this.usersService.getUserDto({ user: user })),
+    );
   }
 
   @UseGuards(UserAccessControl)
@@ -74,7 +76,7 @@ export class UsersController {
       throw new NotFoundException();
     }
 
-    return UserDto.fromEntity(user);
+    return this.usersService.getUserDto({ user: user });
   }
 
   // @Get('isSetupDone')
@@ -107,7 +109,7 @@ export class UsersController {
       throw new InternalServerErrorException();
     }
 
-    return UserDto.fromEntity(user);
+    return this.usersService.getUserDto({ user: user });
   }
 
   @UseGuards(UserAccessControl)
@@ -136,7 +138,9 @@ export class UsersController {
       throw new InternalServerErrorException();
     }
 
-    return UserDto.fromEntity(updated);
+    return this.usersService.getUserDto({
+      user: updated,
+    });
   }
 
   @UseGuards(UserAccessControl)

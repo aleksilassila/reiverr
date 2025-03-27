@@ -46,11 +46,13 @@
 
 			for (const item of items) {
 				const releaseDate = new Date(
-					item.release_date || (item.watched && (item.next_episode_to_air as any)?.air_date) || 0
+					item.tmdbItem.release_date ||
+						(item.watched && (item.tmdbItem.next_episode_to_air as any)?.air_date) ||
+						0
 				);
 				const hasFutureReleases = item.watched
-					? item.seasons?.some((s) => s.air_date === null)
-					: item.last_air_date === null;
+					? item.tmdbItem.seasons?.some((s) => s.air_date === null)
+					: item.tmdbItem.last_air_date === null;
 
 				if (viewSettings.separateUpcoming && (releaseDate > new Date() || hasFutureReleases)) {
 					categorizedItems.upcoming.push(item);
@@ -63,14 +65,14 @@
 
 			categorizedItems.upcoming.sort((a, b) => {
 				const aReleaseDate = new Date(
-					a.release_date ||
-						a.next_episode_to_air?.air_date ||
+					a.tmdbItem.release_date ||
+						a.tmdbItem.next_episode_to_air?.air_date ||
 						new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 20
 				);
 
 				const bReleaseDate = new Date(
-					b.release_date ||
-						(b.next_episode_to_air as any)?.air_date ||
+					b.tmdbItem.release_date ||
+						(b.tmdbItem.next_episode_to_air as any)?.air_date ||
 						new Date().getTime() + 1000 * 60 * 60 * 24 * 365 * 20
 				);
 
@@ -98,18 +100,18 @@
 				const aCreatedAt = a.createdAt;
 				const bCreatedAt = b.createdAt;
 
-				const aReleaseDate = a.release_date || '';
-				const bReleaseDate = b.release_date || '';
+				const aReleaseDate = a.tmdbItem.release_date || '';
+				const bReleaseDate = b.tmdbItem.release_date || '';
 
-				const aFirstAirDate = a.first_air_date || aReleaseDate;
-				const bFirstAirDate = b.first_air_date || bReleaseDate;
+				const aFirstAirDate = a.tmdbItem.first_air_date || aReleaseDate;
+				const bFirstAirDate = b.tmdbItem.first_air_date || bReleaseDate;
 
-				const aLastAirDate = a.last_air_date || aFirstAirDate || aReleaseDate;
-				const bLastAirDate = b.last_air_date || bFirstAirDate || bReleaseDate;
+				const aLastAirDate = a.tmdbItem.last_air_date || aFirstAirDate || aReleaseDate;
+				const bLastAirDate = b.tmdbItem.last_air_date || bFirstAirDate || bReleaseDate;
 
-				const aTitle = a.title || a.name || '';
+				const aTitle = a.tmdbItem.title || a.tmdbItem.name || '';
 
-				const bTitle = b.title || b.name || '';
+				const bTitle = b.tmdbItem.title || b.tmdbItem.name || '';
 
 				const direction = viewSettings.sortDirection === 'asc' ? 1 : -1;
 				if (viewSettings.sortBy === 'date-added') {
@@ -167,7 +169,11 @@
 							>
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.upcoming as item (item.tmdbId)}
-										<TmdbCard on:enter={scrollIntoView({ horizontal: 128 })} size="lg" {item} />
+										<TmdbCard
+											on:enter={scrollIntoView({ horizontal: 128 })}
+											size="lg"
+											item={item.tmdbItem}
+										/>
 									{/each}
 								{/key}
 							</Carousel>
@@ -180,7 +186,7 @@
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.main as item, index (item.tmdbId)}
 										<TmdbCard
-											{item}
+											item={item.tmdbItem}
 											progress={item.playStates?.[0]?.progress || 0}
 											on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
 											size="dynamic"
@@ -198,7 +204,7 @@
 								{#key viewSettingsKey}
 									{#each $libraryItemsCategorized.watched as item (item.tmdbId)}
 										<TmdbCard
-											{item}
+											item={item.tmdbItem}
 											progress={item.playStates?.[0]?.progress || 0}
 											on:enter={scrollIntoView({ vertical: 128 })}
 											size="dynamic"

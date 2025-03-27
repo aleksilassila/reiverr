@@ -147,7 +147,6 @@ export type PlaybackConfig = {
 };
 
 export type CatalogueItem = {
-  id: string;
   tmdbId: string;
 };
 
@@ -161,6 +160,12 @@ export type PaginatedResponse<T> = {
 export type PaginationParams = {
   page: number;
   itemsPerPage: number;
+};
+
+// export type CatalogueFilters = {};
+export type CatalogueSort = {
+  label: string;
+  name: string;
 };
 
 interface Metadata {

@@ -7,6 +7,7 @@
 	import { sources } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import MyListTab from './MyListTab.svelte';
+	import CatalogueTab from './CatalogueTab.svelte';
 
 	const tab = useTabs(0, { remount: true });
 
@@ -48,9 +49,7 @@
 		</Tab>
 		{#each catalogues as catalogue, index}
 			<Tab tab={index + 1} {...tab}>
-				<Container>
-					{catalogue.name}
-				</Container>
+				<CatalogueTab source={catalogue} />
 			</Tab>
 		{/each}
 	</TabContainer>

@@ -49,6 +49,7 @@ import { SourceProvidersService } from 'src/source-providers/source-providers.se
 import { User } from 'src/users/user.entity';
 import { MediaSource } from './media-source.entity';
 import { MediaSourcesService } from './media-sources.service';
+import { MediaSourceCapabilitiesDto } from './media-source.dto';
 
 type MediaSourceConnection = {
   provider: SourceProvider;
@@ -103,25 +104,39 @@ export class MediaSourcesController {
   ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
     const connection = await this.getConnection(sourceId);
 
-    const catalogue = await connection.provider.getMovieCatalogue?.(
-      {
-        userId: user.id,
-        settings: connection.mediaSource.pluginSettings,
-        token,
-        sourceId: connection.mediaSource.id,
-      },
-      pagination,
+    const catalogue =
+      await connection.provider.catalogueProvider?.getMovieCatalogue?.(
+        {
+          userId: user.id,
+          settings: connection.mediaSource.pluginSettings,
+          token,
+          sourceId: connection.mediaSource.id,
+        },
+        pagination,
+      );
+
+    const items = await Promise.all(
+      catalogue.items.map(async (item) => {
+        const metadata = await this.metadataService.getMovieByTmdbId(
+          item.tmdbId,
+        );
+
+        return {
+          ...item,
+          tmdbItem: metadata.tmdbMovie,
+        };
+      }),
     );
 
     return {
-      items: catalogue?.items ?? [],
+      items,
       itemsPerPage: catalogue?.itemsPerPage ?? pagination.itemsPerPage,
       page: catalogue?.page ?? pagination.page,
       total: catalogue?.total ?? 0,
     };
   }
 
-  @Get(':sourceId/catalogue/episodes')
+  @Get(':sourceId/catalogue/series')
   @PaginatedApiOkResponse(CatalogueItemDto)
   async getEpisodeCatalogue(
     @GetAuthUser() user: User,
@@ -131,17 +146,36 @@ export class MediaSourcesController {
   ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
     const connection = await this.getConnection(sourceId);
 
-    const catalogue = await connection.provider.getEpisodeCatalogue?.(
-      {
-        userId: user.id,
-        settings: connection.mediaSource.pluginSettings,
-        token,
-        sourceId: connection.mediaSource.id,
-      },
-      pagination,
+    const catalogue =
+      await connection.provider.catalogueProvider.getSeriesCatalogue?.(
+        {
+          userId: user.id,
+          settings: connection.mediaSource.pluginSettings,
+          token,
+          sourceId: connection.mediaSource.id,
+        },
+        pagination,
+      );
+
+    const items = await Promise.all(
+      catalogue.items.map(async (item) => {
+        const metadata = await this.metadataService.getSeriesByTmdbId(
+          item.tmdbId,
+        );
+
+        return {
+          ...item,
+          tmdbItem: metadata.tmdbSeries,
+        };
+      }),
     );
 
-    return catalogue ?? { items: [], total: 0, itemsPerPage: 0, page: 0 };
+    return {
+      items,
+      itemsPerPage: catalogue?.itemsPerPage ?? pagination.itemsPerPage,
+      page: catalogue?.page ?? pagination.page,
+      total: catalogue?.total ?? 0,
+    };
   }
 
   @Get(':sourceId/movies/tmdb/:tmdbId/streams')

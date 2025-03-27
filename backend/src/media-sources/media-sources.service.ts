@@ -1,8 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { User } from 'src/users/user.entity';
 import { UsersService } from 'src/users/users.service';
 import { Repository } from 'typeorm';
-import { UpdateOrCreateMediaSourceDto } from './media-source.dto';
+import {
+  MediaSourceDto,
+  UpdateOrCreateMediaSourceDto,
+} from './media-source.dto';
 import { MediaSource } from './media-source.entity';
 import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
@@ -19,6 +22,7 @@ export class MediaSourcesService {
     @Inject(MEIDA_SOURCE_REPOSITORY)
     private readonly mediaSourceRepository: Repository<MediaSource>,
     private sourceProvidersService: SourceProvidersService,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
   ) {}
 
@@ -134,5 +138,38 @@ export class MediaSourcesService {
     return user.mediaSources
       ?.filter((s) => s?.enabled)
       ?.find((source) => source.id === sourceId)?.pluginSettings;
+  }
+
+  async getMediaSourceDto(options: {
+    mediaSource: MediaSource;
+  }): Promise<MediaSourceDto> {
+    const { mediaSource } = options;
+
+    const sourceProvider = this.sourceProvidersService.getProvider(
+      mediaSource.pluginId,
+    );
+
+    const catalogueProvider = sourceProvider?.catalogueProvider;
+
+    const moviesCatalogue = !!catalogueProvider?.getMovieCatalogue;
+    const seriesCatalogue = !!catalogueProvider?.getSeriesCatalogue;
+    const combinedCatalogue = !!catalogueProvider?.getCatalogue;
+    const missingCatalogue = !!catalogueProvider?.getMissingInCatalogue;
+
+    return {
+      ...mediaSource,
+      enabled: mediaSource.enabled && !!sourceProvider,
+      capabilities: {
+        catalogues:
+          moviesCatalogue ||
+          seriesCatalogue ||
+          combinedCatalogue ||
+          missingCatalogue,
+        moviesCatalogue,
+        seriesCatalogue,
+        combinedCatalogue,
+        missingCatalogue,
+      },
+    };
   }
 }

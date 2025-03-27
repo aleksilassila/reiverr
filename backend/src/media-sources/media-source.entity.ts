@@ -16,6 +16,7 @@ export class MediaSource {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  /** TODO: Rename to providerId */
   @ApiProperty({ required: true, type: 'string' })
   @Column()
   pluginId: string;

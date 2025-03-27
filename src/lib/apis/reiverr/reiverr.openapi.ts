@@ -208,8 +208,39 @@ export interface PaginatedResponseDto {
 	itemsPerPage: number;
 }
 
-export interface IndexItemDto {
+export interface NextEpisodeToAir {
+	air_date?: string;
+}
+
+export interface Season {
+	air_date?: string;
+	episode_count?: number;
+	id?: number;
+	name?: string;
+	overview?: string;
+	poster_path?: string;
+	season_number?: number;
+	vote_average?: number;
+}
+
+export interface TmdbItemDto {
+	id?: number;
+	poster_path?: string;
+	vote_average?: number;
+	title?: string;
+	release_date?: string;
+	runtime?: number;
+	name?: string;
+	first_air_date?: string;
+	last_air_date?: string;
+	next_episode_to_air?: NextEpisodeToAir;
+	seasons?: Season[];
+}
+
+export interface CatalogueItemDto {
 	id: string;
+	tmdbId: string;
+	tmdbItem: TmdbItemDto;
 }
 
 export interface VideoStreamPropertyDto {
@@ -537,37 +568,12 @@ export interface BulkUpdatePlayStateDto {
 	playStates: UpdatePlayStateDto[];
 }
 
-export interface NextEpisodeToAir {
-	air_date?: string;
-}
-
-export interface Season {
-	air_date?: string;
-	episode_count?: number;
-	id?: number;
-	name?: string;
-	overview?: string;
-	poster_path?: string;
-	season_number?: number;
-	vote_average?: number;
-}
-
 export interface LibraryItemDto {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
 	createdAt: string;
-	id?: number;
-	poster_path?: string;
-	vote_average?: number;
-	title?: string;
-	release_date?: string;
-	runtime?: number;
-	name?: string;
-	first_air_date?: string;
-	last_air_date?: string;
-	next_episode_to_air?: NextEpisodeToAir;
-	seasons?: Season[];
+	tmdbItem: TmdbItemDto;
 	watched?: boolean;
 }
 
@@ -1350,7 +1356,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getMovieCatalogue: (sourceId: string, params: RequestParams = {}) =>
 			this.request<
 				PaginatedResponseDto & {
-					items: IndexItemDto[];
+					items: CatalogueItemDto[];
 				},
 				any
 			>({
@@ -1370,7 +1376,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getEpisodeCatalogue: (sourceId: string, params: RequestParams = {}) =>
 			this.request<
 				PaginatedResponseDto & {
-					items: IndexItemDto[];
+					items: CatalogueItemDto[];
 				},
 				any
 			>({

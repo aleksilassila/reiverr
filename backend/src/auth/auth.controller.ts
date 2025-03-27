@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { SignInDto, UserDto } from '../users/user.dto';
 import { ApiOkResponse, ApiProperty } from '@nestjs/swagger';
 import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
+import { UsersService } from 'src/users/users.service';
 
 export class SignInResponse {
   @ApiProperty()
@@ -20,7 +21,10 @@ export class SignInResponse {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post()
@@ -34,7 +38,7 @@ export class AuthController {
 
     return {
       accessToken: token,
-      user: UserDto.fromEntity(user),
+      user: this.usersService.getUserDto({ user }),
     };
   }
 }

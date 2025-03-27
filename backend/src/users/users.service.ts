@@ -1,7 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { MediaSourcesService } from 'src/media-sources/media-sources.service';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { Repository } from 'typeorm';
-import { CreateUserDto, UpdateUserDto } from './user.dto';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
 import { USER_REPOSITORY } from './user.providers';
 
@@ -16,8 +17,9 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
-    @Inject(SourceProvidersService)
     private readonly sourceProvidersService: SourceProvidersService,
+    @Inject(forwardRef(() => MediaSourcesService))
+    private readonly mediaSourcesService: MediaSourcesService,
   ) {}
 
   // Finds
@@ -146,6 +148,35 @@ export class UsersService {
     });
 
     return adminCount === 0;
+  }
+
+  async getUserDto(options: { user: User; caller?: User }): Promise<UserDto> {
+    const { user, caller = user } = options;
+
+    const mediaSources = await Promise.all(
+      user.mediaSources?.map((m) =>
+        this.mediaSourcesService.getMediaSourceDto({ mediaSource: m }),
+      ) ?? [],
+    );
+
+    const out = {
+      ...user,
+      // id: entity.id,
+      // name: entity.name,
+      // isAdmin: entity.isAdmin,
+      // settings: entity.settings,
+      // onboardingDone: entity.onboardingDone,
+      // mediaSources: entity.mediaSources,
+      password: '',
+      profilePicture:
+        'data:image;base64,' + user.profilePicture?.toString('base64'),
+      mediaSources,
+      // pluginSettings: entity.pluginSettings,
+    };
+
+    delete out.password;
+
+    return out;
   }
 
   private async filterMediaSources(user: User): Promise<User> {

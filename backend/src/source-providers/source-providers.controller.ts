@@ -100,6 +100,7 @@ export class SourceProvidersController {
     return provider.settingsManager.validateSettings(settings.settings);
   }
 
+  /** @deprecated in favor of mediaSource capabilities */
   @Get(':providerId/capabilities')
   @ApiOkResponse({
     type: SourceProviderCapabilitiesDto,
@@ -119,8 +120,8 @@ export class SourceProvidersController {
     // }
 
     return {
-      movieIndexing: !!provider.getMovieCatalogue,
-      episodeIndexing: !!provider.getEpisodeCatalogue,
+      movieIndexing: !!provider.catalogueProvider?.getMovieCatalogue,
+      episodeIndexing: !!provider.catalogueProvider?.getSeriesCatalogue,
       moviePlayback: !!provider.getMovieStreams && !!provider.getMovieStream,
       episodePlayback:
         !!provider.getEpisodeStreams && !!provider.getEpisodeStream,

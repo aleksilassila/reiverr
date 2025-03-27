@@ -15,14 +15,13 @@ import { UserDto } from 'src/users/user.dto';
 import { User } from 'src/users/user.entity';
 import { UsersService } from 'src/users/users.service';
 import {
-  UpdateMediaSourceResponse,
+  UpdateMediaSourceResponseDto,
   UpdateOrCreateMediaSourceDto,
 } from './media-source.dto';
 import {
   MediaSourcesService,
   MediaSourcesServiceError,
 } from './media-sources.service';
-import { MediaSource } from './media-source.entity';
 
 @ApiTags('users')
 @Controller('users/:userId/sources')
@@ -36,13 +35,13 @@ export class MediaSourcesSettingsController {
   @Put()
   @ApiOkResponse({
     description: 'Source updated',
-    type: UpdateMediaSourceResponse,
+    type: UpdateMediaSourceResponseDto,
   })
   async updateSource(
     @GetAuthUser() callerUser: User,
     @Param('userId') userId: string,
     @Body() sourceDto: UpdateOrCreateMediaSourceDto,
-  ): Promise<UpdateMediaSourceResponse> {
+  ): Promise<UpdateMediaSourceResponseDto> {
     const user = await this.usersService.findOne(userId);
 
     if (!user) {
@@ -65,7 +64,9 @@ export class MediaSourcesSettingsController {
     }
 
     return {
-      mediaSource: updatedSource,
+      mediaSource: await this.mediaSourcesService.getMediaSourceDto({
+        mediaSource: updatedSource,
+      }),
       validationResponse,
     };
   }
@@ -82,6 +83,6 @@ export class MediaSourcesSettingsController {
       callerUser,
     );
 
-    return UserDto.fromEntity(updatedUser);
+    return this.usersService.getUserDto({ user: updatedUser });
   }
 }

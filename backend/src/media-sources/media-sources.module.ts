@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { mediaSourceProviders } from './media-source.providers';
 import { MediaSourcesService } from './media-sources.service';
 import { MediaSourcesController } from './media-sources.controller';
@@ -8,7 +8,11 @@ import { MetadataModule } from 'src/metadata/metadata.module';
 import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [UsersModule, SourceProvidersModule, MetadataModule],
+  imports: [
+    forwardRef(() => UsersModule),
+    SourceProvidersModule,
+    MetadataModule,
+  ],
   providers: [...mediaSourceProviders, MediaSourcesService],
   controllers: [MediaSourcesController, MediaSourcesSettingsController],
   exports: [MediaSourcesService],

@@ -10,11 +10,11 @@
 	$: items = reiverrApi.sources.getMovieCatalogue(source.id).then((r) => r.data.items);
 </script>
 
-<Container>
+<Container class="mx-32">
 	{#await items then items}
 		<CardGrid>
-			{#each items as item}
-				<TmdbCard item={item} />
+			{#each items.map((i) => i.tmdbItem) as item}
+				<TmdbCard {item} />
 			{/each}
 		</CardGrid>
 	{/await}
