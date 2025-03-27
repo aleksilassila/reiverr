@@ -41,48 +41,59 @@ function extractTokenFromRequest(request: Request): string | undefined {
 
 @Injectable()
 export class UserAccessControl implements CanActivate {
-  constructor(
-    private jwtService: JwtService,
-    private userService: UsersService,
-  ) {}
+  constructor() {} // private userService: UsersService, // private jwtService: JwtService,
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = extractTokenFromRequest(request);
 
-    if (ENV === 'development' && !token) {
-      request['user'] = await this.userService.findOneByName('test');
-      return true;
-    } else if (!token) {
+    const user: User = request['user'];
+
+    if (!user) {
       throw new UnauthorizedException();
     }
-    try {
-      const payload: AccessTokenPayload = await this.jwtService.verifyAsync(
-        token,
-        {
-          secret: JWT_SECRET,
-        },
-      );
 
-      let user: User;
-      if (payload.sub) {
-        user = await this.userService.findOne(payload.sub);
-        request['user'] = user;
-      }
-
-      if (!user) {
-        throw new UnauthorizedException();
-      }
-
-      const targetUser = request.params.userId;
-      if (targetUser && targetUser !== user.id && user.isAdmin === false) {
-        throw new UnauthorizedException();
-      }
-    } catch {
+    const targetUser = request.params.userId;
+    if (targetUser && targetUser !== user.id && user.isAdmin === false) {
       throw new UnauthorizedException();
     }
 
     return true;
+    // const request = context.switchToHttp().getRequest();
+    // const token = extractTokenFromRequest(request);
+
+    // if (ENV === 'development' && !token) {
+    //   request['user'] = await this.userService.findOneByName('test');
+    //   return true;
+    // } else if (!token) {
+    //   throw new UnauthorizedException();
+    // }
+    // try {
+    //   const payload: AccessTokenPayload = await this.jwtService.verifyAsync(
+    //     token,
+    //     {
+    //       secret: JWT_SECRET,
+    //     },
+    //   );
+
+    //   let user: User;
+    //   if (payload.sub) {
+    //     user = await this.userService.findOne(payload.sub);
+    //     request['user'] = user;
+    //   }
+
+    //   if (!user) {
+    //     throw new UnauthorizedException();
+    //   }
+
+    //   const targetUser = request.params.userId;
+    //   if (targetUser && targetUser !== user.id && user.isAdmin === false) {
+    //     throw new UnauthorizedException();
+    //   }
+    // } catch {
+    //   throw new UnauthorizedException();
+    // }
+
+    // return true;
   }
 }
 

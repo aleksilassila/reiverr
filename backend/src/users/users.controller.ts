@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   InternalServerErrorException,
   NotFoundException,
@@ -68,7 +69,7 @@ export class UsersController {
     @GetAuthUser() callerUser: User,
   ): Promise<UserDto> {
     if (!callerUser.isAdmin && callerUser.id !== id) {
-      throw new NotFoundException();
+      throw new ForbiddenException();
     }
 
     const user = await this.usersService.findOne(id);
