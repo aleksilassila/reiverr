@@ -22,8 +22,6 @@ export class MediaSourcesService {
     @Inject(MEIDA_SOURCE_REPOSITORY)
     private readonly mediaSourceRepository: Repository<MediaSource>,
     private sourceProvidersService: SourceProvidersService,
-    @Inject(forwardRef(() => UsersService))
-    private readonly usersService: UsersService,
   ) {}
 
   private async findUserMediaSources(userId: string): Promise<MediaSource[]> {
@@ -56,7 +54,6 @@ export class MediaSourcesService {
     }
 
     await this.mediaSourceRepository.remove(source);
-    return this.usersService.findOne(source.userId);
   }
 
   async updateOrCreateMediaSource(

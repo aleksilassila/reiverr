@@ -78,10 +78,12 @@ export class MediaSourcesSettingsController {
     @Param('sourceId') sourceId: string,
     @Param('userId') userId: string,
   ): Promise<UserDto> {
-    const updatedUser = await this.mediaSourcesService.deleteMediaSource(
+    const result = await this.mediaSourcesService.deleteMediaSource(
       sourceId,
       callerUser,
     );
+
+    const updatedUser = await this.usersService.findOne(userId);
 
     return this.usersService.getUserDto({ user: updatedUser });
   }

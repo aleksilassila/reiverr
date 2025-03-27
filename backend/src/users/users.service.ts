@@ -1,6 +1,6 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { MediaSourcesService } from 'src/media-sources/media-sources.service';
+import { Inject, Injectable } from '@nestjs/common';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
+import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
@@ -18,7 +18,6 @@ export class UsersService {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: Repository<User>,
     private readonly sourceProvidersService: SourceProvidersService,
-    @Inject(forwardRef(() => MediaSourcesService))
     private readonly mediaSourcesService: MediaSourcesService,
   ) {}
 

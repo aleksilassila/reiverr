@@ -6,7 +6,6 @@ import { AppService } from './app.service';
 import { AuthMiddleware as AuthMiddleware } from './auth/auth.middleware';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
-import { MediaSourcesModule } from './media-sources/media-sources.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { SourceProvidersModule } from './source-providers/source-providers.module';
 import { UserDataModule } from './user-data/user-data.module';
@@ -22,7 +21,6 @@ import { UsersModule } from './users/users.module';
     }),
     MetadataModule,
     SourceProvidersModule,
-    MediaSourcesModule,
     UserDataModule,
   ],
   controllers: [AppController],

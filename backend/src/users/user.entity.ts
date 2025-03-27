@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MediaSource } from 'src/media-sources/media-source.entity';
+import { MediaSource } from 'src/users/media-sources/media-source.entity';
 import { LibraryItem } from 'src/user-data/library/library.entity';
 import { PlayState } from 'src/user-data/play-state/play-state.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
