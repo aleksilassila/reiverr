@@ -4,16 +4,14 @@
 	import Tab from '$lib/components/Tab/Tab.svelte';
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
 	import TabSelect from '$lib/components/Tab/TabSelect.svelte';
-	import { sources } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import MyListTab from './MyListTab.svelte';
 	import CatalogueTab from './CatalogueTab.svelte';
+	import { user } from '$lib/stores/user.store';
 
 	const tab = useTabs(0, { remount: true });
 
-	const catalogues = $sources
-		.filter((s) => s.capabilities.movieIndexing || s.capabilities.episodeIndexing)
-		.map((s) => s.source);
+	const catalogues = $user?.mediaSources.filter((s) => s.capabilities.catalogues) ?? [];
 </script>
 
 <Container class="pt-16 space-y-8 min-h-screen flex flex-col" let:hasFocus focusOnMount>

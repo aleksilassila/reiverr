@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaSource, MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import classNames from 'classnames';
 	import { createModal } from '../../components/Modal/modal.store';

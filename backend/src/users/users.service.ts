@@ -161,6 +161,10 @@ export class UsersService {
       ) ?? [],
     );
 
+    mediaSources.sort(
+      (a, b) => (a.priority ?? Infinity) - (b.priority ?? Infinity),
+    );
+
     const out = {
       ...user,
       // id: entity.id,

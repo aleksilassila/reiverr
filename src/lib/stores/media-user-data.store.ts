@@ -5,7 +5,7 @@ import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte'
 import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
 import { derived, get, writable, type Readable } from 'svelte/store';
 import type {
-	MediaSource,
+	MediaSourceDto,
 	MovieUserDataDto,
 	SeriesUserDataDto,
 	StreamCandidateDto
@@ -18,7 +18,7 @@ import {
 	seriesUserDataStore,
 	tmdbSeriesDataStore
 } from './data.store';
-import { reiverrApi, sources, user } from './user.store';
+import { reiverrApi, user } from './user.store';
 
 export type EpisodeData = {
 	season: number;
@@ -32,19 +32,19 @@ async function getAllStreams(
 	tmdbId: string,
 	season?: number,
 	episode?: number
-): Promise<{ source: MediaSource; streams: StreamCandidateDto[] }[]> {
+): Promise<{ source: MediaSourceDto; streams: StreamCandidateDto[] }[]> {
 	return Promise.all(
-		get(sources).map(async (source) => {
+		get(user)?.mediaSources.map(async (source) => {
 			return {
-				source: source.source,
-				streams: await getStreams(source.source, tmdbId, season, episode)
+				source: source,
+				streams: await getStreams(source, tmdbId, season, episode)
 			};
-		})
+		}) ?? []
 	);
 }
 
 async function getStreams(
-	source: MediaSource,
+	source: MediaSourceDto,
 	tmdbId: string,
 	season?: number,
 	episode?: number

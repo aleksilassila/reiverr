@@ -1,27 +1,26 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '$lib/selectable';
+	import { user } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
-	import type { MediaSource, StreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
-	import Modal from '../../components/Modal/Modal.svelte';
-	import { sources } from '../../stores/user.store';
-	import { capitalize } from '../../utils';
-	import { modalStack } from '$lib/components/Modal/modal.store';
 	import { tick } from 'svelte';
+	import type { MediaSourceDto, StreamCandidateDto } from '../../apis/reiverr/reiverr.openapi';
+	import Modal from '../../components/Modal/Modal.svelte';
+	import { capitalize } from '../../utils';
 
 	export let modalId: symbol;
-	export let getStreams: (source: MediaSource) => Promise<StreamCandidateDto[]>;
-	export let selectStream: (source: MediaSource, stream: StreamCandidateDto) => void;
+	export let getStreams: (source: MediaSourceDto) => Promise<StreamCandidateDto[]>;
+	export let selectStream: (source: MediaSourceDto, stream: StreamCandidateDto) => void;
 
-	let selectedSource: MediaSource | undefined = undefined;
+	let selectedSource: MediaSourceDto | undefined = undefined;
 	let streams: Record<string, Promise<StreamCandidateDto[]>> = {};
 
-	function selectSource(source: MediaSource) {
+	function selectSource(source: MediaSourceDto) {
 		selectedSource = source;
 	}
 
-	const updateStreams = (source: MediaSource) => {
+	const updateStreams = (source: MediaSourceDto) => {
 		streams[source.id] = getStreams(source);
 		streams = streams;
 	};
@@ -53,7 +52,7 @@
 		}}
 	>
 		{#if !selectedSource}
-			{#each $sources as { source }}
+			{#each $user?.mediaSources ?? [] as source}
 				<Container
 					on:clickOrSelect={() => selectSource(source)}
 					let:hasFocus
