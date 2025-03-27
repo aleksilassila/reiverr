@@ -2,9 +2,6 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { MovieMetadata, SeriesMetadata } from './metadata.entity';
 import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
-import { TMDB_CACHE_TTL } from 'src/consts';
-import { TMDB_API, TmdbApi } from './tmdb/tmdb.providers';
-import { TmdbMovieFull } from './tmdb/tmdb.dto';
 import { TmdbService } from './tmdb/tmdb.service';
 
 @Injectable()
@@ -12,9 +9,6 @@ export class MetadataService {
   private logger = new Logger(MetadataService.name);
 
   constructor(
-    @Inject(TMDB_API)
-    private tmdbApi: TmdbApi,
-
     @Inject(MOVIE_REPOSITORY)
     private movieRepository: Repository<MovieMetadata>,
 

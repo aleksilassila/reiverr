@@ -15,11 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import {
-  GetAuthUser,
-  OptionalAccessControl,
-  UserAccessControl,
-} from '../auth/auth.guard';
+import { GetAuthUser, UserAccessControl } from '../auth/auth.guard';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
 import { User } from './user.entity';
 import { UserServiceError, UsersService } from './users.service';
@@ -87,7 +83,6 @@ export class UsersController {
   //   return this.userService.noPreviousAdmins();
   // }
 
-  @UseGuards(OptionalAccessControl)
   @Post()
   @ApiOkResponse({ description: 'User created', type: UserDto })
   @ApiException(() => UnauthorizedException, { description: 'Unauthorized' })

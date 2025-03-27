@@ -5,7 +5,7 @@ import {
   PaginationParamsDto,
 } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
-import { IsNull, Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { LibraryItemDto } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
