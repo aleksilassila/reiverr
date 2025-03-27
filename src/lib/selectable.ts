@@ -925,13 +925,13 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		return;
 	}
 
-	if (event.key === 'ArrowUp') {
+	if (event.key === 'ArrowUp' && !event.metaKey && !event.ctrlKey) {
 		if (Selectable.giveFocus('up')) event.preventDefault();
-	} else if (event.key === 'ArrowDown') {
+	} else if (event.key === 'ArrowDown' && !event.metaKey && !event.ctrlKey) {
 		if (Selectable.giveFocus('down')) event.preventDefault();
-	} else if (event.key === 'ArrowLeft') {
+	} else if (event.key === 'ArrowLeft' && !event.metaKey && !event.ctrlKey) {
 		if (Selectable.giveFocus('left')) event.preventDefault();
-	} else if (event.key === 'ArrowRight') {
+	} else if (event.key === 'ArrowRight' && !event.metaKey && !event.ctrlKey) {
 		if (Selectable.giveFocus('right')) event.preventDefault();
 	} else if (event.key === 'Enter') {
 		currentlyFocusedObject.select();
