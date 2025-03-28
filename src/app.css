@@ -104,7 +104,7 @@ html[data-useragent*='Tizen'] .selectable-secondary {
 }
 
 .body {
-	@apply font-medium text-lg text-secondary-300;
+	@apply font-medium text-xl text-secondary-300;
 }
 
 .h-ghost {

@@ -2,6 +2,7 @@
 	import classNames from 'classnames';
 	import { DotFilled } from 'radix-icons-svelte';
 	import type { TitleInfoProperty } from './HeroTitleInfo';
+	import TitleText from '$lib/components/TitleText.svelte';
 
 	export let title: string;
 	export let properties: TitleInfoProperty[] = [];
@@ -9,20 +10,14 @@
 	export let onClickTitle: (() => void) | undefined = undefined;
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<div
-	class={classNames('text-left font-medium tracking-wider text-stone-200 mt-1', {
-		'text-4xl sm:text-5xl 2xl:text-6xl': title.length || 0 < 15,
-		'text-3xl sm:text-4xl 2xl:text-5xl': title.length || 0 >= 15,
-		'hover:text-amber-200 cursor-pointer': !!onClickTitle
-	})}
-	on:click={onClickTitle}
->
+<TitleText
 	{title}
-</div>
+	on:click={onClickTitle}
+	class={classNames({ 'hover:text-amber-200 cursor-pointer': !!onClickTitle })}
+/>
 
 <div
-	class="flex items-center gap-1 uppercase text-zinc-300 font-semibold tracking-wider mt-2 text-lg"
+	class="flex items-center gap-1 uppercase text-secondary-200 font-semibold tracking-wider mt-2 text-lg"
 >
 	{#each properties.filter((p) => !!p.label || !!p.icon) as property, i}
 		{#if i !== 0}
@@ -50,6 +45,6 @@
 	{/each}
 </div>
 
-<div class="body line-clamp-3 opacity-75 max-w-4xl mt-4">
+<div class="body line-clamp-4 opacity-75 max-w-4xl mt-4">
 	{overview}
 </div>
