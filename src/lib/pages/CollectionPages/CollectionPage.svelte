@@ -63,10 +63,7 @@
 		{#await items}
 			Loading...
 		{:then items}
-			<CardGrid let:columns
-			on:mount={registrar}
-			
-			>
+			<CardGrid let:columns on:mount={registrar}>
 				{#each items as item, index}
 					<TmdbCard
 						on:enter={(e) => {

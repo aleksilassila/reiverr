@@ -174,46 +174,6 @@ export interface UpdateUserDto {
 	oldPassword?: string;
 }
 
-export interface PaginatedResponseDto {
-	total: number;
-	page: number;
-	itemsPerPage: number;
-}
-
-export interface NextEpisodeToAir {
-	air_date?: string;
-}
-
-export interface Season {
-	air_date?: string;
-	episode_count?: number;
-	id?: number;
-	name?: string;
-	overview?: string;
-	poster_path?: string;
-	season_number?: number;
-	vote_average?: number;
-}
-
-export interface TmdbItemDto {
-	id?: number;
-	poster_path?: string;
-	vote_average?: number;
-	title?: string;
-	release_date?: string;
-	runtime?: number;
-	name?: string;
-	first_air_date?: string;
-	last_air_date?: string;
-	next_episode_to_air?: NextEpisodeToAir;
-	seasons?: Season[];
-}
-
-export interface CatalogueItemDto {
-	tmdbId: string;
-	tmdbItem: TmdbItemDto;
-}
-
 export interface VideoStreamPropertyDto {
 	label: string;
 	value: string | number;
@@ -562,11 +522,45 @@ export interface BulkUpdatePlayStateDto {
 	playStates: UpdatePlayStateDto[];
 }
 
+export interface PaginatedResponseDto {
+	total: number;
+	page: number;
+	itemsPerPage: number;
+}
+
+export interface NextEpisodeToAir {
+	air_date?: string;
+}
+
+export interface Season {
+	air_date?: string;
+	episode_count?: number;
+	id?: number;
+	name?: string;
+	overview?: string;
+	poster_path?: string;
+	season_number?: number;
+	vote_average?: number;
+}
+
+export interface TmdbItemDto {
+	id?: number;
+	poster_path?: string;
+	vote_average?: number;
+	title?: string;
+	release_date?: string;
+	runtime?: number;
+	name?: string;
+	first_air_date?: string;
+	last_air_date?: string;
+	next_episode_to_air?: NextEpisodeToAir;
+	seasons?: Season[];
+}
+
 export interface LibraryItemDto {
 	tmdbId: string;
 	mediaType: 'Movie' | 'Series' | 'Episode';
 	playStates?: PlayStateDto[];
-	createdAt: string;
 	tmdbItem: TmdbItemDto;
 	watched?: boolean;
 }
@@ -1044,116 +1038,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				body: data,
 				type: ContentType.Json,
 				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags users
-		 * @name GetLibraryItems
-		 * @request GET:/api/users/{userId}/library/my-list
-		 */
-		getLibraryItems: (
-			userId: string,
-			query?: {
-				filter?: 'movie' | 'series';
-				sortBy?: 'dateAdded' | 'name' | 'firstReleaseDate' | 'lastReleaseDate';
-				direction?: 'asc' | 'desc';
-			},
-			params: RequestParams = {}
-		) =>
-			this.request<
-				PaginatedResponseDto & {
-					items: LibraryItemDto[];
-				},
-				any
-			>({
-				path: `/api/users/${userId}/library/my-list`,
-				method: 'GET',
-				query: query,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags users
-		 * @name AddLibraryItem
-		 * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
-		 */
-		addLibraryItem: (
-			userId: string,
-			tmdbId: string,
-			query: {
-				mediaType: 'Movie' | 'Series' | 'Episode';
-			},
-			params: RequestParams = {}
-		) =>
-			this.request<SuccessResponseDto, any>({
-				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
-				method: 'PUT',
-				query: query,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags users
-		 * @name RemoveLibraryItem
-		 * @request DELETE:/api/users/{userId}/library/tmdb/{tmdbId}
-		 */
-		removeLibraryItem: (userId: string, tmdbId: string, params: RequestParams = {}) =>
-			this.request<SuccessResponseDto, any>({
-				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
-				method: 'DELETE',
-				format: 'json',
-				...params
 			})
 	};
 	sources = {
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetMovieCatalogue
-		 * @request GET:/api/sources/{sourceId}/catalogue/movies
-		 */
-		getMovieCatalogue: (sourceId: string, params: RequestParams = {}) =>
-			this.request<
-				PaginatedResponseDto & {
-					items: CatalogueItemDto[];
-				},
-				any
-			>({
-				path: `/api/sources/${sourceId}/catalogue/movies`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetEpisodeCatalogue
-		 * @request GET:/api/sources/{sourceId}/catalogue/series
-		 */
-		getEpisodeCatalogue: (sourceId: string, params: RequestParams = {}) =>
-			this.request<
-				PaginatedResponseDto & {
-					items: CatalogueItemDto[];
-				},
-				any
-			>({
-				path: `/api/sources/${sourceId}/catalogue/series`,
-				method: 'GET',
-				format: 'json',
-				...params
-			}),
-
 		/**
 		 * No description
 		 *
@@ -1700,6 +1587,102 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			this.request<SourceProviderCapabilitiesDto, any>({
 				path: `/api/providers/${providerId}/capabilities`,
 				method: 'GET',
+				format: 'json',
+				...params
+			})
+	};
+	library = {
+		/**
+		 * No description
+		 *
+		 * @tags library
+		 * @name GetMyList
+		 * @request GET:/api/users/{userId}/library/my-list
+		 */
+		getMyList: (
+			userId: string,
+			query?: {
+				filter?: 'movie' | 'series' | 'all';
+				sortBy?: 'dateAdded' | 'name' | 'firstReleaseDate' | 'lastReleaseDate';
+				direction?: 'asc' | 'desc';
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<
+				PaginatedResponseDto & {
+					items: LibraryItemDto[];
+				},
+				any
+			>({
+				path: `/api/users/${userId}/library/my-list`,
+				method: 'GET',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags library
+		 * @name GetCatalogue
+		 * @request GET:/api/users/{userId}/library/catalogue/{sourceId}
+		 */
+		getCatalogue: (
+			userId: string,
+			sourceId: string,
+			query: {
+				filter: string;
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<
+				PaginatedResponseDto & {
+					items: LibraryItemDto[];
+				},
+				any
+			>({
+				path: `/api/users/${userId}/library/catalogue/${sourceId}`,
+				method: 'GET',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags library
+		 * @name AddLibraryItem
+		 * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
+		 */
+		addLibraryItem: (
+			userId: string,
+			tmdbId: string,
+			query: {
+				mediaType: 'Movie' | 'Series' | 'Episode';
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<SuccessResponseDto, any>({
+				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
+				method: 'PUT',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags library
+		 * @name RemoveLibraryItem
+		 * @request DELETE:/api/users/{userId}/library/tmdb/{tmdbId}
+		 */
+		removeLibraryItem: (userId: string, tmdbId: string, params: RequestParams = {}) =>
+			this.request<SuccessResponseDto, any>({
+				path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
+				method: 'DELETE',
 				format: 'json',
 				...params
 			})

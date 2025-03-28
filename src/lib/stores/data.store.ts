@@ -196,7 +196,7 @@ export const episodeUserDataStore = useRequestsStore(
 );
 
 export const libraryItemsDataStore = useRequestsStore(
-	() => reiverrApi.users.getLibraryItems(get(user)?.id as string).then((r) => r.data.items),
+	() => reiverrApi.library.getMyList(get(user)?.id as string).then((r) => r.data.items),
 	{ persistant: true }
 );
 

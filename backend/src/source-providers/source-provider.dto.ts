@@ -25,6 +25,8 @@ export class CatalogueItemDto implements CatalogueItem {
   @ApiProperty()
   tmdbId: string;
   @ApiProperty()
+  mediaType: 'movie' | 'series';
+  @ApiProperty()
   tmdbItem: TmdbItemDto;
 }
 

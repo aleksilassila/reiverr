@@ -9,7 +9,11 @@ import {
 import { MediaSource } from './media-source.entity';
 import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import { ValidationResponse } from '@aleksilassila/reiverr-plugin';
+import {
+  SourceProvider,
+  ValidationResponse,
+} from '@aleksilassila/reiverr-plugin';
+import { PaginationParamsDto } from 'src/common/common.dto';
 
 export enum MediaSourcesServiceError {
   SourceNotFound = 'SourceNotFound',
@@ -135,6 +139,26 @@ export class MediaSourcesService {
     return user.mediaSources
       ?.filter((s) => s?.enabled)
       ?.find((source) => source.id === sourceId)?.pluginSettings;
+  }
+
+  async getConnection(sourceId: string): Promise<
+    | {
+        provider: SourceProvider;
+        mediaSource: MediaSource;
+      }
+    | undefined
+  > {
+    const mediaSource = await this.findMediaSource(sourceId);
+
+    const provider = this.sourceProvidersService.getProvider(
+      mediaSource.pluginId,
+    );
+
+    if (provider && mediaSource) {
+      return { provider, mediaSource };
+    }
+
+    return undefined;
   }
 
   async getMediaSourceDto(mediaSource: MediaSource): Promise<MediaSourceDto> {

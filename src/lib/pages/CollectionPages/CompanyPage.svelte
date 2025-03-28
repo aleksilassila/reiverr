@@ -21,4 +21,10 @@
 		: Promise.resolve([]);
 </script>
 
-<CollectionPage {registrar} {handleGoBack} {items} title={companyName} subtitle="Production Company" />
+<CollectionPage
+	{registrar}
+	{handleGoBack}
+	{items}
+	title={companyName}
+	subtitle="Production Company"
+/>

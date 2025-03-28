@@ -148,6 +148,7 @@ export type PlaybackConfig = {
 
 export type CatalogueItem = {
   tmdbId: string;
+  mediaType: 'movie' | 'series';
 };
 
 export type PaginatedResponse<T> = {

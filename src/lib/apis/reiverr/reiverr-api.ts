@@ -26,4 +26,4 @@ export const getReiverrApi = (session = get(sessions).activeSession) => {
 	});
 };
 
-export const getPublicReiverrApi = (baseUrl: string) =>  new ReiverrApi({ baseURL: baseUrl });
+export const getPublicReiverrApi = (baseUrl: string) => new ReiverrApi({ baseURL: baseUrl });

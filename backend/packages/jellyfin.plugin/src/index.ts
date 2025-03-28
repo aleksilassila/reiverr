@@ -1,5 +1,6 @@
 import {
   CatalogueItem,
+  CatalogueProvider,
   EpisodeMetadata,
   MovieMetadata,
   PaginatedResponse,
@@ -32,43 +33,35 @@ export default class JellyfinPluginProvider extends PluginProvider {
   }
 }
 
-class JellyfinProvider extends SourceProvider {
-  name: string = 'jellyfin';
+async function getLibraryItems(context: PluginContext) {
+  return context.api.items
+    .getItems({
+      userId: context.settings.userId,
+      // hasTmdbId: true,
+      recursive: true,
+      includeItemTypes: [
+        BaseItemKind.Movie,
+        BaseItemKind.Series,
+        BaseItemKind.Episode,
+      ],
+      fields: [
+        ItemFields.ProviderIds,
+        ItemFields.Genres,
+        ItemFields.DateLastMediaAdded,
+        ItemFields.DateCreated,
+        ItemFields.MediaSources,
+      ],
+    })
+    .then((res) => res.data.Items ?? []);
+}
 
-  private getProxyUrl(sourceId: string) {
-    return `/api/sources/${sourceId}/proxy`;
-  }
-
-  settingsManager: SettingsManager = new JellyfinSettingsManager();
-
-  private async getLibraryItems(context: PluginContext) {
-    return context.api.items
-      .getItems({
-        userId: context.settings.userId,
-        // hasTmdbId: true,
-        recursive: true,
-        includeItemTypes: [
-          BaseItemKind.Movie,
-          BaseItemKind.Series,
-          BaseItemKind.Episode,
-        ],
-        fields: [
-          ItemFields.ProviderIds,
-          ItemFields.Genres,
-          ItemFields.DateLastMediaAdded,
-          ItemFields.DateCreated,
-          ItemFields.MediaSources,
-        ],
-      })
-      .then((res) => res.data.Items ?? []);
-  }
-
+export class JellyfinCatalogueProvider extends CatalogueProvider {
   getMovieCatalogue = async (
     userContext: UserContext,
     pagination: PaginationParams,
   ): Promise<PaginatedResponse<CatalogueItem>> => {
     const items = (
-      await this.getLibraryItems(
+      await getLibraryItems(
         new PluginContext(userContext.settings, userContext.token),
       )
     ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
@@ -83,9 +76,50 @@ class JellyfinProvider extends SourceProvider {
       items: items.slice(startIndex, endIndex).map((item) => ({
         id: item.ProviderIds?.Tmdb,
         tmdbId: item.ProviderIds?.Tmdb,
+        mediaType: 'movie',
       })),
     };
   };
+
+  getSeriesCatalogue?: (
+    context: UserContext,
+    pagination: PaginationParams,
+  ) => Promise<PaginatedResponse<CatalogueItem>> = async (
+    ContextCreator,
+    pagination,
+  ) => {
+    const items = (
+      await getLibraryItems(
+        new PluginContext(ContextCreator.settings, ContextCreator.token),
+      )
+    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Series');
+
+    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+
+    return {
+      total: items.length,
+      page: pagination.page,
+      itemsPerPage: pagination.itemsPerPage,
+      items: items.slice(startIndex, endIndex).map((item) => ({
+        id: item.ProviderIds?.Tmdb,
+        tmdbId: item.ProviderIds?.Tmdb,
+        mediaType: 'series',
+      })),
+    };
+  };
+}
+
+class JellyfinProvider extends SourceProvider {
+  name: string = 'jellyfin';
+
+  private getProxyUrl(sourceId: string) {
+    return `/api/sources/${sourceId}/proxy`;
+  }
+
+  settingsManager: SettingsManager = new JellyfinSettingsManager();
+
+  catalogueProvider: CatalogueProvider = new JellyfinCatalogueProvider();
 
   getMovieStreams = async (
     tmdbId: string,
@@ -125,7 +159,7 @@ class JellyfinProvider extends SourceProvider {
     config?: PlaybackConfig,
   ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);
-    const items = await this.getLibraryItems(context);
+    const items = await getLibraryItems(context);
 
     const movie = items.find((item) => item.ProviderIds?.Tmdb === tmdbId);
 
@@ -271,7 +305,7 @@ class JellyfinProvider extends SourceProvider {
     config?: PlaybackConfig,
   ): Promise<Stream | undefined> => {
     const context = new PluginContext(userContext.settings, userContext.token);
-    const items = await this.getLibraryItems(context);
+    const items = await getLibraryItems(context);
 
     const show = items.find(
       (item) => item.ProviderIds?.Tmdb === tmdbId,

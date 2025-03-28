@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -9,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from 'src/auth/auth.guard';
+import { GetAuthToken, UserAccessControl } from 'src/auth/auth.guard';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
@@ -20,44 +21,83 @@ import {
   PaginationParamsDto,
   SuccessResponseDto,
 } from 'src/common/common.dto';
-import { LibraryItemDto } from './library.dto';
+import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import {
-  LibraryService,
-  LibrarySortBy,
-  MyListFilter as MyListFilter,
+  CatalogueFilter,
+  LibraryItemDto,
+  MyListSortBy,
+  MyListFilter,
   SortByDirection,
-} from './library.service';
+} from './library.dto';
+import { LibraryService } from './library.service';
 
-@ApiTags('users')
+@ApiTags('library')
 @Controller('users/:userId/library')
 @UseGuards(UserAccessControl)
 export class LibraryController {
-  constructor(private libraryService: LibraryService) {}
+  constructor(
+    private libraryService: LibraryService,
+    private mediaSourceService: MediaSourcesService,
+  ) {}
 
   @Get('my-list')
   @ApiQuery({ name: 'filter', enum: MyListFilter, required: false })
-  @ApiQuery({ name: 'sortBy', enum: LibrarySortBy, required: false })
+  @ApiQuery({ name: 'sortBy', enum: MyListSortBy, required: false })
   @ApiQuery({ name: 'direction', enum: SortByDirection, required: false })
   @PaginatedApiOkResponse(LibraryItemDto)
-  async getLibraryItems(
+  async getMyList(
     @GetPaginationParams() pagination: PaginationParamsDto,
     @Param('userId') userId: string,
     @Query('filter', new ParseEnumPipe(MyListFilter, { optional: true }))
     filter?: MyListFilter,
-    @Query('sortBy', new ParseEnumPipe(LibrarySortBy, { optional: true }))
-    sortBy?: LibrarySortBy,
+    @Query('sortBy', new ParseEnumPipe(MyListSortBy, { optional: true }))
+    sortBy?: MyListSortBy,
     @Query('direction', new ParseEnumPipe(SortByDirection, { optional: true }))
     direction?: SortByDirection,
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     // const user = await this.userService.findOne(userId);
 
-    const items = await this.libraryService.getMyListDtos({
+    const response = await this.libraryService.getMyList({
       userId,
       pagination,
       filter,
       sortBy,
       direction,
     });
+
+    return {
+      ...response,
+      items: await Promise.all(
+        response.items.map((i) =>
+          this.libraryService.getLibraryItemDto({
+            ...i,
+            mediaType: i.mediaType === MediaType.Movie ? 'movie' : 'series',
+          }),
+        ),
+      ),
+    };
+  }
+
+  @Get('catalogue/:sourceId')
+  @PaginatedApiOkResponse(LibraryItemDto)
+  async getCatalogue(
+    @GetPaginationParams() pagination: PaginationParamsDto,
+    @Param('userId') userId: string,
+    @Param('sourceId') sourceId: string,
+    @GetAuthToken() token: string,
+    @Query('filter', new ParseEnumPipe(CatalogueFilter, { optional: true }))
+    filter: CatalogueFilter = CatalogueFilter.All,
+  ): Promise<PaginatedResponseDto<LibraryItemDto>> {
+    const items = this.libraryService.getCatalogueItems({
+      sourceId,
+      token,
+      pagination,
+      filter,
+    });
+
+    if (!items) {
+      throw new BadRequestException();
+    }
 
     return items;
   }

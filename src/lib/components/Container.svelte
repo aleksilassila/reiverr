@@ -22,6 +22,7 @@
 		navigate: NavigateEvent;
 		back: KeyEvent;
 		playPause: KeyEvent;
+		blur: Selectable;
 	}>();
 
 	export let name: Required<ContainerProps>['name'] = '';
@@ -63,6 +64,10 @@
 				stopPropagation,
 				direction: options.direction
 			});
+
+			if (willLeaveContainer) {
+				dispatch('blur', selectable);
+			}
 		})
 		.setOnSelect(() => {
 			dispatch('select');

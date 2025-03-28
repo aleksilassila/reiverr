@@ -4,16 +4,49 @@
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { reiverrApi } from '$lib/stores/user.store';
+	import TabItem from './TabItem.svelte';
 
 	export let source: MediaSourceDto;
 
-	$: items = reiverrApi.sources.getMovieCatalogue(source.id).then((r) => r.data.items);
+	let filters: string[] = [];
+	let selectedFilter = '';
+
+	$: {
+		filters = [
+			...(source.capabilities.combinedCatalogue ? ['All'] : []),
+			...(source.capabilities.seriesCatalogue ? ['Series'] : []),
+			...(source.capabilities.moviesCatalogue ? ['Movies'] : []),
+			...(source.capabilities.missingCatalogue ? ['Missing'] : [])
+		];
+		selectedFilter = filters[0] ?? '';
+	}
+
+	$: items = selectedFilter
+		? reiverrApi.library
+				.getCatalogue(source.userId, source.id, {
+					filter:
+						{
+							All: 'all',
+							Movies: 'movies',
+							Series: 'series',
+							Missing: 'missing'
+						}[selectedFilter] ?? 'all'
+				})
+				.then((r) => r.data.items)
+		: Promise.resolve([]);
 </script>
 
-<Container class="mx-32">
+<Container class="mx-32 space-y-8">
+	<Container direction="horizontal" class="flex space-x-4">
+		{#each filters ?? [] as filter}
+			<TabItem selected={selectedFilter === filter} on:select={() => (selectedFilter = filter)}>
+				{filter}
+			</TabItem>
+		{/each}
+	</Container>
 	{#await items then items}
 		<CardGrid>
-			{#each items.map((i) => i.tmdbItem) as item}
+			{#each items.map((i) => i.tmdbItem) as item (item.id)}
 				<TmdbCard {item} />
 			{/each}
 		</CardGrid>

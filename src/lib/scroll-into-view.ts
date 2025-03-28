@@ -174,7 +174,6 @@ function smoothScrollTo(options: {
 
 	const d = Math.max(Math.abs(yDifference), Math.abs(xDifference));
 	const duration = options.duration || Math.min(500, Math.max(250, d / 2));
-	console.log(duration, startY, top, yDifference, element.scrollHeight);
 
 	const animate = () => {
 		const progress = (performance.now() - startTime) / duration;

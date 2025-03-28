@@ -64,8 +64,9 @@ export class MediaSourcesSettingsController {
     }
 
     return {
-      mediaSource:
-        await this.mediaSourcesService.getMediaSourceDto(updatedSource),
+      mediaSource: await this.mediaSourcesService.getMediaSourceDto(
+        updatedSource,
+      ),
       validationResponse,
     };
   }

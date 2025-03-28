@@ -30,17 +30,8 @@ import {
   GetAuthUser,
   UserAccessControl,
 } from 'src/auth/auth.guard';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-} from 'src/common/common.decorator';
-import {
-  PaginatedResponseDto,
-  PaginationParamsDto,
-} from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import {
-  CatalogueItemDto,
   PlaybackConfigDto,
   StreamCandidatesDto,
   StreamDto,
@@ -49,12 +40,6 @@ import { SourceProvidersService } from 'src/source-providers/source-providers.se
 import { User } from 'src/users/user.entity';
 import { MediaSource } from './media-source.entity';
 import { MediaSourcesService } from './media-sources.service';
-import { MediaSourceCapabilitiesDto } from './media-source.dto';
-
-type MediaSourceConnection = {
-  provider: SourceProvider;
-  mediaSource: MediaSource;
-};
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {
@@ -70,8 +55,9 @@ export class ServiceOwnershipValidator implements CanActivate {
 
     if (!sourceId) return true;
 
-    const mediaSource =
-      await this.mediaSourcesService.findMediaSource(sourceId);
+    const mediaSource = await this.mediaSourcesService.findMediaSource(
+      sourceId,
+    );
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -92,91 +78,6 @@ export class MediaSourcesController {
     private sourceProvidersService: SourceProvidersService,
     private metadataService: MetadataService,
   ) {}
-
-  @Get(':sourceId/catalogue/movies')
-  @PaginatedApiOkResponse(CatalogueItemDto)
-  async getMovieCatalogue(
-    @GetAuthUser() user: User,
-    @Param('sourceId')
-    sourceId: string,
-    @GetAuthToken() token: string,
-    @GetPaginationParams() pagination: PaginationParamsDto,
-  ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
-    const connection = await this.getConnection(sourceId);
-
-    const catalogue =
-      await connection.provider.catalogueProvider?.getMovieCatalogue?.(
-        {
-          userId: user.id,
-          settings: connection.mediaSource.pluginSettings,
-          token,
-          sourceId: connection.mediaSource.id,
-        },
-        pagination,
-      );
-
-    const items = await Promise.all(
-      catalogue.items.map(async (item) => {
-        const metadata = await this.metadataService.getMovieByTmdbId(
-          item.tmdbId,
-        );
-
-        return {
-          ...item,
-          tmdbItem: metadata.tmdbMovie,
-        };
-      }),
-    );
-
-    return {
-      items,
-      itemsPerPage: catalogue?.itemsPerPage ?? pagination.itemsPerPage,
-      page: catalogue?.page ?? pagination.page,
-      total: catalogue?.total ?? 0,
-    };
-  }
-
-  @Get(':sourceId/catalogue/series')
-  @PaginatedApiOkResponse(CatalogueItemDto)
-  async getEpisodeCatalogue(
-    @GetAuthUser() user: User,
-    @Param('sourceId') sourceId: string,
-    @GetAuthToken() token: string,
-    @GetPaginationParams() pagination: PaginationParamsDto,
-  ): Promise<PaginatedResponseDto<CatalogueItemDto>> {
-    const connection = await this.getConnection(sourceId);
-
-    const catalogue =
-      await connection.provider.catalogueProvider.getSeriesCatalogue?.(
-        {
-          userId: user.id,
-          settings: connection.mediaSource.pluginSettings,
-          token,
-          sourceId: connection.mediaSource.id,
-        },
-        pagination,
-      );
-
-    const items = await Promise.all(
-      catalogue.items.map(async (item) => {
-        const metadata = await this.metadataService.getSeriesByTmdbId(
-          item.tmdbId,
-        );
-
-        return {
-          ...item,
-          tmdbItem: metadata.tmdbSeries,
-        };
-      }),
-    );
-
-    return {
-      items,
-      itemsPerPage: catalogue?.itemsPerPage ?? pagination.itemsPerPage,
-      page: catalogue?.page ?? pagination.page,
-      total: catalogue?.total ?? 0,
-    };
-  }
 
   @Get(':sourceId/movies/tmdb/:tmdbId/streams')
   @ApiOkResponse({
@@ -341,8 +242,9 @@ export class MediaSourcesController {
     @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
-    const mediaSource =
-      await this.mediaSourcesService.findMediaSource(sourceId);
+    const mediaSource = await this.mediaSourcesService.findMediaSource(
+      sourceId,
+    );
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -407,21 +309,12 @@ export class MediaSourcesController {
   }
 
   async getConnection(sourceId: string) {
-    const mediaSource =
-      await this.mediaSourcesService.findMediaSource(sourceId);
+    const connection = await this.mediaSourcesService.getConnection(sourceId);
 
-    if (!mediaSource.pluginId || !mediaSource.enabled) {
-      throw new BadRequestException('Source not configured');
+    if (!connection) {
+      throw new BadRequestException('Invalid source');
     }
 
-    const provider = this.sourceProvidersService.getProvider(
-      mediaSource.pluginId,
-    );
-
-    if (!provider) {
-      throw new NotFoundException('Plugin not found');
-    }
-
-    return { provider, mediaSource };
+    return connection;
   }
 }

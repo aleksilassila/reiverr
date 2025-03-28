@@ -16,9 +16,6 @@
 	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
 	import TabItem from './TabItem.svelte';
 
-	// export let registrar: StackRouterPageProps['registrar'];
-	// export let handleGoBack: StackRouterPageProps['handleGoBack'];
-
 	const { registrar, handleGoBack } = getStackRouterControls();
 
 	let didMount = false;
@@ -97,8 +94,8 @@
 
 		return (
 			filtered?.sort((a, b) => {
-				const aCreatedAt = a.createdAt;
-				const bCreatedAt = b.createdAt;
+				// const aCreatedAt = a.createdAt;
+				// const bCreatedAt = b.createdAt;
 
 				const aReleaseDate = a.tmdbItem.release_date || '';
 				const bReleaseDate = b.tmdbItem.release_date || '';
@@ -115,7 +112,8 @@
 
 				const direction = viewSettings.sortDirection === 'asc' ? 1 : -1;
 				if (viewSettings.sortBy === 'date-added') {
-					return direction * aCreatedAt.localeCompare(bCreatedAt);
+					// return direction * aCreatedAt.localeCompare(bCreatedAt);
+					return direction * aFirstAirDate.localeCompare(bFirstAirDate);
 				} else if (viewSettings.sortBy === 'first-release-date') {
 					return direction * aFirstAirDate.localeCompare(bFirstAirDate);
 				} else if (viewSettings.sortBy === 'last-release-date') {
@@ -140,7 +138,13 @@
 	{#if !$isLoading}
 		<div class="h-full flex-1 flex flex-col">
 			<Container class="px-32 flex items-center justify-between" direction="horizontal">
-				<Container class="flex space-x-4" direction="horizontal">
+				<Container
+					class="flex space-x-4"
+					direction="horizontal"
+					on:blur={({ detail: selectable }) => {
+						selectable.activateChild($category === 'all' ? 0 : $category === 'series' ? 1 : 2);
+					}}
+				>
 					<TabItem selected={$category === 'all'} on:select={() => category.set('all')}>All</TabItem
 					>
 					<TabItem selected={$category === 'series'} on:select={() => category.set('series')}>

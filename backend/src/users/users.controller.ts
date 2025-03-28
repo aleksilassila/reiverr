@@ -53,9 +53,7 @@ export class UsersController {
 
     const users = await this.usersService.findAll();
 
-    return Promise.all(
-      users.map((user) => this.usersService.getUserDto(user)),
-    );
+    return Promise.all(users.map((user) => this.usersService.getUserDto(user)));
   }
 
   @UseGuards(UserAccessControl)

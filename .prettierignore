@@ -33,3 +33,4 @@ yarn.lock
 backend\packages\jellyfin.plugin\src\jellyfin.openapi.ts
 backend\swagger-spec.json
 **/*.generated.d.ts
+**/*.openapi.ts

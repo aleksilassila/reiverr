@@ -22,6 +22,6 @@ import { UsersService } from './users.service';
     MediaSourcesController,
     MediaSourcesSettingsController,
   ],
-  exports: [UsersService],
+  exports: [UsersService, MediaSourcesService],
 })
 export class UsersModule {}
