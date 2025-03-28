@@ -11,13 +11,13 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
+	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
-	export let handleGoBack: StackRouterPageProps['handleGoBack'];
-	export let registrar: StackRouterPageProps['registrar'];
+	const { registrar } = getStackRouterControls();
 
 	const background = createBackgroundPage({ videoMediaId: id });
 	const { promise: tmdbEpisode, unsubscribe: unsubscribeTmdbEpisode } =
@@ -90,7 +90,6 @@
 				direction="horizontal"
 				class="flex mt-8 space-x-4"
 				focusOnMount
-				on:back={handleGoBack}
 				on:mount={registrar}
 			>
 				<Button

@@ -20,10 +20,10 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
+	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 
 	export let id: string;
-	export let registrar: StackRouterPageProps['registrar'];
-	export let handleGoBack: StackRouterPageProps['handleGoBack'];
+	const { registrar } = getStackRouterControls();
 
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
 	const {
@@ -134,7 +134,6 @@
 				direction="horizontal"
 				class="flex mt-8 space-x-4"
 				focusOnMount
-				on:back={handleGoBack}
 				on:mount={registrar}
 			>
 				<Button

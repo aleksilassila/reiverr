@@ -7,7 +7,7 @@
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
+	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { tmdbMovieDataStore } from '$lib/stores/data.store';
@@ -22,8 +22,7 @@
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let id: string;
-	export let handleGoBack: StackRouterPageProps['handleGoBack'];
-	export let registrar: StackRouterPageProps['registrar'];
+	const { registrar } = getStackRouterControls();
 
 	const tmdbId = Number(id);
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
@@ -123,7 +122,6 @@
 				direction="horizontal"
 				class="flex mt-8 space-x-4"
 				focusOnMount
-				on:back={handleGoBack}
 				on:mount={registrar}
 			>
 				<Button

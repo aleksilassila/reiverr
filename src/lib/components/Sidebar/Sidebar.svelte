@@ -29,8 +29,6 @@
 		Manage
 	}
 
-	const tab = useTabs(Tabs.Series);
-
 	const { visibleStyle } = getUiVisibilityContext();
 
 	let selectedIndex = 0;

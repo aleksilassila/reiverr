@@ -1,11 +1,6 @@
 <script lang="ts">
-	import Container from '$components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
-	import { scrollIntoView } from '$lib/selectable.js';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
-	import TmdbCard from '../components/Card/TmdbCard.svelte';
-	import CardGrid from '../components/CardGrid.svelte';
 	import { TMDB_POSTER_SMALL } from '../constants.js';
 	import CollectionPage from './CollectionPages/CollectionPage.svelte';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
@@ -13,8 +8,7 @@
 	createBackgroundPage();
 
 	export let id: string;
-	export let registrar: StackRouterPageProps['registrar'];
-	export let handleGoBack: StackRouterPageProps['handleGoBack'];
+	
 
 	$: person = tmdbApi.getPerson(Number(id));
 	$: titles = person.then((person) => {
@@ -69,8 +63,6 @@
 		items={titles}
 		subtitle="Person"
 		title={person.name ?? 'Unknown'}
-		{registrar}
-		{handleGoBack}
 	>
 		<div class="flex space-x-8" slot="header">
 			<div

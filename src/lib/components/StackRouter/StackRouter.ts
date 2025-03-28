@@ -329,18 +329,15 @@ function useStackRouterControls() {
 	const topSelectable = useRegistrar();
 
 	function handleGoBack() {
-		const selectable = get(topSelectable);
-		if (selectable && get(selectable.focusIndex) === 0) {
-			history.back();
-		} else {
-			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
-		}
+		history.back();
 	}
 
 	function handleGoToTop() {
 		const selectable = get(topSelectable);
-		if (topSelectable) {
-			selectable?.focusChild(0, { cycleTo: true }) || selectable?.focus({ cycleTo: true });
+		if (selectable && get(selectable.focusIndex) === 0 && get(selectable.hasFocusWithin)) {
+			history.back();
+		} else if (selectable) {
+			selectable.focusChild(0, { cycleTo: true }) || selectable.focus({ cycleTo: true });
 		} else handleGoBack();
 	}
 

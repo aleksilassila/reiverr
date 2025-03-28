@@ -2,8 +2,9 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import type { StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
+	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 	import { scrollIntoView } from '$lib/selectable';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
@@ -12,18 +13,13 @@
 	export let title: string;
 	export let subtitle = '';
 	export let items: Promise<ComponentProps<TmdbCard>['item'][]>;
-	export let registrar: StackRouterPageProps['registrar'];
-	export let handleGoBack: StackRouterPageProps['handleGoBack'];
+	const { registrar } = getStackRouterControls();
 
 	const background = createBackgroundPage();
 	const { registrar: registerScroll, topVisible } = setScrollContext();
-	console.log($topVisible);
 </script>
 
-<Container
-	on:back={handleGoBack}
-	class="py-16 *:px-32 flex flex-col h-screen overflow-y-auto overflow-x-hidden"
->
+<Container class="py-16 *:px-32 flex flex-col h-screen overflow-y-auto overflow-x-hidden">
 	<slot name="header">
 		<div class="pt-8">
 			<h2 class="uppercase text-zinc-300 font-semibold tracking-wider">{subtitle}</h2>
@@ -39,14 +35,7 @@
 	</slot>
 
 	<slot name="header-compact">
-		<div
-			class={classNames(
-				'py-6 absolute top-0 inset-x-0 z-10 bg-gradient-to-b from-100% from-secondary-900 to-transparent transition-all',
-				{
-					'opacity-0 pointer-events-none -translate-y-4': $topVisible
-				}
-			)}
-		>
+		<FloatingHeader visible={$topVisible}>
 			<h2 class="uppercase text-zinc-300 font-semibold tracking-wider">{subtitle}</h2>
 			<h1
 				class={classNames('text-left font-semibold tracking-wider text-stone-200 mt-1', {
@@ -56,7 +45,7 @@
 			>
 				{title}
 			</h1>
-		</div>
+		</FloatingHeader>
 	</slot>
 
 	<div class="pt-16" use:registerScroll>
