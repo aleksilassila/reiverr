@@ -83,6 +83,13 @@ export class MetadataService {
             series.lastReleaseDate = tmdbSeries.last_air_date
               ? new Date(tmdbSeries.last_air_date)
               : undefined;
+            series.nextReleaseDate = tmdbSeries.next_episode_to_air?.air_date
+              ? new Date(tmdbSeries.next_episode_to_air.air_date)
+              : undefined;
+            series.lastEpisodeNumber =
+              tmdbSeries.last_episode_to_air?.episode_number;
+            series.lastSeasonNumber =
+              tmdbSeries.last_episode_to_air?.season_number;
             series.name = tmdbSeries.name;
           }
 

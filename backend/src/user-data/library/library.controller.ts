@@ -19,7 +19,7 @@ import {
   MediaType,
   PaginatedResponseDto,
   PaginationParamsDto,
-  SuccessResponseDto
+  SuccessResponseDto,
 } from 'src/common/common.dto';
 import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import {

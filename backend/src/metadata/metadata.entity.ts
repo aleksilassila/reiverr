@@ -103,6 +103,18 @@ export class SeriesMetadata {
   @Column({ nullable: true })
   lastReleaseDate?: Date;
 
+  @ApiProperty({ required: false, type: 'string' })
+  @Column({ nullable: true })
+  nextReleaseDate?: Date;
+
+  @ApiProperty({ required: false, type: 'number' })
+  @Column({ nullable: true })
+  lastSeasonNumber?: number;
+
+  @ApiProperty({ required: false, type: 'number' })
+  @Column({ nullable: true })
+  lastEpisodeNumber?: number;
+
   //
 
   @ApiProperty({ type: [LibraryItem], required: false })

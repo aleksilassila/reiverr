@@ -31,7 +31,7 @@ export type SeriesImages = Awaited<
 >['data'];
 export type TmdbSeries = Awaited<
   ReturnType<TmdbApi['v3']['tvSeriesDetails']>
->['data'];
+>['data']
 
 export type TmdbMovieFull = TmdbMovie & {
   videos: MovieVideos; // Proxy or to not proxy
