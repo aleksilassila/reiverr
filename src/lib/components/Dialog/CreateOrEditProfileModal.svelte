@@ -19,6 +19,7 @@
 	import ConfirmDialog from './ConfirmDialog.svelte';
 	import Dialog from './Dialog.svelte';
 	import type { AxiosError } from 'axios';
+	import TabContainer from '../Tab/TabContainer.svelte';
 
 	enum Tabs {
 		EditProfile,
@@ -32,7 +33,7 @@
 	export let createNew = false;
 	export let admin = createNew;
 
-	const tab = useTabs(Tabs.EditProfile);
+	const tab = useTabs(Tabs.EditProfile, { remount: false });
 
 	let name = user?.name || '';
 	let oldPassword = '';
@@ -172,133 +173,138 @@
 	}
 </script>
 
-<Dialog class="grid" size={'dynamic'}>
-	<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
-		<h1 class="h3">
-			{createNew ? 'Create Account' : 'Edit Profile'}
-		</h1>
-		<TextField bind:value={name}>name</TextField>
-		<SelectField value={profilePictureTitle} on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}>
-			Profile Picture
-		</SelectField>
-		{#if !createNew}
+<Dialog size={'dynamic'}>
+	<TabContainer absolute>
+		<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
+			<h1 class="h3">
+				{createNew ? 'Create Account' : 'Edit Profile'}
+			</h1>
+			<TextField bind:value={name}>name</TextField>
+			<SelectField
+				value={profilePictureTitle}
+				on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}
+			>
+				Profile Picture
+			</SelectField>
+			{#if !createNew}
+				<Container direction="horizontal" class="flex space-x-4 items-end">
+					<TextField
+						class="flex-1"
+						bind:value={oldPassword}
+						type={oldPasswordVisible ? 'text' : 'password'}
+					>
+						Old Password
+					</TextField>
+					<IconToggle
+						on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
+						icon={oldPasswordVisible ? EyeOpen : EyeClosed}
+					/>
+				</Container>
+			{/if}
 			<Container direction="horizontal" class="flex space-x-4 items-end">
 				<TextField
 					class="flex-1"
-					bind:value={oldPassword}
-					type={oldPasswordVisible ? 'text' : 'password'}
+					bind:value={newPassword}
+					type={newPasswordVisible ? 'text' : 'password'}
 				>
-					Old Password
+					New Password
 				</TextField>
 				<IconToggle
-					on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
-					icon={oldPasswordVisible ? EyeOpen : EyeClosed}
+					on:clickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
+					icon={newPasswordVisible ? EyeOpen : EyeClosed}
 				/>
 			</Container>
-		{/if}
-		<Container direction="horizontal" class="flex space-x-4 items-end">
-			<TextField
-				class="flex-1"
-				bind:value={newPassword}
-				type={newPasswordVisible ? 'text' : 'password'}
-			>
-				New Password
-			</TextField>
-			<IconToggle
-				on:clickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
-				icon={newPasswordVisible ? EyeOpen : EyeClosed}
-			/>
-		</Container>
-		{#if isAdmin || admin}
-			<div class="flex justify-between">
-				<label>Admin</label>
-				<Toggle bind:checked={isAdmin}>Admin</Toggle>
-			</div>
-		{/if}
-		{#if errorMessage}
-			<div class="text-red-500 mb-4">{errorMessage}</div>
-		{/if}
-		<Container direction="horizontal" class="flex space-x-4 pt-4 *:flex-1">
-			{#if !createNew}
-				<Button type="primary-dark" disabled={!stale} action={save}>Save</Button>
-				<Button
-					type="primary-dark"
-					icon={Trash}
-					on:clickOrSelect={() =>
-						createModal(ConfirmDialog, {
-							header: 'Delete Account',
-							body: 'Are you sure you want to delete your account?',
-							confirm: handleDeleteAccount
-						})}>Delete Account</Button
-				>
-			{:else}
-				<Button type="primary-dark" disabled={!complete} action={create}>Create</Button>
+			{#if isAdmin || admin}
+				<div class="flex justify-between">
+					<label>Admin</label>
+					<Toggle bind:checked={isAdmin}>Admin</Toggle>
+				</div>
 			{/if}
-		</Container>
-	</Tab>
+			{#if errorMessage}
+				<div class="text-red-500 mb-4">{errorMessage}</div>
+			{/if}
+			<Container direction="horizontal" class="flex space-x-4 pt-4 *:flex-1">
+				{#if !createNew}
+					<Button type="primary-dark" disabled={!stale} action={save}>Save</Button>
+					<Button
+						type="primary-dark"
+						icon={Trash}
+						on:clickOrSelect={() =>
+							createModal(ConfirmDialog, {
+								header: 'Delete Account',
+								body: 'Are you sure you want to delete your account?',
+								confirm: handleDeleteAccount
+							})}>Delete Account</Button
+					>
+				{:else}
+					<Button type="primary-dark" disabled={!complete} action={create}>Create</Button>
+				{/if}
+			</Container>
+		</Tab>
 
-	<Tab
-		{...tab}
-		tab={Tabs.ProfilePictures}
-		on:back={({ detail }) => {
-			tab.set(Tabs.EditProfile);
-			detail.stopPropagation();
-		}}
-	>
-		<h1 class="h3 mb-6">Select Profile Picture</h1>
-		<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4 w-max">
-			<ProfileIcon
-				url={profilePictures.ana}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.ana)}
-				focusOnMount={profilePictureBase64 === profilePictures.ana}
-			/>
-			<ProfileIcon
-				url={profilePictures.emma}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.emma)}
-				focusOnMount={profilePictureBase64 === profilePictures.emma}
-			/>
-			<ProfileIcon
-				url={profilePictures.glen}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.glen)}
-				focusOnMount={profilePictureBase64 === profilePictures.glen}
-			/>
-			<ProfileIcon
-				url={profilePictures.henry}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.henry)}
-				focusOnMount={profilePictureBase64 === profilePictures.henry}
-			/>
-			<ProfileIcon
-				url={profilePictures.keanu}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.keanu)}
-				focusOnMount={profilePictureBase64 === profilePictures.keanu}
-			/>
-			<ProfileIcon
-				url={profilePictures.leo}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.leo)}
-				focusOnMount={profilePictureBase64 === profilePictures.leo}
-			/>
-			<ProfileIcon
-				url={profilePictures.sydney}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.sydney)}
-				focusOnMount={profilePictureBase64 === profilePictures.sydney}
-			/>
-			<ProfileIcon
-				url={profilePictures.zendaya}
-				on:clickOrSelect={() => setProfilePicture(profilePictures.zendaya)}
-				focusOnMount={profilePictureBase64 === profilePictures.zendaya}
-			/>
-			<ProfileIcon
-				url="profile-pictures/leo.webp"
-				on:clickOrSelect={() => profilePictureFilesInput?.click()}
-				icon={Upload}
-			/>
-			<input
-				bind:this={profilePictureFilesInput}
-				type="file"
-				bind:files={profilePictureFiles}
-				accept="image/png, image/jpeg"
-				class="hidden"
-			/>
-		</Container>
-	</Tab>
+		<Tab
+			{...tab}
+			tab={Tabs.ProfilePictures}
+			on:back={({ detail }) => {
+				tab.set(Tabs.EditProfile);
+				detail.stopPropagation();
+			}}
+		>
+			<h1 class="h3 mb-6">Select Profile Picture</h1>
+			<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4 w-max">
+				<ProfileIcon
+					url={profilePictures.ana}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.ana)}
+					focusOnMount={profilePictureBase64 === profilePictures.ana}
+				/>
+				<ProfileIcon
+					url={profilePictures.emma}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.emma)}
+					focusOnMount={profilePictureBase64 === profilePictures.emma}
+				/>
+				<ProfileIcon
+					url={profilePictures.glen}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.glen)}
+					focusOnMount={profilePictureBase64 === profilePictures.glen}
+				/>
+				<ProfileIcon
+					url={profilePictures.henry}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.henry)}
+					focusOnMount={profilePictureBase64 === profilePictures.henry}
+				/>
+				<ProfileIcon
+					url={profilePictures.keanu}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.keanu)}
+					focusOnMount={profilePictureBase64 === profilePictures.keanu}
+				/>
+				<ProfileIcon
+					url={profilePictures.leo}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.leo)}
+					focusOnMount={profilePictureBase64 === profilePictures.leo}
+				/>
+				<ProfileIcon
+					url={profilePictures.sydney}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.sydney)}
+					focusOnMount={profilePictureBase64 === profilePictures.sydney}
+				/>
+				<ProfileIcon
+					url={profilePictures.zendaya}
+					on:clickOrSelect={() => setProfilePicture(profilePictures.zendaya)}
+					focusOnMount={profilePictureBase64 === profilePictures.zendaya}
+				/>
+				<ProfileIcon
+					url="profile-pictures/leo.webp"
+					on:clickOrSelect={() => profilePictureFilesInput?.click()}
+					icon={Upload}
+				/>
+				<input
+					bind:this={profilePictureFilesInput}
+					type="file"
+					bind:files={profilePictureFiles}
+					accept="image/png, image/jpeg"
+					class="hidden"
+				/>
+			</Container>
+		</Tab>
+	</TabContainer>
 </Dialog>

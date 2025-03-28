@@ -8,7 +8,7 @@
 	export let index: number = tab;
 	export let openTab: Writable<number>;
 	export let direction: 'horizontal' | 'vertical' = 'horizontal';
-	export let remount = false;
+	export let remount = true;
 
 	let selectable: Selectable;
 
@@ -37,7 +37,7 @@
 {#if !remount || active}
 	<Container
 		class={classNames(
-			'absolute inset-0 transition-[transform,opacity] overflow-y-auto overflow-x-hidden scrollbar-hide',
+			'transition-[transform,opacity] overflow-y-auto overflow-x-hidden scrollbar-hide -mx-4 px-4',
 			{
 				'pointer-events-none opacity-0': !active
 			},

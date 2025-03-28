@@ -26,7 +26,7 @@
 		About
 	}
 
-	const tab = useTabs(Tabs.Interface, { direction: 'vertical' });
+	const tab = useTabs(Tabs.Interface, { direction: 'vertical', remount: false });
 
 	let lastKeyCode = 0;
 	let lastKey = '';
@@ -122,7 +122,7 @@
 			</TabSelect>
 		</Container>
 
-		<TabContainer>
+		<TabContainer absolute>
 			<Tab {...tab} tab={Tabs.Account} class="space-y-16 pb-16">
 				<div>
 					<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
