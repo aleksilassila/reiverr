@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { LibraryItem } from '../library/library.entity';
-import { MediaType } from 'src/common/common.dto';
+import { MediaTypeFull } from 'src/common/common.dto';
 import { User } from 'src/users/user.entity';
 
 @Entity()
@@ -24,9 +24,9 @@ export class PlayState {
   @Column()
   tmdbId: string;
 
-  @ApiProperty({ enum: MediaType })
+  @ApiProperty({ enum: MediaTypeFull })
   @Column()
-  mediaType: MediaType;
+  mediaType: MediaTypeFull;
 
   @ApiProperty({ required: true, type: 'string' })
   @Column()

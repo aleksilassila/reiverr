@@ -19,14 +19,14 @@ import {
   MediaType,
   PaginatedResponseDto,
   PaginationParamsDto,
-  SuccessResponseDto,
+  SuccessResponseDto
 } from 'src/common/common.dto';
 import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import {
   CatalogueFilter,
   LibraryItemDto,
-  MyListSortBy,
   MyListFilter,
+  MyListSortBy,
   SortByDirection,
 } from './library.dto';
 import { LibraryService } from './library.service';
@@ -68,12 +68,7 @@ export class LibraryController {
     return {
       ...response,
       items: await Promise.all(
-        response.items.map((i) =>
-          this.libraryService.getLibraryItemDto({
-            ...i,
-            mediaType: i.mediaType === MediaType.Movie ? 'movie' : 'series',
-          }),
-        ),
+        response.items.map((i) => this.libraryService.getLibraryItemDto(i)),
       ),
     };
   }
@@ -111,7 +106,8 @@ export class LibraryController {
   async addLibraryItem(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
-    @Query('mediaType', new ParseEnumPipe(MediaType)) mediaType: MediaType,
+    @Query('mediaType', new ParseEnumPipe(MediaType))
+    mediaType: MediaType,
   ): Promise<SuccessResponseDto> {
     const item = await this.libraryService.findOrCreateByTmdbId(
       userId,

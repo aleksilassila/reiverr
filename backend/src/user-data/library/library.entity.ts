@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MediaType } from 'src/common/common.dto';
+import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
 import { User } from 'src/users/user.entity';
 import {
   Column,
@@ -13,9 +14,8 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { PlayState } from '../play-state/play-state.entity';
 import { PlayStateDto } from '../play-state/play-state.dto';
-import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
+import { PlayState } from '../play-state/play-state.entity';
 
 @Entity()
 @Unique(['tmdbId', 'userId'])

@@ -5,18 +5,17 @@ import {
   PaginationParamsDto,
 } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
+import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import { Repository } from 'typeorm';
+import { PlayState } from '../play-state/play-state.entity';
 import {
   LibraryItemDto,
-  MyListSortBy,
   MyListFilter,
+  MyListSortBy,
   SortByDirection,
 } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
-import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
-import { PlayState } from '../play-state/play-state.entity';
 
 @Injectable()
 export class LibraryService {
@@ -114,7 +113,7 @@ export class LibraryService {
     };
   }
 
-  async getCatalogueItems<T extends object = object>(options: {
+  async getCatalogueItems(options: {
     sourceId: string;
     token: string;
     pagination: PaginationParamsDto;
@@ -211,13 +210,7 @@ export class LibraryService {
       return {
         ...response,
         items: await Promise.all(
-          response.items.map(async (item) =>
-            this.getLibraryItemDto({
-              ...item,
-              mediaType:
-                item.mediaType === MediaType.Movie ? 'movie' : 'series',
-            }),
-          ),
+          response.items.map((item) => this.getLibraryItemDto(item)),
         ),
       };
     }

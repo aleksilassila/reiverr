@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MediaType } from 'src/common/common.dto';
+import { MediaTypeFull } from 'src/common/common.dto';
 import { Repository } from 'typeorm';
 import { BulkUpdatePlayStateDto, UpdatePlayStateDto } from './play-state.dto';
 import { PlayState } from './play-state.entity';
@@ -67,7 +67,7 @@ export class PlayStatesService {
     options: {
       season?: number;
       episode?: number;
-      mediaType: MediaType;
+      mediaType: MediaTypeFull;
       save?: boolean;
     },
   ) {
@@ -100,7 +100,7 @@ export class PlayStatesService {
     playState: UpdatePlayStateDto,
   ) {
     const state = await this.getOrCreatePlayState(userId, tmdbId, {
-      mediaType: MediaType.Movie,
+      mediaType: MediaTypeFull.Movie,
     });
 
     if (playState.progress !== undefined) state.progress = playState.progress;
@@ -119,7 +119,7 @@ export class PlayStatesService {
     const state = await this.getOrCreatePlayState(userId, tmdbId, {
       season,
       episode,
-      mediaType: MediaType.Episode,
+      mediaType: MediaTypeFull.Episode,
     });
 
     if (playState.progress !== undefined) state.progress = playState.progress;
@@ -156,7 +156,7 @@ export class PlayStatesService {
         const state = await this.getOrCreatePlayState(userId, tmdbId, {
           season: updatedState.season,
           episode: updatedState.episode,
-          mediaType: MediaType.Episode,
+          mediaType: MediaTypeFull.Episode,
         });
 
         if (updatedState.progress !== undefined)

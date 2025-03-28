@@ -49,7 +49,12 @@ export class SuccessResponseDto {
 }
 
 export enum MediaType {
-  Movie = 'Movie',
-  Series = 'Series',
-  Episode = 'Episode',
+  Movie = 'movie',
+  Series = 'series',
+}
+
+export enum MediaTypeFull {
+  Movie = 'movie',
+  Series = 'series',
+  Episode = 'episode',
 }
