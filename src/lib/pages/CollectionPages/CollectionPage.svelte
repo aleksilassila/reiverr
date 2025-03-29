@@ -12,7 +12,8 @@
 
 	export let title: string;
 	export let subtitle = '';
-	export let items: Promise<ComponentProps<TmdbCard>['item'][]>;
+	export let items: ComponentProps<TmdbCard>['item'][];
+	export let loading = false;
 	const { registrar } = getStackRouterControls();
 
 	const background = createBackgroundPage();
@@ -35,9 +36,9 @@
 	</slot>
 
 	<div class="pt-16" use:registerScroll>
-		{#await items}
+		{#if loading && !items.length}
 			Loading...
-		{:then items}
+		{:else if items.length}
 			<CardGrid let:columns on:mount={registrar}>
 				{#each items as item, index}
 					<TmdbCard
@@ -52,6 +53,13 @@
 					/>
 				{/each}
 			</CardGrid>
-		{/await}
+		{:else}
+			<div class="flex flex-col items-center justify-center h-full">
+				<h2 class="text-2xl text-zinc-300 font-semibold tracking-wider">No results found</h2>
+				<p class="text-zinc-400 text-sm">Try a different search</p>
+			</div>
+		{/if}
 	</div>
+
+	<slot name="footer" />
 </Container>

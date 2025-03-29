@@ -195,6 +195,7 @@ export function usePaginatedRequest<TResponseItem>(
 	if (options.loadFirstPage !== false) requestNextPage();
 
 	async function requestNextPage() {
+		console.log('herer');
 		if (get(loadingPage) === get(nextPage)) return;
 		if (!hasNextPage) return;
 
@@ -202,6 +203,8 @@ export function usePaginatedRequest<TResponseItem>(
 
 		const currentPage = get(nextPage);
 		const id = requestId;
+
+		console.log('requesting page', currentPage, id);
 
 		if (promise) await promise;
 
@@ -214,6 +217,7 @@ export function usePaginatedRequest<TResponseItem>(
 
 				if (res.items.length < res.itemsPerPage) {
 					hasNextPage = false;
+					console.log('no more pages', res);
 				}
 
 				data.update((d) => [...d, ...res.items]);
