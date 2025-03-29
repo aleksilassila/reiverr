@@ -2,20 +2,28 @@ import { ApiProperty, PickType } from '@nestjs/swagger';
 import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
 import { LibraryItem } from './library.entity';
 
-export enum SortByDirection {
+export enum OrderDirection {
   Asc = 'asc',
   Desc = 'desc',
 }
 
-export enum MyListSortBy {
-  DateAdded = 'dateAdded',
+export enum MyListOrder {
+  DateAdded = 'date-added',
   Name = 'name',
-  FirstReleaseDate = 'firstReleaseDate',
-  LastReleaseDate = 'lastReleaseDate',
+  FirstReleaseDate = 'first-release-date',
+  LastReleaseDate = 'last-release-date',
 }
 
-export enum MyListFilter {
-  Movie = 'movie',
+export enum MyListStatusFilter {
+  All = 'all',
+  Upcoming = 'upcoming',
+  Unwatched = 'unwatched',
+  Watched = 'watched',
+  ContinueWatching = 'continueWatching',
+}
+
+export enum MyListTypeFilter {
+  Movies = 'movies',
   Series = 'series',
   All = 'all',
 }

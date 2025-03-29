@@ -2,13 +2,13 @@
 	import Dialog from '$lib/components/Dialog/Dialog.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
-	import { libraryViewSettings } from '$lib/stores/localstorage.store';
+	import { libraryViewSettings, type MyListOrder, type MyListOrderDirection } from './LibraryPage';
 
-	const sortByOptions = [
+	const sortByOptions: { label: string; value: MyListOrder }[] = [
 		{ label: 'Last Release Date', value: 'last-release-date' },
 		{ label: 'First Release Date', value: 'first-release-date' },
 		{ label: 'Date Added', value: 'date-added' },
-		{ label: 'Title', value: 'title' }
+		{ label: 'Title', value: 'name' }
 	];
 
 	const sortByDirectionOptions = [
@@ -16,12 +16,15 @@
 		{ label: 'Descending', value: 'desc' }
 	];
 
-	function updateSortBy(sortBy: string) {
-		libraryViewSettings.update((settings) => ({ ...settings, sortBy: sortBy as any }));
+	function updateOrder(order: string) {
+		libraryViewSettings.update((settings) => ({ ...settings, order: order as MyListOrder }));
 	}
 
 	function updateSortByDirection(direction: string) {
-		libraryViewSettings.update((settings) => ({ ...settings, sortDirection: direction as any }));
+		libraryViewSettings.update((settings) => ({
+			...settings,
+			direction: direction as MyListOrderDirection
+		}));
 	}
 </script>
 
@@ -34,31 +37,21 @@
 	<SelectButtonGroup
 		name="Sort by"
 		options={sortByOptions}
-		selected={$libraryViewSettings.sortBy}
-		on:select={({ detail: sortBy }) => updateSortBy(sortBy)}
+		selected={$libraryViewSettings.order}
+		on:select={({ detail: order }) => updateOrder(order)}
 	/>
 
 	<SelectButtonGroup
 		name="Direction"
 		options={sortByDirectionOptions}
-		selected={$libraryViewSettings.sortDirection}
+		selected={$libraryViewSettings.direction}
 		on:select={({ detail: direction }) => updateSortByDirection(direction)}
 	/>
 
 	<div class="space-y-2 font-medium">
 		<Toggle
-			label="Include upcoming"
-			checked={!$libraryViewSettings.separateUpcoming}
-			on:change={({ detail: separateUpcoming }) =>
-				libraryViewSettings.update((settings) => ({
-					...settings,
-					separateUpcoming: !separateUpcoming
-				}))}
-		/>
-
-		<Toggle
-			label="Include watched"
-			checked={!$libraryViewSettings.separateWatched}
+			label="Separate watched"
+			checked={$libraryViewSettings.separateWatched}
 			on:change={({ detail: separateWatched }) =>
 				libraryViewSettings.update((settings) => ({
 					...settings,

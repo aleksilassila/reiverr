@@ -21,13 +21,13 @@ import {
   PaginationParamsDto,
   SuccessResponseDto,
 } from 'src/common/common.dto';
-import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
 import {
   CatalogueFilter,
   LibraryItemDto,
-  MyListFilter,
-  MyListSortBy,
-  SortByDirection,
+  MyListOrder,
+  MyListStatusFilter,
+  MyListTypeFilter,
+  OrderDirection,
 } from './library.dto';
 import { LibraryService } from './library.service';
 
@@ -35,33 +35,34 @@ import { LibraryService } from './library.service';
 @Controller('users/:userId/library')
 @UseGuards(UserAccessControl)
 export class LibraryController {
-  constructor(
-    private libraryService: LibraryService,
-    private mediaSourceService: MediaSourcesService,
-  ) {}
+  constructor(private libraryService: LibraryService) {}
 
   @Get('my-list')
-  @ApiQuery({ name: 'filter', enum: MyListFilter, required: false })
-  @ApiQuery({ name: 'sortBy', enum: MyListSortBy, required: false })
-  @ApiQuery({ name: 'direction', enum: SortByDirection, required: false })
+  @ApiQuery({ name: 'status', enum: MyListStatusFilter, required: false })
+  @ApiQuery({ name: 'type', enum: MyListTypeFilter, required: false })
+  @ApiQuery({ name: 'order', enum: MyListOrder, required: false })
+  @ApiQuery({ name: 'direction', enum: OrderDirection, required: false })
   @PaginatedApiOkResponse(LibraryItemDto)
   async getMyList(
     @GetPaginationParams() pagination: PaginationParamsDto,
     @Param('userId') userId: string,
-    @Query('filter', new ParseEnumPipe(MyListFilter, { optional: true }))
-    filter?: MyListFilter,
-    @Query('sortBy', new ParseEnumPipe(MyListSortBy, { optional: true }))
-    sortBy?: MyListSortBy,
-    @Query('direction', new ParseEnumPipe(SortByDirection, { optional: true }))
-    direction?: SortByDirection,
+    @Query('status', new ParseEnumPipe(MyListStatusFilter, { optional: true }))
+    status?: MyListStatusFilter,
+    @Query('type', new ParseEnumPipe(MyListTypeFilter, { optional: true }))
+    type?: MyListTypeFilter,
+    @Query('order', new ParseEnumPipe(MyListOrder, { optional: true }))
+    order?: MyListOrder,
+    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
+    direction?: OrderDirection,
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     // const user = await this.userService.findOne(userId);
 
     const response = await this.libraryService.getMyList({
       userId,
       pagination,
-      filter,
-      sortBy,
+      type,
+      status,
+      order,
       direction,
     });
 

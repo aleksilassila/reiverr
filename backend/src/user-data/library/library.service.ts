@@ -6,13 +6,14 @@ import {
 } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
-import { Repository } from 'typeorm';
+import { Brackets, NotBrackets, Repository } from 'typeorm';
 import { PlayState } from '../play-state/play-state.entity';
 import {
   LibraryItemDto,
-  MyListFilter,
-  MyListSortBy,
-  SortByDirection,
+  MyListTypeFilter,
+  MyListOrder,
+  OrderDirection,
+  MyListStatusFilter,
 } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
@@ -24,86 +25,212 @@ export class LibraryService {
     private readonly libraryRepository: Repository<LibraryItem>,
     private readonly metadataService: MetadataService,
     private readonly mediaSourceService: MediaSourcesService,
-  ) {}
+  ) {
+    // Make sure library items are cached
+    this.libraryRepository.find().then((r) =>
+      r.forEach((i) => {
+        if (i.mediaType === 'movie') {
+          this.metadataService.getMovieByTmdbId(i.tmdbId);
+        } else if (i.mediaType === 'series') {
+          this.metadataService.getSeriesByTmdbId(i.tmdbId);
+        }
+      }),
+    );
+  }
 
   /** TODO: decouple librayItem and movie/seriesItem */
   async getMyList(options: {
     userId: string;
     pagination: PaginationParamsDto;
-    filter?: MyListFilter;
-    sortBy?: MyListSortBy;
-    direction?: SortByDirection;
+    type?: MyListTypeFilter;
+    status?: MyListStatusFilter;
+    order?: MyListOrder;
+    direction?: OrderDirection;
   }): Promise<PaginatedResponseDto<LibraryItem>> {
     const {
       userId,
       pagination,
-      filter,
-      sortBy,
-      direction = SortByDirection.Desc,
+      type,
+      status,
+      order,
+      direction = OrderDirection.Desc,
     } = options;
 
-    const directon = direction === SortByDirection.Asc ? 'ASC' : 'DESC';
+    // const order = {
+    //   [MyListOrder.DateAdded]: { createdAt: directon } as const,
+    //   [MyListOrder.Name]: {
+    //     seriesMetadata: {
+    //       name: directon,
+    //     },
+    //     movieMetadata: {
+    //       name: directon,
+    //     },
+    //   } as const,
+    //   [MyListOrder.FirstReleaseDate]: {
+    //     movieMetadata: {
+    //       releaseDate: directon,
+    //     },
+    //     seriesMetadata: {
+    //       firstReleaseDate: directon,
+    //     },
+    //   } as const,
+    //   [MyListOrder.LastReleaseDate]: {
+    //     movieMetadata: {
+    //       releaseDate: directon,
+    //     },
+    //     seriesMetadata: {
+    //       lastReleaseDate: directon,
+    //     },
+    //   } as const,
+    // }[sortBy];
 
-    const order = {
-      [MyListSortBy.DateAdded]: { createdAt: directon } as const,
-      [MyListSortBy.Name]: {
-        seriesMetadata: {
-          name: directon,
-        },
-        movieMetadata: {
-          name: directon,
-        },
-      } as const,
-      [MyListSortBy.FirstReleaseDate]: {
-        movieMetadata: {
-          releaseDate: directon,
-        },
-        seriesMetadata: {
-          firstReleaseDate: directon,
-        },
-      } as const,
-      [MyListSortBy.LastReleaseDate]: {
-        movieMetadata: {
-          releaseDate: directon,
-        },
-        seriesMetadata: {
-          lastReleaseDate: directon,
-        },
-      } as const,
-    }[sortBy];
-
-    const mediaType = filter
-      ? filter === MyListFilter.Movie
+    const mediaType = type
+      ? type === MyListTypeFilter.Movies
         ? MediaType.Movie
         : MediaType.Series
       : undefined;
 
-    const [items, total] = await this.libraryRepository.findAndCount({
-      relations: {
-        playStates: true,
-        seriesMetadata: true,
-        movieMetadata: true,
-      },
-      select: {
-        seriesMetadata: {
-          firstReleaseDate: true,
-          lastReleaseDate: true,
-          name: true,
-        },
-        movieMetadata: {
-          releaseDate: true,
-          name: true,
-        },
-      },
+    // const [items, total] = await this.libraryRepository.findAndCount({
+    //   relations: {
+    //     playStates: true,
+    //     seriesMetadata: true,
+    //     movieMetadata: true,
+    //   },
+    //   select: {
+    //     seriesMetadata: {
+    //       firstReleaseDate: true,
+    //       lastReleaseDate: true,
+    //       name: true,
+    //     },
+    //     movieMetadata: {
+    //       releaseDate: true,
+    //       name: true,
+    //     },
+    //   },
+    //   where: {
+    //     userId,
+    //     ...(mediaType ? { mediaType } : {}),
+    //   },
+    //   order,
+    //   take: pagination.itemsPerPage,
+    //   skip: pagination.itemsPerPage * (pagination.page - 1),
+    // });
 
-      where: {
-        userId,
-        ...(mediaType ? { mediaType } : {}),
-      },
-      order,
-      take: pagination.itemsPerPage,
-      skip: pagination.itemsPerPage * (pagination.page - 1),
-    });
+    let builder = this.libraryRepository
+      .createQueryBuilder('libraryItem')
+      .leftJoinAndSelect('libraryItem.playStates', 'playStates')
+      .leftJoinAndSelect('libraryItem.movieMetadata', 'movieMetadata')
+      .leftJoinAndSelect('libraryItem.seriesMetadata', 'seriesMetadata')
+      .addSelect('libraryItem.createdAt', 'createdAt')
+      .addSelect(['libraryItem.createdAt', 'libraryItem.updatedAt'])
+      .where('libraryItem.userId = :userId', { userId });
+
+    if (mediaType) {
+      builder = builder.andWhere('libraryItem.mediaType = :mediaType', {
+        mediaType,
+      });
+    }
+
+    const watched = new Brackets((qb) =>
+      qb
+        .where(
+          "(libraryItem.mediaType = 'movie' AND playStates.watched = true)",
+        )
+        .orWhere(
+          new Brackets((qb) =>
+            qb
+              .where("libraryItem.mediaType = 'series'")
+              .andWhere(
+                'playStates.watched = true AND playStates.season = seriesMetadata.lastSeasonNumber AND playStates.episode = seriesMetadata.lastEpisodeNumber',
+              ),
+          ),
+        ),
+    );
+    const upcoming = new Brackets((qb) =>
+      qb
+        .where(watched)
+        .andWhere(
+          new Brackets((qb) =>
+            qb
+              .where('seriesMetadata.nextReleaseDate > date("now")')
+              .orWhere('movieMetadata.releaseDate > date("now")'),
+          ),
+        ),
+    );
+    const watchedAndNotUpcoming = new Brackets((qb) =>
+      qb
+        .where(watched)
+        .andWhere(
+          new Brackets((qb) =>
+            qb
+              .where('seriesMetadata.nextReleaseDate < date("now")')
+              .orWhere('movieMetadata.releaseDate < date("now")')
+              .orWhere(
+                '(seriesMetadata.nextReleaseDate IS NULL AND movieMetadata.releaseDate IS NULL)',
+              ),
+          ),
+        ),
+    );
+    if (status === MyListStatusFilter.Upcoming) {
+      builder = builder.andWhere(upcoming);
+    } else if (status === MyListStatusFilter.Watched) {
+      builder = builder.andWhere(watchedAndNotUpcoming);
+    } else if (status === MyListStatusFilter.Unwatched) {
+      builder = builder.andWhere(
+        new Brackets((qb) =>
+          qb
+            .where(
+              "(libraryItem.mediaType = 'movie' AND playStates.watched = false)",
+            )
+            .orWhere(
+              "(libraryItem.mediaType = 'movie' AND playStates.watched IS NULL)",
+            )
+            .orWhere(
+              new Brackets((qb) =>
+                qb
+                  .where("libraryItem.mediaType = 'series'")
+                  .andWhere(
+                    'playStates.watched = false AND playStates.season = seriesMetadata.lastSeasonNumber AND playStates.episode = seriesMetadata.lastEpisodeNumber',
+                  ),
+              ),
+            )
+            .orWhere(
+              new Brackets((qb) =>
+                qb.where("libraryItem.mediaType = 'series'").andWhere(
+                  `NOT EXISTS (
+                    select 1 from play_state playStates
+                    LEFT JOIN movie_metadata movieMetadata on playStates.tmdbId = movieMetadata.tmdbId
+                    LEFT JOIN series_metadata seriesMetadata on playStates.tmdbId = seriesMetadata.tmdbId
+                    where playStates.tmdbId = libraryItem.tmdbId AND playStates.userId = libraryItem.userId
+                    AND seriesMetadata.lastEpisodeNumber = playStates.episode AND seriesMetadata.lastSeasonNumber = playStates.season
+                  )`,
+                ),
+              ),
+            ),
+        ),
+      );
+    }
+
+    const DIRECTION = direction === OrderDirection.Asc ? 'ASC' : 'DESC';
+    if (order === MyListOrder.Name) {
+      builder.addOrderBy('seriesMetadata.name', DIRECTION);
+      builder.addOrderBy('movieMetadata.name', DIRECTION);
+    } else if (order === MyListOrder.DateAdded) {
+      builder.addOrderBy('libraryItem.createdAt', DIRECTION);
+    } else if (order === MyListOrder.FirstReleaseDate) {
+      builder.addOrderBy('movieMetadata.releaseDate', DIRECTION);
+      builder.addOrderBy('seriesMetadata.firstReleaseDate', DIRECTION);
+    } else if (order === MyListOrder.LastReleaseDate) {
+      builder.addOrderBy('movieMetadata.releaseDate', DIRECTION);
+      builder.addOrderBy('seriesMetadata.lastReleaseDate', DIRECTION);
+    }
+
+    const [items, total] = await builder
+      .take(pagination.itemsPerPage)
+      .skip(pagination.itemsPerPage * (pagination.page - 1))
+      .getManyAndCount();
+
+    // console.log(builder.getQuery());
 
     return {
       items,
@@ -188,8 +315,9 @@ export class LibraryService {
           page: 1,
         },
         userId: connection.mediaSource.userId,
-        filter: MyListFilter.All,
-        sortBy: MyListSortBy.DateAdded,
+        type: MyListTypeFilter.All,
+        status: MyListStatusFilter.All,
+        order: MyListOrder.DateAdded,
       }).then((res) => res.items);
 
       myListItems.forEach((i) => {

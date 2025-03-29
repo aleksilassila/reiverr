@@ -3,10 +3,13 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import TabItem from './TabItem.svelte';
 
 	export let source: MediaSourceDto;
+
+	const { registrar } = getStackRouterControls();
 
 	let filters: string[] = [];
 	let selectedFilter = '';
@@ -45,7 +48,7 @@
 		{/each}
 	</Container>
 	{#await items then items}
-		<CardGrid>
+		<CardGrid on:mount={registrar} focusOnMount>
 			{#each items.map((i) => i.tmdbItem) as item (item.id)}
 				<TmdbCard {item} />
 			{/each}

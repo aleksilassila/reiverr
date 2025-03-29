@@ -48,7 +48,7 @@ export interface Settings {
 export interface PlayState {
 	id: string;
 	tmdbId: number;
-	mediaType: 'Movie' | 'Series' | 'Episode';
+	mediaType: 'movie' | 'series' | 'episode';
 	userId: string;
 	season?: number;
 	episode?: number;
@@ -84,6 +84,9 @@ export interface SeriesMetadata {
 	name?: string;
 	firstReleaseDate?: string;
 	lastReleaseDate?: string;
+	nextReleaseDate?: string;
+	lastSeasonNumber?: number;
+	lastEpisodeNumber?: number;
 	libraryItems?: any[][];
 	updatedAt: string;
 }
@@ -91,7 +94,7 @@ export interface SeriesMetadata {
 export interface PlayStateDto {
 	id: string;
 	tmdbId: number;
-	mediaType: 'Movie' | 'Series' | 'Episode';
+	mediaType: 'movie' | 'series' | 'episode';
 	userId: string;
 	season?: number;
 	episode?: number;
@@ -113,7 +116,7 @@ export interface PlayStateDto {
 export interface LibraryItem {
 	id?: string;
 	tmdbId: string;
-	mediaType: 'Movie' | 'Series' | 'Episode';
+	mediaType: 'movie' | 'series';
 	movieMetadata?: MovieMetadata;
 	seriesMetadata?: SeriesMetadata;
 	userId: string;
@@ -559,7 +562,7 @@ export interface TmdbItemDto {
 
 export interface LibraryItemDto {
 	tmdbId: string;
-	mediaType: 'Movie' | 'Series' | 'Episode';
+	mediaType: 'movie' | 'series';
 	playStates?: PlayStateDto[];
 	tmdbItem: TmdbItemDto;
 	watched?: boolean;
@@ -1602,8 +1605,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getMyList: (
 			userId: string,
 			query?: {
-				filter?: 'movie' | 'series' | 'all';
-				sortBy?: 'dateAdded' | 'name' | 'firstReleaseDate' | 'lastReleaseDate';
+				status?: 'all' | 'upcoming' | 'unwatched' | 'watched' | 'continueWatching';
+				type?: 'movies' | 'series' | 'all';
+				order?: 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
 				direction?: 'asc' | 'desc';
 			},
 			params: RequestParams = {}
@@ -1660,7 +1664,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			userId: string,
 			tmdbId: string,
 			query: {
-				mediaType: 'Movie' | 'Series' | 'Episode';
+				mediaType: 'movie' | 'series';
 			},
 			params: RequestParams = {}
 		) =>
