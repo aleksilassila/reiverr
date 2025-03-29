@@ -1,8 +1,10 @@
 import {
   CatalogueItem,
   CatalogueProvider,
+  DirectionOption,
   EpisodeMetadata,
   MovieMetadata,
+  OrderOption,
   PaginatedResponse,
   PaginationParams,
   PlaybackConfig,
@@ -16,7 +18,12 @@ import {
   UserContext,
 } from '@aleksilassila/reiverr-plugin';
 import { Readable } from 'stream';
-import { BaseItemKind, ItemFields } from './jellyfin.openapi';
+import {
+  BaseItemKind,
+  ItemFields,
+  ItemSortBy,
+  SortOrder,
+} from './jellyfin.openapi';
 import { JellyfinSettings, PluginContext } from './plugin-context';
 import { JellyfinSettingsManager } from './settings';
 import {
@@ -55,56 +62,154 @@ async function getLibraryItems(context: PluginContext) {
     .then((res) => res.data.Items ?? []);
 }
 
-export class JellyfinCatalogueProvider extends CatalogueProvider {
-  getMovieCatalogue = async (
-    userContext: UserContext,
-    pagination: PaginationParams,
-  ): Promise<PaginatedResponse<CatalogueItem>> => {
-    const items = (
-      await getLibraryItems(
-        new PluginContext(userContext.settings, userContext.token),
-      )
-    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
+export class JellyfinCatalogueProvider implements CatalogueProvider {
+  getOrderOptions?: () => Promise<OrderOption[]> = async () => {
+    const directions: DirectionOption[] = [
+      {
+        label: 'Ascending',
+        value: 'asc',
+      },
+      {
+        label: 'Descending',
+        value: 'desc',
+      },
+    ];
 
-    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
-    const endIndex = startIndex + pagination.itemsPerPage;
+    return [
+      {
+        label: 'Title',
+        value: 'title',
+        directions,
+      },
+      {
+        label: 'Date Added',
+        value: 'date-added',
+        directions,
+      },
+      {
+        label: 'Date Created',
+        value: 'date-created',
+        directions,
+      },
+    ];
+  };
+
+  getMovieCatalogue?: (options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: string;
+  }) => Promise<PaginatedResponse<CatalogueItem>> = async (options) => {
+    const { context, pagination, order, direction } = options;
+
+    const sortBy: ItemSortBy[] = [];
+
+    if (order === 'title') {
+      sortBy.push(ItemSortBy.Name);
+    } else if (order === 'date-added') {
+      sortBy.push(ItemSortBy.DateLastContentAdded);
+    } else if (order === 'date-created') {
+      sortBy.push(ItemSortBy.DateCreated);
+    }
+    // const items = (
+    //   await getLibraryItems(new PluginContext(context.settings, context.token))
+    // ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
+    const items = await new PluginContext(
+      context.settings,
+      context.token,
+    ).api.items
+      .getItems({
+        userId: context.settings.userId,
+        hasTmdbId: true,
+        recursive: true,
+        includeItemTypes: [BaseItemKind.Movie],
+        fields: [
+          ItemFields.ProviderIds,
+          ItemFields.Genres,
+          ItemFields.DateLastMediaAdded,
+          ItemFields.DateCreated,
+          ItemFields.MediaSources,
+        ],
+        sortBy,
+        sortOrder: [
+          direction === 'asc' ? SortOrder.Ascending : SortOrder.Descending,
+        ],
+        startIndex: (pagination.page - 1) * pagination.itemsPerPage,
+        limit: pagination.itemsPerPage,
+      })
+      .then((res) => res.data.Items ?? [])
+      .catch((e) => {
+        console.error('error fetching items', e);
+        return [];
+      });
 
     return {
       total: items.length,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
-      items: items.slice(startIndex, endIndex).map((item) => ({
+      items: items.map((item) => ({
         id: item.ProviderIds?.Tmdb,
         tmdbId: item.ProviderIds?.Tmdb,
-        mediaType: 'movie',
+        mediaType: 'movie' as const,
       })),
     };
   };
 
-  getSeriesCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>> = async (
-    ContextCreator,
-    pagination,
-  ) => {
-    const items = (
-      await getLibraryItems(
-        new PluginContext(ContextCreator.settings, ContextCreator.token),
-      )
-    ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Series');
+  getSeriesCatalogue?: (options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: 'asc' | 'desc';
+  }) => Promise<PaginatedResponse<CatalogueItem>> = async (options) => {
+    const { context, pagination, order, direction } = options;
 
-    const startIndex = (pagination.page - 1) * pagination.itemsPerPage;
-    const endIndex = startIndex + pagination.itemsPerPage;
+    const sortBy: ItemSortBy[] = [];
+
+    if (order === 'title') {
+      sortBy.push(ItemSortBy.Name);
+    } else if (order === 'date-added') {
+      sortBy.push(ItemSortBy.DateLastContentAdded);
+    } else if (order === 'date-created') {
+      sortBy.push(ItemSortBy.DateCreated);
+    }
+
+    const items = await new PluginContext(
+      context.settings,
+      context.token,
+    ).api.items
+      .getItems({
+        userId: context.settings.userId,
+        hasTmdbId: true,
+        recursive: true,
+        includeItemTypes: [BaseItemKind.Series],
+        fields: [
+          ItemFields.ProviderIds,
+          ItemFields.Genres,
+          ItemFields.DateLastMediaAdded,
+          ItemFields.DateCreated,
+          ItemFields.MediaSources,
+        ],
+        sortBy,
+        sortOrder: [
+          direction === 'asc' ? SortOrder.Ascending : SortOrder.Descending,
+        ],
+        startIndex: (pagination.page - 1) * pagination.itemsPerPage,
+        limit: pagination.itemsPerPage,
+      })
+      .then((res) => res.data.Items ?? [])
+      .catch((e) => {
+        console.error('error fetching items', e);
+        return [];
+      });
 
     return {
       total: items.length,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
-      items: items.slice(startIndex, endIndex).map((item) => ({
+      items: items.map((item) => ({
         id: item.ProviderIds?.Tmdb,
         tmdbId: item.ProviderIds?.Tmdb,
-        mediaType: 'series',
+        mediaType: 'series' as const,
       })),
     };
   };

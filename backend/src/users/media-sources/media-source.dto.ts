@@ -1,8 +1,27 @@
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { PickAndPartial } from 'src/common/common.dto';
-import { MediaSource } from './media-source.entity';
 import { ValidationResponseDto } from 'src/source-providers/source-provider.dto';
-import { SourceProvider } from '@aleksilassila/reiverr-plugin';
+import { MediaSource } from './media-source.entity';
+import { DirectionOption, OrderOption } from '@aleksilassila/reiverr-plugin';
+
+class CatalogueOrderDirectionOption implements DirectionOption {
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty()
+  value: string;
+}
+
+class CatalogueSortOptionDto implements OrderOption {
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty()
+  value: string;
+
+  @ApiProperty({ type: [CatalogueOrderDirectionOption] })
+  directions: CatalogueOrderDirectionOption[];
+}
 
 export class MediaSourceCapabilitiesDto {
   @ApiProperty()
@@ -19,6 +38,9 @@ export class MediaSourceCapabilitiesDto {
 
   @ApiProperty()
   missingCatalogue: boolean;
+
+  @ApiProperty({ type: [CatalogueSortOptionDto] })
+  sortOptions: CatalogueSortOptionDto[];
 
   // @ApiProperty()
   // request: boolean;

@@ -14,6 +14,7 @@ import {
   MyListOrder,
   OrderDirection,
   MyListStatusFilter,
+  CatalogueTypeFilter,
 } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
@@ -244,9 +245,18 @@ export class LibraryService {
     sourceId: string;
     token: string;
     pagination: PaginationParamsDto;
-    filter?: 'all' | 'movies' | 'series' | 'missing';
+    type?: CatalogueTypeFilter;
+    order?: string;
+    direction?: string;
   }): Promise<PaginatedResponseDto<LibraryItemDto> | undefined> {
-    const { sourceId, token, pagination, filter = 'all' } = options;
+    const {
+      sourceId,
+      token,
+      pagination,
+      type = CatalogueTypeFilter.All,
+      order,
+      direction,
+    } = options;
 
     const connection = await this.mediaSourceService.getConnection(sourceId);
 
@@ -256,16 +266,18 @@ export class LibraryService {
     const movies = connection.provider.catalogueProvider.getMovieCatalogue;
     const series = connection.provider.catalogueProvider.getSeriesCatalogue;
     const missing = connection.provider.catalogueProvider.getMissingInCatalogue;
-    if (filter === 'all' && combined) {
-      const response = await combined(
-        {
+    if (type === CatalogueTypeFilter.All && combined) {
+      const response = await combined({
+        context: {
           userId: connection.mediaSource.userId,
           settings: connection.mediaSource.pluginSettings,
           sourceId: connection.mediaSource.id,
           token,
         },
         pagination,
-      );
+        order,
+        direction,
+      });
 
       return {
         ...response,
@@ -273,16 +285,18 @@ export class LibraryService {
           response.items.map(async (item) => this.getLibraryItemDto(item)),
         ),
       };
-    } else if (filter === 'movies' && movies) {
-      const response = await movies(
-        {
+    } else if (type === CatalogueTypeFilter.Movies && movies) {
+      const response = await movies({
+        context: {
           userId: connection.mediaSource.userId,
           settings: connection.mediaSource.pluginSettings,
           sourceId: connection.mediaSource.id,
           token,
         },
         pagination,
-      );
+        order,
+        direction,
+      });
 
       return {
         ...response,
@@ -290,16 +304,18 @@ export class LibraryService {
           response.items.map(async (item) => this.getLibraryItemDto(item)),
         ),
       };
-    } else if (filter === 'series' && series) {
-      const response = await series(
-        {
+    } else if (type === CatalogueTypeFilter.Series && series) {
+      const response = await series({
+        context: {
           userId: connection.mediaSource.userId,
           settings: connection.mediaSource.pluginSettings,
           sourceId: connection.mediaSource.id,
           token,
         },
         pagination,
-      );
+        order,
+        direction,
+      });
 
       return {
         ...response,
@@ -307,7 +323,7 @@ export class LibraryService {
           response.items.map(async (item) => this.getLibraryItemDto(item)),
         ),
       };
-    } else if (filter === 'missing' && missing) {
+    } else if (type === CatalogueTypeFilter.Missing && missing) {
       const tmdbIdToMyListItem: Record<string, LibraryItem> = {};
       const myListItems = await this.getMyList({
         pagination: {
@@ -324,16 +340,18 @@ export class LibraryService {
         tmdbIdToMyListItem[i.tmdbId] = i;
       });
 
-      const response = await missing(
-        {
+      const response = await missing({
+        context: {
           userId: connection.mediaSource.userId,
           settings: connection.mediaSource.pluginSettings,
           sourceId: connection.mediaSource.id,
           token,
         },
         pagination,
-        tmdbIdToMyListItem,
-      );
+        myListItems: tmdbIdToMyListItem,
+        order,
+        direction,
+      });
 
       return {
         ...response,

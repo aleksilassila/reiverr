@@ -126,12 +126,24 @@ export interface LibraryItem {
 	createdAt: string;
 }
 
+export interface CatalogueOrderDirectionOption {
+	label: string;
+	value: string;
+}
+
+export interface CatalogueSortOptionDto {
+	label: string;
+	value: string;
+	directions: CatalogueOrderDirectionOption[];
+}
+
 export interface MediaSourceCapabilitiesDto {
 	catalogues: boolean;
 	moviesCatalogue: boolean;
 	seriesCatalogue: boolean;
 	combinedCatalogue: boolean;
 	missingCatalogue: boolean;
+	sortOptions: CatalogueSortOptionDto[];
 }
 
 export interface MediaSourceDto {
@@ -1635,8 +1647,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getCatalogue: (
 			userId: string,
 			sourceId: string,
-			query: {
-				filter: string;
+			query?: {
+				type?: 'all' | 'movies' | 'series' | 'missing';
+				order?: string;
+				direction?: string;
 			},
 			params: RequestParams = {}
 		) =>

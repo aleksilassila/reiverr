@@ -10,7 +10,8 @@ import {
   ValidationResponse,
   Stream,
   StreamCandidate,
-  CatalogueSort,
+  DirectionOption,
+  OrderOption,
 } from './types';
 import * as packageJson from '../package.json';
 
@@ -42,11 +43,21 @@ export class SettingsManager {
 }
 
 export class CatalogueProvider {
-  getSortOptions?: () => Promise<CatalogueSort[]> = () =>
+  getOrderOptions?: () => Promise<OrderOption[]> = () =>
     Promise.resolve([
       {
         label: 'Title',
-        name: 'title',
+        value: 'title',
+        directions: [
+          {
+            label: 'Ascending',
+            value: 'asc',
+          },
+          {
+            label: 'Descending',
+            value: 'desc',
+          },
+        ],
       },
     ]);
 
@@ -56,35 +67,43 @@ export class CatalogueProvider {
   /**
    * Returns an index of all items available in the source.
    */
-  getCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>>;
+  getCatalogue?: (options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: string;
+  }) => Promise<PaginatedResponse<CatalogueItem>>;
 
   /**
    * Returns an index of all movies available in the source.
    */
-  getMovieCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>>;
+  getMovieCatalogue?: (options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: string;
+  }) => Promise<PaginatedResponse<CatalogueItem>>;
 
   /**
    * Returns an index of all series available in the source.
    */
-  getSeriesCatalogue?: (
-    context: UserContext,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<CatalogueItem>>;
+  getSeriesCatalogue?: (options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: string;
+  }) => Promise<PaginatedResponse<CatalogueItem>>;
 
   /**
    * Filters my list items to only include those that are not available in the source.
    */
-  getMissingInCatalogue?: <T extends object = object>(
-    context: UserContext,
-    pagination: PaginationParams,
-    myListItems: Record<string, T>,
-  ) => Promise<PaginatedResponse<T>>;
+  getMissingInCatalogue?: <T extends object = object>(options: {
+    context: UserContext;
+    pagination: PaginationParams;
+    order?: string;
+    direction?: string;
+    myListItems: Record<string, T>;
+  }) => Promise<PaginatedResponse<T>>;
 }
 
 /**

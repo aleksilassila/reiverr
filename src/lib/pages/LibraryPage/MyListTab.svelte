@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { LibraryItemDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Container from '$lib/components/Container.svelte';
@@ -8,18 +7,14 @@
 	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { libraryItemsDataStore } from '$lib/stores/data.store';
-	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
+	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
-	import { derived } from 'svelte/store';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
-	import OptionsDialog from './OptionsDialog.LibraryPage.svelte';
-	import TabItem from './TabItem.svelte';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { libraryViewSettings } from './LibraryPage';
+	import MyListOptions from './MyListOptions.svelte';
+	import TabItem from './TabItem.svelte';
 
 	const { registrar } = getStackRouterControls();
 	const { topVisible } = getScrollContext();
@@ -72,7 +67,7 @@
 
 <Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
 	<div class="h-full flex-1 flex flex-col">
-		<Container class="px-32 flex items-center justify-between" direction="horizontal">
+		<Container class="px-32 flex space-x-4 items-center justify-between" direction="horizontal">
 			<Container
 				class="flex space-x-4"
 				direction="horizontal"
@@ -88,7 +83,7 @@
 					Movies
 				</TabItem>
 			</Container>
-			<Button icon={MixerHorizontal} on:clickOrSelect={() => createModal(OptionsDialog, {})}>
+			<Button icon={MixerHorizontal} on:clickOrSelect={() => createModal(MyListOptions, {})}>
 				Options
 			</Button>
 		</Container>

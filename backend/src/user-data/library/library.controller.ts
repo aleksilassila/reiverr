@@ -22,7 +22,7 @@ import {
   SuccessResponseDto,
 } from 'src/common/common.dto';
 import {
-  CatalogueFilter,
+  CatalogueTypeFilter as CatalogueTypeFilter,
   LibraryItemDto,
   MyListOrder,
   MyListStatusFilter,
@@ -75,20 +75,29 @@ export class LibraryController {
   }
 
   @Get('catalogue/:sourceId')
+  @ApiQuery({ name: 'type', enum: CatalogueTypeFilter, required: false })
+  @ApiQuery({ name: 'order', required: false })
+  @ApiQuery({ name: 'direction', required: false })
   @PaginatedApiOkResponse(LibraryItemDto)
   async getCatalogue(
     @GetPaginationParams() pagination: PaginationParamsDto,
     @Param('userId') userId: string,
     @Param('sourceId') sourceId: string,
     @GetAuthToken() token: string,
-    @Query('filter', new ParseEnumPipe(CatalogueFilter, { optional: true }))
-    filter: CatalogueFilter = CatalogueFilter.All,
+    @Query('type', new ParseEnumPipe(CatalogueTypeFilter, { optional: true }))
+    type?: CatalogueTypeFilter,
+    @Query('order')
+    order?: string,
+    @Query('direction')
+    direction?: string,
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     const items = this.libraryService.getCatalogueItems({
       sourceId,
       token,
       pagination,
-      filter,
+      type,
+      order,
+      direction,
     });
 
     if (!items) {

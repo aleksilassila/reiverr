@@ -172,6 +172,7 @@ export class MediaSourcesService {
     const seriesCatalogue = !!catalogueProvider?.getSeriesCatalogue;
     const combinedCatalogue = !!catalogueProvider?.getCatalogue;
     const missingCatalogue = !!catalogueProvider?.getMissingInCatalogue;
+    const sortOptions = catalogueProvider?.getOrderOptions();
 
     return {
       ...mediaSource,
@@ -186,6 +187,7 @@ export class MediaSourcesService {
         seriesCatalogue,
         combinedCatalogue,
         missingCatalogue,
+        sortOptions: (await sortOptions) ?? [],
       },
     };
   }

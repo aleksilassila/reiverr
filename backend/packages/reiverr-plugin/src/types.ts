@@ -163,10 +163,15 @@ export type PaginationParams = {
   itemsPerPage: number;
 };
 
-// export type CatalogueFilters = {};
-export type CatalogueSort = {
+export type DirectionOption = {
   label: string;
-  name: string;
+  value: string;
+};
+
+export type OrderOption = {
+  label: string;
+  value: string;
+  directions: DirectionOption[];
 };
 
 interface Metadata {

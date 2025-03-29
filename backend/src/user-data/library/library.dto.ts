@@ -28,7 +28,7 @@ export enum MyListTypeFilter {
   All = 'all',
 }
 
-export enum CatalogueFilter {
+export enum CatalogueTypeFilter {
   All = 'all',
   Movies = 'movies',
   Series = 'series',
