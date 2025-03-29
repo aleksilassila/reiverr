@@ -15,6 +15,7 @@
 	import { libraryViewSettings } from './LibraryPage';
 	import MyListOptions from './MyListOptions.svelte';
 	import TabItem from './TabItem.svelte';
+	import { usePaginatedRequest } from '$lib/stores/data.store';
 
 	const { registrar } = getStackRouterControls();
 	const { topVisible } = getScrollContext();
@@ -22,40 +23,79 @@
 	let didMount = false;
 	let category: 'all' | 'series' | 'movies' = 'all';
 
-	$: upcoming =
-		$libraryViewSettings.separateWatched && $user?.id
-			? reiverrApi.library
-					.getMyList($user.id, {
-						status: 'upcoming',
-						order: $libraryViewSettings.order,
-						type: category,
-						direction: $libraryViewSettings.direction
-					})
-					.then((i) => i.data.items)
-			: Promise.resolve([]);
+	const {
+		data: upcoming,
+		interactionObserver: upcomingObserver,
+		reset: resetUpcoming
+	} = usePaginatedRequest(
+		async (page) => {
+			if (!$user?.id || !$libraryViewSettings.separateWatched) {
+				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+			}
 
-	$: watched =
-		$libraryViewSettings.separateWatched && $user?.id
-			? reiverrApi.library
-					.getMyList($user.id, {
-						status: 'watched',
-						type: category,
-						order: $libraryViewSettings.order,
-						direction: $libraryViewSettings.direction
-					})
-					.then((i) => i.data.items)
-			: Promise.resolve([]);
-
-	$: items = $user?.id
-		? reiverrApi.library
+			return reiverrApi.library
 				.getMyList($user.id, {
-					...($libraryViewSettings.separateWatched ? { status: 'unwatched' } : {}),
+					status: 'upcoming',
 					type: category,
 					order: $libraryViewSettings.order,
-					direction: $libraryViewSettings.direction
+					direction: $libraryViewSettings.direction,
+					page
 				})
-				.then((i) => i.data.items)
-		: Promise.resolve([]);
+				.then((i) => i.data);
+		},
+		{ loadFirstPage: false }
+	);
+
+	const {
+		data: watched,
+		interactionObserver: watchedObserver,
+		reset: resetWatched
+	} = usePaginatedRequest(
+		async (page) => {
+			if (!$user?.id || !$libraryViewSettings.separateWatched) {
+				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+			}
+
+			return reiverrApi.library
+				.getMyList($user.id, {
+					status: 'watched',
+					type: category,
+					order: $libraryViewSettings.order,
+					direction: $libraryViewSettings.direction,
+					page
+				})
+				.then((i) => i.data);
+		},
+		{ loadFirstPage: false }
+	);
+
+	const { interactionObserver, data, reset } = usePaginatedRequest(
+		async (page) => {
+			if (!$user?.id) {
+				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+			}
+
+			return reiverrApi.library
+				.getMyList($user.id, {
+					type: category,
+					order: $libraryViewSettings.order,
+					direction: $libraryViewSettings.direction,
+					...($libraryViewSettings.separateWatched ? { status: 'unwatched' } : {}),
+					page
+				})
+				.then((i) => i.data);
+		},
+		{ loadFirstPage: false }
+	);
+
+	$: {
+		$libraryViewSettings;
+		category;
+		$user;
+		reset({ loadFirstPage: true });
+		resetUpcoming({ loadFirstPage: true });
+		resetWatched({ loadFirstPage: true });
+	}
 
 	$: viewSettingsKey = $libraryViewSettings && Symbol();
 </script>
@@ -96,68 +136,68 @@
 			focusedChild
 			class="flex-1 flex flex-col"
 		>
-			{#await upcoming then upcoming}
-				{#if upcoming.length}
-					<div class="mt-6">
-						<Carousel
-							header="Upcoming"
-							scrollClass="px-32"
-							on:enter={scrollIntoView({ bottom: 0 })}
-						>
-							{#key viewSettingsKey}
-								{#each upcoming as item (item.tmdbId)}
-									<TmdbCard
-										on:enter={scrollIntoView({ horizontal: 128 })}
-										size="lg"
-										item={item.tmdbItem}
-									/>
-								{/each}
-							{/key}
-						</Carousel>
-					</div>
-				{/if}
-			{/await}
-			{#await items then items}
-				{#if items.length}
-					<div class="my-6">
-						<div class="px-32 mb-6 h3">My List</div>
-						<CardGrid class="px-32">
-							{#key viewSettingsKey}
-								{#each items as item, index (item.tmdbId)}
-									<TmdbCard
-										item={item.tmdbItem}
-										progress={item.playStates?.[0]?.progress || 0}
-										on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
-										size="dynamic"
-										navigateWithType
-									/>
-								{/each}
-							{/key}
-						</CardGrid>
-					</div>
-				{/if}
-			{/await}
-			{#await watched then watched}
-				{#if watched.length}
-					<div class="mt-6 px-32">
-						<div class="mb-6 h3">Watched</div>
-						<CardGrid>
-							{#key viewSettingsKey}
-								{#each watched as item (item.tmdbId)}
-									<TmdbCard
-										item={item.tmdbItem}
-										progress={item.playStates?.[0]?.progress || 0}
-										on:enter={scrollIntoView({ vertical: 128 })}
-										size="dynamic"
-										navigateWithType
-									/>
-								{/each}
-							{/key}
-						</CardGrid>
-					</div>
-				{/if}
-			{/await}
-			{#await Promise.all([upcoming, items, watched]) then [upcoming, items, watched]}
+			{#if $upcoming.length}
+				<div class="mt-6">
+					<Carousel header="Upcoming" scrollClass="px-32" on:enter={scrollIntoView({ bottom: 0 })}>
+						{#key viewSettingsKey}
+							{#each $upcoming as item (item.tmdbId)}
+								<TmdbCard
+									on:enter={scrollIntoView({ horizontal: 128 })}
+									size="lg"
+									item={item.tmdbItem}
+								/>
+							{/each}
+						{/key}
+						<div use:upcomingObserver />
+					</Carousel>
+				</div>
+			{/if}
+			{#if $data.length}
+				<div class="my-6">
+					<div class="px-32 mb-6 h3">My List</div>
+					<CardGrid class="px-32">
+						{#key viewSettingsKey}
+							{#each $data as item, index (item.tmdbId)}
+								<TmdbCard
+									item={item.tmdbItem}
+									progress={item.playStates?.[0]?.progress || 0}
+									on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
+									size="dynamic"
+									navigateWithType
+								/>
+							{/each}
+						{/key}
+					</CardGrid>
+					<div use:interactionObserver />
+				</div>
+			{/if}
+			{#if $watched.length}
+				<div class="mt-6 px-32">
+					<div class="mb-6 h3">Watched</div>
+					<CardGrid>
+						{#key viewSettingsKey}
+							{#each $watched as item (item.tmdbId)}
+								<TmdbCard
+									item={item.tmdbItem}
+									progress={item.playStates?.[0]?.progress || 0}
+									on:enter={scrollIntoView({ vertical: 128 })}
+									size="dynamic"
+									navigateWithType
+								/>
+							{/each}
+						{/key}
+					</CardGrid>
+					<div use:watchedObserver />
+				</div>
+			{/if}
+
+			{#if !$upcoming.length && !$data.length && !$watched.length}
+				<Container focusOnMount class="h-ghost m-auto px-32">
+					Add content to your list to see it here.
+				</Container>
+			{/if}
+
+			<!-- {#await Promise.all([upcoming, items, watched]) then [upcoming, items, watched]}
 				{#if !upcoming.length && !items.length && !watched.length}
 					<Container focusOnMount class="h-ghost m-auto px-32">
 						Add content to your list to see it here.
@@ -167,7 +207,7 @@
 				<Container class="h-ghost m-auto px-32">
 					<div class="text-red-500">Error loading data: {error.message}</div>
 				</Container>
-			{/await}
+			{/await} -->
 		</Container>
 	</div>
 </Container>

@@ -1,6 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  SourceProvider,
+  ValidationResponse,
+} from '@aleksilassila/reiverr-plugin';
+import { Inject, Injectable } from '@nestjs/common';
+import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { User } from 'src/users/user.entity';
-import { UsersService } from 'src/users/users.service';
 import { Repository } from 'typeorm';
 import {
   MediaSourceDto,
@@ -8,12 +12,6 @@ import {
 } from './media-source.dto';
 import { MediaSource } from './media-source.entity';
 import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
-import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import {
-  SourceProvider,
-  ValidationResponse,
-} from '@aleksilassila/reiverr-plugin';
-import { PaginationParamsDto } from 'src/common/common.dto';
 
 export enum MediaSourcesServiceError {
   SourceNotFound = 'SourceNotFound',

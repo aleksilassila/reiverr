@@ -2,6 +2,8 @@ import { tick } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import { tmdbApi } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApi, user } from './user.store';
+import type { PaginatedResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
+import type { Action } from 'svelte/action';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 
@@ -173,6 +175,101 @@ export function useDerivedRequestsStore<TArgs extends Array<unknown>, TResponse,
 	return {
 		...dataStore,
 		subscribe
+	};
+}
+
+export function usePaginatedRequest<TResponseItem>(
+	fn: (page: number) => Promise<{ items: TResponseItem[] } & PaginatedResponseDto>,
+	options: { initialPage?: number; loadFirstPage?: boolean } = {}
+) {
+	const initialPage = options.initialPage ?? 1;
+
+	let requestId = Symbol();
+	const nextPage = writable(initialPage);
+	const loadingPage = writable(initialPage - 1);
+	let hasNextPage = true;
+	const data = writable<TResponseItem[]>([]);
+	const isLoading = writable(false);
+	let promise: Promise<unknown> | undefined;
+
+	if (options.loadFirstPage !== false) requestNextPage();
+
+	async function requestNextPage() {
+		if (get(loadingPage) === get(nextPage)) return;
+		if (!hasNextPage) return;
+
+		loadingPage.update((p) => p + 1);
+
+		const currentPage = get(nextPage);
+		const id = requestId;
+
+		if (promise) await promise;
+
+		if (!hasNextPage) return;
+
+		isLoading.set(true);
+		promise = fn(currentPage)
+			.then((res) => {
+				if (id !== requestId) return;
+
+				if (res.items.length < res.itemsPerPage) {
+					hasNextPage = false;
+				}
+
+				data.update((d) => [...d, ...res.items]);
+			})
+			.finally(() => {
+				if (id !== requestId) return;
+
+				nextPage.update((p) => p + 1);
+				isLoading.set(false);
+			});
+	}
+
+	const interactionObserver: Action = (node) => {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						requestNextPage();
+					}
+				});
+			},
+			{
+				threshold: 0.1
+			}
+		);
+		observer.observe(node);
+
+		return {
+			destroy() {
+				observer.unobserve(node);
+			}
+		};
+	};
+
+	function reset(resetOptions: { loadFirstPage?: boolean } = { loadFirstPage: false }) {
+		nextPage.set(initialPage);
+		loadingPage.set(initialPage - 1);
+		hasNextPage = true;
+		data.set([]);
+		promise = undefined;
+		isLoading.set(false);
+		requestId = Symbol();
+		if (resetOptions.loadFirstPage !== false) requestNextPage();
+		else if (options.loadFirstPage !== false) requestNextPage();
+	}
+
+	return {
+		data: {
+			subscribe: data.subscribe
+		},
+		isLoading: {
+			subscribe: isLoading.subscribe
+		},
+		requestNextPage,
+		interactionObserver,
+		reset
 	};
 }
 

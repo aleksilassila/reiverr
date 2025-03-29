@@ -55,7 +55,7 @@
 			on:change={({ detail: separateWatched }) =>
 				libraryViewSettings.update((settings) => ({
 					...settings,
-					separateWatched: !separateWatched
+					separateWatched: !settings.separateWatched
 				}))}
 		/>
 	</div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CatalogueSortOptionDto, MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Dialog from '$lib/components/Dialog/Dialog.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import type { Writable } from 'svelte/store';
@@ -14,24 +14,7 @@
 	$: selectedSortOption = $viewSettings.order;
 	$: selectedSortDirection = $viewSettings.direction;
 
-	// export let sortOptions: CatalogueSortOptionDto[];
-	// export let selectedSortOption: string | undefined = undefined;
-	// export let selectedSortDirection: string | undefined = undefined;
-	// export let onSelectSort: (order: string) => void = () => {};
-	// export let onSelectDirection: (direction: string) => void = () => {};
-
 	$: directionOptions = sortOptions.find((o) => o.value === selectedSortOption)?.directions ?? [];
-
-	// function updateOrder(order: string) {
-	// 	libraryViewSettings.update((settings) => ({ ...settings, order: order as MyListOrder }));
-	// }
-
-	// function updateSortByDirection(direction: string) {
-	// 	libraryViewSettings.update((settings) => ({
-	// 		...settings,
-	// 		direction: direction as MyListOrderDirection
-	// 	}));
-	// }
 
 	function handleSelectSort(order: string) {
 		viewSettings.update((settings) => ({ ...settings, order }));

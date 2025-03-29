@@ -35,7 +35,7 @@ export class PaginatedResponseDto<T> implements PaginatedResponse<T> {
   items: T[];
 }
 
-export class PaginationParamsDto implements PaginationParams {
+export class PaginationDto implements PaginationParams {
   @ApiProperty()
   page: number;
 

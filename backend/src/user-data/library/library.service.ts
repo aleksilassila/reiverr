@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   MediaType,
   PaginatedResponseDto,
-  PaginationParamsDto,
+  PaginationDto,
 } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
@@ -42,7 +42,7 @@ export class LibraryService {
   /** TODO: decouple librayItem and movie/seriesItem */
   async getMyList(options: {
     userId: string;
-    pagination: PaginationParamsDto;
+    pagination: PaginationDto;
     type?: MyListTypeFilter;
     status?: MyListStatusFilter;
     order?: MyListOrder;
@@ -244,7 +244,7 @@ export class LibraryService {
   async getCatalogueItems(options: {
     sourceId: string;
     token: string;
-    pagination: PaginationParamsDto;
+    pagination: PaginationDto;
     type?: CatalogueTypeFilter;
     order?: string;
     direction?: string;
@@ -260,7 +260,12 @@ export class LibraryService {
 
     const connection = await this.mediaSourceService.getConnection(sourceId);
 
-    if (!connection) return;
+    if (!connection) {
+      console.error(
+        `No connection found for sourceId: ${sourceId}. Please check your media source configuration.`,
+      );
+      throw new Error('No connection found');
+    }
 
     const combined = connection.provider.catalogueProvider.getCatalogue;
     const movies = connection.provider.catalogueProvider.getMovieCatalogue;
@@ -360,6 +365,10 @@ export class LibraryService {
         ),
       };
     }
+
+    throw new Error(
+      `No catalogue provider found for type: ${type}. Please check your media source configuration.`,
+    );
   }
 
   async findByTmdbId(

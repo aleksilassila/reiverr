@@ -12,13 +12,14 @@ import {
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { GetAuthToken, UserAccessControl } from 'src/auth/auth.guard';
 import {
-  GetPaginationParams,
+  GetPaginationParams as GetPaginationQuery,
   PaginatedApiOkResponse,
+  PaginationApiQuery,
 } from 'src/common/common.decorator';
 import {
   MediaType,
   PaginatedResponseDto,
-  PaginationParamsDto,
+  PaginationDto,
   SuccessResponseDto,
 } from 'src/common/common.dto';
 import {
@@ -42,9 +43,10 @@ export class LibraryController {
   @ApiQuery({ name: 'type', enum: MyListTypeFilter, required: false })
   @ApiQuery({ name: 'order', enum: MyListOrder, required: false })
   @ApiQuery({ name: 'direction', enum: OrderDirection, required: false })
+  @PaginationApiQuery()
   @PaginatedApiOkResponse(LibraryItemDto)
   async getMyList(
-    @GetPaginationParams() pagination: PaginationParamsDto,
+    @GetPaginationQuery() pagination: PaginationDto,
     @Param('userId') userId: string,
     @Query('status', new ParseEnumPipe(MyListStatusFilter, { optional: true }))
     status?: MyListStatusFilter,
@@ -78,9 +80,10 @@ export class LibraryController {
   @ApiQuery({ name: 'type', enum: CatalogueTypeFilter, required: false })
   @ApiQuery({ name: 'order', required: false })
   @ApiQuery({ name: 'direction', required: false })
+  @PaginationApiQuery()
   @PaginatedApiOkResponse(LibraryItemDto)
   async getCatalogue(
-    @GetPaginationParams() pagination: PaginationParamsDto,
+    @GetPaginationQuery() pagination: PaginationDto,
     @Param('userId') userId: string,
     @Param('sourceId') sourceId: string,
     @GetAuthToken() token: string,
@@ -91,7 +94,7 @@ export class LibraryController {
     @Query('direction')
     direction?: string,
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
-    const items = this.libraryService.getCatalogueItems({
+    const items = await this.libraryService.getCatalogueItems({
       sourceId,
       token,
       pagination,

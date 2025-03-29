@@ -1621,6 +1621,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				type?: 'movies' | 'series' | 'all';
 				order?: 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
 				direction?: 'asc' | 'desc';
+				page?: number;
+				itemsPerPage?: number;
 			},
 			params: RequestParams = {}
 		) =>
@@ -1651,6 +1653,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				type?: 'all' | 'movies' | 'series' | 'missing';
 				order?: string;
 				direction?: string;
+				page?: number;
+				itemsPerPage?: number;
 			},
 			params: RequestParams = {}
 		) =>

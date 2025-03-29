@@ -114,7 +114,7 @@ export class JellyfinCatalogueProvider implements CatalogueProvider {
     // const items = (
     //   await getLibraryItems(new PluginContext(context.settings, context.token))
     // ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
-    const items = await new PluginContext(
+    const data = await new PluginContext(
       context.settings,
       context.token,
     ).api.items
@@ -137,21 +137,18 @@ export class JellyfinCatalogueProvider implements CatalogueProvider {
         startIndex: (pagination.page - 1) * pagination.itemsPerPage,
         limit: pagination.itemsPerPage,
       })
-      .then((res) => res.data.Items ?? [])
-      .catch((e) => {
-        console.error('error fetching items', e);
-        return [];
-      });
+      .then((res) => res.data);
 
     return {
-      total: items.length,
+      total: data.TotalRecordCount ?? data.Items?.length ?? 0,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
-      items: items.map((item) => ({
-        id: item.ProviderIds?.Tmdb,
-        tmdbId: item.ProviderIds?.Tmdb,
-        mediaType: 'movie' as const,
-      })),
+      items:
+        data?.Items?.map((item) => ({
+          id: item.ProviderIds?.Tmdb,
+          tmdbId: item.ProviderIds?.Tmdb,
+          mediaType: 'movie' as const,
+        })) ?? [],
     };
   };
 
@@ -173,7 +170,7 @@ export class JellyfinCatalogueProvider implements CatalogueProvider {
       sortBy.push(ItemSortBy.DateCreated);
     }
 
-    const items = await new PluginContext(
+    const data = await new PluginContext(
       context.settings,
       context.token,
     ).api.items
@@ -196,21 +193,18 @@ export class JellyfinCatalogueProvider implements CatalogueProvider {
         startIndex: (pagination.page - 1) * pagination.itemsPerPage,
         limit: pagination.itemsPerPage,
       })
-      .then((res) => res.data.Items ?? [])
-      .catch((e) => {
-        console.error('error fetching items', e);
-        return [];
-      });
+      .then((res) => res.data);
 
     return {
-      total: items.length,
+      total: data.TotalRecordCount ?? data.Items?.length ?? 0,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
-      items: items.map((item) => ({
-        id: item.ProviderIds?.Tmdb,
-        tmdbId: item.ProviderIds?.Tmdb,
-        mediaType: 'series' as const,
-      })),
+      items:
+        data?.Items?.map((item) => ({
+          id: item.ProviderIds?.Tmdb,
+          tmdbId: item.ProviderIds?.Tmdb,
+          mediaType: 'series' as const,
+        })) ?? [],
     };
   };
 }

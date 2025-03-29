@@ -4,11 +4,16 @@ import {
   ExecutionContext,
   Type,
 } from '@nestjs/common';
-import { PaginatedResponseDto, PaginationParamsDto } from './common.dto';
-import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
+import { PaginatedResponseDto, PaginationDto } from './common.dto';
+import {
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiQuery,
+  getSchemaPath,
+} from '@nestjs/swagger';
 
 export const GetPaginationParams = createParamDecorator(
-  (data: number | undefined, ctx: ExecutionContext): PaginationParamsDto => {
+  (data: number | undefined, ctx: ExecutionContext): PaginationDto => {
     const request = ctx.switchToHttp().getRequest();
     const page = parseInt(request.query.page, 10) || 1;
     const itemsPerPage = parseInt(request.query.itemsPerPage, 10) || data || 50;
@@ -19,6 +24,20 @@ export const GetPaginationParams = createParamDecorator(
     };
   },
 );
+
+export const PaginationApiQuery = () =>
+  applyDecorators(
+    ApiQuery({
+      name: 'page',
+      required: false,
+      type: 'number',
+    }),
+    ApiQuery({
+      name: 'itemsPerPage',
+      required: false,
+      type: 'number',
+    }),
+  );
 
 export const PaginatedApiOkResponse = <GenericType extends Type<unknown>>(
   data: GenericType,
