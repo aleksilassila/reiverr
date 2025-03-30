@@ -35,9 +35,11 @@
 		</FloatingHeader>
 	</slot>
 
-	<div class="pt-16" use:registerScroll>
+	<div class="flex-1 pt-16" use:registerScroll>
 		{#if loading && !items.length}
-			Loading...
+			<div class="flex flex-col items-center justify-center h-full">
+				<h2 class="h-ghost">Loading...</h2>
+			</div>
 		{:else if items.length}
 			<CardGrid let:columns on:mount={registrar}>
 				{#each items as item, index}
@@ -55,8 +57,7 @@
 			</CardGrid>
 		{:else}
 			<div class="flex flex-col items-center justify-center h-full">
-				<h2 class="text-2xl text-zinc-300 font-semibold tracking-wider">No results found</h2>
-				<p class="text-zinc-400 text-sm">Try a different search</p>
+				<h2 class="h-ghost">No results found</h2>
 			</div>
 		{/if}
 	</div>
