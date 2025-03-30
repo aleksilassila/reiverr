@@ -33,6 +33,7 @@
 	export let debugOutline: Required<ContainerProps>['debugOutline'] = false;
 	export let focusOnClick: Required<ContainerProps>['focusOnClick'] = false;
 	export let focusedChild: Required<ContainerProps>['focusedChild'] = false;
+	export let index: ContainerProps['index'] = undefined;
 
 	export let disabled = false;
 
@@ -104,6 +105,8 @@
 	const registerer = selectable.createRegisterer();
 
 	export let tag: Required<ContainerProps>['tag'] = 'div';
+
+	$: if (index !== undefined) selectable.updateIndex(index);
 
 	$: selectable.setIsDisabled(disabled);
 	$: selectable.setGridColumns(gridCols);

@@ -5,10 +5,7 @@
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import {
-		libraryRefresher,
-		useRequest
-	} from '$lib/stores/data.store';
+	import { libraryRefresher, useRequest } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { reiverrApi, tmdbApi, tmdbApi4, user } from '$lib/stores/user.store';
@@ -29,13 +26,12 @@
 				.getMyList(String(get(user)?.id), {
 					type: 'series',
 					order: 'last-played',
-					status: 'continue-watching'
+					status: 'continue-watching',
+					itemsPerPage: 10
 				})
-				.then((r) => r.data),
+				.then((r) => r.data.items),
 		{ refresher: libraryRefresher }
 	);
-
-	$: libraryContinueWatchingKey = $continueWatching && Symbol();
 
 	const popular = tmdbApi.getTrendingSeries();
 	const nowStreaming = tmdbApi.getNowStreamingSeries();
@@ -57,19 +53,19 @@
 		/>
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $continueWatching?.items?.length}
+		{#if $continueWatching?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
-				{#key libraryContinueWatchingKey}
-					{#each $continueWatching?.items ?? [] as item (item.tmdbId)}
-						<TmdbCard
-							on:enter={scrollIntoView({ left: 128 })}
-							size="lg"
-							item={item.tmdbItem}
-							progress={item.playStates?.[0]?.progress ?? 0}
-						/>
-					{/each}
-				{/key}
+
+				{#each $continueWatching ?? [] as item, index (item.tmdbId)}
+					<TmdbCard
+						{index}
+						on:enter={scrollIntoView({ left: 128 })}
+						size="lg"
+						item={item.tmdbItem}
+						progress={item.lastPlayState?.progress ?? 0}
+					/>
+				{/each}
 			</Carousel>
 		{/if}
 

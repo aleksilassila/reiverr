@@ -153,6 +153,17 @@ export class Selectable {
 		return this;
 	}
 
+	updateIndex(index: number) {
+		if (this.parent && index > -1 && index < this.parent.children.length) {
+			const oldIndex = this.parent.children.indexOf(this);
+			const other = this.parent.children[index];
+			if (oldIndex !== -1 && other) {
+				this.parent.children[oldIndex] = other;
+				this.parent.children[index] = this;
+			}
+		}
+	}
+
 	focus(options: Partial<FocusEventOptions> = {}) {
 		function propagateFocusUpdates(options: FocusEventOptions, selectable: Selectable) {
 			if (options.propagate && options.onFocus)

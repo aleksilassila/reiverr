@@ -5,10 +5,11 @@ import { libraryProviders } from './library.providers';
 import { LibraryService } from './library.service';
 import { UsersModule } from 'src/users/users.module';
 import { SourceProvidersModule } from 'src/source-providers/source-providers.module';
+import { playStateProviders } from '../play-state/play-state.providers';
 
 @Module({
   imports: [UsersModule, MetadataModule, SourceProvidersModule],
-  providers: [...libraryProviders, LibraryService],
+  providers: [...libraryProviders, ...playStateProviders, LibraryService],
   controllers: [LibraryController],
   exports: [LibraryService],
 })

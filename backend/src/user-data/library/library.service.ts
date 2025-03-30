@@ -18,12 +18,15 @@ import {
 } from './library.dto';
 import { LibraryItem } from './library.entity';
 import { USER_LIBRARY_REPOSITORY } from './library.providers';
+import { USER_PLAY_STATE_REPOSITORY } from '../play-state/play-state.providers';
 
 @Injectable()
 export class LibraryService {
   constructor(
     @Inject(USER_LIBRARY_REPOSITORY)
     private readonly libraryRepository: Repository<LibraryItem>,
+    @Inject(USER_PLAY_STATE_REPOSITORY)
+    private readonly playStateRepository: Repository<PlayState>,
     private readonly metadataService: MetadataService,
     private readonly mediaSourceService: MediaSourcesService,
   ) {
@@ -345,6 +348,23 @@ export class LibraryService {
         tmdbId,
         mediaType,
       });
+
+      const lastPlayedAt = await this.playStateRepository
+        .find({
+          where: {
+            userId,
+            tmdbId,
+          },
+        })
+        .then((states) =>
+          states.map((s) => new Date(s.lastPlayedAt).getTime() || 0),
+        )
+        .then((dates) => Math.max(...dates));
+
+      if (lastPlayedAt) {
+        libraryItem.lastPlayedAt = new Date(lastPlayedAt);
+      }
+
       await this.libraryRepository.save(libraryItem);
     }
 
@@ -401,7 +421,7 @@ export class LibraryService {
       mediaType: mediaType === 'movie' ? MediaType.Movie : MediaType.Series,
       watched,
       playStates,
-      lastPlayState: playStates?.[0],
+      lastPlayState: playStates ? playStates[playStates.length - 1] : undefined,
       tmdbItem: {
         id: movieMetadata?.tmdbMovie.id ?? seriesMetadata?.tmdbSeries.id,
         poster_path:

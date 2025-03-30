@@ -22,4 +22,5 @@ export type ContainerProps = SvelteHTMLElements['div'] & {
 	focusedChild?: boolean;
 	disabled?: boolean;
 	tag?: string;
+	index?: number | undefined;
 };

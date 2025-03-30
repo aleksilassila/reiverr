@@ -7,6 +7,7 @@
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
+	import { libraryRefresher, usePaginatedRequest } from '$lib/stores/data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
@@ -15,7 +16,6 @@
 	import { libraryViewSettings } from './LibraryPage';
 	import MyListOptions from './MyListOptions.svelte';
 	import TabItem from './TabItem.svelte';
-	import { libraryRefresher, usePaginatedRequest } from '$lib/stores/data.store';
 
 	const { registrar } = getStackRouterPage();
 	const { topVisible } = getScrollContext();
@@ -26,7 +26,8 @@
 	const {
 		data: upcoming,
 		interactionObserver: upcomingObserver,
-		load: loadUpcoming
+		load: loadUpcoming,
+		isLoading: loadingUpcoming
 	} = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id || !$libraryViewSettings.separateWatched) {
@@ -52,7 +53,8 @@
 	const {
 		data: watched,
 		interactionObserver: watchedObserver,
-		load: loadWatched
+		load: loadWatched,
+		isLoading: loadingWatched
 	} = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id || !$libraryViewSettings.separateWatched) {
@@ -72,7 +74,7 @@
 		{ loadOnInit: false, refresher: libraryRefresher }
 	);
 
-	const { interactionObserver, data, load } = usePaginatedRequest(
+	const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id) {
 				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
@@ -95,12 +97,10 @@
 		$libraryViewSettings;
 		category;
 		$user;
-		load();
-		loadUpcoming();
-		loadWatched();
+		load({ lazy: true });
+		loadUpcoming({ lazy: true });
+		loadWatched({ lazy: true });
 	}
-
-	$: viewSettingsKey = $libraryViewSettings && Symbol();
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
@@ -142,34 +142,32 @@
 			{#if $upcoming.length}
 				<div class="mt-6">
 					<Carousel header="Upcoming" scrollClass="px-32" on:enter={scrollIntoView({ bottom: 0 })}>
-						{#key viewSettingsKey}
-							{#each $upcoming as item (item.tmdbId)}
-								<TmdbCard
-									on:enter={scrollIntoView({ horizontal: 128 })}
-									size="lg"
-									item={item.tmdbItem}
-								/>
-							{/each}
-						{/key}
+						{#each $upcoming as item, index (item.tmdbId)}
+							<TmdbCard
+								{index}
+								on:enter={scrollIntoView({ horizontal: 128 })}
+								size="lg"
+								item={item.tmdbItem}
+							/>
+						{/each}
 						<div use:upcomingObserver />
 					</Carousel>
 				</div>
 			{/if}
 			{#if $data.length}
 				<div class="my-6">
-					<div class="px-32 mb-6 h3">My List</div>
-					<CardGrid class="px-32">
-						{#key viewSettingsKey}
-							{#each $data as item, index (item.tmdbId)}
-								<TmdbCard
-									item={item.tmdbItem}
-									progress={item.playStates?.[0]?.progress || 0}
-									on:enter={scrollIntoView(index === 0 ? { top: 128 + 64 } : { vertical: 128 })}
-									size="dynamic"
-									navigateWithType
-								/>
-							{/each}
-						{/key}
+					{#if $libraryViewSettings.separateWatched}
+						<div class="px-32 mb-6 h3">Unwatched</div>
+					{/if}
+					<CardGrid class="px-32" let:columns>
+						{#each $data as item, index (item.tmdbId)}
+							<TmdbCard
+								{index}
+								item={item.tmdbItem}
+								progress={item.lastPlayState?.progress || 0}
+								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
+							/>
+						{/each}
 					</CardGrid>
 					<div use:interactionObserver />
 				</div>
@@ -177,24 +175,23 @@
 			{#if $watched.length}
 				<div class="mt-6 px-32">
 					<div class="mb-6 h3">Watched</div>
-					<CardGrid>
-						{#key viewSettingsKey}
-							{#each $watched as item (item.tmdbId)}
-								<TmdbCard
-									item={item.tmdbItem}
-									progress={item.playStates?.[0]?.progress || 0}
-									on:enter={scrollIntoView({ vertical: 128 })}
-									size="dynamic"
-									navigateWithType
-								/>
-							{/each}
-						{/key}
+					<CardGrid let:columns>
+						{#each $watched as item, index (item.tmdbId)}
+							<TmdbCard
+								{index}
+								item={item.tmdbItem}
+								progress={item.lastPlayState?.progress || 0}
+								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
+							/>
+						{/each}
 					</CardGrid>
 					<div use:watchedObserver />
 				</div>
 			{/if}
 
-			{#if !$upcoming.length && !$data.length && !$watched.length}
+			{#if ($isLoading || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$data.length && !$watched.length}
+				<Container class="h-ghost m-auto px-32">Loading...</Container>
+			{:else if !$upcoming.length && !$data.length && !$watched.length}
 				<Container focusOnMount class="h-ghost m-auto px-32">
 					Add content to your list to see it here.
 				</Container>

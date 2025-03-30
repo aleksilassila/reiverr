@@ -259,7 +259,11 @@ export function usePaginatedRequest<TResponseItem>(
 					hasNextPage = false;
 				}
 
-				data.update((d) => [...d, ...res.items]);
+				if (currentPage === initialPage) {
+					data.set(res.items);
+				} else {
+					data.update((d) => [...d, ...res.items]);
+				}
 			})
 			.finally(() => {
 				if (id !== requestId) return;
@@ -291,14 +295,17 @@ export function usePaginatedRequest<TResponseItem>(
 		};
 	};
 
-	async function load() {
+	async function load(options: { lazy?: boolean } = {}) {
+		const { lazy = false } = options;
+
 		nextPage.set(initialPage);
 		loadingPage.set(initialPage - 1);
 		hasNextPage = true;
-		data.set([]);
 		promise = undefined;
 		isLoading.set(false);
 		requestId = Symbol();
+
+		if (!lazy) data.set([]);
 		return requestNextPage();
 	}
 

@@ -27,13 +27,12 @@
 				.getMyList(String(get(user)?.id), {
 					type: 'movies',
 					order: 'last-played',
-					status: 'continue-watching'
+					status: 'continue-watching',
+					itemsPerPage: 10
 				})
-				.then((r) => r.data),
+				.then((r) => r.data.items),
 		{ refresher: libraryRefresher }
 	);
-
-	$: libraryContinueWatchingKey = $continueWatching && Symbol();
 
 	const popularMovies = tmdbApi.getTrendingMovies();
 	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
@@ -73,19 +72,18 @@
 		/>
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $continueWatching?.items.length}
+		{#if $continueWatching?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
-				{#key libraryContinueWatchingKey}
-					{#each $continueWatching?.items ?? [] as item (item.tmdbId)}
-						<TmdbCard
-							on:enter={scrollIntoView({ left: 128 })}
-							size="lg"
-							item={item.tmdbItem}
-							progress={item.playStates?.[0]?.progress ?? 0}
-						/>
-					{/each}
-				{/key}
+				{#each $continueWatching ?? [] as item, index (item.tmdbId)}
+					<TmdbCard
+						{index}
+						on:enter={scrollIntoView({ left: 128 })}
+						size="lg"
+						item={item.tmdbItem}
+						progress={item.lastPlayState?.progress ?? 0}
+					/>
+				{/each}
 			</Carousel>
 		{/if}
 

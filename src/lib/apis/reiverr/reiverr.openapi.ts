@@ -117,6 +117,7 @@ export interface LibraryItem {
 	id?: string;
 	tmdbId: string;
 	mediaType: 'movie' | 'series';
+	lastPlayedAt?: string;
 	movieMetadata?: MovieMetadata;
 	seriesMetadata?: SeriesMetadata;
 	userId: string;
@@ -577,6 +578,7 @@ export interface LibraryItemDto {
 	mediaType: 'movie' | 'series';
 	playStates?: PlayStateDto[];
 	tmdbItem: TmdbItemDto;
+	lastPlayState?: PlayStateDto;
 	watched?: boolean;
 }
 

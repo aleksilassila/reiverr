@@ -1,20 +1,25 @@
 <script lang="ts">
 	import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
+	import { createModal } from '$lib/components/Modal/modal.store';
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
+	import TitleText from '$lib/components/TitleText.svelte';
+	import { scrollIntoView } from '$lib/selectable';
+	import { usePaginatedRequest } from '$lib/stores/data.store';
 	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
+	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
 	import CatalogueOptions from './CatalogueOptions.svelte';
 	import TabItem from './TabItem.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import { createModal } from '$lib/components/Modal/modal.store';
-	import { usePaginatedRequest } from '$lib/stores/data.store';
 
 	export let source: MediaSourceDto;
 
+	const { topVisible } = getScrollContext();
 	const { registrar } = getStackRouterPage();
 
 	const viewSettings = createLocalStorageStore<{
@@ -38,7 +43,7 @@
 		selectedFilter = filters[0] ?? '';
 	}
 
-	const { interactionObserver, data, load } = usePaginatedRequest(
+	const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
 		async (page) => {
 			const type = {
 				All: 'all' as const,
@@ -71,7 +76,7 @@
 	$: {
 		$viewSettings;
 		selectedFilter;
-		load();
+		load({ lazy: true });
 	}
 
 	// $: items = selectedFilter
@@ -91,7 +96,12 @@
 	// 	: Promise.resolve([]);
 </script>
 
-<Container class="mx-32 space-y-8 pb-16">
+<FloatingHeader visible={$topVisible} class="px-32">
+	<h2 class="uppercase text-zinc-300 font-semibold tracking-wider text-base">Source Catalogue</h2>
+	<TitleText title={source.name} size="sm" />
+</FloatingHeader>
+
+<Container class="min-h-full mx-32 space-y-8 pb-16 flex flex-col">
 	<Container direction="horizontal" class="flex space-x-4 items-center justify-between">
 		<div class="flex space-x-4">
 			{#each filters ?? [] as filter}
@@ -111,15 +121,24 @@
 			Options
 		</Button>
 	</Container>
-
-	{#if $data.length}
-		<CardGrid on:mount={registrar} focusOnMount>
-			{#each $data.map((i) => i.tmdbItem) as item (item.id)}
-				<TmdbCard {item} />
-			{/each}
-		</CardGrid>
-		<div use:interactionObserver />
-	{/if}
+	<div class="flex-1 flex flex-col">
+		{#if $data.length}
+			<CardGrid on:mount={registrar} focusOnMount let:columns>
+				{#each $data.map((i) => i.tmdbItem) as item, index (item.id)}
+					<TmdbCard
+						{index}
+						{item}
+						on:enter={scrollIntoView({ top: index < columns ? 500 : 192 })}
+					/>
+				{/each}
+			</CardGrid>
+			<div use:interactionObserver />
+		{:else if $isLoading}
+			<Container class="h-ghost m-auto px-32">Loading...</Container>
+		{:else}
+			<Container class="h-ghost m-auto px-32">No items found</Container>
+		{/if}
+	</div>
 
 	<!-- {#await items then items}
 		<CardGrid on:mount={registrar} focusOnMount>
