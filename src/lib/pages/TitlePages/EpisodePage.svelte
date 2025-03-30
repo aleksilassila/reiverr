@@ -11,13 +11,13 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage({ videoMediaId: id });
 	const { promise: tmdbEpisode, unsubscribe: unsubscribeTmdbEpisode } =

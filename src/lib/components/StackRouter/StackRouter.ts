@@ -325,8 +325,9 @@ export const stackRouter = useStackRouter({
 // 	// }
 // } as const);
 
-function useStackRouterControls() {
+function useStackRouterPage() {
 	const topSelectable = useRegistrar();
+	const hasFocus = writable(false);
 
 	function handleGoBack() {
 		history.back();
@@ -344,22 +345,23 @@ function useStackRouterControls() {
 	return {
 		handleGoBack,
 		handleGoToTop,
-		registrar: topSelectable.registrar
+		registrar: topSelectable.registrar,
+		hasFocus
 	};
 }
 
-const STACK_ROUTER_CONTROLS = Symbol('STACK_ROUTER_CONTROLS');
+const STACK_ROUTER_PAGE = Symbol('STACK_ROUTER_PAGE');
 
-export function createStackRouterControls() {
-	const store = useStackRouterControls();
-	setContext(STACK_ROUTER_CONTROLS, store);
+export function createStackRouterPage() {
+	const store = useStackRouterPage();
+	setContext(STACK_ROUTER_PAGE, store);
 	return store;
 }
 
-export function getStackRouterControls(): ReturnType<typeof useStackRouterControls> {
-	if (hasContext(STACK_ROUTER_CONTROLS)) return getContext(STACK_ROUTER_CONTROLS);
+export function getStackRouterPage(): ReturnType<typeof useStackRouterPage> {
+	if (hasContext(STACK_ROUTER_PAGE)) return getContext(STACK_ROUTER_PAGE);
 	console.error('[StackRouterControls] Not found');
-	return { handleGoBack: () => {}, handleGoToTop: () => {}, registrar: () => () => {} };
+	return useStackRouterPage();
 }
 
 export const navigate = stackRouter.navigate;

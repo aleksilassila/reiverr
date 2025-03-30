@@ -7,7 +7,7 @@
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { tmdbMovieDataStore } from '$lib/stores/data.store';
@@ -22,7 +22,7 @@
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let id: string;
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 
 	const tmdbId = Number(id);
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });

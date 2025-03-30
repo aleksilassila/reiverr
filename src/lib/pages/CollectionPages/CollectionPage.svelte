@@ -4,7 +4,7 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { setScrollContext } from '$lib/stores/scroll.store';
@@ -14,7 +14,7 @@
 	export let subtitle = '';
 	export let items: ComponentProps<TmdbCard>['item'][];
 	export let loading = false;
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage();
 	const { registrar: registerScroll, topVisible } = setScrollContext();

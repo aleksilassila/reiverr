@@ -4,7 +4,7 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { getScrollContext } from '$lib/stores/scroll.store';
@@ -17,7 +17,7 @@
 	import TabItem from './TabItem.svelte';
 	import { usePaginatedRequest } from '$lib/stores/data.store';
 
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 	const { topVisible } = getScrollContext();
 
 	let didMount = false;

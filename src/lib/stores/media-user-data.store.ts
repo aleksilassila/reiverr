@@ -12,7 +12,6 @@ import type {
 } from '../apis/reiverr/reiverr.openapi';
 import {
 	episodeUserDataStore,
-	libraryItemsDataStore,
 	movieUserDataStore,
 	seriesUserDataStore,
 	tmdbSeriesDataStore

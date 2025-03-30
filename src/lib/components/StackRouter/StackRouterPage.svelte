@@ -1,17 +1,22 @@
 <script lang="ts">
-	import { useRegistrar } from '$lib/selectable';
 	import classNames from 'classnames';
-	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import { focusSidebar } from '../Sidebar/sidebar';
-	import { createStackRouterControls } from './StackRouter';
+	import { createStackRouterPage } from './StackRouter';
+	import type { Readable } from 'svelte/store';
 
 	export let hasSidebar = true;
 	export let hidden = false;
 
 	// Top element, that when focused and back is pressed, will exit the modal
-	const { handleGoBack, handleGoToTop, registrar } = createStackRouterControls();
+	const { handleGoBack, handleGoToTop, registrar, hasFocus } = createStackRouterPage();
+	let hasFocusWithin: Readable<boolean>;
+	$: {
+		if (hasFocusWithin) {
+			hasFocus.set($hasFocusWithin);
+		}
+	}
 </script>
 
 <Container
@@ -27,7 +32,7 @@
 	focusOnMount
 	direction="horizontal"
 	on:mount
-	let:hasFocus
+	bind:hasFocusWithin
 >
 	<div in:fade|global={{ duration: 200, delay: 200 }} class="contents">
 		{#if hasSidebar}
@@ -45,7 +50,7 @@
 				}
 			}}
 		>
-			<slot {handleGoBack} {registrar} {hasFocus} />
+			<slot />
 		</Container>
 	</div>
 </Container>

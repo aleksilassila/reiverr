@@ -3,7 +3,7 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
@@ -15,7 +15,7 @@
 
 	export let source: MediaSourceDto;
 
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 
 	const viewSettings = createLocalStorageStore<{
 		order: string | undefined;

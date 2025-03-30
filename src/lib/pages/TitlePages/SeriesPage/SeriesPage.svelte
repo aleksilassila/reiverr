@@ -20,10 +20,10 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import EpisodeGrid from './EpisodeGrid.svelte';
-	import { getStackRouterControls } from '$lib/components/StackRouter/StackRouter';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 
 	export let id: string;
-	const { registrar } = getStackRouterControls();
+	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
 	const {
