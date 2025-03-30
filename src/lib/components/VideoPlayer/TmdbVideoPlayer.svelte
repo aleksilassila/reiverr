@@ -1,12 +1,11 @@
 <script lang="ts">
 	import type {
-		MediaSource,
+	MediaSourceDto,
 		StreamDto,
 		SubtitlesDto as Subtitles
 	} from '$lib/apis/reiverr/reiverr.openapi';
 	import {
 		episodeUserDataStore,
-		libraryItemsDataStore,
 		movieUserDataStore,
 		seriesUserDataStore,
 		tmdbMovieDataStore,
@@ -28,7 +27,7 @@
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
 	export let episode: number | undefined = undefined;
-	export let source: MediaSource;
+	export let source: MediaSourceDto;
 	export let key: string = '';
 	export let progress: number = 0;
 
@@ -228,6 +227,7 @@
 				movieUserDataStore.refresh(tmdbId);
 			}
 			libraryItemsDataStore.refreshIn(1500);
+			continuewa
 		});
 	});
 </script>

@@ -10,7 +10,6 @@ import type {
 	SeriesUserDataDto,
 	StreamCandidateDto
 } from '../apis/reiverr/reiverr.openapi';
-import type { MediaType } from '../types';
 import {
 	episodeUserDataStore,
 	libraryItemsDataStore,
@@ -76,7 +75,7 @@ async function getAutoplayStream(options: { tmdbId: string; season?: number; epi
 }
 
 function useUserLibrary(
-	mediaType: MediaType,
+	mediaType: 'movie' | 'series',
 	tmdbId: string,
 	userDataP: Readable<MovieUserDataDto | SeriesUserDataDto | undefined>
 ) {
@@ -94,7 +93,7 @@ function useUserLibrary(
 			return;
 		}
 
-		const success = await reiverrApi.users
+		const success = await reiverrApi.library
 			.addLibraryItem(userId, tmdbId, { mediaType })
 			.then((r) => r.data.success);
 		if (success) {
@@ -111,7 +110,7 @@ function useUserLibrary(
 			return;
 		}
 
-		const success = await reiverrApi.users
+		const success = await reiverrApi.library
 			.removeLibraryItem(userId, tmdbId)
 			.then((r) => r.data.success);
 		if (success) {
@@ -170,7 +169,7 @@ export function useSeriesUserData(tmdbId: string) {
 
 	const userDataRequest = seriesUserDataStore.subscribe(tmdbId);
 	const tmdbSeriesRequest = tmdbSeriesDataStore.subscribe(Number(tmdbId));
-	const libraryStore = useUserLibrary('Series', tmdbId, userDataRequest);
+	const libraryStore = useUserLibrary('series', tmdbId, userDataRequest);
 	const canStreamStore = useCanStream();
 	const episodesUserData = writable<EpisodeData[]>([]);
 	const nextEpisode = writable<EpisodeData>({
@@ -323,7 +322,7 @@ export function useSeriesUserData(tmdbId: string) {
 export function useMovieUserData(tmdbId: string) {
 	const background = getBackgroundPage();
 	const userData = movieUserDataStore.subscribe(tmdbId);
-	const libraryStore = useUserLibrary('Movie', tmdbId, userData);
+	const libraryStore = useUserLibrary('movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
 		reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {

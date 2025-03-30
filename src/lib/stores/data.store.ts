@@ -195,7 +195,6 @@ export function usePaginatedRequest<TResponseItem>(
 	if (options.loadFirstPage !== false) requestNextPage();
 
 	async function requestNextPage() {
-		console.log('herer');
 		if (get(loadingPage) === get(nextPage)) return;
 		if (!hasNextPage) return;
 
@@ -203,8 +202,6 @@ export function usePaginatedRequest<TResponseItem>(
 
 		const currentPage = get(nextPage);
 		const id = requestId;
-
-		console.log('requesting page', currentPage, id);
 
 		if (promise) await promise;
 
@@ -217,7 +214,6 @@ export function usePaginatedRequest<TResponseItem>(
 
 				if (res.items.length < res.itemsPerPage) {
 					hasNextPage = false;
-					console.log('no more pages', res);
 				}
 
 				data.update((d) => [...d, ...res.items]);
@@ -296,37 +292,33 @@ export const episodeUserDataStore = useRequestsStore(
 			.then((r) => r.data)
 );
 
-export const libraryItemsDataStore = useRequestsStore(
-	() => reiverrApi.library.getMyList(get(user)?.id as string).then((r) => r.data.items),
-	{ persistant: true }
+export const continueWatchingMoviesDataStore = useRequestsStore(() =>
+	reiverrApi.library
+		.getMyList(String(get(user)?.id), {
+			type: 'movies',
+			order: 'last-played',
+			status: 'continue-watching'
+		})
+		.then((r) => r.data)
 );
 
-// const continueWatchingDataStore = useDerivedRequestsStore(
-// 	libraryItemsDataStore,
-// 	async (libraryData) => {
-// 		if (!libraryData) return [];
-
-// 		const movies = libraryData.filter(
-// 			(i) => i.mediaType === 'Movie' && i.playStates?.length && !i.watched
-// 		);
-
-// 		movies.sort((a, b) => {
-// 			const aMax = Math.max(
-// 				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-// 			);
-// 			const bMax = Math.max(
-// 				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-// 			);
-
-// 			return bMax - aMax;
-// 		});
-
-// 		return movies.map((i) => i.metadata);
-// 	}
-// );
+export const continueWatchingSeriesDataStore = useRequestsStore(() =>
+	reiverrApi.library
+		.getMyList(String(get(user)?.id), {
+			type: 'series',
+			order: 'last-played',
+			status: 'continue-watching'
+		})
+		.then((r) => r.data)
+);
 
 export const mediaSourcesDataStore = useRequestsStore(() =>
 	reiverrApi.users
 		.findUserById(get(user)?.id || '')
 		.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
 );
+
+export function refreshLibraryDerivatives(timeout = 0) {
+	continueWatchingMoviesDataStore.refreshIn(timeout);
+	continueWatchingSeriesDataStore.refreshIn(timeout);
+}

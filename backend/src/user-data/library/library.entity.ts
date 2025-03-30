@@ -25,12 +25,16 @@ export class LibraryItem {
   id: string;
 
   @ApiProperty({ required: true })
-  @Column({ unique: true })
+  @Column()
   tmdbId: string;
 
   @ApiProperty({ required: true, enum: MediaType })
   @Column()
   mediaType: MediaType;
+
+  @ApiProperty({ type: 'string', required: false })
+  @Column({ nullable: true })
+  lastPlayedAt?: Date;
 
   @ApiProperty({ required: false, type: MovieMetadata })
   @ManyToOne(() => MovieMetadata, {

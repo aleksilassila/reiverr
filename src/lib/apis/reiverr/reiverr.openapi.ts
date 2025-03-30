@@ -1617,9 +1617,9 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		getMyList: (
 			userId: string,
 			query?: {
-				status?: 'all' | 'upcoming' | 'unwatched' | 'watched' | 'continueWatching';
+				status?: 'all' | 'upcoming' | 'unwatched' | 'watched' | 'continue-watching';
 				type?: 'movies' | 'series' | 'all';
-				order?: 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
+				order?: 'date-added' | 'name' | 'first-release-date' | 'last-release-date' | 'last-played';
 				direction?: 'asc' | 'desc';
 				page?: number;
 				itemsPerPage?: number;

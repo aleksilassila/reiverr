@@ -1,47 +1,26 @@
 <script lang="ts">
+	import { networksList } from '$lib/components/Collection/collections';
+	import NetworkCard from '$lib/components/Collection/NetworkCard.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { continueWatchingSeriesDataStore } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
-	import { derived } from 'svelte/store';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { networks, networksList } from '$lib/components/Collection/collections';
-	import NetworkCard from '$lib/components/Collection/NetworkCard.svelte';
 
 	createBackgroundPage();
 
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const { ...libraryData } = libraryItemsDataStore.subscribe();
-	const libraryContinueWatching = derived(libraryData, (libraryData) => {
-		if (!libraryData) return [];
-
-		const series = libraryData.filter(
-			(i) => i.mediaType === 'Series' && i.playStates?.length && !i.watched
-		);
-
-		series.sort((a, b) => {
-			const aMax = Math.max(
-				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-			);
-			const bMax = Math.max(
-				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-			);
-
-			return bMax - aMax;
-		});
-
-		return series;
-	});
-	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
+	const { ...continueWatching } = continueWatchingSeriesDataStore.subscribe();
+	$: libraryContinueWatchingKey = $continueWatching && Symbol();
 
 	const popular = tmdbApi.getTrendingSeries();
 	const nowStreaming = tmdbApi.getNowStreamingSeries();
@@ -49,7 +28,7 @@
 	const recommendations = tmdbApi4.getRecommendedSeries();
 
 	onDestroy(() => {
-		libraryData.unsubscribe();
+		continueWatching.unsubscribe();
 	});
 </script>
 
@@ -63,12 +42,12 @@
 		/>
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $libraryContinueWatching.length}
+		{#if $continueWatching?.items?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
 				{#key libraryContinueWatchingKey}
-					{#each $libraryContinueWatching as item (item.id)}
-						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
+					{#each $continueWatching?.items ?? [] as item (item.tmdbId)}
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" item={item.tmdbItem} />
 					{/each}
 				{/key}
 			</Carousel>

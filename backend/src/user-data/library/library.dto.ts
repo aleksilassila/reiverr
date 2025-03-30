@@ -12,6 +12,7 @@ export enum MyListOrder {
   Name = 'name',
   FirstReleaseDate = 'first-release-date',
   LastReleaseDate = 'last-release-date',
+  LastPlayed = 'last-played',
 }
 
 export enum MyListStatusFilter {
@@ -19,7 +20,7 @@ export enum MyListStatusFilter {
   Upcoming = 'upcoming',
   Unwatched = 'unwatched',
   Watched = 'watched',
-  ContinueWatching = 'continueWatching',
+  ContinueWatching = 'continue-watching',
 }
 
 export enum MyListTypeFilter {

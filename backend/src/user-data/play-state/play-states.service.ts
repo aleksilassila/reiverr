@@ -1,15 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MediaTypeFull } from 'src/common/common.dto';
 import { Repository } from 'typeorm';
-import { BulkUpdatePlayStateDto, UpdatePlayStateDto } from './play-state.dto';
+import { UpdatePlayStateDto } from './play-state.dto';
 import { PlayState } from './play-state.entity';
 import { USER_PLAY_STATE_REPOSITORY } from './play-state.providers';
+import { USER_LIBRARY_REPOSITORY } from '../library/library.providers';
+import { LibraryItem } from '../library/library.entity';
 
 @Injectable()
 export class PlayStatesService {
   constructor(
     @Inject(USER_PLAY_STATE_REPOSITORY)
     private readonly playStateRepository: Repository<PlayState>,
+    @Inject(USER_LIBRARY_REPOSITORY)
+    private readonly libraryRepository: Repository<LibraryItem>,
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
@@ -106,7 +110,14 @@ export class PlayStatesService {
     if (playState.progress !== undefined) state.progress = playState.progress;
     if (playState.watched !== undefined) state.watched = playState.watched;
 
-    return this.playStateRepository.save(state);
+    return this.playStateRepository.save(state).then(async (state) => {
+      await this.libraryRepository.update(
+        { tmdbId, userId },
+        { lastPlayedAt: new Date() },
+      );
+
+      return state;
+    });
   }
 
   async updateOrCreateEpisodePlayState(
@@ -125,7 +136,14 @@ export class PlayStatesService {
     if (playState.progress !== undefined) state.progress = playState.progress;
     if (playState.watched !== undefined) state.watched = playState.watched;
 
-    return this.playStateRepository.save(state);
+    return this.playStateRepository.save(state).then(async (state) => {
+      await this.libraryRepository.update(
+        { tmdbId, userId },
+        { lastPlayedAt: new Date() },
+      );
+
+      return state;
+    });
   }
 
   async deleteMoviePlayState(userId: string, tmdbId: string) {

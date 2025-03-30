@@ -1,53 +1,28 @@
 <script lang="ts">
 	import CollectionCard from '$lib/components/Collection/CollectionCard.svelte';
-	import {
-		collectionsList,
-		companiesList,
-		type Collection
-	} from '$lib/components/Collection/collections';
+	import { collectionsList, companiesList } from '$lib/components/Collection/collections';
 	import CompanyCard from '$lib/components/Collection/CompanyCard.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { libraryItemsDataStore } from '$lib/stores/data.store';
+	import { continueWatchingMoviesDataStore } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
-	import { derived } from 'svelte/store';
 	import { TMDB_MOVIE_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
-	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 
 	createBackgroundPage();
 
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const { ...libraryData } = libraryItemsDataStore.subscribe();
-	const libraryContinueWatching = derived(libraryData, (libraryData) => {
-		if (!libraryData) return [];
+	const { ...continueWatching } = continueWatchingMoviesDataStore.subscribe();
 
-		const movies = libraryData.filter(
-			(i) => i.mediaType === 'Movie' && i.playStates?.length && !i.watched
-		);
-
-		movies.sort((a, b) => {
-			const aMax = Math.max(
-				...(a.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-			);
-			const bMax = Math.max(
-				...(b.playStates?.map((p) => new Date(p.lastPlayedAt).getTime()) || [0])
-			);
-
-			return bMax - aMax;
-		});
-
-		return movies;
-	});
-	$: libraryContinueWatchingKey = $libraryContinueWatching && Symbol();
+	$: libraryContinueWatchingKey = $continueWatching && Symbol();
 
 	const popularMovies = tmdbApi.getTrendingMovies();
 	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
@@ -73,7 +48,7 @@
 	// 	});
 
 	onDestroy(() => {
-		libraryData.unsubscribe();
+		continueWatching.unsubscribe();
 	});
 </script>
 
@@ -87,12 +62,12 @@
 		/>
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $libraryContinueWatching.length}
+		{#if $continueWatching?.items.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ vertical: 128 })}>
 				<span slot="header">Continue Watching</span>
 				{#key libraryContinueWatchingKey}
-					{#each $libraryContinueWatching as item (item.id)}
-						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
+					{#each $continueWatching?.items ?? [] as item (item.tmdbId)}
+						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" item={item.tmdbItem} />
 					{/each}
 				{/key}
 			</Carousel>

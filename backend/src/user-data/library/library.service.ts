@@ -57,65 +57,11 @@ export class LibraryService {
       direction = OrderDirection.Desc,
     } = options;
 
-    // const order = {
-    //   [MyListOrder.DateAdded]: { createdAt: directon } as const,
-    //   [MyListOrder.Name]: {
-    //     seriesMetadata: {
-    //       name: directon,
-    //     },
-    //     movieMetadata: {
-    //       name: directon,
-    //     },
-    //   } as const,
-    //   [MyListOrder.FirstReleaseDate]: {
-    //     movieMetadata: {
-    //       releaseDate: directon,
-    //     },
-    //     seriesMetadata: {
-    //       firstReleaseDate: directon,
-    //     },
-    //   } as const,
-    //   [MyListOrder.LastReleaseDate]: {
-    //     movieMetadata: {
-    //       releaseDate: directon,
-    //     },
-    //     seriesMetadata: {
-    //       lastReleaseDate: directon,
-    //     },
-    //   } as const,
-    // }[sortBy];
-
     const mediaType = type
       ? type === MyListTypeFilter.Movies
         ? MediaType.Movie
         : MediaType.Series
       : undefined;
-
-    // const [items, total] = await this.libraryRepository.findAndCount({
-    //   relations: {
-    //     playStates: true,
-    //     seriesMetadata: true,
-    //     movieMetadata: true,
-    //   },
-    //   select: {
-    //     seriesMetadata: {
-    //       firstReleaseDate: true,
-    //       lastReleaseDate: true,
-    //       name: true,
-    //     },
-    //     movieMetadata: {
-    //       releaseDate: true,
-    //       name: true,
-    //     },
-    //   },
-    //   where: {
-    //     userId,
-    //     ...(mediaType ? { mediaType } : {}),
-    //   },
-    //   order,
-    //   take: pagination.itemsPerPage,
-    //   skip: pagination.itemsPerPage * (pagination.page - 1),
-    // });
 
     let builder = this.libraryRepository
       .createQueryBuilder('libraryItem')
@@ -176,7 +122,10 @@ export class LibraryService {
       builder = builder.andWhere(upcoming);
     } else if (status === MyListStatusFilter.Watched) {
       builder = builder.andWhere(watchedAndNotUpcoming);
-    } else if (status === MyListStatusFilter.Unwatched) {
+    } else if (
+      status === MyListStatusFilter.Unwatched ||
+      status === MyListStatusFilter.ContinueWatching
+    ) {
       builder = builder.andWhere(
         new Brackets((qb) =>
           qb
@@ -210,6 +159,12 @@ export class LibraryService {
             ),
         ),
       );
+
+      if (status === MyListStatusFilter.ContinueWatching) {
+        builder = builder.andWhere(
+          "libraryItem.lastPlayedAt IS NOT NULL AND libraryItem.lastPlayedAt > date('now', '-1 month')",
+        );
+      }
     }
 
     const DIRECTION = direction === OrderDirection.Asc ? 'ASC' : 'DESC';
@@ -224,6 +179,8 @@ export class LibraryService {
     } else if (order === MyListOrder.LastReleaseDate) {
       builder.addOrderBy('movieMetadata.releaseDate', DIRECTION);
       builder.addOrderBy('seriesMetadata.lastReleaseDate', DIRECTION);
+    } else if (order === MyListOrder.LastPlayed) {
+      builder.addOrderBy('libraryItem.lastPlayedAt', DIRECTION);
     }
 
     const [items, total] = await builder
