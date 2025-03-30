@@ -1,6 +1,12 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import type { ValidationResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import {
+		createErrorNotification,
+		createInfoNotification
+	} from '$lib/components/Notifications/notification.store';
+	import { sources } from '$lib/stores/sources.store';
+	import { capitalize } from '$lib/utils';
 	import { Pencil1, Trash } from 'radix-icons-svelte';
 	import { get, writable } from 'svelte/store';
 	import Button from '../../components/Button.svelte';
@@ -9,13 +15,6 @@
 	import TextField from '../../components/TextField.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { reiverrApi, user } from '../../stores/user.store';
-	import { capitalize } from '$lib/utils';
-	import { mediaSourcesDataStore } from '$lib/stores/data.store';
-	import {
-		createErrorNotification,
-		createInfoNotification
-	} from '$lib/components/Notifications/notification.store';
-	import { sources } from '$lib/stores/sources.store';
 
 	export let modalId: symbol;
 

@@ -15,7 +15,7 @@
 	import { libraryViewSettings } from './LibraryPage';
 	import MyListOptions from './MyListOptions.svelte';
 	import TabItem from './TabItem.svelte';
-	import { usePaginatedRequest } from '$lib/stores/data.store';
+	import { libraryRefresher, usePaginatedRequest } from '$lib/stores/data.store';
 
 	const { registrar } = getStackRouterPage();
 	const { topVisible } = getScrollContext();
@@ -26,7 +26,7 @@
 	const {
 		data: upcoming,
 		interactionObserver: upcomingObserver,
-		reset: resetUpcoming
+		load: loadUpcoming
 	} = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id || !$libraryViewSettings.separateWatched) {
@@ -43,13 +43,16 @@
 				})
 				.then((i) => i.data);
 		},
-		{ loadFirstPage: false }
+		{
+			loadOnInit: false,
+			refresher: libraryRefresher
+		}
 	);
 
 	const {
 		data: watched,
 		interactionObserver: watchedObserver,
-		reset: resetWatched
+		load: loadWatched
 	} = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id || !$libraryViewSettings.separateWatched) {
@@ -66,10 +69,10 @@
 				})
 				.then((i) => i.data);
 		},
-		{ loadFirstPage: false }
+		{ loadOnInit: false, refresher: libraryRefresher }
 	);
 
-	const { interactionObserver, data, reset } = usePaginatedRequest(
+	const { interactionObserver, data, load } = usePaginatedRequest(
 		async (page) => {
 			if (!$user?.id) {
 				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
@@ -85,16 +88,16 @@
 				})
 				.then((i) => i.data);
 		},
-		{ loadFirstPage: false }
+		{ loadOnInit: false, refresher: libraryRefresher }
 	);
 
 	$: {
 		$libraryViewSettings;
 		category;
 		$user;
-		reset({ loadFirstPage: true });
-		resetUpcoming({ loadFirstPage: true });
-		resetWatched({ loadFirstPage: true });
+		load();
+		loadUpcoming();
+		loadWatched();
 	}
 
 	$: viewSettingsKey = $libraryViewSettings && Symbol();

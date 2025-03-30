@@ -98,6 +98,9 @@
 
 	onDestroy(() => {
 		video?.textTracks.removeEventListener('addtrack', () => updateSubtitlesVisibility(subtitles));
+		video?.pause();
+		video?.removeAttribute('src');
+		video?.load();
 	});
 </script>
 

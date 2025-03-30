@@ -11,12 +11,13 @@ import type {
 	StreamCandidateDto
 } from '../apis/reiverr/reiverr.openapi';
 import {
-	episodeUserDataStore,
-	movieUserDataStore,
-	seriesUserDataStore,
-	tmdbSeriesDataStore
+	episodeUserDataRefresher,
+	libraryRefresher,
+	movieUserDataRefresher,
+	seriesUserDataRefresher,
+	useRequest
 } from './data.store';
-import { reiverrApi, user } from './user.store';
+import { reiverrApi, tmdbApi, user } from './user.store';
 
 export type EpisodeData = {
 	season: number;
@@ -76,11 +77,11 @@ async function getAutoplayStream(options: { tmdbId: string; season?: number; epi
 function useUserLibrary(
 	mediaType: 'movie' | 'series',
 	tmdbId: string,
-	userDataP: Readable<MovieUserDataDto | SeriesUserDataDto | undefined>
+	userData: Readable<MovieUserDataDto | SeriesUserDataDto | undefined>
 ) {
 	const inLibrary = writable<boolean>(undefined);
 
-	userDataP.subscribe((d) => {
+	userData.subscribe((d) => {
 		inLibrary.set(d?.inLibrary ?? false);
 	});
 
@@ -97,7 +98,7 @@ function useUserLibrary(
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(true);
-			libraryItemsDataStore.refreshIn(1500);
+			libraryRefresher.refreshIn(1500);
 		}
 	}
 
@@ -114,7 +115,7 @@ function useUserLibrary(
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(false);
-			libraryItemsDataStore.refreshIn(1500);
+			libraryRefresher.refreshIn(500);
 		}
 	}
 
@@ -145,7 +146,7 @@ function useIsWatched(
 
 		return toggleFn(userId, !watched).finally(() => {
 			isWatched.set(!watched);
-			libraryItemsDataStore.refreshIn(1500);
+			libraryRefresher.refreshIn(500);
 		});
 	}
 
@@ -166,8 +167,14 @@ function useCanStream() {
 export function useSeriesUserData(tmdbId: string) {
 	const background = getBackgroundPage();
 
-	const userDataRequest = seriesUserDataStore.subscribe(tmdbId);
-	const tmdbSeriesRequest = tmdbSeriesDataStore.subscribe(Number(tmdbId));
+	const userDataRequest = useRequest(
+		() => reiverrApi.users.getSeriesUserData(get(user)?.id as string, tmdbId).then((r) => r.data),
+		{
+			refresher: seriesUserDataRefresher,
+			key: tmdbId
+		}
+	);
+	const tmdbSeriesRequest = useRequest(() => tmdbApi.getSeriesFull(Number(tmdbId)));
 	const libraryStore = useUserLibrary('series', tmdbId, userDataRequest);
 	const canStreamStore = useCanStream();
 	const episodesUserData = writable<EpisodeData[]>([]);
@@ -187,12 +194,18 @@ export function useSeriesUserData(tmdbId: string) {
 
 		const episodesData: EpisodeData[] = [];
 		let foundNext = false;
+		const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
 		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
 			const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
 			for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
 				const ep = userData?.playStates?.find((p) => p.season === season && p.episode === episode);
 				const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
-				if (!foundNext && !ep?.watched) {
+				if (
+					!foundNext &&
+					((lastWatchedPlayState?.season ?? 0) < season ||
+						((lastWatchedPlayState?.season ?? 0) === season &&
+							(lastWatchedPlayState?.episode ?? 0) < episode))
+				) {
 					nextEpisode.set({
 						season,
 						episode,
@@ -233,13 +246,36 @@ export function useSeriesUserData(tmdbId: string) {
 					}))
 			})
 			.then(async (states) => {
-				await seriesUserDataStore.refresh(tmdbId);
+				await seriesUserDataRefresher.refresh(tmdbId);
 				return states;
 			})
 			.finally(() => {
-				libraryItemsDataStore.refreshIn(1500);
+				libraryRefresher.refreshIn(500);
 			});
 	}
+
+	const getVideoProps = async () => {
+		const tmdbSeriesData = get(tmdbSeriesRequest);
+		const { season, episode, progress } = get(nextEpisode) ?? {};
+
+		if (season === undefined || episode === undefined) {
+			createErrorNotification('Could not find next episode');
+			return;
+		}
+
+		const tmdbEpisode = await tmdbApi.v3
+			.tvEpisodeDetails(Number(tmdbId), season, episode)
+			.then((r) => r.data);
+
+		return {
+			tmdbId,
+			season,
+			episode,
+			progress: progress ?? 0,
+			title: tmdbEpisode?.name ?? 'Unknown',
+			subtitle: tmdbSeriesData?.name ?? 'Unknown'
+		};
+	};
 
 	return {
 		tmdbSeries: tmdbSeriesRequest.promise,
@@ -250,12 +286,11 @@ export function useSeriesUserData(tmdbId: string) {
 		isWatched,
 		toggleIsWatched,
 		handleAutoplay: async () => {
-			const { season, episode, progress } = get(nextEpisode) ?? {};
+			const videoProps = await getVideoProps();
 
-			if (season === undefined || episode === undefined) {
-				createErrorNotification('Could not find next episode');
-				return;
-			}
+			if (!videoProps) return;
+
+			const { season, episode } = videoProps;
 
 			const { key, source } = await getAutoplayStream({ tmdbId, season, episode });
 
@@ -268,10 +303,7 @@ export function useSeriesUserData(tmdbId: string) {
 				id: Symbol(),
 				component: TmdbVideoPlayer,
 				props: {
-					tmdbId,
-					season,
-					episode,
-					progress,
+					...videoProps,
 					key,
 					source
 				},
@@ -281,12 +313,11 @@ export function useSeriesUserData(tmdbId: string) {
 			background?.focus();
 		},
 		handleOpenStreamSelector: async () => {
-			const { season, episode } = get(nextEpisode) ?? {};
+			const videoProps = await getVideoProps();
 
-			if (season === undefined || episode === undefined) {
-				createErrorNotification('Could not find next episode');
-				return;
-			}
+			if (!videoProps) return;
+
+			const { season, episode } = videoProps;
 
 			createModal(StreamSelectorModal, {
 				getStreams: (s) => getStreams(s, tmdbId, season, episode),
@@ -295,10 +326,7 @@ export function useSeriesUserData(tmdbId: string) {
 						id: Symbol(),
 						component: TmdbVideoPlayer,
 						props: {
-							tmdbId,
-							season,
-							episode,
-							progress: get(nextEpisode)?.progress,
+							...videoProps,
 							key: stream.key,
 							source
 						},
@@ -320,7 +348,17 @@ export function useSeriesUserData(tmdbId: string) {
 
 export function useMovieUserData(tmdbId: string) {
 	const background = getBackgroundPage();
-	const userData = movieUserDataStore.subscribe(tmdbId);
+
+	const userData = useRequest(
+		() => reiverrApi.users.getMovieUserData(get(user)?.id as string, tmdbId).then((r) => r.data),
+		{
+			refresher: movieUserDataRefresher,
+			key: tmdbId
+		}
+	);
+
+	const tmdbMovie = useRequest(() => tmdbApi.getMovieFull(Number(tmdbId)));
+
 	const libraryStore = useUserLibrary('movie', tmdbId, userData);
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
@@ -330,10 +368,24 @@ export function useMovieUserData(tmdbId: string) {
 	);
 	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
+	const getVideoProps = () => {
+		const tmdbMovieData = get(tmdbMovie);
+
+		return {
+			tmdbId,
+			progress: get(progress),
+			title: tmdbMovieData?.title ?? 'Unknown',
+			subtitle: tmdbMovieData?.release_date
+				? new Date(tmdbMovieData.release_date).getFullYear()
+				: undefined
+		};
+	};
+
 	return {
 		...libraryStore,
 		...canStreamStore,
 		...isWatchedStore,
+		tmdbMovie: { subscribe: tmdbMovie.promise.subscribe },
 		progress,
 		handleAutoplay: async () => {
 			const { key, source } = await getAutoplayStream({ tmdbId });
@@ -347,8 +399,7 @@ export function useMovieUserData(tmdbId: string) {
 				id: Symbol(),
 				component: TmdbVideoPlayer,
 				props: {
-					tmdbId,
-					progress: get(progress),
+					...getVideoProps(),
 					key,
 					source
 				},
@@ -365,8 +416,7 @@ export function useMovieUserData(tmdbId: string) {
 						id: Symbol(),
 						component: TmdbVideoPlayer,
 						props: {
-							tmdbId,
-							progress: get(progress),
+							...getVideoProps(),
 							key: stream.key,
 							source
 						},
@@ -377,27 +427,60 @@ export function useMovieUserData(tmdbId: string) {
 				}
 			});
 		},
-		unsubscribe: () => userData.unsubscribe()
+		unsubscribe: () => {
+			userData.unsubscribe();
+			tmdbMovie.unsubscribe();
+		}
 	};
 }
 
 export function useEpisodeUserData(tmdbId: string, season: number, episode: number) {
 	const background = getBackgroundPage();
 
-	const userData = episodeUserDataStore.subscribe(tmdbId, season, episode);
+	const userData = useRequest(
+		() =>
+			reiverrApi.users
+				.getEpisodeUserData(get(user)?.id as string, tmdbId, season, episode)
+				.then((r) => r.data),
+		{
+			refresher: episodeUserDataRefresher,
+			key: `${tmdbId}-${season}-${episode}`
+		}
+	);
+
+	const tmdbEpisode = useRequest(() =>
+		tmdbApi.v3.tvEpisodeDetails(Number(tmdbId), season, episode).then((r) => r.data)
+	);
+
 	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
 		reiverrApi.users
 			.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
 				watched
 			})
-			.finally(() => seriesUserDataStore.refresh(tmdbId))
+			.finally(() => seriesUserDataRefresher.refresh(tmdbId))
 	);
 	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
+
+	const getVideoProps = async () => {
+		const tmdbEpisodeData = get(tmdbEpisode);
+
+		const tmdbSeries = await tmdbApi.getSeriesFull(Number(tmdbId));
+
+		return {
+			tmdbId,
+			season,
+			episode,
+			progress: get(progress),
+			title: tmdbEpisodeData?.name ?? 'Unknown',
+			subtitle: tmdbSeries?.name ?? 'Unknown'
+		};
+	};
 
 	return {
 		...canStreamStore,
 		...isWatchedStore,
+		tmdbEpisode: { subscribe: tmdbEpisode.promise.subscribe },
 		progress,
 		handleAutoplay: async () => {
 			// getAutoplayStream({ tmdbId, season, episode, progress: get(progress) });
@@ -412,10 +495,7 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 				id: Symbol(),
 				component: TmdbVideoPlayer,
 				props: {
-					tmdbId,
-					season,
-					episode,
-					progress: get(progress),
+					...(await getVideoProps()),
 					key,
 					source
 				},
@@ -427,15 +507,12 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 		handleOpenStreamSelector: async () => {
 			createModal(StreamSelectorModal, {
 				getStreams: (s) => getStreams(s, tmdbId, season, episode),
-				selectStream: (source, stream) => {
+				selectStream: async (source, stream) => {
 					background?.setVideo({
 						id: Symbol(),
 						component: TmdbVideoPlayer,
 						props: {
-							tmdbId,
-							season,
-							episode,
-							progress: get(progress),
+							...(await getVideoProps()),
 							key: stream.key,
 							source
 						},
@@ -446,6 +523,9 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 				}
 			});
 		},
-		unsubscribe: () => userData.unsubscribe()
+		unsubscribe: () => {
+			userData.unsubscribe();
+			tmdbEpisode.unsubscribe();
+		}
 	};
 }

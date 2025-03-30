@@ -1,3 +1,4 @@
+import { networks } from '$lib/components/Collection/collections';
 import { formatDateToYearMonthDay } from '$lib/utils';
 import createClient from 'openapi-fetch';
 import { get } from 'svelte/store';
@@ -8,16 +9,25 @@ import { user } from '../../stores/user.store';
 import type { Api } from '../api.interface';
 import {
 	TmdbApiGenerated,
+	type MovieCreditsData,
+	type MovieDetailsData,
+	type MovieExternalIdsData,
+	type MovieImagesData,
+	type MovieVideosData,
 	type PersonDetailsData,
 	type PersonExternalIdsData,
 	type PersonImagesData,
 	type PersonMovieCreditsData,
-	type PersonTvCreditsData
+	type PersonTvCreditsData,
+	type TvSeriesAggregateCreditsData,
+	type TvSeriesDetailsData,
+	type TvSeriesExternalIdsData,
+	type TvSeriesImagesData,
+	type TvSeriesVideosData
 } from './tmdb-v3.openapi';
 import { TmdbApi4Generated } from './tmdb-v4.openapi';
 import type { operations, paths } from './tmdb.generated';
 import type { paths as paths4 } from './tmdb4.generated';
-import { networks } from '$lib/components/Collection/collections';
 
 const CACHE_ONE_DAY = 'max-age=86400';
 const CACHE_FOUR_DAYS = 'max-age=345600';
@@ -177,6 +187,36 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 				append_to_response: 'images,movie_credits,tv_credits,external_ids'
 			})
 			.then((res) => res.data);
+
+	getMovieFull = async (tmdbId: number) =>
+		this.v3
+			.movieDetails(
+				tmdbId,
+				{
+					append_to_response: 'videos,credits,external_ids,images'
+				},
+				{
+					headers: {
+						'Cache-Control': CACHE_ONE_DAY
+					}
+				}
+			)
+			.then((r) => r.data as TmdbMovieFull);
+
+	getSeriesFull = async (tmdbId: number) =>
+		this.v3
+			.tvSeriesDetails(
+				tmdbId,
+				{
+					append_to_response: 'videos,aggregate_credits,external_ids,images'
+				},
+				{
+					headers: {
+						'Cache-Control': CACHE_ONE_DAY
+					}
+				}
+			)
+			.then((r) => r.data as TmdbSeriesFull);
 }
 
 export class TmdbApi4New<S> extends TmdbApi4Generated<S> {
@@ -353,13 +393,11 @@ export class TmdbApi4New<S> extends TmdbApi4Generated<S> {
 	};
 }
 
-export type TmdbMovie =
-	operations['movie-details']['responses']['200']['content']['application/json'];
+export type TmdbMovie = MovieDetailsData;
 export type TmdbMovieSmall = NonNullable<
 	operations['discover-movie']['responses']['200']['content']['application/json']['results']
 >[0];
-export type TmdbSeries =
-	operations['tv-series-details']['responses']['200']['content']['application/json'];
+export type TmdbSeries = TvSeriesDetailsData;
 export type TmdbSeriesSmall = NonNullable<
 	operations['discover-tv']['responses']['200']['content']['application/json']['results']
 >[0];
@@ -383,17 +421,17 @@ export interface TmdbPersonFull extends TmdbPerson {
 }
 
 export interface TmdbMovieFull extends TmdbMovie {
-	videos: operations['movie-videos']['responses']['200']['content']['application/json'];
-	credits: operations['movie-credits']['responses']['200']['content']['application/json'];
-	external_ids: operations['movie-external-ids']['responses']['200']['content']['application/json'];
-	images: operations['movie-images']['responses']['200']['content']['application/json'];
+	videos: MovieVideosData;
+	credits: MovieCreditsData;
+	external_ids: MovieExternalIdsData;
+	images: MovieImagesData;
 }
 
 export interface TmdbSeriesFull extends TmdbSeries {
-	videos: operations['tv-series-videos']['responses']['200']['content']['application/json'];
-	aggregate_credits: operations['tv-series-aggregate-credits']['responses']['200']['content']['application/json'];
-	external_ids: operations['tv-series-external-ids']['responses']['200']['content']['application/json'];
-	images: operations['tv-series-images']['responses']['200']['content']['application/json'];
+	videos: TvSeriesVideosData;
+	aggregate_credits: TvSeriesAggregateCreditsData;
+	external_ids: TvSeriesExternalIdsData;
+	images: TvSeriesImagesData;
 }
 
 export class TmdbApi implements Api<paths> {

@@ -38,37 +38,40 @@
 		selectedFilter = filters[0] ?? '';
 	}
 
-	const { interactionObserver, data, reset } = usePaginatedRequest(async (page) => {
-		const type = {
-			All: 'all' as const,
-			Movies: 'movies' as const,
-			Series: 'series' as const,
-			Missing: 'missing' as const
-		}[selectedFilter];
+	const { interactionObserver, data, load } = usePaginatedRequest(
+		async (page) => {
+			const type = {
+				All: 'all' as const,
+				Movies: 'movies' as const,
+				Series: 'series' as const,
+				Missing: 'missing' as const
+			}[selectedFilter];
 
-		if (!type) {
-			return {
-				items: [],
-				total: 0,
-				itemsPerPage: 0,
-				page: 0
-			};
-		}
+			if (!type) {
+				return {
+					items: [],
+					total: 0,
+					itemsPerPage: 0,
+					page: 0
+				};
+			}
 
-		return reiverrApi.library
-			.getCatalogue(source.userId, source.id, {
-				type,
-				order: $viewSettings.order,
-				direction: $viewSettings.direction,
-				page
-			})
-			.then((r) => r.data);
-	});
+			return reiverrApi.library
+				.getCatalogue(source.userId, source.id, {
+					type,
+					order: $viewSettings.order,
+					direction: $viewSettings.direction,
+					page
+				})
+				.then((r) => r.data);
+		},
+		{ loadOnInit: false }
+	);
 
 	$: {
 		$viewSettings;
 		selectedFilter;
-		reset();
+		load();
 	}
 
 	// $: items = selectedFilter

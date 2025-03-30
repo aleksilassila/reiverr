@@ -1,16 +1,105 @@
 import { tick } from 'svelte';
-import { derived, get, writable } from 'svelte/store';
+import { derived, get, writable, type Readable } from 'svelte/store';
 import { tmdbApi } from '../apis/tmdb/tmdb-api';
 import { awaitAppInitialization, reiverrApi, user } from './user.store';
 import type { PaginatedResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
 import type { Action } from 'svelte/action';
+import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
+// type Refresher = ReturnType<typeof createRefresher>;
 
-export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
+export class Refresher {
+	private subscribers: {
+		key?: string;
+		isActive?: Readable<boolean>;
+		unsubscribe?: () => void;
+		refresh: () => Promise<unknown>;
+		refreshIn: (ms: number) => Promise<unknown>;
+	}[] = [];
+
+	subscribe(options: {
+		isActive?: Readable<boolean>;
+		refresh: () => Promise<unknown>;
+		refreshIn: (ms: number) => Promise<unknown>;
+		key?: string;
+	}) {
+		const subscriber = {
+			key: options.key,
+			isActive: options.isActive,
+			refresh: options.refresh,
+			refreshIn: options.refreshIn,
+			unsubscribe: () => {}
+		};
+
+		this.subscribers.push(subscriber);
+
+		return () => {
+			subscriber.unsubscribe?.();
+			this.subscribers = this.subscribers.filter((s) => s !== subscriber);
+		};
+	}
+
+	refresh(key?: string): Promise<unknown> {
+		const promises = this.subscribers.map((s) => {
+			if (!key || key === s.key) {
+				if (s.unsubscribe) s.unsubscribe();
+
+				if (s.isActive && !get(s.isActive)) {
+					s.unsubscribe = s.isActive.subscribe((isActive) => {
+						if (isActive) {
+							s.refresh();
+							s.unsubscribe?.();
+						}
+					});
+				} else {
+					return s.refresh();
+				}
+			}
+
+			return Promise.resolve();
+		});
+
+		return Promise.all(promises);
+	}
+
+	refreshIn(ms: number, key?: string): Promise<unknown> {
+		const promises = this.subscribers.map((s) => {
+			if (!key || key === s.key) {
+				if (s.unsubscribe) s.unsubscribe();
+
+				if (s.isActive && !get(s.isActive)) {
+					s.unsubscribe = s.isActive.subscribe((isActive) => {
+						if (isActive) {
+							s.refreshIn(ms);
+							s.unsubscribe?.();
+						}
+					});
+				} else {
+					return s.refreshIn(ms);
+				}
+			}
+
+			return Promise.resolve();
+		});
+
+		return Promise.all(promises);
+	}
+}
+
+export function useRequest<TResponse>(
+	fn: () => Promise<TResponse>,
+	options: {
+		refresher?: Refresher;
+		key?: string;
+	} = {}
+) {
 	async function _createPromise() {
 		return awaitAppInitialization().then(() => fn());
 	}
+
+	const { hasFocus: isActive } = getStackRouterPage();
+	const { refresher, key } = options;
 
 	const initialPromise = _createPromise();
 	const promise = writable(initialPromise);
@@ -42,49 +131,18 @@ export function useRequest<TResponse>(fn: () => Promise<TResponse>) {
 		});
 	}
 
+	let unsubscribeRefresher = () => {};
+	if (refresher) {
+		unsubscribeRefresher = refresher.subscribe({ isActive, refresh, refreshIn, key });
+	}
+
 	return {
 		subscribe: data.subscribe,
 		isLoading: { subscribe: isLoading.subscribe },
 		promise: { subscribe: promise.subscribe },
 		refresh,
-		refreshIn
-	};
-}
-
-export function useDerivedRequest<TResponse, TResponse2>(
-	request: Request<TResponse2>,
-	fn: (r: TResponse2) => Promise<TResponse>
-): Request<TResponse> {
-	const isLoading = writable(true);
-	const data = writable<TResponse | undefined>(undefined);
-	const promise = derived(request.promise, async (p) => {
-		isLoading.set(true);
-
-		return p
-			.then((r) => fn(r))
-			.then((d) => {
-				data.set(d);
-				return d;
-			})
-			.finally(() => {
-				isLoading.set(false);
-			});
-	});
-
-	return {
-		subscribe: data.subscribe,
-		isLoading: { subscribe: isLoading.subscribe },
-		promise: { subscribe: promise.subscribe },
-		refresh: async () => {
-			await request.refresh();
-			await tick();
-			return get(promise);
-		},
-		refreshIn: async (ms?: number) => {
-			await request.refreshIn(ms);
-			await tick();
-			return get(promise);
-		}
+		refreshIn,
+		unsubscribe: () => unsubscribeRefresher()
 	};
 }
 
@@ -157,32 +215,17 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	};
 }
 
-export function useDerivedRequestsStore<TArgs extends Array<unknown>, TResponse, TResponse2>(
-	dataStore: ReturnType<typeof useRequestsStore<TArgs, TResponse>>,
-	fn: (res: TResponse) => Promise<TResponse2>
-) {
-	type Res = ReturnType<typeof useRequest<TResponse2>>;
-	function subscribe(...args: TArgs): RequestStoreRequest<TResponse2> {
-		const request = dataStore.subscribe(...args);
-		const derivedRequest = useDerivedRequest(request, fn);
-
-		return {
-			...derivedRequest,
-			unsubscribe: request.unsubscribe
-		};
-	}
-
-	return {
-		...dataStore,
-		subscribe
-	};
-}
-
 export function usePaginatedRequest<TResponseItem>(
 	fn: (page: number) => Promise<{ items: TResponseItem[] } & PaginatedResponseDto>,
-	options: { initialPage?: number; loadFirstPage?: boolean } = {}
+	options: {
+		initialPage?: number;
+		loadOnInit?: boolean;
+		refresher?: Refresher;
+		key?: string;
+	} = {}
 ) {
-	const initialPage = options.initialPage ?? 1;
+	const { hasFocus: isActive } = getStackRouterPage();
+	const { refresher, key, initialPage = 1 } = options;
 
 	let requestId = Symbol();
 	const nextPage = writable(initialPage);
@@ -192,7 +235,7 @@ export function usePaginatedRequest<TResponseItem>(
 	const isLoading = writable(false);
 	let promise: Promise<unknown> | undefined;
 
-	if (options.loadFirstPage !== false) requestNextPage();
+	if (options.loadOnInit !== false) load();
 
 	async function requestNextPage() {
 		if (get(loadingPage) === get(nextPage)) return;
@@ -248,7 +291,7 @@ export function usePaginatedRequest<TResponseItem>(
 		};
 	};
 
-	function reset(resetOptions: { loadFirstPage?: boolean } = { loadFirstPage: false }) {
+	async function load() {
 		nextPage.set(initialPage);
 		loadingPage.set(initialPage - 1);
 		hasNextPage = true;
@@ -256,8 +299,27 @@ export function usePaginatedRequest<TResponseItem>(
 		promise = undefined;
 		isLoading.set(false);
 		requestId = Symbol();
-		if (resetOptions.loadFirstPage !== false) requestNextPage();
-		else if (options.loadFirstPage !== false) requestNextPage();
+		return requestNextPage();
+	}
+
+	let updateTimeout: ReturnType<typeof setTimeout>;
+	function loadIn(ms: number) {
+		return new Promise((resolve) => {
+			clearTimeout(updateTimeout);
+			updateTimeout = setTimeout(() => {
+				load().then(resolve);
+			}, ms);
+		});
+	}
+
+	let unsubscribeRefresher = () => {};
+	if (refresher) {
+		unsubscribeRefresher = refresher.subscribe({
+			isActive,
+			refresh: load,
+			refreshIn: loadIn,
+			key
+		});
 	}
 
 	return {
@@ -269,56 +331,12 @@ export function usePaginatedRequest<TResponseItem>(
 		},
 		requestNextPage,
 		interactionObserver,
-		reset
+		load,
+		unsubscribe: () => unsubscribeRefresher()
 	};
 }
 
-export const tmdbMovieDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbMovie(id));
-export const tmdbSeriesDataStore = useRequestsStore((id: number) => tmdbApi.getTmdbSeries(id));
-export const tmdbEpisodeDataStore = useRequestsStore(
-	(tmdbId: number, season: number, episode: number) => tmdbApi.getEpisode(tmdbId, season, episode)
-);
-
-export const movieUserDataStore = useRequestsStore((id: string) =>
-	reiverrApi.users.getMovieUserData(get(user)?.id as string, id).then((r) => r.data)
-);
-export const seriesUserDataStore = useRequestsStore((id: string) =>
-	reiverrApi.users.getSeriesUserData(get(user)?.id as string, id).then((r) => r.data)
-);
-export const episodeUserDataStore = useRequestsStore(
-	(id: string, season: number, episode: number) =>
-		reiverrApi.users
-			.getEpisodeUserData(get(user)?.id as string, id, season, episode)
-			.then((r) => r.data)
-);
-
-export const continueWatchingMoviesDataStore = useRequestsStore(() =>
-	reiverrApi.library
-		.getMyList(String(get(user)?.id), {
-			type: 'movies',
-			order: 'last-played',
-			status: 'continue-watching'
-		})
-		.then((r) => r.data)
-);
-
-export const continueWatchingSeriesDataStore = useRequestsStore(() =>
-	reiverrApi.library
-		.getMyList(String(get(user)?.id), {
-			type: 'series',
-			order: 'last-played',
-			status: 'continue-watching'
-		})
-		.then((r) => r.data)
-);
-
-export const mediaSourcesDataStore = useRequestsStore(() =>
-	reiverrApi.users
-		.findUserById(get(user)?.id || '')
-		.then((r) => r.data.mediaSources?.sort((a, b) => a.priority - b.priority) ?? [])
-);
-
-export function refreshLibraryDerivatives(timeout = 0) {
-	continueWatchingMoviesDataStore.refreshIn(timeout);
-	continueWatchingSeriesDataStore.refreshIn(timeout);
-}
+export const movieUserDataRefresher = new Refresher();
+export const seriesUserDataRefresher = new Refresher();
+export const episodeUserDataRefresher = new Refresher();
+export const libraryRefresher = new Refresher();

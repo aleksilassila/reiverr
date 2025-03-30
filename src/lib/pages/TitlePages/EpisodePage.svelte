@@ -2,8 +2,7 @@
 	import Container from '$components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
-	import { type StackRouterPageProps } from '$lib/components/StackRouter/StackRouterPage.type';
-	import { tmdbEpisodeDataStore } from '$lib/stores/data.store';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
@@ -11,7 +10,6 @@
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
@@ -20,11 +18,10 @@
 	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage({ videoMediaId: id });
-	const { promise: tmdbEpisode, unsubscribe: unsubscribeTmdbEpisode } =
-		tmdbEpisodeDataStore.subscribe(Number(id), Number(season), Number(episode));
 
 	const {
 		progress,
+		tmdbEpisode,
 		handleAutoplay,
 		handleOpenStreamSelector,
 		canStream,
@@ -66,7 +63,6 @@
 
 	onDestroy(() => {
 		unsubscribe();
-		unsubscribeTmdbEpisode();
 	});
 </script>
 

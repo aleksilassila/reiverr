@@ -68,12 +68,7 @@ export class LibraryController {
       direction,
     });
 
-    return {
-      ...response,
-      items: await Promise.all(
-        response.items.map((i) => this.libraryService.getLibraryItemDto(i)),
-      ),
-    };
+    return response
   }
 
   @Get('catalogue/:sourceId')

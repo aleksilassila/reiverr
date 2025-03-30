@@ -9,6 +9,7 @@
 		| Pick<TmdbMovie, 'id' | 'title' | 'poster_path' | 'runtime'>
 		| Pick<TmdbSeries, 'id' | 'name' | 'poster_path'>;
 	export let progress = 0;
+
 	let title = '';
 	let type: TitleType = 'movie';
 

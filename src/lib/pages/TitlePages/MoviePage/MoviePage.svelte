@@ -10,7 +10,6 @@
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
-	import { tmdbMovieDataStore } from '$lib/stores/data.store';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { useMovieUserData } from '$lib/stores/media-user-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
@@ -26,9 +25,8 @@
 
 	const tmdbId = Number(id);
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
-	const { promise: tmdbMovie, unsubscribe: unsubscribeTmdbMovie } =
-		tmdbMovieDataStore.subscribe(tmdbId);
 	const {
+		tmdbMovie,
 		inLibrary,
 		progress,
 		handleAddToLibrary,
@@ -99,7 +97,6 @@
 
 	onDestroy(() => {
 		unsubscribe();
-		unsubscribeTmdbMovie();
 	});
 </script>
 

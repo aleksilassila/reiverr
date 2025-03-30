@@ -1,15 +1,14 @@
 <script lang="ts">
 	import type {
-	MediaSourceDto,
+		MediaSourceDto,
 		StreamDto,
 		SubtitlesDto as Subtitles
 	} from '$lib/apis/reiverr/reiverr.openapi';
 	import {
-		episodeUserDataStore,
-		movieUserDataStore,
-		seriesUserDataStore,
-		tmdbMovieDataStore,
-		tmdbSeriesDataStore
+		episodeUserDataRefresher,
+		libraryRefresher,
+		movieUserDataRefresher,
+		seriesUserDataRefresher
 	} from '$lib/stores/data.store';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
@@ -27,26 +26,11 @@
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
 	export let episode: number | undefined = undefined;
+	export let title: string;
+	export let subtitle = '';
 	export let source: MediaSourceDto;
 	export let key: string = '';
 	export let progress: number = 0;
-
-	let title: string = '';
-	let subtitle: string = '';
-
-	const { unsubscribe, ...request } = (
-		season !== undefined && episode !== undefined ? tmdbSeriesDataStore : tmdbMovieDataStore
-	).subscribe(Number(tmdbId));
-
-	request.subscribe((item) => {
-		if (!item) return;
-		if ('title' in item) {
-			title = item.title ?? title;
-		} else if ('name' in item) {
-			title = `Episode ${episode}`;
-			subtitle = item.name ?? '';
-		}
-	});
 
 	type MediaLanguageStore = {
 		subtitles?: string;
@@ -221,13 +205,12 @@
 		if (reportProgressInterval) clearInterval(reportProgressInterval);
 		reportProgress().then(() => {
 			if (season !== undefined && episode !== undefined) {
-				seriesUserDataStore.refresh(tmdbId);
-				episodeUserDataStore.refresh(tmdbId, season, episode);
+				seriesUserDataRefresher.refresh(tmdbId);
+				episodeUserDataRefresher.refresh(`${tmdbId}-${season}-${episode}`);
 			} else {
-				movieUserDataStore.refresh(tmdbId);
+				movieUserDataRefresher.refresh(tmdbId);
 			}
-			libraryItemsDataStore.refreshIn(1500);
-			continuewa
+			libraryRefresher.refreshIn(500);
 		});
 	});
 </script>

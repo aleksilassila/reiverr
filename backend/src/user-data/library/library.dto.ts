@@ -1,6 +1,8 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
 import { LibraryItem } from './library.entity';
+import { PlayStateDto } from '../play-state/play-state.dto';
+import { PlayState } from '../play-state/play-state.entity';
 
 export enum OrderDirection {
   Asc = 'asc',
@@ -43,6 +45,9 @@ export class LibraryItemDto extends PickType(LibraryItem, [
 ]) {
   @ApiProperty()
   tmdbItem: TmdbItemDto;
+
+  @ApiProperty({ type: PlayStateDto, required: false })
+  lastPlayState?: PlayState;
 
   @ApiProperty({ required: false })
   watched?: boolean;

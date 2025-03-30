@@ -47,7 +47,7 @@ export class LibraryService {
     status?: MyListStatusFilter;
     order?: MyListOrder;
     direction?: OrderDirection;
-  }): Promise<PaginatedResponseDto<LibraryItem>> {
+  }): Promise<PaginatedResponseDto<LibraryItemDto>> {
     const {
       userId,
       pagination,
@@ -191,7 +191,9 @@ export class LibraryService {
     // console.log(builder.getQuery());
 
     return {
-      items,
+      items: await Promise.all(
+        items.map((item) => this.getLibraryItemDto(item)),
+      ),
       total,
       itemsPerPage: pagination.itemsPerPage,
       page: pagination.page,
@@ -286,7 +288,7 @@ export class LibraryService {
         ),
       };
     } else if (type === CatalogueTypeFilter.Missing && missing) {
-      const tmdbIdToMyListItem: Record<string, LibraryItem> = {};
+      const tmdbIdToMyListItem: Record<string, LibraryItemDto> = {};
       const myListItems = await this.getMyList({
         pagination: {
           itemsPerPage: 500,
@@ -315,12 +317,7 @@ export class LibraryService {
         direction,
       });
 
-      return {
-        ...response,
-        items: await Promise.all(
-          response.items.map((item) => this.getLibraryItemDto(item)),
-        ),
-      };
+      return response;
     }
 
     throw new Error(
@@ -404,6 +401,7 @@ export class LibraryService {
       mediaType: mediaType === 'movie' ? MediaType.Movie : MediaType.Series,
       watched,
       playStates,
+      lastPlayState: playStates?.[0],
       tmdbItem: {
         id: movieMetadata?.tmdbMovie.id ?? seriesMetadata?.tmdbSeries.id,
         poster_path:

@@ -6,11 +6,12 @@
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { continueWatchingMoviesDataStore } from '$lib/stores/data.store';
+	import { libraryRefresher, useRequest } from '$lib/stores/data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
-	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
+	import { reiverrApi, tmdbApi, tmdbApi4, user } from '$lib/stores/user.store';
 	import { onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import { TMDB_MOVIE_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
@@ -20,7 +21,17 @@
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const { ...continueWatching } = continueWatchingMoviesDataStore.subscribe();
+	const { unsubscribe, ...continueWatching } = useRequest(
+		() =>
+			reiverrApi.library
+				.getMyList(String(get(user)?.id), {
+					type: 'movies',
+					order: 'last-played',
+					status: 'continue-watching'
+				})
+				.then((r) => r.data),
+		{ refresher: libraryRefresher }
+	);
 
 	$: libraryContinueWatchingKey = $continueWatching && Symbol();
 
@@ -48,7 +59,7 @@
 	// 	});
 
 	onDestroy(() => {
-		continueWatching.unsubscribe();
+		unsubscribe();
 	});
 </script>
 
@@ -67,7 +78,12 @@
 				<span slot="header">Continue Watching</span>
 				{#key libraryContinueWatchingKey}
 					{#each $continueWatching?.items ?? [] as item (item.tmdbId)}
-						<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" item={item.tmdbItem} />
+						<TmdbCard
+							on:enter={scrollIntoView({ left: 128 })}
+							size="lg"
+							item={item.tmdbItem}
+							progress={item.playStates?.[0]?.progress ?? 0}
+						/>
 					{/each}
 				{/key}
 			</Carousel>
