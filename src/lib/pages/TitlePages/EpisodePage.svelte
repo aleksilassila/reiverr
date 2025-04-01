@@ -34,7 +34,7 @@
 	$tmdbEpisode.then((episode) => {
 		background?.setBackgrounds([
 			{
-				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${episode?.still_path}`
+				backdropUri: `${episode?.still_path}`
 			}
 		]);
 

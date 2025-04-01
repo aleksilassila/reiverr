@@ -51,9 +51,9 @@
 
 	{@debug $visibleBackgrounds}
 
-	{#each $visibleBackgrounds.backgrounds as { backdropUrl, visible }, index (backdropUrl)}
+	{#each $visibleBackgrounds.backgrounds as { backdropUri: backdropUrl, visible }, index (backdropUrl)}
 		{#key backdropUrl}
-			<BackgroundBackdrop {backdropUrl} {visible} hasFocus={$hasFocus} />
+			<BackgroundBackdrop backdropUri={backdropUrl} {visible} hasFocus={$hasFocus} />
 		{/key}
 	{/each}
 

@@ -41,7 +41,7 @@
 
 		background?.setBackgrounds(
 			items.map((i) => ({
-				backdropUrl: `${TMDB_IMAGES_ORIGINAL}${i.backdropUri}`,
+				backdropUri: `${i.backdropUri}`,
 				mediaId: String(i.id)
 			}))
 		);

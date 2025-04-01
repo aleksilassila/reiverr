@@ -16,12 +16,7 @@
 
 {#each $stack as page, index (page.id)}
 	{@const topmost = index === $stack.length - 1}
-	<StackRouterPage
-		hidden={!topmost}
-		hasSidebar={page.route.sidebar !== false}
-		let:handleGoBack
-		let:registrar
-	>
-		<svelte:component this={page.route.component} {...page.props} {handleGoBack} {registrar} />
+	<StackRouterPage hidden={!topmost} hasSidebar={page.route.sidebar !== false}>
+		<svelte:component this={page.route.component} {...page.props} />
 	</StackRouterPage>
 {/each}

@@ -6,7 +6,7 @@ import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
 export type Background = {
-	backdropUrl: string;
+	backdropUri: string;
 	mediaId?: string;
 };
 
@@ -125,12 +125,12 @@ function _createBackgroundPage(
 	backgroundPagesStack.update((pages) => [...pages, page]);
 
 	function setBackgrounds(unfilteredItems: Background[]) {
-		const items = unfilteredItems.filter((b) => b.backdropUrl);
+		const items = unfilteredItems.filter((b) => b.backdropUri);
 
 		const currentBackground = page.backgrounds[page.index];
 
 		const updatedIndex = items.findIndex(
-			(b) => b.mediaId && b.backdropUrl === currentBackground?.backdropUrl
+			(b) => b.mediaId && b.backdropUri === currentBackground?.backdropUri
 		);
 
 		page.backgrounds = items;

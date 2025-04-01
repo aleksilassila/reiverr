@@ -1,10 +1,10 @@
 <script lang="ts">
 	import classNames from 'classnames';
+	import type { Readable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import { focusSidebar } from '../Sidebar/sidebar';
 	import { createStackRouterPage } from './StackRouter';
-	import type { Readable } from 'svelte/store';
 
 	export let hasSidebar = true;
 	export let hidden = false;

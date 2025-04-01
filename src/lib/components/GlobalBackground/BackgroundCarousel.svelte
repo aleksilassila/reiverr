@@ -28,7 +28,7 @@
 	{#each backgrounds as background, index}
 		<BackgroundCard
 			focusedChild={focusIndex === index}
-			backdropUrl={background.backdropUrl}
+			backdropUri={background.backdropUri}
 			on:clickOrSelect={({ detail }) => {
 				dispatch('jumpTo', index);
 				const el = detail.getHtmlElement();

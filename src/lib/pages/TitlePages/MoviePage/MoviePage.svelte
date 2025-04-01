@@ -52,9 +52,10 @@
 			movie?.images?.backdrops
 				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
 				?.map((bd, i) => ({
-					backdropUrl: TMDB_IMAGES_ORIGINAL + bd.file_path || '',
+					backdropUri: `${bd.file_path}`,
 					mediaId: id
 				}))
+				.filter(bd => bd.backdropUri)
 				.slice(0, 5) || [];
 
 		background.setBackgrounds(backgrounds);
