@@ -33,6 +33,10 @@ export type TmdbSeries = Awaited<
   ReturnType<TmdbApi['v3']['tvSeriesDetails']>
 >['data']
 
+export type TmdbEpisode = Awaited<
+  ReturnType<TmdbApi['v3']['tvEpisodeDetails']>
+>['data'];
+
 export type TmdbMovieFull = TmdbMovie & {
   videos: MovieVideos; // Proxy or to not proxy
   credits: MovieCredits;
@@ -46,6 +50,8 @@ export type TmdbSeriesFull = TmdbSeries & {
   external_ids: SeriesExternalIds;
   images: SeriesImages;
 };
+
+export type TmdbEpisodeFull = TmdbEpisode;
 
 class NextEpisodeToAir {
   @ApiProperty({ required: false })

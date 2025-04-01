@@ -186,7 +186,7 @@ export class UsersService {
   }
 
   private async filterMediaSources(user: User): Promise<User> {
-    const providers = await this.sourceProvidersService.getProviders();
+    const providers = this.sourceProvidersService.getProviders();
 
     return {
       ...user,

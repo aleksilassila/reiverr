@@ -191,7 +191,7 @@ export class VideoStreamPropertyDto implements StreamProperty {
 
 export class StreamCandidateDto implements StreamCandidate {
   @ApiProperty()
-  key: string;
+  streamId: string;
 
   @ApiProperty()
   title: string;

@@ -1,9 +1,4 @@
-import {
-  EpisodeMetadata,
-  MovieMetadata,
-  SourceProvider,
-  SourceProviderError,
-} from '@aleksilassila/reiverr-plugin';
+import { SourceProviderError } from '@aleksilassila/reiverr-plugin';
 import {
   All,
   BadRequestException,
@@ -38,7 +33,6 @@ import {
 } from 'src/source-providers/source-provider.dto';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { User } from 'src/users/user.entity';
-import { MediaSource } from './media-source.entity';
 import { MediaSourcesService } from './media-sources.service';
 
 @Injectable()
@@ -55,9 +49,8 @@ export class ServiceOwnershipValidator implements CanActivate {
 
     if (!sourceId) return true;
 
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -79,40 +72,37 @@ export class MediaSourcesController {
     private metadataService: MetadataService,
   ) {}
 
-  @Get(':sourceId/movies/tmdb/:tmdbId/streams')
+  @Get(':sourceId/candidates/tmdb/:tmdbId')
   @ApiOkResponse({
     description: 'Movie sources',
     type: StreamCandidatesDto,
   })
-  async getMovieStreams(
+  async getTmdbMovieCandidates(
     @Param('sourceId') sourceId: string,
     @Param('tmdbId') tmdbId: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
   ): Promise<StreamCandidatesDto> {
-    const connection = await this.getConnection(sourceId);
-    const metadata = await this.getMovieMetadata(tmdbId);
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
+    const tmdbMovie = this.metadataService.getMovieByTmdbId(tmdbId);
 
-    const streams = await connection.provider.getMovieStreams?.(
-      tmdbId,
-      metadata,
-      {
-        userId: user.id,
-        settings: connection.mediaSource.pluginSettings,
-        token,
-        sourceId: connection.mediaSource.id,
-      },
-    );
+    const streams = await connection.provider.getTmdbMovieCandidates?.({
+      tmdbMovie: await tmdbMovie.then((m) => m.tmdbMovie),
+    });
 
     return streams ?? { candidates: [] };
   }
 
-  @Get(':sourceId/shows/tmdb/:tmdbId/season/:season/episode/:episode/streams')
+  @Get(':sourceId/candidates/tmdb/:tmdbId/season/:season/episode/:episode')
   @ApiOkResponse({
     description: 'Episode sources',
     type: StreamCandidatesDto,
   })
-  async getEpisodeStreams(
+  async getTmdbEpisodeCandidates(
     @Param('sourceId') sourceId: string,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
@@ -120,101 +110,49 @@ export class MediaSourcesController {
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
   ): Promise<StreamCandidatesDto> {
-    const connection = await this.getConnection(sourceId);
-    const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
-
-    const streams = await connection.provider.getEpisodeStreams?.(
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
+    const tmdbSeries = this.metadataService.getSeriesByTmdbId(tmdbId);
+    const tmdbEpisode = this.metadataService.getEpisodeByTmdbId({
       tmdbId,
-      metadata,
-      {
-        userId: user.id,
-        settings: connection.mediaSource.pluginSettings,
-        token,
-        sourceId: connection.mediaSource.id,
-      },
-    );
+      season,
+      episode,
+    });
+
+    const streams = await connection.provider.getTmdbEpisodeCandidates?.({
+      tmdbSeries: await tmdbSeries.then((s) => s.tmdbSeries),
+      tmdbEpisode: await tmdbEpisode.then((e) => e.tmdbEpisode),
+    });
 
     return streams ?? { candidates: [] };
   }
 
-  @Post(':sourceId/movies/tmdb/:tmdbId/streams/:key')
+  @Post(':sourceId/stream/:streamId')
   @ApiOkResponse({
     description: 'Movie stream',
     type: StreamDto,
   })
-  async getMovieStream(
-    @Param('tmdbId') tmdbId: string,
+  async getStream(
     @Param('sourceId') sourceId: string,
-    @Param('key') key: string,
+    @Param('streamId') streamId: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
   ): Promise<StreamDto> {
-    const connection = await this.getConnection(sourceId);
-    const metadata = await this.getMovieMetadata(tmdbId);
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
 
     const stream = await connection.provider
-      .getMovieStream?.(
-        tmdbId,
-        metadata,
-        key || '',
-        {
-          userId: user.id,
-          settings: connection.mediaSource.pluginSettings,
-          token,
-          sourceId: connection.mediaSource.id,
-        },
+      .getStream?.({
+        streamId,
         config,
-      )
-      .catch((e) => {
-        if (e === SourceProviderError.StreamNotFound) {
-          throw new NotFoundException('Stream not found');
-        } else {
-          console.error(e);
-          throw new InternalServerErrorException();
-        }
-      });
-
-    if (!stream) {
-      throw new NotFoundException('Stream not found');
-    }
-
-    return stream;
-  }
-
-  @Post(
-    ':sourceId/shows/tmdb/:tmdbId/season/:season/episode/:episode/streams/:key',
-  )
-  @ApiOkResponse({
-    description: 'Show stream',
-    type: StreamDto,
-  })
-  async getEpisodeStream(
-    @Param('sourceId') sourceId: string,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-    @Param('episode', ParseIntPipe) episode: number,
-    @Param('key') key: string,
-    @GetAuthUser() user: User,
-    @GetAuthToken() token: string,
-    @Body() config: PlaybackConfigDto,
-  ): Promise<StreamDto> {
-    const connection = await this.getConnection(sourceId);
-    const metadata = await this.getSeriesMetadata(tmdbId, season, episode);
-
-    const stream = await connection.provider
-      .getEpisodeStream?.(
-        tmdbId,
-        metadata,
-        key || '',
-        {
-          userId: user.id,
-          settings: connection.mediaSource.pluginSettings,
-          token,
-          sourceId: connection.mediaSource.id,
-        },
-        config,
-      )
+      })
       .catch((e) => {
         if (e === SourceProviderError.StreamNotFound) {
           throw new NotFoundException('Stream not found');
@@ -242,15 +180,19 @@ export class MediaSourcesController {
     @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
-    const provider = this.sourceProvidersService.getProvider(
-      mediaSource.pluginId,
-    );
+    const provider = this.sourceProvidersService
+      .getPlugin(mediaSource.pluginId)
+      .getMediaSourceProvider({
+        settings: mediaSource.pluginSettings,
+        sourceId,
+        token,
+        userId: user.id,
+      });
 
     if (!provider) {
       throw new NotFoundException('Plugin not found');
@@ -262,54 +204,18 @@ export class MediaSourcesController {
 
     const targetUrl = query.reiverr_proxy_url || undefined;
 
-    await provider.proxyHandler?.(req, res, {
-      context: {
-        userId: user.id,
-        token,
-        sourceId,
-        settings: mediaSource.pluginSettings,
-      },
+    await provider.proxyHandler?.({
+      req,
+      res,
       uri: `/${params[0]}?${req.url.split('?').slice(1).join('?') || ''}`,
       targetUrl,
     });
   }
 
-  async getMovieMetadata(tmdbId: string): Promise<MovieMetadata> {
-    const metadata = await this.metadataService.getMovieByTmdbId(tmdbId);
-
-    return {
-      title: metadata.tmdbMovie?.title,
-      ...(metadata.tmdbMovie.release_date && {
-        year: new Date(metadata.tmdbMovie.release_date).getFullYear(),
-      }),
-      tmdbId,
-    };
-  }
-
-  async getSeriesMetadata(
-    tmdbId: string,
-    season: number,
-    episode: number,
-  ): Promise<EpisodeMetadata> {
-    const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
-    const name = metadata.tmdbSeries?.name;
-
-    if (!name) throw new Error('Could not get metadata for series ' + tmdbId);
-
-    return {
-      series: name,
-      tmdbId,
-      season,
-      episode,
-      seasonEpisodes: metadata.tmdbSeries.seasons.find(
-        (s) => s.season_number === season,
-      )?.episode_count,
-      episodeRuntime: metadata.tmdbSeries.last_episode_to_air.runtime,
-    };
-  }
-
-  async getConnection(sourceId: string) {
-    const connection = await this.mediaSourcesService.getConnection(sourceId);
+  async getConnection(
+    ...args: Parameters<MediaSourcesService['getConnection']>
+  ) {
+    const connection = await this.mediaSourcesService.getConnection(...args);
 
     if (!connection) {
       throw new BadRequestException('Invalid source');

@@ -29,7 +29,7 @@
 	export let title: string;
 	export let subtitle = '';
 	export let source: MediaSourceDto;
-	export let key: string = '';
+	export let streamId: string;
 	export let progress: number = 0;
 
 	type MediaLanguageStore = {
@@ -45,11 +45,6 @@
 	let reportProgressInterval: ReturnType<typeof setInterval>;
 
 	let videoStreamP: Promise<StreamDto>;
-
-	// const movieP = tmdbApi.getTmdbMovie(Number(tmdbId)).then((r) => {
-	// 	title = r?.title || '';
-	// 	subtitle = '';
-	// });
 
 	async function reportProgress() {
 		const userId = get(user)?.id;
@@ -74,22 +69,14 @@
 	}
 
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
-		console.log('refreshVideoStream', season, episode);
-		videoStreamP = (
-			season !== undefined && episode !== undefined
-				? reiverrApi.sources.getEpisodeStream(source.id, tmdbId, season, episode, key, {
-						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-						progress,
-						audioStreamIndex,
-						deviceProfile: getDeviceProfile() as any
-				  })
-				: reiverrApi.sources.getMovieStream(tmdbId, source.id, key, {
-						// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-						progress,
-						audioStreamIndex,
-						deviceProfile: getDeviceProfile() as any
-				  })
-		).then((r) => r.data);
+		videoStreamP = reiverrApi.sources
+			.getStream(source.id, streamId, {
+				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+				progress,
+				audioStreamIndex,
+				deviceProfile: getDeviceProfile() as any
+			})
+			.then((r) => r.data);
 
 		const stream = await videoStreamP;
 
@@ -137,69 +124,19 @@
 			// 	language: s.Language || ''
 			// })) || [],
 			selectAudioTrack: (index: number) => refreshVideoStream(index),
-			// loadPlaybackInfo({
-			// 	...options,
-			// 	audioStreamIndex: index,
-			// 	playbackPosition: progressTime * 10_000_000
-			// }),
 			directPlay: stream.directPlay,
 			src: (get(sessions).activeSession?.baseUrl || '') + stream.src,
-			backdropUrl:
-				//  item?.BackdropImageTags?.length
-				// 	? `${$user?.settings.jellyfin.baseUrl}/Items/${item?.Id}/Images/Backdrop?quality=100&tag=${item?.BackdropImageTags?.[0]}`
-				// 	:
-				'',
+			// backdropUrl: '',
 			progress: stream.progress
-			// (options.playbackPosition || 0) / 10_000_000 ||
-			// (item?.UserData?.PlaybackPositionTicks || 0) / 10_000_000 ||
-			// undefined
 		};
 
-		// title = stream.title;
-		// subtitle = stream.subtitle;
-
-		// if (mediaSourceId) reportPlaybackStarted(id, sessionId, mediaSourceId);
-
 		if (reportProgressInterval) clearInterval(reportProgressInterval);
-		reportProgressInterval = setInterval(
-			() => reportProgress(),
-			// if (video?.readyState === 4 && progressTime > 0 && sessionId && id)
-			// reportProgress(id, sessionId, paused, progressTime);
-			10_000
-		);
+		reportProgressInterval = setInterval(() => reportProgress(), 10_000);
 	};
 
 	onMount(() => {
 		refreshVideoStream();
 	});
-	/*
-    title
-    subtitle
-    sections
-
-    sourceUri <- quality
-    playbackPosition
-    */
-
-	// $: {
-	// 	videoStreamP;
-	// 	console.log('videoStreamP', videoStreamP);
-	// }
-
-	// $: videoStreamP && asd();
-
-	// const asd = () =>
-	// 	videoStreamP.then((stream) => {
-	// 		// async function loadPlaybackInfo(
-	// 		// 		options: { audioStreamIndex?: number; bitrate?: number; playbackPosition?: number } = {}
-	// 		// 	) {
-	// 		// const item = await itemP;
-
-	// 		// reportProgressInterval = setInterval(() => {
-	// 		// 	if (video?.readyState === 4 && progressTime > 0 && sessionId && id)
-	// 		// 		reportProgress(id, sessionId, paused, progressTime);
-	// 		// }, 10_000);
-	// 	});
 
 	onDestroy(() => {
 		if (reportProgressInterval) clearInterval(reportProgressInterval);

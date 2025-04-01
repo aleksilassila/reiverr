@@ -1,4 +1,4 @@
-import { SourceProvider } from '@aleksilassila/reiverr-plugin';
+import { ReiverrPlugin } from '@aleksilassila/reiverr-plugin';
 import {
   Body,
   Controller,
@@ -32,7 +32,7 @@ export class GetSourceProviderPipe implements PipeTransform {
   constructor(private readonly sourcesService: SourceProvidersService) {}
 
   async transform(providerId: string) {
-    const provider = this.sourcesService.getProvider(providerId);
+    const provider = this.sourcesService.getPlugin(providerId);
 
     if (!provider) {
       throw new NotFoundException('Plugin not found');
@@ -55,9 +55,7 @@ export class SourceProvidersController {
     isArray: true,
   })
   async getSourceProviders() {
-    return this.sourceProvidersService
-      .getProviders()
-      .then((plugins) => Object.keys(plugins));
+    return Object.keys(this.sourceProvidersService.getProviders());
   }
 
   @Get(':providerId/settings/template')
@@ -69,7 +67,7 @@ export class SourceProvidersController {
     @Param('providerId') providerId: string,
     @GetAuthUser() callerUser: User,
   ): Promise<PluginSettingsTemplateDto> {
-    const provider = this.sourceProvidersService.getProvider(providerId);
+    const provider = this.sourceProvidersService.getPlugin(providerId);
 
     if (!provider) {
       throw new NotFoundException('Plugin not found');
@@ -77,7 +75,7 @@ export class SourceProvidersController {
 
     // return plugin.getSettingsTemplate(callerUser.pluginSettings?.[sourceId]);
     return {
-      settings: provider.settingsManager.getSettingsTemplate(),
+      settings: provider.getSettingsTemplate(),
     };
   }
 
@@ -91,13 +89,13 @@ export class SourceProvidersController {
     @Param('providerId') providerId: string,
     @Body() settings: PluginSettingsDto,
   ): Promise<ValidationResponseDto> {
-    const provider = this.sourceProvidersService.getProvider(providerId);
+    const provider = this.sourceProvidersService.getPlugin(providerId);
 
     if (!provider) {
       throw new NotFoundException('Plugin not found');
     }
 
-    return provider.settingsManager.validateSettings(settings.settings);
+    return provider.validateSettings({ settings: settings.settings });
   }
 
   /** @deprecated in favor of mediaSource capabilities */
@@ -107,7 +105,7 @@ export class SourceProvidersController {
   })
   async getSourceCapabilities(
     @GetAuthUser() user: User,
-    @Param('providerId', GetSourceProviderPipe) provider: SourceProvider,
+    @Param('providerId', GetSourceProviderPipe) provider: ReiverrPlugin,
     @GetAuthToken() token: string,
   ): Promise<SourceProviderCapabilitiesDto> {
     // const settings = this.mediaSourcesService.getMediaSourceSettings(
@@ -119,12 +117,22 @@ export class SourceProvidersController {
     //   throw new BadRequestException('Source configuration not found');
     // }
 
+    const mediaSourceProvider = provider.getMediaSourceProvider({
+      settings: {},
+      sourceId: '',
+      token: '',
+      userId: '',
+    });
+
     return {
-      movieIndexing: !!provider.catalogueProvider?.getMovieCatalogue,
-      episodeIndexing: !!provider.catalogueProvider?.getSeriesCatalogue,
-      moviePlayback: !!provider.getMovieStreams && !!provider.getMovieStream,
+      movieIndexing: !!mediaSourceProvider.getMovieCatalogue,
+      episodeIndexing: !!mediaSourceProvider.getSeriesCatalogue,
+      moviePlayback:
+        !!mediaSourceProvider.getTmdbMovieCandidates &&
+        !!mediaSourceProvider.getStream,
       episodePlayback:
-        !!provider.getEpisodeStreams && !!provider.getEpisodeStream,
+        !!mediaSourceProvider.getTmdbEpisodeCandidates &&
+        !!mediaSourceProvider.getStream,
     };
   }
 }

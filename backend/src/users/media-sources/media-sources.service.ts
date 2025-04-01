@@ -1,5 +1,5 @@
 import {
-  SourceProvider,
+  MediaSourceProvider,
   ValidationResponse,
 } from '@aleksilassila/reiverr-plugin';
 import { Inject, Injectable } from '@nestjs/common';
@@ -95,12 +95,12 @@ export class MediaSourcesService {
     let validationResponse: ValidationResponse | undefined;
     if (sourceDto.pluginSettings !== undefined) {
       let valid = false;
-      const provider = this.sourceProvidersService.getProvider(source.pluginId);
+      const provider = this.sourceProvidersService.getPlugin(source.pluginId);
 
       if (provider) {
-        validationResponse = await provider.settingsManager.validateSettings(
-          sourceDto.pluginSettings,
-        );
+        validationResponse = await provider.validateSettings({
+          settings: sourceDto.pluginSettings,
+        });
         valid = validationResponse.isValid;
         source.pluginSettings = validationResponse.settings;
       } else {
@@ -139,18 +139,29 @@ export class MediaSourcesService {
       ?.find((source) => source.id === sourceId)?.pluginSettings;
   }
 
-  async getConnection(sourceId: string): Promise<
+  async getConnection(options: {
+    sourceId: string;
+    token: string;
+    userId: string;
+  }): Promise<
     | {
-        provider: SourceProvider;
+        provider: MediaSourceProvider;
         mediaSource: MediaSource;
       }
     | undefined
   > {
+    const { sourceId, token, userId } = options;
+
     const mediaSource = await this.findMediaSource(sourceId);
 
-    const provider = this.sourceProvidersService.getProvider(
-      mediaSource.pluginId,
-    );
+    const provider = this.sourceProvidersService
+      .getPlugin(mediaSource.pluginId)
+      .getMediaSourceProvider({
+        settings: mediaSource.pluginSettings,
+        sourceId,
+        token,
+        userId,
+      });
 
     if (provider && mediaSource) {
       return { provider, mediaSource };
@@ -160,11 +171,16 @@ export class MediaSourcesService {
   }
 
   async getMediaSourceDto(mediaSource: MediaSource): Promise<MediaSourceDto> {
-    const sourceProvider = this.sourceProvidersService.getProvider(
+    const sourceProvider = this.sourceProvidersService.getPlugin(
       mediaSource.pluginId,
     );
 
-    const catalogueProvider = sourceProvider?.catalogueProvider;
+    const catalogueProvider = sourceProvider?.getMediaSourceProvider({
+      userId: '',
+      settings: {},
+      sourceId: '',
+      token: '',
+    });
 
     const moviesCatalogue = !!catalogueProvider?.getMovieCatalogue;
     const seriesCatalogue = !!catalogueProvider?.getSeriesCatalogue;

@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { XMLParser } from 'fast-xml-parser';
 import { StreamCandidate } from '@aleksilassila/reiverr-plugin';
 import { TorrentSettings } from '../types';
-import { formatSize, formatBitrate } from '../utils';
+import { formatSize, formatBitrate, EPISODE_SEPARATOR } from '../utils';
 
 export type JackettItem = {
   title: string;
@@ -132,10 +132,15 @@ export const getEpisodeTorrents = (
 
 export function getStreamCandidates(
   torrents: JackettItem[],
-  options: { runtime?: number; files?: number } = {},
+  options: {
+    runtime?: number;
+    files?: number;
+    season?: number;
+    episode?: number;
+  } = {},
 ): StreamCandidate[] {
   return torrents.map((torrent) => {
-    const { runtime = 0, files = 1 } = options;
+    const { runtime = 0, files = 1, season, episode } = options;
 
     const seeders = Number(getTorrentAttribute(torrent, 'seeders')) || 0;
     const peers = Number(getTorrentAttribute(torrent, 'peers')) || 0;
@@ -148,10 +153,11 @@ export function getStreamCandidates(
     const bitrate = runtime > 0 && files > 0 ? sizePerFile / runtime : 0;
 
     return {
-      key:
-        getTorrentAttribute(torrent, 'infohash') ||
-        torrent.title ||
-        torrent.guid,
+      streamId:
+        getTorrentAttribute(torrent, 'infohash') +
+        (season !== undefined && episode !== undefined
+          ? `${EPISODE_SEPARATOR}${season}${EPISODE_SEPARATOR}${episode}`
+          : ''),
       title: torrent.title || torrent.description,
       properties: [
         {

@@ -139,12 +139,10 @@
 		<div class="self-start">
 			<div class="text-secondary-300 font-medium">
 				{#if releaseDate > 0 && releaseDate > Date.now()}
-					{new Date(releaseDate).toLocaleTimeString('en-US', {
-						month: 'short',
-						day: 'numeric',
+					{new Date(releaseDate).toLocaleDateString('en-US', {
 						weekday: 'short',
-						hour: 'numeric',
-						minute: 'numeric'
+						month: 'short',
+						day: 'numeric'
 					})}
 				{:else if runtime > 0}
 					{runtime} Min

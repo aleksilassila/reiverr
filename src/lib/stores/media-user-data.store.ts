@@ -50,11 +50,11 @@ async function getStreams(
 ): Promise<StreamCandidateDto[]> {
 	return season !== undefined && episode !== undefined
 		? reiverrApi.sources
-				.getEpisodeStreams(source.id, tmdbId, season, episode)
+				.getTmdbEpisodeCandidates(source.id, tmdbId, season, episode)
 				.then((r) => r.data?.candidates ?? [])
 				.catch((e) => [])
 		: reiverrApi.sources
-				.getMovieStreams(source.id, tmdbId)
+				.getTmdbMovieCandidates(source.id, tmdbId)
 				.then((r) => r.data?.candidates ?? [])
 				.catch((e) => []);
 }
@@ -66,11 +66,11 @@ async function getAutoplayStream(options: { tmdbId: string; season?: number; epi
 
 	const firstSource = awaitedStreams.find((p) => p.streams.length > 0);
 	const source = firstSource?.source;
-	const key = firstSource?.streams[0]?.key;
+	const streamId = firstSource?.streams[0]?.streamId;
 
 	return {
 		source,
-		key
+		streamId
 	};
 }
 
@@ -292,9 +292,9 @@ export function useSeriesUserData(tmdbId: string) {
 
 			const { season, episode } = videoProps;
 
-			const { key, source } = await getAutoplayStream({ tmdbId, season, episode });
+			const { streamId, source } = await getAutoplayStream({ tmdbId, season, episode });
 
-			if (!key || !source) {
+			if (!streamId || !source) {
 				createErrorNotification('Autoplay failed', 'No stream found');
 				return;
 			}
@@ -304,7 +304,7 @@ export function useSeriesUserData(tmdbId: string) {
 				component: TmdbVideoPlayer,
 				props: {
 					...videoProps,
-					key,
+					streamId,
 					source
 				},
 				mediaId: tmdbId
@@ -327,7 +327,7 @@ export function useSeriesUserData(tmdbId: string) {
 						component: TmdbVideoPlayer,
 						props: {
 							...videoProps,
-							key: stream.key,
+							streamId: stream.streamId,
 							source
 						},
 						mediaId: tmdbId
@@ -388,9 +388,9 @@ export function useMovieUserData(tmdbId: string) {
 		tmdbMovie: { subscribe: tmdbMovie.promise.subscribe },
 		progress,
 		handleAutoplay: async () => {
-			const { key, source } = await getAutoplayStream({ tmdbId });
+			const { streamId, source } = await getAutoplayStream({ tmdbId });
 
-			if (!key || !source) {
+			if (!streamId || !source) {
 				createErrorNotification('Autoplay failed', 'No stream found');
 				return;
 			}
@@ -400,7 +400,7 @@ export function useMovieUserData(tmdbId: string) {
 				component: TmdbVideoPlayer,
 				props: {
 					...getVideoProps(),
-					key,
+					streamId,
 					source
 				},
 				mediaId: tmdbId
@@ -417,7 +417,7 @@ export function useMovieUserData(tmdbId: string) {
 						component: TmdbVideoPlayer,
 						props: {
 							...getVideoProps(),
-							key: stream.key,
+							streamId: stream.streamId,
 							source
 						},
 						mediaId: tmdbId
@@ -484,9 +484,9 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 		progress,
 		handleAutoplay: async () => {
 			// getAutoplayStream({ tmdbId, season, episode, progress: get(progress) });
-			const { key, source } = await getAutoplayStream({ tmdbId, season, episode });
+			const { streamId, source } = await getAutoplayStream({ tmdbId, season, episode });
 
-			if (!key || !source) {
+			if (!streamId || !source) {
 				createErrorNotification('Autoplay failed', 'No stream found');
 				return;
 			}
@@ -496,7 +496,7 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 				component: TmdbVideoPlayer,
 				props: {
 					...(await getVideoProps()),
-					key,
+					streamId,
 					source
 				},
 				mediaId: tmdbId
@@ -513,7 +513,7 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 						component: TmdbVideoPlayer,
 						props: {
 							...(await getVideoProps()),
-							key: stream.key,
+							streamId: stream.streamId,
 							source
 						},
 						mediaId: tmdbId

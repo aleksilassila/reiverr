@@ -1,48 +1,144 @@
+import * as packageJson from '../package.json';
 import {
-  EpisodeMetadata,
   CatalogueItem,
-  MovieMetadata,
+  OrderOption,
   PaginatedResponse,
   PaginationParams,
   PlaybackConfig,
+  SourceProviderSettings,
   SourceProviderSettingsTemplate,
-  UserContext,
-  ValidationResponse,
   Stream,
   StreamCandidate,
-  DirectionOption,
-  OrderOption,
+  UserContext,
+  ValidationResponse,
 } from './types';
-import * as packageJson from '../package.json';
 
 /**
- * PluginProvider is a class that provides a list of SourceProvider instances.
- * This is so that you can provide multiple SourceProviders in a single plugin.
+ * ReiverrPlugin is a class that a plugin should default export (or an array of ReiverrPlugins). It contains "static" methods that can be called without Reiverr user context.
  *
- * The plugin should default export a class that extends PluginProvider.
- *
- * @see SourceProvider
+ * @see MediaSourceProvider
  */
-export abstract class PluginProvider {
-  /**
-   * @returns {SourceProvider[]} A list of SourceProvider instances that the plugin provides.
-   */
-  abstract getPlugins(): SourceProvider[];
-}
+export abstract class ReiverrPlugin {
+  abstract name: string;
 
-export class SettingsManager {
+  /**
+   * This method is called for every user request, and it should return an object that can handle requests that depend on an user that has connected to the plugin / configured it as a source in their settings page.
+   */
+  abstract getMediaSourceProvider: (
+    userContext: UserContext,
+  ) => MediaSourceProvider;
+
+  /**
+   * @returns The settings that the plugin supports. @see SourceProviderSettingsTemplate
+   */
   getSettingsTemplate: () => SourceProviderSettingsTemplate = () => ({});
 
-  validateSettings: (
-    settings: Record<string, any>,
-  ) => Promise<ValidationResponse> = async () => ({
+  validateSettings: (options: {
+    settings: Record<string, any>;
+  }) => Promise<ValidationResponse> = async () => ({
     isValid: true,
     errors: {},
     settings: {},
   });
+
+  getPluginVersion(): string {
+    return packageJson.version;
+  }
+
+  _isCompatibleWith(version: string): boolean {
+    const pluginVersion = this.getPluginVersion();
+    const pluginVersionParts = pluginVersion.split('.');
+    const versionParts = version.split('.');
+
+    if (
+      !pluginVersionParts.length ||
+      pluginVersionParts.length !== versionParts.length
+    ) {
+      return false;
+    }
+
+    return (
+      pluginVersionParts[0] === versionParts[0] &&
+      Number(pluginVersionParts[1]) >= Number(versionParts[1])
+    );
+  }
 }
 
-export class CatalogueProvider {
+/**
+ * MediaSourceProvider is a class that handles all requests for Reiverr users that have configured the plugin as MediaSource. A new MediaSourceProvider is instantiated for each request / function call, and it contains data about the Reiverr user that called the function.
+ */
+export abstract class MediaSourceProvider {
+  /**
+   * An id unique to each Reiverr user
+   */
+  protected userId: string;
+
+  /**
+   * The access token of the user that can be used to authenticate requests to the backend
+   * (e.g. proxy requests)
+   */
+  protected token: string;
+  /**
+   * The id of the MediaSource instance that the user is using to access the SourceProvider
+   */
+  protected sourceId: string;
+
+  /**
+   * @see SourceProviderSettings
+   */
+  protected settings: SourceProviderSettings;
+
+  constructor(userContext: UserContext) {
+    this.userId = userContext.userId;
+    this.token = userContext.token;
+    this.sourceId = userContext.sourceId;
+    this.settings = userContext.settings;
+  }
+
+  /**
+   * Returns a list of stream candidates for a movie that the user can choose to stream from.
+   *
+   * @see StreamCandidate
+   */
+  abstract getTmdbMovieCandidates?: (options: {
+    tmdbMovie: any;
+  }) => Promise<{ candidates: StreamCandidate[] }>;
+
+  /**
+   * Returns a list of stream candidates for an episode that the user can choose to stream from.
+   *
+   * @see StreamCandidate
+   */
+  abstract getTmdbEpisodeCandidates?: (options: {
+    tmdbSeries: any;
+    tmdbEpisode: any;
+  }) => Promise<{ candidates: StreamCandidate[] }>;
+
+  /**
+   * Returns a specific stream for a movie that the user can stream from.
+   *
+   * @see Stream
+   */
+  abstract getStream?: (options: {
+    streamId: string;
+    config?: PlaybackConfig;
+  }) => Promise<Stream | undefined>;
+
+  /**
+   * This method will be called when the client makes a request to the provider's
+   * proxy endpoint (e.g. /api/proxy/:providerName/:path). This can be used to
+   * relay video streams and subtitles to the client, by making a request to an
+   * external service and then returning the response to the client. Ideally,
+   * the stream url pointed to by a `Stream` object should use the proxy endpoint
+   * so that the plugin can handle the video requests here.
+   */
+  abstract proxyHandler?: (options: {
+    req: any;
+    res: any;
+    uri: string;
+    targetUrl?: string;
+  }) => Promise<any>;
+
   getOrderOptions?: () => Promise<OrderOption[]> = () =>
     Promise.resolve([
       {
@@ -61,14 +157,10 @@ export class CatalogueProvider {
       },
     ]);
 
-  getSupportsSortDirection?: () => Promise<boolean> = () =>
-    Promise.resolve(false);
-
   /**
    * Returns an index of all items available in the source.
    */
-  getCatalogue?: (options: {
-    context: UserContext;
+  abstract getCatalogue?: (options: {
     pagination: PaginationParams;
     order?: string;
     direction?: string;
@@ -77,8 +169,7 @@ export class CatalogueProvider {
   /**
    * Returns an index of all movies available in the source.
    */
-  getMovieCatalogue?: (options: {
-    context: UserContext;
+  abstract getMovieCatalogue?: (options: {
     pagination: PaginationParams;
     order?: string;
     direction?: string;
@@ -87,8 +178,7 @@ export class CatalogueProvider {
   /**
    * Returns an index of all series available in the source.
    */
-  getSeriesCatalogue?: (options: {
-    context: UserContext;
+  abstract getSeriesCatalogue?: (options: {
     pagination: PaginationParams;
     order?: string;
     direction?: string;
@@ -97,123 +187,12 @@ export class CatalogueProvider {
   /**
    * Filters my list items to only include those that are not available in the source.
    */
-  getMissingInCatalogue?: <T extends object = object>(options: {
-    context: UserContext;
+  abstract getMissingInCatalogue?: <T extends object = object>(options: {
     pagination: PaginationParams;
     order?: string;
     direction?: string;
     myListItems: Record<string, T>;
   }) => Promise<PaginatedResponse<T>>;
-}
-
-/**
- * SourceProvider is a class that provides a set of methods to interact with a streaming source.
- *
- * Important distinction between SourceProvider and MediaSource:
- * An user doesn't directly add a SourceProvider to their account, but instead users can configure
- * `MediaSources`. MediaSource is essentially all the user-specific configuration that SourceProvider
- * needs to function. This way different users can have different configurations for the same
- * SourceProvider - for example, two users can use the same JellyfinPlugin (JellyfinSourceProvider)
- * to access two different Jellyfin servers, because they access the provider with their own
- * MediaSource instances.
- *
- * UserContext is used to pass the user-specific configuration to the SourceProvider methods.
- *
- * @see UserContext
- * @see PluginProvider
- */
-export abstract class SourceProvider {
-  abstract name: string;
-
-  settingsManager: SettingsManager = new SettingsManager();
-
-  catalogueProvider: CatalogueProvider | undefined;
-
-  /**
-   * Returns a list of stream candidates for a movie that the user can choose to stream from.
-   *
-   * @see StreamCandidate
-   */
-  getMovieStreams?: (
-    tmdbId: string,
-    metadata: MovieMetadata,
-    context: UserContext,
-    config?: PlaybackConfig,
-  ) => Promise<{ candidates: StreamCandidate[] }>;
-
-  /**
-   * Returns a list of stream candidates for an episode that the user can choose to stream from.
-   *
-   * @see StreamCandidate
-   */
-  getEpisodeStreams?: (
-    tmdbId: string,
-    metadata: EpisodeMetadata,
-    context: UserContext,
-    config?: PlaybackConfig,
-  ) => Promise<{ candidates: StreamCandidate[] }>;
-
-  /**
-   * Returns a specific stream for a movie that the user can stream from.
-   *
-   * @see Stream
-   */
-  getMovieStream?: (
-    tmdbId: string,
-    metadata: MovieMetadata,
-    key: string,
-    context: UserContext,
-    config?: PlaybackConfig,
-  ) => Promise<Stream | undefined>;
-
-  /**
-   * Returns a specific stream for an episode that the user can stream from.
-   *
-   * @see Stream
-   */
-  getEpisodeStream?: (
-    tmdbId: string,
-    metadata: EpisodeMetadata,
-    key: string,
-    context: UserContext,
-    config?: PlaybackConfig,
-  ) => Promise<Stream | undefined>;
-
-  /**
-   * This method will be called when the client makes a request to the provider's
-   * proxy endpoint (e.g. /api/proxy/:providerName/:path). This can be used to
-   * relay video streams and subtitles to the client, by making a request to an
-   * external service and then returning the response to the client. Ideally,
-   * the stream url pointed to by a `Stream` object should use the proxy endpoint
-   * so that the plugin can handle the video requests here.
-   */
-  proxyHandler?: (
-    req: any,
-    res: any,
-    options: { context: UserContext; uri: string; targetUrl?: string },
-  ) => Promise<any>;
-
-  _getPluginVersion(): string {
-    return getReiverrPluginVersion();
-  }
-
-  _isCompatibleWith(version: string): boolean {
-    const pluginVersion = getReiverrPluginVersion();
-    const pluginVersionParts = pluginVersion.split('.');
-    const versionParts = version.split('.');
-
-    if (
-      !pluginVersionParts.length ||
-      pluginVersionParts.length !== versionParts.length
-    ) {
-      return false;
-    }
-
-    return (
-      pluginVersionParts[0] === versionParts[0] &&
-      Number(pluginVersionParts[1]) >= Number(versionParts[1])
-    );
-  }
 }
 
 export function getReiverrPluginVersion(): string {

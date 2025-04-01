@@ -14,6 +14,7 @@ import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
 import { TMDB_API_KEY, TMDB_CACHE_TTL } from 'src/consts';
 import { User } from 'src/users/user.entity';
 import { MetadataService } from '../metadata.service';
+import axios, { AxiosError } from 'axios';
 
 @UseGuards(UserAccessControl)
 @Controller('tmdb')
@@ -63,17 +64,17 @@ export class TmdbController {
 
     this.logger.debug(`TMDB proxy cache miss: ${req.method} ${uri}`);
 
-    const proxyRes = await fetch(`https://api.themoviedb.org/${uri}`, {
+    const proxyRes = await axios(`https://api.themoviedb.org/${uri}`, {
       method: req.method || 'GET',
       headers: {
         Authorization: `Bearer ${TMDB_API_KEY}`,
       },
-    }).catch((e) => {
-      this.logger.error('TMDB Proxy error', e);
+    }).catch((e: AxiosError) => {
+      this.logger.error(`TMDB Proxy error: ${e.status}, ${e.message}`);
       throw e;
     });
 
-    const json = await proxyRes.json();
+    const json = await proxyRes.data;
     res.status(proxyRes.status);
     res.json(json);
     if (req.method === 'GET')

@@ -1,3 +1,5 @@
+export const EPISODE_SEPARATOR = ':EPISODE:';
+
 export function formatSize(size: number) {
   const gbs = size / 1024 / 1024 / 1024;
   const mbs = size / 1024 / 1024;

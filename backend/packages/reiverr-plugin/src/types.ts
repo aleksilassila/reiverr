@@ -113,7 +113,7 @@ export type StreamCandidate = {
   /**
    * Unique id for the stream, that can be used to later stream the specific stream.
    */
-  key: string;
+  streamId: string;
 
   /**
    * Title of the stream, presented to the user.

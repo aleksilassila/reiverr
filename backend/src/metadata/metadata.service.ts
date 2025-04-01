@@ -1,8 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { MovieMetadata, SeriesMetadata } from './metadata.entity';
+import {
+  EpisodeMetadata,
+  MovieMetadata,
+  SeriesMetadata,
+} from './metadata.entity';
 import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
 import { TmdbService } from './tmdb/tmdb.service';
+import { TmdbEpisodeFull } from './tmdb/tmdb.dto';
 
 @Injectable()
 export class MetadataService {
@@ -104,5 +109,20 @@ export class MetadataService {
     }
 
     return series;
+  }
+
+  /**
+   * TODO: Use episode entities?
+   */
+  async getEpisodeByTmdbId(options: {
+    tmdbId: string;
+    season: number;
+    episode: number;
+  }): Promise<EpisodeMetadata | undefined> {
+    const tmdbEpisode = await this.tmdbService.getFullEpisode(options);
+
+    return {
+      tmdbEpisode,
+    };
   }
 }

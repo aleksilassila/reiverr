@@ -23,7 +23,7 @@ import {
   SuccessResponseDto,
 } from 'src/common/common.dto';
 import {
-  CatalogueTypeFilter as CatalogueTypeFilter,
+  CatalogueTypeFilter,
   LibraryItemDto,
   MyListOrder,
   MyListStatusFilter,
@@ -68,7 +68,7 @@ export class LibraryController {
       direction,
     });
 
-    return response
+    return response;
   }
 
   @Get('catalogue/:sourceId')
@@ -91,6 +91,7 @@ export class LibraryController {
   ): Promise<PaginatedResponseDto<LibraryItemDto>> {
     const items = await this.libraryService.getCatalogueItems({
       sourceId,
+      userId,
       token,
       pagination,
       type,

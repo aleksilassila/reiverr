@@ -6,7 +6,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto';
+import {
+  TmdbEpisodeFull,
+  TmdbMovieFull,
+  TmdbSeriesFull,
+} from './tmdb/tmdb.dto';
 import { TMDB_CACHE_TTL } from 'src/consts';
 import { LibraryItem } from 'src/user-data/library/library.entity';
 
@@ -154,4 +158,12 @@ export class SeriesMetadata {
 
     return false;
   }
+}
+
+/**
+ * TODO
+ */
+export class EpisodeMetadata {
+  @ApiProperty({ required: false, type: 'string' })
+  tmdbEpisode: TmdbEpisodeFull;
 }

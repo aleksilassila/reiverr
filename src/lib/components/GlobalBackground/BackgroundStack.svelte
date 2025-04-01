@@ -82,13 +82,15 @@
 							on:click={({ detail: e }) => e.stopPropagation()}
 							on:back={() => visibleBackgrounds.destroyVideo()}
 						>
-							<svelte:component
-								this={video.component}
-								{...video.props}
-								paused={!$hasFocus && !$localSettings.autoplayTrailers}
-								muted={!$hasFocus}
-								load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
-							/>
+							{#if $visibleBackgrounds.video}
+								<svelte:component
+									this={video.component}
+									{...video.props}
+									paused={!$hasFocus && !$localSettings.autoplayTrailers}
+									muted={!$hasFocus}
+									load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
+								/>
+							{/if}
 						</Container>
 					</div>
 				{/key}

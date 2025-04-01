@@ -197,7 +197,7 @@ export interface VideoStreamPropertyDto {
 }
 
 export interface StreamCandidateDto {
-	key: string;
+	streamId: string;
 	title: string;
 	properties: VideoStreamPropertyDto[];
 }
@@ -439,7 +439,7 @@ export interface SubtitlesDto {
 }
 
 export interface StreamDto {
-	key: string;
+	streamId: string;
 	title: string;
 	properties: VideoStreamPropertyDto[];
 	src: string;
@@ -1062,12 +1062,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name GetMovieStreams
-		 * @request GET:/api/sources/{sourceId}/movies/tmdb/{tmdbId}/streams
+		 * @name GetTmdbMovieCandidates
+		 * @request GET:/api/sources/{sourceId}/candidates/tmdb/{tmdbId}
 		 */
-		getMovieStreams: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
+		getTmdbMovieCandidates: (sourceId: string, tmdbId: string, params: RequestParams = {}) =>
 			this.request<StreamCandidatesDto, any>({
-				path: `/api/sources/${sourceId}/movies/tmdb/${tmdbId}/streams`,
+				path: `/api/sources/${sourceId}/candidates/tmdb/${tmdbId}`,
 				method: 'GET',
 				format: 'json',
 				...params
@@ -1077,10 +1077,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name GetEpisodeStreams
-		 * @request GET:/api/sources/{sourceId}/shows/tmdb/{tmdbId}/season/{season}/episode/{episode}/streams
+		 * @name GetTmdbEpisodeCandidates
+		 * @request GET:/api/sources/{sourceId}/candidates/tmdb/{tmdbId}/season/{season}/episode/{episode}
 		 */
-		getEpisodeStreams: (
+		getTmdbEpisodeCandidates: (
 			sourceId: string,
 			tmdbId: string,
 			season: number,
@@ -1088,7 +1088,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 			params: RequestParams = {}
 		) =>
 			this.request<StreamCandidatesDto, any>({
-				path: `/api/sources/${sourceId}/shows/tmdb/${tmdbId}/season/${season}/episode/${episode}/streams`,
+				path: `/api/sources/${sourceId}/candidates/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
 				method: 'GET',
 				format: 'json',
 				...params
@@ -1098,43 +1098,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name GetMovieStream
-		 * @request POST:/api/sources/{sourceId}/movies/tmdb/{tmdbId}/streams/{key}
+		 * @name GetStream
+		 * @request POST:/api/sources/{sourceId}/stream/{streamId}
 		 */
-		getMovieStream: (
-			tmdbId: string,
+		getStream: (
 			sourceId: string,
-			key: string,
+			streamId: string,
 			data: PlaybackConfigDto,
 			params: RequestParams = {}
 		) =>
 			this.request<StreamDto, any>({
-				path: `/api/sources/${sourceId}/movies/tmdb/${tmdbId}/streams/${key}`,
-				method: 'POST',
-				body: data,
-				type: ContentType.Json,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags sources
-		 * @name GetEpisodeStream
-		 * @request POST:/api/sources/{sourceId}/shows/tmdb/{tmdbId}/season/{season}/episode/{episode}/streams/{key}
-		 */
-		getEpisodeStream: (
-			sourceId: string,
-			tmdbId: string,
-			season: number,
-			episode: number,
-			key: string,
-			data: PlaybackConfigDto,
-			params: RequestParams = {}
-		) =>
-			this.request<StreamDto, any>({
-				path: `/api/sources/${sourceId}/shows/tmdb/${tmdbId}/season/${season}/episode/${episode}/streams/${key}`,
+				path: `/api/sources/${sourceId}/stream/${streamId}`,
 				method: 'POST',
 				body: data,
 				type: ContentType.Json,

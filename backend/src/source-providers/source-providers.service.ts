@@ -1,16 +1,15 @@
+import {
+  getReiverrPluginVersion,
+  ReiverrPlugin,
+} from '@aleksilassila/reiverr-plugin';
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  PluginProvider,
-  SourceProvider,
-  getReiverrPluginVersion,
-} from '@aleksilassila/reiverr-plugin';
 
 @Injectable()
 export class SourceProvidersService {
   private logger = new Logger(SourceProvidersService.name);
-  private providers: Record<string, SourceProvider> = {};
+  private providers: Record<string, ReiverrPlugin> = {};
 
   constructor() {
     this.logger.log(
@@ -27,11 +26,11 @@ export class SourceProvidersService {
     );
   }
 
-  async getProviders(): Promise<Record<string, SourceProvider>> {
+  getProviders(): Record<string, ReiverrPlugin> {
     return this.providers;
   }
 
-  private loadPlugins(rootDirectory: string): Record<string, SourceProvider> {
+  private loadPlugins(rootDirectory: string): Record<string, ReiverrPlugin> {
     this.logger.log(`Loading plugins from ${rootDirectory}`);
     const pluginDirectories = fs.readdirSync(rootDirectory);
 
@@ -45,26 +44,28 @@ export class SourceProvidersService {
       }
     }
 
-    const plugins: Record<string, SourceProvider> = {};
+    const plugins: Record<string, ReiverrPlugin> = {};
 
     for (const pluginPath of pluginPaths) {
       try {
         const supportedPluginVersion = getReiverrPluginVersion();
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const pluginModule = require(pluginPath);
-        const provider: PluginProvider =
-          new pluginModule.default() as PluginProvider;
-        provider.getPlugins().forEach((plugin) => {
-          if (plugin._isCompatibleWith(supportedPluginVersion)) {
-            plugins[plugin.name] = plugin;
-          } else {
-            this.logger.warn(
-              `Plugin ${
-                plugin.name
-              }@${plugin._getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
-            );
-          }
-        });
+        const providers: ReiverrPlugin | ReiverrPlugin[] = pluginModule.default;
+
+        (Array.isArray(providers) ? providers : [providers]).forEach(
+          (plugin) => {
+            if (plugin._isCompatibleWith(supportedPluginVersion)) {
+              plugins[plugin.name] = plugin;
+            } else {
+              this.logger.warn(
+                `Plugin ${
+                  plugin.name
+                }@${plugin.getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
+              );
+            }
+          },
+        );
       } catch (e) {
         this.logger.error(`Failed to load plugin from ${pluginPath}: ${e}`);
       }
@@ -73,7 +74,7 @@ export class SourceProvidersService {
     return plugins;
   }
 
-  getProvider(pluginName: string): SourceProvider | undefined {
+  getPlugin(pluginName: string): ReiverrPlugin | undefined {
     return this.providers[pluginName];
   }
 }
