@@ -55,10 +55,16 @@
 					backdropUri: `${bd.file_path}`,
 					mediaId: id
 				}))
-				.filter(bd => bd.backdropUri)
-				.slice(0, 5) || [];
+				.filter((bd) => bd.backdropUri && bd.backdropUri !== movie?.backdrop_path)
+				.slice(0, 4) || [];
 
-		background.setBackgrounds(backgrounds);
+		background.setBackgrounds([
+			{
+				backdropUri: `${movie?.backdrop_path}`,
+				mediaId: id
+			},
+			...backgrounds
+		]);
 
 		trailerId = movie?.videos?.results?.find(
 			(video) => video.type === 'Trailer' && video.site === 'YouTube'
