@@ -8,6 +8,7 @@ import {
   SourceProviderSettings,
   SourceProviderSettingsTemplate,
   Stream,
+  StreamActionResponse,
   StreamCandidate,
   UserContext,
   ValidationResponse,
@@ -115,14 +116,15 @@ export abstract class MediaSourceProvider {
   }) => Promise<{ candidates: StreamCandidate[] }>;
 
   /**
-   * Returns a specific stream for a movie that the user can stream from.
+   * Handles stream actions (e.g. stream, download, delete) for a specific stream.
    *
    * @see Stream
    */
-  abstract getStream?: (options: {
+  abstract handleStreamAction?: (options: {
     streamId: string;
+    action: string;
     config?: PlaybackConfig;
-  }) => Promise<Stream | undefined>;
+  }) => Promise<StreamActionResponse>;
 
   /**
    * This method will be called when the client makes a request to the provider's

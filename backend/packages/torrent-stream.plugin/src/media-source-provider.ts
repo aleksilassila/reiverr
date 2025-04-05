@@ -5,6 +5,7 @@ import {
   PaginationParams,
   PlaybackConfig,
   Stream,
+  StreamActionResponse,
   StreamCandidate,
   Subtitles,
   UserContext,
@@ -108,12 +109,29 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
     return { candidates };
   };
 
-  getStream?:
-    | ((options: {
-        streamId: string;
-        config?: PlaybackConfig;
-      }) => Promise<Stream | undefined>)
-    | undefined = async ({ streamId, config }) => {
+  handleStreamAction?: (options: {
+    streamId: string;
+    action: string;
+    config?: PlaybackConfig;
+  }) => Promise<StreamActionResponse> = async (options) => {
+    if (options.action === 'stream') {
+      return this.getStream({
+        streamId: options.streamId,
+        config: options.config,
+      }).then((stream) => ({ stream }));
+    }
+
+    return {
+      error: {
+        message: 'Action not supported',
+      },
+    };
+  };
+
+  getStream: (options: {
+    streamId: string;
+    config?: PlaybackConfig;
+  }) => Promise<Stream | undefined> = async ({ streamId, config }) => {
     const settings = this.settings as TorrentSettings;
     const [link, season, episode] = streamId.split(EPISODE_SEPARATOR);
 

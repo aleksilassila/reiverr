@@ -8,6 +8,9 @@ import {
   SourceProviderSettingsLink,
   SourceProviderSettingsTemplate,
   Stream,
+  StreamAction,
+  StreamActionResponse,
+  StreamBase,
   StreamCandidate,
   StreamProperty,
   Subtitles,
@@ -189,7 +192,15 @@ export class VideoStreamPropertyDto implements StreamProperty {
   formatted: string | undefined;
 }
 
-export class StreamCandidateDto implements StreamCandidate {
+export class StreamActionDto implements StreamAction {
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty()
+  type: string;
+}
+
+export class StreamBaseDto implements StreamBase {
   @ApiProperty()
   streamId: string;
 
@@ -200,7 +211,15 @@ export class StreamCandidateDto implements StreamCandidate {
   properties: VideoStreamPropertyDto[];
 }
 
-export class StreamDto extends StreamCandidateDto implements Stream {
+export class StreamCandidateDto
+  extends StreamBaseDto
+  implements StreamCandidate
+{
+  @ApiProperty({ type: [StreamActionDto] })
+  actions: StreamAction[];
+}
+
+export class StreamDto extends StreamBaseDto implements Stream {
   @ApiProperty()
   src: string;
 
@@ -227,6 +246,19 @@ export class StreamDto extends StreamCandidateDto implements Stream {
 
   @ApiProperty({ type: [SubtitlesDto] })
   subtitles: SubtitlesDto[];
+}
+
+export class StreamActionResponseErrorDto {
+  @ApiProperty({ example: 'Stream not found' })
+  message: string;
+}
+
+export class StreamActionResponseDto implements StreamActionResponse {
+  @ApiProperty({ type: StreamDto, required: false })
+  stream?: Stream;
+
+  @ApiProperty({ type: StreamCandidateDto, required: false })
+  error?: StreamActionResponseErrorDto;
 }
 
 export class PlaybackConfigDto implements PlaybackConfig {

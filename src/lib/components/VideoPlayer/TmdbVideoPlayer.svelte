@@ -70,13 +70,13 @@
 
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
 		videoStreamP = reiverrApi.sources
-			.getStream(source.id, streamId, {
+			.getStreamAction(source.id, streamId, 'stream', {
 				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
 				progress,
 				audioStreamIndex,
 				deviceProfile: getDeviceProfile() as any
 			})
-			.then((r) => r.data);
+			.then((r) => r.data.stream as any);
 
 		const stream = await videoStreamP;
 

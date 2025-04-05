@@ -159,6 +159,12 @@ export function getStreamCandidates(
           ? `${EPISODE_SEPARATOR}${season}${EPISODE_SEPARATOR}${episode}`
           : ''),
       title: torrent.title || torrent.description,
+      actions: [
+        {
+          label: 'Stream',
+          type: 'stream',
+        },
+      ],
       properties: [
         {
           label: 'Seeders',

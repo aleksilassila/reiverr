@@ -9,6 +9,7 @@ import {
   SourceProviderError,
   SourceProviderSettings,
   Stream,
+  StreamActionResponse,
   StreamCandidate,
   Subtitles,
   UserContext,
@@ -88,6 +89,12 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
           mediaType: 'movie' as const,
           streamId: movie.Id,
           title: movie.Name,
+          actions: [
+            {
+              label: 'Stream',
+              type: 'stream',
+            },
+          ],
           properties: [
             {
               label: 'Video',
@@ -198,6 +205,12 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
           mediaType: 'episode' as const,
           streamId: episode.Id,
           title: episode.Name,
+          actions: [
+            {
+              label: 'Stream',
+              type: 'stream',
+            },
+          ],
           properties: [
             {
               label: 'Video',
@@ -227,6 +240,25 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
           ],
         },
       ],
+    };
+  };
+
+  handleStreamAction?: (options: {
+    streamId: string;
+    action: string;
+    config?: PlaybackConfig;
+  }) => Promise<StreamActionResponse> = async (options) => {
+    if (options.action === 'stream') {
+      return this.getStream({
+        streamId: options.streamId,
+        config: options.config,
+      }).then((stream) => ({ stream }));
+    }
+
+    return {
+      error: {
+        message: 'Action not supported',
+      },
     };
   };
 

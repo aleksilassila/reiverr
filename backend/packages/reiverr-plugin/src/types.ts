@@ -104,12 +104,26 @@ export type StreamProperty = {
   formatted: string | undefined;
 };
 
-/**
- * `StreamCandidate` represents a stream that can be played by the user,
- * and contains all the information that is presented to the user in the
- * stream selection UI.
- */
-export type StreamCandidate = {
+export type StreamAction = {
+  /**
+   * The label of the action
+   * @example "Play"
+   */
+  label: string;
+
+  /**
+   * The type of the action
+   * @example "play"
+   */
+  type: string;
+
+  // /**
+  //  * The parameters to be passed to the action
+  //  */
+  // params: Record<string, any>;
+};
+
+export type StreamBase = {
   /**
    * Unique id for the stream, that can be used to later stream the specific stream.
    */
@@ -126,7 +140,19 @@ export type StreamCandidate = {
   properties: StreamProperty[];
 };
 
-export type Stream = StreamCandidate & {
+/**
+ * `StreamCandidate` represents a stream that can be played by the user,
+ * and contains all the information that is presented to the user in the
+ * stream selection UI.
+ */
+export type StreamCandidate = StreamBase & {
+  /**
+   * A list of actions that the user can perform on the stream.
+   */
+  actions: StreamAction[];
+};
+
+export type Stream = StreamBase & {
   src: string;
   directPlay: boolean;
   progress: number;
@@ -136,6 +162,13 @@ export type Stream = StreamCandidate & {
   qualities: Quality[];
   qualityIndex: number;
   subtitles: Subtitles[];
+};
+
+export type StreamActionResponse = {
+  stream?: Stream;
+  error?: {
+    message: string;
+  };
 };
 
 export type PlaybackConfig = {

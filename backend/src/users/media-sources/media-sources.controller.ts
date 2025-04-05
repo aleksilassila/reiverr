@@ -28,6 +28,7 @@ import {
 import { MetadataService } from 'src/metadata/metadata.service';
 import {
   PlaybackConfigDto,
+  StreamActionResponseDto,
   StreamCandidatesDto,
   StreamDto,
 } from 'src/source-providers/source-provider.dto';
@@ -130,18 +131,19 @@ export class MediaSourcesController {
     return streams ?? { candidates: [] };
   }
 
-  @Post(':sourceId/stream/:streamId')
+  @Post(':sourceId/stream/:streamId/:action')
   @ApiOkResponse({
     description: 'Movie stream',
-    type: StreamDto,
+    type: StreamActionResponseDto,
   })
-  async getStream(
+  async getStreamAction(
     @Param('sourceId') sourceId: string,
     @Param('streamId') streamId: string,
+    @Param('action') action: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Body() config: PlaybackConfigDto,
-  ): Promise<StreamDto> {
+  ): Promise<StreamActionResponseDto> {
     const connection = await this.getConnection({
       sourceId,
       userId: user.id,
@@ -149,9 +151,10 @@ export class MediaSourcesController {
     });
 
     const stream = await connection.provider
-      .getStream?.({
+      .handleStreamAction?.({
         streamId,
         config,
+        action,
       })
       .catch((e) => {
         if (e === SourceProviderError.StreamNotFound) {

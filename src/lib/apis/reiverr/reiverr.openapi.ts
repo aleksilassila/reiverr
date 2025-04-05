@@ -196,10 +196,16 @@ export interface VideoStreamPropertyDto {
 	formatted?: string;
 }
 
+export interface StreamActionDto {
+	label: string;
+	type: string;
+}
+
 export interface StreamCandidateDto {
 	streamId: string;
 	title: string;
 	properties: VideoStreamPropertyDto[];
+	actions: StreamActionDto[];
 }
 
 export interface StreamCandidatesDto {
@@ -453,6 +459,11 @@ export interface StreamDto {
 	qualities: QualityDto[];
 	qualityIndex: number;
 	subtitles: SubtitlesDto[];
+}
+
+export interface StreamActionResponseDto {
+	stream?: StreamDto;
+	error?: StreamCandidateDto;
 }
 
 export interface UpdateOrCreateMediaSourceDto {
@@ -1098,17 +1109,18 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name GetStream
-		 * @request POST:/api/sources/{sourceId}/stream/{streamId}
+		 * @name GetStreamAction
+		 * @request POST:/api/sources/{sourceId}/stream/{streamId}/{action}
 		 */
-		getStream: (
+		getStreamAction: (
 			sourceId: string,
 			streamId: string,
+			action: string,
 			data: PlaybackConfigDto,
 			params: RequestParams = {}
 		) =>
-			this.request<StreamDto, any>({
-				path: `/api/sources/${sourceId}/stream/${streamId}`,
+			this.request<StreamActionResponseDto, any>({
+				path: `/api/sources/${sourceId}/stream/${streamId}/${action}`,
 				method: 'POST',
 				body: data,
 				type: ContentType.Json,
