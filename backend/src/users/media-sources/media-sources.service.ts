@@ -175,34 +175,21 @@ export class MediaSourcesService {
       mediaSource.pluginId,
     );
 
-    const catalogueProvider = sourceProvider?.getMediaSourceProvider({
-      userId: '',
-      settings: {},
-      sourceId: '',
-      token: '',
+    const catalogueProvider = sourceProvider?.getCatalogueProvider({
+      userId: mediaSource.userId,
+      settings: mediaSource.pluginSettings,
+      sourceId: mediaSource.id,
     });
 
-    const moviesCatalogue = !!catalogueProvider?.getMovieCatalogue;
-    const seriesCatalogue = !!catalogueProvider?.getSeriesCatalogue;
-    const combinedCatalogue = !!catalogueProvider?.getCatalogue;
-    const missingCatalogue = !!catalogueProvider?.getMissingInCatalogue;
-    const sortOptions = catalogueProvider?.getOrderOptions();
+    const catalogueCapabilities =
+      await catalogueProvider.getCatalogueCapabilities();
 
     return {
       ...mediaSource,
       enabled: mediaSource.enabled && !!sourceProvider,
-      capabilities: {
-        catalogues:
-          moviesCatalogue ||
-          seriesCatalogue ||
-          combinedCatalogue ||
-          missingCatalogue,
-        moviesCatalogue,
-        seriesCatalogue,
-        combinedCatalogue,
-        missingCatalogue,
-        sortOptions: (await sortOptions) ?? [],
-      },
+      // capabilities: {
+      catalogueCapabilities,
+      // },
     };
   }
 }

@@ -132,19 +132,22 @@ export interface CatalogueOrderDirectionOption {
 	value: string;
 }
 
-export interface CatalogueSortOptionDto {
+export interface OrderOptionDto {
 	label: string;
 	value: string;
 	directions: CatalogueOrderDirectionOption[];
 }
 
-export interface MediaSourceCapabilitiesDto {
-	catalogues: boolean;
-	moviesCatalogue: boolean;
-	seriesCatalogue: boolean;
-	combinedCatalogue: boolean;
-	missingCatalogue: boolean;
-	sortOptions: CatalogueSortOptionDto[];
+export interface CatalogueCapability {
+	isSupported: boolean;
+	orderOptions: OrderOptionDto[];
+}
+
+export interface CatalogueCapabilitiesDto {
+	combinedCatalogue: CatalogueCapability;
+	missingCatalogue: CatalogueCapability;
+	moviesCatalogue: CatalogueCapability;
+	seriesCatalogue: CatalogueCapability;
 }
 
 export interface MediaSourceDto {
@@ -158,7 +161,7 @@ export interface MediaSourceDto {
 	adminControlled?: boolean;
 	priority: number;
 	pluginSettings?: Record<string, any>;
-	capabilities: MediaSourceCapabilitiesDto;
+	catalogueCapabilities: CatalogueCapabilitiesDto;
 }
 
 export interface UserDto {

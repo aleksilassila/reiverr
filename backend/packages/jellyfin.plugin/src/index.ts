@@ -1,18 +1,31 @@
 import {
+  CatalogueProvider,
   MediaSourceProvider,
   ReiverrPlugin,
+  SourceProviderSettings,
   SourceProviderSettingsTemplate,
-  UserContext,
   ValidationResponse,
 } from '@aleksilassila/reiverr-plugin';
 import { JellyfinMediaSourceProvider } from './media-source-provider';
+import { JellyfinCatalogueProvider } from './catalogue-provider';
 
 class JellyfinPlugin extends ReiverrPlugin {
   name: string = 'jellyfin';
 
-  getMediaSourceProvider: (userContext: UserContext) => MediaSourceProvider = (
-    userContext,
-  ) => new JellyfinMediaSourceProvider(userContext);
+  getMediaSourceProvider: (
+    options: {
+      userId: string;
+      sourceId: string;
+      settings: SourceProviderSettings;
+    } & { token: string },
+  ) => MediaSourceProvider = (options) =>
+    new JellyfinMediaSourceProvider(options);
+
+  getCatalogueProvider: (options: {
+    userId: string;
+    sourceId: string;
+    settings: SourceProviderSettings;
+  }) => CatalogueProvider = (options) => new JellyfinCatalogueProvider(options);
 
   getSettingsTemplate: () => SourceProviderSettingsTemplate = () => ({
     baseUrl: {

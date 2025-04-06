@@ -151,7 +151,7 @@ export class MediaSourcesController {
     });
 
     const stream = await connection.provider
-      .handleStreamAction?.({
+      .handleAction?.({
         streamId,
         config,
         action,

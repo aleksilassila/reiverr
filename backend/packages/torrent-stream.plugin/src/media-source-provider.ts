@@ -109,7 +109,7 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
     return { candidates };
   };
 
-  handleStreamAction?: (options: {
+  handleAction?: (options: {
     streamId: string;
     action: string;
     config?: PlaybackConfig;

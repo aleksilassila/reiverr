@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSourceDto, OrderOptionDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
@@ -16,43 +16,41 @@
 	import { MixerHorizontal } from 'radix-icons-svelte';
 	import CatalogueOptions from './CatalogueOptions.svelte';
 	import TabItem from './TabItem.svelte';
+	import { writable } from 'svelte/store';
 
 	export let source: MediaSourceDto;
 
 	const { topVisible } = getScrollContext();
 	const { registrar } = getStackRouterPage();
 
-	const viewSettings = createLocalStorageStore<{
+	// const viewSettings = createLocalStorageStore<{
+	// 	order: string | undefined;
+	// 	direction: string | undefined;
+	// }>('catalogue-view-settings-' + source.id, {
+	// 	order: source.capabilities.sortOptions[0]?.value,
+	// 	direction: source.capabilities.sortOptions[0]?.directions[0]?.value
+	// });
+
+	$: filterOptions = getFilters(source);
+	$: filter = filterOptions[0];
+
+	const viewSettings = writable<{
 		order: string | undefined;
 		direction: string | undefined;
-	}>('catalogue-view-settings-' + source.id, {
-		order: source.capabilities.sortOptions[0]?.value,
-		direction: source.capabilities.sortOptions[0]?.directions[0]?.value
+	}>({
+		order: undefined,
+		direction: undefined
 	});
-
-	let filters: string[] = [];
-	let selectedFilter = '';
-
 	$: {
-		filters = [
-			...(source.capabilities.combinedCatalogue ? ['All'] : []),
-			...(source.capabilities.seriesCatalogue ? ['Series'] : []),
-			...(source.capabilities.moviesCatalogue ? ['Movies'] : []),
-			...(source.capabilities.missingCatalogue ? ['Missing'] : [])
-		];
-		selectedFilter = filters[0] ?? '';
+		$viewSettings = {
+			order: filter?.orderOptions[0]?.value,
+			direction: filter?.orderOptions[0]?.directions[0]?.value
+		};
 	}
 
 	const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
 		async (page) => {
-			const type = {
-				All: 'all' as const,
-				Movies: 'movies' as const,
-				Series: 'series' as const,
-				Missing: 'missing' as const
-			}[selectedFilter];
-
-			if (!type) {
+			if (!filter) {
 				return {
 					items: [],
 					total: 0,
@@ -63,7 +61,7 @@
 
 			return reiverrApi.library
 				.getCatalogue(source.userId, source.id, {
-					type,
+					type: filter.type,
 					order: $viewSettings.order,
 					direction: $viewSettings.direction,
 					page
@@ -74,8 +72,8 @@
 	);
 
 	$: {
+		filter;
 		$viewSettings;
-		selectedFilter;
 		load({ lazy: true });
 	}
 
@@ -94,6 +92,45 @@
 	// 			})
 	// 			.then((r) => r.data.items)
 	// 	: Promise.resolve([]);
+
+	function getFilters(source: MediaSourceDto) {
+		const filters: {
+			label: string;
+			type: 'all' | 'movies' | 'series' | 'missing';
+			orderOptions: OrderOptionDto[];
+		}[] = [];
+
+		if (source.catalogueCapabilities.combinedCatalogue.isSupported) {
+			filters.push({
+				label: 'All',
+				type: 'all',
+				orderOptions: source.catalogueCapabilities.combinedCatalogue.orderOptions
+			});
+		}
+		if (source.catalogueCapabilities.seriesCatalogue.isSupported) {
+			filters.push({
+				label: 'Series',
+				type: 'series',
+				orderOptions: source.catalogueCapabilities.seriesCatalogue.orderOptions
+			});
+		}
+		if (source.catalogueCapabilities.moviesCatalogue.isSupported) {
+			filters.push({
+				label: 'Movies',
+				type: 'movies',
+				orderOptions: source.catalogueCapabilities.moviesCatalogue.orderOptions
+			});
+		}
+		if (source.catalogueCapabilities.missingCatalogue.isSupported) {
+			filters.push({
+				label: 'Missing',
+				type: 'missing',
+				orderOptions: source.catalogueCapabilities.missingCatalogue.orderOptions
+			});
+		}
+
+		return filters;
+	}
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
@@ -104,17 +141,18 @@
 <Container class="min-h-full mx-32 space-y-8 pb-16 flex flex-col">
 	<Container direction="horizontal" class="flex space-x-4 items-center justify-between">
 		<div class="flex space-x-4">
-			{#each filters ?? [] as filter}
-				<TabItem selected={selectedFilter === filter} on:select={() => (selectedFilter = filter)}>
-					{filter}
+			{#each filterOptions ?? [] as f}
+				<TabItem selected={filter === f} on:select={() => (filter = f)}>
+					{f.label}
 				</TabItem>
 			{/each}
 		</div>
 		<Button
 			icon={MixerHorizontal}
 			on:clickOrSelect={() =>
+				filter &&
 				createModal(CatalogueOptions, {
-					source,
+					orderOptions: filter.orderOptions,
 					viewSettings
 				})}
 		>

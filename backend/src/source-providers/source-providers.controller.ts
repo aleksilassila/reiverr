@@ -129,10 +129,10 @@ export class SourceProvidersController {
       episodeIndexing: !!mediaSourceProvider.getSeriesCatalogue,
       moviePlayback:
         !!mediaSourceProvider.getTmdbMovieCandidates &&
-        !!mediaSourceProvider.handleStreamAction,
+        !!mediaSourceProvider.handleAction,
       episodePlayback:
         !!mediaSourceProvider.getTmdbEpisodeCandidates &&
-        !!mediaSourceProvider.handleStreamAction,
+        !!mediaSourceProvider.handleAction,
     };
   }
 }

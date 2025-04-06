@@ -1,20 +1,19 @@
 <script lang="ts">
-	import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaSourceDto, OrderOptionDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Dialog from '$lib/components/Dialog/Dialog.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import type { Writable } from 'svelte/store';
 
-	export let source: MediaSourceDto;
+	export let orderOptions: OrderOptionDto[];
 	export let viewSettings: Writable<{
 		order: string | undefined;
 		direction: string | undefined;
 	}>;
 
-	$: sortOptions = source.capabilities.sortOptions;
 	$: selectedSortOption = $viewSettings.order;
 	$: selectedSortDirection = $viewSettings.direction;
 
-	$: directionOptions = sortOptions.find((o) => o.value === selectedSortOption)?.directions ?? [];
+	$: directionOptions = orderOptions.find((o) => o.value === selectedSortOption)?.directions ?? [];
 
 	function handleSelectSort(order: string) {
 		viewSettings.update((settings) => ({ ...settings, order }));
@@ -30,10 +29,10 @@
 		<span>View Options</span>
 	</h1>
 
-	{#if sortOptions.length}
+	{#if orderOptions.length}
 		<SelectButtonGroup
 			name="Sort by"
-			options={sortOptions}
+			options={orderOptions}
 			selected={selectedSortOption}
 			on:select={({ detail: order }) => handleSelectSort(order)}
 		/>
@@ -48,7 +47,7 @@
 		/>
 	{/if}
 
-	{#if !directionOptions.length && !sortOptions.length}
+	{#if !directionOptions.length && !orderOptions.length}
 		<p class="body">This catalogue doesn't have any view options.</p>
 	{/if}
 

@@ -65,7 +65,7 @@ export class MediaSourceProvider extends WithMediaSource {
    *
    * @see Stream
    */
-  handleStreamAction: (options: {
+  handleAction: (options: {
     streamId: string;
     action: string;
     config?: PlaybackConfig;

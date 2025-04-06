@@ -2,7 +2,11 @@ import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { PickAndPartial } from 'src/common/common.dto';
 import { ValidationResponseDto } from 'src/source-providers/source-provider.dto';
 import { MediaSource } from './media-source.entity';
-import { DirectionOption, OrderOption } from '@aleksilassila/reiverr-plugin';
+import {
+  CatalogueCapabilities,
+  DirectionOption,
+  OrderOption,
+} from '@aleksilassila/reiverr-plugin';
 
 class CatalogueOrderDirectionOption implements DirectionOption {
   @ApiProperty()
@@ -12,7 +16,7 @@ class CatalogueOrderDirectionOption implements DirectionOption {
   value: string;
 }
 
-class CatalogueSortOptionDto implements OrderOption {
+class OrderOptionDto implements OrderOption {
   @ApiProperty()
   label: string;
 
@@ -23,30 +27,31 @@ class CatalogueSortOptionDto implements OrderOption {
   directions: CatalogueOrderDirectionOption[];
 }
 
+export class CatalogueCapability {
+  @ApiProperty()
+  isSupported: boolean;
+
+  @ApiProperty({ type: [OrderOptionDto] })
+  orderOptions: OrderOptionDto[];
+}
+
+export class CatalogueCapabilitiesDto implements CatalogueCapabilities {
+  @ApiProperty({ type: CatalogueCapability })
+  combinedCatalogue: CatalogueCapability;
+
+  @ApiProperty({ type: CatalogueCapability })
+  missingCatalogue: CatalogueCapability;
+
+  @ApiProperty({ type: CatalogueCapability })
+  moviesCatalogue: CatalogueCapability;
+
+  @ApiProperty({ type: CatalogueCapability })
+  seriesCatalogue: CatalogueCapability;
+}
+
 export class MediaSourceCapabilitiesDto {
-  @ApiProperty()
-  catalogues: boolean;
-
-  @ApiProperty()
-  moviesCatalogue: boolean;
-
-  @ApiProperty()
-  seriesCatalogue: boolean;
-
-  @ApiProperty()
-  combinedCatalogue: boolean;
-
-  @ApiProperty()
-  missingCatalogue: boolean;
-
-  @ApiProperty({ type: [CatalogueSortOptionDto] })
-  sortOptions: CatalogueSortOptionDto[];
-
-  // @ApiProperty()
-  // request: boolean;
-
-  // @ApiProperty()
-  // delete: boolean;
+  @ApiProperty({ type: CatalogueCapabilitiesDto })
+  catalogueCapabilities: CatalogueCapabilitiesDto;
 }
 
 export class MediaSourceDto extends PickAndPartial(
@@ -62,8 +67,11 @@ export class MediaSourceDto extends PickAndPartial(
   ],
   ['pluginSettings'],
 ) {
-  @ApiProperty()
-  capabilities: MediaSourceCapabilitiesDto;
+  // @ApiProperty()
+  // capabilities: MediaSourceCapabilitiesDto;
+
+  @ApiProperty({ type: CatalogueCapabilitiesDto })
+  catalogueCapabilities: CatalogueCapabilitiesDto;
 }
 
 export class UpdateOrCreateMediaSourceDto extends PickAndPartial(

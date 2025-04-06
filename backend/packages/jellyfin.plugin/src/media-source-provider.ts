@@ -1,4 +1,5 @@
 import {
+  ActionResponse,
   CatalogueItem,
   DirectionOption,
   MediaSourceProvider,
@@ -9,7 +10,6 @@ import {
   SourceProviderError,
   SourceProviderSettings,
   Stream,
-  StreamActionResponse,
   StreamCandidate,
   Subtitles,
   UserContext,
@@ -56,7 +56,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     });
   }
 
-  getTmdbMovieCandidates?: (options: {
+  getTmdbMovieCandidates: (options: {
     tmdbMovie: any;
   }) => Promise<{ candidates: StreamCandidate[] }> = async ({ tmdbMovie }) => {
     const movies = await this.api.items.getItems({
@@ -125,7 +125,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     };
   };
 
-  getTmdbEpisodeCandidates?: (options: {
+  getTmdbEpisodeCandidates: (options: {
     tmdbSeries: any;
     tmdbEpisode: any;
   }) => Promise<{ candidates: StreamCandidate[] }> = async ({
@@ -243,11 +243,11 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     };
   };
 
-  handleStreamAction?: (options: {
+  handleAction: (options: {
     streamId: string;
     action: string;
     config?: PlaybackConfig;
-  }) => Promise<StreamActionResponse> = async (options) => {
+  }) => Promise<ActionResponse> = async (options) => {
     if (options.action === 'stream') {
       return this.getStream({
         streamId: options.streamId,
@@ -419,7 +419,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     };
   };
 
-  proxyHandler?: (options: {
+  proxyHandler: (options: {
     req: any;
     res: any;
     uri: string;
@@ -455,156 +455,4 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     res.status(proxyRes.status);
     Readable.from(proxyRes.body).pipe(res);
   };
-
-  // Catalogue
-
-  getOrderOptions?: () => Promise<OrderOption[]> = async () => {
-    const directions: DirectionOption[] = [
-      {
-        label: 'Ascending',
-        value: 'asc',
-      },
-      {
-        label: 'Descending',
-        value: 'desc',
-      },
-    ];
-
-    return [
-      {
-        label: 'Title',
-        value: 'title',
-        directions,
-      },
-      {
-        label: 'Date Added',
-        value: 'date-added',
-        directions,
-      },
-      {
-        label: 'Date Created',
-        value: 'date-created',
-        directions,
-      },
-    ];
-  };
-
-  getCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>>;
-
-  getMovieCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>> = async (options) => {
-    const { pagination, order, direction } = options;
-
-    const sortBy: ItemSortBy[] = [];
-
-    if (order === 'title') {
-      sortBy.push(ItemSortBy.Name);
-    } else if (order === 'date-added') {
-      sortBy.push(ItemSortBy.DateLastContentAdded);
-    } else if (order === 'date-created') {
-      sortBy.push(ItemSortBy.DateCreated);
-    }
-    // const items = (
-    //   await getLibraryItems(new PluginContext(context.settings, context.token))
-    // ).filter((i) => i.ProviderIds?.Tmdb && i.Type === 'Movie');
-    const data = await this.api.items
-      .getItems({
-        userId: this.settings.userId,
-        hasTmdbId: true,
-        recursive: true,
-        includeItemTypes: [BaseItemKind.Movie],
-        fields: [
-          ItemFields.ProviderIds,
-          ItemFields.Genres,
-          ItemFields.DateLastMediaAdded,
-          ItemFields.DateCreated,
-          ItemFields.MediaSources,
-        ],
-        sortBy,
-        sortOrder: [
-          direction === 'asc' ? SortOrder.Ascending : SortOrder.Descending,
-        ],
-        startIndex: (pagination.page - 1) * pagination.itemsPerPage,
-        limit: pagination.itemsPerPage,
-      })
-      .then((res) => res.data);
-
-    return {
-      total: data.TotalRecordCount ?? data.Items?.length ?? 0,
-      page: pagination.page,
-      itemsPerPage: pagination.itemsPerPage,
-      items:
-        data?.Items?.map((item) => ({
-          id: item.ProviderIds?.Tmdb,
-          tmdbId: item.ProviderIds?.Tmdb,
-          mediaType: 'movie' as const,
-        })) ?? [],
-    };
-  };
-
-  getSeriesCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>> = async (options) => {
-    const { pagination, order, direction } = options;
-
-    const sortBy: ItemSortBy[] = [];
-
-    if (order === 'title') {
-      sortBy.push(ItemSortBy.Name);
-    } else if (order === 'date-added') {
-      sortBy.push(ItemSortBy.DateLastContentAdded);
-    } else if (order === 'date-created') {
-      sortBy.push(ItemSortBy.DateCreated);
-    }
-
-    const data = await this.api.items
-      .getItems({
-        userId: this.settings.userId,
-        hasTmdbId: true,
-        recursive: true,
-        includeItemTypes: [BaseItemKind.Series],
-        fields: [
-          ItemFields.ProviderIds,
-          ItemFields.Genres,
-          ItemFields.DateLastMediaAdded,
-          ItemFields.DateCreated,
-          ItemFields.MediaSources,
-        ],
-        sortBy,
-        sortOrder: [
-          direction === 'asc' ? SortOrder.Ascending : SortOrder.Descending,
-        ],
-        startIndex: (pagination.page - 1) * pagination.itemsPerPage,
-        limit: pagination.itemsPerPage,
-      })
-      .then((res) => res.data);
-
-    return {
-      total: data.TotalRecordCount ?? data.Items?.length ?? 0,
-      page: pagination.page,
-      itemsPerPage: pagination.itemsPerPage,
-      items:
-        data?.Items?.map((item) => ({
-          id: item.ProviderIds?.Tmdb,
-          tmdbId: item.ProviderIds?.Tmdb,
-          mediaType: 'series' as const,
-        })) ?? [],
-    };
-  };
-
-  getMissingInCatalogue?: <T extends object = object>(options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-    myListItems: Record<string, T>;
-  }) => Promise<PaginatedResponse<T>>;
 }

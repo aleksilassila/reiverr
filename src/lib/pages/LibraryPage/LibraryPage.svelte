@@ -13,7 +13,10 @@
 
 	const tab = useTabs(0);
 
-	const catalogues = $user?.mediaSources.filter((s) => s.capabilities.catalogues) ?? [];
+	const catalogues =
+		$user?.mediaSources.filter((s) =>
+			Object.values(s.catalogueCapabilities).some((c) => c.isSupported)
+		) ?? [];
 </script>
 
 <Container
