@@ -164,8 +164,13 @@ export type Stream = StreamBase & {
   subtitles: Subtitles[];
 };
 
-export type StreamActionResponse = {
+export type ActionResponse = {
   stream?: Stream;
+  toast?: {
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'error';
+  };
   error?: {
     message: string;
   };
@@ -225,3 +230,22 @@ export interface EpisodeMetadata extends Metadata {
   episodeRuntime?: number;
   seasonEpisodes?: number;
 }
+
+export type CatalogueCapabilities = {
+  moviesCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  seriesCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  combinedCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  missingCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+};

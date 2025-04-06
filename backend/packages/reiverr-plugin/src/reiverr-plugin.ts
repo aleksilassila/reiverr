@@ -1,15 +1,8 @@
 import * as packageJson from '../package.json';
+import { CatalogueProvider } from './catalogue-provider';
+import { MediaSourceProvider } from './meida-source-provider';
 import {
-  CatalogueItem,
-  OrderOption,
-  PaginatedResponse,
-  PaginationParams,
-  PlaybackConfig,
-  SourceProviderSettings,
   SourceProviderSettingsTemplate,
-  Stream,
-  StreamActionResponse,
-  StreamCandidate,
   UserContext,
   ValidationResponse,
 } from './types';
@@ -26,8 +19,12 @@ export abstract class ReiverrPlugin {
    * This method is called for every user request, and it should return an object that can handle requests that depend on an user that has connected to the plugin / configured it as a source in their settings page.
    */
   abstract getMediaSourceProvider: (
-    userContext: UserContext,
+    ...args: ConstructorParameters<typeof MediaSourceProvider>
   ) => MediaSourceProvider;
+
+  abstract getCatalogueProvider: (
+    ...args: ConstructorParameters<typeof CatalogueProvider>
+  ) => CatalogueProvider;
 
   /**
    * @returns The settings that the plugin supports. @see SourceProviderSettingsTemplate
@@ -63,138 +60,6 @@ export abstract class ReiverrPlugin {
       Number(pluginVersionParts[1]) >= Number(versionParts[1])
     );
   }
-}
-
-/**
- * MediaSourceProvider is a class that handles all requests for Reiverr users that have configured the plugin as MediaSource. A new MediaSourceProvider is instantiated for each request / function call, and it contains data about the Reiverr user that called the function.
- */
-export abstract class MediaSourceProvider {
-  /**
-   * An id unique to each Reiverr user
-   */
-  protected userId: string;
-
-  /**
-   * The access token of the user that can be used to authenticate requests to the backend
-   * (e.g. proxy requests)
-   */
-  protected token: string;
-  /**
-   * The id of the MediaSource instance that the user is using to access the SourceProvider
-   */
-  protected sourceId: string;
-
-  /**
-   * @see SourceProviderSettings
-   */
-  protected settings: SourceProviderSettings;
-
-  constructor(userContext: UserContext) {
-    this.userId = userContext.userId;
-    this.token = userContext.token;
-    this.sourceId = userContext.sourceId;
-    this.settings = userContext.settings;
-  }
-
-  /**
-   * Returns a list of stream candidates for a movie that the user can choose to stream from.
-   *
-   * @see StreamCandidate
-   */
-  abstract getTmdbMovieCandidates?: (options: {
-    tmdbMovie: any;
-  }) => Promise<{ candidates: StreamCandidate[] }>;
-
-  /**
-   * Returns a list of stream candidates for an episode that the user can choose to stream from.
-   *
-   * @see StreamCandidate
-   */
-  abstract getTmdbEpisodeCandidates?: (options: {
-    tmdbSeries: any;
-    tmdbEpisode: any;
-  }) => Promise<{ candidates: StreamCandidate[] }>;
-
-  /**
-   * Handles stream actions (e.g. stream, download, delete) for a specific stream.
-   *
-   * @see Stream
-   */
-  abstract handleStreamAction?: (options: {
-    streamId: string;
-    action: string;
-    config?: PlaybackConfig;
-  }) => Promise<StreamActionResponse>;
-
-  /**
-   * This method will be called when the client makes a request to the provider's
-   * proxy endpoint (e.g. /api/proxy/:providerName/:path). This can be used to
-   * relay video streams and subtitles to the client, by making a request to an
-   * external service and then returning the response to the client. Ideally,
-   * the stream url pointed to by a `Stream` object should use the proxy endpoint
-   * so that the plugin can handle the video requests here.
-   */
-  abstract proxyHandler?: (options: {
-    req: any;
-    res: any;
-    uri: string;
-    targetUrl?: string;
-  }) => Promise<any>;
-
-  getOrderOptions?: () => Promise<OrderOption[]> = () =>
-    Promise.resolve([
-      {
-        label: 'Title',
-        value: 'title',
-        directions: [
-          {
-            label: 'Ascending',
-            value: 'asc',
-          },
-          {
-            label: 'Descending',
-            value: 'desc',
-          },
-        ],
-      },
-    ]);
-
-  /**
-   * Returns an index of all items available in the source.
-   */
-  abstract getCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>>;
-
-  /**
-   * Returns an index of all movies available in the source.
-   */
-  abstract getMovieCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>>;
-
-  /**
-   * Returns an index of all series available in the source.
-   */
-  abstract getSeriesCatalogue?: (options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-  }) => Promise<PaginatedResponse<CatalogueItem>>;
-
-  /**
-   * Filters my list items to only include those that are not available in the source.
-   */
-  abstract getMissingInCatalogue?: <T extends object = object>(options: {
-    pagination: PaginationParams;
-    order?: string;
-    direction?: string;
-    myListItems: Record<string, T>;
-  }) => Promise<PaginatedResponse<T>>;
 }
 
 export function getReiverrPluginVersion(): string {
