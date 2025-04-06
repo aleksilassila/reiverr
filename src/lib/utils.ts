@@ -1,3 +1,4 @@
+import { getContext, hasContext, setContext } from 'svelte';
 import { get, type Readable, writable } from 'svelte/store';
 
 export function formatSecondsToTime(seconds: number) {
@@ -214,5 +215,66 @@ export function useTimeoutStore(duration: number, initialReset = false) {
 	return {
 		subscribe: store.subscribe,
 		reset
+	};
+}
+
+export const hook = <TArgs extends Array<unknown>, TReturn>(
+	fn: (...args: TArgs) => TReturn,
+	options: {
+		after?: (v: TReturn) => TReturn;
+		before?: (v: TArgs) => TArgs;
+	} = {}
+) => {
+	const hooks: Array<(arg: any) => any> = [];
+
+	const wrappedFn = (...args: TArgs) => {
+		const a = options.before ? options.before(args) : args;
+
+		const result = fn(...a);
+
+		if (options.after) {
+			return options.after(result);
+		}
+
+		return result;
+	};
+
+	return wrappedFn;
+};
+
+export function createStoreContext<
+	TStore extends object,
+	TArgs extends Array<unknown> = Array<unknown>,
+	TRequired extends boolean = boolean
+>(
+	key: string,
+	storeCreator: (...args: TArgs) => TStore,
+	options: {
+		required?: TRequired;
+	} = {}
+) {
+	function createContext(...args: TArgs) {
+		const store = storeCreator(...args);
+		setContext(key, store);
+		return store;
+	}
+
+	function _getContext(): TRequired extends true ? TStore : Partial<TStore>;
+	function _getContext(): Partial<TStore> | TStore {
+		if (!hasContext(key)) {
+			if (options.required === true) {
+				throw new Error(`Context ${key} not found`);
+			} else {
+				return {};
+			}
+		}
+
+		return getContext(key);
+	}
+
+	return {
+		createContext,
+		getContext: _getContext,
+		useStore: storeCreator
 	};
 }

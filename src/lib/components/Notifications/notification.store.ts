@@ -1,16 +1,17 @@
-import type { ComponentType } from 'svelte';
+import type { ComponentProps, ComponentType, SvelteComponentTyped } from 'svelte';
 import { writable } from 'svelte/store';
 import Notification from './Notification.svelte';
 
-type NotificationItem = {
+type NotificationItem<T extends SvelteComponentTyped = SvelteComponentTyped> = {
 	id: symbol;
-	component: ComponentType;
-	props: Record<string, any>;
+	component: ComponentType<T>;
+	props: ComponentProps<T>;
 };
 
 function useNotificationStack() {
 	const notifications = writable<NotificationItem[]>([]);
 
+	
 	function create(component: NotificationItem['component'], props: NotificationItem['props'] = {}) {
 		const id = Symbol();
 		const item = { id, component, props };

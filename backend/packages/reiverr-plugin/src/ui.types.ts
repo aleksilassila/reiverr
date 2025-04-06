@@ -5,32 +5,39 @@ type Icon = {
   size?: 'lg' | 'md' | 'sm';
 };
 
-type ViewBase = {
+export type ViewBase = {
   id: string;
-  type: string;
+  type: 'general' | 'list-with-details';
   label: string;
   priority?: number;
 };
 
 type GeneralElementBase = {
-  type: string;
+  type:
+    | 'heading'
+    | 'toggle'
+    | 'select'
+    | 'action'
+    | 'input'
+    | 'external-link'
+    | 'open-view';
 };
 
-export type HeadingElement = GeneralElementBase & {
+export interface HeadingElement extends GeneralElementBase {
   type: 'heading';
   label: string;
   description?: string;
-};
+}
 
-export type ToggleElement = GeneralElementBase & {
+export interface ToggleElement extends GeneralElementBase {
   type: 'toggle';
   label: string;
   description?: string;
   value: boolean;
   style: 'checkbox' | 'switch';
-};
+}
 
-export type SelectElement = GeneralElementBase & {
+export interface SelectElement extends GeneralElementBase {
   type: 'select';
   label: string;
   description?: string;
@@ -40,9 +47,9 @@ export type SelectElement = GeneralElementBase & {
     value: string;
   }[];
   style: 'dropdown' | 'radio';
-};
+}
 
-export type ActionElement = GeneralElementBase & {
+export interface ActionElement extends GeneralElementBase {
   type: 'action';
 
   /**
@@ -57,15 +64,35 @@ export type ActionElement = GeneralElementBase & {
    */
   action: string;
 
+  disabled?: boolean;
+
   icon?: Icon;
 
   // /**
   //  * The parameters to be passed to the action
   //  */
   // params: Record<string, any>;
-};
+}
 
-export type InputElement = GeneralElementBase & {
+export interface -StreamActionElement extends GeneralElementBase {
+  type: 'action';
+
+  /**
+   * The label of the action
+   * @example "Stream"
+   */
+  label: 'Stream';
+
+  /**
+   * The type of the action
+   * @example "stream"
+   */
+  action: 'stream';
+
+  disabled?: boolean;
+}
+
+export interface InputElement extends GeneralElementBase {
   type: 'input';
   label: string;
   description?: string;
@@ -77,34 +104,35 @@ export type InputElement = GeneralElementBase & {
   maxLength?: number;
   minLength?: number;
   disabled?: boolean;
-};
+}
 
-export type ExternalLinkElement = GeneralElementBase & {
+export interface ExternalLinkElement extends GeneralElementBase {
   type: 'external-link';
   label: string;
   description?: string;
   url: string;
-};
+}
 
-export type OpenViewElement = GeneralElementBase & {
+export interface OpenViewElement extends GeneralElementBase {
   type: 'open-view';
   label: string;
   description?: string;
   viewId: string;
-};
+}
 
-export type GeneralView = ViewBase & {
-  type: 'settings';
+export interface GeneralView extends ViewBase {
+  type: 'general';
   elements: (
     | HeadingElement
     | ToggleElement
     | SelectElement
+    | StreamActionElement
     | ActionElement
     | InputElement
     | ExternalLinkElement
     | OpenViewElement
   )[];
-};
+}
 
 export type SortableProperty = {
   /**
@@ -155,20 +183,16 @@ export type ListWithDetailsItem = {
   /**
    * A list of actions that the user can perform on the stream.
    */
-  actions: (ActionElement | OpenViewElement)[];
+  actions: (StreamActionElement | ActionElement | OpenViewElement)[];
 };
 
 export type ListWithDetailsView = ViewBase & {
   type: 'list-with-details';
   items: ListWithDetailsItem[];
-  order: OrderOption;
+  order?: OrderOption;
   orderOptions: OrderOption[];
 };
 
-export type MediaSourceViews = {
-  views: ViewBase[];
-};
+export type MediaSourceViews = ViewBase[];
 
-export type MediaSourceView = {
-  view?: GeneralView | ListWithDetailsView;
-};
+export type MediaSourceView = GeneralView | ListWithDetailsView;

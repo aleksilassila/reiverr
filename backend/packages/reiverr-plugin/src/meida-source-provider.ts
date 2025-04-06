@@ -1,6 +1,19 @@
-import { PlaybackConfig, ActionResponse, StreamCandidate } from './types';
+import {
+  PlaybackConfig,
+  ActionResponse,
+  StreamCandidate,
+  Stream,
+  StreamBase,
+  StreamResponse,
+} from './types';
 import { MediaSourceView, MediaSourceViews } from './ui.types';
 import { WithMediaSource } from './with-media-source';
+
+type PlayableContext = {
+  tmdbMovie?: any;
+  tmdbSeries?: any;
+  tmdbEpisode?: any;
+};
 
 /**
  * MediaSourceProvider is a class that handles all requests for Reiverr users that have configured the plugin as MediaSource. A new MediaSourceProvider is instantiated for each request / function call, and it contains data about the Reiverr user that called the function.
@@ -22,22 +35,48 @@ export class MediaSourceProvider extends WithMediaSource {
     this.token = options.token;
   }
 
-  getMeidaSourceViews: (options: {
-    tmdbMovie?: any;
-    tmdbSeries?: any;
-    tmdbEpisode?: any;
-  }) => Promise<MediaSourceViews> = async () => ({
+  getMeidaSourceViews: (
+    options: PlayableContext,
+  ) => Promise<{ views: MediaSourceViews }> = async () => ({
     views: [],
   });
 
-  getMediaSourceView: (options: {
-    id: string;
-    tmdbMovie?: any;
-    tmdbSeries?: any;
-    tmdbEpisode?: any;
-  }) => Promise<MediaSourceView> = async () => ({});
+  getMediaSourceView: (
+    options: PlayableContext & {
+      id: string;
+    },
+  ) => Promise<{ view?: MediaSourceView }> = async () => ({});
+
+  getAutoplayStream: (
+    options: PlayableContext,
+  ) => Promise<{ candidate?: StreamBase }> = async () => ({});
+
+  getStream: (options: {
+    streamId: string;
+    config?: PlaybackConfig;
+  }) => Promise<StreamResponse> = async () => ({});
 
   /**
+   * Handles stream actions (e.g. stream, download, delete) for a specific stream.
+   *
+   * @see Stream
+   */
+  handleAction: (options: {
+    targetId: string;
+    action: string;
+  }) => Promise<ActionResponse> = async () => ({
+    toast: {
+      title: 'Not supported',
+      message: 'This action is not supported by this provider.',
+      type: 'error',
+    },
+    error: {
+      message: 'Not supported',
+    },
+  });
+
+  /**
+   * @deprecated
    * Returns a list of stream candidates for a movie that the user can choose to stream from.
    *
    * @see StreamCandidate
@@ -49,6 +88,7 @@ export class MediaSourceProvider extends WithMediaSource {
   });
 
   /**
+   * @deprecated
    * Returns a list of stream candidates for an episode that the user can choose to stream from.
    *
    * @see StreamCandidate
@@ -58,26 +98,6 @@ export class MediaSourceProvider extends WithMediaSource {
     tmdbEpisode: any;
   }) => Promise<{ candidates: StreamCandidate[] }> = async () => ({
     candidates: [],
-  });
-
-  /**
-   * Handles stream actions (e.g. stream, download, delete) for a specific stream.
-   *
-   * @see Stream
-   */
-  handleAction: (options: {
-    streamId: string;
-    action: string;
-    config?: PlaybackConfig;
-  }) => Promise<ActionResponse> = async () => ({
-    toast: {
-      title: 'Not supported',
-      message: 'This action is not supported by this provider.',
-      type: 'error',
-    },
-    error: {
-      message: 'Not supported',
-    },
   });
 
   /**

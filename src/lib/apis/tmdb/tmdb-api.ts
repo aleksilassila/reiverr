@@ -434,6 +434,7 @@ export interface TmdbSeriesFull extends TmdbSeries {
 	images: TvSeriesImagesData;
 }
 
+/** @deprecated */
 export class TmdbApi implements Api<paths> {
 	static getClient() {
 		const session = get(sessions).activeSession;
@@ -856,8 +857,10 @@ export class TmdbApi implements Api<paths> {
 	};
 }
 
+/** @deprecated */
 export const tmdbApi = new TmdbApi();
 
+/** @deprecated */
 export const TmdbApiOpen = createClient<paths>({
 	baseUrl: 'https://api.themoviedb.org',
 	headers: {
@@ -865,6 +868,7 @@ export const TmdbApiOpen = createClient<paths>({
 	}
 });
 
+/** @deprecated */
 export const getTmdbMovie = async (tmdbId: number) =>
 	await TmdbApiOpen.GET('/3/movie/{movie_id}', {
 		params: {
@@ -878,6 +882,7 @@ export const getTmdbMovie = async (tmdbId: number) =>
 		}
 	}).then((res) => res.data as TmdbMovieFull | undefined);
 
+/** @deprecated */
 export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull | undefined> =>
 	await TmdbApiOpen.GET('/3/tv/{series_id}', {
 		params: {
@@ -894,6 +899,7 @@ export const getTmdbSeries = async (tmdbId: number): Promise<TmdbSeriesFull | un
 		}
 	}).then((res) => res.data as TmdbSeriesFull | undefined);
 
+/** @deprecated */
 export const getTmdbSeriesSeason = async (
 	tmdbId: number,
 	season: number

@@ -1,0 +1,36 @@
+<script lang="ts">
+	import Container from '$lib/components/Container.svelte';
+	import { capitalize } from '$lib/utils';
+	import classNames from 'classnames';
+	import { ChevronRight } from 'radix-icons-svelte';
+	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
+
+	type ViewItem = {
+		label: string;
+		handleClick: () => void;
+	};
+
+	export let items: Promise<ViewItem[]>;
+</script>
+
+<ActionsMenuContainer>
+	{#await items}
+		Loading...
+	{:then items}
+		{#each items as item}
+			<Container on:clickOrSelect={item.handleClick} let:hasFocus class="cursor-pointer">
+				<span
+					class={classNames('text-3xl font-semibold flex items-center', {
+						'text-secondary-400': !hasFocus,
+						'text-primary-100': hasFocus
+					})}
+				>
+					{capitalize(item.label)}
+					{#if hasFocus}
+						<ChevronRight class="w-8 h-8 ml-4" />
+					{/if}
+				</span>
+			</Container>
+		{/each}
+	{/await}
+</ActionsMenuContainer>

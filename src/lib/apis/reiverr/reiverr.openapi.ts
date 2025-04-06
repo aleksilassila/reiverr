@@ -193,6 +193,146 @@ export interface UpdateUserDto {
 	oldPassword?: string;
 }
 
+export interface ViewBaseDto {
+	id: string;
+	type: 'general' | 'list-with-details';
+	label: string;
+	priority?: number;
+}
+
+export interface ViewProviderDto {
+	view: ViewBaseDto;
+	sourceId: string;
+}
+
+export interface ViewGroupDto {
+	label: string;
+	viewProviders: ViewProviderDto[];
+}
+
+export interface ViewProvidersResponseDto {
+	viewGroups: ViewGroupDto[];
+}
+
+export interface HeadingElementDto {
+	type: 'heading';
+	label: string;
+	description?: string;
+}
+
+export interface ToggleElementDto {
+	type: 'toggle';
+	label: string;
+	description?: string;
+	value: boolean;
+	style: 'checkbox' | 'switch';
+}
+
+export interface SelectOptionDto {
+	label: string;
+	value: string;
+}
+
+export interface SelectElementDto {
+	type: 'select';
+	label: string;
+	description?: string;
+	value: string;
+	options: SelectOptionDto[];
+	style: 'dropdown' | 'radio';
+}
+
+export interface StreamActionElementDto {
+	type: 'action';
+	label: 'Stream';
+	action: 'stream';
+	disabled?: boolean;
+}
+
+export interface IconDto {
+	type: 'play' | 'download' | 'delete' | 'info' | 'external-link';
+	size?: 'lg' | 'md' | 'sm';
+}
+
+export interface ActionElementDto {
+	type: 'action';
+	label: string;
+	action: string;
+	disabled?: boolean;
+	icon?: IconDto;
+}
+
+export interface InputElementDto {
+	type: 'input';
+	label: string;
+	description?: string;
+	value?: string;
+	placeholder?: string;
+	style: 'number' | 'text' | 'email' | 'password';
+	min?: number;
+	max?: number;
+	maxLength?: number;
+	minLength?: number;
+	disabled?: boolean;
+}
+
+export interface ExternalLinkElementDto {
+	type: 'external-link';
+	label: string;
+	url: string;
+	icon?: IconDto;
+}
+
+export interface OpenViewElementDto {
+	type: 'open-view';
+	label: string;
+	viewId: string;
+	icon?: IconDto;
+}
+
+export interface GeneralViewDto {
+	type: 'general';
+	elements: (
+		| HeadingElementDto
+		| ToggleElementDto
+		| SelectElementDto
+		| StreamActionElementDto
+		| ActionElementDto
+		| InputElementDto
+		| ExternalLinkElementDto
+		| OpenViewElementDto
+	)[];
+}
+
+export interface SortablePropertyDto {
+	label: string;
+	value: string | number;
+	formatted: string;
+	secondary?: boolean;
+}
+
+export interface ListWithDetailsItemDto {
+	id: string;
+	label: string;
+	description: string;
+	properties: SortablePropertyDto[];
+	actions: (StreamActionElementDto | ActionElementDto | OpenViewElementDto)[];
+}
+
+export interface ListWithDetailsViewDto {
+	id: string;
+	type: 'list-with-details';
+	label: string;
+	priority?: number;
+	items: ListWithDetailsItemDto[];
+	order?: OrderOptionDto;
+	orderOptions: OrderOptionDto[];
+}
+
+export interface MediaSourceViewResponseDto {
+	view: GeneralViewDto | ListWithDetailsViewDto;
+}
+
 export interface VideoStreamPropertyDto {
 	label: string;
 	value: string | number;
@@ -213,6 +353,16 @@ export interface StreamCandidateDto {
 
 export interface StreamCandidatesDto {
 	candidates: StreamCandidateDto[];
+}
+
+export interface StreamBaseDto {
+	streamId: string;
+	title: string;
+	properties: VideoStreamPropertyDto[];
+}
+
+export interface AutoplayResponseDto {
+	candidate?: StreamBaseDto;
 }
 
 export interface DirectPlayProfileDto {
@@ -423,6 +573,21 @@ export interface PlaybackConfigDto {
 	defaultLanguage?: string;
 }
 
+export interface MediaSourceActionBodyDto {
+	playbackConfig?: PlaybackConfigDto;
+}
+
+export interface ActionResponseErrorDto {
+	/** @example "Stream not found" */
+	message: string;
+}
+
+export interface ToastDto {
+	title: string;
+	message: string;
+	type: 'info' | 'success' | 'error';
+}
+
 export interface AudioStreamDto {
 	index: number;
 	label: string;
@@ -465,8 +630,20 @@ export interface StreamDto {
 }
 
 export interface StreamActionResponseDto {
+	error?: ActionResponseErrorDto;
+	toast?: ToastDto;
 	stream?: StreamDto;
-	error?: StreamCandidateDto;
+}
+
+export interface ActionResponseResultDto {
+	success: boolean;
+	message?: string;
+}
+
+export interface ActionResponseDto {
+	error?: ActionResponseErrorDto;
+	toast?: ToastDto;
+	result?: ActionResponseResultDto;
 }
 
 export interface UpdateOrCreateMediaSourceDto {
@@ -511,13 +688,6 @@ export interface PluginSettingsTemplateDto {
 export interface PluginSettingsDto {
 	/** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
 	settings: Record<string, any>;
-}
-
-export interface SourceProviderCapabilitiesDto {
-	moviePlayback: boolean;
-	episodePlayback: boolean;
-	movieIndexing: boolean;
-	episodeIndexing: boolean;
 }
 
 export interface MovieUserDataDto {
@@ -1076,6 +1246,54 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
+		 * @name GetMediaSourceViewGroups
+		 * @request GET:/api/sources/views
+		 */
+		getMediaSourceViewGroups: (
+			query: {
+				tmdbId: string;
+				season?: number;
+				episode?: number;
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<ViewProvidersResponseDto, any>({
+				path: `/api/sources/views`,
+				method: 'GET',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetView
+		 * @request GET:/api/sources/{sourceId}/views/{viewId}
+		 */
+		getView: (
+			sourceId: string,
+			viewId: string,
+			query: {
+				tmdbId: string;
+				season?: number;
+				episode?: number;
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<MediaSourceViewResponseDto, any>({
+				path: `/api/sources/${sourceId}/views/${viewId}`,
+				method: 'GET',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
 		 * @name GetTmdbMovieCandidates
 		 * @request GET:/api/sources/{sourceId}/candidates/tmdb/{tmdbId}
 		 */
@@ -1112,21 +1330,64 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 		 * No description
 		 *
 		 * @tags sources
-		 * @name GetStreamAction
-		 * @request POST:/api/sources/{sourceId}/stream/{streamId}/{action}
+		 * @name GetAutoplayStream
+		 * @request POST:/api/sources/{sourceId}/autoplay-stream
 		 */
-		getStreamAction: (
+		getAutoplayStream: (
+			sourceId: string,
+			query: {
+				tmdbId: string;
+				season?: number;
+				episode?: number;
+			},
+			params: RequestParams = {}
+		) =>
+			this.request<AutoplayResponseDto, any>({
+				path: `/api/sources/${sourceId}/autoplay-stream`,
+				method: 'POST',
+				query: query,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name GetStream
+		 * @request POST:/api/sources/{sourceId}/stream/{streamId}
+		 */
+		getStream: (
 			sourceId: string,
 			streamId: string,
-			action: string,
-			data: PlaybackConfigDto,
+			data?: MediaSourceActionBodyDto,
 			params: RequestParams = {}
 		) =>
 			this.request<StreamActionResponseDto, any>({
-				path: `/api/sources/${sourceId}/stream/${streamId}/${action}`,
+				path: `/api/sources/${sourceId}/stream/${streamId}`,
 				method: 'POST',
 				body: data,
 				type: ContentType.Json,
+				format: 'json',
+				...params
+			}),
+
+		/**
+		 * No description
+		 *
+		 * @tags sources
+		 * @name HandleViewAction
+		 * @request POST:/api/sources/{sourceId}/action/{action}/{targetId}
+		 */
+		handleViewAction: (
+			sourceId: string,
+			targetId: string,
+			action: string,
+			params: RequestParams = {}
+		) =>
+			this.request<ActionResponseDto, any>({
+				path: `/api/sources/${sourceId}/action/${action}/${targetId}`,
+				method: 'POST',
 				format: 'json',
 				...params
 			}),
@@ -1578,21 +1839,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
 				method: 'POST',
 				body: data,
 				type: ContentType.Json,
-				format: 'json',
-				...params
-			}),
-
-		/**
-		 * No description
-		 *
-		 * @tags providers
-		 * @name GetSourceCapabilities
-		 * @request GET:/api/providers/{providerId}/capabilities
-		 */
-		getSourceCapabilities: (providerId: string, params: RequestParams = {}) =>
-			this.request<SourceProviderCapabilitiesDto, any>({
-				path: `/api/providers/${providerId}/capabilities`,
-				method: 'GET',
 				format: 'json',
 				...params
 			})

@@ -1,26 +1,25 @@
 import {
   ActionResponse,
-  CatalogueItem,
-  DirectionOption,
   MediaSourceProvider,
-  OrderOption,
-  PaginatedResponse,
-  PaginationParams,
   PlaybackConfig,
   SourceProviderError,
   SourceProviderSettings,
   Stream,
+  StreamBase,
   StreamCandidate,
+  StreamResponse,
   Subtitles,
   UserContext,
 } from '@aleksilassila/reiverr-plugin';
+import {
+  MediaSourceView,
+  MediaSourceViews,
+} from 'packages/reiverr-plugin/dist/src/ui.types';
 import { Readable } from 'stream';
 import {
   BaseItemKind,
   ItemFields,
-  ItemSortBy,
   Api as JellyfinApi,
-  SortOrder,
 } from './jellyfin.openapi';
 import {
   bitrateQualities,
@@ -29,6 +28,11 @@ import {
   getClosestBitrate,
   JELLYFIN_DEVICE_ID,
 } from './utils';
+
+enum View {
+  StreamMovie = 'stream-movie',
+  StreamEpisode = 'stream-episode',
+}
 
 export interface JellyfinSettings extends SourceProviderSettings {
   apiKey: string;
@@ -56,6 +60,100 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     });
   }
 
+  getMeidaSourceViews: (options: {
+    tmdbMovie?: any;
+    tmdbSeries?: any;
+    tmdbEpisode?: any;
+  }) => Promise<{ views: MediaSourceViews }> = async ({
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    if (tmdbMovie) {
+      return {
+        views: [
+          {
+            id: View.StreamMovie,
+            label: 'Stream',
+            type: 'list-with-details',
+          },
+        ],
+      };
+    } else if (tmdbSeries && tmdbEpisode) {
+      return {
+        views: [
+          {
+            id: View.StreamEpisode,
+            label: 'Stream',
+            type: 'list-with-details',
+          },
+        ],
+      };
+    }
+
+    return {
+      views: [],
+    };
+  };
+
+  getMediaSourceView: (options: {
+    id: string;
+    tmdbMovie?: any;
+    tmdbSeries?: any;
+    tmdbEpisode?: any;
+  }) => Promise<{ view?: MediaSourceView }> = async ({
+    id,
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    let view: MediaSourceView;
+
+    if (id === View.StreamMovie && tmdbMovie) {
+      const candidates = await this.getTmdbMovieCandidates({ tmdbMovie });
+      view = {
+        type: 'list-with-details',
+        id,
+        label: 'Stream',
+        items: candidates.candidates.map((c) => ({
+          ...c,
+          id: c.streamId,
+          label: c.title,
+          actions: c.actions.map((a) => ({
+            label: a.label,
+            type: 'action',
+            action: a.type,
+          })),
+        })),
+        orderOptions: [],
+      };
+    } else if (id === View.StreamEpisode && tmdbSeries && tmdbEpisode) {
+      const candidates = await this.getTmdbEpisodeCandidates({
+        tmdbSeries,
+        tmdbEpisode,
+      });
+
+      view = {
+        type: 'list-with-details',
+        id,
+        label: 'Stream',
+        items: candidates.candidates.map((c) => ({
+          ...c,
+          id: c.streamId,
+          label: c.title,
+          actions: c.actions.map((a) => ({
+            label: a.label,
+            type: 'action',
+            action: a.type,
+          })),
+        })),
+        orderOptions: [],
+      };
+    }
+
+    return { view };
+  };
+
   getTmdbMovieCandidates: (options: {
     tmdbMovie: any;
   }) => Promise<{ candidates: StreamCandidate[] }> = async ({ tmdbMovie }) => {
@@ -74,7 +172,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     });
 
     const movie = movies.data.Items.find(
-      (i) => i.ProviderIds?.Tmdb === tmdbMovie.id,
+      (i) => i.ProviderIds?.Tmdb === String(tmdbMovie.id),
     );
 
     if (!movie || !movie.MediaSources || movie.MediaSources.length === 0) {
@@ -243,17 +341,40 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     };
   };
 
+  getAutoplayStream: (options: {
+    tmdbMovie?: any;
+    tmdbSeries?: any;
+    tmdbEpisode?: any;
+  }) => Promise<{ candidate?: StreamBase }> = async ({
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    if (tmdbMovie) {
+      const candidates = await this.getTmdbMovieCandidates({ tmdbMovie });
+      return { candidate: candidates.candidates[0] };
+    } else if (tmdbSeries && tmdbEpisode) {
+      const candidates = await this.getTmdbEpisodeCandidates({
+        tmdbSeries,
+        tmdbEpisode,
+      });
+      return { candidate: candidates.candidates[0] };
+    }
+
+    return {};
+  };
+
   handleAction: (options: {
-    streamId: string;
+    targetId: string;
     action: string;
     config?: PlaybackConfig;
   }) => Promise<ActionResponse> = async (options) => {
-    if (options.action === 'stream') {
-      return this.getStream({
-        streamId: options.streamId,
-        config: options.config,
-      }).then((stream) => ({ stream }));
-    }
+    // if (options.action === 'stream') {
+    //   return this.getStream({
+    //     streamId: options.streamId,
+    //     config: options.config,
+    //   }).then((stream) => ({ stream }));
+    // }
 
     return {
       error: {
@@ -262,10 +383,10 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     };
   };
 
-  getStream?: (options: {
+  getStream: (options: {
     streamId: string;
     config?: PlaybackConfig;
-  }) => Promise<Stream | undefined> = async (options) => {
+  }) => Promise<StreamResponse> = async (options) => {
     const { progress, audioStreamIndex, deviceProfile } = options.config || {};
 
     const movie = await this.api.items
@@ -369,7 +490,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
       label: s.DisplayTitle,
     }));
 
-    return {
+    const stream = {
       streamId: '0',
       title: movie.Name,
       properties: [
@@ -416,6 +537,10 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
       directPlay:
         !!mediasSource?.SupportsDirectPlay ||
         !!mediasSource?.SupportsDirectStream,
+    };
+
+    return {
+      stream,
     };
   };
 

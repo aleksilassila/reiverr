@@ -1,14 +1,18 @@
 import {
-  CatalogueItem,
+  ActionResponse,
+  ListWithDetailsView,
   MediaSourceProvider,
-  PaginatedResponse,
-  PaginationParams,
+  MediaSourceView,
+  MediaSourceViews,
   PlaybackConfig,
-  Stream,
-  StreamActionResponse,
+  StreamAction,
+  StreamActionElement,
+  StreamBase,
   StreamCandidate,
+  StreamResponse,
   Subtitles,
   UserContext,
+  ViewBase,
 } from '@aleksilassila/reiverr-plugin';
 import {
   getEpisodeTorrents,
@@ -25,6 +29,26 @@ import {
   videoExtensions,
 } from './utils';
 
+export const movieStreamView = {
+  id: 'stream-movie',
+  type: 'list-with-details',
+  label: 'Stream',
+  priority: 0,
+} satisfies ViewBase;
+
+export const episodeStreamView = {
+  id: 'stream-episode',
+  type: 'list-with-details',
+  label: 'Stream',
+  priority: 0,
+} satisfies ViewBase;
+
+export const streamAction = {
+  action: 'stream',
+  label: 'Stream',
+  type: 'action',
+} satisfies StreamActionElement;
+
 export class TorrentMediaSourceProvider extends MediaSourceProvider {
   private proxyUrl: string;
 
@@ -33,11 +57,112 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
     this.proxyUrl = `/api/sources/${this.sourceId}/proxy`;
   }
 
-  getTmdbMovieCandidates?:
-    | ((options: {
-        tmdbMovie: any;
-      }) => Promise<{ candidates: StreamCandidate[] }>)
-    | undefined = async ({ tmdbMovie }) => {
+  getMeidaSourceViews: (options: {
+    tmdbMovie?: any;
+    tmdbSeries?: any;
+    tmdbEpisode?: any;
+  }) => Promise<{ views: MediaSourceViews }> = async ({
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    const views: MediaSourceViews = [];
+
+    if (tmdbMovie) {
+      views.push(movieStreamView);
+    } else if (tmdbSeries && tmdbEpisode) {
+      views.push(episodeStreamView);
+    }
+
+    return {
+      views,
+    };
+  };
+
+  getMediaSourceView: (
+    options: { tmdbMovie?: any; tmdbSeries?: any; tmdbEpisode?: any } & {
+      id: string;
+    },
+  ) => Promise<{ view?: MediaSourceView }> = async ({
+    id,
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    let view: MediaSourceView | undefined;
+
+    if (id === movieStreamView.id && tmdbMovie) {
+      const { candidates } = await this.getTmdbMovieCandidates({
+        tmdbMovie,
+      });
+
+      const view: ListWithDetailsView = {
+        ...movieStreamView,
+        items: candidates.map((c) => ({
+          id: c.streamId,
+          label: c.title,
+          properties: c.properties,
+          actions: [streamAction],
+        })),
+        orderOptions: [],
+        order: undefined,
+      };
+
+      return { view };
+    } else if (id === episodeStreamView.id && tmdbSeries && tmdbEpisode) {
+      const { candidates } = await this.getTmdbEpisodeCandidates({
+        tmdbSeries,
+        tmdbEpisode,
+      });
+
+      const view: ListWithDetailsView = {
+        ...episodeStreamView,
+        items: candidates.map((c) => ({
+          id: c.streamId,
+          label: c.title,
+          properties: c.properties,
+          actions: [streamAction],
+        })),
+        orderOptions: [],
+        order: undefined,
+      };
+
+      return { view };
+    }
+
+    return {};
+  };
+
+  getAutoplayStream: (options: {
+    tmdbMovie?: any;
+    tmdbSeries?: any;
+    tmdbEpisode?: any;
+  }) => Promise<{ candidate?: StreamBase }> = async ({
+    tmdbMovie,
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
+    if (tmdbMovie) {
+      const { candidates } = await this.getTmdbMovieCandidates({
+        tmdbMovie,
+      });
+
+      return { candidate: candidates[0] };
+    } else if (tmdbSeries && tmdbEpisode) {
+      const { candidates } = await this.getTmdbEpisodeCandidates({
+        tmdbSeries,
+        tmdbEpisode,
+      });
+
+      return { candidate: candidates[0] };
+    }
+
+    return {};
+  };
+
+  getTmdbMovieCandidates: (options: {
+    tmdbMovie: any;
+  }) => Promise<{ candidates: StreamCandidate[] }> = async ({ tmdbMovie }) => {
     const settings = this.settings as TorrentSettings;
 
     const year = tmdbMovie.release_date
@@ -55,12 +180,13 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
     return { candidates };
   };
 
-  getTmdbEpisodeCandidates?:
-    | ((options: {
-        tmdbSeries: any;
-        tmdbEpisode: any;
-      }) => Promise<{ candidates: StreamCandidate[] }>)
-    | undefined = async ({ tmdbSeries, tmdbEpisode }) => {
+  getTmdbEpisodeCandidates: (options: {
+    tmdbSeries: any;
+    tmdbEpisode: any;
+  }) => Promise<{ candidates: StreamCandidate[] }> = async ({
+    tmdbSeries,
+    tmdbEpisode,
+  }) => {
     const settings = this.settings as TorrentSettings;
 
     const torrents = getEpisodeTorrents(
@@ -109,17 +235,16 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
     return { candidates };
   };
 
-  handleAction?: (options: {
-    streamId: string;
+  handleAction: (options: {
+    targetId: string;
     action: string;
-    config?: PlaybackConfig;
-  }) => Promise<StreamActionResponse> = async (options) => {
-    if (options.action === 'stream') {
-      return this.getStream({
-        streamId: options.streamId,
-        config: options.config,
-      }).then((stream) => ({ stream }));
-    }
+  }) => Promise<ActionResponse> = async (options) => {
+    // if (options.action === 'stream') {
+    //   return this.getStream({
+    //     streamId: options.targetId,
+    //     config: options.config,
+    //   }).then((stream) => ({ stream }));
+    // }
 
     return {
       error: {
@@ -131,7 +256,7 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
   getStream: (options: {
     streamId: string;
     config?: PlaybackConfig;
-  }) => Promise<Stream | undefined> = async ({ streamId, config }) => {
+  }) => Promise<StreamResponse> = async ({ streamId, config }) => {
     const settings = this.settings as TorrentSettings;
     const [link, season, episode] = streamId.split(EPISODE_SEPARATOR);
 
@@ -167,7 +292,7 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
         lang: 'unknown',
       }));
 
-    return {
+    const stream = {
       streamId,
       src,
       audioStreamIndex: 0,
@@ -181,16 +306,18 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
       title: 'Unknown',
       directPlay: true,
     };
+
+    return {
+      stream,
+    };
   };
 
-  proxyHandler?:
-    | ((options: {
-        req: any;
-        res: any;
-        uri: string;
-        targetUrl?: string;
-      }) => Promise<any>)
-    | undefined = async ({ req, res, uri, targetUrl }) => {
+  proxyHandler: (options: {
+    req: any;
+    res: any;
+    uri: string;
+    targetUrl?: string;
+  }) => Promise<any> = async ({ req, res, uri, targetUrl }) => {
     const settings = this.settings as TorrentSettings;
 
     const params = new URLSearchParams(uri.split('?').slice(1).join('?'));
@@ -297,37 +424,4 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
       res.status(404).send('No file found');
     }
   };
-
-  getCatalogue?:
-    | ((options: {
-        pagination: PaginationParams;
-        order?: string;
-        direction?: string;
-      }) => Promise<PaginatedResponse<CatalogueItem>>)
-    | undefined;
-
-  getMovieCatalogue?:
-    | ((options: {
-        pagination: PaginationParams;
-        order?: string;
-        direction?: string;
-      }) => Promise<PaginatedResponse<CatalogueItem>>)
-    | undefined;
-
-  getSeriesCatalogue?:
-    | ((options: {
-        pagination: PaginationParams;
-        order?: string;
-        direction?: string;
-      }) => Promise<PaginatedResponse<CatalogueItem>>)
-    | undefined;
-
-  getMissingInCatalogue?:
-    | (<T extends object = object>(options: {
-        pagination: PaginationParams;
-        order?: string;
-        direction?: string;
-        myListItems: Record<string, T>;
-      }) => Promise<PaginatedResponse<T>>)
-    | undefined;
 }

@@ -1,5 +1,13 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import { getContext, hasContext, onDestroy, setContext, type ComponentType } from 'svelte';
+import {
+	getContext,
+	hasContext,
+	onDestroy,
+	setContext,
+	SvelteComponentTyped,
+	type ComponentProps,
+	type ComponentType
+} from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 
@@ -10,14 +18,14 @@ export type Background = {
 	mediaId?: string;
 };
 
-export type BackgroundVideo = {
+export type BackgroundVideo<T extends SvelteComponentTyped = SvelteComponentTyped> = {
 	id: symbol;
-	component: ComponentType;
-	props: Record<string, any>;
+	component: ComponentType<T>;
+	props: ComponentProps<T>;
 	mediaId?: string;
 };
 
-type Page = {
+export type BackgroundPage = {
 	id: symbol;
 	isTransparent: boolean;
 	backgrounds: Background[];
@@ -38,7 +46,7 @@ type Page = {
 
 export const globalBackground = useRegistrar();
 
-export const backgroundPagesStack = writable<Page[]>([]);
+export const backgroundPagesStack = writable<BackgroundPage[]>([]);
 export const visibleBackgrounds = (() => {
 	const store = derived([backgroundPagesStack], ([pages]) => {
 		const topPage = pages[pages.length - 1];
@@ -86,6 +94,7 @@ export const visibleBackgrounds = (() => {
 
 let lastFocused: Selectable | undefined = undefined;
 
+export type BackgroundPageStore = ReturnType<typeof _createBackgroundPage>;
 function _createBackgroundPage(
 	options: {
 		transparent?: boolean;
@@ -102,7 +111,7 @@ function _createBackgroundPage(
 	);
 
 	const id = Symbol();
-	const page: Page = {
+	const page: BackgroundPage = {
 		id,
 		backgrounds: reusedPage ? [reusedPage] : [],
 		index: 0,
@@ -153,7 +162,7 @@ function _createBackgroundPage(
 		backgroundPagesStack.update((p) => p);
 	}
 
-	function setVideo(video: BackgroundVideo) {
+	function setVideo<T extends SvelteComponentTyped>(video: BackgroundVideo<T>) {
 		if (video.mediaId && video.mediaId === page.video?.mediaId) return;
 
 		page.video = video;
@@ -239,7 +248,7 @@ export const createBackgroundPage: typeof _createBackgroundPage = (...args) => {
 
 export function getBackgroundPage() {
 	if (hasContext(BACKGROUND_CONTEXT_KEY)) {
-		return getContext<ReturnType<typeof _createBackgroundPage>>(BACKGROUND_CONTEXT_KEY);
+		return getContext<BackgroundPageStore>(BACKGROUND_CONTEXT_KEY);
 	}
 
 	return undefined;

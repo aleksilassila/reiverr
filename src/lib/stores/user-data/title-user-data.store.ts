@@ -1,23 +1,30 @@
-import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+import {
+	getBackgroundPage,
+	type BackgroundPage
+} from '$lib/components/GlobalBackground/BackgroundStack';
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
 import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
-import { derived, get, writable, type Readable } from 'svelte/store';
+import { createStoreContext } from '$lib/utils';
+import { derived, get, writable } from 'svelte/store';
 import type {
 	MediaSourceDto,
-	MovieUserDataDto,
-	SeriesUserDataDto,
-	StreamCandidateDto
-} from '../apis/reiverr/reiverr.openapi';
+	StreamBaseDto,
+	StreamCandidateDto,
+	TmdbItemDto
+} from '../../apis/reiverr/reiverr.openapi';
 import {
 	episodeUserDataRefresher,
 	libraryRefresher,
 	movieUserDataRefresher,
 	seriesUserDataRefresher,
 	useRequest
-} from './data.store';
-import { reiverrApi, tmdbApi, user } from './user.store';
+} from '../data.store';
+import { reiverrApi, tmdbApi, user } from '../user.store';
+import { useUserLibrary } from './library.store';
+import { useIsWatched } from './is-watched.store';
+import type { ComponentProps } from 'svelte';
 
 export type EpisodeData = {
 	season: number;
@@ -74,85 +81,90 @@ async function getAutoplayStream(options: { tmdbId: string; season?: number; epi
 	};
 }
 
-function useUserLibrary(
-	mediaType: 'movie' | 'series',
-	tmdbId: string,
-	userData: Readable<MovieUserDataDto | SeriesUserDataDto | undefined>
-) {
-	const inLibrary = writable<boolean>(undefined);
+function usePlayback(options: {
+	tmdbId: string;
+	season?: number;
+	episode?: number;
+	getVideoProps: () => Promise<
+		Pick<ComponentProps<TmdbVideoPlayer>, 'tmdbId' | 'title'> | undefined
+	>;
+}) {
+	const { tmdbId, season, episode, getVideoProps } = options;
+	const background = getBackgroundPage();
 
-	userData.subscribe((d) => {
-		inLibrary.set(d?.inLibrary ?? false);
+	const autoplayStore = writable<{
+		isLoading: boolean;
+		candidate?: {
+			stream: StreamBaseDto;
+			source: MediaSourceDto;
+		};
+	}>({
+		isLoading: true
 	});
 
-	async function handleAddToLibrary() {
-		const userId = get(user)?.id;
+	fetchAutoplayCandidate();
 
-		if (!userId) {
-			console.error('Add to library: No user ID');
-			return;
+	async function fetchAutoplayCandidate() {
+		for (const source of get(user)?.mediaSources ?? []) {
+			const candidate = await reiverrApi.sources
+				.getAutoplayStream(source.id, {
+					tmdbId,
+					season,
+					episode
+				})
+				.then((r) => r.data.candidate);
+
+			if (candidate) {
+				autoplayStore.set({
+					isLoading: false,
+					candidate: {
+						stream: candidate,
+						source
+					}
+				});
+				return candidate;
+			}
 		}
 
-		const success = await reiverrApi.library
-			.addLibraryItem(userId, tmdbId, { mediaType })
-			.then((r) => r.data.success);
-		if (success) {
-			inLibrary.set(true);
-			libraryRefresher.refreshIn(1500);
-		}
+		autoplayStore.set({ isLoading: false });
 	}
 
-	async function handleRemoveFromLibrary() {
-		const userId = get(user)?.id;
+	async function autoplayStream() {
+		const { stream, source } = get(autoplayStore)?.candidate ?? {};
 
-		if (!userId) {
-			console.error('Remove from library: No user ID');
+		if (!stream || !source) {
+			createErrorNotification('Autoplay failed', 'No stream found');
 			return;
 		}
 
-		const success = await reiverrApi.library
-			.removeLibraryItem(userId, tmdbId)
-			.then((r) => r.data.success);
-		if (success) {
-			inLibrary.set(false);
-			libraryRefresher.refreshIn(500);
-		}
+		return playStream(source, stream.streamId);
 	}
 
-	return {
-		inLibrary,
-		handleAddToLibrary,
-		handleRemoveFromLibrary
-	};
-}
+	async function playStream(source: MediaSourceDto, streamId: string) {
+		const props = await getVideoProps();
 
-function useIsWatched(
-	userData: Readable<MovieUserDataDto | undefined>,
-	toggleFn: (userId: string, watched: boolean) => Promise<any>
-) {
-	const isWatched = writable<boolean>(undefined);
-
-	userData.subscribe((d) => {
-		isWatched.set(d?.playState?.watched ?? false);
-	});
-
-	async function toggleIsWatched() {
-		const watched = get(isWatched);
-		const userId = get(user)?.id;
-
-		if (!userId) {
+		if (!props) {
+			createErrorNotification('Could not find video props');
 			return;
 		}
 
-		return toggleFn(userId, !watched).finally(() => {
-			isWatched.set(!watched);
-			libraryRefresher.refreshIn(500);
+		background?.setVideo({
+			id: Symbol(),
+			component: TmdbVideoPlayer,
+			props: {
+				...props,
+				streamId,
+				source
+			}
 		});
+
+		background?.focus();
 	}
 
 	return {
-		isWatched,
-		toggleIsWatched
+		autoplayCandidate: { subscribe: autoplayStore.subscribe },
+		autoplayStream,
+		playStream
 	};
 }
 
@@ -164,9 +176,10 @@ function useCanStream() {
 	};
 }
 
-export function useSeriesUserData(tmdbId: string) {
-	const background = getBackgroundPage();
+export type TitleUserData = ReturnType<typeof useMovieUserData> &
+	ReturnType<typeof useSeriesUserData>;
 
+export function useSeriesUserData(tmdbId: string) {
 	const userDataRequest = useRequest(
 		() => reiverrApi.users.getSeriesUserData(get(user)?.id as string, tmdbId).then((r) => r.data),
 		{
@@ -176,7 +189,6 @@ export function useSeriesUserData(tmdbId: string) {
 	);
 	const tmdbSeriesRequest = useRequest(() => tmdbApi.getSeriesFull(Number(tmdbId)));
 	const libraryStore = useUserLibrary('series', tmdbId, userDataRequest);
-	const canStreamStore = useCanStream();
 	const episodesUserData = writable<EpisodeData[]>([]);
 	const nextEpisode = writable<EpisodeData>({
 		season: 1,
@@ -227,6 +239,13 @@ export function useSeriesUserData(tmdbId: string) {
 		episodesUserData.set(episodesData);
 	});
 
+	const mediaPlayback = usePlayback({
+		tmdbId,
+		season: get(nextEpisode)?.season,
+		episode: get(nextEpisode)?.episode,
+		getVideoProps
+	});
+
 	async function toggleIsWatched() {
 		const watched = get(isWatched);
 		const userId = get(user)?.id;
@@ -254,7 +273,7 @@ export function useSeriesUserData(tmdbId: string) {
 			});
 	}
 
-	const getVideoProps = async () => {
+	async function getVideoProps() {
 		const tmdbSeriesData = get(tmdbSeriesRequest);
 		const { season, episode, progress } = get(nextEpisode) ?? {};
 
@@ -275,70 +294,91 @@ export function useSeriesUserData(tmdbId: string) {
 			title: tmdbEpisode?.name ?? 'Unknown',
 			subtitle: tmdbSeriesData?.name ?? 'Unknown'
 		};
-	};
+	}
 
 	return {
+		tmdbId,
 		tmdbSeries: tmdbSeriesRequest.promise,
 		...libraryStore,
-		...canStreamStore,
+		...mediaPlayback,
 		nextEpisode,
 		episodesUserData,
 		isWatched,
 		toggleIsWatched,
-		handleAutoplay: async () => {
-			const videoProps = await getVideoProps();
+		// handleAutoplay: async () => {
+		// 	const videoProps = await getVideoProps();
 
-			if (!videoProps) return;
+		// 	if (!videoProps) return;
 
-			const { season, episode } = videoProps;
+		// 	const { season, episode } = videoProps;
 
-			const { streamId, source } = await getAutoplayStream({ tmdbId, season, episode });
+		// 	const { streamId, source } = await getAutoplayStream({ tmdbId, season, episode });
 
-			if (!streamId || !source) {
-				createErrorNotification('Autoplay failed', 'No stream found');
-				return;
-			}
+		// 	if (!streamId || !source) {
+		// 		createErrorNotification('Autoplay failed', 'No stream found');
+		// 		return;
+		// 	}
 
-			background?.setVideo({
-				id: Symbol(),
-				component: TmdbVideoPlayer,
-				props: {
-					...videoProps,
-					streamId,
-					source
-				},
-				mediaId: tmdbId
-			});
+		// 	background?.setVideo({
+		// 		id: Symbol(),
+		// 		component: TmdbVideoPlayer,
+		// 		props: {
+		// 			...videoProps,
+		// 			streamId,
+		// 			source
+		// 		},
+		// 		mediaId: tmdbId
+		// 	});
 
-			background?.focus();
-		},
-		handleOpenStreamSelector: async () => {
-			const videoProps = await getVideoProps();
+		// 	background?.focus();
+		// },
+		// handleOpenStreamSelector: async () => {
+		// 	const videoProps = await getVideoProps();
 
-			if (!videoProps) return;
+		// 	if (!videoProps) return;
 
-			const { season, episode } = videoProps;
+		// 	const { season, episode } = videoProps;
 
-			createModal(StreamSelectorModal, {
-				getStreams: (s) => getStreams(s, tmdbId, season, episode),
-				selectStream: (source, stream) => {
-					background?.setVideo({
-						id: Symbol(),
-						component: TmdbVideoPlayer,
-						props: {
-							...videoProps,
-							streamId: stream.streamId,
-							source
-						},
-						mediaId: tmdbId
-					});
+		// 	// createModal(StreamSelectorModal, {
+		// 	// 	getStreams: (s) => getStreams(s, tmdbId, season, episode),
+		// 	// 	selectStream: (source, stream) => {
+		// 	// 		background?.setVideo({
+		// 	// 			id: Symbol(),
+		// 	// 			component: TmdbVideoPlayer,
+		// 	// 			props: {
+		// 	// 				...videoProps,
+		// 	// 				streamId: stream.streamId,
+		// 	// 				source
+		// 	// 			},
+		// 	// 			mediaId: tmdbId
+		// 	// 		});
 
-					background?.focus();
-				}
-			});
+		// 	// 		background?.focus();
+		// 	// 	}
+		// 	// });
 
-			// return handleOpenStreamSelector({ tmdbId, season, episode, progress });
-		},
+		// 	// createModal(MediaSourceMenuModal, {
+		// 	// 	tmdbId,
+		// 	// 	season,
+		// 	// 	episode,
+		// 	// 	playStream: (source, streamId) => {
+		// 	// 		background?.setVideo({
+		// 	// 			id: Symbol(),
+		// 	// 			component: TmdbVideoPlayer,
+		// 	// 			props: {
+		// 	// 				...videoProps,
+		// 	// 				streamId,
+		// 	// 				source
+		// 	// 			},
+		// 	// 			mediaId: tmdbId
+		// 	// 		});
+
+		// 	// 		background?.focus();
+		// 	// 	}
+		// 	// });
+
+		// 	// return handleOpenStreamSelector({ tmdbId, season, episode, progress });
+		// },
 		unsubscribe: () => {
 			userDataRequest.unsubscribe();
 			tmdbSeriesRequest.unsubscribe();
@@ -360,7 +400,6 @@ export function useMovieUserData(tmdbId: string) {
 	const tmdbMovie = useRequest(() => tmdbApi.getMovieFull(Number(tmdbId)));
 
 	const libraryStore = useUserLibrary('movie', tmdbId, userData);
-	const canStreamStore = useCanStream();
 	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
 		reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
 			watched
@@ -368,7 +407,7 @@ export function useMovieUserData(tmdbId: string) {
 	);
 	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
-	const getVideoProps = () => {
+	const getVideoProps = async () => {
 		const tmdbMovieData = get(tmdbMovie);
 
 		return {
@@ -376,57 +415,64 @@ export function useMovieUserData(tmdbId: string) {
 			progress: get(progress),
 			title: tmdbMovieData?.title ?? 'Unknown',
 			subtitle: tmdbMovieData?.release_date
-				? new Date(tmdbMovieData.release_date).getFullYear()
+				? String(new Date(tmdbMovieData.release_date).getFullYear())
 				: undefined
 		};
 	};
 
+	const mediaPlayback = usePlayback({
+		tmdbId,
+		getVideoProps
+	});
+
 	return {
+		tmdbId,
 		...libraryStore,
-		...canStreamStore,
 		...isWatchedStore,
+		...mediaPlayback,
 		tmdbMovie: { subscribe: tmdbMovie.promise.subscribe },
 		progress,
-		handleAutoplay: async () => {
-			const { streamId, source } = await getAutoplayStream({ tmdbId });
+		getVideoProps,
+		// handleAutoplay: async () => {
+		// 	const { streamId, source } = await getAutoplayStream({ tmdbId });
 
-			if (!streamId || !source) {
-				createErrorNotification('Autoplay failed', 'No stream found');
-				return;
-			}
+		// 	if (!streamId || !source) {
+		// 		createErrorNotification('Autoplay failed', 'No stream found');
+		// 		return;
+		// 	}
 
-			background?.setVideo({
-				id: Symbol(),
-				component: TmdbVideoPlayer,
-				props: {
-					...getVideoProps(),
-					streamId,
-					source
-				},
-				mediaId: tmdbId
-			});
+		// 	background?.setVideo({
+		// 		id: Symbol(),
+		// 		component: TmdbVideoPlayer,
+		// 		props: {
+		// 			...getVideoProps(),
+		// 			streamId,
+		// 			source
+		// 		},
+		// 		mediaId: tmdbId
+		// 	});
 
-			background?.focus();
-		},
-		handleOpenStreamSelector: async () => {
-			createModal(StreamSelectorModal, {
-				getStreams: (s) => getStreams(s, tmdbId),
-				selectStream: (source, stream) => {
-					background?.setVideo({
-						id: Symbol(),
-						component: TmdbVideoPlayer,
-						props: {
-							...getVideoProps(),
-							streamId: stream.streamId,
-							source
-						},
-						mediaId: tmdbId
-					});
+		// 	background?.focus();
+		// },
+		// handleOpenStreamSelector: async () => {
+		// 	createModal(StreamSelectorModal, {
+		// 		getStreams: (s) => getStreams(s, tmdbId),
+		// 		selectStream: (source, stream) => {
+		// 			background?.setVideo({
+		// 				id: Symbol(),
+		// 				component: TmdbVideoPlayer,
+		// 				props: {
+		// 					...getVideoProps(),
+		// 					streamId: stream.streamId,
+		// 					source
+		// 				},
+		// 				mediaId: tmdbId
+		// 			});
 
-					background?.focus();
-				}
-			});
-		},
+		// 			background?.focus();
+		// 		}
+		// 	});
+		// },
 		unsubscribe: () => {
 			userData.unsubscribe();
 			tmdbMovie.unsubscribe();
@@ -529,3 +575,17 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 		}
 	};
 }
+
+export const TITLE_USER_DATA_CONTEXT = 'title-user-data-context';
+
+export const seriesUserDataContext = createStoreContext(
+	TITLE_USER_DATA_CONTEXT,
+	useSeriesUserData,
+	{
+		required: true
+	}
+);
+
+export const movieUserDataContext = createStoreContext(TITLE_USER_DATA_CONTEXT, useMovieUserData, {
+	required: true
+});

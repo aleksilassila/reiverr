@@ -1,0 +1,249 @@
+<script lang="ts">
+	import Container from '$components/Container.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
+	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
+	import { PLATFORM_WEB } from '$lib/constants';
+	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { localSettings } from '$lib/stores/localstorage.store';
+	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
+	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { formatThousands } from '$lib/utils';
+	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
+	import { onDestroy } from 'svelte';
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
+	import TitleProperties from '../HeroTitleInfo.svelte';
+	import EpisodeGrid from './EpisodeGrid.svelte';
+	import { titlePageContext } from '../ActionsPage/actions-page';
+	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
+	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
+	import { tmdbApi } from '$lib/stores/user.store';
+
+	const { registrar } = getStackRouterPage();
+
+	const {
+		tmdbId,
+		tmdbSeries,
+		inLibrary,
+		handleAddToLibrary,
+		handleRemoveFromLibrary,
+		nextEpisode,
+		episodesUserData,
+		isWatched,
+		toggleIsWatched,
+		autoplayCandidate,
+		autoplayStream,
+		unsubscribe
+	} = seriesUserDataContext.getContext();
+	const { componentStack } = titlePageContext.getContext();
+	const background = getBackgroundPage();
+
+	const { visibleStyle } = setUiVisibilityContext();
+	const { registrar: scrollRegistrar } = setScrollContext();
+
+	const episodeCards = useRegistrar();
+	let trailerId: string | undefined;
+	let titleProperties: TitleInfoProperty[] = [];
+
+	$: recommendations = tmdbApi.v3
+		.tvSeriesRecommendations(Number(tmdbId))
+		.then((r) => r.data.results);
+
+	$tmdbSeries.then((series) => {
+		trailerId = series?.videos?.results?.find(
+			(video) => video.type === 'Trailer' && video.site === 'YouTube'
+		)?.key;
+
+		if (series && series.status !== 'Ended') {
+			titleProperties.push({
+				label: `Since ${new Date(series.first_air_date || Date.now())?.getFullYear()}`
+			});
+		} else if (series) {
+			titleProperties.push({
+				label: `Ended ${new Date(series.last_air_date || Date.now())?.getFullYear()}`
+			});
+		}
+
+		if (series?.vote_average) {
+			titleProperties.push({
+				label: `${series.vote_average.toFixed(1)} TMDB (${formatThousands(
+					series.vote_count ?? 0
+				)})`,
+				href: `https://www.themoviedb.org/tv/${tmdbId}`
+			});
+		}
+
+		if (series?.genres) {
+			titleProperties.push({
+				label: series.genres.map((g) => g.name).join(', ')
+			});
+		}
+
+		if ($localSettings.enableTrailers && trailerId) {
+			titleProperties.push({
+				icon: Video,
+				href: `https://www.youtube.com/watch?v=${trailerId}`
+			});
+		}
+
+		titleProperties = titleProperties;
+	});
+	$: if ($localSettings.autoplayTrailers && trailerId) {
+		background?.playYoutubeVideo({ tmdbId, videoId: trailerId, onBackground: true });
+	}
+
+	function openEpisodeMenu(season: number, episode: number) {
+		componentStack.create(ActionsMenu, {
+			tmdbId,
+			season,
+			episode
+		});
+	}
+
+	onDestroy(() => {
+		unsubscribe();
+	});
+</script>
+
+<ComponentStackContainer>
+	<div class="relative" use:scrollRegistrar>
+		<Container
+			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
+			on:enter={scrollIntoView({ top: 0 })}
+			on:navigate={({ detail }) => {
+				if (detail.direction === 'down' && detail.willLeaveContainer) {
+					$episodeCards?.focus();
+					detail.preventNavigation();
+				}
+			}}
+		>
+			<HeroCarousel>
+				{#await $tmdbSeries then series}
+					{#if series}
+						<TitleProperties
+							title={series.name ?? ''}
+							properties={titleProperties}
+							overview={series.overview ?? ''}
+						/>
+					{/if}
+				{/await}
+				<Container
+					direction="horizontal"
+					class="flex mt-8 space-x-4"
+					focusOnMount
+					on:mount={registrar}
+				>
+					<Button
+						action={autoplayStream}
+						secondaryAction={() => openEpisodeMenu($nextEpisode?.season, $nextEpisode?.episode)}
+						disabled={!$autoplayCandidate.candidate}
+					>
+						{#if $nextEpisode?.episode && $nextEpisode?.season}
+							Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
+						{:else}
+							Play
+						{/if}
+						<Play size={19} slot="icon" />
+					</Button>
+
+					{#if trailerId}
+						<Button
+							on:clickOrSelect={() =>
+								trailerId && background?.playYoutubeVideo({ tmdbId, videoId: trailerId })}
+						>
+							<Video slot="icon" size={19} />
+							Play Trailer
+						</Button>
+					{/if}
+
+					{#if !$inLibrary}
+						<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+					{:else}
+						<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
+					{/if}
+
+					<Button action={toggleIsWatched}>
+						{#if $isWatched}
+							Mark as Unwatched
+						{:else}
+							Mark as Watched
+						{/if}
+						<Check slot="icon" size={19} />
+					</Button>
+
+					{#if PLATFORM_WEB}
+						<Button
+							on:clickOrSelect={() =>
+								window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
+						>
+							Open In TMDB
+							<ExternalLink size={19} slot="icon-after" />
+						</Button>
+					{/if}
+				</Container>
+			</HeroCarousel>
+		</Container>
+		<div class="relative z-10" style={$visibleStyle}>
+			<EpisodeGrid
+				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
+				on:mount={episodeCards.registrar}
+				tmdbId={Number(tmdbId)}
+				tmdbSeries={$tmdbSeries}
+				{nextEpisode}
+				episodesUserData={$episodesUserData}
+			/>
+			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
+				{#await $tmdbSeries then series}
+					<Carousel scrollClass="px-32" class="mb-8">
+						<div slot="header">Show Cast</div>
+						{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
+							<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
+						{/each}
+					</Carousel>
+				{/await}
+				{#await recommendations then recommendations}
+					<Carousel scrollClass="px-32" class="mb-8">
+						<div slot="header">Recommendations</div>
+						{#each recommendations || [] as recommendation}
+							<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+						{/each}
+					</Carousel>
+				{/await}
+			</Container>
+			{#await $tmdbSeries then series}
+				<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
+					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
+					<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
+						<div class="flex-1">
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Created By</h2>
+								{#each series?.created_by || [] as creator}
+									<div>{creator.name}</div>
+								{/each}
+							</div>
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
+								<div>{series?.networks?.[0]?.name}</div>
+							</div>
+						</div>
+						<div class="flex-1">
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Language</h2>
+								<div>{series?.spoken_languages?.[0]?.name}</div>
+							</div>
+							<div class="mb-8">
+								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
+								<div>{series?.last_air_date}</div>
+							</div>
+						</div>
+					</div>
+				</Container>
+			{/await}
+		</div>
+	</div>
+</ComponentStackContainer>

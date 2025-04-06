@@ -235,10 +235,10 @@ export class LibraryService {
       throw new Error('No connection found');
     }
 
-    const combined = connection.provider.getCatalogue;
-    const movies = connection.provider.getMovieCatalogue;
-    const series = connection.provider.getSeriesCatalogue;
-    const missing = connection.provider.getMissingInCatalogue;
+    const combined = connection.catalogueProvider.getCatalogue;
+    const movies = connection.catalogueProvider.getMovieCatalogue;
+    const series = connection.catalogueProvider.getSeriesCatalogue;
+    const missing = connection.catalogueProvider.getMissingInCatalogue;
     if (type === CatalogueTypeFilter.All && combined) {
       const response = await combined({
         pagination,

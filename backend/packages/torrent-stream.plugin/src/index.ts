@@ -1,6 +1,8 @@
 import {
+  CatalogueProvider,
   MediaSourceProvider,
   ReiverrPlugin,
+  SourceProviderSettings,
   SourceProviderSettingsTemplate,
   UserContext,
   ValidationResponse,
@@ -8,12 +10,29 @@ import {
 import { testConnection } from './lib/jackett.api';
 import { TorrentMediaSourceProvider } from './media-source-provider';
 
+class TorrentCatalogueProvider extends CatalogueProvider {}
+
 class TorrentPlugin extends ReiverrPlugin {
   name: string = 'torrent';
 
-  getMediaSourceProvider: (userContext: UserContext) => MediaSourceProvider = (
-    context,
-  ) => new TorrentMediaSourceProvider(context);
+  getCatalogueProvider: (options: {
+    userId: string;
+    sourceId: string;
+    settings: SourceProviderSettings;
+  }) => CatalogueProvider = (options) => new TorrentCatalogueProvider(options);
+
+  getMediaSourceProvider: (
+    options: {
+      userId: string;
+      sourceId: string;
+      settings: SourceProviderSettings;
+    } & { token: string },
+  ) => MediaSourceProvider = (options) =>
+    new TorrentMediaSourceProvider(options);
+
+  // getMediaSourceProvider: (userContext: UserContext) => MediaSourceProvider = (
+  //   context,
+  // ) => new TorrentMediaSourceProvider(context);
 
   getSettingsTemplate: () => SourceProviderSettingsTemplate = () => ({
     baseUrl: {

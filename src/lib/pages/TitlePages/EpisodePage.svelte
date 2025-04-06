@@ -3,7 +3,7 @@
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
-	import { useEpisodeUserData } from '$lib/stores/media-user-data.store';
+	import { useEpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import Button from '../../components/Button.svelte';

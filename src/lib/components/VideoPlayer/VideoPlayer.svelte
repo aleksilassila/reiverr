@@ -189,7 +189,11 @@
 		<div
 			class="flex justify-between items-center text-secondary-300 font-medium text-wider text-xl tracking-wide"
 		>
-			<div>@{source}</div>
+			<div>
+				{#if source}
+					@{source}
+				{/if}
+			</div>
 
 			<div>
 				Ends at {new Date(

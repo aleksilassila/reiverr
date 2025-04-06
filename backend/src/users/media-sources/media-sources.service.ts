@@ -1,4 +1,5 @@
 import {
+  CatalogueProvider,
   MediaSourceProvider,
   ValidationResponse,
 } from '@aleksilassila/reiverr-plugin';
@@ -146,6 +147,7 @@ export class MediaSourcesService {
   }): Promise<
     | {
         provider: MediaSourceProvider;
+        catalogueProvider: CatalogueProvider;
         mediaSource: MediaSource;
       }
     | undefined
@@ -163,8 +165,16 @@ export class MediaSourcesService {
         userId,
       });
 
+    const catalogueProvider = this.sourceProvidersService
+      .getPlugin(mediaSource.pluginId)
+      .getCatalogueProvider({
+        userId: mediaSource.userId,
+        settings: mediaSource.pluginSettings,
+        sourceId: mediaSource.id,
+      });
+
     if (provider && mediaSource) {
-      return { provider, mediaSource };
+      return { provider, mediaSource, catalogueProvider };
     }
 
     return undefined;

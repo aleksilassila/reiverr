@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import type { EpisodeData } from '$lib/stores/media-user-data.store';
+	import type { EpisodeData } from '$lib/stores/user-data/title-user-data.store';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
 	import {

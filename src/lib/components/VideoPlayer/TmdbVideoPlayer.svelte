@@ -44,8 +44,6 @@
 
 	let reportProgressInterval: ReturnType<typeof setInterval>;
 
-	let videoStreamP: Promise<StreamDto>;
-
 	async function reportProgress() {
 		const userId = get(user)?.id;
 
@@ -69,16 +67,21 @@
 	}
 
 	const refreshVideoStream = async (audioStreamIndex = 0) => {
-		videoStreamP = reiverrApi.sources
-			.getStreamAction(source.id, streamId, 'stream', {
-				// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
-				progress,
-				audioStreamIndex,
-				deviceProfile: getDeviceProfile() as any
+		const stream = await reiverrApi.sources
+			.getStream(source.id, streamId, {
+				playbackConfig: {
+					// bitrate: getQualities(1080)?.[0]?.maxBitrate || 10000000,
+					progress,
+					audioStreamIndex,
+					deviceProfile: getDeviceProfile() as any
+				}
 			})
-			.then((r) => r.data.stream as any);
+			.then((r) => r.data.stream);
 
-		const stream = await videoStreamP;
+		if (!stream) {
+			console.error('Stream not found');
+			return;
+		}
 
 		const mediaLanguagesStore = createLocalStorageStore<MediaLanguageStore>(
 			'media-tracks-' + title,

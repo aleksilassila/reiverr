@@ -19,7 +19,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   GetAuthToken,
   GetAuthUser,
@@ -27,6 +27,8 @@ import {
 } from 'src/auth/auth.guard';
 import { MetadataService } from 'src/metadata/metadata.service';
 import {
+  ActionResponseDto,
+  MediaSourceActionBodyDto,
   PlaybackConfigDto,
   StreamActionResponseDto,
   StreamCandidatesDto,
@@ -35,6 +37,13 @@ import {
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { User } from 'src/users/user.entity';
 import { MediaSourcesService } from './media-sources.service';
+import {
+  MediaSourceViewResponseDto,
+  ViewGroupDto,
+  ViewProvidersResponseDto as ViewGroupsResponseDto,
+  ViewProviderDto,
+} from './media-source.dto';
+import { AutoplayResponseDto } from './media-source-responses.dto';
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {
@@ -73,6 +82,97 @@ export class MediaSourcesController {
     private metadataService: MetadataService,
   ) {}
 
+  @Get('views')
+  @ApiOkResponse({
+    description: 'Movie views',
+    type: ViewGroupsResponseDto,
+  })
+  @ApiQuery({ name: 'tmdbId', type: 'string' })
+  @ApiQuery({ name: 'season', type: 'number', required: false })
+  @ApiQuery({ name: 'episode', type: 'number', required: false })
+  async getMediaSourceViewGroups(
+    @Query('tmdbId') tmdbId: string,
+    @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
+    @Query('season', new ParseIntPipe({ optional: true })) season?: number,
+    @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
+  ): Promise<ViewGroupsResponseDto> {
+    const context = this.getPlayablePluginContext(tmdbId, season, episode);
+
+    const viewGroups: Record<string, ViewProviderDto[]> = {};
+
+    const ps = user.mediaSources.map(async (ms) => {
+      const connection = await this.getConnection({
+        sourceId: ms.id,
+        userId: user.id,
+        token,
+      });
+
+      const { views } = await connection.provider.getMeidaSourceViews({
+        ...(await context),
+      });
+
+      views.forEach((view) => {
+        if (!viewGroups[view.label]) {
+          viewGroups[view.label] = [];
+        }
+        viewGroups[view.label].push({
+          view,
+          sourceId: ms.id,
+        });
+      });
+    });
+
+    await Promise.all(ps);
+
+    return {
+      viewGroups: Object.entries(viewGroups).map(([label, viewProviders]) => ({
+        label,
+        viewProviders,
+      })),
+    };
+  }
+
+  @Get(':sourceId/views/:viewId')
+  @ApiOkResponse({
+    description: 'Movie view',
+    type: MediaSourceViewResponseDto,
+  })
+  @ApiQuery({ name: 'tmdbId', type: 'string' })
+  @ApiQuery({ name: 'season', type: 'number', required: false })
+  @ApiQuery({ name: 'episode', type: 'number', required: false })
+  async getView(
+    @Param('sourceId') sourceId: string,
+    @Param('viewId') id: string,
+    @Query('tmdbId') tmdbId: string,
+    @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
+    @Query('season', new ParseIntPipe({ optional: true })) season?: number,
+    @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
+  ): Promise<MediaSourceViewResponseDto> {
+    if (!tmdbId) throw new BadRequestException('tmdbId is required');
+
+    const context = this.getPlayablePluginContext(tmdbId, season, episode);
+
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
+
+    const { view } = await connection.provider.getMediaSourceView({
+      id,
+      ...(await context),
+    });
+
+    return {
+      view,
+      // generalView: view.type === 'general' ? view : undefined,
+      // listWithDetailsView: view.type === 'list-with-details' ? view : undefined,
+    };
+  }
+
+  /** @deprecated */
   @Get(':sourceId/candidates/tmdb/:tmdbId')
   @ApiOkResponse({
     description: 'Movie sources',
@@ -98,6 +198,7 @@ export class MediaSourcesController {
     return streams ?? { candidates: [] };
   }
 
+  /** @deprecated */
   @Get(':sourceId/candidates/tmdb/:tmdbId/season/:season/episode/:episode')
   @ApiOkResponse({
     description: 'Episode sources',
@@ -131,29 +232,108 @@ export class MediaSourcesController {
     return streams ?? { candidates: [] };
   }
 
-  @Post(':sourceId/stream/:streamId/:action')
+  @Post(':sourceId/autoplay-stream')
   @ApiOkResponse({
     description: 'Movie stream',
-    type: StreamActionResponseDto,
+    type: AutoplayResponseDto,
   })
-  async getStreamAction(
+  @ApiQuery({ name: 'tmdbId', type: 'string' })
+  @ApiQuery({ name: 'season', type: 'number', required: false })
+  @ApiQuery({ name: 'episode', type: 'number', required: false })
+  async getAutoplayStream(
     @Param('sourceId') sourceId: string,
-    @Param('streamId') streamId: string,
-    @Param('action') action: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
-    @Body() config: PlaybackConfigDto,
-  ): Promise<StreamActionResponseDto> {
+    @Query('tmdbId') tmdbId: string,
+    @Query('season', new ParseIntPipe({ optional: true })) season?: number,
+    @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
+  ): Promise<AutoplayResponseDto> {
+    if (!tmdbId) throw new BadRequestException('tmdbId is required');
+
+    const context = this.getPlayablePluginContext(tmdbId, season, episode);
+
     const connection = await this.getConnection({
       sourceId,
       userId: user.id,
       token,
     });
 
-    const stream = await connection.provider
-      .handleAction?.({
+    const { candidate } = await connection.provider.getAutoplayStream({
+      ...(await context),
+    });
+
+    return {
+      candidate,
+    };
+  }
+
+  @Post(':sourceId/stream/:streamId')
+  @ApiOkResponse({
+    description: 'Movie stream',
+    type: StreamActionResponseDto,
+  })
+  @ApiBody({ required: false, type: MediaSourceActionBodyDto })
+  async getStream(
+    @Param('sourceId') sourceId: string,
+    @Param('streamId') streamId: string,
+    @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
+    @Body() config: MediaSourceActionBodyDto = {},
+  ): Promise<StreamActionResponseDto> {
+    const { playbackConfig } = config;
+
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
+
+    const response = await connection.provider
+      .getStream({
         streamId,
-        config,
+        config: playbackConfig,
+      })
+      .catch((e) => {
+        if (e === SourceProviderError.StreamNotFound) {
+          throw new NotFoundException('Stream not found');
+        } else {
+          console.error(e);
+          throw new InternalServerErrorException();
+        }
+      });
+
+    // if (!response) {
+    //   throw new InternalServerErrorException('No response from provider');
+    // }
+
+    return response;
+  }
+
+  @Post(':sourceId/action/:action/:targetId')
+  @ApiOkResponse({
+    description: 'Movie stream',
+    type: ActionResponseDto,
+  })
+  // @ApiBody({ required: false, type: MediaSourceActionBodyDto })
+  async handleViewAction(
+    @Param('sourceId') sourceId: string,
+    @Param('targetId') targetId: string,
+    @Param('action') action: string,
+    @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
+    // @Body() config: MediaSourceActionBodyDto = {},
+  ): Promise<ActionResponseDto> {
+    // const { playbackConfig } = config;
+
+    const connection = await this.getConnection({
+      sourceId,
+      userId: user.id,
+      token,
+    });
+
+    const response = await connection.provider
+      .handleAction({
+        targetId,
         action,
       })
       .catch((e) => {
@@ -165,11 +345,11 @@ export class MediaSourcesController {
         }
       });
 
-    if (!stream) {
-      throw new NotFoundException('Stream not found');
-    }
+    // if (!response) {
+    //   throw new InternalServerErrorException('No response from provider');
+    // }
 
-    return stream;
+    return response;
   }
 
   /** @deprecated */
@@ -225,5 +405,34 @@ export class MediaSourcesController {
     }
 
     return connection;
+  }
+
+  async getPlayablePluginContext(
+    tmdbId: string,
+    season?: number,
+    episode?: number,
+  ) {
+    const tmdbMovie =
+      season === undefined && episode === undefined
+        ? this.metadataService.getMovieByTmdbId(tmdbId).then((m) => m.tmdbMovie)
+        : undefined;
+    const tmdbSeries =
+      season !== undefined && episode !== undefined
+        ? this.metadataService
+            .getSeriesByTmdbId(tmdbId)
+            .then((s) => s.tmdbSeries)
+        : undefined;
+    const tmdbEpisode =
+      season !== undefined && episode !== undefined
+        ? this.metadataService
+            .getEpisodeByTmdbId({ tmdbId, season, episode })
+            .then((e) => e.tmdbEpisode)
+        : undefined;
+
+    return {
+      tmdbMovie: await tmdbMovie,
+      tmdbSeries: await tmdbSeries,
+      tmdbEpisode: await tmdbEpisode,
+    };
   }
 }

@@ -164,8 +164,7 @@ export type Stream = StreamBase & {
   subtitles: Subtitles[];
 };
 
-export type ActionResponse = {
-  stream?: Stream;
+export type ActionResponseBase = {
   toast?: {
     title: string;
     message: string;
@@ -173,6 +172,17 @@ export type ActionResponse = {
   };
   error?: {
     message: string;
+  };
+};
+
+export type StreamResponse = ActionResponseBase & {
+  stream?: Stream;
+};
+
+export type ActionResponse = ActionResponseBase & {
+  result?: {
+    success: boolean;
+    message?: string;
   };
 };
 

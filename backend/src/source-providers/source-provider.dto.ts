@@ -1,4 +1,6 @@
 import {
+  ActionResponse,
+  ActionResponseBase,
   AudioStream,
   CatalogueItem,
   PlaybackConfig,
@@ -9,10 +11,10 @@ import {
   SourceProviderSettingsTemplate,
   Stream,
   StreamAction,
-  StreamActionResponse,
   StreamBase,
   StreamCandidate,
   StreamProperty,
+  StreamResponse,
   Subtitles,
   ValidationResponse,
 } from '@aleksilassila/reiverr-plugin';
@@ -248,17 +250,58 @@ export class StreamDto extends StreamBaseDto implements Stream {
   subtitles: SubtitlesDto[];
 }
 
-export class StreamActionResponseErrorDto {
+export class ToastDto {
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({ enum: ['info', 'success', 'error'] })
+  type: 'info' | 'success' | 'error';
+}
+
+export class ActionResponseErrorDto {
   @ApiProperty({ example: 'Stream not found' })
   message: string;
 }
 
-export class StreamActionResponseDto implements StreamActionResponse {
-  @ApiProperty({ type: StreamDto, required: false })
-  stream?: Stream;
+class ActionResponseBaseDto implements ActionResponseBase {
+  @ApiProperty({ type: ActionResponseErrorDto, required: false })
+  error?: ActionResponseErrorDto;
 
-  @ApiProperty({ type: StreamCandidateDto, required: false })
-  error?: StreamActionResponseErrorDto;
+  @ApiProperty({
+    type: ToastDto,
+    required: false,
+  })
+  toast?: ToastDto;
+}
+
+export class StreamActionResponseDto
+  extends ActionResponseBaseDto
+  implements StreamResponse
+{
+  @ApiProperty({ type: StreamDto, required: false })
+  stream?: StreamDto;
+}
+
+class ActionResponseResultDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty({ required: false })
+  message?: string;
+}
+
+export class ActionResponseDto
+  extends ActionResponseBaseDto
+  implements ActionResponse
+{
+  @ApiProperty({
+    type: ActionResponseResultDto,
+    required: false,
+  })
+  result?: ActionResponseResultDto;
 }
 
 export class PlaybackConfigDto implements PlaybackConfig {
@@ -280,6 +323,11 @@ export class PlaybackConfigDto implements PlaybackConfig {
 
   @ApiPropertyOptional({ example: 'en', required: false })
   defaultLanguage: string | undefined;
+}
+
+export class MediaSourceActionBodyDto {
+  @ApiProperty({ type: PlaybackConfigDto, required: false })
+  playbackConfig?: PlaybackConfigDto;
 }
 
 export class StreamCandidatesDto {

@@ -97,42 +97,4 @@ export class SourceProvidersController {
 
     return provider.validateSettings({ settings: settings.settings });
   }
-
-  /** @deprecated in favor of mediaSource capabilities */
-  @Get(':providerId/capabilities')
-  @ApiOkResponse({
-    type: SourceProviderCapabilitiesDto,
-  })
-  async getSourceCapabilities(
-    @GetAuthUser() user: User,
-    @Param('providerId', GetSourceProviderPipe) provider: ReiverrPlugin,
-    @GetAuthToken() token: string,
-  ): Promise<SourceProviderCapabilitiesDto> {
-    // const settings = this.mediaSourcesService.getMediaSourceSettings(
-    //   user,
-    //   provider.name,
-    // );
-
-    // if (!settings) {
-    //   throw new BadRequestException('Source configuration not found');
-    // }
-
-    const mediaSourceProvider = provider.getMediaSourceProvider({
-      settings: {},
-      sourceId: '',
-      token: '',
-      userId: '',
-    });
-
-    return {
-      movieIndexing: !!mediaSourceProvider.getMovieCatalogue,
-      episodeIndexing: !!mediaSourceProvider.getSeriesCatalogue,
-      moviePlayback:
-        !!mediaSourceProvider.getTmdbMovieCandidates &&
-        !!mediaSourceProvider.handleAction,
-      episodePlayback:
-        !!mediaSourceProvider.getTmdbEpisodeCandidates &&
-        !!mediaSourceProvider.handleAction,
-    };
-  }
 }

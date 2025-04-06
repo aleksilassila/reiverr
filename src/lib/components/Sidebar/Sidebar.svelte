@@ -42,7 +42,6 @@
 	// 	manage: 4
 	// }[$location.pathname.split('/')[1] || '/'];
 
-	let isNavBarOpen: Readable<boolean>;
 	let focusIndex: Writable<number> = writable(0);
 	let selectable: Selectable;
 
@@ -99,7 +98,7 @@
 			//'max-w-64': $isNavBarOpen
 		}
 	)}
-	bind:hasFocusWithin={isNavBarOpen}
+	let:hasFocusWithin
 	bind:focusIndex
 	bind:selectable
 	on:navigate={({ detail }) => {
@@ -117,7 +116,7 @@
 		class={classNames(
 			'absolute inset-y-0 left-0 min-w-[40rem] w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
 			{
-				'opacity-0': !$isNavBarOpen,
+				'opacity-0': !hasFocusWithin,
 				'group-hover:opacity-100 pointer-events-none': true
 			}
 		)}
@@ -125,7 +124,7 @@
 	<!-- Keep group hovered and sidebar open for width of this -->
 	<div
 		class={classNames('absolute inset-y-0 left-0 w-48 ', {
-			'pointer-events-none': !$isNavBarOpen,
+			'pointer-events-none': !hasFocusWithin,
 			'group-hover:pointer-events-auto': true
 		})}
 	/>
@@ -139,10 +138,10 @@
 			class={classNames(
 				'w-full h-full relative flex items-center justify-center transition-opacity',
 				{
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Users),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Users),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Users),
-					'opacity-0 pointer-events-none': $isNavBarOpen === false,
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Users),
+					'opacity-0 pointer-events-none': hasFocusWithin === false,
 					'group-hover:opacity-100 group-hover:pointer-events-auto': true
 				}
 			)}
@@ -158,7 +157,7 @@
 				class={classNames(
 					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 text-nowrap',
 					{
-						'opacity-0 pointer-events-none': $isNavBarOpen === false,
+						'opacity-0 pointer-events-none': hasFocusWithin === false,
 						'group-hover:opacity-100 group-hover:pointer-events-auto': true
 					}
 				)}
@@ -177,9 +176,9 @@
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Series),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Series),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Series)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Series)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
@@ -193,7 +192,7 @@
 					class={classNames(
 						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
-							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
 						}
 					)}
@@ -209,9 +208,9 @@
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Movies),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Movies),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Movies)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Movies)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
@@ -225,7 +224,7 @@
 					class={classNames(
 						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
-							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
 						}
 					)}
@@ -241,9 +240,9 @@
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Library),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Library),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Library)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Library)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
@@ -257,7 +256,7 @@
 					class={classNames(
 						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
-							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
 						}
 					)}
@@ -273,9 +272,9 @@
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Search),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Search),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Search)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Search)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
@@ -289,7 +288,7 @@
 					class={classNames(
 						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 						{
-							'opacity-0 pointer-events-none': $isNavBarOpen === false,
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
 						}
 					)}
@@ -309,10 +308,10 @@
 			class={classNames(
 				'w-full h-full relative flex items-center justify-center transition-opacity',
 				{
-					'text-primary-500': hasFocus || (!$isNavBarOpen && selectedIndex === Tabs.Manage),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Manage),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!$isNavBarOpen && selectedIndex === Tabs.Manage),
-					'opacity-0 pointer-events-none': $isNavBarOpen === false,
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Manage),
+					'opacity-0 pointer-events-none': hasFocusWithin === false,
 					'group-hover:opacity-100 group-hover:pointer-events-auto': true
 				}
 			)}
@@ -328,7 +327,7 @@
 				class={classNames(
 					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
 					{
-						'opacity-0 pointer-events-none': $isNavBarOpen === false,
+						'opacity-0 pointer-events-none': hasFocusWithin === false,
 						'group-hover:opacity-100 group-hover:pointer-events-auto': true
 					}
 				)}
