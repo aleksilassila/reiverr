@@ -10,9 +10,7 @@
 
 <svelte:window on:popstate={stack.handlePopState} />
 
-{#if $topComponent?.route.sidebar !== false}
-	<Sidebar />
-{/if}
+
 
 {#each $stack as page, index (page.id)}
 	{@const topmost = index === $stack.length - 1}

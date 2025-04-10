@@ -9,7 +9,7 @@
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
-	import { visibleBackgrounds } from '../GlobalBackground/BackgroundStack';
+	import { topBackground } from '../GlobalBackground/BackgroundStack';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import Spinner from '../Utils/Spinner.svelte';
 	import type { VideoPlayerProps } from './VideoPlayer';
@@ -175,7 +175,7 @@
 						// dispatch('watched');
 						// player.pauseVideo();
 						// player.seekTo(0);
-						visibleBackgrounds.destroyVideo();
+						topBackground.destroyVideo();
 						// player.playVideo();
 					} catch (e) {
 						console.warn('Error looping video.', e);
@@ -183,7 +183,7 @@
 				}
 			}, 1000);
 		} else if (event.data === window.YT.PlayerState.ENDED) {
-			visibleBackgrounds.destroyVideo();
+			topBackground.destroyVideo();
 			console.log('Video ended');
 
 			// try {
@@ -303,7 +303,7 @@
 			class={classNames('absolute top-12 right-16 transition-opacity', {
 				'opacity-0': !$hasFocus || $isUserInactive
 			})}
-			on:click={() => visibleBackgrounds.destroyVideo()}
+			on:click={() => topBackground.destroyVideo()}
 		>
 			<Cross1 size={32} />
 		</FloatingIconButton>

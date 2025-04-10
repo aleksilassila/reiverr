@@ -21,7 +21,7 @@
 				componentStack,
 				top,
 				hidden:
-					$top?.group === $componentStack[index]?.group && $top?.id !== $componentStack[index]?.id
+					$top?.group !== $componentStack[index]?.group && $top?.id !== $componentStack[index]?.id
 			};
 		}
 	);
@@ -30,12 +30,5 @@
 </script>
 
 {#if component}
-	<svelte:component
-		this={component.component}
-		{...component.props}
-		modalId={component.id}
-		{hidden}
-		groupId={component.group}
-		modal={component}
-	/>
+	<svelte:component this={component.component} {...component.props} />
 {/if}

@@ -1,7 +1,5 @@
 <script lang="ts">
-	import {
-		type ComponentStackStore
-	} from '$lib/stores/component-stack.store';
+	import { type ComponentStackStore } from '$lib/stores/component-stack.store';
 	import classNames from 'classnames';
 	import { derived } from 'svelte/store';
 	import ComponentStackItem from './ComponentStackItem.svelte';
@@ -13,7 +11,7 @@
 	);
 </script>
 
-<div class={classNames('relative', $$restProps)}>
+<div class={classNames('relative', $$restProps.class)}>
 	<ComponentStackItem {componentStack} {top} />
 	<!-- {#each $componentStack as component (component.id)}
 		{@const hidden = $top?.group === component.group && $top?.id !== component.id}

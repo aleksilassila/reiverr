@@ -31,6 +31,7 @@ export type BackgroundPage = {
 	backgrounds: Background[];
 	index: number;
 	video?: BackgroundVideo;
+	
 
 	setBackgrounds: (items: Background[]) => void;
 	setIndex: (i: number) => void;
@@ -47,7 +48,7 @@ export type BackgroundPage = {
 export const globalBackground = useRegistrar();
 
 export const backgroundPagesStack = writable<BackgroundPage[]>([]);
-export const visibleBackgrounds = (() => {
+export const topBackground = (() => {
 	const store = derived([backgroundPagesStack], ([pages]) => {
 		const topPage = pages[pages.length - 1];
 

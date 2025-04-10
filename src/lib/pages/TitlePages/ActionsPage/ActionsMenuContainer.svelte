@@ -6,9 +6,9 @@
 	const { componentStack } = titlePageContext.getContext();
 </script>
 
-<ComponentStackContainer trapFocus>
+<ComponentStackContainer trapFocus hideSidebar>
 	<Container
-		class="py-16 px-32 bg-primary-800 space-y-8 flex flex-col min-h-screen"
+		class="py-16 px-32 bg-primary-800/75 space-y-8 flex flex-col min-h-screen backdrop-blur-lg"
 		on:back={({ detail }) => {
 			componentStack.pop();
 			detail.stopPropagation();

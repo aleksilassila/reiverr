@@ -91,21 +91,17 @@
 
 <Container
 	class={classNames(
-		'flex flex-col items-stretch fixed z-10 left-0 inset-y-0 group',
-		'py-8 w-24 select-none',
-		{
-			//'max-w-[64px]': !$isNavBarOpen,
-			//'max-w-64': $isNavBarOpen
-		}
+		'flex flex-col items-stretch fixed z-20 left-0 inset-y-0 group',
+		'py-8 w-24 select-none'
 	)}
 	let:hasFocusWithin
 	bind:focusIndex
 	bind:selectable
 	on:navigate={({ detail }) => {
-		if (detail.direction === 'right') {
-			detail.preventNavigation();
-			unfocusSidebar();
-		}
+		// if (detail.direction === 'right') {
+		// 	detail.preventNavigation();
+		// 	// unfocusSidebar();
+		// }
 	}}
 	on:back={() => unfocusSidebar()}
 	on:mount={sidebarRegistrar.registrar}

@@ -2,10 +2,10 @@
 	import Container from '$lib/components/Container.svelte';
 	import {
 		globalBackground,
-		unfocusGlobalBackground,
-		visibleBackgrounds
+		topBackground,
+		unfocusGlobalBackground
 	} from '$lib/components/GlobalBackground/BackgroundStack';
-	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
+	import { PLATFORM_WEB } from '$lib/constants';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { isUserInactive } from '$lib/stores/user-activity.store';
 	import classNames from 'classnames';
@@ -13,8 +13,8 @@
 	import { type Readable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
-	import BackgroundCarousel from './BackgroundCarousel.svelte';
 	import BackgroundBackdrop from './BackgroundBackdrop.svelte';
+	import BackgroundCarousel from './BackgroundCarousel.svelte';
 
 	let hasFocus: Readable<boolean>;
 
@@ -22,7 +22,7 @@
 	let loadDelayTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	$: {
-		if ($visibleBackgrounds.video) {
+		if ($topBackground.video) {
 			autoplayVideo = false;
 			clearTimeout(loadDelayTimeout);
 
@@ -31,27 +31,13 @@
 			}, 2000);
 		}
 	}
-
-	// $: if ($hasFocus) {
-	// 	registerUserActivity();
-	// }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div
-	on:wheel={() => {
-		// show();
-		unfocusGlobalBackground();
-	}}
-	on:click={() => {
-		unfocusGlobalBackground();
-	}}
->
+<div on:wheel={() => unfocusGlobalBackground()} on:click={() => unfocusGlobalBackground()}>
 	<div class="absolute inset-0 bg-secondary-900" />
 
-	{@debug $visibleBackgrounds}
-
-	{#each $visibleBackgrounds.backgrounds as { backdropUri: backdropUrl, visible }, index (backdropUrl)}
+	{#each $topBackground.backgrounds as { backdropUri: backdropUrl, visible }, index (backdropUrl)}
 		{#key backdropUrl}
 			<BackgroundBackdrop backdropUri={backdropUrl} {visible} hasFocus={$hasFocus} />
 		{/key}
@@ -71,8 +57,8 @@
 			}}
 			on:mount={globalBackground.registrar}
 		>
-			{#if $visibleBackgrounds.video}
-				{@const video = $visibleBackgrounds.video}
+			{#if $topBackground.video}
+				{@const video = $topBackground.video}
 				{#key video.id}
 					<div out:fade={{ duration: 200 }}>
 						<Container
@@ -80,9 +66,9 @@
 								'pointer-events-none': !$hasFocus
 							})}
 							on:click={({ detail: e }) => e.stopPropagation()}
-							on:back={() => visibleBackgrounds.destroyVideo()}
+							on:back={() => topBackground.destroyVideo()}
 						>
-							{#if $visibleBackgrounds.video}
+							{#if $topBackground.video}
 								<svelte:component
 									this={video.component}
 									{...video.props}
@@ -94,20 +80,18 @@
 						</Container>
 					</div>
 				{/key}
-				<!-- </div> -->
 			{:else}
 				<Container
 					on:back={() => unfocusGlobalBackground()}
 					on:wheel={(e) => e.stopPropagation()}
 					on:click={({ detail: e }) => e.stopPropagation()}
 					on:navigate={({ detail }) => {
-						// showUI();
 						if (detail.direction === 'left') {
-							visibleBackgrounds.previousBackground();
+							topBackground.previousBackground();
 							detail.preventNavigation();
 							detail.stopPropagation();
 						} else if (detail.direction === 'right') {
-							visibleBackgrounds.nextBackground();
+							topBackground.nextBackground();
 							detail.preventNavigation();
 							detail.stopPropagation();
 						}
@@ -121,10 +105,10 @@
 					)}
 				>
 					<BackgroundCarousel
-						backgrounds={$visibleBackgrounds.backgrounds}
-						focusIndex={$visibleBackgrounds.index}
+						backgrounds={$topBackground.backgrounds}
+						focusIndex={$topBackground.index}
 						on:jumpTo={({ detail: index }) => {
-							visibleBackgrounds.setIndex(index);
+							topBackground.setIndex(index);
 						}}
 					/>
 				</Container>

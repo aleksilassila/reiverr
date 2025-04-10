@@ -19,8 +19,8 @@
 	focusOnMount={!$props.hidden}
 	{trapFocus}
 	class={classNames('fixed inset-0 overflow-x-hidden overflow-y-auto scrollbar-hide', {
-		'z-[11]': hideSidebar,
-		'z-10': !hideSidebar
+		'z-[21]': hideSidebar,
+		'opacity-0': $props.hidden
 	})}
 	style="backface-visibility: hidden"
 >

@@ -5,6 +5,7 @@
 	import Container from '../Container.svelte';
 	import { focusSidebar } from '../Sidebar/sidebar';
 	import { createStackRouterPage } from './StackRouter';
+	import Sidebar from '../Sidebar/Sidebar.svelte';
 
 	export let hasSidebar = true;
 	export let hidden = false;
@@ -36,7 +37,7 @@
 >
 	<div in:fade|global={{ duration: 200, delay: 200 }} class="contents">
 		{#if hasSidebar}
-			<Container />
+			<Sidebar />
 		{/if}
 		<Container
 			{...$$restProps}
@@ -44,10 +45,10 @@
 			on:back={handleGoToTop}
 			focusOnMount
 			on:navigate={({ detail }) => {
-				if (detail.direction === 'left' && detail.willLeaveContainer) {
-					detail.preventNavigation();
-					focusSidebar();
-				}
+				// if (detail.direction === 'left' && detail.willLeaveContainer) {
+				// 	detail.preventNavigation();
+				// 	focusSidebar();
+				// }
 			}}
 		>
 			<slot />
