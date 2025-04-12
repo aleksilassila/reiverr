@@ -1,10 +1,8 @@
-import { tick } from 'svelte';
-import { derived, get, writable, type Readable } from 'svelte/store';
-import { tmdbApi } from '../apis/tmdb/tmdb-api';
-import { awaitAppInitialization, reiverrApi, user } from './user.store';
 import type { PaginatedResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
-import type { Action } from 'svelte/action';
 import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
+import type { Action } from 'svelte/action';
+import { derived, get, writable, type Readable } from 'svelte/store';
+import { awaitAppInitialization } from './user.store';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 // type Refresher = ReturnType<typeof createRefresher>;
@@ -146,6 +144,88 @@ export function useRequest<TResponse>(
 	};
 }
 
+type StoreValue<T extends Readable<unknown>> = T extends Readable<infer U> ? U : never;
+type MapRequestsToPromises<T> = {
+	[K in keyof T]: T[K] extends Request<unknown> ? Awaited<StoreValue<T[K]['promise']>> : never;
+};
+
+// type RequestPromise<T extends Request<K>, K> = T['promise'];
+
+// type Asd<TReturn, A extends Array<Request<unknown>>> = (
+// 	a: MapRequestsToPromises<A>
+// ) => Promise<TReturn>;
+
+export function derviedRequest<const R extends Array<Request<unknown>>, TReturn>(
+	requests: R,
+	fn: (a: MapRequestsToPromises<R>) => Promise<TReturn>
+) {
+	const unsubs: Array<() => void> = [];
+	const data = writable<TReturn | undefined>(undefined);
+	let id = Symbol();
+	const promise = derived(
+		requests.map((r) => r.promise),
+		async (promises) => {
+			id = Symbol();
+			const currentId = id;
+
+			const values = await Promise.all(promises);
+			if (currentId !== id) return;
+			const res = await fn(values as any);
+			if (currentId !== id) return;
+			data.set(res);
+			return res;
+		}
+	);
+
+	return {
+		subscribe: data.subscribe,
+		promise: {
+			subscribe: promise.subscribe
+		},
+		unsubscribe: () => unsubs.forEach((unsub) => unsub())
+	};
+}
+
+// derviedRequest([{} as Request<number>, {} as Request<string>], async ([a, b]) => {
+// 	a?.subscribe((a) => a);
+// });
+
+// async function f<TReturn>(a: Array<Request<unknown>['promise']>): Promise<TReturn> {}
+
+// declare type Requests =
+// 	| Request<any>
+// 	| [Request<any>, ...Array<Request<any>>]
+// 	| Array<Request<any>>;
+// declare type RequestsValues<T> = T extends Request<infer U>
+// 	? U
+// 	: {
+// 			[K in keyof T]: T[K] extends Request<infer U> ? U : never;
+// 	  };
+
+// export function derviedRequest<TResponse, R extends Requests>(requests: R, fn: (values: RequestsValues<R>) => Promise<TResponse>) {
+// 	const unsubs: Array<() => void> = [];
+// 	const data = writable<TResponse | undefined>(undefined);
+// 	let id = Symbol();
+
+// 	derived(Array.isArray(requests) ? requests.map(r => r.promise) : [requests.promise], async (promises) => {
+// 		let currentId = id;
+// 		const values = await Promise.all(promises);
+// 		if (currentId !== id) return;
+
+// 	})
+
+// 	return {
+// 		unsubscribe: () => unsubs.forEach((unsub) => unsub()),
+// 	}
+// }
+
+// type Asd<T> = {
+// 	[K in keyof T]: T[K] extends Request<infer U> ? U : never;
+// };
+// export function test<T extends Request<unknown>[]>(requests: T, fn: (p: Asd<T>) => Promise<unknown>) {
+// 	fn(requests);
+// }
+
 type RequestStoreRequest<TResponse> = Request<TResponse> & { unsubscribe: () => void };
 
 export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
@@ -215,6 +295,9 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	};
 }
 
+/**
+ * Useful for infinite scroll. By default, loads the initial page automatically.
+ */
 export function usePaginatedRequest<TResponseItem>(
 	fn: (page: number) => Promise<{ items: TResponseItem[] } & PaginatedResponseDto>,
 	options: {
@@ -227,50 +310,49 @@ export function usePaginatedRequest<TResponseItem>(
 	const { hasFocus: isActive } = getStackRouterPage();
 	const { refresher, key, initialPage = 1 } = options;
 
-	let requestId = Symbol();
-	const nextPage = writable(initialPage);
-	const loadingPage = writable(initialPage - 1);
+	let requestId: symbol = Symbol();
+	let loadedPage = 0;
+	let requestedPage = 0;
 	let hasNextPage = true;
 	const data = writable<TResponseItem[]>([]);
 	const isLoading = writable(false);
-	let promise: Promise<unknown> | undefined;
 
 	if (options.loadOnInit !== false) load();
 
 	async function requestNextPage() {
-		if (get(loadingPage) === get(nextPage)) return;
-		if (!hasNextPage) return;
+		return requestUntil(loadedPage + 1);
+	}
 
-		loadingPage.update((p) => p + 1);
-
-		const currentPage = get(nextPage);
+	async function requestUntil(page: number) {
 		const id = requestId;
+		requestedPage = Math.max(page, requestedPage);
 
-		if (promise) await promise;
-
-		if (!hasNextPage) return;
+		if (get(isLoading) || !hasNextPage) return;
 
 		isLoading.set(true);
-		promise = fn(currentPage)
-			.then((res) => {
-				if (id !== requestId) return;
+		let i = loadedPage + 1;
+		while (i <= requestedPage) {
+			const res = await fn(i).catch(() => {});
+			if (id !== requestId) return;
 
-				if (res.items.length < res.itemsPerPage) {
-					hasNextPage = false;
-				}
+			loadedPage = i;
 
-				if (currentPage === initialPage) {
+			if (res?.items?.length) {
+				if (i === initialPage) {
 					data.set(res.items);
 				} else {
 					data.update((d) => [...d, ...res.items]);
 				}
-			})
-			.finally(() => {
-				if (id !== requestId) return;
+			}
 
-				nextPage.update((p) => p + 1);
-				isLoading.set(false);
-			});
+			if (!res?.items || res.items.length < res.itemsPerPage) {
+				hasNextPage = false;
+				break;
+			}
+
+			i++;
+		}
+		isLoading.set(false);
 	}
 
 	const interactionObserver: Action = (node) => {
@@ -298,15 +380,14 @@ export function usePaginatedRequest<TResponseItem>(
 	async function load(options: { lazy?: boolean } = {}) {
 		const { lazy = false } = options;
 
-		nextPage.set(initialPage);
-		loadingPage.set(initialPage - 1);
-		hasNextPage = true;
-		promise = undefined;
-		isLoading.set(false);
 		requestId = Symbol();
+		loadedPage = 0;
+		requestedPage = 0;
+		hasNextPage = true;
+		isLoading.set(false);
 
 		if (!lazy) data.set([]);
-		return requestNextPage();
+		return requestUntil(initialPage);
 	}
 
 	let updateTimeout: ReturnType<typeof setTimeout>;
@@ -337,6 +418,7 @@ export function usePaginatedRequest<TResponseItem>(
 			subscribe: isLoading.subscribe
 		},
 		requestNextPage,
+		requestUntil,
 		interactionObserver,
 		load,
 		unsubscribe: () => unsubscribeRefresher()

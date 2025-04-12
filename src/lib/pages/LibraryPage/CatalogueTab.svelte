@@ -10,13 +10,12 @@
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { usePaginatedRequest } from '$lib/stores/data.store';
-	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
+	import { writable } from 'svelte/store';
 	import CatalogueOptions from './CatalogueOptions.svelte';
 	import TabItem from './TabItem.svelte';
-	import { writable } from 'svelte/store';
 
 	export let source: MediaSourceDto;
 

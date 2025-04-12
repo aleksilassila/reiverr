@@ -1,22 +1,21 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import { scrollElementIntoView } from '$lib/scroll-into-view';
+	import { scrollIntoView } from '$lib/selectable';
+	import { getScrollContext } from '$lib/stores/scroll.store';
 	import type { EpisodeData } from '$lib/stores/user-data/title-user-data.store';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
+	import { onDestroy } from 'svelte';
+	import type { Readable, Writable } from 'svelte/store';
 	import {
 		tmdbApi,
 		type TmdbEpisode,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull
 	} from '../../../apis/tmdb/tmdb-api';
-	import CardGrid from '../../../components/CardGrid.svelte';
-	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { navigate } from '../../../components/StackRouter/StackRouter';
 	import { Selectable } from '../../../selectable';
-	import { scrollIntoView } from '$lib/selectable';
-	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 
 	const { topVisible } = getScrollContext();
 
@@ -30,23 +29,26 @@
 	export let tmdbSeasons = tmdbSeries.then((series) =>
 		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
 	);
+	export let onSelectEpisode: (season: number, episode: number) => void;
+	export let selectedEpisode: Writable<TmdbSeasonEpisode | undefined>;
 
-	let seasonIndex = 0;
+	let selectedSeason: number | undefined = 1;
 
-	function handleOpenEpisodePage(episode: TmdbSeasonEpisode) {
-		navigate(`/series/${tmdbId}/season/${episode.season_number}/episode/${episode.episode_number}`);
-	}
-
-	function handleMountSeasonButton(s: Selectable, seasonNumber: number) {
-		nextEpisode.subscribe((episode) => {
-			if (episode?.season === seasonNumber) {
-				seasonIndex = seasonNumber - 1;
-				s.focus({ setFocusedElement: false, propagate: false });
-			}
-		});
-	}
-
+	let unsubscribers: (() => void)[] = [];
 	function handleMountCard(s: Selectable, episode: TmdbEpisode) {
+		unsubscribers.push(
+			nextEpisode.subscribe((nextEpisode) => {
+				if (
+					nextEpisode?.season === episode.season_number &&
+					nextEpisode?.episode === episode.episode_number
+				) {
+					s.activate();
+					scrollElementIntoView(s.getHtmlElement()!, { left: 128 });
+					selectedSeason = episode.season_number;
+				}
+			})
+		);
+
 		// currentJellyfinEpisode.then((currentEpisode) => {
 		// 	if (
 		// 		currentEpisode?.IndexNumber === episode.episode_number &&
@@ -56,17 +58,19 @@
 		// 	}
 		// });
 	}
+
+	onDestroy(() => unsubscribers.forEach((unsub) => unsub()));
 </script>
 
 <Container
 	on:enter
-	class={classNames('transition-transform mx-32', {
+	class={classNames('transition-transform', {
 		'-translate-y-16': $topVisible
 	})}
 >
 	{#await Promise.all([tmdbSeries, tmdbSeasons]) then [tmdbSeries, tmdbSeasons]}
-		<UICarousel
-			class={classNames('flex transition-opacity mb-8', {
+		<!-- <UICarousel
+			class={classNames('flex transition-opacity mb-8 mx-32', {
 				'opacity-0': $topVisible
 			})}
 			on:enter={scrollIntoView({ horizontal: 64 })}
@@ -98,24 +102,47 @@
 					</div>
 				</Container>
 			{/each}
-		</UICarousel>
-		<CardGrid orientation="landscape" on:mount>
-			{#each tmdbSeasons?.[seasonIndex]?.episodes || [] as episode}
-				{@const userData = episodesUserData.find(
-					(e) => e.season === episode.season_number && e.episode === episode.episode_number
-				)}
-				{#key episode.id}
-					<TmdbEpisodeCard
-						{episode}
-						series={tmdbSeries}
-						on:mount={(e) => handleMountCard(e.detail, episode)}
-						on:enter={scrollIntoView({ top: 92, bottom: 128 })}
-						isWatched={userData?.watched || false}
-						progress={userData?.progress}
-						on:clickOrSelect={() => handleOpenEpisodePage(episode)}
-					/>
-				{/key}
+		</UICarousel> -->
+		<Carousel
+			scrollClass="px-32"
+			on:mount
+			on:navigate={({ detail }) => {
+				if (detail.willLeaveContainer) {
+					selectedEpisode.set(undefined);
+				}
+			}}
+		>
+			<span
+				slot="header"
+				class={classNames('transition-opacity', {
+					'opacity-0': $topVisible
+				})}
+			>
+				{$selectedEpisode ? `Season ${$selectedEpisode.season_number}` : 'Episodes'}
+			</span>
+			{#each tmdbSeasons as season}
+				{#each season.episodes ?? [] as episode}
+					{@const userData = episodesUserData.find(
+						(e) => e.season === episode.season_number && e.episode === episode.episode_number
+					)}
+					{#key episode.id}
+						<TmdbEpisodeCard
+							{episode}
+							series={tmdbSeries}
+							on:mount={(e) => handleMountCard(e.detail, episode)}
+							on:enter={(e) => {
+								scrollIntoView({ left: 128 })(e);
+								selectedSeason = episode.season_number;
+								selectedEpisode.set(episode);
+							}}
+							isWatched={userData?.watched || false}
+							progress={userData?.progress}
+							on:clickOrSelect={() =>
+								onSelectEpisode(episode?.season_number ?? 1, episode.episode_number ?? 1)}
+						/>
+					{/key}
+				{/each}
 			{/each}
-		</CardGrid>
+		</Carousel>
 	{/await}
 </Container>

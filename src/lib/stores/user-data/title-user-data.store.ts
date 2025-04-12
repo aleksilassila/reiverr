@@ -15,6 +15,7 @@ import type {
 	TmdbItemDto
 } from '../../apis/reiverr/reiverr.openapi';
 import {
+	derviedRequest,
 	episodeUserDataRefresher,
 	libraryRefresher,
 	movieUserDataRefresher,
@@ -200,6 +201,55 @@ export function useSeriesUserData(tmdbId: string) {
 	const isWatched = derived(episodesUserData, (episodes) =>
 		episodes.every((e) => e.watched || e.upcoming)
 	);
+
+	// const episodeData = derviedRequest(
+	// 	[userDataRequest, tmdbSeriesRequest],
+	// 	async ([userData, tmdbSeries]) => {
+	// 		if (!tmdbSeries) return;
+
+	// 		let nextEpisode: EpisodeData | undefined;
+	// 		const episodesData: EpisodeData[] = [];
+
+	// 		let foundNext = false;
+	// 		const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
+	// 		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
+	// 			const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
+	// 			for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
+	// 				const ep = userData?.playStates?.find(
+	// 					(p) => p.season === season && p.episode === episode
+	// 				);
+	// 				const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
+	// 				if (
+	// 					!foundNext &&
+	// 					((lastWatchedPlayState?.season ?? 0) < season ||
+	// 						((lastWatchedPlayState?.season ?? 0) === season &&
+	// 							(lastWatchedPlayState?.episode ?? 0) < episode))
+	// 				) {
+	// 					nextEpisode = {
+	// 						season,
+	// 						episode,
+	// 						progress: ep?.progress ?? 0,
+	// 						watched: ep?.watched ?? false,
+	// 						upcoming
+	// 					};
+	// 					foundNext = true;
+	// 				}
+	// 				episodesData.push({
+	// 					season,
+	// 					episode,
+	// 					watched: ep?.watched ?? false,
+	// 					progress: ep?.progress ?? 0,
+	// 					upcoming
+	// 				});
+	// 			}
+	// 		}
+
+	// 		return {
+	// 			nextEpisode,
+	// 			episodesData
+	// 		};
+	// 	}
+	// );
 
 	derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(([userData, tmdbSeries]) => {
 		if (!tmdbSeries) return;

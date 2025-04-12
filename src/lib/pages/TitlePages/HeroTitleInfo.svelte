@@ -45,6 +45,8 @@
 	{/each}
 </div>
 
-<div class="body line-clamp-4 opacity-75 max-w-4xl mt-4">
-	{overview}
-</div>
+{#if overview}
+	<div class="body line-clamp-4 opacity-75 max-w-4xl mt-4">
+		{overview}
+	</div>
+{/if}

@@ -35,7 +35,10 @@ export function getScrollParent(
 	return node;
 }
 
-export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets = { all: 16 }) => {
+export const scrollElementIntoView = (
+	htmlElement: HTMLElement,
+	offsets: Offsets & { instant?: boolean } = { all: 16 }
+) => {
 	if (offsets.vertical !== undefined) {
 		offsets.top = offsets.vertical;
 		offsets.bottom = offsets.vertical;
@@ -108,7 +111,15 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		}
 
 		if (top !== -1) {
-			smoothScrollTo({ element: verticalParent, top });
+			if (offsets.instant) {
+				verticalParent.scrollTop = top;
+			} else {
+				smoothScrollTo({ element: verticalParent, top });
+			}
+			// verticalParent.scrollTo({
+			// 	top,
+			// 	behavior: scrollBehavior
+			// });
 		}
 	}
 	if (horizontalParent && (offsets.left !== undefined || offsets.right !== undefined)) {
@@ -142,47 +153,66 @@ export const scrollElementIntoView = (htmlElement: HTMLElement, offsets: Offsets
 		}
 
 		if (left !== -1) {
-			smoothScrollTo({ element: horizontalParent, left });
+			if (offsets.instant) {
+				horizontalParent.scrollLeft = left;
+			} else {
+				smoothScrollTo({ element: horizontalParent, left });
+			}
+			// horizontalParent.scrollTo({
+			// 	left,
+			// 	behavior: scrollBehavior
+			// });
 		}
 	}
 };
 
 const easeOutCubic = (t: number, d: number) => --t * t * t + 1;
 const animationHandles: Map<HTMLElement, number> = new Map();
-function smoothScrollTo(options: {
+export function smoothScrollTo(options: {
 	element: HTMLElement;
 	top?: number;
 	left?: number;
 	duration?: number;
 }) {
-	if (options.top === undefined && options.left === undefined) return;
+	requestAnimationFrame(() => {
+		if (options.top === undefined && options.left === undefined) return;
 
-	const { element, top = 0, left = 0 } = options;
+		const { element, top = 0, left = 0 } = options;
 
-	if (animationHandles.has(element)) {
-		cancelAnimationFrame(animationHandles.get(element)!);
-		animationHandles.delete(element);
-	}
-
-	const startY = element.scrollTop;
-	const startX = element.scrollLeft;
-	const yDifference =
-		Math.max(0, Math.min(element.scrollHeight - element.clientHeight, top)) - startY;
-	const xDifference =
-		Math.max(0, Math.min(element.scrollWidth - element.clientWidth, left)) - startX;
-	const startTime = performance.now();
-
-	const d = Math.max(Math.abs(yDifference), Math.abs(xDifference));
-	const duration = options.duration || Math.min(500, Math.max(250, d / 2));
-
-	const animate = () => {
-		const progress = (performance.now() - startTime) / duration;
-		const amount = easeOutCubic(progress, d);
-		element.scrollTo({ top: startY + amount * yDifference, left: startX + amount * xDifference });
-		if (progress < 0.99) {
-			animationHandles.set(element, requestAnimationFrame(animate));
+		if (animationHandles.has(element)) {
+			cancelAnimationFrame(animationHandles.get(element)!);
+			animationHandles.delete(element);
 		}
-	};
 
-	animationHandles.set(element, requestAnimationFrame(animate));
+		const startY = element.scrollTop;
+		const startX = element.scrollLeft;
+		const yDifference =
+			Math.max(0, Math.min(element.scrollHeight - element.clientHeight, top)) - startY;
+		const xDifference =
+			Math.max(0, Math.min(element.scrollWidth - element.clientWidth, left)) - startX;
+		const startTime = performance.now();
+
+		const d = Math.max(Math.abs(yDifference), Math.abs(xDifference));
+		const duration = options.duration || Math.min(500, Math.max(250, d / 2));
+
+		const animate = () => {
+			const progress = (performance.now() - startTime) / duration;
+			const amount = easeOutCubic(progress, d);
+
+			// element.scrollTo({
+			// 	top: startY + amount * yDifference,
+			// 	left: startX + amount * xDifference
+			// });
+
+			element.scrollTop = startY + amount * yDifference;
+			element.scrollLeft = startX + amount * xDifference;
+			// element.style.transform = `translateX(${startX + amount * xDifference}px);`;
+
+			if (progress < 0.99) {
+				animationHandles.set(element, requestAnimationFrame(animate));
+			}
+		};
+
+		animationHandles.set(element, requestAnimationFrame(animate));
+	});
 }

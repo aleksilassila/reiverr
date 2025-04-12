@@ -19,6 +19,7 @@ import {
 	type PersonImagesData,
 	type PersonMovieCreditsData,
 	type PersonTvCreditsData,
+	type TvSeasonAggregateCreditsData,
 	type TvSeriesAggregateCreditsData,
 	type TvSeriesDetailsData,
 	type TvSeriesExternalIdsData,
@@ -217,6 +218,13 @@ export class TmdbApiNew<S> extends TmdbApiGenerated<S> {
 				}
 			)
 			.then((r) => r.data as TmdbSeriesFull);
+
+	getSeasonFull = async (tmdbId: number, season: number) =>
+		this.v3
+			.tvSeasonDetails(tmdbId, season, {
+				append_to_response: 'aggregate_credits'
+			})
+			.then((r) => r.data as TmdbSeasonFull);
 }
 
 export class TmdbApi4New<S> extends TmdbApi4Generated<S> {
@@ -432,6 +440,10 @@ export interface TmdbSeriesFull extends TmdbSeries {
 	aggregate_credits: TvSeriesAggregateCreditsData;
 	external_ids: TvSeriesExternalIdsData;
 	images: TvSeriesImagesData;
+}
+
+export interface TmdbSeasonFull extends TmdbSeason {
+	aggregate_credits?: TvSeasonAggregateCreditsData;
 }
 
 /** @deprecated */

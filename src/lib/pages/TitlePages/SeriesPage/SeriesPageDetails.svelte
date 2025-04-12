@@ -3,6 +3,8 @@
 	import Button from '$lib/components/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
+	import TmdbEpisodeCard from '$lib/components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
@@ -10,19 +12,19 @@
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
-	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
-	import { setScrollContext } from '$lib/stores/scroll.store';
+	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
+	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
+	import classNames from 'classnames';
 	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import type { TitleInfoProperty } from '../HeroTitleInfo';
-	import TitleProperties from '../HeroTitleInfo.svelte';
-	import EpisodeGrid from './EpisodeGrid.svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
-	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
-	import { tmdbApi } from '$lib/stores/user.store';
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
+	import TitleProperties from '../HeroTitleInfo.svelte';
+	import { useEpisodeCarousel } from './episode-carousel';
 
 	const { registrar } = getStackRouterPage();
 
@@ -42,13 +44,21 @@
 	} = seriesUserDataContext.getContext();
 	const { componentStack } = titlePageContext.getContext();
 	const background = getBackgroundPage();
+	const {
+		data: episodes,
+		selectedEpisode,
+		selectedTmdbEpisode,
+		interactionObserver: episodeCardsObserver,
+		...episodeCarousel
+	} = useEpisodeCarousel();
 
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registrar: scrollRegistrar } = setScrollContext();
 
-	const episodeCards = useRegistrar();
+	// const episodeCards = useRegistrar();
 	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];
+	const { topVisible } = getScrollContext();
 
 	$: recommendations = tmdbApi.v3
 		.tvSeriesRecommendations(Number(tmdbId))
@@ -113,95 +123,167 @@
 <ComponentStackContainer>
 	<div class="relative" use:scrollRegistrar>
 		<Container
-			class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
+			class="h-[calc(100vh-4rem)] flex flex-col pt-16 pb-8 px-32"
 			on:enter={scrollIntoView({ top: 0 })}
-			on:navigate={({ detail }) => {
-				if (detail.direction === 'down' && detail.willLeaveContainer) {
-					$episodeCards?.focus();
-					detail.preventNavigation();
-				}
-			}}
 		>
 			<HeroCarousel>
-				{#await $tmdbSeries then series}
-					{#if series}
-						<TitleProperties
-							title={series.name ?? ''}
-							properties={titleProperties}
-							overview={series.overview ?? ''}
-						/>
-					{/if}
-				{/await}
-				<Container
-					direction="horizontal"
-					class="flex mt-8 space-x-4"
-					focusOnMount
-					on:mount={registrar}
-				>
-					<Button
-						action={autoplayStream}
-						secondaryAction={() => openEpisodeMenu($nextEpisode?.season, $nextEpisode?.episode)}
-						disabled={!$autoplayCandidate.candidate}
+				{#if !$topVisible && $selectedTmdbEpisode}
+					<TitleProperties
+						title={$selectedTmdbEpisode.name ?? ''}
+						properties={titleProperties}
+						overview={$selectedTmdbEpisode.overview ?? ''}
+					/>
+				{:else}
+					{#await $tmdbSeries then series}
+						{#if series}
+							<TitleProperties
+								title={series.name ?? ''}
+								properties={titleProperties}
+								overview={series.overview ?? ''}
+							/>
+						{/if}
+					{/await}
+					<Container
+						direction="horizontal"
+						class="flex mt-8 space-x-4"
+						focusOnMount
+						on:mount={registrar}
 					>
-						{#if $nextEpisode?.episode && $nextEpisode?.season}
-							Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
-						{:else}
-							Play
-						{/if}
-						<Play size={19} slot="icon" />
-					</Button>
-
-					{#if trailerId}
 						<Button
-							on:clickOrSelect={() =>
-								trailerId && background?.playYoutubeVideo({ tmdbId, videoId: trailerId })}
+							action={autoplayStream}
+							secondaryAction={() => openEpisodeMenu($nextEpisode?.season, $nextEpisode?.episode)}
+							disabled={!$autoplayCandidate.candidate}
 						>
-							<Video slot="icon" size={19} />
-							Play Trailer
+							{#if $nextEpisode?.episode && $nextEpisode?.season}
+								Play S{$nextEpisode?.season}E{$nextEpisode?.episode}
+							{:else}
+								Play
+							{/if}
+							<Play size={19} slot="icon" />
 						</Button>
-					{/if}
 
-					{#if !$inLibrary}
-						<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
-					{:else}
-						<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
-					{/if}
-
-					<Button action={toggleIsWatched}>
-						{#if $isWatched}
-							Mark as Unwatched
-						{:else}
-							Mark as Watched
+						{#if trailerId}
+							<Button
+								on:clickOrSelect={() =>
+									trailerId && background?.playYoutubeVideo({ tmdbId, videoId: trailerId })}
+							>
+								<Video slot="icon" size={19} />
+								Play Trailer
+							</Button>
 						{/if}
-						<Check slot="icon" size={19} />
-					</Button>
 
-					{#if PLATFORM_WEB}
-						<Button
-							on:clickOrSelect={() =>
-								window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
-						>
-							Open In TMDB
-							<ExternalLink size={19} slot="icon-after" />
+						{#if !$inLibrary}
+							<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+						{:else}
+							<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
+						{/if}
+
+						<Button action={toggleIsWatched}>
+							{#if $isWatched}
+								Mark as Unwatched
+							{:else}
+								Mark as Watched
+							{/if}
+							<Check slot="icon" size={19} />
 						</Button>
-					{/if}
-				</Container>
+
+						{#if PLATFORM_WEB}
+							<Button
+								on:clickOrSelect={() =>
+									window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
+							>
+								Open In TMDB
+								<ExternalLink size={19} slot="icon-after" />
+							</Button>
+						{/if}
+					</Container>
+				{/if}
 			</HeroCarousel>
 		</Container>
 		<div class="relative z-10" style={$visibleStyle}>
-			<EpisodeGrid
+			<!-- <EpisodeCarousel
 				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
 				on:mount={episodeCards.registrar}
 				tmdbId={Number(tmdbId)}
 				tmdbSeries={$tmdbSeries}
 				{nextEpisode}
 				episodesUserData={$episodesUserData}
-			/>
+				onSelectEpisode={openEpisodeMenu}
+				{selectedEpisode}
+			/> -->
+
+			{#await $tmdbSeries then tmdbSeries}
+				{#if $episodes.length}
+					<Carousel
+						scrollClass="px-32"
+						on:enter={scrollIntoView({ bottom: 64 + 32 })}
+						class={classNames('transition-transform', {
+							'-translate-y-6': $topVisible
+						})}
+						hideControls={$topVisible}
+						scrollIndexes
+						on:scrollIndex={({ detail: i }) => {
+							const episode = $episodes[i];
+
+							selectedEpisode.set({
+								season: episode?.season_number ?? 1,
+								episode: episode?.episode_number ?? 1
+							});
+						}}
+					>
+						<span
+							slot="header"
+							class={classNames('transition-opacity', {
+								'opacity-0': $topVisible
+							})}
+						>
+							{$selectedTmdbEpisode ? `Season ${$selectedTmdbEpisode.season_number}` : 'Episodes'}
+						</span>
+
+						{#each $episodes as episode}
+							{@const userData = $episodesUserData.find(
+								(e) => e.season === episode.season_number && e.episode === episode.episode_number
+							)}
+							{#key episode.id}
+								<TmdbEpisodeCard
+									{episode}
+									series={tmdbSeries}
+									on:mount={(e) =>
+										episodeCarousel.onEpisodeMount(
+											e.detail,
+											episode.season_number ?? 1,
+											episode.episode_number ?? 1
+										)}
+									on:enter={(e) => {
+										scrollIntoView({ left: 128 })(e);
+										// selectedEpisode.set({
+										// 	season: episode.season_number ?? 1,
+										// 	episode: episode.episode_number ?? 1
+										// });
+									}}
+									isWatched={userData?.watched || false}
+									progress={userData?.progress}
+									on:clickOrSelect={() =>
+										openEpisodeMenu(episode?.season_number ?? 1, episode.episode_number ?? 1)}
+								/>
+							{/key}
+						{/each}
+						<div use:episodeCardsObserver />
+					</Carousel>
+				{/if}
+			{/await}
+
 			<Container on:enter={scrollIntoView({ top: 0 })} class="pt-8">
 				{#await $tmdbSeries then series}
 					<Carousel scrollClass="px-32" class="mb-8">
-						<div slot="header">Show Cast</div>
-						{#each series?.aggregate_credits?.cast?.slice(0, 15) || [] as credit}
+						<div slot="header">
+							{#if $selectedTmdbEpisode?.season.aggregate_credits}
+								Season {$selectedTmdbEpisode.season_number} Cast
+							{:else}
+								Show Cast
+							{/if}
+						</div>
+						{#each ($selectedTmdbEpisode?.season.aggregate_credits ?? series?.aggregate_credits)?.cast?.slice(0, 15) || [] as credit (credit.id)}
 							<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
 						{/each}
 					</Carousel>
