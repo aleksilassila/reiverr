@@ -47,6 +47,9 @@ export const streamAction = {
   action: 'stream',
   label: 'Stream',
   type: 'action',
+  icon: {
+    type: 'play',
+  },
 } satisfies StreamActionElement;
 
 export class TorrentMediaSourceProvider extends MediaSourceProvider {

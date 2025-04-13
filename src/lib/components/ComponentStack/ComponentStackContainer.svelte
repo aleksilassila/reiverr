@@ -18,10 +18,14 @@
 	disabled={$props.hidden}
 	focusOnMount={!$props.hidden}
 	{trapFocus}
-	class={classNames('fixed inset-0 overflow-x-hidden overflow-y-auto scrollbar-hide', {
-		'z-[21]': hideSidebar,
-		'opacity-0': $props.hidden
-	})}
+	class={classNames(
+		'fixed inset-0 overflow-x-hidden overflow-y-auto scrollbar-hide',
+		{
+			'z-[21]': hideSidebar,
+			'opacity-0': $props.hidden
+		},
+		$$restProps.class
+	)}
 	style="backface-visibility: hidden"
 >
 	<slot />

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 	import {
 		focusGlobalBackground,
@@ -10,7 +11,8 @@
 <HeroContainer>
 	<Container />
 	<Container
-		class="flex flex-col justify-end flex-1 z-10"
+		class={classNames('flex flex-col justify-end flex-1 z-10', $$restProps.class)}
+		on:enter
 		on:click={({ detail: e }) => {
 			if (e.target === e.currentTarget) {
 				toggleFocusGlobalBackground();

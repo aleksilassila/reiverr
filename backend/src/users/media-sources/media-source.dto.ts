@@ -209,6 +209,11 @@ class IconDto {
   size?: 'lg' | 'md' | 'sm';
 }
 
+class StreamActionIconDto extends IconDto {
+  @ApiProperty({ enum: ['play'] })
+  type: 'play';
+}
+
 export class StreamActionElementDto implements StreamActionElement {
   @ApiProperty({ type: 'string', enum: ['action'] })
   type: 'action';
@@ -218,6 +223,9 @@ export class StreamActionElementDto implements StreamActionElement {
 
   @ApiProperty({ type: 'string', enum: ['stream'] })
   action: 'stream';
+
+  @ApiProperty({ type: StreamActionIconDto })
+  icon: StreamActionIconDto;
 
   @ApiProperty({ required: false })
   disabled?: boolean;

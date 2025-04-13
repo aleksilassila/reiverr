@@ -859,6 +859,18 @@ export class Selectable {
 		return this.parent;
 	}
 
+	getChildren() {
+		return this.children;
+	}
+
+	getSibling(index: number) {
+		const parent = this.parent;
+		if (!parent) return undefined;
+		const siblings = parent.getChildren();
+		const selfIndex = siblings.indexOf(this);
+		return siblings[selfIndex + index];
+	}
+
 	getRootParent(): Selectable | undefined {
 		let parent = this.parent;
 		while (parent?.parent) {

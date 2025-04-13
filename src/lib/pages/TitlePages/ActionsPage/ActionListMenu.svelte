@@ -13,17 +13,21 @@
 	export let items: Promise<ViewItem[]>;
 </script>
 
-<ActionsMenuContainer>
+<ActionsMenuContainer class="space-y-4">
 	{#await items}
 		Loading...
 	{:then items}
 		{#each items as item}
-			<Container on:clickOrSelect={item.handleClick} let:hasFocus class="cursor-pointer">
+			<Container on:clickOrSelect={item.handleClick} let:hasFocus>
 				<span
-					class={classNames('text-3xl font-semibold flex items-center', {
-						'text-secondary-400': !hasFocus,
-						'text-primary-100': hasFocus
-					})}
+					class={classNames(
+						'px-8 py-4 rounded-xl',
+						'cursor-pointer text-3xl font-semibold flex justify-between items-center',
+						{
+							'text-secondary-400 border-transparent': !hasFocus,
+							'text-primary-100 bg-primary-200/10 border-primary-400': hasFocus
+						}
+					)}
 				>
 					{capitalize(item.label)}
 					{#if hasFocus}

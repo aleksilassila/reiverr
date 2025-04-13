@@ -74,7 +74,7 @@ export interface ActionElement extends GeneralElementBase {
   // params: Record<string, any>;
 }
 
-export interface -StreamActionElement extends GeneralElementBase {
+export interface StreamActionElement extends GeneralElementBase {
   type: 'action';
 
   /**
@@ -88,6 +88,11 @@ export interface -StreamActionElement extends GeneralElementBase {
    * @example "stream"
    */
   action: 'stream';
+
+  icon: {
+    type: 'play';
+    size?: 'lg' | 'md' | 'sm';
+  };
 
   disabled?: boolean;
 }

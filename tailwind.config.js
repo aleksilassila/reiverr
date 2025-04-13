@@ -52,10 +52,15 @@ export default {
 				timer: {
 					'0%': { width: '0%' },
 					'100%': { width: '100%' }
+				},
+				marquee: {
+					'10%': { transform: 'translateX(0)' },
+					'90%': { transform: 'translateX(100%)' }
 				}
 			},
 			animation: {
-				timer: 'timer 1s linear'
+				timer: 'timer 1s linear',
+				marquee: 'marquee 20s linear infinite'
 			}
 		}
 	},
