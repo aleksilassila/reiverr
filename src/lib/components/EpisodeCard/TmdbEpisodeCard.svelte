@@ -21,4 +21,6 @@
 	on:enter
 	on:mount
 	on:clickOrSelect
+	on:click
+	on:select
 />

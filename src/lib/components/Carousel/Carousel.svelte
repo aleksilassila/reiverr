@@ -4,10 +4,10 @@
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
-	import type { BackEvent } from '../../selectable';
+	import { Selectable, type BackEvent } from '../../selectable';
 	import { get } from 'svelte/store';
 	import { getCardDimensions } from '$lib/utils';
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 	import { smoothScrollTo } from '$lib/scroll-into-view';
 
 	export let hideControls = false;
@@ -19,8 +19,10 @@
 	export let fadeWidth = 6;
 	export let controls = true;
 	export let scrollIndexes = false;
+	export let dragging = false;
 
 	let carousel: HTMLDivElement | undefined;
+	let selectable = new Selectable();
 	let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
 	let scrollIndex = 0;
 	let scrollPastWidth = 0;
@@ -58,15 +60,44 @@
 		}
 	}
 
-	function handleScroll(scrollEvent: Event) {
+	function scrollToIndex(index: number) {
+		const el = carousel;
+		if (!el) return;
+
+		const _childWidth = getCardDimensions({
+			viewportWidth: window.innerWidth,
+			orientation: 'landscape'
+		}).width;
+
+		if (!_childWidth) return;
+
+		const childWidth = _childWidth + 32;
+
+		smoothScrollTo({
+			element: el,
+			left: index * childWidth
+		});
+	}
+
+	let lastScrolled = 0;
+	function handleScroll() {
+		lastScrolled = performance.now();
 		if (!scrollIndexes) return;
-		const el = scrollEvent.currentTarget as HTMLDivElement;
+		const el = carousel;
 		if (!el) return;
 
 		clearTimeout(scrollTimeout);
 
+		console.log('scroll event');
+
 		scrollTimeout = setTimeout(() => {
-			const _childWidth = el.children[0]?.getBoundingClientRect().width;
+			if (isDown) return;
+
+			// const _childWidth = el.children[0]?.getBoundingClientRect().width;
+			const _childWidth = getCardDimensions({
+				viewportWidth: window.innerWidth,
+				orientation: 'landscape'
+			}).width;
 
 			if (!_childWidth) return;
 
@@ -77,7 +108,7 @@
 
 			let newScrollIndex = 0;
 
-			if (scrollLeft < childWidth) {
+			if (scrollLeft < childWidth / 2) {
 				newScrollIndex = 0;
 			} else if (scrollLeft + el.clientWidth > scrollWidth - childWidth) {
 				newScrollIndex = Math.round((scrollWidth - el.clientWidth) / childWidth);
@@ -85,21 +116,106 @@
 				newScrollIndex = Math.round(scrollLeft / childWidth);
 			}
 
-			console.log('scrolling to', newScrollIndex, newScrollIndex * childWidth);
+			console.log(
+				'scrolling to',
+				newScrollIndex,
+				newScrollIndex * childWidth,
+				scrollLeft,
+				childWidth
+			);
 
 			scrollPastWidth = el.clientWidth - childWidth - 32 - 128 - 128;
 
-			// smoothScrollTo({
-			// 	element: el,
-			// 	left: newScrollIndex * childWidth
-			// });
+			if (Math.abs(newScrollIndex * childWidth - scrollLeft) > 5)
+				smoothScrollTo({
+					element: el,
+					left: newScrollIndex * childWidth,
+					cb: () => {
+						// tick().then(() => clearTimeout(scrollTimeout));
+						// requestAnimationFrame(() => clearTimeout(scrollTimeout));
+						console.log('clearing timeout');
+					}
+				});
+
+			selectable.activateChild(newScrollIndex);
 
 			if (newScrollIndex !== scrollIndex) {
 				scrollIndex = newScrollIndex;
 				console.log('scrollIndex', scrollIndex);
 				dispatch('scrollIndex', scrollIndex);
 			}
-		}, 150);
+		}, 200);
+	}
+
+	let startX = 0;
+	let scrollLeft = 0;
+	let movement = 0;
+	let isDown = false;
+	let cancelAnimation: (() => void) | undefined;
+	let captureClick = false;
+
+	function handleMouseDown(e: MouseEvent) {
+		captureClick = false;
+		isDown = true;
+
+		if (!carousel) return;
+		cancelAnimation?.();
+
+		startX = e.pageX - carousel.offsetLeft;
+		scrollLeft = carousel.scrollLeft;
+	}
+
+	function handleMouseUp(e: MouseEvent) {
+		isDown = false;
+
+		if (!carousel) return;
+
+		if (Math.abs(movement) > 4 && lastScrolled + 100 > performance.now()) {
+			const f = (x: number, c = 1) => c * Math.log(x / c + 1);
+
+			cancelAnimation = smoothScrollTo({
+				element: carousel,
+				left: carousel.scrollLeft + (movement > 0 ? 1 : -1) * f(Math.abs(movement) * 50, 200),
+				duration: f(Math.abs(movement) * 50, 200)
+			});
+			handleScroll();
+		}
+
+		movement = 0;
+		lastX = 0;
+	}
+
+	function handleMouseLeave(e: MouseEvent) {
+		isDown = false;
+
+		if (!carousel) return;
+
+		if (Math.abs(movement) > 0 && lastScrolled + 100 > performance.now()) {
+			const f = (x: number, c = 1) => c * Math.log(x / c + 1);
+
+			cancelAnimation = smoothScrollTo({
+				element: carousel,
+				left: carousel.scrollLeft + (movement > 0 ? 1 : -1) * f(Math.abs(movement) * 50, 200),
+				duration: f(Math.abs(movement) * 50, 200)
+			});
+			handleScroll();
+		}
+
+		captureClick = false;
+	}
+
+	let lastX = 0;
+	function handleMouseMove(e: MouseEvent) {
+		if (isDown && carousel) {
+			captureClick = true;
+
+			e.preventDefault();
+			//Move vertcally
+			const x = e.pageX - carousel.offsetLeft;
+			movement = lastX - x;
+			lastX = 0.5 * lastX + 0.5 * x;
+			carousel.scrollLeft = scrollLeft - (x - startX);
+		}
 	}
 </script>
 
@@ -137,6 +253,7 @@
 
 	<div class="relative">
 		<Container
+			{selectable}
 			on:mount
 			direction="horizontal"
 			let:focusIndex
@@ -145,12 +262,25 @@
 			{...$$restProps}
 			on:back={handleOnBack}
 		>
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<div
+				on:mousedown={handleMouseDown}
+				on:mouseup={handleMouseUp}
+				on:mouseleave={handleMouseLeave}
+				on:mousemove={handleMouseMove}
+				on:click|capture={(e) => {
+					if (captureClick) {
+						// console.log('CAPTURED', captureClick);
+						e.stopPropagation();
+						captureClick = false;
+					}
+				}}
 				class={classNames(
 					'flex overflow-x-auto items-center overflow-y-hidden relative scrollbar-hide',
 					'space-x-8 py-4 w-full',
 					{
-						'snap-x snap-mandatory *:snap-start *:scroll-mx-32': !PLATFORM_TV
+						// 'snap-x snap-mandatory *:snap-start *:scroll-mx-32': !PLATFORM_TV,
+						'select-none': true
 					},
 					scrollClass
 				)}
@@ -164,7 +294,7 @@
 					}
 				}}
 			>
-				<slot {focusIndex} />
+				<slot {focusIndex} {selectable} {scrollToIndex} />
 				<div
 					style={scrollIndexes ? `width: ${scrollPastWidth}px; height: 1px; flex-shrink: 0;` : ''}
 				/>

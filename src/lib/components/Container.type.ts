@@ -7,11 +7,13 @@
 // export let focusOnClick = false;
 // export let focusedChild = false;
 
+import type { Selectable } from '$lib/selectable';
 import type { SvelteHTMLElements } from 'svelte/elements';
 
 // export let disabled = false;
 
 export type ContainerProps = SvelteHTMLElements['div'] & {
+	selectable?: Selectable;
 	name?: string;
 	direction?: 'vertical' | 'horizontal' | 'grid';
 	gridCols?: number;

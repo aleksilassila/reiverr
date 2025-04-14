@@ -39,12 +39,15 @@
 	<Container
 		class={classNames(
 			'flex flex-col shrink-0',
-			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable transition-opacity'
+			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable',
+			$$restProps.class
 		)}
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px`}
 		on:clickOrSelect
+		on:click
 		on:enter
 		on:mount
+		on:select
 		bind:hasFocus
 		focusOnClick
 	>

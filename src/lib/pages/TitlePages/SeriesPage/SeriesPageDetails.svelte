@@ -9,7 +9,7 @@
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
-	import { PLATFORM_WEB } from '$lib/constants';
+	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
@@ -18,13 +18,22 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
+	import {
+		Bookmark,
+		Check,
+		ExternalLink,
+		InfoCircled,
+		Minus,
+		Play,
+		Video
+	} from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
+	import AnimateScale from '$lib/components/AnimateScale.svelte';
 
 	const { registrar } = getStackRouterPage();
 
@@ -134,9 +143,27 @@
 				>
 					<TitleProperties
 						title={$selectedTmdbEpisode.name ?? ''}
-						properties={titleProperties}
+						properties={$selectedTmdbEpisode.properties}
 						overview={$selectedTmdbEpisode.overview ?? ''}
 					/>
+
+					{#if !PLATFORM_TV}
+						<div class="flex mt-8 space-x-4">
+							<AnimateScale hasFocus={false}>
+								<button
+									class="h-12 flex-1 flex items-center group font-medium tracking-wide bg-secondary-800 selectable rounded-xl px-6 cursor-pointer"
+									on:click={() =>
+										openEpisodeMenu(
+											$selectedTmdbEpisode?.season_number ?? 1,
+											$selectedTmdbEpisode?.episode_number ?? 1
+										)}
+								>
+									<InfoCircled size={19} slot="icon" class="mr-2" />
+									Details
+								</button>
+							</AnimateScale>
+						</div>
+					{/if}
 				</div>
 			{/if}
 
@@ -144,7 +171,7 @@
 				class={classNames(
 					'flex flex-col pt-16 pb-8 px-32 transition-opacity inset-x-0 bottom-0 absolute',
 					{
-						'opacity-0': !$topVisible && $selectedTmdbEpisode
+						'opacity-0 pointer-events-none': !$topVisible && $selectedTmdbEpisode
 					}
 				)}
 			>
@@ -229,7 +256,7 @@
 				{#if $episodes.length}
 					<Carousel
 						scrollClass="px-32"
-						on:enter={scrollIntoView({ top: 256 + 128 })}
+						on:enter={scrollIntoView({ bottom: 128 + 64 })}
 						class="mb-8"
 						hideControls={$topVisible}
 						scrollIndexes
@@ -242,6 +269,7 @@
 								episode: episode?.episode_number ?? 1
 							});
 						}}
+						let:scrollToIndex
 					>
 						<span
 							slot="header"
@@ -249,10 +277,17 @@
 								// 'opacity-0': $topVisible
 							})}
 						>
-							{$selectedTmdbEpisode ? `Season ${$selectedTmdbEpisode.season_number}` : 'Episodes'}
+							{#if $selectedTmdbEpisode}
+								Season {$selectedTmdbEpisode.season_number}
+								<!-- <div class="text-secondary-400 text-sm">
+									{$selectedTmdbEpisode.season.episodes?.length} Episodes
+								</div> -->
+							{:else}
+								Episodes
+							{/if}
 						</span>
 
-						{#each $episodes as episode}
+						{#each $episodes as episode, i}
 							{@const userData = $episodesUserData.find(
 								(e) => e.season === episode.season_number && e.episode === episode.episode_number
 							)}
@@ -267,7 +302,7 @@
 											episode.episode_number ?? 1
 										)}
 									on:enter={(e) => {
-										scrollIntoView({ left: 128 })(e);
+										scrollToIndex(i);
 										// selectedEpisode.set({
 										// 	season: episode.season_number ?? 1,
 										// 	episode: episode.episode_number ?? 1
@@ -275,8 +310,9 @@
 									}}
 									isWatched={userData?.watched || false}
 									progress={userData?.progress}
-									on:clickOrSelect={() =>
+									on:select={() =>
 										openEpisodeMenu(episode?.season_number ?? 1, episode.episode_number ?? 1)}
+									on:click={() => scrollToIndex(i)}
 								/>
 							{/key}
 						{/each}
@@ -309,7 +345,7 @@
 			{/await}
 			{#await $tmdbSeries then series}
 				<Container
-					class="flex-1 bg-secondary-950 pt-8 px-32"
+					class="flex-1 bg-secondary-950 pt-16 pb-8 px-32"
 					on:enter={scrollIntoView({ bottom: 0 })}
 				>
 					<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
@@ -325,6 +361,12 @@
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
 								<div>{series?.networks?.[0]?.name}</div>
 							</div>
+							{#if series.number_of_seasons}
+								<div class="mb-8">
+									<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Seasons</h2>
+									<div>{series.number_of_seasons}</div>
+								</div>
+							{/if}
 						</div>
 						<div class="flex-1">
 							<div class="mb-8">
@@ -335,6 +377,12 @@
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
 								<div>{series?.last_air_date}</div>
 							</div>
+							{#if series.number_of_episodes}
+								<div class="mb-8">
+									<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Episodes</h2>
+									<div>{series.number_of_episodes}</div>
+								</div>
+							{/if}
 						</div>
 					</div>
 				</Container>

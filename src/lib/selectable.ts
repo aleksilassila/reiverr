@@ -863,6 +863,11 @@ export class Selectable {
 		return this.children;
 	}
 
+	getChild(index: number) {
+		if (index < 0 || index >= this.children.length) return undefined;
+		return this.children[index];
+	}
+
 	getSibling(index: number) {
 		const parent = this.parent;
 		if (!parent) return undefined;

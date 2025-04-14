@@ -8,9 +8,11 @@ import {
 } from '$lib/stores/user-data/title-user-data.store';
 import { tmdbApi } from '$lib/stores/user.store';
 import { derived, get, writable, type Writable } from 'svelte/store';
+import type { TitleInfoProperty } from '../HeroTitleInfo';
+import { formatThousands } from '$lib/utils';
 
 export function useEpisodeCarousel() {
-	const { tmdbSeries, nextEpisode } = seriesUserDataContext.getContext();
+	const { tmdbId, tmdbSeries, nextEpisode } = seriesUserDataContext.getContext();
 	const selectedEpisode: Writable<{ episode: number; season: number } | undefined> =
 		writable(undefined);
 
@@ -27,12 +29,49 @@ export function useEpisodeCarousel() {
 
 	const selectedTmdbEpisode = derived(
 		[selectedEpisode, episodesRequest.data],
-		([selectedEpisode, episodes]) =>
-			episodes.find(
+		([selectedEpisode, episodes]) => {
+			const episode = episodes.find(
 				(e) =>
 					e.season_number === selectedEpisode?.season &&
 					e.episode_number === selectedEpisode?.episode
-			)
+			);
+
+			if (!episode) return undefined;
+
+			const properties: TitleInfoProperty[] = [];
+
+			if (episode.air_date) {
+				const date = new Date(episode.air_date);
+				const dateFormatted = date.toLocaleDateString('en-US', {
+					month: 'long',
+					day: 'numeric',
+					year: 'numeric'
+				});
+
+				properties.push({
+					label:
+						date.getTime() > Date.now() ? `Airs on ${dateFormatted}` : `Aired on ${dateFormatted}`
+				});
+			}
+
+			if (episode.runtime) {
+				properties.push({ label: `${episode.runtime} Minutes` });
+			}
+
+			if (episode?.vote_average) {
+				properties.push({
+					label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
+						episode.vote_count ?? 0
+					)})`,
+					href: `https://www.themoviedb.org/tv/${tmdbId}`
+				});
+			}
+
+			return {
+				...episode,
+				properties
+			};
+		}
 	);
 
 	const unsubscribeNextEpisode = nextEpisode.subscribe((nextEpisode) => {

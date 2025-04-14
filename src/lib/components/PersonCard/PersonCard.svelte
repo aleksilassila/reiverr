@@ -44,6 +44,7 @@
 		<div
 			style={"background-image: url('" + backdropUrl + "')"}
 			class="bg-center bg-cover w-full h-full"
+			draggable="false"
 		/>
 		<div class="p-4">
 			<h2 class="text-sm text-zinc-300 font-medium line-clamp-1">{subtitle}</h2>

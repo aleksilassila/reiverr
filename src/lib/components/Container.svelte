@@ -37,7 +37,9 @@
 
 	export let disabled = false;
 
-	export const selectable = new Selectable(name)
+	export let selectable = new Selectable(name);
+
+	selectable
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
 		.setGridColumns(gridCols)
 		.setTrapFocus(trapFocus)

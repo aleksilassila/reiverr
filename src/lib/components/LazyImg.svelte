@@ -31,6 +31,7 @@
 		on:load={handleLoad}
 		{width}
 		{height}
+		draggable="false"
 	/>
 	<slot />
 </div>

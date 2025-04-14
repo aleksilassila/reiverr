@@ -19,6 +19,7 @@
 		icon?: ComponentType;
 		iconAfter?: ComponentType;
 		iconAbsolute?: ComponentType;
+		selectableDisabled?: boolean;
 	} & ContainerProps;
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
@@ -33,6 +34,7 @@
 	export let icon: $$Props['icon'] = undefined;
 	export let iconAfter: $$Props['iconAfter'] = undefined;
 	export let iconAbsolute: $$Props['iconAbsolute'] = undefined;
+	export let selectableDisabled: Required<$$Props>['selectableDisabled'] = false;
 
 	let actionIsFetching = false;
 	$: _disabled = disabled || actionIsFetching;
@@ -86,6 +88,7 @@
 		on:enter
 		{focusOnMount}
 		{focusedChild}
+		disabled={selectableDisabled}
 	>
 		<div
 			class={classNames({

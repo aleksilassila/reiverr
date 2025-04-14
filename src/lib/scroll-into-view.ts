@@ -173,6 +173,7 @@ export function smoothScrollTo(options: {
 	top?: number;
 	left?: number;
 	duration?: number;
+	cb?: () => void;
 }) {
 	requestAnimationFrame(() => {
 		if (options.top === undefined && options.left === undefined) return;
@@ -210,9 +211,13 @@ export function smoothScrollTo(options: {
 
 			if (progress < 0.99) {
 				animationHandles.set(element, requestAnimationFrame(animate));
+			} else {
+				options.cb?.();
 			}
 		};
 
 		animationHandles.set(element, requestAnimationFrame(animate));
 	});
+
+	return () => cancelAnimationFrame(animationHandles.get(options.element)!);
 }

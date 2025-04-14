@@ -4,8 +4,7 @@
 
 	export let hasFocus: boolean;
 	export let enabled = true;
-	let useTransitions = true;
-	localSettings.subscribe((v) => (useTransitions = v.useCssTransitions));
+	$: useTransitions = $localSettings.useCssTransitions;
 </script>
 
 <div>
