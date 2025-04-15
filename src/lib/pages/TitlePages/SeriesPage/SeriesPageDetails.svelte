@@ -241,17 +241,6 @@
 			</div>
 		</HeroCarousel>
 		<div class="relative z-10" style={$visibleStyle}>
-			<!-- <EpisodeCarousel
-				on:enter={scrollIntoView({ top: -32, bottom: 128 })}
-				on:mount={episodeCards.registrar}
-				tmdbId={Number(tmdbId)}
-				tmdbSeries={$tmdbSeries}
-				{nextEpisode}
-				episodesUserData={$episodesUserData}
-				onSelectEpisode={openEpisodeMenu}
-				{selectedEpisode}
-			/> -->
-
 			{#await $tmdbSeries then tmdbSeries}
 				{#if $episodes.length}
 					<Carousel
@@ -287,7 +276,7 @@
 							{/if}
 						</span>
 
-						{#each $episodes as episode, i}
+						{#each $episodes as episode, i (episode.id)}
 							{@const userData = $episodesUserData.find(
 								(e) => e.season === episode.season_number && e.episode === episode.episode_number
 							)}
@@ -302,7 +291,14 @@
 											episode.episode_number ?? 1
 										)}
 									on:enter={(e) => {
-										scrollToIndex(i);
+										if (PLATFORM_TV) {
+											scrollIntoView({
+												left: 128
+											})(e);
+										} else {
+											scrollToIndex(i);
+										}
+
 										// selectedEpisode.set({
 										// 	season: episode.season_number ?? 1,
 										// 	episode: episode.episode_number ?? 1
@@ -338,7 +334,7 @@
 			{#await recommendations then recommendations}
 				<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
 					<div slot="header">Recommendations</div>
-					{#each recommendations || [] as recommendation}
+					{#each recommendations || [] as recommendation (recommendation.id)}
 						<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
 					{/each}
 				</Carousel>

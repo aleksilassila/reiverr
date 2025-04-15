@@ -81,6 +81,8 @@
 
 	let lastScrolled = 0;
 	function handleScroll() {
+		if (PLATFORM_TV) return;
+
 		lastScrolled = performance.now();
 		if (!scrollIndexes) return;
 		const el = carousel;
@@ -110,10 +112,11 @@
 
 			if (scrollLeft < childWidth / 2) {
 				newScrollIndex = 0;
-			} else if (scrollLeft + el.clientWidth > scrollWidth - childWidth) {
-				newScrollIndex = Math.round((scrollWidth - el.clientWidth) / childWidth);
 			} else {
-				newScrollIndex = Math.round(scrollLeft / childWidth);
+				newScrollIndex = Math.min(
+					Math.round(scrollLeft / childWidth),
+					selectable.getChildren().length - 1
+				);
 			}
 
 			console.log(

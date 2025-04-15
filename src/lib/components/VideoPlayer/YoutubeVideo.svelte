@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
-	import { isUserInactive } from '$lib/stores/user-activity.store';
+	import { userActivity } from '$lib/stores/user-activity.store';
 	import { getVideoZoomLevel } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Cross1, Play } from 'radix-icons-svelte';
@@ -301,7 +301,7 @@
 	{#if PLATFORM_WEB}
 		<FloatingIconButton
 			class={classNames('absolute top-12 right-16 transition-opacity', {
-				'opacity-0': !$hasFocus || $isUserInactive
+				'opacity-0': !$hasFocus || $userActivity
 			})}
 			on:click={() => topBackground.destroyVideo()}
 		>

@@ -7,7 +7,7 @@
 	} from '$lib/components/GlobalBackground/BackgroundStack';
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { localSettings } from '$lib/stores/localstorage.store';
-	import { isUserInactive } from '$lib/stores/user-activity.store';
+	import { userActivity } from '$lib/stores/user-activity.store';
 	import classNames from 'classnames';
 	import { Cross1 } from 'radix-icons-svelte';
 	import { type Readable } from 'svelte/store';
@@ -100,7 +100,7 @@
 						'absolute inset-x-0 bottom-0 z-20 transition-opacity duration-500 flex flex-col justify-end bg-gradient-to-b from-transparent to-secondary-900',
 						{
 							'pointer-events-none': !$hasFocus,
-							'opacity-0': !$hasFocus || $isUserInactive
+							'opacity-0': !$hasFocus || $userActivity
 						}
 					)}
 				>
@@ -115,7 +115,7 @@
 				{#if PLATFORM_WEB}
 					<FloatingIconButton
 						class={classNames('absolute top-12 right-16 transition-opacity', {
-							'opacity-0': !$hasFocus || $isUserInactive
+							'opacity-0': !$hasFocus || $userActivity
 						})}
 						on:click={() => unfocusGlobalBackground()}
 					>

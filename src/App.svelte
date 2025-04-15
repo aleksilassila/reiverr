@@ -1,25 +1,26 @@
 <script lang="ts">
-	import I18n from './lib/components/Lang/I18n.svelte';
-	import { handleKeyboardNavigation } from './lib/selectable';
-	import ModalStack from './lib/components/Modal/ModalStack.svelte';
-	import NavigationDebugger from './lib/components/DebugElements.svelte';
-	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
-	import { stackRouter } from './lib/components/StackRouter/StackRouter';
-	import { onMount } from 'svelte';
+	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
+	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
+	import StackRouterPage from '$lib/components/StackRouter/StackRouterPage.svelte';
+	import { inputMode } from '$lib/stores/input-mode.store';
+	import { userActivity } from '$lib/stores/user-activity.store';
 	import axios from 'axios';
-	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
-	import { createModal } from './lib/components/Modal/modal.store';
+	import { onMount } from 'svelte';
+	import NavigationDebugger from './lib/components/DebugElements.svelte';
 	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
-	import { localSettings } from './lib/stores/localstorage.store';
-	import { isAppInitialized, user } from './lib/stores/user.store';
-	import { sessions } from './lib/stores/session.store';
+	import I18n from './lib/components/Lang/I18n.svelte';
+	import { createModal } from './lib/components/Modal/modal.store';
+	import ModalStack from './lib/components/Modal/ModalStack.svelte';
+	import { createErrorNotification } from './lib/components/Notifications/notification.store';
+	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
+	import { stackRouter } from './lib/components/StackRouter/StackRouter';
+	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
-	import { createErrorNotification } from './lib/components/Notifications/notification.store';
-	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
-	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
-	import StackRouterPage from '$lib/components/StackRouter/StackRouterPage.svelte';
-	import { registerUserActivity } from '$lib/stores/user-activity.store';
+	import { handleKeyboardNavigation } from './lib/selectable';
+	import { localSettings } from './lib/stores/localstorage.store';
+	import { sessions } from './lib/stores/session.store';
+	import { isAppInitialized, user } from './lib/stores/user.store';
 
 	user.subscribe((s) => {
 		console.log('user', s);
@@ -55,6 +56,17 @@
 
 	function handleError(event: any) {
 		createErrorNotification(event?.error?.message ?? 'An error occurred');
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		handleKeyboardNavigation(e);
+		inputMode.handleKeyDown(e);
+		userActivity.registerUserActivity();
+	}
+
+	function handleMouseMove(e: MouseEvent) {
+		inputMode.handleMouseMove(e);
+		userActivity.registerUserActivity();
 	}
 
 	onMount(() => {
@@ -101,9 +113,4 @@
 	on:unhandledrejection={handleError}
 /> -->
 
-<svelte:window
-	on:keydown={handleKeyboardNavigation}
-	on:error={handleError}
-	on:mousemove={registerUserActivity}
-	on:keydown={registerUserActivity}
-/>
+<svelte:window on:mousemove={handleMouseMove} on:keydown={handleKeyDown} on:error={handleError} />
