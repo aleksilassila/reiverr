@@ -31,7 +31,6 @@ export type BackgroundPage = {
 	backgrounds: Background[];
 	index: number;
 	video?: BackgroundVideo;
-	
 
 	setBackgrounds: (items: Background[]) => void;
 	setIndex: (i: number) => void;
@@ -133,6 +132,10 @@ function _createBackgroundPage(
 		destroy
 	};
 	backgroundPagesStack.update((pages) => [...pages, page]);
+	const selectedBackground = derived(
+		backgroundPagesStack,
+		(pages) => pages.find((p) => p === page)?.backgrounds[page.index]
+	);
 
 	function setBackgrounds(unfilteredItems: Background[]) {
 		const items = unfilteredItems.filter((b) => b.backdropUri);
@@ -228,6 +231,7 @@ function _createBackgroundPage(
 	});
 
 	return {
+		subscribe: selectedBackground.subscribe,
 		setBackgrounds,
 		setIndex,
 		nextBackground,

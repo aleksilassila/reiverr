@@ -20,7 +20,7 @@
 		class="absolute inset-0 bg-center bg-cover"
 		class:opacity-0={$visibleTimeout}
 		class:opacity-100={!$visibleTimeout}
-		class:scale-110={!hasFocus && !PLATFORM_TV}
+		class:scale-110={!hasFocus}
 		style={`background-image: url('${TMDB_IMAGES_ORIGINAL}${backdropUri}'); transition: opacity 200ms, transform 200ms;`}
 		in:fade|global={{ duration: 0, delay: TIMEOUT / 2 }}
 		out:fade|global={{ duration: 200 }}

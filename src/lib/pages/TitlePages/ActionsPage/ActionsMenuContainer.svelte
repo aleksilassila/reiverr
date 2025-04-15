@@ -10,7 +10,7 @@
 <ComponentStackContainer trapFocus hideSidebar>
 	<Container
 		class={classNames(
-			'pt-16 px-32 flex flex-col min-h-screen bg-primary-900/50 backdrop-blur-md backdrop-brightness-[0.2] backdrop-saturate-50',
+			'pt-16 px-32 flex flex-col min-h-screen bg-primary-900/50',
 			$$restProps.class
 		)}
 		on:back={({ detail }) => {

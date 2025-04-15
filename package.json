@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "npm run --prefix backend build && vite build --mode production --outDir backend/dist/dist",
-		"build:tizen": "set VITE_PLATFORM=tv&& vite build --mode production --outDir tizen/dist",
+		"build:tizen": "VITE_PLATFORM=tv vite build --mode production --outDir tizen/dist",
 		"preview": "npm run build && npm run --prefix backend start:prod",
 		"preview:tizen": "npm run build:tizen && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
