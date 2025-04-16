@@ -291,13 +291,13 @@
 											episode.episode_number ?? 1
 										)}
 									on:enter={(e) => {
-										if (PLATFORM_TV) {
-											scrollIntoView({
-												left: 128
-											})(e);
-										} else {
-											scrollToIndex(i);
-										}
+										// if (PLATFORM_TV) {
+										// 	scrollIntoView({
+										// 		left: 128
+										// 	})(e);
+										// } else {
+										scrollToIndex(i);
+										// }
 
 										// selectedEpisode.set({
 										// 	season: episode.season_number ?? 1,

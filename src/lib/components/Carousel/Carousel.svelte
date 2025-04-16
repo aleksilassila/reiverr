@@ -73,6 +73,14 @@
 
 		const childWidth = _childWidth + 32;
 
+		scrollPastWidth = el.clientWidth - childWidth - 32 - 128 - 128;
+		console.log('scrollPastWidth', scrollPastWidth, el.clientWidth, childWidth);
+
+		if (scrollIndex !== index) {
+			scrollIndex = index;
+			dispatch('scrollIndex', scrollIndex);
+		}
+
 		smoothScrollTo({
 			element: el,
 			left: index * childWidth
@@ -156,19 +164,11 @@
 	let isDown = false;
 	let cancelAnimation: (() => void) | undefined;
 	let captureClick = false;
-
-	function handleMouseDown(e: MouseEvent) {
-		captureClick = false;
-		isDown = true;
-
-		if (!carousel) return;
-		cancelAnimation?.();
-
-		startX = e.pageX - carousel.offsetLeft;
-		scrollLeft = carousel.scrollLeft;
-	}
+	let unlocked = false;
 
 	function handleMouseUp(e: MouseEvent) {
+		// if (e.button !== 0) return;
+
 		isDown = false;
 
 		if (!carousel) return;
@@ -186,6 +186,20 @@
 
 		movement = 0;
 		lastX = 0;
+	}
+
+	function handleMouseDown(e: MouseEvent) {
+		if (e.button !== 0) return;
+
+		captureClick = false;
+		isDown = true;
+		unlocked = false;
+
+		if (!carousel) return;
+		cancelAnimation?.();
+
+		startX = e.pageX - carousel.offsetLeft;
+		scrollLeft = carousel.scrollLeft;
 	}
 
 	function handleMouseLeave(e: MouseEvent) {
@@ -210,11 +224,18 @@
 	let lastX = 0;
 	function handleMouseMove(e: MouseEvent) {
 		if (isDown && carousel) {
+			const x = e.pageX - carousel.offsetLeft;
+
+			if (Math.abs(x - startX) < 5 && !unlocked) {
+				return;
+			}
+
+			unlocked = true;
+
 			captureClick = true;
 
 			e.preventDefault();
 			//Move vertcally
-			const x = e.pageX - carousel.offsetLeft;
 			movement = lastX - x;
 			lastX = 0.5 * lastX + 0.5 * x;
 			carousel.scrollLeft = scrollLeft - (x - startX);

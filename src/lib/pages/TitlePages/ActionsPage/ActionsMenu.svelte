@@ -66,6 +66,13 @@
 			});
 		}
 
+		views.push({
+			label: 'Mark as watched',
+			handleClick: () => {
+				
+			}
+		})
+
 		return views;
 	}
 

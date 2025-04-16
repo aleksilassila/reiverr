@@ -347,7 +347,10 @@
 					Mode: {import.meta.env.MODE}
 				</div>
 				<div>
-					meta.env: {JSON.stringify(import.meta.env)}
+					Platform: {import.meta.env.VITE_PLATFORM ?? 'web'}
+				</div>
+				<div>
+					meta.env: {JSON.stringify(import.meta.env, null, 2)}
 				</div>
 				User agent: {window?.navigator?.userAgent}
 				<div>Last key code: {lastKeyCode}</div>
