@@ -51,6 +51,23 @@ export const playableDataContext = createStoreContext(
 	{ required: true }
 );
 
+const BREADCRUMBS_CONTEXT = 'actions-page-breadcrumbs';
+export const breadcrumbsContext = createStoreContext(BREADCRUMBS_CONTEXT, (bc: string) => {
+	if (!hasContext(BREADCRUMBS_CONTEXT)) {
+		return {
+			breadcrumbs: [bc]
+		};
+	}
+
+	const { breadcrumbs } = getContext<{
+		breadcrumbs: string[];
+	}>(BREADCRUMBS_CONTEXT);
+
+	return {
+		breadcrumbs: [...breadcrumbs, bc]
+	};
+});
+
 export const mediaSourceContext = createStoreContext('media-source', () =>
 	writable<MediaSourceDto | undefined>(undefined)
 );

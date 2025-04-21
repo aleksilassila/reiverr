@@ -9,19 +9,25 @@
 	import classNames from 'classnames';
 	import Container from '../../../components/Container.svelte';
 	import { reiverrApi } from '$lib/stores/user.store';
-	import { playableDataContext } from '$lib/pages/TitlePages/ActionsPage/actions-page';
+	import {
+		breadcrumbsContext,
+		playableDataContext
+	} from '$lib/pages/TitlePages/ActionsPage/actions-page';
 	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
 	import { DividerHorizontal, Play, TriangleRight } from 'radix-icons-svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import Marquee from '$lib/components/Marquee.svelte';
+	import ActionPageTitle from './ActionPageTitle.svelte';
 
 	type Row = ListWithDetailsViewDto['items'][number];
 
 	export let viewBase: ViewBaseDto;
 	export let source: MediaSourceDto;
+	export let name = '';
 
 	const { tmdbId, season, episode, playStream, handleAction, handleOpenView } =
 		playableDataContext.getContext();
+	if (name) breadcrumbsContext.createContext(name);
 
 	if (viewBase.type !== 'list-with-details') {
 		throw new Error('Invalid view type');
@@ -62,7 +68,7 @@
 	}
 </script>
 
-<ActionsMenuContainer class="h-screen !px-0">
+<ActionsMenuContainer class="h-screen !px-0 [&>*:first-child]:px-32">
 	{#if selectedRow}
 		<!-- <div>
 			<h1>{selectedRow.label}</h1>

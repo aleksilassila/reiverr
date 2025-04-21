@@ -4,6 +4,8 @@
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
+	import ActionPageTitle from './ActionPageTitle.svelte';
+	import { breadcrumbsContext } from './actions-page';
 
 	type ViewItem = {
 		label: string;
@@ -11,6 +13,9 @@
 	};
 
 	export let items: Promise<ViewItem[]>;
+	export let name = '';
+
+	if (name) breadcrumbsContext.createContext(name);
 </script>
 
 <ActionsMenuContainer class="space-y-4">

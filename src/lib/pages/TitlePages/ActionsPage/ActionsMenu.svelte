@@ -4,12 +4,8 @@
 		ViewBaseDto,
 		ViewProviderDto
 	} from '$lib/apis/reiverr/reiverr.openapi';
-	import {
-		getBackgroundPage,
-		topBackground
-	} from '$lib/components/GlobalBackground/BackgroundStack';
-	import LazyImg from '$lib/components/LazyImg.svelte';
-	import { TMDB_BACKDROP_SMALL, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import ListMenu from '$lib/pages/TitlePages/ActionsPage/ListMenu.svelte';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import ActionListMenu from './ActionListMenu.svelte';
@@ -54,7 +50,8 @@
 						}));
 
 						componentStack.create(ActionListMenu, {
-							items: Promise.resolve(items)
+							items: Promise.resolve(items),
+							name: 'Sources'
 						});
 					} else {
 						const viewProvider = providersWithSources[0];
@@ -68,10 +65,8 @@
 
 		views.push({
 			label: 'Mark as watched',
-			handleClick: () => {
-				
-			}
-		})
+			handleClick: () => {}
+		});
 
 		return views;
 	}
@@ -80,7 +75,8 @@
 		if (view.type === 'list-with-details') {
 			componentStack.create(ListMenu, {
 				viewBase: view,
-				source
+				source,
+				name: source.name
 			});
 		}
 	}
@@ -96,7 +92,7 @@
 </script>
 
 <!-- This is because of the limited support for css backdrop blur and performance cost of blurring 4k backdrop -->
-<div class="fixed inset-0 scale-110">
+<div class="fixed inset-0 scale-110 z-[21]">
 	<div
 		class="absolute inset-0 bg-center bg-cover bg-no-repeat blur-md brightness-[0.2] saturate-50"
 		style={$background?.backdropUri
@@ -104,4 +100,4 @@
 			: ''}
 	/>
 </div>
-<ActionListMenu items={views} />
+<ActionListMenu items={views} name={tmdbId} />

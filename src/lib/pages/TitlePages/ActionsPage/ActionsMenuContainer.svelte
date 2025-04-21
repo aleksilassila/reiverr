@@ -1,6 +1,7 @@
 <script>
 	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import ActionPageTitle from '$lib/pages/TitlePages/ActionsPage/ActionPageTitle.svelte';
 	import { titlePageContext } from '$lib/pages/TitlePages/ActionsPage/actions-page';
 	import classNames from 'classnames';
 
@@ -18,6 +19,7 @@
 			detail.stopPropagation();
 		}}
 	>
+		<ActionPageTitle />
 		<slot />
 	</Container>
 </ComponentStackContainer>
