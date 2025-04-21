@@ -34,7 +34,6 @@
 		}))}
 />
 
-<div class="relative">
 	<!-- {#if group}
 		<div class="absolute inset-0 scale-95 translate-y-3.5 opacity-50">
 			<LazyImg src={backdropUrl} class="absolute inset-0 rounded-xl" />
@@ -47,7 +46,7 @@
 			<div class="absolute inset-0 scale-95 translate-y-4 rounded-xl bg-white/10 opacity-25" />
 		</div>
 	{/if} -->
-	<AnimatedSelection hasFocus={$hasFocus}>
+	<AnimatedSelection hasFocus={$hasFocus} class="relative">
 		<Container
 			{...$$restProps}
 			{disabled}
@@ -87,4 +86,3 @@
 			{/if}
 		</Container>
 	</AnimatedSelection>
-</div>

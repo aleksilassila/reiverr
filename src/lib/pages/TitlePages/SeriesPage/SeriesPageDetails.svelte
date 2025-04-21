@@ -135,11 +135,12 @@
 			{#if $selectedTmdbEpisode}
 				<div
 					class={classNames(
-						'flex flex-col pt-16 pb-8 px-32 transition-opacity inset-x-0 bottom-0 absolute',
+						'flex flex-col pt-16 pb-8 px-32 transition-opacity inset-x-0 bottom-0 absolute delay-150',
 						{
 							'opacity-0': $topVisible
 						}
 					)}
+					style="transform: translateZ(0);"
 				>
 					<TitleProperties
 						title={$selectedTmdbEpisode.name ?? ''}
@@ -169,11 +170,12 @@
 
 			<div
 				class={classNames(
-					'flex flex-col pt-16 pb-8 px-32 transition-opacity inset-x-0 bottom-0 absolute',
+					'flex flex-col pt-16 pb-8 px-32 transition-opacity inset-x-0 bottom-0 absolute delay-150',
 					{
 						'opacity-0 pointer-events-none': !$topVisible && $selectedTmdbEpisode
 					}
 				)}
+				style="transform: translateZ(0);"
 			>
 				{#await $tmdbSeries then series}
 					{#if series}

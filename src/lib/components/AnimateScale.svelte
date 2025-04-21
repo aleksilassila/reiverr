@@ -8,10 +8,10 @@
 	$: useTransitions = $localSettings.useCssTransitions;
 </script>
 
-<div>
+<div style="will-change: contents;">
 	<div
 		{...$$restProps}
-		style={useTransitions ? 'transition: transform 200ms;' : ''}
+		style={useTransitions ? 'transition: transform 200ms; ' : ''}
 		class={classNames(
 			'relative',
 			{
