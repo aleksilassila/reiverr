@@ -48,6 +48,8 @@
 		on:enter
 		on:mount
 		on:select
+		on:mouseenter
+		on:mouseleave
 		bind:hasFocus
 		focusOnClick
 	>

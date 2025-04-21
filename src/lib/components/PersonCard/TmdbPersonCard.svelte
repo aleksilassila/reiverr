@@ -13,6 +13,7 @@
 </script>
 
 <PersonCard
+	{...$$restProps}
 	tmdbId={tmdbCredit.id || -1}
 	name={tmdbCredit.name || 'Unknown'}
 	{subtitle}

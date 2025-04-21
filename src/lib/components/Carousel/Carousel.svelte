@@ -19,7 +19,6 @@
 	export let fadeWidth = 6;
 	export let controls = true;
 	export let scrollIndexes = false;
-	export let dragging = false;
 
 	let carousel: HTMLDivElement | undefined;
 	let selectable = new Selectable();
@@ -42,22 +41,10 @@
 	}
 
 	function scrollBy(multiplier: number) {
-		if (!scrollIndexes) {
-			carousel?.scrollBy({
-				left: (carousel?.clientWidth - 2 * 128 + 32) * multiplier,
-				behavior: 'smooth'
-			});
-		} else {
-			const distance = getCardDimensions({
-				viewportWidth: window.innerWidth,
-				orientation: 'landscape'
-			}).width;
-
-			carousel?.scrollBy({
-				left: distance * multiplier,
-				behavior: 'smooth'
-			});
-		}
+		carousel?.scrollBy({
+			left: (carousel?.clientWidth - 2 * 128 + 32) * multiplier,
+			behavior: 'smooth'
+		});
 	}
 
 	function scrollToIndex(index: number) {

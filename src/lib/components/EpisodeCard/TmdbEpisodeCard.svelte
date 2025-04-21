@@ -23,4 +23,6 @@
 	on:clickOrSelect
 	on:click
 	on:select
+	on:mouseenter
+	on:mouseleave
 />

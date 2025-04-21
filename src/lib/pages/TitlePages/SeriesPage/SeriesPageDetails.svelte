@@ -9,8 +9,8 @@
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
-	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
-	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { PLATFORM_WEB } from '$lib/constants';
+	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
@@ -18,22 +18,13 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import {
-		Bookmark,
-		Check,
-		ExternalLink,
-		InfoCircled,
-		Minus,
-		Play,
-		Video
-	} from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
-	import AnimateScale from '$lib/components/AnimateScale.svelte';
 
 	const { registrar } = getStackRouterPage();
 
@@ -58,7 +49,9 @@
 		selectedEpisode,
 		selectedTmdbEpisode,
 		interactionObserver: episodeCardsObserver,
-		...episodeCarousel
+		onEpisodeMount,
+		onEpisodeCardMouseEnter,
+		onEpisodeCardMouseLeave
 	} = useEpisodeCarousel();
 
 	const { visibleStyle } = setUiVisibilityContext();
@@ -148,7 +141,7 @@
 						overview={$selectedTmdbEpisode.overview ?? ''}
 					/>
 
-					{#if !PLATFORM_TV}
+					<!-- {#if !PLATFORM_TV}
 						<div class="flex mt-8 space-x-4">
 							<AnimateScale hasFocus={false}>
 								<button
@@ -164,7 +157,7 @@
 								</button>
 							</AnimateScale>
 						</div>
-					{/if}
+					{/if} -->
 				</div>
 			{/if}
 
@@ -247,7 +240,7 @@
 				{#if $episodes.length}
 					<Carousel
 						scrollClass="px-32"
-						on:enter={scrollIntoView({ bottom: 128 + 64 })}
+						on:enter={scrollIntoView({ bottom: 128 + 32 })}
 						class="mb-8"
 						hideControls={$topVisible}
 						scrollIndexes
@@ -287,7 +280,7 @@
 									{episode}
 									series={tmdbSeries}
 									on:mount={(e) =>
-										episodeCarousel.onEpisodeMount(
+										onEpisodeMount(
 											e.detail,
 											episode.season_number ?? 1,
 											episode.episode_number ?? 1
@@ -306,11 +299,16 @@
 										// 	episode: episode.episode_number ?? 1
 										// });
 									}}
+									on:mouseenter={() =>
+										onEpisodeCardMouseEnter({
+											episode: episode.episode_number ?? 1,
+											season: episode.season_number ?? 1
+										})}
+									on:mouseleave={() => onEpisodeCardMouseLeave()}
 									isWatched={userData?.watched || false}
 									progress={userData?.progress}
-									on:select={() =>
+									on:clickOrSelect={() =>
 										openEpisodeMenu(episode?.season_number ?? 1, episode.episode_number ?? 1)}
-									on:click={() => scrollToIndex(i)}
 								/>
 							{/key}
 						{/each}
@@ -328,8 +326,12 @@
 							Show Cast
 						{/if}
 					</div>
-					{#each ($selectedTmdbEpisode?.season.aggregate_credits ?? series?.aggregate_credits)?.cast?.slice(0, 15) || [] as credit (credit.id)}
-						<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
+					{#each ($selectedTmdbEpisode?.season.aggregate_credits ?? series?.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
+						<TmdbPersonCard
+							on:enter={scrollIntoView({ left: 128 })}
+							tmdbCredit={credit}
+							index={i}
+						/>
 					{/each}
 				</Carousel>
 			{/await}

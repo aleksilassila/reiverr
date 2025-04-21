@@ -138,6 +138,8 @@
 	on:click={handleClick}
 	on:mousemove
 	on:wheel
+	on:mouseenter
+	on:mouseleave
 	tabindex={disabled ? -1 : 0}
 	{...$$restProps}
 	class={classNames($$restProps.class, {

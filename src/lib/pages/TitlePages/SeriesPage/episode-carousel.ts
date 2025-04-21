@@ -1,20 +1,41 @@
-import type { TmdbSeasonEpisode } from '$lib/apis/tmdb/tmdb-api';
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
 import { usePaginatedRequest } from '$lib/stores/data.store';
-import {
-	seriesUserDataContext,
-	type EpisodeData
-} from '$lib/stores/user-data/title-user-data.store';
+import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 import { tmdbApi } from '$lib/stores/user.store';
+import { formatThousands } from '$lib/utils';
 import { derived, get, writable, type Writable } from 'svelte/store';
 import type { TitleInfoProperty } from '../HeroTitleInfo';
-import { formatThousands } from '$lib/utils';
+
+type SelectedEpisode = { episode: number; season: number } | undefined;
+
+function useCardHover(selectedEpisode: Writable<SelectedEpisode>) {
+	let timeout: ReturnType<typeof setTimeout>;
+
+	function onMouseEnter(episode: SelectedEpisode) {
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout(() => {
+			selectedEpisode.set(episode);
+		}, 200);
+	}
+
+	function onMouseLeave() {
+		if (timeout) clearTimeout(timeout);
+		// timeout = setTimeout(() => {
+		// 	selectedEpisode.set(undefined);
+		// }, 200);
+	}
+
+	return {
+		onEpisodeCardMouseEnter: onMouseEnter,
+		onEpisodeCardMouseLeave: onMouseLeave
+	};
+}
 
 export function useEpisodeCarousel() {
 	const { tmdbId, tmdbSeries, nextEpisode } = seriesUserDataContext.getContext();
-	const selectedEpisode: Writable<{ episode: number; season: number } | undefined> =
-		writable(undefined);
+	const selectedEpisode: Writable<SelectedEpisode> = writable(undefined);
+	const cardHover = useCardHover(selectedEpisode);
 
 	const episodesRequest = usePaginatedRequest((p) =>
 		get(tmdbSeries)
@@ -93,6 +114,7 @@ export function useEpisodeCarousel() {
 
 	return {
 		...episodesRequest,
+		...cardHover,
 		onEpisodeMount,
 		selectedEpisode,
 		selectedTmdbEpisode,
