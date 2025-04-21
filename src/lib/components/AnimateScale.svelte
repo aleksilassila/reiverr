@@ -8,20 +8,18 @@
 	$: useTransitions = $localSettings.useCssTransitions;
 </script>
 
-<div style="will-change: contents;">
-	<div
-		{...$$restProps}
-		style={useTransitions ? 'transition: transform 200ms; ' : ''}
-		class={classNames(
-			'relative',
-			{
-				'scale-105': hasFocus && $inputMode,
-				'hover:scale-105': useTransitions && enabled
-				// 'transition-all': enabled
-			},
-			$$restProps.class
-		)}
-	>
-		<slot />
-	</div>
+<div
+	{...$$restProps}
+	style={useTransitions ? 'transition: transform 200ms; ' : ''}
+	class={classNames(
+		'relative',
+		{
+			'scale-105': hasFocus && $inputMode,
+			'hover:scale-105': useTransitions && enabled
+			// 'transition-all': enabled
+		},
+		$$restProps.class
+	)}
+>
+	<slot />
 </div>
