@@ -286,6 +286,7 @@ export function useSeriesUserData(tmdbId: string) {
 				});
 			}
 		}
+
 		episodesUserData.set(episodesData);
 	});
 

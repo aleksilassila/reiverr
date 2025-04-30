@@ -21,7 +21,7 @@
 	};
 
 	const { componentStack } = titlePageContext.getContext();
-	const {} = playableDataContext.createContext({ tmdbId, season, episode });
+	const {  } = playableDataContext.createContext({ tmdbId, season, episode });
 	const background = getBackgroundPage();
 
 	const views = getViews();

@@ -3,9 +3,8 @@
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
-	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
-	import ActionPageTitle from './ActionPageTitle.svelte';
 	import { breadcrumbsContext } from './actions-page';
+	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
 
 	type ViewItem = {
 		label: string;

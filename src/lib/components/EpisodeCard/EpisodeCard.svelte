@@ -137,12 +137,28 @@
 						<Check class="text-secondary-800" size={15} />
 					</div>
 				{/if}
-				<h1 class="text-secondary-100 text-lg font-medium line-clamp-2">{episodeName}</h1>
+				<h1 class="text-secondary-100 text-lg font-medium line-clamp-1">{episodeName}</h1>
 			</div>
-			<h2 class="text-secondary-300 font-medium">Episode {episodeNumber}</h2>
+			<h2 class="text-secondary-300 font-medium">
+				<span>
+					Episode {episodeNumber}
+				</span>
+				•
+				<span>
+					{#if releaseDate > 0 && releaseDate > Date.now()}
+						{new Date(releaseDate).toLocaleDateString('en-US', {
+							weekday: 'short',
+							month: 'short',
+							day: 'numeric'
+						})}
+					{:else if runtime > 0}
+						{runtime} Min
+					{/if}
+				</span>
+			</h2>
 		</div>
-		<div class="self-start">
-			<div class="text-secondary-300 font-medium">
+		<div class="self-end flex-shrink-0 ml-2">
+			<!-- <div class="text-secondary-300 font-medium">
 				{#if releaseDate > 0 && releaseDate > Date.now()}
 					{new Date(releaseDate).toLocaleDateString('en-US', {
 						weekday: 'short',
@@ -152,7 +168,7 @@
 				{:else if runtime > 0}
 					{runtime} Min
 				{/if}
-			</div>
+			</div> -->
 		</div>
 	</div>
 </AnimateScale>

@@ -287,7 +287,7 @@
 					}
 				}}
 				class={classNames(
-					'flex overflow-x-auto items-center overflow-y-hidden relative scrollbar-hide *:will-change-contents',
+					'flex overflow-x-auto overflow-y-hidden relative scrollbar-hide *:will-change-contents',
 					'space-x-8 py-4 w-full',
 					{
 						// 'snap-x snap-mandatory *:snap-start *:scroll-mx-32': !PLATFORM_TV,
