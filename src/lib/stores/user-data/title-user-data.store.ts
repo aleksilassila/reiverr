@@ -1,7 +1,4 @@
-import {
-	getBackgroundPage,
-	type BackgroundPage
-} from '$lib/components/GlobalBackground/BackgroundStack';
+import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
@@ -11,11 +8,9 @@ import { derived, get, writable } from 'svelte/store';
 import type {
 	MediaSourceDto,
 	StreamBaseDto,
-	StreamCandidateDto,
-	TmdbItemDto
+	StreamCandidateDto
 } from '../../apis/reiverr/reiverr.openapi';
 import {
-	derviedRequest,
 	episodeUserDataRefresher,
 	libraryRefresher,
 	movieUserDataRefresher,
@@ -23,9 +18,8 @@ import {
 	useRequest
 } from '../data.store';
 import { reiverrApi, tmdbApi, user } from '../user.store';
-import { useUserLibrary } from './library.store';
 import { useIsWatched } from './is-watched.store';
-import type { ComponentProps } from 'svelte';
+import { useUserLibrary } from './library.store';
 
 export type EpisodeData = {
 	season: number;
@@ -35,6 +29,7 @@ export type EpisodeData = {
 	upcoming: boolean;
 };
 
+/** @deprecated */
 async function getAllStreams(
 	tmdbId: string,
 	season?: number,
@@ -50,6 +45,7 @@ async function getAllStreams(
 	);
 }
 
+/** @deprecated */
 async function getStreams(
 	source: MediaSourceDto,
 	tmdbId: string,
@@ -67,6 +63,7 @@ async function getStreams(
 				.catch((e) => []);
 }
 
+/** @deprecated */
 async function getAutoplayStream(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;
 
@@ -82,16 +79,18 @@ async function getAutoplayStream(options: { tmdbId: string; season?: number; epi
 	};
 }
 
-function usePlayback(options: {
+function useAutoplay(options: {
 	tmdbId: string;
 	season?: number;
 	episode?: number;
-	getVideoProps: () => Promise<
-		Pick<ComponentProps<TmdbVideoPlayer>, 'tmdbId' | 'title'> | undefined
-	>;
+	playStream: (options: {
+		source: MediaSourceDto;
+		streamId: string;
+		season?: number;
+		episode?: number;
+	}) => Promise<void>;
 }) {
-	const { tmdbId, season, episode, getVideoProps } = options;
-	const background = getBackgroundPage();
+	const { tmdbId, season, episode, playStream } = options;
 
 	const autoplayStore = writable<{
 		isLoading: boolean;
@@ -138,34 +137,38 @@ function usePlayback(options: {
 			return;
 		}
 
-		return playStream(source, stream.streamId);
-	}
-
-	async function playStream(source: MediaSourceDto, streamId: string) {
-		const props = await getVideoProps();
-
-		if (!props) {
-			createErrorNotification('Could not find video props');
-			return;
-		}
-
-		background?.setVideo({
-			id: Symbol(),
-			component: TmdbVideoPlayer,
-			props: {
-				...props,
-				streamId,
-				source
-			}
+		return playStream({
+			source,
+			streamId: stream.streamId,
+			season,
+			episode
 		});
-
-		background?.focus();
 	}
+
+	// async function playStream(source: MediaSourceDto, streamId: string) {
+	// 	const props = await getVideoProps({ season, episode });
+
+	// 	if (!props) {
+	// 		createErrorNotification('Could not find video props');
+	// 		return;
+	// 	}
+
+	// 	background?.setVideo({
+	// 		id: Symbol(),
+	// 		component: TmdbVideoPlayer,
+	// 		props: {
+	// 			...props,
+	// 			streamId,
+	// 			source
+	// 		}
+	// 	});
+
+	// 	background?.focus();
+	// }
 
 	return {
 		autoplayCandidate: { subscribe: autoplayStore.subscribe },
-		autoplayStream,
-		playStream
+		autoplayStream
 	};
 }
 
@@ -201,6 +204,7 @@ export function useSeriesUserData(tmdbId: string) {
 	const isWatched = derived(episodesUserData, (episodes) =>
 		episodes.every((e) => e.watched || e.upcoming)
 	);
+	const background = getBackgroundPage();
 
 	// const episodeData = derviedRequest(
 	// 	[userDataRequest, tmdbSeriesRequest],
@@ -290,11 +294,18 @@ export function useSeriesUserData(tmdbId: string) {
 		episodesUserData.set(episodesData);
 	});
 
-	const mediaPlayback = usePlayback({
+	// const mediaPlayback = usePlayback({
+	// 	tmdbId,
+	// 	season: get(nextEpisode)?.season,
+	// 	episode: get(nextEpisode)?.episode,
+	// 	getVideoProps
+	// });
+
+	const autoplay = useAutoplay({
 		tmdbId,
 		season: get(nextEpisode)?.season,
 		episode: get(nextEpisode)?.episode,
-		getVideoProps
+		playStream
 	});
 
 	async function toggleIsWatched() {
@@ -324,9 +335,60 @@ export function useSeriesUserData(tmdbId: string) {
 			});
 	}
 
-	async function getVideoProps() {
+	// /** @deprecated */
+	// async function getVideoProps(options?: { season?: number; episode?: number }) {
+	// 	const tmdbSeriesData = get(tmdbSeriesRequest);
+
+	// 	let episodeData: EpisodeData | undefined;
+	// 	if (options?.season && options?.episode) {
+	// 		episodeData = get(episodesUserData).find(
+	// 			(e) => e.season === options.season && e.episode === options.episode
+	// 		);
+	// 	} else {
+	// 		episodeData = get(nextEpisode);
+	// 	}
+
+	// 	const { season, episode, progress } = episodeData ?? {};
+
+	// 	if (season === undefined || episode === undefined) {
+	// 		createErrorNotification('Could not find next episode');
+	// 		return;
+	// 	}
+
+	// 	const tmdbEpisode = await tmdbApi.v3
+	// 		.tvEpisodeDetails(Number(tmdbId), season, episode)
+	// 		.then((r) => r.data);
+
+	// 	return {
+	// 		tmdbId,
+	// 		season,
+	// 		episode,
+	// 		progress: progress ?? 0,
+	// 		title: tmdbEpisode?.name ?? 'Unknown',
+	// 		subtitle: tmdbSeriesData?.name ?? 'Unknown'
+	// 	};
+	// }
+
+	async function playStream(options: {
+		source: MediaSourceDto;
+		streamId: string;
+		season?: number;
+		episode?: number;
+	}) {
+		const { source, streamId } = options;
+
 		const tmdbSeriesData = get(tmdbSeriesRequest);
-		const { season, episode, progress } = get(nextEpisode) ?? {};
+
+		let episodeData: EpisodeData | undefined;
+		if (options?.season && options?.episode) {
+			episodeData = get(episodesUserData).find(
+				(e) => e.season === options.season && e.episode === options.episode
+			);
+		} else {
+			episodeData = get(nextEpisode);
+		}
+
+		const { season, episode, progress } = episodeData ?? {};
 
 		if (season === undefined || episode === undefined) {
 			createErrorNotification('Could not find next episode');
@@ -337,21 +399,24 @@ export function useSeriesUserData(tmdbId: string) {
 			.tvEpisodeDetails(Number(tmdbId), season, episode)
 			.then((r) => r.data);
 
-		return {
+		return background?.playTmdbVideo({
+			source,
+			streamId,
 			tmdbId,
 			season,
 			episode,
 			progress: progress ?? 0,
 			title: tmdbEpisode?.name ?? 'Unknown',
 			subtitle: tmdbSeriesData?.name ?? 'Unknown'
-		};
+		});
 	}
 
 	return {
 		tmdbId,
 		tmdbSeries: tmdbSeriesRequest.promise,
 		...libraryStore,
-		...mediaPlayback,
+		...autoplay,
+		playStream,
 		nextEpisode,
 		episodesUserData,
 		isWatched,
@@ -471,16 +536,39 @@ export function useMovieUserData(tmdbId: string) {
 		};
 	};
 
-	const mediaPlayback = usePlayback({
+	const autoplay = useAutoplay({
 		tmdbId,
-		getVideoProps
+		playStream
 	});
+
+	async function playStream(options: {
+		source: MediaSourceDto;
+		streamId: string;
+		season?: number;
+		episode?: number;
+	}) {
+		const { source, streamId } = options;
+
+		const tmdbMovieData = get(tmdbMovie);
+
+		return background?.playTmdbVideo({
+			source,
+			streamId,
+			tmdbId,
+			progress: get(progress),
+			title: tmdbMovieData?.title ?? 'Unknown',
+			subtitle: tmdbMovieData?.release_date
+				? String(new Date(tmdbMovieData.release_date).getFullYear())
+				: 'Unknown'
+		});
+	}
 
 	return {
 		tmdbId,
 		...libraryStore,
 		...isWatchedStore,
-		...mediaPlayback,
+		...autoplay,
+		playStream,
 		tmdbMovie: { subscribe: tmdbMovie.promise.subscribe },
 		progress,
 		getVideoProps,

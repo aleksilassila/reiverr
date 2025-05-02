@@ -10,6 +10,8 @@ import {
 } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
+import TmdbVideoPlayer from '../VideoPlayer/TmdbVideoPlayer.svelte';
+import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 
 const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
@@ -206,6 +208,25 @@ function _createBackgroundPage(
 		if (!onBackground) focus();
 	}
 
+	async function playTmdbVideo(props: {
+		source: MediaSourceDto;
+		streamId: string;
+		tmdbId: string;
+		title: string;
+		season?: number;
+		episode?: number;
+		progress: number;
+		subtitle: string;
+	}) {
+		setVideo({
+			id: Symbol(),
+			component: TmdbVideoPlayer,
+			props
+		});
+
+		focus();
+	}
+
 	function focus() {
 		const pages = get(backgroundPagesStack);
 		const topPage = pages[pages.length - 1];
@@ -239,6 +260,7 @@ function _createBackgroundPage(
 		setVideo,
 		destroyVideo,
 		playYoutubeVideo,
+		playTmdbVideo,
 		focus,
 		unfocus,
 		destroy

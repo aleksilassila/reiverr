@@ -12,6 +12,7 @@ import { reiverrApi } from '$lib/stores/user.store';
 import { createStoreContext } from '$lib/utils';
 import { getContext, hasContext } from 'svelte';
 import { writable } from 'svelte/store';
+import ActionsMenu from './ActionsMenu.svelte';
 
 function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;
@@ -41,7 +42,25 @@ function usePlayableDataStore(options: { tmdbId: string; season?: number; episod
 		...options,
 		...titleUserData,
 		handleAction,
-		handleOpenView
+		handleOpenView,
+		playStream: ({ source, streamId }: { source: MediaSourceDto; streamId: string }) =>
+			titleUserData.playStream({ source, streamId, season, episode })
+	};
+}
+
+function useTitlePage() {
+	const componentStack = useComponentStack();
+
+	const openEpisodeMenu = (tmdbId: string, season: number, episode: number) =>
+		componentStack.create(ActionsMenu, {
+			tmdbId,
+			season,
+			episode
+		});
+
+	return {
+		componentStack,
+		openEpisodeMenu
 	};
 }
 
@@ -72,12 +91,6 @@ export const mediaSourceContext = createStoreContext('media-source', () =>
 	writable<MediaSourceDto | undefined>(undefined)
 );
 
-export const titlePageContext = createStoreContext(
-	'title-page',
-	() => ({
-		componentStack: useComponentStack()
-	}),
-	{
-		required: true
-	}
-);
+export const titlePageContext = createStoreContext('title-page', useTitlePage, {
+	required: true
+});

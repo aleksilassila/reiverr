@@ -21,10 +21,29 @@
 	};
 
 	const { componentStack } = titlePageContext.getContext();
-	const {  } = playableDataContext.createContext({ tmdbId, season, episode });
+	const {} = playableDataContext.createContext({ tmdbId, season, episode });
 	const background = getBackgroundPage();
 
 	const views = getViews();
+
+	function getProvidersWithSources(providers: ViewProviderDto[]) {
+		return providers
+			.map((p) => ({
+				...p,
+				source: $user?.mediaSources.find((source) => source.id === p.sourceId) as MediaSourceDto
+			}))
+			.filter((p) => p.source);
+	}
+
+	function createView(source: MediaSourceDto, view: ViewBaseDto) {
+		if (view.type === 'list-with-details') {
+			componentStack.create(ListMenu, {
+				viewBase: view,
+				source,
+				name: source.name
+			});
+		}
+	}
 
 	async function getViews(): Promise<ViewItem[]> {
 		const { viewGroups } = await reiverrApi.sources
@@ -69,25 +88,6 @@
 		});
 
 		return views;
-	}
-
-	function createView(source: MediaSourceDto, view: ViewBaseDto) {
-		if (view.type === 'list-with-details') {
-			componentStack.create(ListMenu, {
-				viewBase: view,
-				source,
-				name: source.name
-			});
-		}
-	}
-
-	function getProvidersWithSources(providers: ViewProviderDto[]) {
-		return providers
-			.map((p) => ({
-				...p,
-				source: $user?.mediaSources.find((source) => source.id === p.sourceId) as MediaSourceDto
-			}))
-			.filter((p) => p.source);
 	}
 </script>
 

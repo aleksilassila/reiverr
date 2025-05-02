@@ -49,7 +49,7 @@
 		const action = row.actions[selectedActionIndex];
 
 		if (action?.type === 'action' && action.action === 'stream') {
-			playStream(source, row.id);
+			playStream({ source: source, streamId: row.id });
 		} else if (action?.type === 'action' && !action.disabled) {
 			handleAction(source, row.id, action.action);
 		} else if (action?.type === 'open-view') {

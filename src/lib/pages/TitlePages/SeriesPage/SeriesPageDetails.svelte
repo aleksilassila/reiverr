@@ -21,13 +21,14 @@
 	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
-	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 
 	const { registrar } = getStackRouterPage();
+	const background = getBackgroundPage();
 
+	const { openEpisodeMenu } = titlePageContext.getContext();
 	const {
 		tmdbId,
 		tmdbSeries,
@@ -42,8 +43,6 @@
 		autoplayStream,
 		unsubscribe
 	} = seriesUserDataContext.getContext();
-	const { componentStack } = titlePageContext.getContext();
-	const background = getBackgroundPage();
 	const {
 		data: episodes,
 		selectedEpisode,
@@ -107,14 +106,6 @@
 	});
 	$: if ($localSettings.autoplayTrailers && trailerId) {
 		background?.playYoutubeVideo({ tmdbId, videoId: trailerId, onBackground: true });
-	}
-
-	function openEpisodeMenu(season: number, episode: number) {
-		componentStack.create(ActionsMenu, {
-			tmdbId,
-			season,
-			episode
-		});
 	}
 
 	onDestroy(() => {
@@ -187,7 +178,8 @@
 				>
 					<Button
 						action={autoplayStream}
-						secondaryAction={() => openEpisodeMenu($nextEpisode?.season, $nextEpisode?.episode)}
+						secondaryAction={() =>
+							openEpisodeMenu(tmdbId, $nextEpisode?.season, $nextEpisode?.episode)}
 						disabled={!$autoplayCandidate.candidate}
 					>
 						{#if $nextEpisode?.episode && $nextEpisode?.season}
@@ -308,7 +300,11 @@
 									isWatched={userData?.watched || false}
 									progress={userData?.progress}
 									on:clickOrSelect={() =>
-										openEpisodeMenu(episode?.season_number ?? 1, episode.episode_number ?? 1)}
+										openEpisodeMenu(
+											tmdbId,
+											episode?.season_number ?? 1,
+											episode.episode_number ?? 1
+										)}
 								/>
 							{/key}
 						{/each}
