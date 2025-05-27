@@ -32,7 +32,7 @@ Content Playback Plugins
   - [Jellyfin plugin](backend/packages/jellyfin.plugin/README.md)
   - [Torrent-Stream plugin](backend/packages/torrent-stream.plugin/README.md) (requires Jackett)
 
-For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
+For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7).
 
 # Installation
 
