@@ -1,0 +1,2 @@
+rootProject.name = "Reiverr Android TV"
+include ':app'

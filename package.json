@@ -10,6 +10,7 @@
 		"dev": "vite",
 		"build": "npm run --prefix backend build && vite build --mode production --outDir backend/dist/dist",
 		"build:tizen": "VITE_PLATFORM=tv vite build --mode production --outDir tizen/dist",
+		"build:androidtv": "VITE_PLATFORM=tv vite build --mode production --outDir android-tv/dist && mkdir -p android-tv/app/src/main/assets && cp -r android-tv/dist/* android-tv/app/src/main/assets/",
 		"preview": "npm run build && npm run --prefix backend start:prod",
 		"preview:tizen": "npm run build:tizen && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
