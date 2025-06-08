@@ -102,9 +102,19 @@ If you have any questions or run into issues or bugs, you can start a [discussio
 
 ## Other Platforms
 
-The roadmap includes plans to support the following platforms in the future:
+### Android TV
 
-- Android TV / WebOS
+Easiest way to install Reiverr on Android TV is to use a provided Docker image to build and install the application. To get started:
+
+1. [Enable ADB debugging on your Android TV](https://developer.android.com/training/tv/start/hardware#usb-debugging) (Settings > Device Preferences > Developer Options)
+2. Obtain your Android TV's IP address
+3. Run `npm run deploy:androidtv <TV_IP>` to build and install the app on your TV
+
+For troubleshooting and more detailed instructions, see [android-tv/README.md](android-tv/README.md) and [android-tv/DOCKER.md](android-tv/DOCKER.md).
+
+### WebOS
+
+The roadmap includes plans to support WebOS in the future.
 
 # Post Installation
 

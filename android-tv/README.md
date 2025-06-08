@@ -2,6 +2,59 @@
 
 This Android TV app packages the Reiverr frontend directly into the APK, similar to the Tizen implementation. The app loads the bundled frontend in a WebView and communicates with your Reiverr backend server.
 
+## Docker Build & Deploy (Recommended)
+
+The easiest way to build and deploy the Android TV app is using Docker, exactly like the Tizen setup:
+
+```bash
+# Build and deploy to your Android TV device (from project root)
+npm run deploy:androidtv <ANDROID_TV_IP>
+
+# Or manually with Docker
+docker build -f ./android-tv/Dockerfile -t reiverr-androidtv .
+docker run --rm reiverr-androidtv <ANDROID_TV_IP>
+
+# Build frontend only (no Docker)
+npm run build:androidtv
+```
+
+### Docker Prerequisites
+- Docker installed on your system
+- Android TV with ADB debugging enabled (Settings > Developer Options)
+- Network access to your Android TV device
+
+### Docker Features
+- ✅ Complete build environment setup (no local Android SDK required)
+- ✅ Automatic frontend building and APK packaging
+- ✅ One-command deployment to Android TV
+- ✅ Consistent builds across different machines
+- ✅ Multi-stage build optimization
+- ✅ **Same workflow as Tizen deployment** (`npm run deploy:tizen` vs `npm run deploy:androidtv`)
+
+### Setup Your Android TV
+1. Enable Developer Options: Settings > About > Build (tap 7 times)
+2. Enable ADB Debugging: Settings > Developer Options > USB/Network debugging
+3. Accept ADB connection prompt when first connecting
+
+### Usage Examples
+```bash
+# Build frontend only (same as Tizen)
+npm run build:androidtv      # Builds frontend to android-tv/dist/
+
+# Deploy to Android TV (same pattern as Tizen)
+npm run deploy:androidtv 192.168.1.100
+
+# Manual Docker workflow
+docker build -f ./android-tv/Dockerfile -t reiverr-androidtv .
+docker run --rm reiverr-androidtv 192.168.1.100
+```
+
+📖 **Detailed Docker documentation**: [DOCKER.md](./DOCKER.md)
+
+## Manual Build & Install (Alternative)
+
+If you prefer to build manually without Docker:
+
 ## Quick Build Verification
 
 To verify your build environment and create the APK in one step:

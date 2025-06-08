@@ -15,6 +15,7 @@
 		"preview:tizen": "npm run build:tizen && vite preview --outDir tizen/dist",
 		"deploy": "PORT=9494 NODE_ENV=production node build/",
 		"deploy:tizen": "docker build -f ./tizen/Dockerfile -t reiverr-tizen . && docker run --rm reiverr-tizen",
+		"deploy:androidtv": "docker build -f ./android-tv/Dockerfile -t reiverr-androidtv . && docker run --rm reiverr-androidtv",
 		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",
 		"test": "playwright test",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
