@@ -5,7 +5,10 @@ import * as torrentStream from 'torrent-stream';
 class FileCache<T> {
   private cache: T;
 
-  constructor(private cacheFile: string, private defaultValue: T) {
+  constructor(
+    private cacheFile: string,
+    private defaultValue: T,
+  ) {
     this.cache = this.readStreamCache();
   }
 
@@ -118,6 +121,9 @@ class EngineCache {
               process.env.TORRENT_STREAM_DOWNLOADS ??
                 'torrent-stream-downloads',
             ),
+      });
+      engine.listen(6141, () => {
+        console.info('Torrent engine listening on port 6141');
       });
       engine.on('ready', () => {
         res(engine);
