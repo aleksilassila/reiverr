@@ -17,9 +17,9 @@
 
 <Container on:enter={scrollIntoView({ vertical: 128 })}>
 	<div class="mb-8">
-		<h1 class="h3 mb-1">Media Soruces</h1>
+		<h1 class="h3 mb-1">Media Sources</h1>
 		<p class="body">
-			External media soruces allow reiverr to play content from different sources. Additional media
+			External media sources allow reiverr to play content from different sources. Additional media
 			sources can be added via external plugins.
 		</p>
 	</div>
