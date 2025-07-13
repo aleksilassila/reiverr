@@ -100,10 +100,17 @@ export class MediaSourcesService {
 
       if (provider) {
         validationResponse = await provider.validateSettings({
-          settings: sourceDto.pluginSettings,
-        });
-        valid = validationResponse.isValid;
+        settings: sourceDto.pluginSettings,
+      });
+      valid = validationResponse.isValid;
+      if (
+        validationResponse.settings &&
+        Object.keys(validationResponse.settings).length > 0
+      ) {
         source.pluginSettings = validationResponse.settings;
+      } else {
+        source.pluginSettings = sourceDto.pluginSettings;
+      }
       } else {
         source.pluginSettings = sourceDto.pluginSettings;
       }
