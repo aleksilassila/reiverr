@@ -29,21 +29,18 @@ import { MetadataService } from 'src/metadata/metadata.service';
 import {
   ActionResponseDto,
   MediaSourceActionBodyDto,
-  PlaybackConfigDto,
   StreamActionResponseDto,
   StreamCandidatesDto,
-  StreamDto,
 } from 'src/source-providers/source-provider.dto';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { User } from 'src/users/user.entity';
-import { MediaSourcesService } from './media-sources.service';
+import { AutoplayResponseDto } from './media-source-responses.dto';
 import {
   MediaSourceViewResponseDto,
-  ViewGroupDto,
   ViewProvidersResponseDto as ViewGroupsResponseDto,
   ViewProviderDto,
 } from './media-source.dto';
-import { AutoplayResponseDto } from './media-source-responses.dto';
+import { MediaSourcesService } from './media-sources.service';
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {

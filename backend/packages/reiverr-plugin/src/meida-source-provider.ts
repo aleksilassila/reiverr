@@ -18,7 +18,6 @@ type PlayableContext = {
 /**
  * MediaSourceProvider is a class that handles all requests for Reiverr users that have configured the plugin as MediaSource. A new MediaSourceProvider is instantiated for each request / function call, and it contains data about the Reiverr user that called the function.
  */
-
 export class MediaSourceProvider extends WithMediaSource {
   /**
    * The access token of the user that can be used to authenticate requests to the backend

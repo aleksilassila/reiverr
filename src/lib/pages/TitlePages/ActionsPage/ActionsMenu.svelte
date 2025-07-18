@@ -6,7 +6,7 @@
 	} from '$lib/apis/reiverr/reiverr.openapi';
 	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
-	import ListMenu from '$lib/pages/TitlePages/ActionsPage/ListMenu.svelte';
+	import ListMenu from '$lib/components/Menu/ListMenu.svelte';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import ActionListMenu from './ActionListMenu.svelte';
 	import { playableDataContext, titlePageContext } from './actions-page';

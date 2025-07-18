@@ -7,17 +7,17 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
-	import Container from '../../../components/Container.svelte';
+	import Container from '../Container.svelte';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import {
 		breadcrumbsContext,
 		playableDataContext
 	} from '$lib/pages/TitlePages/ActionsPage/actions-page';
-	import ActionsMenuContainer from './ActionsMenuContainer.svelte';
+	import ActionsMenuContainer from '../../pages/TitlePages/ActionsPage/ActionsMenuContainer.svelte';
 	import { DividerHorizontal, Play, TriangleRight } from 'radix-icons-svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import Marquee from '$lib/components/Marquee.svelte';
-	import ActionPageTitle from './ActionPageTitle.svelte';
+	import ActionPageTitle from '../../pages/TitlePages/ActionsPage/ActionPageTitle.svelte';
 
 	type Row = ListWithDetailsViewDto['items'][number];
 

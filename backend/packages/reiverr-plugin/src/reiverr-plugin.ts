@@ -1,11 +1,7 @@
 import * as packageJson from '../package.json';
 import { CatalogueProvider } from './catalogue-provider';
 import { MediaSourceProvider } from './meida-source-provider';
-import {
-  SourceProviderSettingsTemplate,
-  UserContext,
-  ValidationResponse,
-} from './types';
+import { SourceProviderSettingsTemplate, ValidationResponse } from './types';
 
 /**
  * ReiverrPlugin is a class that a plugin should default export (or an array of ReiverrPlugins). It contains "static" methods that can be called without Reiverr user context.

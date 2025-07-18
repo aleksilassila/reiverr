@@ -13,6 +13,7 @@ import { createStoreContext } from '$lib/utils';
 import { getContext, hasContext } from 'svelte';
 import { writable } from 'svelte/store';
 import ActionsMenu from './ActionsMenu.svelte';
+import ManageMenu from '../ManageMenu.svelte';
 
 function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;
@@ -58,9 +59,15 @@ function useTitlePage() {
 			episode
 		});
 
+	const openManageSeries = (tmdbId: string) =>
+		componentStack.create(ManageMenu, {
+			tmdbId
+		});
+
 	return {
 		componentStack,
-		openEpisodeMenu
+		openEpisodeMenu,
+		openManageSeries
 	};
 }
 

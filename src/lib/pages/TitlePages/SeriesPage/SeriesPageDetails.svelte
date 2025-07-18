@@ -18,7 +18,7 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Gear, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
@@ -28,7 +28,7 @@
 	const { registrar } = getStackRouterPage();
 	const background = getBackgroundPage();
 
-	const { openEpisodeMenu } = titlePageContext.getContext();
+	const { openEpisodeMenu, openManageSeries } = titlePageContext.getContext();
 	const {
 		tmdbId,
 		tmdbSeries,
@@ -206,13 +206,17 @@
 						<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
 					{/if}
 
-					<Button action={toggleIsWatched}>
+					<!-- <Button action={toggleIsWatched}>
 						{#if $isWatched}
 							Mark as Unwatched
 						{:else}
 							Mark as Watched
 						{/if}
 						<Check slot="icon" size={19} />
+					</Button> -->
+					<Button on:clickOrSelect={() => openManageSeries(tmdbId)}>
+						Manage
+						<Gear slot="icon" size={19} />
 					</Button>
 
 					{#if PLATFORM_WEB}
@@ -232,7 +236,7 @@
 				{#if $episodes.length}
 					<Carousel
 						scrollClass="px-32"
-						on:enter={scrollIntoView({ bottom: 128 + 32 })}
+						on:enter={scrollIntoView({ bottom: 64 })}
 						class="mb-8"
 						hideControls={$topVisible}
 						scrollIndexes

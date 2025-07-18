@@ -1,15 +1,14 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import DynamicListView from '$lib/pages/TitlePages/ActionsPage/ListMenu.svelte';
-	import { createModal } from '$lib/components/Modal/modal.store';
+	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
+	import DynamicListView from '$lib/components/Menu/ListMenu.svelte';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import type { MediaSourceDto, ViewProviderDto } from '../../apis/reiverr/reiverr.openapi';
-	import Modal from '../Modal/Modal.svelte';
 	import { mediaSourceContext } from '../../pages/TitlePages/media-source.context';
-	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
+	import Modal from '../Modal/Modal.svelte';
 
 	type ViewItem = {
 		label: string;
