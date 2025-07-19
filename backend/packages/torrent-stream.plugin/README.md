@@ -6,7 +6,7 @@ When a torrent is selected, it will be downloaded and seeded until a new downloa
 
 Currently only supports direct streaming, meaning that your browser has to support the video container and encoding to be able to play content. For the widest compatibility, use Edge, Safari or Samsung TV.
 
-Furthermore, subtitles are only available on torrents that include extenral subtitles as VTT or SRT files.
+Furthermore, subtitles are only available on torrents that include external subtitles as VTT or SRT files.
 
 ## Configuration
 
