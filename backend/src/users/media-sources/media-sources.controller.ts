@@ -1,4 +1,4 @@
-import { SourceProviderError } from '@aleksilassila/reiverr-plugin';
+import { SourceProviderError } from '@aleksilassila/reiverr-shared';
 import {
   All,
   BadRequestException,

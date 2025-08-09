@@ -10,7 +10,7 @@ import {
   StreamResponse,
   Subtitles,
   UserContext,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import {
   MediaSourceView,
   MediaSourceViews,

@@ -1,0 +1,20 @@
+{
+  "name": "@aleksilassila/reiverr-shared",
+  "version": "4.0.0",
+  "main": "dist/src/index",
+  "types": "./dist/src/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "description": "Shared types and utilities for Reiverr",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
+}

@@ -1,0 +1,261 @@
+import { DeviceProfile } from './device-profile';
+
+export enum SourceProviderError {
+  StreamNotFound = 'StreamNotFound',
+}
+
+export type SourceProviderSetting = {
+  required?: boolean;
+};
+
+export type SourceProviderSettingsLink = SourceProviderSetting & {
+  type: 'link';
+  url: string;
+  label: string;
+};
+
+export type SourceProviderSettingsInput = SourceProviderSetting & {
+  type: 'string' | 'number' | 'boolean' | 'password';
+  label: string;
+  placeholder: string;
+};
+
+export type SourceProviderSettingsTemplate = Record<
+  string,
+  SourceProviderSettingsLink | SourceProviderSettingsInput
+>;
+
+/**
+ * UserContext is used to pass the user-specific configuration to the SourceProvider methods.
+ */
+export type UserContext = {
+  /**
+   * An id unique to each Reiverr user
+   */
+  userId: string;
+
+  /**
+   * The access token of the user that can be used to authenticate requests to the backend
+   * (e.g. proxy requests)
+   */
+  token: string;
+  /**
+   * The id of the MediaSource instance that the user is using to access the SourceProvider
+   */
+  sourceId: string;
+
+  /**
+   * @see SourceProviderSettings
+   */
+  settings: SourceProviderSettings;
+};
+
+/**
+ * The settings/configuration defined in the `SourceProvider` and
+ * provided by the user's MediaSource instance
+ */
+export type SourceProviderSettings = Record<string, any>;
+
+export type ValidationResponse = {
+  isValid: boolean;
+  errors: Record<string, string>;
+  settings: Record<string, any>;
+};
+
+export type AudioStream = {
+  index: number;
+  label: string;
+  codec: string | undefined;
+  bitrate: number | undefined;
+};
+
+export type Quality = {
+  index: number;
+  bitrate: number;
+  label: string;
+  codec: string | undefined;
+  original: boolean;
+};
+
+export type Subtitles = {
+  src: string;
+  lang: string;
+  kind: 'subtitles' | 'captions' | 'descriptions';
+  label: string;
+};
+
+export type StreamProperty = {
+  /**
+   * The label of the property
+   * @example "Resolution"
+   */
+  label: string;
+
+  /**
+   * Used for sorting and filtering, or displayed if `formatted` is not provided.
+   * @example 1080
+   */
+  value: string | number;
+
+  /**
+   * The formatted value of the property
+   * @example "1080p"
+   */
+  formatted: string | undefined;
+};
+
+export type StreamAction = {
+  /**
+   * The label of the action
+   * @example "Play"
+   */
+  label: string;
+
+  /**
+   * The type of the action
+   * @example "play"
+   */
+  type: string;
+
+  // /**
+  //  * The parameters to be passed to the action
+  //  */
+  // params: Record<string, any>;
+};
+
+export type StreamBase = {
+  /**
+   * Unique id for the stream, that can be used to later stream the specific stream.
+   */
+  streamId: string;
+
+  /**
+   * Title of the stream, presented to the user.
+   */
+  title: string;
+
+  /**
+   * A list of properties that are shown to the user in the stream selection UI.
+   */
+  properties: StreamProperty[];
+};
+
+/**
+ * `StreamCandidate` represents a stream that can be played by the user,
+ * and contains all the information that is presented to the user in the
+ * stream selection UI.
+ */
+export type StreamCandidate = StreamBase & {
+  /**
+   * A list of actions that the user can perform on the stream.
+   */
+  actions: StreamAction[];
+};
+
+export type Stream = StreamBase & {
+  src: string;
+  directPlay: boolean;
+  progress: number;
+  duration: number;
+  audioStreams: AudioStream[];
+  audioStreamIndex: number;
+  qualities: Quality[];
+  qualityIndex: number;
+  subtitles: Subtitles[];
+};
+
+export type ActionResponseBase = {
+  toast?: {
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'error';
+  };
+  error?: {
+    message: string;
+  };
+};
+
+export type StreamResponse = ActionResponseBase & {
+  stream?: Stream;
+};
+
+export type ActionResponse = ActionResponseBase & {
+  result?: {
+    success: boolean;
+    message?: string;
+  };
+};
+
+export type PlaybackConfig = {
+  bitrate: number | undefined;
+  audioStreamIndex: number | undefined;
+  progress: number | undefined;
+  deviceProfile: DeviceProfile | undefined;
+  defaultLanguage: string | undefined;
+};
+
+export type CatalogueItem = {
+  tmdbId: string;
+  mediaType: 'movie' | 'series';
+};
+
+export type PaginatedResponse<T> = {
+  total: number;
+  page: number;
+  itemsPerPage: number;
+  items: T[];
+};
+
+export type PaginationParams = {
+  page: number;
+  itemsPerPage: number;
+};
+
+export type DirectionOption = {
+  label: string;
+  value: string;
+};
+
+export type OrderOption = {
+  label: string;
+  value: string;
+  directions: DirectionOption[];
+};
+
+interface Metadata {
+  tmdbId?: string;
+  imdbId?: string;
+  year?: number;
+}
+
+export interface MovieMetadata extends Metadata {
+  title: string;
+  runtime?: number;
+}
+
+export interface EpisodeMetadata extends Metadata {
+  series: string;
+  season: number;
+  episode: number;
+  episodeRuntime?: number;
+  seasonEpisodes?: number;
+}
+
+export type CatalogueCapabilities = {
+  moviesCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  seriesCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  combinedCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+  missingCatalogue: {
+    isSupported: boolean;
+    orderOptions: OrderOption[];
+  };
+};

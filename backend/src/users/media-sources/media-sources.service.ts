@@ -2,7 +2,7 @@ import {
   CatalogueProvider,
   MediaSourceProvider,
   ValidationResponse,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { SourceProvidersService } from 'src/source-providers/source-providers.service';
 import { User } from 'src/users/user.entity';

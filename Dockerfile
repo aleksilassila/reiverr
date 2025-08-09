@@ -53,21 +53,3 @@ RUN ln -s /usr/src/app/config /config
 RUN ln -s /usr/src/app/plugins /plugins
 
 CMD [ "npm", "run", "start:prod" ]
-
-#FROM node:18 as development
-#
-#ENV NODE_ENV=development
-#
-#RUN mkdir -p /usr/src/app
-#WORKDIR /usr/src/app
-#
-#COPY package.json .
-#COPY package-lock.json .
-#
-#RUN npm i
-#
-#RUN mkdir -p ./config
-#
-#RUN ln -s /usr/src/app/config /config
-#
-#CMD [ "npm", "run", "dev" ]

@@ -26,7 +26,7 @@ import {
   ListWithDetailsItem,
   SortableProperty,
   StreamActionElement,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import { ViewBaseDto } from 'src/source-providers/ui.dto';
 
 class CatalogueOrderDirectionOption implements DirectionOption {

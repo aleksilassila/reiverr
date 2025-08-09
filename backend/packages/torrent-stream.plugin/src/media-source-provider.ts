@@ -13,7 +13,7 @@ import {
   Subtitles,
   UserContext,
   ViewBase,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import {
   getEpisodeTorrents,
   getMovieTorrents,

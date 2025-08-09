@@ -5,7 +5,7 @@ import {
   SourceProviderSettings,
   SourceProviderSettingsTemplate,
   ValidationResponse,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import { JellyfinMediaSourceProvider } from './media-source-provider';
 import { JellyfinCatalogueProvider } from './catalogue-provider';
 

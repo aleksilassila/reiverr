@@ -7,7 +7,7 @@ import {
   ProfileCondition,
   SubtitleProfile,
   TranscodingProfile,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 
 export class DirectPlayProfileDto implements DirectPlayProfile {
   @ApiProperty({

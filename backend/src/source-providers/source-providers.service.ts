@@ -1,7 +1,7 @@
 import {
   getReiverrPluginVersion,
   ReiverrPlugin,
-} from '@aleksilassila/reiverr-plugin';
+} from '@aleksilassila/reiverr-shared';
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';

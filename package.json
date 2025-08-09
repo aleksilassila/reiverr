@@ -1,98 +1,40 @@
 {
-	"name": "reiverr",
-	"version": "2.2.0",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/aleksilassila/reiverr"
-	},
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "npm run --prefix backend build && vite build --mode production --outDir backend/dist/dist",
-		"build:tizen": "export VITE_PLATFORM=tv || set VITE_PLATFORM=tv&& vite build --mode production --outDir tizen/dist",
-		"preview": "npm run build && npm run --prefix backend start:prod",
-		"preview:tizen": "npm run build:tizen && vite preview --outDir tizen/dist",
-		"deploy": "PORT=9494 NODE_ENV=production node build/",
-		"deploy:tizen": "docker build -f ./tizen/Dockerfile -t reiverr-tizen . && docker run --rm reiverr-tizen",
-		"deploy:electron": "vite build && electron-builder -mw --x64 --config build.config.json; electron-builder -m --arm64 --config build.config.json",
-		"test": "playwright test",
-		"check": "svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
-		"test:unit": "vitest",
-		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write .",
-		"openapi:update": "npm run --prefix backend generate && npm run openapi:codegen",
-		"openapi:generate:reiverr": "swagger-typescript-api -p \"backend/swagger-spec.json\" -o src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag",
-		"openapi:generate:tmdb": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/64542913e1f86100738e227f\" -o src/lib/apis/tmdb -n tmdb-v3.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApiGenerated",
-		"openapi:generate:tmdb-4": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/6453cc549c91cf004cd2a015\" -o src/lib/apis/tmdb -n tmdb-v4.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApi4Generated"
-	},
-	"devDependencies": {
-		"@jellyfin/sdk": "^0.8.2",
-		"@playwright/test": "^1.28.1",
-		"@sveltejs/vite-plugin-svelte": "^2.4.2",
-		"@tsconfig/svelte": "^5.0.2",
-		"@types/axios": "^0.14.0",
-		"@typescript-eslint/eslint-plugin": "^6.16.0",
-		"@typescript-eslint/parser": "^6.16.0",
-		"@vitejs/plugin-legacy": "^4.1.1",
-		"autoprefixer": "^10.4.16",
-		"axios": "^1.6.2",
-		"classnames": "^2.4.0",
-		"eslint": "^8.56.0",
-		"eslint-config-prettier": "^8.10.0",
-		"eslint-plugin-svelte": "^2.35.1",
-		"hls.js": "^1.4.14",
-		"openapi-fetch": "^0.8.2",
-		"openapi-typescript": "^6.7.5",
-		"postcss": "^8.4.35",
-		"prettier": "^2.8.0",
-		"prettier-plugin-svelte": "^2.10.1",
-		"radix-icons-svelte": "^1.2.1",
-		"reflect-metadata": "^0.1.13",
-		"svelte": "^3.59.2",
-		"svelte-check": "^3.6.2",
-		"svelte-i18n": "^4.0.0",
-		"swagger-typescript-api": "^13.0.23",
-		"tailwind-scrollbar-hide": "^1.1.7",
-		"tailwindcss": "^3.4.17",
-		"terser": "^5.26.0",
-		"tslib": "^2.6.2",
-		"typescript": "^5.2.2",
-		"vite": "^4.5.1",
-		"vite-plugin-singlefile": "^0.13.5",
-		"vitest": "^0.25.3"
-	},
-	"browserslist": {
-		"production": [
-			"supports es6-module"
-		],
-		"development": [
-			"last 1 chrome version",
-			"last 1 firefox version",
-			"last 1 safari version"
-		]
-	},
-	"dependencies": {
-		"gsap": "^3.12.5"
-	},
-	"prettier": {
-		"useTabs": true,
-		"singleQuote": true,
-		"trailingComma": "none",
-		"printWidth": 100,
-		"plugins": [
-			"prettier-plugin-svelte"
-		],
-		"pluginSearchDirs": [
-			"."
-		],
-		"overrides": [
-			{
-				"files": "*.svelte",
-				"options": {
-					"parser": "svelte"
-				}
-			}
-		]
-	}
+  "name": "reiverr-monorepo",
+  "version": "2.2.0",
+  "private": true,
+  "description": "Reiverr - A media server application",
+  "author": "aleksilassila",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aleksilassila/reiverr"
+  },
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "build:shared": "npm run build --workspace=shared",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
+    "start:dev": "npm run start:dev --workspace=backend",
+    "start:prod": "npm run start:prod --workspace=backend",
+    "test": "npm run test --workspace=frontend && npm run test --workspace=backend",
+    "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
+    "format": "npm run format --workspace=frontend && npm run format --workspace=backend",
+    "clean": "npm run clean --workspaces --if-present",
+    "install-all": "npm install",
+    "preview": "npm run preview --workspace=frontend"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
 }
