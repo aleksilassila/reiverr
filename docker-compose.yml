@@ -8,4 +8,4 @@ services:
     image: ghcr.io/aleksilassila/reiverr:latest
     restart: unless-stopped
     volumes:
-      - ./backend/config:/usr/src/app/config
+      - ./backend/config:/config

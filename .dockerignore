@@ -1,10 +1,10 @@
-**/node_modules
-.svelte-kit
-build
 .idea
 .env
 .DS_Store
 .git
+
+./**/node_modules
+./**/dist
 
 backend/plugins
 wireguard

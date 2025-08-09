@@ -1,8 +1,10 @@
 {
-  "name": "jellyfin.plugin",
+  "name": "@aleksilassila/jellyfin.plugin",
   "version": "1.0.0",
-  "main": "src/index",
+  "main": "dist/src/index",
+  "types": "./dist/src/index.d.ts",
   "scripts": {
+    "build": "tsc --noCheck",
     "openapi:generate": "ts-node src/generate-openapi.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,9 +14,11 @@
     "@types/axios": "^0.14.4",
     "axios": "^1.7.8",
     "express-http-proxy": "^2.1.1",
-    "@aleksilassila/reiverr-plugin": "*",
+    "@aleksilassila/reiverr-shared": "*",
     "swagger-typescript-api": "^13.0.23"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
   "description": ""
 }

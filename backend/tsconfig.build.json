@@ -5,7 +5,5 @@
     "test",
     "dist",
     "**/*spec.ts",
-    "packages",
-    "plugins"
   ]
 }

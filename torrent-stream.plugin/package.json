@@ -1,8 +1,10 @@
 {
-  "name": "torrent-stream.plugin",
+  "name": "@aleksilassila/torrent-stream.plugin",
   "version": "1.0.0",
-  "main": "src/index",
+  "main": "dist/src/index",
+  "types": "./dist/src/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "openapi:generate": "ts-node src/generate-openapi.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,13 +15,14 @@
     "axios": "^1.7.8",
     "express-http-proxy": "^2.1.1",
     "fast-xml-parser": "^4.5.1",
-    "@aleksilassila/reiverr-plugin": "*",
+    "@aleksilassila/reiverr-shared": "*",
     "swagger-typescript-api": "^13.0.23",
     "torrent-stream": "^1.2.1"
   },
   "devDependencies": {
     "@types/express-http-proxy": "^1.6.6",
-    "@types/torrent-stream": "^0.0.9"
+    "@types/torrent-stream": "^0.0.9",
+    "typescript": "^5.2.2"
   },
   "description": ""
 }

@@ -31,6 +31,8 @@
     "typeorm:revert-migration": "ts-node ./node_modules/typeorm/cli -d ./dist/data-source.js migration:revert"
   },
   "dependencies": {
+    "@aleksilassila/torrent-stream.plugin": "*",
+    "@aleksilassila/jellyfin.plugin": "*",
     "@aleksilassila/reiverr-shared": "*",
     "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.11",
     "@nestjs/cache-manager": "^2.3.0",

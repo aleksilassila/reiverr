@@ -5,6 +5,8 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { default as jellyfinPlugin } from '@aleksilassila/jellyfin.plugin';
+import { default as torrentStreamPlugin } from '@aleksilassila/torrent-stream.plugin';
 
 @Injectable()
 export class SourceProvidersService {
@@ -17,7 +19,7 @@ export class SourceProvidersService {
     );
 
     this.providers = {
-      ...this.loadPlugins(path.join(require.main.path, '..', '..', 'packages')),
+      // ...this.loadPlugins(path.join(require.main.path, '..', '..', 'packages')),
       ...this.loadPlugins(path.join(require.main.path, '..', '..', 'plugins')),
     };
 
@@ -53,25 +55,35 @@ export class SourceProvidersService {
         const pluginModule = require(pluginPath);
         const providers: ReiverrPlugin | ReiverrPlugin[] = pluginModule.default;
 
-        (Array.isArray(providers) ? providers : [providers]).forEach(
-          (plugin) => {
-            if (plugin._isCompatibleWith(supportedPluginVersion)) {
-              plugins[plugin.name] = plugin;
-            } else {
-              this.logger.warn(
-                `Plugin ${
-                  plugin.name
-                }@${plugin.getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
-              );
-            }
-          },
-        );
+        this.processProviders(providers, plugins);
       } catch (e) {
         this.logger.error(`Failed to load plugin from ${pluginPath}: ${e}`);
       }
     }
 
+    this.processProviders(jellyfinPlugin, plugins);
+    this.processProviders(torrentStreamPlugin, plugins);
+
     return plugins;
+  }
+
+  private processProviders(
+    providers: ReiverrPlugin | ReiverrPlugin[],
+    plugins: Record<string, ReiverrPlugin>,
+  ): void {
+    const supportedPluginVersion = getReiverrPluginVersion();
+
+    (Array.isArray(providers) ? providers : [providers]).forEach((plugin) => {
+      if (plugin._isCompatibleWith(supportedPluginVersion)) {
+        plugins[plugin.name] = plugin;
+      } else {
+        this.logger.warn(
+          `Plugin ${
+            plugin.name
+          }@${plugin.getPluginVersion()} is not compatible with Reiverr plugin API version ${supportedPluginVersion}`,
+        );
+      }
+    });
   }
 
   getPlugin(pluginName: string): ReiverrPlugin | undefined {
