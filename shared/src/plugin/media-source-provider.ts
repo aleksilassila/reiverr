@@ -1,13 +1,13 @@
 import {
-  PlaybackConfig,
   ActionResponse,
-  StreamCandidate,
+  PlaybackConfig,
   Stream,
   StreamBase,
+  StreamCandidate,
   StreamResponse,
-} from './types';
-import { MediaSourceView, MediaSourceViews } from './ui.types';
-import { WithMediaSource } from './with-media-source';
+} from "./types";
+import { MediaSourceView, MediaSourceViews } from "./view";
+import { WithMediaSource } from "./with-media-source";
 
 type PlayableContext = {
   tmdbMovie?: any;
@@ -28,14 +28,14 @@ export class MediaSourceProvider extends WithMediaSource {
   constructor(
     options: ConstructorParameters<typeof WithMediaSource>[0] & {
       token: string;
-    },
+    }
   ) {
     super(options);
     this.token = options.token;
   }
 
   getMeidaSourceViews: (
-    options: PlayableContext,
+    options: PlayableContext
   ) => Promise<{ views: MediaSourceViews }> = async () => ({
     views: [],
   });
@@ -43,11 +43,11 @@ export class MediaSourceProvider extends WithMediaSource {
   getMediaSourceView: (
     options: PlayableContext & {
       id: string;
-    },
+    }
   ) => Promise<{ view?: MediaSourceView }> = async () => ({});
 
   getAutoplayStream: (
-    options: PlayableContext,
+    options: PlayableContext
   ) => Promise<{ candidate?: StreamBase }> = async () => ({});
 
   getStream: (options: {
@@ -65,12 +65,12 @@ export class MediaSourceProvider extends WithMediaSource {
     action: string;
   }) => Promise<ActionResponse> = async () => ({
     toast: {
-      title: 'Not supported',
-      message: 'This action is not supported by this provider.',
-      type: 'error',
+      title: "Not supported",
+      message: "This action is not supported by this provider.",
+      type: "error",
     },
     error: {
-      message: 'Not supported',
+      message: "Not supported",
     },
   });
 

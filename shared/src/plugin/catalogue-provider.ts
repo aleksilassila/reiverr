@@ -1,16 +1,10 @@
 import {
-  SourceProviderSettings,
-  UserContext,
-  StreamCandidate,
-  PlaybackConfig,
-  ActionResponse,
-  OrderOption,
-  PaginationParams,
-  PaginatedResponse,
-  CatalogueItem,
   CatalogueCapabilities,
-} from './types';
-import { WithMediaSource } from './with-media-source';
+  CatalogueItem,
+  PaginatedResponse,
+  PaginationParams,
+} from "./types";
+import { WithMediaSource } from "./with-media-source";
 
 /**
  * MediaSourceProvider is a class that handles all requests for Reiverr users that have configured the plugin as MediaSource. A new MediaSourceProvider is instantiated for each request / function call, and it contains data about the Reiverr user that called the function.
