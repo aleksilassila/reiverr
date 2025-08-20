@@ -1,28 +1,32 @@
-<!-- The purpose of this component is to make contexts available to ComponentStack children. -->
 <script lang="ts">
-	import { getContext, type ComponentProps } from 'svelte';
-	import type { Readable } from 'svelte/store';
-	import Container from '../Container.svelte';
-	import ComponentStackItem from './ComponentStackItem.svelte';
+	import type { ComponentStackStore } from '$lib/stores/component-stack.store';
 	import classNames from 'classnames';
+	import { getContext, setContext } from 'svelte';
+	import Container from '../Container.svelte';
+
+	const componentStackIndex = getContext<number>('component-stack-index');
+	const { top, ...componentStack } = getContext<ComponentStackStore>('component-stack');
+
+	$: nextComponent = $componentStack[componentStackIndex + 1];
+	$: hidden =
+		$top?.group !== $componentStack[componentStackIndex]?.group &&
+		$top?.id !== $componentStack[componentStackIndex]?.id;
 
 	export let trapFocus = false;
 	export let hideSidebar = false;
 
-	const props = getContext<Readable<ComponentProps<ComponentStackItem> & { hidden: boolean }>>(
-		'component-stack-container'
-	);
+	setContext('component-stack-index', componentStackIndex + 1);
 </script>
 
 <Container
-	disabled={$props.hidden}
-	focusOnMount={!$props.hidden}
+	disabled={hidden}
+	focusOnMount={!hidden}
 	{trapFocus}
 	class={classNames(
 		'fixed inset-0 overflow-x-hidden overflow-y-auto scrollbar-hide',
 		{
 			'z-[21]': hideSidebar,
-			'opacity-0': $props.hidden
+			'opacity-0': hidden
 		},
 		$$restProps.class
 	)}
@@ -31,4 +35,8 @@
 	<slot />
 </Container>
 
-<ComponentStackItem {...$props} />
+{#if nextComponent}
+	<svelte:component this={nextComponent.component} {...nextComponent.props} />
+{/if}
+
+<!-- <ComponentStackItem {...$props} /> -->

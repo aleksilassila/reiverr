@@ -1,14 +1,11 @@
 <script lang="ts">
-	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
-	import {
-		createBackgroundPage,
-		topBackground
-	} from '$lib/components/GlobalBackground/BackgroundStack';
+	import ComponentStackProvider from '$lib/components/ComponentStack/ComponentStackProvider.svelte';
+	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { seriesUserDataContext as seriesDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import SeriesPageDetails from './SeriesPageDetails.svelte';
-	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 
 	export let id: string;
 
@@ -16,7 +13,7 @@
 	const { tmdbSeries, unsubscribe } = seriesDataContext.createContext(id);
 	const { componentStack } = titlePageContext.createContext();
 
-	componentStack.create(SeriesPageDetails, {});
+	componentStack.push({ component: SeriesPageDetails, props: {} });
 
 	$tmdbSeries.then((series) => {
 		const backgrounds =
@@ -58,4 +55,4 @@
 	/>
 {/if}
 
-<ComponentStack {componentStack} />
+<ComponentStackProvider {componentStack} />

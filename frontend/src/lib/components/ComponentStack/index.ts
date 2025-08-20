@@ -1,2 +1,2 @@
-export * from './ComponentStack.svelte';
-export * from './ComponentStackContainer2.svelte';
+export * from './ComponentStackProvider.svelte';
+export * from './ComponentStackContainer.svelte';

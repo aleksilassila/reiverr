@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
 	import DynamicListView from '$lib/components/Menu/ListMenu.svelte';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { capitalize } from '$lib/utils';
@@ -9,6 +8,7 @@
 	import type { MediaSourceDto, ViewProviderDto } from '../../apis/reiverr/reiverr.openapi';
 	import { mediaSourceContext } from '../../pages/TitlePages/media-source.context';
 	import Modal from '../Modal/Modal.svelte';
+	import ComponentStackProvider from '../ComponentStack/ComponentStackProvider.svelte';
 
 	type ViewItem = {
 		label: string;
@@ -110,7 +110,7 @@
 				{/each}
 			{/await}
 		{:else}
-			<ComponentStack {componentStack} />
+			<ComponentStackProvider {componentStack} />
 		{/if}
 	</Container>
 </Modal>

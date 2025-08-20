@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
+	import ComponentStackProvider from '$lib/components/ComponentStack/ComponentStackProvider.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import { movieUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { onDestroy } from 'svelte';
@@ -12,7 +12,7 @@
 	const { tmdbMovie, unsubscribe } = movieUserDataContext.createContext(id);
 	const { componentStack } = titlePageContext.createContext();
 
-	componentStack.create(MoviePageDetails, {});
+	componentStack.push({ component: MoviePageDetails, props: {} });
 
 	$tmdbMovie.then(async (movie) => {
 		const backgrounds =
@@ -39,4 +39,4 @@
 	});
 </script>
 
-<ComponentStack {componentStack} />
+<ComponentStackProvider {componentStack} />

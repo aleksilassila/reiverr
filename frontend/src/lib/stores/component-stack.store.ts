@@ -1,4 +1,3 @@
-import { createStoreContext } from '$lib/utils';
 import { type ComponentProps, type ComponentType, type SvelteComponentTyped } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 
@@ -20,7 +19,11 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 	const top = derived(items, ($items) => $items[$items.length - 1]);
 
 	if (initial) {
-		create(initial.component, initial.props, initial.group);
+		push({
+			component: initial.component,
+			props: initial.props,
+			group: initial.group
+		});
 	}
 
 	function close(symbol: symbol) {
@@ -31,11 +34,13 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 		items.update((prev) => prev.filter((i) => i.group !== group));
 	}
 
-	function create<P extends Record<string, unknown>>(
-		component: ComponentType<SvelteComponentTyped<P>>,
-		props: P,
-		group: symbol | undefined = undefined
-	) {
+	function push<P extends Record<string, unknown>>(opts: {
+		component: ComponentType<SvelteComponentTyped<P>>;
+		props: P;
+		group?: symbol;
+	}) {
+		const { component, props, group } = opts;
+
 		const id = Symbol();
 		const item = { id, component, props, group: group || id };
 		items.update((prev) => [...prev, item]);
@@ -58,7 +63,7 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 		top: {
 			subscribe: top.subscribe
 		},
-		create,
+		push,
 		close,
 		closeGroup,
 		closeTopmost,
@@ -66,64 +71,3 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 		reset
 	};
 }
-
-/** @deprecated */
-export type ComponentStackContext = ReturnType<typeof useComponentStackContext>;
-
-/** @deprecated */
-type ContextProvider = ReturnType<ComponentStackContext['getContextProvider']>;
-
-/** @deprecated */
-export function useComponentStackContext() {
-	const contexts: Record<string, { index: number; context: unknown }[]> = {};
-
-	function getContextProvider(index: number) {
-		function setContext<T = any>(key: string, context: T) {
-			if (!contexts[key]) {
-				contexts[key] = [];
-			}
-
-			const prev = contexts[key].find((ctx) => ctx.index === index);
-
-			if (prev) {
-				prev.context = context;
-			} else {
-				contexts[key].push({ index, context });
-			}
-		}
-
-		function hasContext(key: string) {
-			return !!contexts[key];
-		}
-
-		function getContext<T = any>(key: string): T;
-		function getContext(key: string) {
-			const context = contexts[key] || [];
-
-			for (let i = context.length - 1; i >= 0; i--) {
-				const ctx = context[i];
-
-				if (!ctx) continue;
-
-				if (ctx.index <= index) {
-					return ctx.context;
-				}
-			}
-		}
-
-		return {
-			setContext,
-			getContext,
-			hasContext
-		};
-	}
-
-	return { getContextProvider };
-}
-
-/** @deprecated */
-export const componentStackContextProvider = createStoreContext(
-	'component-stack-context',
-	(context: ComponentStackContext, index: number) => context.getContextProvider(index),
-	{ required: true }
-);
