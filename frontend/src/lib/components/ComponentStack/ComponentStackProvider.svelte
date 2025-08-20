@@ -9,6 +9,10 @@
 	setContext('component-stack-index', 0);
 
 	const bottom = derived(componentStack, ($componentStack) => $componentStack[0]);
+	const top = derived(
+		componentStack,
+		($componentStack) => $componentStack[$componentStack.length - 1]
+	);
 </script>
 
 <div class={classNames('relative', $$restProps.class)}>

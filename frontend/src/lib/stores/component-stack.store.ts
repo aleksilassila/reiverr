@@ -6,6 +6,7 @@ export type ComponentPage<T extends SvelteComponentTyped = SvelteComponentTyped>
 	group: symbol;
 	component: ComponentType<T>;
 	props: ComponentProps<T>;
+	preventScroll: boolean;
 };
 
 export type ComponentStackStore = ReturnType<typeof useComponentStack>;
@@ -38,11 +39,18 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 		component: ComponentType<SvelteComponentTyped<P>>;
 		props: P;
 		group?: symbol;
+		preventScroll?: boolean;
 	}) {
-		const { component, props, group } = opts;
+		const { component, props, group, preventScroll } = opts;
 
 		const id = Symbol();
-		const item = { id, component, props, group: group || id };
+		const item = {
+			id,
+			component,
+			props,
+			group: group || id,
+			preventScroll: preventScroll || false
+		};
 		items.update((prev) => [...prev, item]);
 		return id;
 	}
