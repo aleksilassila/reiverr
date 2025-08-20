@@ -67,9 +67,13 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 	};
 }
 
+/** @deprecated */
 export type ComponentStackContext = ReturnType<typeof useComponentStackContext>;
+
+/** @deprecated */
 type ContextProvider = ReturnType<ComponentStackContext['getContextProvider']>;
 
+/** @deprecated */
 export function useComponentStackContext() {
 	const contexts: Record<string, { index: number; context: unknown }[]> = {};
 
@@ -117,6 +121,7 @@ export function useComponentStackContext() {
 	return { getContextProvider };
 }
 
+/** @deprecated */
 export const componentStackContextProvider = createStoreContext(
 	'component-stack-context',
 	(context: ComponentStackContext, index: number) => context.getContextProvider(index),
