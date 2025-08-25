@@ -5,6 +5,7 @@
 	import IconButton from '../FloatingIconButton.svelte';
 	import { Cross1 } from 'radix-icons-svelte';
 	import classNames from 'classnames';
+	import Container from '../Container.svelte';
 
 	export let size: 'sm' | 'md' | 'lg' = 'md';
 	export let showCloseButton: boolean = true;
@@ -18,13 +19,21 @@
 	}
 
 	$: sizeClasses = {
-		'sm': 'max-w-xs w-full',
-		'md': 'max-w-sm w-full',
-		'lg': 'max-w-md w-full'
+		sm: 'max-w-xs w-full',
+		md: 'max-w-sm w-full',
+		lg: 'max-w-md w-full'
 	}[size];
 </script>
 
-<Modal on:close={handleClose} let:close>
+<Container
+	trapFocus
+	focusOnMount
+	class={classNames('fixed inset-0', $$restProps.class)}
+	on:back={({ detail: e }) => {
+		handleClose();
+		e.stopPropagation();
+	}}
+>
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 bg-primary-900/75 flex justify-end"
@@ -58,4 +67,4 @@
 			</div>
 		</div>
 	</div>
-</Modal>
+</Container>

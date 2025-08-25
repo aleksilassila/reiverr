@@ -96,7 +96,7 @@
 	}
 </script>
 
-<Sheet on:close={handleClose} size="md" let:close>
+<Sheet on:close={handleClose} size="md">
 	<div class="space-y-6">
 		<div class="rounded-xl overflow-hidden">
 			<LazyImg src={imgUrl} />
@@ -112,7 +112,7 @@
 				type="primary-dark"
 				action={async () => {
 					await handleStream();
-					close();
+					handleClose();
 				}}
 				let:loading
 			>

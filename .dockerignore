@@ -8,3 +8,5 @@
 
 backend/plugins
 wireguard
+
+./**/torrent-stream-downloads
