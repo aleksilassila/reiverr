@@ -20,6 +20,11 @@
 		}}
 	>
 		<ActionPageTitle />
-		<slot />
+		<div
+			class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
+			style="backface-visibility: hidden"
+		>
+			<slot />
+		</div>
 	</Container>
 </ComponentStackContainer>

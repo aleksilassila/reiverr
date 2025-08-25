@@ -37,10 +37,13 @@ import { User } from 'src/users/user.entity';
 import { AutoplayResponseDto } from './media-source-responses.dto';
 import {
   MediaSourceViewResponseDto,
+  ProviderWithStreamsDto,
   ViewProvidersResponseDto as ViewGroupsResponseDto,
   ViewProviderDto,
 } from './media-source.dto';
 import { MediaSourcesService } from './media-sources.service';
+import { PaginatedResponseDto } from 'src/common/common.dto';
+import { PaginatedApiOkResponse } from 'src/common/common.decorator';
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {
@@ -78,6 +81,66 @@ export class MediaSourcesController {
     private sourceProvidersService: SourceProvidersService,
     private metadataService: MetadataService,
   ) {}
+
+  @Get('candidates')
+  // @ApiOkResponse({
+  //   description: 'TMDB episode media candidates',
+  //   type: ,
+  // })
+  @PaginatedApiOkResponse(ProviderWithStreamsDto)
+  @ApiQuery({ name: 'tmdbId', type: 'string' })
+  @ApiQuery({ name: 'season', type: 'number', required: false })
+  @ApiQuery({ name: 'episode', type: 'number', required: false })
+  async getTmdbEpisodeMedia(
+    @Query('tmdbId') tmdbId: string,
+    @Query('season') season: number,
+    @Query('episode') episode: number,
+    @GetAuthUser() user: User,
+    @GetAuthToken() token: string,
+  ): Promise<PaginatedResponseDto<ProviderWithStreamsDto>> {
+    const context = this.getPlayablePluginContext(tmdbId, season, episode);
+
+    const tmdbSeriesP = this.metadataService.getSeriesByTmdbId(tmdbId);
+    const tmdbEpisodeP = this.metadataService.getEpisodeByTmdbId({
+      tmdbId,
+      season,
+      episode,
+    });
+
+    const providers = await Promise.all(
+      user.mediaSources.map(async (ms) => {
+        const mediaSourceDto =
+          await this.mediaSourcesService.getMediaSourceDto(ms);
+
+        const connection = await this.getConnection({
+          sourceId: ms.id,
+          userId: user.id,
+          token,
+        });
+        const tmdbSeries = await tmdbSeriesP;
+        const tmdbEpisode = await tmdbEpisodeP;
+
+        const { candidates: streams } =
+          await connection.provider.getTmdbEpisodeCandidates?.({
+            tmdbSeries: tmdbSeries.tmdbSeries,
+            tmdbEpisode: tmdbEpisode.tmdbEpisode,
+          });
+
+        return {
+          provider: mediaSourceDto,
+          context,
+          streams,
+        };
+      }),
+    );
+
+    return {
+      items: providers,
+      itemsPerPage: 0,
+      page: 0,
+      total: 0,
+    };
+  }
 
   @Get('views')
   @ApiOkResponse({

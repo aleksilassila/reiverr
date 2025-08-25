@@ -9,7 +9,7 @@
 	import { capitalize } from '$lib/utils';
 	import { Pencil1, Trash } from 'radix-icons-svelte';
 	import { get, writable } from 'svelte/store';
-	import Button from '../../components/Button.svelte';
+	import Button from '../../components/Button/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';
 	import { modalStack } from '../../components/Modal/modal.store';
 	import TextField from '../../components/TextField.svelte';

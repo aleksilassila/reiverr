@@ -273,6 +273,7 @@ export const createBackgroundPage: typeof _createBackgroundPage = (...args) => {
 	return page;
 };
 
+/** @deprecated */
 export function getBackgroundPage() {
 	if (hasContext(BACKGROUND_CONTEXT_KEY)) {
 		return getContext<BackgroundPageStore>(BACKGROUND_CONTEXT_KEY);

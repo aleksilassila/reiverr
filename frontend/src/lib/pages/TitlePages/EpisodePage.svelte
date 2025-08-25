@@ -6,7 +6,7 @@
 	import { useEpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import Button from '../../components/Button.svelte';
+	import Button from '../../components/Button/Button.svelte';
 	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';

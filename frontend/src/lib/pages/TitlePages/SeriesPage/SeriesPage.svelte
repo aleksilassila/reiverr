@@ -2,7 +2,7 @@
 	import ComponentStackProvider from '$lib/components/ComponentStack/ComponentStackProvider.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
-	import { seriesUserDataContext as seriesDataContext } from '$lib/stores/user-data/title-user-data.store';
+	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import SeriesPageDetails from './SeriesPageDetails.svelte';
@@ -10,7 +10,7 @@
 	export let id: string;
 
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
-	const { tmdbSeries, unsubscribe } = seriesDataContext.createContext(id);
+	const { tmdbSeries, unsubscribe } = seriesUserDataContext.createContext(id);
 	const { componentStack } = titlePageContext.createContext();
 
 	componentStack.push({ component: SeriesPageDetails, props: {} });

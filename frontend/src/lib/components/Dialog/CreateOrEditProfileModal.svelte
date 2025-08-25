@@ -5,7 +5,7 @@
 	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user as userStore } from '../../stores/user.store';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
 	import { createModal, modalStack } from '../Modal/modal.store';

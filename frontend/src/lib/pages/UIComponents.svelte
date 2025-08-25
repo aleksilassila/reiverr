@@ -1,6 +1,6 @@
 <script>
 	import Container from '$components/Container.svelte';
-	import Button from '../components/Button.svelte';
+	import Button from '../components/Button/Button.svelte';
 </script>
 
 <div class="flex flex-col items-start m-16">

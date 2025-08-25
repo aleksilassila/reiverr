@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Dialog from '../Dialog/Dialog.svelte';
 	import Container from '../Container.svelte';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import { ArrowRight, Check, Plus, Trash } from 'radix-icons-svelte';
 	import { modalStack } from '../Modal/modal.store';
 	import {

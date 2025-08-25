@@ -6,7 +6,10 @@ import {
   PartialType,
 } from '@nestjs/swagger';
 import { PickAndPartial } from 'src/common/common.dto';
-import { ValidationResponseDto } from 'src/source-providers/source-provider.dto';
+import {
+  StreamCandidateDto,
+  ValidationResponseDto,
+} from 'src/source-providers/source-provider.dto';
 import { MediaSource } from './media-source.entity';
 import {
   CatalogueCapabilities,
@@ -26,6 +29,7 @@ import {
   ListWithDetailsItem,
   SortableProperty,
   StreamActionElement,
+  MediaSourceProvider,
 } from '@aleksilassila/reiverr-shared';
 import { ViewBaseDto } from 'src/source-providers/ui.dto';
 
@@ -440,4 +444,12 @@ export class MediaSourceViewResponseDto {
 
   // @ApiProperty({ required: false, type: ListWithDetailsViewDto })
   // listWithDetailsView?: ListWithDetailsViewDto;
+}
+
+export class ProviderWithStreamsDto {
+  @ApiProperty()
+  provider: MediaSourceDto;
+
+  @ApiProperty({ type: [StreamCandidateDto] })
+  streams: StreamCandidateDto[];
 }

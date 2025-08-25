@@ -278,3 +278,10 @@ export function createStoreContext<
 		useStore: storeCreator
 	};
 }
+
+export function toNonNullable<T>(value: T | null | undefined): NonNullable<T> {
+	if (value == null) {
+		throw new Error('Value is null or undefined');
+	}
+	return value;
+}

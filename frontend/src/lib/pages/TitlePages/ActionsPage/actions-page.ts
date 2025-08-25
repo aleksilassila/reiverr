@@ -3,7 +3,7 @@ import {
 	createErrorNotification,
 	createInfoNotification
 } from '$lib/components/Notifications/notification.store';
-import { useComponentStack } from '$lib/stores/component-stack.store';
+import { componentStackContext, useComponentStack } from '$lib/stores/component-stack.store';
 import {
 	TITLE_USER_DATA_CONTEXT,
 	type TitleUserData
@@ -49,8 +49,9 @@ function usePlayableDataStore(options: { tmdbId: string; season?: number; episod
 	};
 }
 
+/** @deprecated */
 function useTitlePage() {
-	const componentStack = useComponentStack();
+	const componentStack = componentStackContext.createContext();
 
 	const openEpisodeMenu = (tmdbId: string, season: number, episode: number) =>
 		componentStack.create(ActionsMenu, {
@@ -98,6 +99,7 @@ export const mediaSourceContext = createStoreContext('media-source', () =>
 	writable<MediaSourceDto | undefined>(undefined)
 );
 
+/** @deprecated */
 export const titlePageContext = createStoreContext('title-page', useTitlePage, {
 	required: true
 });

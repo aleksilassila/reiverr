@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from '$lib/components/Button.svelte';
+	import Button from '$lib/components/Button/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';

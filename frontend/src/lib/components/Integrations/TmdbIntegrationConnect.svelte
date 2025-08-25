@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
 	import { user } from '../../stores/user.store';

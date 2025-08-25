@@ -5,7 +5,7 @@
 	import { Trash } from 'radix-icons-svelte';
 	import type { FileResource } from '../../../apis/combined-types';
 	import Dialog from '../../../components/Dialog/Dialog.svelte';
-	import Button from '../../../components/Button.svelte';
+	import Button from '../../../components/Button/Button.svelte';
 
 	export let file: FileResource;
 	export let title = '';

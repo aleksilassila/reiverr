@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Container from './Container.svelte';
+	import Container from '../Container.svelte';
 	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
-	import AnimatedSelection from './AnimateScale.svelte';
+	import AnimatedSelection from '../AnimateScale.svelte';
 	import { type ComponentType, createEventDispatcher } from 'svelte';
-	import type { Selectable } from '../selectable';
+	import type { Selectable } from '../../selectable';
 	import { DotsVertical } from 'radix-icons-svelte';
-	import type { ContainerProps } from './Container.type';
+	import type { ContainerProps } from '../Container.type';
 
 	type $$Props = {
 		disabled?: boolean;
@@ -111,7 +111,7 @@
 						<svelte:component this={icon} size={19} />
 					</div>
 				{/if}
-				<slot {hasFocus} />
+				<slot {hasFocus} loading={actionIsFetching} />
 				{#if $$slots['icon-after']}
 					<div class="ml-2">
 						<slot name="icon-after" />

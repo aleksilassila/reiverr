@@ -1,3 +1,4 @@
+import { createStoreContext } from '$lib/utils';
 import { type ComponentProps, type ComponentType, type SvelteComponentTyped } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 
@@ -79,3 +80,7 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 		reset
 	};
 }
+
+export const componentStackContext = createStoreContext('component-stack', useComponentStack, {
+	required: true
+});

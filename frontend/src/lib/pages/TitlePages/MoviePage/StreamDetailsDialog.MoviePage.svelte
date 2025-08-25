@@ -2,7 +2,7 @@
 	import { Play, Trash } from 'radix-icons-svelte';
 	import Container from '$components/Container.svelte';
 	import type { VideoStreamCandidateDto } from '../../../apis/reiverr/reiverr.openapi';
-	import Button from '../../../components/Button.svelte';
+	import Button from '../../../components/Button/Button.svelte';
 	import Dialog from '../../../components/Dialog/Dialog.svelte';
 
 	export let stream: VideoStreamCandidateDto;

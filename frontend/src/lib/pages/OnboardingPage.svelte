@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import Tab from '../components/Tab/Tab.svelte';
-	import Button from '../components/Button.svelte';
+	import Button from '../components/Button/Button.svelte';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { ArrowLeft, ArrowRight, CheckCircled, ExternalLink } from 'radix-icons-svelte';
 	import TextField from '../components/TextField.svelte';

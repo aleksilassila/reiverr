@@ -4,7 +4,7 @@
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView } from '$lib/selectable';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import type { EpisodeData } from '$lib/stores/user-data/title-user-data.store';
+	import type { EpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
@@ -21,8 +21,8 @@
 
 	export let tmdbId: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull | undefined>;
-	export let nextEpisode: Readable<EpisodeData>;
-	export let episodesUserData: EpisodeData[];
+	export let nextEpisode: Readable<EpisodeUserData>;
+	export let episodesUserData: EpisodeUserData[];
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 	// export let handleRequestSeason: (season: number) => Promise<any>;

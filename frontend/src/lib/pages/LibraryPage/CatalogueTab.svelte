@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MediaSourceDto, OrderOptionDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import Button from '$lib/components/Button.svelte';
+	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';

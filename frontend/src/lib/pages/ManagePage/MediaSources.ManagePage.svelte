@@ -4,7 +4,7 @@
 	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { sources } from '$lib/stores/sources.store';
-	import Button from '../../components/Button.svelte';
+	import Button from '../../components/Button/Button.svelte';
 	import SelectDialog from '../../components/Dialog/SelectDialog.svelte';
 	import { createModal } from '../../components/Modal/modal.store';
 	import { reiverrApi } from '../../stores/user.store';

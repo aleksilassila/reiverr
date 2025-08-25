@@ -1,3 +1,4 @@
+import type { TmdbSeriesFull } from '$lib/apis/tmdb/tmdb-api';
 import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
@@ -7,6 +8,7 @@ import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import type {
 	MediaSourceDto,
+	SeriesUserDataDto,
 	StreamBaseDto,
 	StreamCandidateDto
 } from '../../apis/reiverr/reiverr.openapi';
@@ -21,7 +23,7 @@ import { reiverrApi, tmdbApi, user } from '../user.store';
 import { useIsWatched } from './is-watched.store';
 import { useUserLibrary } from './library.store';
 
-export type EpisodeData = {
+export type EpisodeUserData = {
 	season: number;
 	episode: number;
 	watched: boolean;
@@ -180,6 +182,51 @@ function useCanStream() {
 	};
 }
 
+function createEpisodesUserData(opts: {
+	seriesUserData?: SeriesUserDataDto;
+	tmdbSeries: TmdbSeriesFull;
+}) {
+	const { seriesUserData, tmdbSeries } = opts;
+
+	let nextEpisodeData: EpisodeUserData | undefined;
+	const episodesData: EpisodeUserData[] = [];
+	let foundNext = false;
+	const lastWatchedPlayState = seriesUserData?.playStates?.filter((p) => p.watched).pop();
+	for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
+		const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
+		for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
+			const ep = seriesUserData?.playStates?.find(
+				(p) => p.season === season && p.episode === episode
+			);
+			const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
+
+			const episodeData = {
+				season,
+				episode,
+				watched: ep?.watched ?? false,
+				progress: ep?.progress ?? 0,
+				upcoming
+			};
+
+			if (
+				!foundNext &&
+				((lastWatchedPlayState?.season ?? 0) < season ||
+					((lastWatchedPlayState?.season ?? 0) === season &&
+						(lastWatchedPlayState?.episode ?? 0) < episode))
+			) {
+				nextEpisodeData = episodeData;
+				foundNext = true;
+			}
+			episodesData.push(episodeData);
+		}
+	}
+
+	return {
+		nextEpisodeData,
+		episodesData
+	};
+}
+
 export type TitleUserData = ReturnType<typeof useMovieUserData> &
 	ReturnType<typeof useSeriesUserData>;
 
@@ -193,8 +240,8 @@ export function useSeriesUserData(tmdbId: string) {
 	);
 	const tmdbSeriesRequest = useRequest(() => tmdbApi.getSeriesFull(Number(tmdbId)));
 	const libraryStore = useUserLibrary('series', tmdbId, userDataRequest);
-	const episodesUserData = writable<EpisodeData[]>([]);
-	const nextEpisode = writable<EpisodeData>({
+	const episodesUserData = writable<EpisodeUserData[]>([]);
+	const nextEpisode = writable<EpisodeUserData>({
 		season: 1,
 		episode: 1,
 		progress: 0,
@@ -206,100 +253,22 @@ export function useSeriesUserData(tmdbId: string) {
 	);
 	const background = getBackgroundPage();
 
-	// const episodeData = derviedRequest(
-	// 	[userDataRequest, tmdbSeriesRequest],
-	// 	async ([userData, tmdbSeries]) => {
-	// 		if (!tmdbSeries) return;
+	const unsub = derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(
+		([userData, tmdbSeries]) => {
+			if (!tmdbSeries) return;
 
-	// 		let nextEpisode: EpisodeData | undefined;
-	// 		const episodesData: EpisodeData[] = [];
+			const { episodesData, nextEpisodeData } = createEpisodesUserData({
+				seriesUserData: userData,
+				tmdbSeries
+			});
 
-	// 		let foundNext = false;
-	// 		const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
-	// 		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
-	// 			const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
-	// 			for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
-	// 				const ep = userData?.playStates?.find(
-	// 					(p) => p.season === season && p.episode === episode
-	// 				);
-	// 				const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
-	// 				if (
-	// 					!foundNext &&
-	// 					((lastWatchedPlayState?.season ?? 0) < season ||
-	// 						((lastWatchedPlayState?.season ?? 0) === season &&
-	// 							(lastWatchedPlayState?.episode ?? 0) < episode))
-	// 				) {
-	// 					nextEpisode = {
-	// 						season,
-	// 						episode,
-	// 						progress: ep?.progress ?? 0,
-	// 						watched: ep?.watched ?? false,
-	// 						upcoming
-	// 					};
-	// 					foundNext = true;
-	// 				}
-	// 				episodesData.push({
-	// 					season,
-	// 					episode,
-	// 					watched: ep?.watched ?? false,
-	// 					progress: ep?.progress ?? 0,
-	// 					upcoming
-	// 				});
-	// 			}
-	// 		}
-
-	// 		return {
-	// 			nextEpisode,
-	// 			episodesData
-	// 		};
-	// 	}
-	// );
-
-	derived([userDataRequest, tmdbSeriesRequest], (_) => _).subscribe(([userData, tmdbSeries]) => {
-		if (!tmdbSeries) return;
-
-		const episodesData: EpisodeData[] = [];
-		let foundNext = false;
-		const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
-		for (let season = 1; season <= (tmdbSeries.number_of_seasons ?? 0); season++) {
-			const s = tmdbSeries.seasons?.find((s) => s.season_number === season);
-			for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
-				const ep = userData?.playStates?.find((p) => p.season === season && p.episode === episode);
-				const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
-				if (
-					!foundNext &&
-					((lastWatchedPlayState?.season ?? 0) < season ||
-						((lastWatchedPlayState?.season ?? 0) === season &&
-							(lastWatchedPlayState?.episode ?? 0) < episode))
-				) {
-					nextEpisode.set({
-						season,
-						episode,
-						progress: ep?.progress ?? 0,
-						watched: ep?.watched ?? false,
-						upcoming
-					});
-					foundNext = true;
-				}
-				episodesData.push({
-					season,
-					episode,
-					watched: ep?.watched ?? false,
-					progress: ep?.progress ?? 0,
-					upcoming
-				});
+			if (nextEpisodeData) {
+				nextEpisode.set(nextEpisodeData);
 			}
+
+			episodesUserData.set(episodesData);
 		}
-
-		episodesUserData.set(episodesData);
-	});
-
-	// const mediaPlayback = usePlayback({
-	// 	tmdbId,
-	// 	season: get(nextEpisode)?.season,
-	// 	episode: get(nextEpisode)?.episode,
-	// 	getVideoProps
-	// });
+	);
 
 	const autoplay = useAutoplay({
 		tmdbId,
@@ -379,7 +348,7 @@ export function useSeriesUserData(tmdbId: string) {
 
 		const tmdbSeriesData = get(tmdbSeriesRequest);
 
-		let episodeData: EpisodeData | undefined;
+		let episodeData: EpisodeUserData | undefined;
 		if (options?.season && options?.episode) {
 			episodeData = get(episodesUserData).find(
 				(e) => e.season === options.season && e.episode === options.episode
@@ -498,6 +467,7 @@ export function useSeriesUserData(tmdbId: string) {
 		unsubscribe: () => {
 			userDataRequest.unsubscribe();
 			tmdbSeriesRequest.unsubscribe();
+			unsub();
 		}
 	};
 }
@@ -516,11 +486,13 @@ export function useMovieUserData(tmdbId: string) {
 	const tmdbMovie = useRequest(() => tmdbApi.getMovieFull(Number(tmdbId)));
 
 	const libraryStore = useUserLibrary('movie', tmdbId, userData);
-	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
-		reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
-			watched
-		})
-	);
+	const isWatchedStore = useIsWatched({
+		userData,
+		toggleFn: (userId, watched) =>
+			reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+				watched
+			})
+	});
 	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
 	const getVideoProps = async () => {
@@ -638,13 +610,15 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 	);
 
 	const canStreamStore = useCanStream();
-	const isWatchedStore = useIsWatched(userData, (userId, watched) =>
-		reiverrApi.users
-			.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
-				watched
-			})
-			.finally(() => seriesUserDataRefresher.refresh(tmdbId))
-	);
+	const isWatchedStore = useIsWatched({
+		userData,
+		toggleFn: (userId, watched) =>
+			reiverrApi.users
+				.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+					watched
+				})
+				.finally(() => seriesUserDataRefresher.refresh(tmdbId))
+	});
 	const progress = derived(userData, ($userData) => $userData?.playState?.progress ?? 0);
 
 	const getVideoProps = async () => {

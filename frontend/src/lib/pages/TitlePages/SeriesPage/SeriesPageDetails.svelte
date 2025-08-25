@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
@@ -18,12 +18,14 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, Check, ExternalLink, Gear, Minus, Play, Video } from 'radix-icons-svelte';
+	import { Bookmark, ExternalLink, Gear, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
+	import TitleSheet from '../TitleSheet.svelte';
+	import type { TmdbEpisode, TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
 
 	const { registrar } = getStackRouterPage();
 	const background = getBackgroundPage();
@@ -61,6 +63,7 @@
 	let titleProperties: TitleInfoProperty[] = [];
 	const { topVisible } = getScrollContext();
 
+	let sheetProps: { episode: TmdbEpisode; series: TmdbSeries } | undefined;
 	$: recommendations = tmdbApi.v3
 		.tvSeriesRecommendations(Number(tmdbId))
 		.then((r) => r.data.results);
@@ -303,12 +306,7 @@
 									on:mouseleave={() => onEpisodeCardMouseLeave()}
 									isWatched={userData?.watched || false}
 									progress={userData?.progress}
-									on:clickOrSelect={() =>
-										openEpisodeMenu(
-											tmdbId,
-											episode?.season_number ?? 1,
-											episode.episode_number ?? 1
-										)}
+									on:clickOrSelect={() => (sheetProps = { episode, series: tmdbSeries })}
 								/>
 							{/key}
 						{/each}
@@ -390,3 +388,14 @@
 		</div>
 	</div>
 </ComponentStackContainer>
+
+{#if sheetProps}
+	<TitleSheet
+		episode={sheetProps.episode}
+		series={sheetProps.series}
+		handleMarkAsWatched={async ({ series, episode }) => {
+			// handleMarkAsWatched({ series, episode });
+		}}
+		handleClose={() => (sheetProps = undefined)}
+	/>
+{/if}

@@ -5,7 +5,7 @@
 	import classNames from 'classnames';
 	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
-	import Button from '../../components/Button.svelte';
+	import Button from '../../components/Button/Button.svelte';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
 	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
 	import TmdbIntegrationConnectDialog from '../../components/Integrations/TmdbIntegrationConnectDialog.svelte';

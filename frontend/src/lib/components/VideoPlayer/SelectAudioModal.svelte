@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AudioTrack, SubtitleInfo, Subtitles } from './VideoPlayer';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import { modalStack } from '../Modal/modal.store.js';
 	import { scrollIntoView } from '$lib/selectable';
 	import { ChatBubble, Check, TextAlignLeft } from 'radix-icons-svelte';

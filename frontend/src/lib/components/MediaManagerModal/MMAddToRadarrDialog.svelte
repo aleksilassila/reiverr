@@ -15,7 +15,7 @@
 	import Container from '../Container.svelte';
 	import { capitalize, formatSize } from '../../utils';
 	import { ArrowRight, Check, Plus } from 'radix-icons-svelte';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 
 	type AddOptionsStore = {
 		rootFolderPath: string | null;

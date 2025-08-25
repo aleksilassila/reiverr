@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import {

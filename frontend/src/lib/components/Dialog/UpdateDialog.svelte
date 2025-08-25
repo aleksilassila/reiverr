@@ -2,7 +2,7 @@
 	import { ExternalLink, InfoCircled } from 'radix-icons-svelte';
 	import { PLATFORM_WEB } from '../../constants';
 	import { localSettings } from '../../stores/localstorage.store';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import Dialog from './Dialog.svelte';
 

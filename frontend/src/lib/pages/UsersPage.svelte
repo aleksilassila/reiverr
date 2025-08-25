@@ -3,7 +3,7 @@
 	import classNames from 'classnames';
 	import { Plus, Trash } from 'radix-icons-svelte';
 	import { getReiverrApi } from '../apis/reiverr/reiverr-api';
-	import Button from '../components/Button.svelte';
+	import Button from '../components/Button/Button.svelte';
 	import AddUserDialog from '../components/Dialog/AddUserDialog.svelte';
 	import Login from '../components/LoginForm.svelte';
 	import { createModal } from '../components/Modal/modal.store';

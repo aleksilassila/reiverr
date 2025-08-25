@@ -5,7 +5,7 @@
 		sonarrApi,
 		type SonarrEpisode
 	} from '../../../apis/sonarr/sonarr-api';
-	import Button from '../../../components/Button.svelte';
+	import Button from '../../../components/Button/Button.svelte';
 	import Container from '$components/Container.svelte';
 	import { formatSize } from '../../../utils';
 	import { Cross1 } from 'radix-icons-svelte';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ArrowRight, Cross1 } from 'radix-icons-svelte';
-	import Button from '../Button.svelte';
+	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { navigate } from '../StackRouter/StackRouter';
