@@ -1,0 +1,40 @@
+{
+  "name": "Reiverr (Dev)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/reiverr-debrid-stream",
+  "mounts": [
+    "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/node/.ssh,readonly"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": { 
+        "editor.formatOnSave": true,
+        "eslint.validate": ["svelte", "javascript", "typescript"],
+        "[svelte]": {
+          "editor.defaultFormatter": "svelte.svelte-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "vscode.typescript-language-features"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "ms-vscode.js-debug"
+        }
+      },
+      "extensions": [
+        "svelte.svelte-vscode",        
+        "esbenp.prettier-vscode",      
+        "dbaeumer.vscode-eslint",      
+        "ms-azuretools.vscode-docker",
+        "bradlc.vscode-tailwindcss",
+        "github.vscode-pull-request-github",
+        "inlang.vs-code-extension"
+      ]
+    }
+  },
+  "forwardPorts": [5173],
+  "postCreateCommand": "npm install && npm install --prefix backend && npm run --prefix backend/packages/reiverr-plugin build",
+  "remoteUser": "node"
+}

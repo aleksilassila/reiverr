@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Reiverr",
+      "request": "launch",
+      "runtimeArgs": [
+        "run",
+        "dev",
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
+      "name": "Server",
+      "request": "launch",
+      "runtimeArgs": [
+        "run",
+        "--prefix",
+        "backend",
+        "start:dev"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    }
+  ]
+}
