@@ -5,6 +5,9 @@
     "context": ".."
   },
   "workspaceFolder": "/workspaces/reiverr-debrid-stream",
+  "mounts": [
+    "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/node/.ssh,readonly"
+  ],
   "customizations": {
     "vscode": {
       "settings": { 
