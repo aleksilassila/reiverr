@@ -47,7 +47,6 @@
 		"openapi-fetch": "^0.8.2",
 		"openapi-typescript": "^6.7.5",
 		"postcss": "^8.4.35",
-		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.10.1",
 		"radix-icons-svelte": "^1.2.1",
 		"reflect-metadata": "^0.1.13",
@@ -77,25 +76,5 @@
 	"dependencies": {
 		"@aleksilassila/reiverr-shared": "*",
 		"gsap": "^3.12.5"
-	},
-	"prettier": {
-		"useTabs": true,
-		"singleQuote": true,
-		"trailingComma": "none",
-		"printWidth": 100,
-		"plugins": [
-			"prettier-plugin-svelte"
-		],
-		"pluginSearchDirs": [
-			"."
-		],
-		"overrides": [
-			{
-				"files": "*.svelte",
-				"options": {
-					"parser": "svelte"
-				}
-			}
-		]
 	}
 }
