@@ -1,4 +1,6 @@
 {
+  "singleQuote": true,
+  "trailingComma": "all",
   "pluginSearchDirs": ["./frontend"],
   "overrides": [
     {

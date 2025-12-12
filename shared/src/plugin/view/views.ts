@@ -1,5 +1,4 @@
-import { OrderOption } from "../types";
-import { ViewBase } from "./base";
+import { ViewBase } from './base';
 import {
   HeadingElement,
   ToggleElement,
@@ -7,11 +6,12 @@ import {
   InputElement,
   ExternalLinkElement,
   OpenViewElement,
-} from "./elements";
-import { StreamActionElement, ActionElement } from "./actions";
+} from './elements';
+import { StreamActionElement, ActionElement } from './actions';
+import { OrderOption } from 'src/common';
 
 export interface GeneralView extends ViewBase {
-  type: "general";
+  type: 'general';
   elements: (
     | HeadingElement
     | ToggleElement
@@ -77,7 +77,7 @@ export type ListWithDetailsItem = {
 };
 
 export type ListWithDetailsView = ViewBase & {
-  type: "list-with-details";
+  type: 'list-with-details';
   items: ListWithDetailsItem[];
   order?: OrderOption;
   orderOptions: OrderOption[];

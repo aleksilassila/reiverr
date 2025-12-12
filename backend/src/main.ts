@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import { UsersService } from './users/users.service';
 import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts';
 import { json, urlencoded } from 'express';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+
 // import * as proxy from 'express-http-proxy';
 require('ts-node/register'); // For importing plugins
 
@@ -54,9 +56,19 @@ async function bootstrap() {
 
   await createAdminUser(app.get(UsersService));
 
+  // const microservice = app.connectMicroservice<MicroserviceOptions>({
+  //   transport: Transport.TCP,
+  //   options: {
+  //     host: '0.0.0.0',
+  //     port: 3001,
+  //   },
+  // });
+
+  // await app.startAllMicroservices();
+
   await app.listen(9494);
   console.log(
-    `Application is running on: ${await app.getUrl()} in ${ENV} mode`,
+    `Application is running on: ${await app.getUrl()} in ${ENV} mode`
   );
 }
 

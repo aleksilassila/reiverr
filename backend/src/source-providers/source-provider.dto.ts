@@ -179,6 +179,8 @@ export class SubtitlesDto implements Subtitles {
   kind: 'subtitles' | 'captions' | 'descriptions';
   @ApiProperty()
   label: string;
+  @ApiProperty()
+  default: boolean;
 }
 
 export class VideoStreamPropertyDto implements StreamProperty {

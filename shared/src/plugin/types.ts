@@ -1,4 +1,6 @@
+import { OrderOption } from 'src/common';
 import { DeviceProfile } from './device-profile';
+import { Subtitles } from 'src/video';
 
 export enum SourceProviderError {
   StreamNotFound = 'StreamNotFound',
@@ -77,12 +79,12 @@ export type Quality = {
   original: boolean;
 };
 
-export type Subtitles = {
-  src: string;
-  lang: string;
-  kind: 'subtitles' | 'captions' | 'descriptions';
-  label: string;
-};
+// export type Subtitles = {
+//   src: string;
+//   lang: string;
+//   kind: 'subtitles' | 'captions' | 'descriptions';
+//   label: string;
+// };
 
 export type StreamProperty = {
   /**
@@ -211,16 +213,16 @@ export type PaginationParams = {
   itemsPerPage: number;
 };
 
-export type DirectionOption = {
-  label: string;
-  value: string;
-};
+// export type DirectionOption = {
+//   label: string;
+//   value: string;
+// };
 
-export type OrderOption = {
-  label: string;
-  value: string;
-  directions: DirectionOption[];
-};
+// export type OrderOption = {
+//   label: string;
+//   value: string;
+//   directions: DirectionOption[];
+// };
 
 interface Metadata {
   tmdbId?: string;

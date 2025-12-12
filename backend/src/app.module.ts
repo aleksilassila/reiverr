@@ -10,6 +10,8 @@ import { MetadataModule } from './metadata/metadata.module';
 import { SourceProvidersModule } from './source-providers/source-providers.module';
 import { UserDataModule } from './user-data/user-data.module';
 import { UsersModule } from './users/users.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { UsersModule } from './users/users.module';
     MetadataModule,
     SourceProvidersModule,
     UserDataModule,
+    PermissionsModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
