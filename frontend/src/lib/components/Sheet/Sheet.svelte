@@ -20,7 +20,7 @@
 
 	$: sizeClasses = {
 		sm: 'max-w-xs w-full',
-		md: 'max-w-sm w-full',
+		md: 'w-full',
 		lg: 'max-w-md w-full'
 	}[size];
 </script>
@@ -28,7 +28,7 @@
 <Container
 	trapFocus
 	focusOnMount
-	class={classNames('fixed inset-0', $$restProps.class)}
+	class={classNames('fixed inset-0 z-20', $$restProps.class)}
 	on:back={({ detail: e }) => {
 		handleClose();
 		e.stopPropagation();
@@ -36,9 +36,9 @@
 >
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 bg-primary-900/75 flex justify-end"
+		class="fixed inset-0 bg-primary-900/75 flex justify-end px-8 pt-16"
 		transition:fade={{ duration: 200 }}
-		on:click|self={close}
+		on:click|self={handleClose}
 		on:keypress={() => {
 			/* For a11y */
 		}}
@@ -46,16 +46,16 @@
 		<!-- Sheet Content -->
 		<div
 			class={classNames(
-				'h-full bg-primary-800 shadow-2xl flex flex-col overflow-hidden',
+				'h-full bg-primary-800 shadow-2xl flex flex-col overflow-hidden rounded-t-xl',
 				sizeClasses,
 				$$restProps.class
 			)}
-			transition:fly={{ x: 400, duration: 300, opacity: 1 }}
+			transition:fly={{ y: 400, duration: 300, opacity: 1 }}
 		>
 			<!-- Header with close button -->
 			{#if showCloseButton}
 				<div class="flex justify-end p-4">
-					<IconButton on:click={close}>
+					<IconButton on:click={handleClose}>
 						<Cross1 size={20} />
 					</IconButton>
 				</div>
@@ -63,7 +63,7 @@
 
 			<!-- Content -->
 			<div class="flex-1 overflow-y-auto scrollbar-hide p-6 pt-0">
-				<slot {close} />
+				<slot {handleClose} />
 			</div>
 		</div>
 	</div>

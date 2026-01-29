@@ -42,7 +42,7 @@ export function getBrowserSpecificMediaFunctions() {
 	let getFullscreenElement: (() => HTMLElement) | undefined = undefined;
 
 	// Find the correct functions
-	let elem = document.createElement('div');
+	const elem = document.createElement('div');
 	// @ts-expect-error
 	if (elem.requestFullscreen) {
 		reqFullscreenFunc = (elem) => {

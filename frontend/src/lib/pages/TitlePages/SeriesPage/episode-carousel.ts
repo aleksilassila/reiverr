@@ -32,7 +32,7 @@ function useCardHover(selectedEpisode: Writable<SelectedEpisode>) {
 	};
 }
 
-export function useEpisodeCarousel() {
+export function useEpisodesData() {
 	const { tmdbId, tmdbSeries, nextEpisode } = seriesUserDataContext.getContext();
 	const selectedEpisode: Writable<SelectedEpisode> = writable(undefined);
 	const cardHover = useCardHover(selectedEpisode);

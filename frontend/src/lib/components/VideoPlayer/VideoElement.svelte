@@ -12,7 +12,6 @@
 	export let videoSource: VideoSource | undefined;
 	// export let subtitles: Subtitles[] = [];
 	// export let enabledSubtitle: string = '';
-	export let subtitles: SubtitlesDto | undefined = undefined;
 
 	export let video: HTMLVideoElement | undefined;
 
@@ -25,12 +24,16 @@
 	export let muted = false;
 	export let volume = 1;
 
-	let availableSubtitles: SubtitlesDto[] = [];
-	$: if (!availableSubtitles.some((s) => s.src === subtitles?.src) && subtitles) {
-		availableSubtitles = [...availableSubtitles, subtitles];
-	}
+	export let subtitles: {
+		id?: string;
+		src: string;
+		lang: string;
+		kind: 'subtitles' | 'captions' | 'descriptions';
+		label: string;
+		showing: boolean;
+	}[] = [];
 
-	$: videoSource && loadVideoSource(videoSource);
+	$: videoSource && video && loadVideoSource(videoSource);
 
 	function loadVideoSource(videoSource: VideoSource) {
 		if (!video) {
@@ -85,10 +88,12 @@
 	}
 
 	$: updateSubtitlesVisibility(subtitles);
-	const updateSubtitlesVisibility = (subtitle?: SubtitlesDto) => {
+	const updateSubtitlesVisibility = (subs: typeof subtitles) => {
+		const enabledSubtitle = subs.find((sub) => sub.showing);
 		const tracks = video?.textTracks ?? [];
 		for (const track of tracks) {
-			track.mode = track.id === subtitle?.src ? 'showing' : 'disabled';
+			track.mode =
+				track.id === (enabledSubtitle?.id ?? enabledSubtitle?.src) ? 'showing' : 'disabled';
 		}
 	};
 
@@ -136,13 +141,11 @@
 	on:loadedmetadata={() => createInfoNotification('Loaded metadata')}
 	autoplay
 	playsinline
-	crossorigin="anonymous"
 	class="w-full h-full"
 >
-	{#each availableSubtitles as subtitle (subtitle.src)}
+	{#each subtitles as subtitle (subtitle.src)}
 		<track
-			default={subtitle.src === subtitles?.src}
-			id={subtitle.src}
+			id={subtitle.id ?? subtitle.src}
 			src={subtitle.src}
 			kind={subtitle.kind}
 			srclang={subtitle.src}

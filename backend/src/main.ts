@@ -38,6 +38,10 @@ async function bootstrap() {
   app.enableCors();
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
+  app.use('/test', (req, res, next) => {
+    res.send('Test successful');
+    next();
+  });
 
   if (ENV === 'development') {
     console.log('Creating OpenAPI specification...');
@@ -68,7 +72,7 @@ async function bootstrap() {
 
   await app.listen(9494);
   console.log(
-    `Application is running on: ${await app.getUrl()} in ${ENV} mode`
+    `Application is running on: ${await app.getUrl()} in ${ENV} mode`,
   );
 }
 

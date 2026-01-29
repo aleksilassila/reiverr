@@ -634,6 +634,7 @@ export interface SubtitlesDto {
   lang: string;
   kind: "subtitles" | "captions" | "descriptions";
   label: string;
+  default: boolean;
 }
 
 export interface StreamDto {
@@ -724,6 +725,59 @@ export interface SeriesUserDataDto {
   tmdbId: string;
   inLibrary: boolean;
   playStates: PlayStateDto[];
+}
+
+export interface VideoPropertyDto {
+  label: string;
+  value: object;
+  formatted?: string;
+}
+
+export interface VideoCandidateDto {
+  id: string;
+  title: string;
+  properties: VideoPropertyDto[];
+  canStream: boolean;
+  canRequest: boolean;
+  canDelete: boolean;
+}
+
+export interface CandidatesGroupDto {
+  groupLabel: string;
+  groupId: string;
+  candidates: VideoCandidateDto[];
+}
+
+export interface VideoSrcDto {
+  src: string;
+  label: string;
+  bitrate: number;
+  default: boolean;
+}
+
+export interface VideoOptionsDto {
+  codec: string;
+  width: number;
+  height: number;
+  framerate: number;
+}
+
+export interface AudioTrackDto {
+  label: string;
+  codec: string;
+  bitrate: number;
+  default: boolean;
+}
+
+export interface VideoStreamDto {
+  id: string;
+  videoCandidate: VideoCandidateDto;
+  playbackMethod: "direct" | "hsl" | "dash";
+  sources: VideoSrcDto[];
+  duration: number;
+  videoOptions?: VideoOptionsDto;
+  subtitles: SubtitlesDto[];
+  audioStreams: AudioTrackDto[];
 }
 
 export interface UpdatePlayStateDto {
@@ -1857,6 +1911,32 @@ export class Api<
     /**
      * No description
      *
+     * @name GetDefaultPermissions
+     * @request GET:/api/permissions/default
+     */
+    getDefaultPermissions: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/permissions/default`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name SaveDefaultPermissions
+     * @request POST:/api/permissions/default
+     */
+    saveDefaultPermissions: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/permissions/default`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @name GetHello
      * @request GET:/api
      */
@@ -1933,6 +2013,57 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
+  media = {
+    /**
+     * No description
+     *
+     * @tags media
+     * @name GetVideoCandidates
+     * @request GET:/api/media/candidates
+     */
+    getVideoCandidates: (
+      query: {
+        tmdbId: string;
+        season: number;
+        episode: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: CandidatesGroupDto[];
+        },
+        any
+      >({
+        path: `/api/media/candidates`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media
+     * @name GetStream
+     * @request POST:/api/media/get-stream
+     */
+    getStream: (
+      query: {
+        mediaPluginId: string;
+        candidateId: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<VideoStreamDto, any>({
+        path: `/api/media/get-stream`,
+        method: "POST",
+        query: query,
         format: "json",
         ...params,
       }),

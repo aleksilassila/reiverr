@@ -96,9 +96,6 @@ export class MediaPluginsService {
               plugin.id = settings.id;
               plugin.client = client;
               plugin.settings = settings;
-              this.logger.log(
-                `Loaded media plugin: ${settings.name} (v${settings.version})`,
-              );
               return plugin;
             }
             return undefined;
@@ -111,8 +108,16 @@ export class MediaPluginsService {
 
     plugins.then((plugins) => {
       for (const plugin of plugins) {
-        if (plugin.isCompatibleWith(mediaPluginVersion))
+        if (plugin.isCompatibleWith(mediaPluginVersion)) {
           this.plugins[plugin.id] = plugin;
+          this.logger.log(
+            `Loaded media plugin: ${plugin.settings.name} (v${plugin.settings.version})`,
+          );
+        } else {
+          this.logger.warn(
+            `Incompatible media plugin version: ${plugin.settings.name} (v${plugin.settings.version})`,
+          );
+        }
       }
     });
   }
