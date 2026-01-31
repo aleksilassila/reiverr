@@ -4,6 +4,7 @@ import { LibraryItem } from 'src/user-data/library/library.entity';
 import { PlayState } from 'src/user-data/play-state/play-state.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
+/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class SonarrSettings {
   @ApiProperty({ required: true })
   apiKey: string;
@@ -17,6 +18,7 @@ export class SonarrSettings {
   languageProfileId: number;
 }
 
+/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class RadarrSettings {
   @ApiProperty({ required: true })
   apiKey: string;
@@ -28,6 +30,7 @@ export class RadarrSettings {
   rootFolderPath: string;
 }
 
+/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class JellyfinSettings {
   @ApiProperty({ required: true })
   apiKey: string;
@@ -37,6 +40,7 @@ export class JellyfinSettings {
   userId: string;
 }
 
+/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class TmdbSettings {
   @ApiProperty({ required: true })
   sessionId: string;
@@ -45,6 +49,7 @@ export class TmdbSettings {
   userId: string;
 }
 
+/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class Settings {
   @ApiProperty({ required: true })
   autoplayTrailers: boolean;
@@ -67,6 +72,7 @@ export class Settings {
   tmdb: TmdbSettings;
 }
 
+/** @deprecated Use DEFAULT_USER_SETTINGS from user-settings.service.ts instead */
 const DEFAULT_SETTINGS: Settings = {
   autoplayTrailers: true,
   language: 'en',
@@ -127,6 +133,7 @@ export class User {
   @Column({ default: false })
   onboardingDone: boolean = false;
 
+  /** @deprecated Use UserSettingsService to manage user settings instead */
   @ApiProperty({ required: true, type: Settings })
   @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
   settings = DEFAULT_SETTINGS;
