@@ -1,4 +1,4 @@
-import { ReiverrPlugin } from '@aleksilassila/reiverr-shared';
+import { ReiverrPlugin } from '@aleksilassila/reiverr-shared/dist/src/old';
 import {
   Body,
   Controller,

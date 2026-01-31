@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SourceProviderSettings } from '@aleksilassila/reiverr-shared';
+import { SourceProviderSettings } from '@aleksilassila/reiverr-shared/dist/src/old';
 import { User } from 'src/users/user.entity';
 import {
   Column,

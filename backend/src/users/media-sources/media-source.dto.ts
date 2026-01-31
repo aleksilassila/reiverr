@@ -30,7 +30,7 @@ import {
   SortableProperty,
   StreamActionElement,
   MediaSourceProvider,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import { ViewBaseDto } from 'src/source-providers/ui.dto';
 
 class CatalogueOrderDirectionOption implements DirectionOption {

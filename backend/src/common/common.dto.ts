@@ -9,7 +9,7 @@ import {
 import {
   PaginatedResponse,
   PaginationParams,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 
 export const PickAndPartial = <T, K extends keyof T>(
   clazz: Type<T>,

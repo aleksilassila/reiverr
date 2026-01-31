@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { XMLParser } from 'fast-xml-parser';
-import { StreamCandidate } from '@aleksilassila/reiverr-shared';
+import { StreamCandidate } from '@aleksilassila/reiverr-shared/dist/src/old';
 import { TorrentSettings } from '../types';
 import { formatSize, formatBitrate, EPISODE_SEPARATOR } from '../utils';
 

@@ -6,7 +6,7 @@ import {
   OrderOption,
   PaginatedResponse,
   PaginationParams,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import {
   ItemSortBy,
   BaseItemKind,

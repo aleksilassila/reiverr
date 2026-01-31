@@ -7,7 +7,7 @@ import {
   MediaPluginSettings,
   MediaPluginSettingsResponseDto,
   mediaPluginVersion,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, lastValueFrom } from 'rxjs';

@@ -17,7 +17,7 @@ import {
   StreamResponse,
   Subtitles,
   ValidationResponse,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import {
   ApiProperty,
   ApiPropertyOptional,

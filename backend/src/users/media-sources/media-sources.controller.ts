@@ -1,4 +1,4 @@
-import { SourceProviderError } from '@aleksilassila/reiverr-shared';
+import { SourceProviderError } from '@aleksilassila/reiverr-shared/dist/src/old';
 import {
   All,
   BadRequestException,
@@ -59,9 +59,8 @@ export class ServiceOwnershipValidator implements CanActivate {
 
     if (!sourceId) return true;
 
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 
@@ -110,9 +109,8 @@ export class MediaSourcesController {
 
     const providers = await Promise.all(
       user.mediaSources.map(async (ms) => {
-        const mediaSourceDto = await this.mediaSourcesService.getMediaSourceDto(
-          ms,
-        );
+        const mediaSourceDto =
+          await this.mediaSourcesService.getMediaSourceDto(ms);
 
         const connection = await this.getConnection({
           sourceId: ms.id,
@@ -425,9 +423,8 @@ export class MediaSourcesController {
     @GetAuthToken() token: string,
   ) {
     const sourceId = params.sourceId;
-    const mediaSource = await this.mediaSourcesService.findMediaSource(
-      sourceId,
-    );
+    const mediaSource =
+      await this.mediaSourcesService.findMediaSource(sourceId);
 
     if (!mediaSource) throw new NotFoundException('Source not found');
 

@@ -13,7 +13,7 @@ import {
   Subtitles,
   UserContext,
   ViewBase,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import {
   getEpisodeTorrents,
   getMovieTorrents,
@@ -274,9 +274,9 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
       throw new Error('Torrent not found');
     }
 
-    let src = `${this.proxyUrl}/magnet?link=${encodeURIComponent(link)}&reiverr_token=${
-      this.token
-    }`;
+    let src = `${this.proxyUrl}/magnet?link=${encodeURIComponent(
+      link,
+    )}&reiverr_token=${this.token}`;
 
     if (season && episode) {
       src += `&season=${season}&episode=${episode}`;
@@ -288,11 +288,12 @@ export class TorrentMediaSourceProvider extends MediaSourceProvider {
       .filter((f) => subtitleExtensions.some((ext) => f.name.endsWith(ext)))
       .map((f) => ({
         kind: 'subtitles',
-        src: `${this.proxyUrl}/magnet?link=${encodeURIComponent(link)}&reiverr_token=${
-          this.token
-        }&file=${f.name}`,
+        src: `${this.proxyUrl}/magnet?link=${encodeURIComponent(
+          link,
+        )}&reiverr_token=${this.token}&file=${f.name}`,
         label: f.name,
         lang: 'unknown',
+        default: false,
       }));
 
     const stream = {

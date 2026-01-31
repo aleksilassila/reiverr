@@ -12,24 +12,24 @@ import {
   UserContext,
   MediaSourceView,
   MediaSourceViews,
-} from "@aleksilassila/reiverr-shared";
-import { Readable } from "stream";
+} from '@aleksilassila/reiverr-shared/dist/src/old';
+import { Readable } from 'stream';
 import {
   BaseItemKind,
   ItemFields,
   Api as JellyfinApi,
-} from "./jellyfin.openapi";
+} from './jellyfin.openapi';
 import {
   bitrateQualities,
   formatSize,
   formatTicksToTime,
   getClosestBitrate,
   JELLYFIN_DEVICE_ID,
-} from "./utils";
+} from './utils';
 
 enum View {
-  StreamMovie = "stream-movie",
-  StreamEpisode = "stream-episode",
+  StreamMovie = 'stream-movie',
+  StreamEpisode = 'stream-episode',
 }
 
 export interface JellyfinSettings extends SourceProviderSettings {
@@ -72,8 +72,8 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         views: [
           {
             id: View.StreamMovie,
-            label: "Stream",
-            type: "list-with-details",
+            label: 'Stream',
+            type: 'list-with-details',
           },
         ],
       };
@@ -82,8 +82,8 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         views: [
           {
             id: View.StreamEpisode,
-            label: "Stream",
-            type: "list-with-details",
+            label: 'Stream',
+            type: 'list-with-details',
           },
         ],
       };
@@ -110,16 +110,16 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     if (id === View.StreamMovie && tmdbMovie) {
       const candidates = await this.getTmdbMovieCandidates({ tmdbMovie });
       view = {
-        type: "list-with-details",
+        type: 'list-with-details',
         id,
-        label: "Stream",
+        label: 'Stream',
         items: candidates.candidates.map((c) => ({
           ...c,
           id: c.streamId,
           label: c.title,
           actions: c.actions.map((a) => ({
             label: a.label,
-            type: "action",
+            type: 'action',
             action: a.type,
           })),
         })),
@@ -132,16 +132,16 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
       });
 
       view = {
-        type: "list-with-details",
+        type: 'list-with-details',
         id,
-        label: "Stream",
+        label: 'Stream',
         items: candidates.candidates.map((c) => ({
           ...c,
           id: c.streamId,
           label: c.title,
           actions: c.actions.map((a) => ({
             label: a.label,
-            type: "action",
+            type: 'action',
             action: a.type,
           })),
         })),
@@ -170,7 +170,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     });
 
     const movie = movies.data.Items.find(
-      (i) => i.ProviderIds?.Tmdb === String(tmdbMovie.id)
+      (i) => i.ProviderIds?.Tmdb === String(tmdbMovie.id),
     );
 
     if (!movie || !movie.MediaSources || movie.MediaSources.length === 0) {
@@ -182,36 +182,36 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         {
           id: movie.ProviderIds?.Tmdb,
           tmdbId: movie.ProviderIds?.Tmdb,
-          mediaType: "movie" as const,
+          mediaType: 'movie' as const,
           streamId: movie.Id,
           title: movie.Name,
           actions: [
             {
-              label: "Stream",
-              type: "stream",
+              label: 'Stream',
+              type: 'stream',
             },
           ],
           properties: [
             {
-              label: "Video",
+              label: 'Video',
               value: movie.MediaSources[0].Bitrate || 0,
               formatted:
                 movie.MediaSources[0].MediaStreams.find(
-                  (s) => s.Type === "Video"
-                )?.DisplayTitle || "Unknown",
+                  (s) => s.Type === 'Video',
+                )?.DisplayTitle || 'Unknown',
             },
             {
-              label: "Size",
+              label: 'Size',
               value: movie.MediaSources[0].Size,
               formatted: formatSize(movie.MediaSources[0].Size),
             },
             {
-              label: "Filename",
+              label: 'Filename',
               value: movie.MediaSources[0].Name,
               formatted: undefined,
             },
             {
-              label: "Runtime",
+              label: 'Runtime',
               value: movie.MediaSources[0].RunTimeTicks,
               formatted: formatTicksToTime(movie.MediaSources[0].RunTimeTicks),
             },
@@ -251,14 +251,14 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     });
 
     const show = series.data.Items.find(
-      (i) => i.ProviderIds?.Tmdb === String(tmdbSeries.id)
+      (i) => i.ProviderIds?.Tmdb === String(tmdbSeries.id),
     );
 
     if (!show) {
       console.error(
-        "series not found",
+        'series not found',
         series.data?.Items?.map((i) => i.ProviderIds),
-        tmdbSeries
+        tmdbSeries,
       );
       throw SourceProviderError.StreamNotFound;
     }
@@ -281,7 +281,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
       (e) =>
         e.SeriesId === show.Id &&
         e.ParentIndexNumber === tmdbEpisode.season_number &&
-        e.IndexNumber === tmdbEpisode.episode_number
+        e.IndexNumber === tmdbEpisode.episode_number,
     );
 
     if (
@@ -289,7 +289,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
       !episode.MediaSources ||
       episode.MediaSources.length === 0
     ) {
-      console.error("episode not found", episode, episodes.data.Items.length);
+      console.error('episode not found', episode, episodes.data.Items.length);
       throw SourceProviderError.StreamNotFound;
     }
 
@@ -298,39 +298,39 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         {
           id: episode.ProviderIds?.Tmdb,
           tmdbId: episode.ProviderIds?.Tmdb,
-          mediaType: "episode" as const,
+          mediaType: 'episode' as const,
           streamId: episode.Id,
           title: episode.Name,
           actions: [
             {
-              label: "Stream",
-              type: "stream",
+              label: 'Stream',
+              type: 'stream',
             },
           ],
           properties: [
             {
-              label: "Video",
+              label: 'Video',
               value: episode.MediaSources[0].Bitrate || 0,
               formatted:
                 episode.MediaSources[0].MediaStreams.find(
-                  (s) => s.Type === "Video"
-                )?.DisplayTitle || "Unknown",
+                  (s) => s.Type === 'Video',
+                )?.DisplayTitle || 'Unknown',
             },
             {
-              label: "Size",
+              label: 'Size',
               value: episode.MediaSources[0].Size,
               formatted: formatSize(episode.MediaSources[0].Size),
             },
             {
-              label: "Filename",
+              label: 'Filename',
               value: episode.MediaSources[0].Name,
               formatted: undefined,
             },
             {
-              label: "Runtime",
+              label: 'Runtime',
               value: episode.MediaSources[0].RunTimeTicks,
               formatted: formatTicksToTime(
-                episode.MediaSources[0].RunTimeTicks
+                episode.MediaSources[0].RunTimeTicks,
               ),
             },
           ],
@@ -376,7 +376,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
 
     return {
       error: {
-        message: "Action not supported",
+        message: 'Action not supported',
       },
     };
   };
@@ -445,7 +445,7 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         // deviceId: JELLYFIN_DEVICE_ID,
         // mediaSourceId: movie.MediaSources[0].Id,
         // maxBitrate: 8000000,
-      }
+      },
     );
 
     const mediasSource = playbackInfo.data?.MediaSources?.[0];
@@ -456,19 +456,19 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
         `/Videos/${mediasSource?.Id}/stream.mp4?Static=true&mediaSourceId=${mediasSource?.Id}&deviceId=${JELLYFIN_DEVICE_ID}&api_key=${this.settings.apiKey}&Tag=${mediasSource?.ETag}`) +
       `&reiverr_token=${this.token}`;
 
-    const audioStreams: Stream["audioStreams"] =
-      mediasSource?.MediaStreams.filter((s) => s.Type === "Audio").map((s) => ({
+    const audioStreams: Stream['audioStreams'] =
+      mediasSource?.MediaStreams.filter((s) => s.Type === 'Audio').map((s) => ({
         bitrate: s.BitRate,
         label: s.Language,
         codec: s.Codec,
         index: s.Index,
       })) ?? [];
 
-    const qualities: Stream["qualities"] = [
+    const qualities: Stream['qualities'] = [
       ...bitrateQualities,
       {
         bitrate: mediasSource.Bitrate,
-        label: "Original",
+        label: 'Original',
         codec: undefined,
         original: true,
       },
@@ -480,37 +480,37 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
     const bitrate = Math.min(maxStreamingBitrate, mediasSource.Bitrate);
 
     const subtitles: Subtitles[] = mediasSource.MediaStreams.filter(
-      (s) => s.Type === "Subtitle" && s.DeliveryUrl
+      (s) => s.Type === 'Subtitle' && s.DeliveryUrl,
     ).map((s, i) => ({
       src: this.getProxyUrl() + `${s.DeliveryUrl}&reiverr_token=${this.token}`,
       lang: s.Language,
-      kind: "subtitles",
+      kind: 'subtitles',
       label: s.DisplayTitle,
     }));
 
     const stream = {
-      streamId: "0",
+      streamId: '0',
       title: movie.Name,
       properties: [
         {
-          label: "Video",
+          label: 'Video',
           value: mediasSource.Bitrate || 0,
           formatted:
-            mediasSource.MediaStreams.find((s) => s.Type === "Video")
-              ?.DisplayTitle || "Unknown",
+            mediasSource.MediaStreams.find((s) => s.Type === 'Video')
+              ?.DisplayTitle || 'Unknown',
         },
         {
-          label: "Size",
+          label: 'Size',
           value: mediasSource.Size,
           formatted: formatSize(mediasSource.Size),
         },
         {
-          label: "Filename",
+          label: 'Filename',
           value: mediasSource.Name,
           formatted: undefined,
         },
         {
-          label: "Runtime",
+          label: 'Runtime',
           value: mediasSource.RunTimeTicks,
           formatted: formatTicksToTime(mediasSource.RunTimeTicks),
         },
@@ -554,19 +554,19 @@ export class JellyfinMediaSourceProvider extends MediaSourceProvider {
 
     const headers = {};
     for (const key in req.headers) {
-      if (key === "host") continue;
+      if (key === 'host') continue;
       headers[key] = req.headers[key];
     }
 
     const proxyRes = await fetch(url, {
-      method: req.method || "GET",
+      method: req.method || 'GET',
       headers: {
         ...headers,
         Authorization: `MediaBrowser DeviceId="${JELLYFIN_DEVICE_ID}", Token="${this.settings.apiKey}"`,
       },
     }).catch((e) => {
-      console.error("error fetching proxy response", e);
-      res.status(500).send("Error fetching proxy response");
+      console.error('error fetching proxy response', e);
+      res.status(500).send('Error fetching proxy response');
     });
 
     if (!proxyRes) return;

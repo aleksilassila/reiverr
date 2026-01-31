@@ -6,7 +6,7 @@ import {
   SourceProviderSettingsTemplate,
   UserContext,
   ValidationResponse,
-} from '@aleksilassila/reiverr-shared';
+} from '@aleksilassila/reiverr-shared/dist/src/old';
 import { testConnection } from './lib/jackett.api';
 import { TorrentMediaSourceProvider } from './media-source-provider';
 
