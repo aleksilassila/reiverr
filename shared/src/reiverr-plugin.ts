@@ -14,10 +14,46 @@ export interface Empty {
 
 export interface PluginInfo {
   name: string;
-  version: string;
+  apiVersion: string;
   description: string;
   streamingSupported: boolean;
-  catalogueSupported: boolean;
+  cataloguesSupported: boolean;
+}
+
+export interface GetStreamablesRequest {
+  title: string;
+  season?: number | undefined;
+  episode?: number | undefined;
+  runtimeMinutes?: number | undefined;
+  tmdbId?: string | undefined;
+  imdbId?:
+    | string
+    | undefined;
+  /** optional string media_type = 6; // "movie" or "series" */
+  tvdbId?: string | undefined;
+}
+
+export interface StreamablesResponse {
+  items: StreamableItem[];
+}
+
+export interface StreamableItem {
+  id: string;
+  title: string;
+  quality?: string | undefined;
+  source?: string | undefined;
+  language?: string | undefined;
+  releaseGroup?: string | undefined;
+  size?: string | undefined;
+  bitrate?: string | undefined;
+}
+
+export interface GetStreamRequest {
+  id: string;
+}
+
+export interface StreamResponse {
+  url: string;
 }
 
 export interface SettingsTemplate {
@@ -117,18 +153,6 @@ export interface AutoplayStreamRequest {
 
 export interface AutoplayStreamResponse {
   candidate?: StreamBase | undefined;
-}
-
-export interface GetStreamRequest {
-  userContext: UserContext | undefined;
-  streamId: string;
-  config?: PlaybackConfig | undefined;
-}
-
-export interface StreamResponse {
-  stream?: Stream | undefined;
-  toast?: Toast | undefined;
-  error?: ErrorMessage | undefined;
 }
 
 export interface Stream {
@@ -505,64 +529,51 @@ export interface TriggerCleanupRequest {
 /** Plugin Service - handles plugin metadata and configuration */
 export interface PluginService {
   /** Get plugin metadata and version */
-  GetInfo(request: Empty): Promise<PluginInfo>;
+  GetInfo(request: Empty): Observable<PluginInfo>;
 }
 
 /** Media Source Provider Service - handles user-specific requests */
-export interface MediaSourceProviderService {
-  /** Get available views for a media item */
-  GetMediaSourceViews(request: MediaSourceViewsRequest): Promise<MediaSourceViewsResponse>;
-  /** Get a specific view */
-  GetMediaSourceView(request: MediaSourceViewRequest): Promise<MediaSourceViewResponse>;
-  /** Get autoplay stream */
-  GetAutoplayStream(request: AutoplayStreamRequest): Promise<AutoplayStreamResponse>;
-  /** Get stream details */
-  GetStream(request: GetStreamRequest): Promise<StreamResponse>;
-  /** Handle stream actions (download, delete, etc.) */
-  HandleAction(request: HandleActionRequest): Promise<ActionResponse>;
-  /** Proxy handler for streaming (bidirectional for video/subtitle streaming) */
-  ProxyStream(request: Observable<ProxyRequest>): Observable<ProxyResponse>;
-  /** Legacy methods (deprecated) */
-  GetTmdbMovieCandidates(request: TmdbMovieRequest): Promise<StreamCandidatesResponse>;
-  GetTmdbEpisodeCandidates(request: TmdbEpisodeRequest): Promise<StreamCandidatesResponse>;
+export interface PluginMediaService {
+  GetStreamables(request: GetStreamablesRequest): Observable<StreamablesResponse>;
+  GetStream(request: GetStreamRequest): Observable<StreamResponse>;
 }
 
 /** Catalogue Provider Service - handles library catalogues */
 export interface CatalogueProviderService {
   /** Get catalogue capabilities */
-  GetCatalogueCapabilities(request: Empty): Promise<CatalogueCapabilities>;
+  GetCatalogueCapabilities(request: Empty): Observable<CatalogueCapabilities>;
   /** Get combined catalogue */
-  GetCatalogue(request: CatalogueRequest): Promise<CatalogueResponse>;
+  GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
   /** Get movies catalogue */
-  GetMovieCatalogue(request: CatalogueRequest): Promise<CatalogueResponse>;
+  GetMovieCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
   /** Get series catalogue */
-  GetSeriesCatalogue(request: CatalogueRequest): Promise<CatalogueResponse>;
+  GetSeriesCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
   /** Get missing items in catalogue */
-  GetMissingInCatalogue(request: MissingCatalogueRequest): Promise<MissingCatalogueResponse>;
+  GetMissingInCatalogue(request: MissingCatalogueRequest): Observable<MissingCatalogueResponse>;
 }
 
 /** Management Profile Service - NEW for monitoring/management profiles */
 export interface ManagementProfileService {
   /** Get available management profiles */
-  GetManagementProfiles(request: Empty): Promise<ManagementProfilesResponse>;
+  GetManagementProfiles(request: Empty): Observable<ManagementProfilesResponse>;
   /** Get management profile for specific media */
-  GetMediaManagementProfile(request: MediaManagementProfileRequest): Promise<ManagementProfile>;
+  GetMediaManagementProfile(request: MediaManagementProfileRequest): Observable<ManagementProfile>;
   /** Update management profile for media */
-  UpdateMediaManagementProfile(request: UpdateManagementProfileRequest): Promise<ManagementProfile>;
+  UpdateMediaManagementProfile(request: UpdateManagementProfileRequest): Observable<ManagementProfile>;
 }
 
 /** Job Management Service - NEW for monitoring downloads, transcoding, etc. */
 export interface JobManagementService {
   /** Get all active jobs */
-  GetActiveJobs(request: Empty): Promise<JobsResponse>;
+  GetActiveJobs(request: Empty): Observable<JobsResponse>;
   /** Get job details */
-  GetJobDetails(request: JobDetailsRequest): Promise<JobDetails>;
+  GetJobDetails(request: JobDetailsRequest): Observable<JobDetails>;
   /** Cancel a job */
-  CancelJob(request: CancelJobRequest): Promise<ActionResponse>;
+  CancelJob(request: CancelJobRequest): Observable<ActionResponse>;
   /** Get disk space usage */
-  GetDiskSpaceUsage(request: Empty): Promise<DiskSpaceUsage>;
+  GetDiskSpaceUsage(request: Empty): Observable<DiskSpaceUsage>;
   /** Get cleanup history */
-  GetCleanupHistory(request: CleanupHistoryRequest): Promise<CleanupHistoryResponse>;
+  GetCleanupHistory(request: CleanupHistoryRequest): Observable<CleanupHistoryResponse>;
   /** Trigger cleanup */
-  TriggerCleanup(request: TriggerCleanupRequest): Promise<ActionResponse>;
+  TriggerCleanup(request: TriggerCleanupRequest): Observable<ActionResponse>;
 }

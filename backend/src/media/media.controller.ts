@@ -2,65 +2,53 @@ import {
   Controller,
   Get,
   NotFoundException,
-  Param,
   ParseIntPipe,
-  Post,
   Query,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { firstValueFrom } from 'rxjs';
 import { GetAuthToken, GetAuthUser } from 'src/auth/auth.guard';
-import { User } from 'src/users/user.entity';
-import { VideoCandidateDto, VideoStreamDto } from './dtos/media.dto';
-import { MediaPluginsService } from './media-plugins.service';
-import { PaginatedResponseDto } from 'src/common/common.dto';
 import { PaginatedApiOkResponse } from 'src/common/common.decorator';
-
-class CandidatesGroupDto {
-  @ApiProperty()
-  groupLabel: string;
-
-  @ApiProperty()
-  groupId: string;
-
-  @ApiProperty({ type: [VideoCandidateDto] })
-  candidates: VideoCandidateDto[];
-}
+import { PaginatedResponseDto } from 'src/common/common.dto';
+import { PluginsService } from 'src/plugins/plugins.service';
+import { User } from 'src/users/user.entity';
+import { StreamablesDto, StreamDto } from './dtos/media.dto';
+import { MediaPluginsService } from './media-plugins.service';
 
 @ApiTags('media')
 @Controller('media')
 export class MediaController {
-  constructor(private readonly mediaPluginsService: MediaPluginsService) {}
+  constructor(
+    private readonly mediaPluginsService: MediaPluginsService,
+    private readonly clientsService: PluginsService,
+  ) {}
 
-  @Get('candidates')
-  @PaginatedApiOkResponse(CandidatesGroupDto)
-  // @ApiOkResponse({
-  //   type: CandidateGroupsDto,
-  // })
-  async getVideoCandidates(
+  @Get('streamables')
+  @PaginatedApiOkResponse(StreamablesDto)
+  async getStreamables(
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
     @Query('tmdbId') tmdbId: string,
     @Query('season', new ParseIntPipe({ optional: true })) season?: number,
     @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
-  ): Promise<PaginatedResponseDto<CandidatesGroupDto>> {
-    const plugins = this.mediaPluginsService.getPlugins();
-    console.log('Plugins:', Object.keys(plugins));
+  ): Promise<PaginatedResponseDto<StreamablesDto>> {
+    const mediaServices = this.clientsService.getMediaServices();
 
-    const groupsP = plugins.map(async (p) => {
-      const candidates = await p.getVideoCandidates({
-        tmdbId: tmdbId,
-        season,
-        episode,
-      });
+    const groupResponses = mediaServices.map(
+      async (s): Promise<StreamablesDto> => {
+        const response = await firstValueFrom(
+          s.mediaService!.GetStreamables({ title: 'test' }),
+        ).catch((e) => ({ items: [] }));
 
-      return {
-        groupLabel: p.settings.name,
-        groupId: p.settings.id,
-        candidates: candidates.candidates,
-      };
-    });
+        return {
+          pluginId: s.config.id,
+          label: s.config.url, // TODO: change to user defined displayName
+          streamables: response.items,
+        };
+      },
+    );
 
-    const groups = await Promise.all(groupsP);
+    const groups = await Promise.all(groupResponses);
 
     return {
       items: groups,
@@ -70,26 +58,32 @@ export class MediaController {
     };
   }
 
-  @Post('get-stream')
+  @Get('stream')
   @ApiOkResponse({
-    type: VideoStreamDto,
+    type: StreamDto,
   })
-  // @ApiBody({ required: false, type: MediaSourceActionBodyDto })
   async getStream(
-    @Query('mediaPluginId') mediaPluginId: string,
-    @Query('candidateId') candidateId: string,
+    @Query('pluginId') pluginId: string,
+    @Query('streamId') streamId: string,
     @GetAuthUser() user: User,
     @GetAuthToken() token: string,
-    // @Body() config: MediaSourceActionBodyDto = {},
-  ): Promise<VideoStreamDto> {
-    const plugin = this.mediaPluginsService.getPlugin(mediaPluginId);
+  ): Promise<StreamDto> {
+    const mediaService = this.clientsService
+      .getMediaServices()
+      .find((s) => s.config.id === pluginId && s.mediaService)?.mediaService;
 
-    if (!plugin) throw new NotFoundException('Media plugin not found');
+    if (!mediaService) {
+      throw new NotFoundException('Media plugin not found');
+    }
 
-    const videoStream = await plugin
-      .getVideoStream({ candidateId })
-      .then((r) => r.stream);
+    const streamResponse = await firstValueFrom(
+      mediaService.GetStream({ id: streamId }),
+    ).catch((e) => {
+      throw new NotFoundException('Stream not found');
+    });
 
-    return videoStream;
+    return {
+      url: streamResponse.url,
+    };
   }
 }

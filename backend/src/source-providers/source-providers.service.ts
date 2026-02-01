@@ -61,8 +61,8 @@ export class SourceProvidersService {
       }
     }
 
-    this.processProviders(jellyfinPlugin, plugins);
-    this.processProviders(torrentStreamPlugin, plugins);
+    // this.processProviders(jellyfinPlugin, plugins);
+    // this.processProviders(torrentStreamPlugin, plugins);
 
     return plugins;
   }

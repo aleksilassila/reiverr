@@ -9,28 +9,32 @@ service PluginService {
 }
 
 // Media Source Provider Service - handles user-specific requests
-service MediaSourceProviderService {
-  // Get available views for a media item
-  rpc GetMediaSourceViews(MediaSourceViewsRequest) returns (MediaSourceViewsResponse);
+service PluginMediaService {
+  rpc GetStreamables(GetStreamablesRequest) returns (StreamablesResponse);
 
-  // Get a specific view
-  rpc GetMediaSourceView(MediaSourceViewRequest) returns (MediaSourceViewResponse);
-
-  // Get autoplay stream
-  rpc GetAutoplayStream(AutoplayStreamRequest) returns (AutoplayStreamResponse);
-
-  // Get stream details
   rpc GetStream(GetStreamRequest) returns (StreamResponse);
 
-  // Handle stream actions (download, delete, etc.)
-  rpc HandleAction(HandleActionRequest) returns (ActionResponse);
+  // // Get available views for a media item
+  // rpc GetMediaSourceViews(MediaSourceViewsRequest) returns (MediaSourceViewsResponse);
 
-  // Proxy handler for streaming (bidirectional for video/subtitle streaming)
-  rpc ProxyStream(stream ProxyRequest) returns (stream ProxyResponse);
+  // // Get a specific view
+  // rpc GetMediaSourceView(MediaSourceViewRequest) returns (MediaSourceViewResponse);
 
-  // Legacy methods (deprecated)
-  rpc GetTmdbMovieCandidates(TmdbMovieRequest) returns (StreamCandidatesResponse);
-  rpc GetTmdbEpisodeCandidates(TmdbEpisodeRequest) returns (StreamCandidatesResponse);
+  // // Get autoplay stream
+  // rpc GetAutoplayStream(AutoplayStreamRequest) returns (AutoplayStreamResponse);
+
+  // // Get stream details
+  // rpc GetStream(GetStreamRequest) returns (StreamResponse);
+
+  // // Handle stream actions (download, delete, etc.)
+  // rpc HandleAction(HandleActionRequest) returns (ActionResponse);
+
+  // // Proxy handler for streaming (bidirectional for video/subtitle streaming)
+  // rpc ProxyStream(stream ProxyRequest) returns (stream ProxyResponse);
+
+  // // Legacy methods (deprecated)
+  // rpc GetTmdbMovieCandidates(TmdbMovieRequest) returns (StreamCandidatesResponse);
+  // rpc GetTmdbEpisodeCandidates(TmdbEpisodeRequest) returns (StreamCandidatesResponse);
 }
 
 // Catalogue Provider Service - handles library catalogues
@@ -90,10 +94,48 @@ message Empty {}
 
 message PluginInfo {
   string name = 1;
-  string version = 2;
+  string api_version = 2;
   string description = 3;
   bool streaming_supported = 4;
-  bool catalogue_supported = 5;
+  bool catalogues_supported = 5;
+}
+
+message GetStreamablesRequest {
+  string title = 1;
+  optional int32 season = 2;
+  optional int32 episode = 3;
+  optional double runtime_minutes = 4;
+  optional string tmdb_id = 5;
+  optional string imdb_id = 6;
+  optional string tvdb_id = 7;
+  // optional string media_type = 6; // "movie" or "series"
+}
+
+message StreamablesResponse {
+  repeated StreamableItem items = 1;
+}
+
+message StreamableItem {
+  string id = 1;
+  string title = 2;
+  optional string quality = 3;
+  optional string source = 8;
+  optional string language = 4;
+  optional string release_group = 5;
+  optional string size = 6;
+  optional string bitrate = 7;
+  
+  // string type = 3; // "movie" or "series"
+  // string tmdb_id = 4;
+  // string media_type = 5; // "movie" or "series"
+}
+
+message GetStreamRequest {
+  string id = 1;
+}
+
+message StreamResponse {
+  string url = 1;
 }
 
 message SettingsTemplate {
@@ -176,17 +218,17 @@ message AutoplayStreamResponse {
 
 // Stream Messages
 
-message GetStreamRequest {
-  UserContext user_context = 1;
-  string stream_id = 2;
-  optional PlaybackConfig config = 3;
-}
+// message GetStreamRequest {
+//   UserContext user_context = 1;
+//   string stream_id = 2;
+//   optional PlaybackConfig config = 3;
+// }
 
-message StreamResponse {
-  optional Stream stream = 1;
-  optional Toast toast = 2;
-  optional ErrorMessage error = 3;
-}
+// message StreamResponse {
+//   optional Stream stream = 1;
+//   optional Toast toast = 2;
+//   optional ErrorMessage error = 3;
+// }
 
 message Stream {
   string stream_id = 1;

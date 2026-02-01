@@ -34,6 +34,8 @@
     "@aleksilassila/jellyfin.plugin": "*",
     "@aleksilassila/reiverr-shared": "*",
     "@aleksilassila/torrent-stream.plugin": "*",
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
     "@nanogiants/nestjs-swagger-api-exception-decorator": "^1.6.11",
     "@nestjs/cache-manager": "^2.3.0",
     "@nestjs/common": "^10.0.0",

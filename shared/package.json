@@ -5,7 +5,7 @@
   "types": "./dist/src/index.d.ts",
   "private": true,
   "scripts": {
-    "build": "protoc --plugin=..\\node_modules\\.bin\\protoc-gen-ts_proto --ts_proto_out=.\\src --ts_proto_opt=outputEncodeMethods=false,outputJsonMethods=false,outputClientImpl=false --proto_path=. *.proto&& tsc",
+    "build": "protoc --plugin=..\\node_modules\\.bin\\protoc-gen-ts_proto --ts_proto_out=.\\src --ts_proto_opt=outputEncodeMethods=false,outputJsonMethods=false,outputClientImpl=false,returnObservable=true --proto_path=. *.proto&& tsc",
     "clean": "rm -rf dist"
   },
   "author": "",

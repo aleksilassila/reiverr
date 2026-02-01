@@ -55,6 +55,7 @@ class MediaPlugin {
   }
 }
 
+/** @deprecated */
 @Injectable()
 export class MediaPluginsService {
   private logger = new Logger(MediaPluginsService.name);
