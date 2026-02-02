@@ -37,8 +37,7 @@
     "openapi:generate:reiverr": "swagger-typescript-api generate -p \"backend/swagger-spec.json\" -o frontend/src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag"
   },
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "prettier": "^2.8.0"
+    "typescript": "^5.2.2"
   },
   "engines": {
     "node": ">=18.0.0",
