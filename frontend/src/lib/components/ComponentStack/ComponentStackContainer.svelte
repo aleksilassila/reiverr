@@ -1,11 +1,14 @@
 <script lang="ts">
-	import type { ComponentStackStore } from '$lib/stores/component-stack.store';
+	import {
+		componentStackContext,
+		type ComponentStackStore
+	} from '$lib/stores/component-stack.store';
 	import classNames from 'classnames';
 	import { getContext, setContext } from 'svelte';
 	import Container from '../Container.svelte';
 
 	const componentStackIndex = getContext<number>('component-stack-index');
-	const { top, ...componentStack } = getContext<ComponentStackStore>('component-stack');
+	const { top, ...componentStack } = componentStackContext.getContext();
 
 	$: nextComponent = $componentStack[componentStackIndex + 1];
 	$: component = $componentStack[componentStackIndex];

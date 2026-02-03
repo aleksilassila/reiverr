@@ -10,8 +10,10 @@ service PluginService {
 
 // Media Source Provider Service - handles user-specific requests
 service PluginMediaService {
+  // Get a list of available streamables
   rpc GetStreamables(GetStreamablesRequest) returns (StreamablesResponse);
 
+  // Get a link to a streamable - on the plugin side, this can create a transcoding session for example
   rpc GetStream(GetStreamRequest) returns (StreamResponse);
 
   // // Get available views for a media item
@@ -117,7 +119,7 @@ message StreamablesResponse {
 
 message StreamableItem {
   string id = 1;
-  string title = 2;
+  string label = 2;
   optional string quality = 3;
   optional string source = 8;
   optional string language = 4;
@@ -135,7 +137,32 @@ message GetStreamRequest {
 }
 
 message StreamResponse {
-  string url = 1;
+  repeated VideoTrack videoTracks = 1;
+  repeated SubtitleTrack  subtitleTracks = 2;
+  repeated AudioTrack audioTracks = 3;
+}
+
+message VideoTrack {
+  string label = 1;
+  string url = 2;
+  string type = 3; // "direct", "hls", "dash"
+  // optional string quality = 4;
+  // optional string codec = 5;
+  // optional int32 bitrate = 6;
+}
+
+message SubtitleTrack {
+  string label = 1;
+  string url = 2;
+  string lang = 3;
+  string kind = 4; // "subtitles", "captions", "descriptions"
+}
+
+message AudioTrack {
+  string label = 1;
+  string url = 2;
+  string lang = 3;
+  // optional string codec = 4;
 }
 
 message SettingsTemplate {

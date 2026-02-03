@@ -26,11 +26,13 @@
 	import { useEpisodesData } from './episode-carousel';
 	import TitleSheet from '../TitleSheet.svelte';
 	import type { TmdbEpisode, TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
+	import StreamablesView from './StreamablesView.svelte';
+	import { createModal } from '$lib/components/Modal/modal.store';
 
 	const { registrar } = getStackRouterPage();
 	const background = getBackgroundPage();
 
-	const { openEpisodeMenu, openManageSeries } = titlePageContext.getContext();
+	const { openEpisodeMenu, openManageSeries, componentStack } = titlePageContext.getContext();
 	const {
 		tmdbId,
 		tmdbSeries,
@@ -42,6 +44,7 @@
 		isWatched,
 		toggleIsWatched,
 		autoplayCandidate,
+		playStream,
 		autoplayStream,
 		unsubscribe
 	} = seriesUserDataContext.getContext();
@@ -112,6 +115,18 @@
 			tmdbId,
 			videoId: trailerId,
 			onBackground: true
+		});
+	}
+
+	function openStreamableSelectorModal(opts: { tmdbId: string; season: number; episode: number }) {
+		componentStack.push({
+			component: StreamablesView,
+			props: {
+				...opts,
+				openStream: async ({ id, pluginId }) => {
+					// playStream();
+				}
+			}
 		});
 	}
 
@@ -311,7 +326,12 @@
 									on:mouseleave={() => onEpisodeCardMouseLeave()}
 									isWatched={userData?.watched || false}
 									progress={userData?.progress}
-									on:clickOrSelect={() => (sheetProps = { episode, series: tmdbSeries })}
+									on:clickOrSelect={() =>
+										openStreamableSelectorModal({
+											tmdbId,
+											season: episode.season_number ?? 1,
+											episode: episode.episode_number ?? 1
+										})}
 								/>
 							{/key}
 						{/each}

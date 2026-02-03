@@ -5,7 +5,7 @@ export class StreamableDto {
   id: string;
 
   @ApiProperty()
-  title: string;
+  label: string;
 }
 
 export class StreamablesDto {
@@ -19,6 +19,14 @@ export class StreamablesDto {
   streamables: StreamableDto[];
 }
 
+export class VideoTrack {}
+
+export class SubtitleTrack {}
+
+export class AudioTrack {}
+
 export class StreamDto {
-  url: string;
+  videoTracks: VideoTrack[];
+  subtitleTracks: SubtitleTrack[];
+  audioTracks: AudioTrack[];
 }

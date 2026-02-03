@@ -39,7 +39,7 @@ export interface StreamablesResponse {
 
 export interface StreamableItem {
   id: string;
-  title: string;
+  label: string;
   quality?: string | undefined;
   source?: string | undefined;
   language?: string | undefined;
@@ -53,7 +53,31 @@ export interface GetStreamRequest {
 }
 
 export interface StreamResponse {
+  videoTracks: VideoTrack[];
+  subtitleTracks: SubtitleTrack[];
+  audioTracks: AudioTrack[];
+}
+
+export interface VideoTrack {
+  label: string;
   url: string;
+  /** "direct", "hls", "dash" */
+  type: string;
+}
+
+export interface SubtitleTrack {
+  label: string;
+  url: string;
+  lang: string;
+  /** "subtitles", "captions", "descriptions" */
+  kind: string;
+}
+
+export interface AudioTrack {
+  label: string;
+  url: string;
+  /** optional string codec = 4; */
+  lang: string;
 }
 
 export interface SettingsTemplate {
@@ -534,7 +558,9 @@ export interface PluginService {
 
 /** Media Source Provider Service - handles user-specific requests */
 export interface PluginMediaService {
+  /** Get a list of available streamables */
   GetStreamables(request: GetStreamablesRequest): Observable<StreamablesResponse>;
+  /** Get a link to a streamable - on the plugin side, this can create a transcoding session for example */
   GetStream(request: GetStreamRequest): Observable<StreamResponse>;
 }
 

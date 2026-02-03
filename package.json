@@ -34,7 +34,7 @@
     "clean": "npm run clean --workspaces --if-present",
     "install-all": "npm install",
     "preview": "npm run preview --workspace=frontend",
-    "openapi:generate:reiverr": "swagger-typescript-api generate -p \"backend/swagger-spec.json\" -o frontend/src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag"
+    "openapi:generate:frontend": "swagger-typescript-api generate -p \"backend/swagger-spec.json\" -o frontend/src/lib/apis/reiverr -n reiverr.openapi.ts --axios --module-name-first-tag"
   },
   "devDependencies": {
     "typescript": "^5.2.2"

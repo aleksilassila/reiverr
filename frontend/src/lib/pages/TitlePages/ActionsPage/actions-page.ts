@@ -3,7 +3,7 @@ import {
 	createErrorNotification,
 	createInfoNotification
 } from '$lib/components/Notifications/notification.store';
-import { componentStackContext, useComponentStack } from '$lib/stores/component-stack.store';
+import { componentStackContext } from '$lib/stores/component-stack.store';
 import {
 	TITLE_USER_DATA_CONTEXT,
 	type TitleUserData
@@ -12,8 +12,8 @@ import { reiverrApi } from '$lib/stores/user.store';
 import { createStoreContext } from '$lib/utils';
 import { getContext, hasContext } from 'svelte';
 import { writable } from 'svelte/store';
-import ActionsMenu from './ActionsMenu.svelte';
 import ManageMenu from '../ManageMenu.svelte';
+import ActionsMenu from './ActionsMenu.svelte';
 
 function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;

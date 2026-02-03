@@ -5,7 +5,7 @@ import {
   ParseIntPipe,
   Query,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { GetAuthToken, GetAuthUser } from 'src/auth/auth.guard';
 import { PaginatedApiOkResponse } from 'src/common/common.decorator';
@@ -13,17 +13,17 @@ import { PaginatedResponseDto } from 'src/common/common.dto';
 import { PluginsService } from 'src/plugins/plugins.service';
 import { User } from 'src/users/user.entity';
 import { StreamablesDto, StreamDto } from './dtos/media.dto';
-import { MediaPluginsService } from './media-plugins.service';
+import { StreamableItem } from '@aleksilassila/reiverr-shared';
 
 @ApiTags('media')
 @Controller('media')
 export class MediaController {
-  constructor(
-    private readonly mediaPluginsService: MediaPluginsService,
-    private readonly clientsService: PluginsService,
-  ) {}
+  constructor(private readonly clientsService: PluginsService) {}
 
   @Get('streamables')
+  @ApiQuery({ name: 'tmdbId', required: true, type: String })
+  @ApiQuery({ name: 'season', required: false, type: Number })
+  @ApiQuery({ name: 'episode', required: false, type: Number })
   @PaginatedApiOkResponse(StreamablesDto)
   async getStreamables(
     @GetAuthUser() user: User,
@@ -38,7 +38,7 @@ export class MediaController {
       async (s): Promise<StreamablesDto> => {
         const response = await firstValueFrom(
           s.mediaService!.GetStreamables({ title: 'test' }),
-        ).catch((e) => ({ items: [] }));
+        ).catch((e) => ({ items: [] as StreamableItem[] }));
 
         return {
           pluginId: s.config.id,
@@ -83,7 +83,9 @@ export class MediaController {
     });
 
     return {
-      url: streamResponse.url,
+      videoTracks: streamResponse.videoTracks,
+      subtitleTracks: streamResponse.subtitleTracks,
+      audioTracks: streamResponse.audioTracks,
     };
   }
 }

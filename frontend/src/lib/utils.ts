@@ -171,12 +171,12 @@ export function getCardDimensions(options: {
 					sm: 160,
 					md: 200,
 					lg: 240
-			  }[size]
+				}[size]
 			: {
 					sm: 300,
 					md: 350,
 					lg: 400
-			  }[size];
+				}[size];
 
 	const margin = 128;
 	const gap = 32;

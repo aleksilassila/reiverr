@@ -637,22 +637,7 @@ export interface SubtitlesDto {
   default: boolean;
 }
 
-export interface StreamDto {
-  streamId: string;
-  title: string;
-  properties: VideoStreamPropertyDto[];
-  src: string;
-  directPlay: boolean;
-  /** Duration in seconds */
-  duration: number;
-  /** Play progress as a number between 0 and 1 */
-  progress: number;
-  audioStreams: AudioStreamDto[];
-  audioStreamIndex: number;
-  qualities: QualityDto[];
-  qualityIndex: number;
-  subtitles: SubtitlesDto[];
-}
+export type StreamDto = object;
 
 export interface StreamActionResponseDto {
   error?: ActionResponseErrorDto;
@@ -727,57 +712,15 @@ export interface SeriesUserDataDto {
   playStates: PlayStateDto[];
 }
 
-export interface VideoPropertyDto {
-  label: string;
-  value: object;
-  formatted?: string;
-}
-
-export interface VideoCandidateDto {
+export interface StreamableDto {
   id: string;
-  title: string;
-  properties: VideoPropertyDto[];
-  canStream: boolean;
-  canRequest: boolean;
-  canDelete: boolean;
-}
-
-export interface CandidatesGroupDto {
-  groupLabel: string;
-  groupId: string;
-  candidates: VideoCandidateDto[];
-}
-
-export interface VideoSrcDto {
-  src: string;
   label: string;
-  bitrate: number;
-  default: boolean;
 }
 
-export interface VideoOptionsDto {
-  codec: string;
-  width: number;
-  height: number;
-  framerate: number;
-}
-
-export interface AudioTrackDto {
+export interface StreamablesDto {
+  pluginId: string;
   label: string;
-  codec: string;
-  bitrate: number;
-  default: boolean;
-}
-
-export interface VideoStreamDto {
-  id: string;
-  videoCandidate: VideoCandidateDto;
-  playbackMethod: "direct" | "hsl" | "dash";
-  sources: VideoSrcDto[];
-  duration: number;
-  videoOptions?: VideoOptionsDto;
-  subtitles: SubtitlesDto[];
-  audioStreams: AudioTrackDto[];
+  streamables: StreamableDto[];
 }
 
 export interface UpdatePlayStateDto {
@@ -2022,24 +1965,24 @@ export class Api<
      * No description
      *
      * @tags media
-     * @name GetVideoCandidates
-     * @request GET:/api/media/candidates
+     * @name GetStreamables
+     * @request GET:/api/media/streamables
      */
-    getVideoCandidates: (
+    getStreamables: (
       query: {
         tmdbId: string;
-        season: number;
-        episode: number;
+        season?: number;
+        episode?: number;
       },
       params: RequestParams = {},
     ) =>
       this.request<
         PaginatedResponseDto & {
-          items: CandidatesGroupDto[];
+          items: StreamablesDto[];
         },
         any
       >({
-        path: `/api/media/candidates`,
+        path: `/api/media/streamables`,
         method: "GET",
         query: query,
         format: "json",
@@ -2051,18 +1994,18 @@ export class Api<
      *
      * @tags media
      * @name GetStream
-     * @request POST:/api/media/get-stream
+     * @request GET:/api/media/stream
      */
     getStream: (
       query: {
-        mediaPluginId: string;
-        candidateId: string;
+        pluginId: string;
+        streamId: string;
       },
       params: RequestParams = {},
     ) =>
-      this.request<VideoStreamDto, any>({
-        path: `/api/media/get-stream`,
-        method: "POST",
+      this.request<StreamDto, any>({
+        path: `/api/media/stream`,
+        method: "GET",
         query: query,
         format: "json",
         ...params,

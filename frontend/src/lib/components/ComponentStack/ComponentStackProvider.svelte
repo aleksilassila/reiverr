@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { useComponentStack, type ComponentStackStore } from '$lib/stores/component-stack.store';
+	import {
+		componentStackContext,
+		type ComponentStackStore
+	} from '$lib/stores/component-stack.store';
 	import classNames from 'classnames';
 	import { setContext } from 'svelte';
 	import { derived } from 'svelte/store';
 
-	export let componentStack: ComponentStackStore = useComponentStack();
-	setContext('component-stack', componentStack);
+	export let componentStack: ComponentStackStore = componentStackContext.createContext();
 	setContext('component-stack-index', 0);
 
 	const bottom = derived(componentStack, ($componentStack) => $componentStack[0]);
