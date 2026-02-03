@@ -11,7 +11,6 @@ type NotificationItem<T extends SvelteComponentTyped = SvelteComponentTyped> = {
 function useNotificationStack() {
 	const notifications = writable<NotificationItem[]>([]);
 
-	
 	function create(component: NotificationItem['component'], props: NotificationItem['props'] = {}) {
 		const id = Symbol();
 		const item = { id, component, props };

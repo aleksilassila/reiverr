@@ -55,8 +55,8 @@
 					res.status === 404
 						? 'Server not found'
 						: res.status === 401
-						? 'Invalid api key'
-						: 'Could not connect';
+							? 'Invalid api key'
+							: 'Could not connect';
 
 				stale = false; // TODO add notification
 			} else {

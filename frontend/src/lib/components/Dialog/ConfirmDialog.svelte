@@ -40,8 +40,8 @@
 		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(confirm)}>
 			Confirm
 		</Button>
-		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}
-			>Cancel</Button
-		>
+		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}>
+			Cancel
+		</Button>
 	</Container>
 </Dialog>

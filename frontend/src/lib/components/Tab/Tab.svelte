@@ -45,11 +45,11 @@
 				? {
 						'-translate-x-10': !active && $openTab >= index,
 						'translate-x-10': !active && $openTab < index
-				  }
+					}
 				: {
 						'-translate-y-10': !active && $openTab >= index,
 						'translate-y-10': !active && $openTab < index
-				  }
+					}
 		)}
 		bind:selectable
 		on:back

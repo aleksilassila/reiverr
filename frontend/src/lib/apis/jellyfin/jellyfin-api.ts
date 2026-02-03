@@ -107,9 +107,9 @@ export class JellyfinApi implements Api<paths> {
 		return item.ImageTags?.Primary
 			? `${get(user)?.settings.jellyfin.baseUrl}/Items/${
 					item?.Id
-			  }/Images/Primary?quality=${quality}${original ? '' : '&fillWidth=432'}&tag=${
+				}/Images/Primary?quality=${quality}${original ? '' : '&fillWidth=432'}&tag=${
 					item?.ImageTags?.Primary
-			  }`
+				}`
 			: '';
 	}
 

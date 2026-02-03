@@ -115,7 +115,7 @@
 						profilePicture: profilePictureBase64,
 						isAdmin
 						// password: newPassword
-				  }))
+					}))
 				: await reiverrApi.users
 						.updateUser(id, {
 							name,
@@ -234,8 +234,10 @@
 								header: 'Delete Account',
 								body: 'Are you sure you want to delete your account?',
 								confirm: handleDeleteAccount
-							})}>Delete Account</Button
+							})}
 					>
+						Delete Account
+					</Button>
 				{:else}
 					<Button type="primary-dark" disabled={!complete} action={create}>Create</Button>
 				{/if}

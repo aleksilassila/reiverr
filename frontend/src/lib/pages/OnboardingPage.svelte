@@ -63,9 +63,9 @@
 					services to get most out of Reiverr.
 				</div>
 				<Container direction="horizontal" class="flex space-x-4 *:flex-1">
-					<Button type="primary-dark" on:clickOrSelect={() => sessions.removeSession()}
-						>Log Out</Button
-					>
+					<Button type="primary-dark" on:clickOrSelect={() => sessions.removeSession()}>
+						Log Out
+					</Button>
 					<Button
 						focusOnMount
 						type="primary-dark"

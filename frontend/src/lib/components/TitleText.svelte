@@ -14,11 +14,11 @@
 			? {
 					'text-4xl sm:text-5xl 2xl:text-6xl': size === 'md',
 					'text-2xl sm:text-3xl 2xl:text-4xl': size === 'sm'
-			  }
+				}
 			: {
 					'text-3xl sm:text-4xl 2xl:text-5xl': size === 'md',
 					'text-xl sm:text-2xl 2xl:text-3xl': size === 'sm'
-			  },
+				},
 		$$restProps.class
 	)}
 >

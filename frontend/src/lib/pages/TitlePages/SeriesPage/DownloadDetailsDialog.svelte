@@ -44,11 +44,11 @@
 			<span class="border-b border-secondary-600">{capitalize(download.status || '')}</span>
 
 			<span class="border-b border-secondary-600">Progress</span>
-			<span class="border-b border-secondary-600"
-				>{formatSize((download?.size || 0) - (download?.sizeleft || 1))} / {formatSize(
+			<span class="border-b border-secondary-600">
+				{formatSize((download?.size || 0) - (download?.sizeleft || 1))} / {formatSize(
 					download?.size || 0
-				)}</span
-			>
+				)}
+			</span>
 			<span class="border-b border-secondary-600">Estimated Time Left</span>
 			<span class="border-b border-secondary-600">{download.timeleft}</span>
 			<span class="border-b border-secondary-600">Source</span>

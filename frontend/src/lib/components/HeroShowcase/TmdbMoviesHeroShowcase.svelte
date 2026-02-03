@@ -37,7 +37,7 @@
 										)})`,
 										href: `https://www.themoviedb.org/movie/${movie.id}`
 									}
-							  ]
+								]
 							: []),
 						...(movie.genres
 							? [{ label: movie.genres.map((genre) => genre.name).join(', ') }]

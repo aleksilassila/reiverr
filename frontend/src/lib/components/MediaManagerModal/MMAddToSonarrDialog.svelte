@@ -191,9 +191,9 @@
 						<Plus size={19} slot="icon" />
 						Add to Sonarr
 					</Button>
-					<Button type="primary-dark" on:clickOrSelect={() => modalStack.close(modalId)}
-						>Cancel</Button
-					>
+					<Button type="primary-dark" on:clickOrSelect={() => modalStack.close(modalId)}>
+						Cancel
+					</Button>
 				</Container>
 			</Container>
 

@@ -84,12 +84,12 @@
 			style={position === 'fixed'
 				? `left: ${
 						fixedPosition.x - (fixedPosition.x > windowWidth / 2 ? menu?.clientWidth : 0)
-				  }px; top: ${
+					}px; top: ${
 						fixedPosition.y - (fixedPosition.y > windowHeight / 2 ? menu?.clientHeight : 0)
-				  }px;`
+					}px;`
 				: menu?.getBoundingClientRect()?.left > windowWidth / 2
-				? `right: 0;${fixedPosition.y > windowHeight / 2 ? 'bottom: 100%;' : ''}`
-				: `left: 0;${fixedPosition.y > windowHeight / 2 ? 'bottom: 100%;' : ''}`}
+					? `right: 0;${fixedPosition.y > windowHeight / 2 ? 'bottom: 100%;' : ''}`
+					: `left: 0;${fixedPosition.y > windowHeight / 2 ? 'bottom: 100%;' : ''}`}
 			bind:this={menu}
 			in:fly|global={{ y: 5, duration: 100, delay: anchored ? 0 : 100 }}
 			out:fly|global={{ y: 5, duration: 100 }}

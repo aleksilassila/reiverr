@@ -15,10 +15,14 @@
 	focusOnClick
 >
 	<span
-		class={classNames('font-semibold text-2xl group-focus-within:text-primary-500', {
-			'text-secondary-50': selected && !hasFocus,
-			'text-secondary-400': !hasFocus && !selected
-		}, $$restProps.class)}
+		class={classNames(
+			'font-semibold text-2xl group-focus-within:text-primary-500',
+			{
+				'text-secondary-50': selected && !hasFocus,
+				'text-secondary-400': !hasFocus && !selected
+			},
+			$$restProps.class
+		)}
 	>
 		<slot />
 	</span>

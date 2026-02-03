@@ -83,20 +83,28 @@
 				<TableHeaderRow>
 					<TableHeaderSortBy
 						icon={sortBy === 'age' ? sortDirection : undefined}
-						on:clickOrSelect={toggleSortBy('age')}>Age</TableHeaderSortBy
+						on:clickOrSelect={toggleSortBy('age')}
 					>
+						Age
+					</TableHeaderSortBy>
 					<TableHeaderSortBy
 						icon={sortBy === 'size' ? sortDirection : undefined}
-						on:clickOrSelect={toggleSortBy('size')}>Size</TableHeaderSortBy
+						on:clickOrSelect={toggleSortBy('size')}
 					>
+						Size
+					</TableHeaderSortBy>
 					<TableHeaderSortBy
 						icon={sortBy === 'seeders' ? sortDirection : undefined}
-						on:clickOrSelect={toggleSortBy('seeders')}>Peers</TableHeaderSortBy
+						on:clickOrSelect={toggleSortBy('seeders')}
 					>
+						Peers
+					</TableHeaderSortBy>
 					<TableHeaderSortBy
 						icon={sortBy === 'quality' ? sortDirection : undefined}
-						on:clickOrSelect={toggleSortBy('quality')}>Quality</TableHeaderSortBy
+						on:clickOrSelect={toggleSortBy('quality')}
 					>
+						Quality
+					</TableHeaderSortBy>
 					<TableHeaderCell />
 				</TableHeaderRow>
 

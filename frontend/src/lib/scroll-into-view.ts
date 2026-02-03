@@ -132,14 +132,14 @@ export const scrollElementIntoView = (
 				boundingRect.x - parentBoundingRect.x < offsets.left
 					? boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left
 					: boundingRect.x - parentBoundingRect.x + htmlElement.clientWidth >
-					  horizontalParent.clientWidth - offsets.right
-					? boundingRect.x -
-					  parentBoundingRect.x +
-					  htmlElement.clientWidth +
-					  horizontalParent.scrollLeft +
-					  offsets.right -
-					  horizontalParent.clientWidth
-					: -1;
+						  horizontalParent.clientWidth - offsets.right
+						? boundingRect.x -
+							parentBoundingRect.x +
+							htmlElement.clientWidth +
+							horizontalParent.scrollLeft +
+							offsets.right -
+							horizontalParent.clientWidth
+						: -1;
 		} else if (offsets.left !== undefined) {
 			left = boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left;
 		} else if (offsets.right !== undefined) {

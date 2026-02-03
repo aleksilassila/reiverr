@@ -88,20 +88,28 @@
 		<TableHeaderRow>
 			<TableHeaderSortBy
 				icon={sortBy === 'title' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('title')}>Title</TableHeaderSortBy
+				on:clickOrSelect={toggleSortBy('title')}
 			>
+				Title
+			</TableHeaderSortBy>
 			<TableHeaderSortBy
 				icon={sortBy === 'runtime' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('runtime')}>Runtime</TableHeaderSortBy
+				on:clickOrSelect={toggleSortBy('runtime')}
 			>
+				Runtime
+			</TableHeaderSortBy>
 			<TableHeaderSortBy
 				icon={sortBy === 'size' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('size')}>Size</TableHeaderSortBy
+				on:clickOrSelect={toggleSortBy('size')}
 			>
+				Size
+			</TableHeaderSortBy>
 			<TableHeaderSortBy
 				icon={sortBy === 'quality' ? sortDirection : undefined}
-				on:clickOrSelect={toggleSortBy('quality')}>Quality</TableHeaderSortBy
+				on:clickOrSelect={toggleSortBy('quality')}
 			>
+				Quality
+			</TableHeaderSortBy>
 			<TableHeaderCell />
 		</TableHeaderRow>
 		<Container class="contents" focusedChild>

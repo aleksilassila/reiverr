@@ -142,9 +142,9 @@
 							<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 						</SelectField>
 						<Container direction="horizontal" class="flex space-x-4">
-							<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}
-								>Log Out</Button
-							>
+							<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>
+								Log Out
+							</Button>
 						</Container>
 						{#await users then usersR}
 							{#if usersR?.length}

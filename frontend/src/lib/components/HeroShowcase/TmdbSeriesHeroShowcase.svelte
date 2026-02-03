@@ -28,8 +28,8 @@
 						...(series.status !== 'Ended'
 							? [{ label: `Since ${new Date(series.first_air_date ?? 0).getFullYear()}` }]
 							: series.last_air_date
-							? [{ label: `Ended ${new Date(series.last_air_date).getFullYear()}` }]
-							: []),
+								? [{ label: `Ended ${new Date(series.last_air_date).getFullYear()}` }]
+								: []),
 						...(series.vote_average
 							? [
 									{
@@ -38,7 +38,7 @@
 										)})`,
 										href: `https://www.themoviedb.org/tv/${series.id}`
 									}
-							  ]
+								]
 							: []),
 						...(series.genres
 							? [{ label: series.genres.map((genre) => genre.name).join(', ') }]

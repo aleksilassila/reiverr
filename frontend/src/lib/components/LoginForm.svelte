@@ -54,9 +54,9 @@
 	</TextField>
 	<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
 
-	<Button type="primary-dark" disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full"
-		>Submit</Button
-	>
+	<Button type="primary-dark" disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full">
+		Submit
+	</Button>
 
 	{#if error}
 		<div class="text-red-300 text-center">{error}</div>

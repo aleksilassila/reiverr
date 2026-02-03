@@ -24,8 +24,8 @@ export function useIsWatched(opts: {
 		} else if (d && 'playStates' in d) {
 			isWatched.set(
 				opts.season !== undefined && opts.episode !== undefined
-					? d.playStates.find((p) => p.episode === opts.episode && p.season === opts.season)
-							?.watched ?? false
+					? (d.playStates.find((p) => p.episode === opts.episode && p.season === opts.season)
+							?.watched ?? false)
 					: d.playStates.every((e) => e.watched) // || e.upcoming
 			);
 		} else if (d && 'upcoming' in d) {

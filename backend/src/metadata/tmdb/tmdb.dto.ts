@@ -31,7 +31,7 @@ export type SeriesImages = Awaited<
 >['data'];
 export type TmdbSeries = Awaited<
   ReturnType<TmdbApi['v3']['tvSeriesDetails']>
->['data']
+>['data'];
 
 export type TmdbEpisode = Awaited<
   ReturnType<TmdbApi['v3']['tvEpisodeDetails']>

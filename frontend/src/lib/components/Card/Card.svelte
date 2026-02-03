@@ -34,7 +34,7 @@
 		}))}
 />
 
-	<!-- {#if group}
+<!-- {#if group}
 		<div class="absolute inset-0 scale-95 translate-y-3.5 opacity-50">
 			<LazyImg src={backdropUrl} class="absolute inset-0 rounded-xl" />
 			<div class="absolute inset-0 bg-white/10 rounded-xl" />
@@ -46,43 +46,43 @@
 			<div class="absolute inset-0 scale-95 translate-y-4 rounded-xl bg-white/10 opacity-25" />
 		</div>
 	{/if} -->
-	<AnimatedSelection hasFocus={$hasFocus} class="relative">
-		<Container
-			{...$$restProps}
-			{disabled}
-			on:clickOrSelect
-			on:enter
-			on:click
-			class={classNames(
-				'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
-				'selectable',
-				$$restProps.class
-			)}
-			style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
-			focusOnClick
-			bind:hasFocus
-		>
-			<slot hasFocus={$hasFocus} width={dimensions.width} height={dimensions.height}>
-				{#if backdropUrl}
-					<LazyImg
-						src={backdropUrl}
-						class="absolute inset-0"
-						width={dimensions.width}
-						height={dimensions.height}
-					/>
-				{:else}
-					<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center p-4">
-						{title}
-					</h1>
-				{/if}
-			</slot>
-
-			{#if progress && progress > lowerLimit && progress < upperLimit}
-				<div
-					class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out"
-				>
-					<ProgressBar {progress} />
-				</div>
+<AnimatedSelection hasFocus={$hasFocus} class="relative">
+	<Container
+		{...$$restProps}
+		{disabled}
+		on:clickOrSelect
+		on:enter
+		on:click
+		class={classNames(
+			'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
+			'selectable',
+			$$restProps.class
+		)}
+		style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
+		focusOnClick
+		bind:hasFocus
+	>
+		<slot hasFocus={$hasFocus} width={dimensions.width} height={dimensions.height}>
+			{#if backdropUrl}
+				<LazyImg
+					src={backdropUrl}
+					class="absolute inset-0"
+					width={dimensions.width}
+					height={dimensions.height}
+				/>
+			{:else}
+				<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center p-4">
+					{title}
+				</h1>
 			{/if}
-		</Container>
-	</AnimatedSelection>
+		</slot>
+
+		{#if progress && progress > lowerLimit && progress < upperLimit}
+			<div
+				class="absolute bottom-2 lg:bottom-3 inset-x-2 lg:inset-x-3 bg-gradient-to-t ease-in-out"
+			>
+				<ProgressBar {progress} />
+			</div>
+		{/if}
+	</Container>
+</AnimatedSelection>
