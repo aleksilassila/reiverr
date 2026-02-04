@@ -4,9 +4,8 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
-	import { scrollIntoView } from '$lib/selectable';
+	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import { libraryRefresher, usePaginatedRequest } from '$lib/stores/data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
@@ -17,7 +16,6 @@
 	import MyListOptions from './MyListOptions.svelte';
 	import TabItem from './TabItem.svelte';
 
-	const { registrar } = getStackRouterPage();
 	const { topVisible } = getScrollContext();
 
 	let didMount = false;
@@ -134,7 +132,7 @@
 			focusOnMount={hasFocus || !didMount}
 			on:mount={(e) => {
 				didMount = true;
-				registrar(e);
+				// registrar(e);
 			}}
 			focusedChild
 			class="flex-1 flex flex-col"
@@ -159,7 +157,7 @@
 					{#if $libraryViewSettings.separateWatched}
 						<div class="px-32 mb-6 h3">Unwatched</div>
 					{/if}
-					<CardGrid class="px-32" let:columns>
+					<CardGrid class="px-32" let:columns on:back={scrollToTop}>
 						{#each $data as item, index (item.tmdbId)}
 							<TmdbCard
 								{index}

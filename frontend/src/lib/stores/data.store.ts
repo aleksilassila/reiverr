@@ -1,8 +1,9 @@
 import type { PaginatedResponseDto } from '$lib/apis/reiverr/reiverr.openapi';
-import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 import type { Action } from 'svelte/action';
-import { derived, get, writable, type Readable } from 'svelte/store';
+import { derived, get, readable, writable, type Readable } from 'svelte/store';
 import { awaitAppInitialization } from './user.store';
+import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
+import { nestedDerived } from '$lib/utils';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 // type Refresher = ReturnType<typeof createRefresher>;
@@ -96,7 +97,10 @@ export function useRequest<TResponse>(
 		return awaitAppInitialization().then(() => fn());
 	}
 
-	const { hasFocus: isActive } = getStackRouterPage();
+	// const { hasFocus: isActive } = getcs();
+	const { root } = useComponentStack();
+	const isActive = nestedDerived(root, ($root) => $root?.hasFocusWithin ?? readable(false));
+	// const hasFocusWithin = derived(root, ($root) => $root?.hasFocusWithin);
 	const { refresher, key } = options;
 
 	const initialPromise = _createPromise();
@@ -307,7 +311,9 @@ export function usePaginatedRequest<TResponseItem>(
 		key?: string;
 	} = {}
 ) {
-	const { hasFocus: isActive } = getStackRouterPage();
+	// const { hasFocus: isActive } = getStackRouterPage();
+	const { root } = useComponentStack();
+	const isActive = nestedDerived(root, ($root) => $root?.hasFocusWithin ?? readable(false));
 	const { refresher, key, initialPage = 1 } = options;
 
 	let requestId: symbol = Symbol();

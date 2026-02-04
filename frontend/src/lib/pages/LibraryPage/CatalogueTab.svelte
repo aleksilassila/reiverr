@@ -6,7 +6,6 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { usePaginatedRequest } from '$lib/stores/data.store';
@@ -20,7 +19,6 @@
 	export let source: MediaSourceDto;
 
 	const { topVisible } = getScrollContext();
-	const { registrar } = getStackRouterPage();
 
 	// const viewSettings = createLocalStorageStore<{
 	// 	order: string | undefined;
@@ -160,7 +158,7 @@
 	</Container>
 	<div class="flex-1 flex flex-col">
 		{#if $data.length}
-			<CardGrid on:mount={registrar} focusOnMount let:columns>
+			<CardGrid focusOnMount let:columns>
 				{#each $data.map((i) => i.tmdbItem) as item, index (item.id)}
 					<TmdbCard
 						{index}

@@ -3,7 +3,7 @@
 	import Container from '../Container.svelte';
 	import AnimateScale from '../AnimateScale.svelte';
 	import type { Readable } from 'svelte/store';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 
 	export let tmdbId: number;
 	// export let type: TitleType = 'person';

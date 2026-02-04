@@ -1,49 +1,56 @@
 <script lang="ts">
+	import { useRegistrar } from '$lib/selectable';
+	import { nestedDerived } from '$lib/utils';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
+	import { setContext } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
-	import { focusSidebar } from '../Sidebar/sidebar';
-	import { createStackRouterPage } from './StackRouter';
 	import Sidebar from '../Sidebar/Sidebar.svelte';
+	import {
+		STACK_ROUTER_CONTEXT,
+		type CompStackForPageContext,
+		type CompStackPage
+	} from './stack-router.store';
 
-	export let hasSidebar = true;
-	export let hidden = false;
+	export let page: CompStackPage;
+	export let isHidden;
+	const registrar = useRegistrar();
+	const hasFocusWithin = nestedDerived(registrar, (r) => r?.hasFocusWithin);
 
-	// Top element, that when focused and back is pressed, will exit the modal
-	const { handleGoBack, handleGoToTop, registrar, hasFocus } = createStackRouterPage();
-	let hasFocusWithin: Readable<boolean>;
-	$: {
-		if (hasFocusWithin) {
-			hasFocus.set($hasFocusWithin);
-		}
-	}
+	setContext<CompStackForPageContext>(STACK_ROUTER_CONTEXT, {
+		...page,
+		root: registrar,
+		hasFocusWithin
+	});
+
+	page.handleMount();
 </script>
 
 <Container
 	class={classNames(
 		'fixed inset-0 overflow-y-auto scrollbar-hide transition-opacity duration-200 ease-linear',
 		{
-			'opacity-100': !hidden,
-			'opacity-0': hidden
+			'opacity-100': !isHidden,
+			'opacity-0': isHidden
 		}
 	)}
 	style="backface-visibility: hidden;"
-	trapFocus
-	focusOnMount
+	trapFocus={page.trapFocus}
 	direction="horizontal"
-	on:mount
-	bind:hasFocusWithin
+	on:mount={registrar.registrar}
 >
 	<div in:fade|global={{ duration: 200, delay: 200 }} class="contents">
-		{#if hasSidebar}
+		{#if page.sidebar === true}
 			<Sidebar />
 		{/if}
 		<Container
-			{...$$restProps}
 			class="contents"
-			on:back={handleGoToTop}
-			focusOnMount
+			on:back={() => {
+				// {...$$restProps}
+				// handleGoToTop()
+				page.close();
+			}}
+			focusOnMount={!isHidden}
 			on:navigate={({ detail }) => {
 				// if (detail.direction === 'left' && detail.willLeaveContainer) {
 				// 	detail.preventNavigation();
@@ -51,7 +58,7 @@
 				// }
 			}}
 		>
-			<slot />
+			<svelte:component this={page.component} {...page.props} />
 		</Container>
 	</div>
 </Container>

@@ -12,7 +12,7 @@
 	import CardGrid from '../../../components/CardGrid.svelte';
 	import UICarousel from '../../../components/Carousel/UICarousel.svelte';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { navigate } from '../../../components/StackRouter/StackRouter';
+	import { navigate } from '../../../components/StackRouter/stack-router.store';
 	import { Selectable } from '../../../selectable';
 	import { scrollIntoView } from '$lib/selectable';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';

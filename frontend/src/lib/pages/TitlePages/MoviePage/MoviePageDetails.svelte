@@ -3,33 +3,24 @@
 	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import {
-		createBackgroundPage,
-		getBackgroundPage
-	} from '$lib/components/GlobalBackground/BackgroundStack';
+	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
+	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
-	import {
-		movieUserDataContext,
-		useMovieUserData
-	} from '$lib/stores/user-data/title-user-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
+	import { movieUserDataContext } from '$lib/stores/user-data/title-user-data.store';
+	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
 	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import type { TitleInfoProperty } from '../HeroTitleInfo';
-	import HeroTitleInfo from '../HeroTitleInfo.svelte';
-	import { tmdbApi } from '$lib/stores/user.store';
 	import { titlePageContext } from '../ActionsPage/actions-page';
 	import ActionsMenu from '../ActionsPage/ActionsMenu.svelte';
-	import ComponentStackContainer from '$lib/components/ComponentStack/ComponentStackContainer.svelte';
-
-	const { registrar } = getStackRouterPage();
+	import type { TitleInfoProperty } from '../HeroTitleInfo';
+	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	const {
 		tmdbId,
@@ -119,12 +110,7 @@
 						/>
 					{/if}
 				{/await}
-				<Container
-					direction="horizontal"
-					class="flex mt-8 space-x-4"
-					focusOnMount
-					on:mount={registrar}
-				>
+				<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
 					<Button
 						action={autoplayStream}
 						secondaryAction={openEpisodeMenu}

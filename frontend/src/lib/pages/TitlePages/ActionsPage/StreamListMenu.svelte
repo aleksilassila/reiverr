@@ -71,7 +71,7 @@
 	/>
 </div>
 
-<ComponentStackContainer trapFocus hideSidebar>
+<ComponentStackContainer trapFocus sidebar={false}>
 	<Container
 		class={classNames('px-32 flex flex-col h-screen bg-primary-900/50', $$restProps.class)}
 		on:back={({ detail }) => {

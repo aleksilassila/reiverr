@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ComponentStackProvider from '$lib/components/ComponentStack/ComponentStackProvider.svelte';
+	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import { movieUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { onDestroy } from 'svelte';
@@ -39,4 +39,4 @@
 	});
 </script>
 
-<ComponentStackProvider {componentStack} />
+<ComponentStack {componentStack} />

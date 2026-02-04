@@ -1,5 +1,11 @@
-import { getContext, hasContext, setContext } from 'svelte';
-import { get, type Readable, writable } from 'svelte/store';
+import { getContext, hasContext, setContext } from './components/StackRouter/stack-router.store';
+import {
+	getContext as getSvelteContext,
+	hasContext as hasSvelteContext,
+	setContext as setSvelteContext
+} from 'svelte';
+
+import { get, readable, type Readable, writable } from 'svelte/store';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -256,6 +262,7 @@ export function createStoreContext<
 	function createContext(...args: TArgs) {
 		const store = storeCreator(...args);
 		setContext(key, store);
+		console.log('created context', key, store);
 		return store;
 	}
 
@@ -279,9 +286,118 @@ export function createStoreContext<
 	};
 }
 
+export function _createStoreContext<
+	TStore extends object,
+	TArgs extends Array<unknown> = Array<unknown>,
+	TRequired extends boolean = boolean
+>(
+	key: string,
+	storeCreator: (...args: TArgs) => TStore,
+	options: {
+		required?: TRequired;
+	} = {}
+) {
+	function createContext(...args: TArgs) {
+		const store = storeCreator(...args);
+		setSvelteContext(key, store);
+		return store;
+	}
+
+	function _getContext(): TRequired extends true ? TStore : Partial<TStore>;
+	function _getContext(): Partial<TStore> | TStore {
+		if (!hasSvelteContext(key)) {
+			if (options.required === true) {
+				throw new Error(`Context ${key} not found`);
+			} else {
+				return {};
+			}
+		}
+
+		return getSvelteContext(key);
+	}
+
+	return {
+		createContext,
+		getContext: _getContext,
+		useStore: storeCreator
+	};
+}
+
 export function toNonNullable<T>(value: T | null | undefined): NonNullable<T> {
 	if (value == null) {
 		throw new Error('Value is null or undefined');
 	}
 	return value;
+}
+
+export function linkedListToArray<T>(head: T, getNext: (node: T) => T | null | undefined): T[] {
+	const arr: T[] = [];
+	for (let curr: T | null | undefined = head; curr; curr = getNext(curr)) arr.push(curr);
+	return arr;
+}
+
+export function useSubscribes() {
+	const unsubscribers: Array<() => void> = [];
+
+	function add<T>(store: Readable<T>, fn: (value: T) => void) {
+		const unsubscribe = store.subscribe(fn);
+		unsubscribers.push(unsubscribe);
+	}
+
+	function destroy() {
+		unsubscribers.forEach((u) => u());
+	}
+
+	return {
+		add,
+		destroy
+	};
+}
+
+export function nestedDerived<T, O>(
+	store: Readable<T>,
+	getStore2: (t: T) => Readable<O> | undefined,
+	def?: O
+): Readable<O> {
+	const subscribers: ((value: O) => void)[] = [];
+
+	let unsub: (() => void) | undefined = undefined;
+	let unsub2: (() => void) | undefined = undefined;
+	let lastValue:
+		| {
+				v: O;
+		  }
+		| undefined = undefined;
+	function subscribe(cb: (value: O) => void) {
+		subscribers.push(cb);
+
+		if (subscribers.length === 1) {
+			unsub = store.subscribe((s) => {
+				unsub2?.();
+				const store2 = getStore2(s);
+				unsub2 = (store2 ?? (def ? readable(def) : undefined))?.subscribe((hf) => {
+					// hasFocus.set(hf);
+					subscribers.forEach((cb) => cb(hf));
+					lastValue = { v: hf };
+				});
+			});
+		} else if (lastValue) {
+			cb(lastValue.v);
+		}
+
+		return () => {
+			subscribers.splice(subscribers.indexOf(cb), 1);
+
+			if (subscribers.length === 0) {
+				unsub?.();
+				unsub2?.();
+				unsub = undefined;
+				unsub2 = undefined;
+			}
+		};
+	}
+
+	return {
+		subscribe
+	};
 }

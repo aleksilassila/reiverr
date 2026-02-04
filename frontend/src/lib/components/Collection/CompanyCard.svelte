@@ -3,7 +3,7 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import Card from '../Card/Card.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 	import type { Company } from './collections';
 
 	export let company: Company;

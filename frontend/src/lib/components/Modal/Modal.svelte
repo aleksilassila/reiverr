@@ -3,13 +3,16 @@
 	import Container from '../Container.svelte';
 	import { modalStack } from './modal.store';
 	import classNames from 'classnames';
+	import { componentStackContext } from '../ComponentStack/component-stack.store';
+
+	const { componentStack } = componentStackContext.getContext();
 
 	const dispatch = createEventDispatcher<{
 		close: null;
 	}>();
 
 	function handleClose() {
-		modalStack.closeTopmost();
+		componentStack.pop();
 		dispatch('close');
 	}
 </script>

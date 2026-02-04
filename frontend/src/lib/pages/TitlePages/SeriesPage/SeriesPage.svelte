@@ -1,5 +1,6 @@
 <script lang="ts">
-	import ComponentStackProvider from '$lib/components/ComponentStack/ComponentStackProvider.svelte';
+	import { componentStackContext } from '$lib/components/ComponentStack/component-stack.store';
+	import ComponentStack from '$lib/components/ComponentStack/ComponentStack.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
@@ -9,11 +10,16 @@
 
 	export let id: string;
 
+	const { componentStack } = componentStackContext.createContext();
 	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
-	const { tmdbSeries, unsubscribe } = seriesUserDataContext.createContext(id);
-	const { componentStack } = titlePageContext.createContext();
+	const seriesUserData = seriesUserDataContext.createContext(id);
+	const { tmdbSeries, unsubscribe } = seriesUserData;
+	titlePageContext.createContext();
 
-	componentStack.push({ component: SeriesPageDetails, props: {} });
+	componentStack.push({
+		component: SeriesPageDetails,
+		props: {}
+	});
 
 	$tmdbSeries.then((series) => {
 		const backgrounds =
@@ -55,4 +61,4 @@
 	/>
 {/if}
 
-<ComponentStackProvider {componentStack} />
+<ComponentStack {componentStack} />

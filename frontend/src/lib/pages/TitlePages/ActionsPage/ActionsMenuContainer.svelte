@@ -8,7 +8,7 @@
 	const { componentStack } = titlePageContext.getContext();
 </script>
 
-<ComponentStackContainer trapFocus hideSidebar>
+<ComponentStackContainer trapFocus sidebar={false}>
 	<Container
 		class={classNames(
 			'pt-16 px-32 flex flex-col min-h-screen bg-primary-900/50',

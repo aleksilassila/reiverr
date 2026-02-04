@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
 	import { formatThousands } from '$lib/utils';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 	import HeroShowcase from './HeroShowcase.svelte';
 	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
 	import { Video } from 'radix-icons-svelte';

@@ -16,7 +16,7 @@
 	import { sessions } from '../../stores/session.store';
 	import { user } from '../../stores/user.store';
 	import Container from '../Container.svelte';
-	import { navigate, stackRouter } from '../StackRouter/StackRouter';
+	import { navigate, stackRouter } from '../StackRouter/stack-router.store';
 	import { useTabs } from '../Tab/Tab';
 	import { sidebarRegistrar, unfocusSidebar } from './sidebar';
 
@@ -70,21 +70,24 @@
 	onMount(() => {
 		// Set active tab based on bottommost page
 		stackRouter.subscribe((r) => {
-			const bottomPage = r[0];
-			if (bottomPage) {
-				activeIndex =
-					{
-						'/users': Tabs.Users,
-						'/': Tabs.Series,
-						'/series': Tabs.Series,
-						'/movies': Tabs.Movies,
-						'/library': Tabs.Library,
-						'/search': Tabs.Search,
-						'/manage': Tabs.Manage
-					}[bottomPage.route.path] ?? -1;
-				selectable.focusIndex.set(activeIndex);
-				selectedIndex = activeIndex;
-			}
+			const initialUri = window.location.pathname;
+			const uri = initialUri === '/' ? '/' : `/${initialUri.split('/')[1]}`;
+
+			// const bottomPage = r[0];
+			// if (bottomPage) {
+			activeIndex =
+				{
+					'/users': Tabs.Users,
+					'/': Tabs.Series,
+					'/series': Tabs.Series,
+					'/movies': Tabs.Movies,
+					'/library': Tabs.Library,
+					'/search': Tabs.Search,
+					'/manage': Tabs.Manage
+				}[uri] ?? -1;
+			selectable.focusIndex.set(activeIndex);
+			selectedIndex = activeIndex;
+			// }
 		});
 	});
 </script>

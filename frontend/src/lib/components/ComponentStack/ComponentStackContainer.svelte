@@ -15,7 +15,7 @@
 	$: hidden = $top?.group !== component?.group && $top?.id !== component?.id;
 
 	export let trapFocus = false;
-	export let hideSidebar = false;
+	export let sidebar: boolean | undefined = undefined;
 	export let preventScroll = false;
 
 	setContext('component-stack-index', componentStackIndex + 1);
@@ -38,7 +38,7 @@
 	class={classNames(
 		'fixed inset-0 overflow-x-hidden overflow-y-auto scrollbar-hide',
 		{
-			'z-[21]': hideSidebar,
+			'z-[21]': sidebar === false,
 			'opacity-0': hidden
 		},
 		$$restProps.class

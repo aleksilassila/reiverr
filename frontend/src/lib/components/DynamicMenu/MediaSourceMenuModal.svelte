@@ -8,7 +8,7 @@
 	import type { MediaSourceDto, ViewProviderDto } from '../../apis/reiverr/reiverr.openapi';
 	import { mediaSourceContext } from '../../pages/TitlePages/media-source.context';
 	import Modal from '../Modal/Modal.svelte';
-	import ComponentStackProvider from '../ComponentStack/ComponentStackProvider.svelte';
+	import ComponentStack from '../ComponentStack/ComponentStack.svelte';
 
 	type ViewItem = {
 		label: string;
@@ -110,7 +110,7 @@
 				{/each}
 			{/await}
 		{:else}
-			<ComponentStackProvider {componentStack} />
+			<ComponentStack {componentStack} />
 		{/if}
 	</Container>
 </Modal>

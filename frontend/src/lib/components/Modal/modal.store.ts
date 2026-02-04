@@ -1,5 +1,7 @@
+import { _createStoreContext, createStoreContext } from '$lib/utils';
 import type { ComponentType, SvelteComponentTyped } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
+import { useComponentStack } from '../ComponentStack/component-stack.store';
 
 type ModalItem = {
 	id: symbol;
@@ -8,7 +10,7 @@ type ModalItem = {
 	props: Record<string, any>;
 };
 
-export function createModalStack() {
+function createModalStack() {
 	const items = writable<ModalItem[]>([]);
 	const top = derived(items, ($items) => $items[$items.length - 1]);
 
@@ -55,6 +57,26 @@ export function createModalStack() {
 	};
 }
 
-export const modalStack = createModalStack();
+export const modalStack = useComponentStack();
 export const modalStackTop = modalStack.top;
-export const createModal = modalStack.create;
+export const createModal = <T extends Record<string, unknown>>(
+	component: ComponentType<SvelteComponentTyped<T>>,
+	props: Omit<T, 'isHidden' | 'isTop' | 'page'>,
+	group?: symbol
+) => {
+	const id = Symbol();
+	return modalStack.push({
+		id,
+		component,
+		// @ts-ignore
+		props: {
+			...props,
+			modalId: id,
+			groupId: group
+		}
+	});
+};
+
+// export const modalStackContext = _createStoreContext('modal-stack', () => modalStack, {
+// 	required: true
+// });

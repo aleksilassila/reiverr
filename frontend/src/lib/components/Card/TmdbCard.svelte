@@ -2,7 +2,7 @@
 	import type { TmdbMovie, TmdbSeries } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_POSTER_SMALL } from '../../constants';
 	import type { TitleType } from '../../types';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 	import Card from './Card.svelte';
 
 	export let item:

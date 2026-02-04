@@ -2,20 +2,17 @@
 	import Container from '$components/Container.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import { useEpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import Button from '../../components/Button/Button.svelte';
-	import { PLATFORM_WEB, TMDB_IMAGES_ORIGINAL } from '../../constants';
+	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
-
-	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage({ videoMediaId: id });
 
@@ -82,12 +79,7 @@
 				properties={titleProperties}
 				overview={tmdbEpisode?.overview ?? ''}
 			/>
-			<Container
-				direction="horizontal"
-				class="flex mt-8 space-x-4"
-				focusOnMount
-				on:mount={registrar}
-			>
+			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
 				<Button
 					class="mr-4"
 					action={handleAutoplay}

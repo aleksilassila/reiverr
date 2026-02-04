@@ -15,6 +15,7 @@
 		playableDataContext,
 		titlePageContext
 	} from '../ActionsPage/actions-page';
+	import { componentStackContext } from '$lib/components/ComponentStack/component-stack.store';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -24,7 +25,8 @@
 
 	playableDataContext.createContext({ tmdbId, season, episode });
 	const background = getBackgroundPage();
-	const { componentStack } = titlePageContext.getContext();
+	// const { componentStack } = titlePageContext.getContext();
+	const { componentStack } = componentStackContext.getContext();
 
 	if (name) breadcrumbsContext.createContext(name);
 
@@ -47,7 +49,7 @@
 	/>
 </div>
 
-<ComponentStackContainer trapFocus hideSidebar>
+<ComponentStackContainer trapFocus sidebar={false}>
 	<Container
 		class={classNames('pt-16 flex flex-col min-h-screen bg-primary-900/50', 'h-screen')}
 		on:back={({ detail }) => {

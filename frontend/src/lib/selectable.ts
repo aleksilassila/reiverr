@@ -1,5 +1,6 @@
-import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
+import { derived, get, readable, type Readable, type Writable, writable } from 'svelte/store';
 import { type Offsets, scrollElementIntoView } from './scroll-into-view';
+import { nestedDerived } from './utils';
 
 export type BackEvent = CustomEvent<KeyEvent>;
 
@@ -976,6 +977,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 
 export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable | undefined> => {
 	const selectable = writable<Selectable | undefined>();
+	const hasFocus = nestedDerived(selectable, (s) => s?.hasFocusWithin ?? readable(false));
 
 	const registrar: Registrar = (e) => {
 		selectable.update((prev) => {
@@ -1003,5 +1005,13 @@ export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>
 			scrollElementIntoView(element, ...args);
 		}
 	};
+
+export const scrollToTop = (e: CustomEvent<KeyEvent>) => {
+	const selectable = e.detail.selectable;
+	if (get(selectable.focusIndex) !== 0) {
+		selectable.focusChild(0);
+		e.detail.stopPropagation();
+	}
+};
 
 Selectable.focusedObject.subscribe((e) => console.debug('Focused object', e));

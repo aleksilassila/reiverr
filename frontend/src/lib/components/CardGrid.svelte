@@ -26,6 +26,7 @@
 	class={classNames('grid gap-x-8 gap-y-8', $$restProps.class)}
 	style={`grid-template-columns: repeat(${cols}, minmax(0, 1fr));`}
 	on:mount
+	on:back
 >
 	<slot columns={cols} />
 </Container>

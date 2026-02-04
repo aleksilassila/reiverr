@@ -10,10 +10,10 @@ import {
 } from '$lib/stores/user-data/title-user-data.store';
 import { reiverrApi } from '$lib/stores/user.store';
 import { createStoreContext } from '$lib/utils';
-import { getContext, hasContext } from 'svelte';
 import { writable } from 'svelte/store';
 import ManageMenu from '../ManageMenu.svelte';
 import ActionsMenu from './ActionsMenu.svelte';
+import { getContext, hasContext } from '$lib/components/ComponentStack/component-stack.store';
 
 function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;

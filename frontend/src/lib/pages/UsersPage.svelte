@@ -8,7 +8,7 @@
 	import Login from '../components/LoginForm.svelte';
 	import { createModal } from '../components/Modal/modal.store';
 	import ProfileIcon from '../components/ProfileIcon.svelte';
-	import { navigate } from '../components/StackRouter/StackRouter';
+	import { navigate } from '../components/StackRouter/stack-router.store';
 	import { profilePictures } from '../profile-pictures';
 	import { type Session, sessions } from '../stores/session.store.js';
 

@@ -17,7 +17,7 @@ export function useComponentStack<P extends Record<string, unknown>>(initial?: {
 	props: P;
 	group?: symbol | undefined;
 }) {
-	const items = writable<ComponentPage<any>[]>([]);
+	const items = writable<ComponentPage<SvelteComponentTyped>[]>([]);
 	const top = derived(items, ($items) => $items[$items.length - 1]);
 
 	if (initial) {

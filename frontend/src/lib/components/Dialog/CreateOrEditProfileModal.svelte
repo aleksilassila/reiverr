@@ -11,7 +11,7 @@
 	import { createModal, modalStack } from '../Modal/modal.store';
 	import ProfileIcon from '../ProfileIcon.svelte';
 	import SelectField from '../SelectField.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 	import { useTabs } from '../Tab/Tab';
 	import Tab from '../Tab/Tab.svelte';
 	import TextField from '../TextField.svelte';

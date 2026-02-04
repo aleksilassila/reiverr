@@ -13,7 +13,7 @@ import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 import TmdbVideoPlayer from '../VideoPlayer/TmdbVideoPlayer.svelte';
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 
-const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
+export const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
 
 export type Background = {
 	backdropUri: string;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Card from '../Card/Card.svelte';
 	import LazyImg from '../LazyImg.svelte';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 	import type { Collection } from './collections';
 
 	export let collection: Collection;

@@ -13,7 +13,6 @@
 	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import { createErrorNotification } from './lib/components/Notifications/notification.store';
 	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
-	import { stackRouter } from './lib/components/StackRouter/StackRouter';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
@@ -21,6 +20,7 @@
 	import { localSettings } from './lib/stores/localstorage.store';
 	import { sessions } from './lib/stores/session.store';
 	import { isAppInitialized, user } from './lib/stores/user.store';
+	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
 
 	user.subscribe((s) => {
 		console.log('user', s);
@@ -91,9 +91,9 @@
 {:else}
 	<GlobalBackgroundStack>
 		{#if $user === null}
-			<StackRouterPage hasSidebar={false}>
-				<UsersPage />
-			</StackRouterPage>
+			<!-- <StackRouterPage hasSidebar={false}> -->
+			<UsersPage />
+			<!-- </StackRouterPage> -->
 		{:else}
 			<StackRouter stack={stackRouter} />
 		{/if}

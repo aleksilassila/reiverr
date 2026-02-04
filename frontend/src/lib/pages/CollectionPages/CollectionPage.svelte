@@ -4,7 +4,6 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-	import { getStackRouterPage } from '$lib/components/StackRouter/StackRouter';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { setScrollContext } from '$lib/stores/scroll.store';
@@ -14,7 +13,6 @@
 	export let subtitle = '';
 	export let items: ComponentProps<TmdbCard>['item'][];
 	export let loading = false;
-	const { registrar } = getStackRouterPage();
 
 	const background = createBackgroundPage();
 	const { registrar: registerScroll, topVisible } = setScrollContext();
@@ -41,7 +39,7 @@
 				<h2 class="h-ghost">Loading...</h2>
 			</div>
 		{:else if items.length}
-			<CardGrid let:columns on:mount={registrar}>
+			<CardGrid let:columns>
 				{#each items as item, index}
 					<TmdbCard
 						on:enter={(e) => {

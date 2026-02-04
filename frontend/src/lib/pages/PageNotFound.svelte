@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { navigate } from '../components/StackRouter/StackRouter';
+	import { navigate } from '../components/StackRouter/stack-router.store';
 	import { onMount } from 'svelte';
 
 	onMount(() => {

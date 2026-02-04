@@ -2,7 +2,7 @@
 	import classNames from 'classnames';
 	import Card from '../Card/Card.svelte';
 	import type { Network } from './collections';
-	import { navigate } from '../StackRouter/StackRouter';
+	import { navigate } from '../StackRouter/stack-router.store';
 
 	export let network: Network;
 </script>
