@@ -3,7 +3,11 @@ import {
 	createErrorNotification,
 	createInfoNotification
 } from '$lib/components/Notifications/notification.store';
-import { componentStackContext } from '$lib/stores/component-stack.store';
+import {
+	getContext,
+	hasContext,
+	useComponentStack
+} from '$lib/components/StackRouter/stack-router.store';
 import {
 	TITLE_USER_DATA_CONTEXT,
 	type TitleUserData
@@ -11,9 +15,6 @@ import {
 import { reiverrApi } from '$lib/stores/user.store';
 import { createStoreContext } from '$lib/utils';
 import { writable } from 'svelte/store';
-import ManageMenu from '../ManageMenu.svelte';
-import ActionsMenu from './ActionsMenu.svelte';
-import { getContext, hasContext } from '$lib/components/ComponentStack/component-stack.store';
 
 function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
 	const { tmdbId, season, episode } = options;
@@ -49,28 +50,34 @@ function usePlayableDataStore(options: { tmdbId: string; season?: number; episod
 	};
 }
 
-/** @deprecated */
-function useTitlePage() {
-	const componentStack = componentStackContext.createContext();
+// /** @deprecated */
+// function useTitlePage() {
+// 	const componentStack = useComponentStack();
 
-	const openEpisodeMenu = (tmdbId: string, season: number, episode: number) =>
-		componentStack.create(ActionsMenu, {
-			tmdbId,
-			season,
-			episode
-		});
+// 	const openEpisodeMenu = (tmdbId: string, season: number, episode: number) => {};
+// 	// componentStack.push({
+// 	// 	component: ActionsMenu,
+// 	// 	props: {
+// 	// 		tmdbId,
+// 	// 		season,
+// 	// 		episode
+// 	// 	}
+// 	// });
 
-	const openManageSeries = (tmdbId: string) =>
-		componentStack.create(ManageMenu, {
-			tmdbId
-		});
+// 	const openManageSeries = (tmdbId: string) => {};
+// 	// componentStack.push({
+// 	// 	component: ManageMenu,
+// 	// 	props: {
+// 	// 		tmdbId
+// 	// 	}
+// 	// });
 
-	return {
-		componentStack,
-		openEpisodeMenu,
-		openManageSeries
-	};
-}
+// 	return {
+// 		componentStack,
+// 		openEpisodeMenu,
+// 		openManageSeries
+// 	};
+// }
 
 export const playableDataContext = createStoreContext(
 	'actions-page-context',
@@ -98,8 +105,3 @@ export const breadcrumbsContext = createStoreContext(BREADCRUMBS_CONTEXT, (bc: s
 export const mediaSourceContext = createStoreContext('media-source', () =>
 	writable<MediaSourceDto | undefined>(undefined)
 );
-
-/** @deprecated */
-export const titlePageContext = createStoreContext('title-page', useTitlePage, {
-	required: true
-});

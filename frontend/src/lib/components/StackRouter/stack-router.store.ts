@@ -1,14 +1,9 @@
 import CompanyPage from '$lib/pages/CollectionPages/CompanyPage.svelte';
 import ListPage from '$lib/pages/CollectionPages/ListPage.svelte';
 import NetworkPage from '$lib/pages/CollectionPages/NetworkPage.svelte';
-import { Selectable } from '$lib/selectable';
 import { linkedListToArray } from '$lib/utils';
-import {
-	getContext as getSvelteContext,
-	SvelteComponentTyped,
-	type ComponentProps,
-	type ComponentType
-} from 'svelte';
+import { Selectable } from '$lib/selectable';
+import { getContext as getSvelteContext, SvelteComponentTyped, type ComponentType } from 'svelte';
 import { writable, type Readable, type Writable } from 'svelte/store';
 import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
 import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
@@ -23,17 +18,18 @@ import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
 import UiComponents from '../../pages/UIComponents.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
 
-export type CreateCompStackPage<T extends SvelteComponentTyped = SvelteComponentTyped> = {
-	component: ComponentType<T>;
-	props: ComponentProps<T>;
+export type CreateCompStackPage<TProps extends Record<string, unknown> = Record<string, unknown>> =
+	{
+		component: ComponentType<SvelteComponentTyped<TProps>>;
+		props: TProps;
 
-	id?: symbol;
-	group?: symbol | 'top';
+		id?: symbol;
+		group?: symbol | 'top';
 
-	preventScroll?: boolean;
-	trapFocus?: boolean;
-	sidebar?: boolean;
-};
+		preventScroll?: boolean;
+		trapFocus?: boolean;
+		sidebar?: boolean;
+	};
 
 export interface CompStackPage extends CreateCompStackPage {
 	context: Record<string, unknown>;
@@ -44,11 +40,12 @@ export interface CompStackPage extends CreateCompStackPage {
 	setContext: <T = unknown>(key: string, value: T) => void;
 	handleMount: () => void;
 	close: () => void;
-	push: (opts: CreateCompStackPage) => void;
+	push: <TProps extends Record<string, unknown>>(opts: CreateCompStackPage<TProps>) => void;
 }
 
 export interface CompStackForPageContext extends Readonly<CompStackPage> {
 	readonly root: Readable<Selectable | undefined>;
+	readonly hasFocusWithin: Readable<boolean>;
 }
 
 class RouteGroup {

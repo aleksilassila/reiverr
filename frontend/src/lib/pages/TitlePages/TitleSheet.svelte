@@ -1,30 +1,23 @@
 <script lang="ts">
 	import type { TmdbEpisode, TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button/Button.svelte';
+	import ButtonSpinner from '$lib/components/Button/ButtonSpinner.svelte';
+	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import LazyImg from '$lib/components/LazyImg.svelte';
 	import { Sheet } from '$lib/components/Sheet';
+	import VideoPlayer from '$lib/components/VideoPlayer/VideoPlayer.svelte';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
-	import { componentStackContext } from '$lib/stores/component-stack.store';
 	import { useIsWatched } from '$lib/stores/user-data/is-watched.store';
 	import {
-		type EpisodeUserData,
 		TITLE_USER_DATA_CONTEXT,
+		type EpisodeUserData,
 		type TitleUserData
 	} from '$lib/stores/user-data/title-user-data.store';
 	import { reiverrApi } from '$lib/stores/user.store';
+	import { timeout } from '$lib/utils';
 	import { Check, Cross1, Gear, Play } from 'radix-icons-svelte';
 	import { getContext } from 'svelte';
 	import { writable } from 'svelte/store';
-	import StreamListMenu from './ActionsPage/StreamListMenu.svelte';
-	import ButtonSpinner from '$lib/components/Button/ButtonSpinner.svelte';
-	import { timeout } from '$lib/utils';
-	import { playableDataContext } from './ActionsPage/actions-page';
-	import {
-		getBackgroundPage,
-		type BackgroundPage,
-		type BackgroundPageStore
-	} from '$lib/components/GlobalBackground/BackgroundStack';
-	import VideoPlayer from '$lib/components/VideoPlayer/VideoPlayer.svelte';
 
 	export let series: TmdbSeries;
 	export let episode: TmdbEpisode;
@@ -36,7 +29,6 @@
 		episode: TmdbEpisode;
 	}) => Promise<void>;
 
-	const componentStack = componentStackContext.getContext();
 	const background = getBackgroundPage();
 
 	// export let imgUrl: string;

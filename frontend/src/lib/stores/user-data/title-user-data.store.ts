@@ -1,9 +1,7 @@
 import type { TmdbSeriesFull } from '$lib/apis/tmdb/tmdb-api';
 import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-import { createModal } from '$lib/components/Modal/modal.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
-import StreamSelectorModal from '$lib/pages/TitlePages/StreamSelectorModal.svelte';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import type {
@@ -664,23 +662,22 @@ export function useEpisodeUserData(tmdbId: string, season: number, episode: numb
 			background?.focus();
 		},
 		handleOpenStreamSelector: async () => {
-			createModal(StreamSelectorModal, {
-				getStreams: (s) => getStreams(s, tmdbId, season, episode),
-				selectStream: async (source, stream) => {
-					background?.setVideo({
-						id: Symbol(),
-						component: TmdbVideoPlayer,
-						props: {
-							...(await getVideoProps()),
-							streamId: stream.streamId,
-							source
-						},
-						mediaId: tmdbId
-					});
-
-					background?.focus();
-				}
-			});
+			// createModal(StreamSelectorModal, {
+			// 	getStreams: (s) => getStreams(s, tmdbId, season, episode),
+			// 	selectStream: async (source, stream) => {
+			// 		background?.setVideo({
+			// 			id: Symbol(),
+			// 			component: TmdbVideoPlayer,
+			// 			props: {
+			// 				...(await getVideoProps()),
+			// 				streamId: stream.streamId,
+			// 				source
+			// 			},
+			// 			mediaId: tmdbId
+			// 		});
+			// 		background?.focus();
+			// 	}
+			// });
 		},
 		unsubscribe: () => {
 			userData.unsubscribe();

@@ -1,19 +1,12 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import {
-	getContext,
-	hasContext,
-	onDestroy,
-	setContext,
-	SvelteComponentTyped,
-	type ComponentProps,
-	type ComponentType
-} from 'svelte';
+import { onDestroy, SvelteComponentTyped, type ComponentProps, type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 import TmdbVideoPlayer from '../VideoPlayer/TmdbVideoPlayer.svelte';
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
+import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
 
-export const BACKGROUND_CONTEXT_KEY = Symbol('BACKGROUND_CONTEXT_KEY');
+export const BACKGROUND_CONTEXT_KEY = 'background-context';
 
 export type Background = {
 	backdropUri: string;

@@ -1,18 +1,17 @@
 <script lang="ts">
+	import classNames from 'classnames';
 	import { createEventDispatcher } from 'svelte';
 	import Container from '../Container.svelte';
-	import { modalStack } from './modal.store';
-	import classNames from 'classnames';
-	import { componentStackContext } from '../ComponentStack/component-stack.store';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
 
-	const { componentStack } = componentStackContext.getContext();
+	const componentStack = useComponentStack();
 
 	const dispatch = createEventDispatcher<{
 		close: null;
 	}>();
 
 	function handleClose() {
-		componentStack.pop();
+		componentStack.close();
 		dispatch('close');
 	}
 </script>
