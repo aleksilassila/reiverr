@@ -1,7 +1,7 @@
 <script lang="ts">
 	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
-	import StackRouterPage from '$lib/components/StackRouter/StackRouterPage.svelte';
+	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
 	import { inputMode } from '$lib/stores/input-mode.store';
 	import { userActivity } from '$lib/stores/user-activity.store';
 	import axios from 'axios';
@@ -10,7 +10,6 @@
 	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { createModal } from './lib/components/Modal/modal.store';
-	import ModalStack from './lib/components/Modal/ModalStack.svelte';
 	import { createErrorNotification } from './lib/components/Notifications/notification.store';
 	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
@@ -20,7 +19,6 @@
 	import { localSettings } from './lib/stores/localstorage.store';
 	import { sessions } from './lib/stores/session.store';
 	import { isAppInitialized, user } from './lib/stores/user.store';
-	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
 
 	user.subscribe((s) => {
 		console.log('user', s);
@@ -99,8 +97,6 @@
 		{/if}
 	</GlobalBackgroundStack>
 {/if}
-
-<ModalStack />
 
 <NotificationStack />
 

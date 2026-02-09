@@ -1,20 +1,20 @@
 <script lang="ts">
 	import Button from '../Button/Button.svelte';
-	import { modalStack } from '../Modal/modal.store.js';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
 	import { scrollIntoView } from '$lib/selectable';
 	import { Check, TextAlignLeft } from 'radix-icons-svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
 	import type { SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
 
-	export let modalId: symbol;
+	const { close } = useComponentStack();
 
 	export let subtitles: Subtitles[];
 	export let selectedSubtitles: Subtitles | undefined;
 	export let selectSubtitles: (subtitles?: Subtitles) => void;
 </script>
 
-<Dialog {modalId}>
+<Dialog>
 	<h1 class="h3 mb-4 flex items-center space-x-4">
 		<span>Subtitles</span>
 		<TextAlignLeft size={32} />
@@ -22,7 +22,7 @@
 	<div class="flex flex-col space-y-4 overflow-y-auto scrollbar-hide flex-1 px-4 -mx-4 py-2 -my-2">
 		<Button
 			on:clickOrSelect={() => {
-				modalStack.close(modalId);
+				close();
 				selectSubtitles(undefined);
 			}}
 			class="relative"
@@ -38,7 +38,7 @@
 		{#each subtitles as subtitles}
 			<Button
 				on:clickOrSelect={() => {
-					modalStack.close(modalId);
+					close();
 					selectSubtitles(subtitles);
 				}}
 				on:enter={scrollIntoView({ vertical: 64 })}

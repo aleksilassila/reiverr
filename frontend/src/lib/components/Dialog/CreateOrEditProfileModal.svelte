@@ -8,10 +8,9 @@
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
-	import { createModal, modalStack } from '../Modal/modal.store';
 	import ProfileIcon from '../ProfileIcon.svelte';
 	import SelectField from '../SelectField.svelte';
-	import { navigate } from '../StackRouter/stack-router.store';
+	import { navigate, useComponentStack } from '../StackRouter/stack-router.store';
 	import { useTabs } from '../Tab/Tab';
 	import Tab from '../Tab/Tab.svelte';
 	import TextField from '../TextField.svelte';
@@ -26,7 +25,7 @@
 		ProfilePictures
 	}
 
-	export let modalId: symbol;
+	const { close, push } = useComponentStack();
 
 	export let user: ReiverrUser | undefined = undefined;
 	export let onComplete: () => void = () => {};
@@ -130,7 +129,7 @@
 		if (error) {
 			errorMessage = error;
 		} else {
-			modalStack.closeTopmost();
+			close();
 			onComplete();
 		}
 	}
@@ -149,7 +148,7 @@
 		if (error) {
 			errorMessage = error;
 		} else {
-			modalStack.closeTopmost();
+			close();
 			onComplete();
 		}
 	}
@@ -164,7 +163,7 @@
 		if (error) {
 			errorMessage = error;
 		} else {
-			modalStack.close(modalId);
+			close();
 			if (self) {
 				sessions.removeSession();
 				navigate('/');
@@ -230,10 +229,13 @@
 						type="primary-dark"
 						icon={Trash}
 						on:clickOrSelect={() =>
-							createModal(ConfirmDialog, {
-								header: 'Delete Account',
-								body: 'Are you sure you want to delete your account?',
-								confirm: handleDeleteAccount
+							push({
+								component: ConfirmDialog,
+								props: {
+									header: 'Delete Account',
+									body: 'Are you sure you want to delete your account?',
+									confirm: handleDeleteAccount
+								}
 							})}
 					>
 						Delete Account

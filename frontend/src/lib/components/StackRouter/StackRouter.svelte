@@ -7,6 +7,16 @@
 
 <svelte:window on:popstate={stack.handlePopState} />
 
+<svelte:head>
+	{#if $stack[$stack.length - 1]?.preventScroll}
+		<style>
+			body {
+				overflow: hidden;
+			}
+		</style>
+	{/if}
+</svelte:head>
+
 {#each $stack as page, index (page.id)}
 	{@const nextPage = $stack[index + 1]}
 	{@const lastPage = $stack[$stack.length - 1]}

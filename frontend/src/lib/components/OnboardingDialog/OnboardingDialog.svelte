@@ -6,8 +6,6 @@
 	import { navigate } from '../StackRouter/stack-router.store';
 	import { user } from '$lib/stores/user.store';
 
-	export let modalId: symbol;
-
 	async function finalizeSetup() {
 		await user.updateUser((prev) => ({
 			...prev,

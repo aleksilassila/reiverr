@@ -11,12 +11,12 @@
 	import { get, writable } from 'svelte/store';
 	import Button from '../../components/Button/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';
-	import { modalStack } from '../../components/Modal/modal.store';
+	import { useComponentStack } from '../../components/StackRouter/stack-router.store';
 	import TextField from '../../components/TextField.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import { reiverrApi, user } from '../../stores/user.store';
 
-	export let modalId: symbol;
+	const { close } = useComponentStack();
 
 	export let sourceId: string;
 
@@ -67,7 +67,7 @@
 				'Media source updated',
 				`${updateResponse.mediaSource.name} has been enabled`
 			);
-			modalStack.close(modalId);
+			close();
 		} else {
 			createErrorNotification(
 				'Incomplete configuration',
@@ -99,7 +99,7 @@
 
 	async function handleRemovePlugin() {
 		await sources.deleteSource(sourceId);
-		modalStack.close(modalId);
+		close();
 	}
 </script>
 

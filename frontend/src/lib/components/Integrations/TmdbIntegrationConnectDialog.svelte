@@ -1,9 +1,11 @@
 <script>
 	import Dialog from '../Dialog/Dialog.svelte';
 	import TmdbIntegrationConnect from './TmdbIntegrationConnect.svelte';
-	import { modalStack } from '../Modal/modal.store';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
+
+	const { close } = useComponentStack();
 </script>
 
 <Dialog>
-	<TmdbIntegrationConnect on:connected={() => modalStack.closeTopmost()} />
+	<TmdbIntegrationConnect on:connected={() => close()} />
 </Dialog>

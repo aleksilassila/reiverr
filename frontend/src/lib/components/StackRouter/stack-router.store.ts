@@ -324,6 +324,17 @@ export function useStackRouter({
 		}
 	};
 
+	const push = <TProps extends Record<string, unknown> = Record<string, unknown>>(
+		opts: CreateCompStackPage<TProps>
+	) => {
+		const currentGroup = groups[historyState.end];
+		if (!currentGroup) {
+			throw new Error('No group to push to');
+		}
+		currentGroup.push(opts);
+		updateVisibleStack();
+	};
+
 	const back = () => {
 		if (historyState.end === 0) return;
 
@@ -333,6 +344,7 @@ export function useStackRouter({
 	return {
 		subscribe: visibleStack.subscribe,
 		navigate,
+		push,
 		back,
 		handlePopState
 	};

@@ -3,16 +3,17 @@
 	import classNames from 'classnames';
 	import { Pause, TextAlignLeft } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import { useRegistrar, type Selectable } from '../../selectable';
+	import { useRegistrar } from '../../selectable';
 	import Container from '../Container.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { modalStack } from '../Modal/modal.store';
 	import Spinner from '../Utils/Spinner.svelte';
 	import ProgressBar from './ProgressBar.svelte';
+
+	import { get } from 'svelte/store';
+	import { createModal } from '../Modal/modal.store';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import VideoElement from './VideoElement.svelte';
 	import type { SubtitleInfo, VideoPlayerProps, VideoSource } from './VideoPlayer';
-	import { get } from 'svelte/store';
 
 	export let load: VideoPlayerProps['load'];
 	export let paused: VideoPlayerProps['paused'];
@@ -227,7 +228,7 @@
 						<IconButton
 							on:clickOrSelect={() => {
 								// video.pause();
-								modalStack.create(SelectSubtitlesModal, {
+								createModal(SelectSubtitlesModal, {
 									subtitles: subtitleInfo.availableSubtitles,
 									selectedSubtitles: subtitleInfo.subtitles,
 									selectSubtitles
@@ -239,10 +240,13 @@
 					{/if}
 					<!-- <IconButton
 						on:clickOrSelect={() => {
-							modalStack.create(SelectAudioModal, {
-								selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
-								audioTracks: playbackInfo?.audioTracks || [],
-								selectAudioStream
+							push({
+								component: SelectAudioModal,
+								props: {
+									selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
+									audioTracks: playbackInfo?.audioTracks || [],
+									selectAudioStream
+								}
 							});
 						}}
 					>

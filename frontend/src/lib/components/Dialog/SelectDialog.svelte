@@ -2,7 +2,9 @@
 	import Dialog from '../Dialog/Dialog.svelte';
 	import type { JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
 	import SelectItem from '../SelectItem.svelte';
-	import { modalStack } from '../Modal/modal.store';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
+
+	const { close } = useComponentStack();
 
 	// TODO: Add labels to the options
 	export let title: string = 'Select';
@@ -11,11 +13,9 @@
 	export let selectedOption: string | undefined = undefined;
 	export let handleSelectOption: (option: string) => void;
 
-	export let modalId: symbol;
-
 	function handleSelect(option: string) {
 		handleSelectOption(option);
-		modalStack.close(modalId);
+		close();
 	}
 </script>
 

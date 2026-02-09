@@ -1,12 +1,11 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
 	import Button from '../Button/Button.svelte';
-	import { modalStack } from '../Modal/modal.store';
 	import Dialog from './Dialog.svelte';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
 
 	type ActionFn = (() => Promise<any>) | (() => any);
-
-	export let modalId: symbol;
+	const { close } = useComponentStack();
 
 	export let header: string;
 	export let body: string;
@@ -21,10 +20,10 @@
 			fetching = true;
 			result.then(() => {
 				fetching = false;
-				modalStack.close(modalId);
+				close();
 			});
 		} else {
-			modalStack.close(modalId);
+			close();
 		}
 	}
 </script>

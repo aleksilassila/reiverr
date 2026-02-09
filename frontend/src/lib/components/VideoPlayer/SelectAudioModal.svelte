@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { AudioTrack, SubtitleInfo, Subtitles } from './VideoPlayer';
-	import Button from '../Button/Button.svelte';
-	import { modalStack } from '../Modal/modal.store.js';
 	import { scrollIntoView } from '$lib/selectable';
-	import { ChatBubble, Check, TextAlignLeft } from 'radix-icons-svelte';
-	import Dialog from '../Dialog/Dialog.svelte';
+	import { ChatBubble, Check } from 'radix-icons-svelte';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
+	import Button from '../Button/Button.svelte';
+	import Dialog from '../Dialog/Dialog.svelte';
+	import { useComponentStack } from '../StackRouter/stack-router.store';
+	import type { AudioTrack } from './VideoPlayer';
 
-	export let modalId: symbol;
+	const { close } = useComponentStack();
 
 	export let selectedAudioStreamIndex: number;
 	export let audioTracks: AudioTrack[];
@@ -15,7 +15,7 @@
 	export let onClose = () => {};
 </script>
 
-<Dialog {modalId}>
+<Dialog>
 	<div>
 		<h1 class="h3 mb-4 flex items-center space-x-4">
 			<span>Audio</span>
@@ -25,7 +25,7 @@
 			{#each audioTracks || [] as track}
 				<Button
 					on:clickOrSelect={() => {
-						modalStack.close(modalId);
+						close();
 						onClose();
 						if (track.index !== selectedAudioStreamIndex) selectAudioStream(track.index);
 					}}
