@@ -3,7 +3,12 @@ import ListPage from '$lib/pages/CollectionPages/ListPage.svelte';
 import NetworkPage from '$lib/pages/CollectionPages/NetworkPage.svelte';
 import { linkedListToArray } from '$lib/utils';
 import { Selectable } from '$lib/selectable';
-import { getContext as getSvelteContext, SvelteComponentTyped, type ComponentType } from 'svelte';
+import {
+	getContext as getSvelteContext,
+	setContext as setSvelteContext,
+	SvelteComponentTyped,
+	type ComponentType
+} from 'svelte';
 import { writable, type Readable, type Writable } from 'svelte/store';
 import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
 import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
@@ -29,6 +34,7 @@ export type CreateCompStackPage<TProps extends Record<string, unknown> = Record<
 		preventScroll?: boolean;
 		trapFocus?: boolean;
 		sidebar?: boolean;
+		background?: boolean;
 	};
 
 export interface CompStackPage extends CreateCompStackPage {
@@ -38,6 +44,8 @@ export interface CompStackPage extends CreateCompStackPage {
 	hasContext: (key: string) => boolean;
 	getContext: <T = unknown>(key: string) => T;
 	setContext: <T = unknown>(key: string, value: T) => void;
+	getOrCreateContext: <T = unknown>(key: string, createValue: () => T) => T;
+	/** Handles initialization of context when mounting */
 	handleMount: () => void;
 	close: () => void;
 	push: <TProps extends Record<string, unknown>>(opts: CreateCompStackPage<TProps>) => void;
@@ -78,6 +86,15 @@ class RouteGroup {
 		};
 	}
 
+	private getOrCreateContext(context: Record<string, unknown>) {
+		return <T = unknown>(key: string, createValue: () => T): T => {
+			if (!(key in context)) {
+				context[key] = createValue();
+			}
+			return context[key] as T;
+		};
+	}
+
 	private close(id: symbol) {
 		const index = this.pages.findIndex((p) => p.id === id);
 		if (index !== -1) {
@@ -106,6 +123,7 @@ class RouteGroup {
 			hasContext: this.hasContext(context),
 			getContext: this.getContext(context),
 			setContext: this.setContext(context),
+			getOrCreateContext: this.getOrCreateContext(context),
 			handleMount: () => this.initializeContext(context, previousContext),
 			close: () => this.close(id),
 			push: (newOpts) => this.push(newOpts)
@@ -127,11 +145,13 @@ class RouteGroup {
 			preventScroll: false,
 			trapFocus: true,
 			sidebar: route.sidebar ?? true,
+			background: route.background ?? true,
 			context,
 			pages: this.pages,
 			hasContext: this.hasContext(context),
 			getContext: this.getContext(context),
 			setContext: this.setContext(context),
+			getOrCreateContext: this.getOrCreateContext(context),
 			handleMount: () => this.initializeContext(context, previousContext),
 			close: () => history.back(),
 			push: (opts) => this.push(opts)
@@ -166,6 +186,7 @@ interface Route {
 	// Child's props are also passed to these.
 	parent?: Route;
 	sidebar?: boolean;
+	background?: boolean;
 }
 
 // Defines what part of the stack is visible (not always the last x pages)
@@ -463,6 +484,11 @@ export const stackRouter = useStackRouter({
 });
 
 export const STACK_ROUTER_CONTEXT = 'stack-router-context';
+
+export function _setComponentStack(stack: CompStackForPageContext) {
+	setSvelteContext<CompStackForPageContext>(STACK_ROUTER_CONTEXT, stack);
+	return stack;
+}
 
 export function useComponentStack() {
 	return getSvelteContext<CompStackForPageContext>(STACK_ROUTER_CONTEXT);

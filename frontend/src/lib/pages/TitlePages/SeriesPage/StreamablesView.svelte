@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { StreamableDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
-	import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import Marquee from '$lib/components/Marquee.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
@@ -10,7 +10,7 @@
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TriangleRight } from 'radix-icons-svelte';
-	import { breadcrumbsContext, playableDataContext } from '../ActionsPage/actions-page';
+	import { breadcrumbsContext } from '../ActionsPage/actions-page';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -18,10 +18,9 @@
 	export let openStream: (opts: { id: string; pluginId: string }) => Promise<void>;
 	export let name = '';
 
-	playableDataContext.createContext({ tmdbId, season, episode });
-	const background = getBackgroundPage();
-	// const { componentStack } = titlePageContext.getContext();
 	const componentStack = useComponentStack();
+	const { background } = backgroundContext.getContext();
+	// playableDataContext.createContext({ tmdbId, season, episode });
 
 	if (name) breadcrumbsContext.createContext(name);
 

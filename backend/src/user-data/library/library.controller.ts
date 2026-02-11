@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseBoolPipe,
   ParseEnumPipe,
   Put,
   Query,
@@ -108,43 +109,37 @@ export class LibraryController {
 
   @Put('tmdb/:tmdbId')
   @ApiQuery({ name: 'mediaType', enum: MediaType })
+  @ApiQuery({ name: 'inLibrary', type: Boolean })
   @ApiOkResponse({
     description: 'Library item added',
     type: SuccessResponseDto,
   })
-  async addLibraryItem(
+  async updateLibraryItem(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
+    @Query('inLibrary', new ParseBoolPipe()) inLibrary: boolean,
     @Query('mediaType', new ParseEnumPipe(MediaType))
     mediaType: MediaType,
   ): Promise<SuccessResponseDto> {
-    const item = await this.libraryService.findOrCreateByTmdbId(
-      userId,
-      tmdbId,
-      mediaType,
-    );
+    if (inLibrary) {
+      const item = await this.libraryService.findOrCreateByTmdbId(
+        userId,
+        tmdbId,
+        mediaType,
+      );
 
-    return {
-      success: !!item,
-    };
-  }
+      return {
+        success: !!item,
+      };
+    } else {
+      const deleteAction = await this.libraryService.deleteByTmdbId(
+        userId,
+        tmdbId,
+      );
 
-  @Delete('tmdb/:tmdbId')
-  @ApiOkResponse({
-    description: 'Library item removed',
-    type: SuccessResponseDto,
-  })
-  async removeLibraryItem(
-    @Param('userId') userId: string,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<SuccessResponseDto> {
-    const deleteAction = await this.libraryService.deleteByTmdbId(
-      userId,
-      tmdbId,
-    );
-
-    return {
-      success: deleteAction.affected > 0,
-    };
+      return {
+        success: deleteAction.affected > 0,
+      };
+    }
   }
 }

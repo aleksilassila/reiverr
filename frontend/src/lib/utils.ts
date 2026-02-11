@@ -5,7 +5,7 @@ import {
 	setContext as setSvelteContext
 } from 'svelte';
 
-import { get, readable, type Readable, writable } from 'svelte/store';
+import { get, readable, type Readable, type Writable, writable } from 'svelte/store';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -266,10 +266,12 @@ export function createStoreContext<
 		return store;
 	}
 
-	function _getContext(): TRequired extends true ? TStore : Partial<TStore>;
-	function _getContext(): Partial<TStore> | TStore {
+	function _getContext<T extends boolean>(
+		required?: T
+	): TRequired extends true ? TStore : T extends true ? TStore : Partial<TStore>;
+	function _getContext(required?: boolean): Partial<TStore> | TStore {
 		if (!hasContext(key)) {
-			if (options.required === true) {
+			if (options.required === true || required === true) {
 				throw new Error(`Context ${key} not found`);
 			} else {
 				return {};
@@ -400,4 +402,41 @@ export function nestedDerived<T, O>(
 	return {
 		subscribe
 	};
+}
+
+export function proxyFn<T extends (...args: any[]) => any>(
+	fn: T,
+	cb: (args: Parameters<T>) => void
+): T {
+	return new Proxy(fn, {
+		apply(target, thisArg, argumentsList) {
+			cb(argumentsList as Parameters<T>);
+			return target.apply(thisArg, argumentsList);
+		}
+	}) as T;
+}
+
+export function waitFor<T>(
+	store: Readable<T>,
+	condition: (value: T) => boolean,
+	cb: (value: T) => void
+) {
+	let unsub: (() => void) | undefined;
+	let unsubImmediately = false;
+	unsub = store.subscribe((v) => {
+		if (condition(v)) {
+			cb(v);
+			if (!unsub) unsubImmediately = true;
+			else unsub();
+		}
+	});
+	if (unsubImmediately && unsub) unsub();
+
+	return {
+		unsubscribe: unsub
+	};
+}
+
+export function toReadable<T>(store: Writable<T>): Readable<T> {
+	return store as Readable<T>;
 }

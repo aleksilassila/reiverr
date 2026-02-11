@@ -24,7 +24,7 @@ export function useUserLibrary(
 		}
 
 		const success = await reiverrApi.library
-			.addLibraryItem(userId, tmdbId, { mediaType })
+			.updateLibraryItem(userId, tmdbId, { mediaType, inLibrary: true })
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(true);
@@ -41,7 +41,7 @@ export function useUserLibrary(
 		}
 
 		const success = await reiverrApi.library
-			.removeLibraryItem(userId, tmdbId)
+			.updateLibraryItem(userId, tmdbId, { mediaType, inLibrary: false })
 			.then((r) => r.data.success);
 		if (success) {
 			inLibrary.set(false);

@@ -2,28 +2,28 @@
 	import { useRegistrar } from '$lib/selectable';
 	import { nestedDerived } from '$lib/utils';
 	import classNames from 'classnames';
-	import { setContext } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import Sidebar from '../Sidebar/Sidebar.svelte';
-	import {
-		STACK_ROUTER_CONTEXT,
-		type CompStackForPageContext,
-		type CompStackPage
-	} from './stack-router.store';
+	import { _setComponentStack, type CompStackPage } from './stack-router.store';
+	import { backgroundContext } from '../GlobalBackground/BackgroundStack';
 
 	export let page: CompStackPage;
 	export let isHidden;
 	const registrar = useRegistrar();
 	const hasFocusWithin = nestedDerived(registrar, (r) => r?.hasFocusWithin);
 
-	setContext<CompStackForPageContext>(STACK_ROUTER_CONTEXT, {
+	const componentStack = _setComponentStack({
 		...page,
 		root: registrar,
 		hasFocusWithin
 	});
 
-	page.handleMount();
+	componentStack.handleMount();
+
+	// if (page.background === true) {
+	// 	backgroundContext.createContext();
+	// }
 </script>
 
 <Container

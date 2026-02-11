@@ -6,6 +6,7 @@ import { tmdbApi } from '$lib/stores/user.store';
 import { formatThousands } from '$lib/utils';
 import { derived, get, writable, type Writable } from 'svelte/store';
 import type { TitleInfoProperty } from '../HeroTitleInfo';
+import { useSeriesContext } from '$lib/stores/series-data.store';
 
 type SelectedEpisode = { episode: number; season: number } | undefined;
 
@@ -32,13 +33,13 @@ function useCardHover(selectedEpisode: Writable<SelectedEpisode>) {
 	};
 }
 
-export function useEpisodesData() {
-	const { tmdbId, tmdbSeries, nextEpisode } = seriesUserDataContext.getContext();
+export function useEpisodeCarousel(tmdbId: string) {
+	const { seriesData, episodesData } = useSeriesContext(tmdbId).getContext(true);
 	const selectedEpisode: Writable<SelectedEpisode> = writable(undefined);
 	const cardHover = useCardHover(selectedEpisode);
 
 	const episodesRequest = usePaginatedRequest((p) =>
-		get(tmdbSeries)
+		get(seriesData.promise)
 			.then((s) => tmdbApi.getSeasonFull(Number(s.id), p))
 			.then((r) => ({
 				items: r.episodes?.map((e) => ({ ...e, season: r })) ?? [],
@@ -95,14 +96,14 @@ export function useEpisodesData() {
 		}
 	);
 
-	const unsubscribeNextEpisode = nextEpisode.subscribe((nextEpisode) => {
+	const unsubscribeNextEpisode = episodesData.subscribe(({ nextEpisode }) => {
 		if (nextEpisode?.season) episodesRequest.requestUntil(nextEpisode.season);
 		selectedEpisode.set(nextEpisode);
 	});
 
 	const unsubs: Array<() => void> = [];
 	function onEpisodeMount(s: Selectable, season: number, episode: number) {
-		const unsub = nextEpisode.subscribe((nextEpisode) => {
+		const unsub = episodesData.subscribe(({ nextEpisode }) => {
 			if (nextEpisode?.season === season && nextEpisode?.episode === episode) {
 				s.activate();
 				scrollElementIntoView(s.getHtmlElement()!, { left: 128, instant: true });

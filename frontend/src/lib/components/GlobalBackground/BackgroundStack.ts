@@ -5,6 +5,7 @@ import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 import TmdbVideoPlayer from '../VideoPlayer/TmdbVideoPlayer.svelte';
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
+import { createStoreContext } from '$lib/utils';
 
 export const BACKGROUND_CONTEXT_KEY = 'background-context';
 
@@ -246,6 +247,7 @@ function _createBackgroundPage(
 
 	return {
 		subscribe: selectedBackground.subscribe,
+		background: selectedBackground,
 		setBackgrounds,
 		setIndex,
 		nextBackground,
@@ -260,13 +262,14 @@ function _createBackgroundPage(
 	};
 }
 
+/** @deprecated @see backgroundContext */
 export const createBackgroundPage: typeof _createBackgroundPage = (...args) => {
 	const page = _createBackgroundPage(...args);
 	setContext(BACKGROUND_CONTEXT_KEY, page);
 	return page;
 };
 
-/** @deprecated */
+/** @deprecated @see backgroundContext */
 export function getBackgroundPage() {
 	if (hasContext(BACKGROUND_CONTEXT_KEY)) {
 		return getContext<BackgroundPageStore>(BACKGROUND_CONTEXT_KEY);
@@ -274,6 +277,8 @@ export function getBackgroundPage() {
 
 	return undefined;
 }
+
+export const backgroundContext = createStoreContext(BACKGROUND_CONTEXT_KEY, _createBackgroundPage);
 
 export function focusGlobalBackground() {
 	lastFocused = get(Selectable.focusedObject)?.getRootParent();

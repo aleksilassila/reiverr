@@ -2090,13 +2090,14 @@ export class Api<
      * No description
      *
      * @tags library
-     * @name AddLibraryItem
+     * @name updateLibraryItem
      * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
      */
-    addLibraryItem: (
+    updateLibraryItem: (
       userId: string,
       tmdbId: string,
       query: {
+        inLibrary: boolean;
         mediaType: "movie" | "series";
       },
       params: RequestParams = {},
@@ -2105,25 +2106,6 @@ export class Api<
         path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
         method: "PUT",
         query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags library
-     * @name RemoveLibraryItem
-     * @request DELETE:/api/users/{userId}/library/tmdb/{tmdbId}
-     */
-    removeLibraryItem: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
-        method: "DELETE",
         format: "json",
         ...params,
       }),

@@ -5,47 +5,50 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import TmdbEpisodeCard from '$lib/components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
+	import { useSeriesContext } from '$lib/stores/series-data.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
-	import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, ExternalLink, Gear, Minus, Play, Video } from 'radix-icons-svelte';
+	import { Bookmark, ExternalLink, Gear, Minus, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import TitleSheet from '../TitleSheet.svelte';
-	import { useEpisodesData } from './episode-carousel';
+	import { useEpisodeCarousel } from './episode-carousel';
 	import StreamablesView from './StreamablesView.svelte';
+	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 
 	export let id: string;
 
+	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
+	const { componentStack, seriesData, inLibrary, setInLibrary, episodesData, unsubscribe } =
+		useSeriesContext(id).createContext();
+	const { promise: tmdbSeries } = seriesData;
+
 	// const { componentStack } = componentStackContext.createContext();
-	const componentStack = useComponentStack();
-	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
-	const {
-		tmdbId,
-		tmdbSeries,
-		inLibrary,
-		handleAddToLibrary,
-		handleRemoveFromLibrary,
-		nextEpisode,
-		episodesUserData,
-		isWatched,
-		toggleIsWatched,
-		autoplayCandidate,
-		playStream,
-		autoplayStream,
-		unsubscribe
-	} = seriesUserDataContext.createContext(id);
+	// const componentStack = useComponentStack();
+	// const {
+	// 	tmdbId,
+	// 	tmdbSeries,
+	// 	inLibrary,
+	// 	handleAddToLibrary,
+	// 	handleRemoveFromLibrary,
+	// 	nextEpisode,
+	// 	episodesUserData,
+	// 	isWatched,
+	// 	toggleIsWatched,
+	// 	autoplayCandidate,
+	// 	playStream,
+	// 	autoplayStream,
+	// 	unsubscribe
+	// } = seriesUserDataContext.createContext(id);
 	// titlePageContext.createContext();
 
 	// componentStack.push({
@@ -82,7 +85,7 @@
 		onEpisodeMount,
 		onEpisodeCardMouseEnter,
 		onEpisodeCardMouseLeave
-	} = useEpisodesData();
+	} = useEpisodeCarousel(id);
 
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registrar: scrollRegistrar } = setScrollContext();
@@ -93,9 +96,7 @@
 	const { topVisible } = getScrollContext();
 
 	let sheetProps: { episode: TmdbEpisode; series: TmdbSeries } | undefined;
-	$: recommendations = tmdbApi.v3
-		.tvSeriesRecommendations(Number(tmdbId))
-		.then((r) => r.data.results);
+	$: recommendations = tmdbApi.v3.tvSeriesRecommendations(Number(id)).then((r) => r.data.results);
 
 	$tmdbSeries.then((series) => {
 		trailerId = series?.videos?.results?.find(
@@ -117,7 +118,7 @@
 				label: `${series.vote_average.toFixed(1)} TMDB (${formatThousands(
 					series.vote_count ?? 0
 				)})`,
-				href: `https://www.themoviedb.org/tv/${tmdbId}`
+				href: `https://www.themoviedb.org/tv/${id}`
 			});
 		}
 
@@ -137,8 +138,8 @@
 		titleProperties = titleProperties;
 	});
 	$: if ($localSettings.autoplayTrailers && trailerId) {
-		background?.playYoutubeVideo({
-			tmdbId,
+		background.playYoutubeVideo({
+			tmdbId: id,
 			videoId: trailerId,
 			onBackground: true
 		});
@@ -235,7 +236,7 @@
 				{/if}
 			{/await}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				<Button
+				<!-- <Button
 					action={autoplayStream}
 					secondaryAction={() => {
 						// openEpisodeMenu(tmdbId, $nextEpisode?.season, $nextEpisode?.episode)
@@ -248,12 +249,12 @@
 						Play
 					{/if}
 					<Play size={19} slot="icon" />
-				</Button>
+				</Button> -->
 
 				{#if trailerId}
 					<Button
 						on:clickOrSelect={() =>
-							trailerId && background?.playYoutubeVideo({ tmdbId, videoId: trailerId })}
+							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
 					>
 						<Video slot="icon" size={19} />
 						Play Trailer
@@ -261,9 +262,9 @@
 				{/if}
 
 				{#if !$inLibrary}
-					<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to Library</Button>
 				{:else}
-					<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
+					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
 				{/if}
 
 				<!-- <Button action={toggleIsWatched}>
@@ -285,8 +286,7 @@
 
 				{#if PLATFORM_WEB}
 					<Button
-						on:clickOrSelect={() =>
-							window.open(`https://www.themoviedb.org/tv/${tmdbId}`, '_blank')}
+						on:clickOrSelect={() => window.open(`https://www.themoviedb.org/tv/${id}`, '_blank')}
 					>
 						Open In TMDB
 						<ExternalLink size={19} slot="icon-after" />
@@ -332,7 +332,7 @@
 					</span>
 
 					{#each $episodes as episode, i (episode.id)}
-						{@const userData = $episodesUserData.find(
+						{@const userData = $episodesData.episodes.find(
 							(e) => e.season === episode.season_number && e.episode === episode.episode_number
 						)}
 
@@ -366,7 +366,7 @@
 								progress={userData?.progress}
 								on:clickOrSelect={() =>
 									openStreamableSelectorModal({
-										tmdbId,
+										tmdbId: id,
 										season: episode.season_number ?? 1,
 										episode: episode.episode_number ?? 1
 									})}
