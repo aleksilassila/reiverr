@@ -6,8 +6,8 @@ import { MovieMetadata } from './metadata.entity';
 //   inLibrary: boolean;
 // }
 
-export class MovieDto extends MovieMetadata {
-  // tmdbData: any;
-  //   @ApiProperty({ type: MovieUserDataDto, required: false })
-  //   userData?: MovieUserDataDto;
-}
+// export class MovieDto extends MovieMetadata {
+//   // tmdbData: any;
+//   //   @ApiProperty({ type: MovieUserDataDto, required: false })
+//   //   userData?: MovieUserDataDto;
+// }

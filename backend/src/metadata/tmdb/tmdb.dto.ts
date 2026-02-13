@@ -1,5 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TmdbApi } from './tmdb.providers';
+import {
+  MovieCreditsDto,
+  MovieDetailsDto,
+  MovieExternalIdsDto,
+  MovieImagesDto,
+  MovieVideosDto,
+  SeasonDto,
+  TvSeasonDetailsDto,
+  TvSeriesAggregateCreditsDto,
+  TvSeriesDetailsDto,
+  TvSeriesExternalIdsDto,
+  TvSeriesImagesDto,
+  TvSeriesVideosDto,
+} from './tmdb.v3.generated.dto';
 
 export type MovieVideos = Awaited<
   ReturnType<TmdbApi['v3']['movieVideos']>
@@ -37,54 +51,93 @@ export type TmdbEpisode = Awaited<
   ReturnType<TmdbApi['v3']['tvEpisodeDetails']>
 >['data'];
 
-export type TmdbMovieFull = TmdbMovie & {
-  videos: MovieVideos; // Proxy or to not proxy
-  credits: MovieCredits;
-  external_ids: MovieExternalIds;
-  images: MovieImages;
-};
+// export type TmdbMovieFull = TmdbMovie & {
+//   videos: MovieVideos; // Proxy or to not proxy
+//   credits: MovieCredits;
+//   external_ids: MovieExternalIds;
+//   images: MovieImages;
+// };
 
-export type TmdbSeriesFull = TmdbSeries & {
-  videos: SeriesVideos;
-  aggregate_credits: SeriesCredits;
-  external_ids: SeriesExternalIds;
-  images: SeriesImages;
-};
+export class TmdbMovieFull extends MovieDetailsDto {
+  @ApiProperty({ required: false })
+  videos?: MovieVideosDto;
 
-export type TmdbEpisodeFull = TmdbEpisode;
+  @ApiProperty({ required: false })
+  credits?: MovieCreditsDto;
+
+  @ApiProperty({ required: false })
+  external_ids?: MovieExternalIdsDto;
+
+  @ApiProperty({ required: false })
+  images?: MovieImagesDto;
+}
+
+// export type TmdbSeriesFull = TmdbSeries & {
+//   videos: SeriesVideos;
+//   aggregate_credits: SeriesCredits;
+//   external_ids: SeriesExternalIds;
+//   images: SeriesImages;
+// };
 
 class NextEpisodeToAir {
   @ApiProperty({ required: false })
   air_date?: string;
 }
 
-class Season {
+export class TmdbSeasonFull extends TvSeasonDetailsDto {
   @ApiProperty({ required: false })
-  air_date?: string;
-
-  @ApiProperty({ required: false })
-  episode_count?: number;
-
-  @ApiProperty({ required: false })
-  id?: number;
-
-  @ApiProperty({ required: false })
-  name?: string;
-
-  @ApiProperty({ required: false })
-  overview?: string;
-
-  @ApiProperty({ required: false })
-  poster_path?: string;
-
-  @ApiProperty({ required: false })
-  season_number?: number;
-
-  @ApiProperty({ required: false })
-  vote_average?: number;
+  aggregate_credits?: TvSeriesAggregateCreditsDto;
 }
 
-export class TmdbItemDto implements TmdbMovie, TmdbSeries {
+export class TmdbSeriesFull extends TvSeriesDetailsDto {
+  @ApiProperty({ required: false })
+  videos?: TvSeriesVideosDto;
+
+  @ApiProperty({ required: false })
+  aggregate_credits?: TvSeriesAggregateCreditsDto;
+
+  @ApiProperty({ required: false })
+  external_ids?: TvSeriesExternalIdsDto;
+
+  @ApiProperty({ required: false })
+  images?: TvSeriesImagesDto;
+
+  @ApiProperty({ required: false, type: NextEpisodeToAir })
+  next_episode_to_air?: NextEpisodeToAir;
+
+  @ApiProperty({ required: false, type: [TmdbSeasonFull] })
+  seasons?: TmdbSeasonFull[];
+}
+
+export type TmdbEpisodeFull = TmdbEpisode;
+
+// class Season {
+//   @ApiProperty({ required: false })
+//   air_date?: string;
+
+//   @ApiProperty({ required: false })
+//   episode_count?: number;
+
+//   @ApiProperty({ required: false })
+//   id?: number;
+
+//   @ApiProperty({ required: false })
+//   name?: string;
+
+//   @ApiProperty({ required: false })
+//   overview?: string;
+
+//   @ApiProperty({ required: false })
+//   poster_path?: string;
+
+//   @ApiProperty({ required: false })
+//   season_number?: number;
+
+//   @ApiProperty({ required: false })
+//   vote_average?: number;
+// }
+
+export class TmdbItemDto implements MovieDetailsDto, TvSeriesDetailsDto {
   // TmdbMovie & TmdbSeries
 
   @ApiProperty({ required: false })
@@ -96,7 +149,7 @@ export class TmdbItemDto implements TmdbMovie, TmdbSeries {
   @ApiProperty({ required: false })
   vote_average?: number;
 
-  // TmdbMovie only
+  // TmdbMovie only, therefore optional
 
   @ApiProperty({ required: false })
   title?: string;
@@ -107,7 +160,7 @@ export class TmdbItemDto implements TmdbMovie, TmdbSeries {
   @ApiProperty({ required: false })
   runtime?: number;
 
-  // TmdbSeries only
+  // TmdbSeries only, therefore optional
 
   @ApiProperty({ required: false })
   name?: string;
@@ -121,6 +174,6 @@ export class TmdbItemDto implements TmdbMovie, TmdbSeries {
   @ApiProperty({ required: false, type: NextEpisodeToAir })
   next_episode_to_air?: NextEpisodeToAir;
 
-  @ApiProperty({ required: false, isArray: true, type: Season })
-  seasons?: Season[];
+  @ApiProperty({ required: false, type: [SeasonDto] })
+  seasons?: SeasonDto[];
 }

@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TmdbEpisodeFull, TmdbMovieFull, TmdbSeriesFull } from './tmdb.dto';
+import {
+  TmdbEpisodeFull,
+  TmdbMovieFull,
+  TmdbSeasonFull,
+  TmdbSeriesFull,
+} from './tmdb.dto';
 import { TMDB_API, TmdbApi } from './tmdb.providers';
+import { TvSeasonDetailsDto } from './tmdb.v3.generated.dto';
 
 @Injectable()
 export class TmdbService {
@@ -9,7 +15,15 @@ export class TmdbService {
     private tmdbApi: TmdbApi,
   ) {}
 
-  async getFullSeries(tmdbId: number): Promise<TmdbSeriesFull> {
+  async getFullMovie(tmdbId: number) {
+    return this.tmdbApi.v3
+      .movieDetails(Number(tmdbId), {
+        append_to_response: 'videos,credits,external_ids,images',
+      })
+      .then((r) => r.data as TmdbMovieFull);
+  }
+
+  async getFullSeries(tmdbId: string): Promise<TmdbSeriesFull> {
     const tmdbSeries = await this.tmdbApi.v3
       .tvSeriesDetails(Number(tmdbId), {
         append_to_response: 'videos,aggregate_credits,external_ids,images',
@@ -20,15 +34,29 @@ export class TmdbService {
     //   return e;
     // });
 
+    const seasons = tmdbSeries?.seasons
+      ?.filter(
+        (s) =>
+          !s.name?.toLocaleLowerCase()?.includes('special') &&
+          s.season_number !== 0,
+      )
+      ?.map((season) =>
+        this.getFullSeason({ tmdbId, season: season.season_number! }),
+      );
+    tmdbSeries.seasons = await Promise.all(seasons);
+
     return tmdbSeries;
   }
 
-  async getFullMovie(tmdbId: number) {
+  async getFullSeason(options: {
+    tmdbId: string;
+    season: number;
+  }): Promise<TmdbSeasonFull> {
     return this.tmdbApi.v3
-      .movieDetails(Number(tmdbId), {
-        append_to_response: 'videos,credits,external_ids,images',
+      .tvSeasonDetails(Number(options.tmdbId), options.season, {
+        append_to_response: 'aggregate_credits',
       })
-      .then((r) => r.data as TmdbMovieFull);
+      .then((r) => r.data as TmdbSeasonFull);
   }
 
   async getFullEpisode(options: {

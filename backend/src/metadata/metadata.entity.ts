@@ -26,7 +26,7 @@ export class MovieMetadata {
 
   //
 
-  @ApiProperty({ required: false, type: 'object' })
+  @ApiProperty({ required: false, type: TmdbMovieFull })
   @Column('json')
   tmdbMovie: TmdbMovieFull;
 
@@ -48,10 +48,24 @@ export class MovieMetadata {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  /**
-   * Requires update before serving
-   */
-  isOutdated() {
+  private constructor() {}
+
+  static from(tmdbMovie: TmdbMovieFull) {
+    return new MovieMetadata().updateFrom(tmdbMovie);
+  }
+
+  updateFrom(tmdbMovie: TmdbMovieFull): MovieMetadata {
+    this.tmdbId = String(tmdbMovie.id);
+    this.tmdbMovie = tmdbMovie;
+    this.updatedAt = new Date();
+    this.name = tmdbMovie.title;
+    this.releaseDate = tmdbMovie.release_date
+      ? new Date(tmdbMovie.release_date)
+      : undefined;
+    return this;
+  }
+
+  needsUpdate() {
     const releaseDate = this.tmdbMovie?.release_date;
 
     if (!this.tmdbMovie) return true;
@@ -63,14 +77,7 @@ export class MovieMetadata {
     )
       return true;
 
-    return false;
-  }
-
-  /**
-   * Can be lazily updated after serving
-   */
-  isStale() {
-    if (this.isOutdated()) return true;
+    // Is stale
 
     if (new Date().getTime() - this.updatedAt.getTime() > TMDB_CACHE_TTL)
       return true;
@@ -91,7 +98,7 @@ export class SeriesMetadata {
 
   //
 
-  @ApiProperty({ required: false, type: 'object' })
+  @ApiProperty({ required: false, type: TmdbSeriesFull })
   @Column('json')
   tmdbSeries: TmdbSeriesFull;
 
@@ -129,11 +136,35 @@ export class SeriesMetadata {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  /**
-   * Requires update before serving
-   */
-  isOutdated() {
+  private constructor() {}
+
+  static from(tmdbSeries: TmdbSeriesFull) {
+    return new SeriesMetadata().updateFrom(tmdbSeries);
+  }
+
+  updateFrom(tmdbSeries: TmdbSeriesFull): SeriesMetadata {
+    this.tmdbId = String(tmdbSeries.id);
+    this.tmdbSeries = tmdbSeries;
+    this.updatedAt = new Date();
+    this.firstReleaseDate = tmdbSeries.first_air_date
+      ? new Date(tmdbSeries.first_air_date)
+      : undefined;
+    this.lastReleaseDate = tmdbSeries.last_air_date
+      ? new Date(tmdbSeries.last_air_date)
+      : undefined;
+    this.nextReleaseDate = tmdbSeries.next_episode_to_air?.air_date
+      ? new Date(tmdbSeries.next_episode_to_air.air_date)
+      : undefined;
+    this.lastEpisodeNumber = tmdbSeries.last_episode_to_air?.episode_number;
+    this.lastSeasonNumber = tmdbSeries.last_episode_to_air?.season_number;
+    this.name = tmdbSeries.name;
+    return this;
+  }
+
+  needsUpdate() {
     const nextAirDate = this.tmdbSeries?.next_episode_to_air?.air_date;
+
+    // Is missing an episode
 
     if (!this.tmdbSeries) return true;
     if (!this.updatedAt) return true;
@@ -144,14 +175,7 @@ export class SeriesMetadata {
     )
       return true;
 
-    return false;
-  }
-
-  /**
-   * Can be lazily updated after serving
-   */
-  isStale() {
-    if (this.isOutdated()) return true;
+    // Is stale
 
     if (new Date().getTime() - this.updatedAt.getTime() > TMDB_CACHE_TTL)
       return true;

@@ -7,11 +7,12 @@ import {
 } from './metadata.entity';
 import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
 import { TmdbService } from './tmdb/tmdb.service';
-import { TmdbEpisodeFull } from './tmdb/tmdb.dto';
 
 @Injectable()
 export class MetadataService {
   private logger = new Logger(MetadataService.name);
+  // (TODO: Should use db locks instead of in-memory locks for multiple instance support)
+  private updateLocks = new MetadataUpdateLock();
 
   constructor(
     @Inject(MOVIE_REPOSITORY)
@@ -28,86 +29,125 @@ export class MetadataService {
     await this.seriesRepository.clear();
   }
 
-  async getMovieByTmdbId(tmdbId: string): Promise<MovieMetadata | undefined> {
+  async getMovieByTmdbId(
+    tmdbId: string,
+    eager = false,
+  ): Promise<MovieMetadata | undefined> {
+    const unlock = await this.updateLocks.acquire(tmdbId);
+
     let movie = await this.movieRepository.findOne({ where: { tmdbId } });
+    const updatedAt = movie?.updatedAt;
 
-    if (!movie) {
-      movie = new MovieMetadata();
-      movie.tmdbId = tmdbId;
-    }
-
-    if (movie.isStale()) {
-      const updatedMovie = this.tmdbService
+    if (!movie || movie.needsUpdate()) {
+      this.logger.debug(`Caching movie ${tmdbId}`);
+      const p = this.tmdbService
         .getFullMovie(Number(tmdbId))
         .then(async (tmdbMovie) => {
+          this.logger.debug(`Fetched movie data from TMDB for ${tmdbId}`);
           if (tmdbMovie) {
-            movie.tmdbMovie = tmdbMovie;
-            movie.updatedAt = new Date();
-            movie.name = tmdbMovie.title;
-            movie.releaseDate = tmdbMovie.release_date
-              ? new Date(tmdbMovie.release_date)
-              : undefined;
+            if (!movie) {
+              movie = MovieMetadata.from(tmdbMovie);
+              await this.movieRepository
+                .insert(movie)
+                .catch((e) =>
+                  this.logger.error(
+                    `Failed to insert movie metadata for tmdbId ${tmdbId}`,
+                    e.stack,
+                  ),
+                );
+            } else {
+              movie.updateFrom(tmdbMovie);
+              await this.movieRepository
+                .save(movie)
+                .catch((e) =>
+                  this.logger.error(
+                    `Failed to update movie metadata for tmdbId ${tmdbId}`,
+                    e.stack,
+                  ),
+                );
+            }
+          } else {
+            this.logger.warn(
+              `TMDB returned no data for movie with tmdbId ${tmdbId}`,
+            );
           }
 
-          await this.movieRepository.upsert(movie, {
-            conflictPaths: ['tmdbId'],
-          });
+          if (!movie) {
+            throw new Error(
+              `Failed to fetch metadata for movie with tmdbId ${tmdbId}`,
+            );
+          }
 
           return movie;
         });
 
-      if (movie.isOutdated()) return updatedMovie;
+      if (!movie || eager) {
+        await p;
+      }
     }
 
+    unlock();
     return movie;
   }
 
-  async getBulkMoviesByTmdbIds(tmdbIds: string[]): Promise<any[]> {
-    return [];
-  }
+  async getSeriesByTmdbId(
+    tmdbId: string,
+    eager = false,
+  ): Promise<SeriesMetadata | undefined> {
+    const unlock = await this.updateLocks.acquire(tmdbId);
 
-  async getSeriesByTmdbId(tmdbId: string): Promise<SeriesMetadata | undefined> {
     let series = await this.seriesRepository.findOne({ where: { tmdbId } });
+    const updatedAt = series?.updatedAt;
 
-    if (!series) {
-      series = new SeriesMetadata();
-      series.tmdbId = tmdbId;
-    }
-
-    if (series.isStale()) {
+    if (!series || series.needsUpdate()) {
       this.logger.debug(`Caching series ${tmdbId}`);
-      const updatedSeries = this.tmdbService
-        .getFullSeries(Number(tmdbId))
+      const p = this.tmdbService
+        .getFullSeries(tmdbId)
         .then(async (tmdbSeries) => {
+          this.logger.debug(`Fetched series data from TMDB for ${tmdbId}`);
           if (tmdbSeries) {
-            series.tmdbSeries = tmdbSeries;
-            series.updatedAt = new Date();
-            series.firstReleaseDate = tmdbSeries.first_air_date
-              ? new Date(tmdbSeries.first_air_date)
-              : undefined;
-            series.lastReleaseDate = tmdbSeries.last_air_date
-              ? new Date(tmdbSeries.last_air_date)
-              : undefined;
-            series.nextReleaseDate = tmdbSeries.next_episode_to_air?.air_date
-              ? new Date(tmdbSeries.next_episode_to_air.air_date)
-              : undefined;
-            series.lastEpisodeNumber =
-              tmdbSeries.last_episode_to_air?.episode_number;
-            series.lastSeasonNumber =
-              tmdbSeries.last_episode_to_air?.season_number;
-            series.name = tmdbSeries.name;
+            if (!series) {
+              series = SeriesMetadata.from(tmdbSeries);
+              await this.seriesRepository
+                .insert(series)
+                .catch((e) =>
+                  this.logger.error(
+                    `Failed to insert series metadata for tmdbId ${tmdbId}`,
+                    e.stack,
+                  ),
+                );
+            } else {
+              series.updateFrom(tmdbSeries);
+              await this.seriesRepository
+                .save(series)
+                .catch((e) =>
+                  this.logger.error(
+                    `Failed to update series metadata for tmdbId ${tmdbId}`,
+                    e.stack,
+                  ),
+                );
+            }
+          } else {
+            this.logger.warn(
+              `TMDB returned no data for series with tmdbId ${tmdbId}`,
+            );
           }
 
-          await this.seriesRepository.upsert(series, {
-            conflictPaths: ['tmdbId'],
-          });
+          if (!series) {
+            throw new Error(
+              `Failed to fetch metadata for series with tmdbId ${tmdbId}`,
+            );
+          }
 
           return series;
         });
 
-      if (series.isOutdated()) return updatedSeries;
+      if (!series || eager) {
+        await p;
+      }
     }
 
+    unlock();
     return series;
   }
 
@@ -123,6 +163,32 @@ export class MetadataService {
 
     return {
       tmdbEpisode,
+    };
+  }
+
+  async getBulkMoviesByTmdbIds(tmdbIds: string[]): Promise<any[]> {
+    return [];
+  }
+}
+
+class MetadataUpdateLock {
+  private locks = new Map<string, Promise<any>>();
+
+  async acquire(key: string) {
+    if (this.locks.has(key)) {
+      await this.locks.get(key);
+    }
+
+    let resolveFn: (value: any) => void;
+    const promise = new Promise(async (resolve) => {
+      resolveFn = resolve;
+    });
+
+    this.locks.set(key, promise);
+
+    return () => {
+      resolveFn(null);
+      this.locks.delete(key);
     };
   }
 }

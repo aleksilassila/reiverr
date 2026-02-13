@@ -68,20 +68,1144 @@ export interface PlayState {
   lastPlayedAt: string;
 }
 
+export interface GenreDto {
+  /**
+   * Genre ID
+   * @example 18
+   */
+  id?: number;
+  /**
+   * Genre name
+   * @example "Drama"
+   */
+  name?: string;
+}
+
+export interface ProductionCompanyDto {
+  /**
+   * Company ID
+   * @example 508
+   */
+  id?: number;
+  /**
+   * Company logo path
+   * @example "/7cxRWzi4LsVm4Utfpr1hfARNurT.png"
+   */
+  logo_path?: string;
+  /**
+   * Company name
+   * @example "Regency Enterprises"
+   */
+  name?: string;
+  /**
+   * Origin country code
+   * @example "US"
+   */
+  origin_country?: string;
+}
+
+export interface ProductionCountryDto {
+  /**
+   * Country code (ISO 3166-1)
+   * @example "US"
+   */
+  iso_3166_1?: string;
+  /**
+   * Country name
+   * @example "United States of America"
+   */
+  name?: string;
+}
+
+export interface SpokenLanguageDto {
+  /**
+   * Language name in English
+   * @example "English"
+   */
+  english_name?: string;
+  /**
+   * Language code (ISO 639-1)
+   * @example "en"
+   */
+  iso_639_1?: string;
+  /**
+   * Language native name
+   * @example "English"
+   */
+  name?: string;
+}
+
+export interface VideoDto {
+  /**
+   * Language code (ISO 639-1)
+   * @example "en"
+   */
+  iso_639_1?: string;
+  /**
+   * Country code (ISO 3166-1)
+   * @example "US"
+   */
+  iso_3166_1?: string;
+  /**
+   * Video title
+   * @example "Official Trailer"
+   */
+  name?: string;
+  /**
+   * Video key/ID (e.g., YouTube video ID)
+   * @example "SUXWAEX2jlg"
+   */
+  key?: string;
+  /**
+   * Video platform
+   * @example "YouTube"
+   */
+  site?: string;
+  /**
+   * Video resolution (e.g., 720, 1080)
+   * @example 1080
+   */
+  size?: number;
+  /**
+   * Video type
+   * @example "Trailer"
+   */
+  type?:
+    | "Trailer"
+    | "Teaser"
+    | "Clip"
+    | "Featurette"
+    | "Behind the Scenes"
+    | "Bloopers";
+  /**
+   * Whether it is official content
+   * @example true
+   */
+  official?: boolean;
+  /**
+   * Publication date (ISO format)
+   * @example "2019-04-08T13:00:00.000Z"
+   */
+  published_at?: string;
+  /**
+   * Video ID
+   * @example "533ec654c3a36854480003eb"
+   */
+  id?: string;
+}
+
+export interface MovieVideosDto {
+  /**
+   * Movie ID
+   * @example 550
+   */
+  id?: number;
+  /** Array of videos */
+  results?: VideoDto[];
+}
+
+export interface CastMemberDto {
+  /**
+   * Adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Gender
+   * @example 2
+   */
+  gender?: number;
+  /**
+   * Actor ID
+   * @example 819
+   */
+  id?: number;
+  /**
+   * Known for department
+   * @example "Acting"
+   */
+  known_for_department?: string;
+  /**
+   * Actor name
+   * @example "Edward Norton"
+   */
+  name?: string;
+  /**
+   * Original name
+   * @example "Edward Norton"
+   */
+  original_name?: string;
+  /**
+   * Popularity
+   * @example 26.99
+   */
+  popularity?: number;
+  /**
+   * Profile path
+   * @example "/5XBzD5WuTyVQZeS4VI25z2moMeY.jpg"
+   */
+  profile_path?: string;
+  /**
+   * Cast ID
+   * @example 4
+   */
+  cast_id?: number;
+  /**
+   * Character name
+   * @example "The Narrator"
+   */
+  character?: string;
+  /**
+   * Credit ID
+   * @example "52fe4250c3a36847f800068f"
+   */
+  credit_id?: string;
+  /**
+   * Billing order
+   * @example 0
+   */
+  order?: number;
+}
+
+export interface CrewMemberDto {
+  /**
+   * Department
+   * @example "Directing"
+   */
+  department?: string;
+  /**
+   * Job title
+   * @example "Director"
+   */
+  job?: string;
+  /**
+   * Credit ID
+   * @example "5256c8a219c2956ff6046e77"
+   */
+  credit_id?: string;
+  /**
+   * Adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Gender
+   * @example 2
+   */
+  gender?: number;
+  /**
+   * Person ID
+   * @example 44797
+   */
+  id?: number;
+  /**
+   * Known for department
+   * @example "Directing"
+   */
+  known_for_department?: string;
+  /**
+   * Name
+   * @example "Timothy Van Patten"
+   */
+  name?: string;
+  /**
+   * Original name
+   * @example "Timothy Van Patten"
+   */
+  original_name?: string;
+  /**
+   * Popularity
+   * @example 7.775
+   */
+  popularity?: number;
+  /**
+   * Profile path
+   * @example "/MzSOFrd99HRdr6pkSRSctk3kBR.jpg"
+   */
+  profile_path?: string;
+}
+
+export interface MovieCreditsDto {
+  /**
+   * Movie ID
+   * @example 550
+   */
+  id?: number;
+  /** Cast members */
+  cast?: CastMemberDto[];
+  /** Crew members */
+  crew?: CrewMemberDto[];
+}
+
+export interface MovieExternalIdsDto {
+  /**
+   * Movie ID
+   * @example 550
+   */
+  id?: number;
+  /**
+   * IMDb ID
+   * @example "tt0137523"
+   */
+  imdb_id?: string;
+  /** Wikidata ID */
+  wikidata_id?: object;
+  /**
+   * Facebook page name
+   * @example "FightClub"
+   */
+  facebook_id?: string;
+  /** Instagram handle */
+  instagram_id?: object;
+  /** Twitter handle */
+  twitter_id?: object;
+}
+
+export interface ImageDto {
+  /**
+   * Image aspect ratio
+   * @example 1.778
+   */
+  aspect_ratio?: number;
+  /**
+   * Height in pixels
+   * @example 1080
+   */
+  height?: number;
+  /**
+   * Language code (ISO 639-1), can be null
+   * @example "en"
+   */
+  iso_639_1?: object;
+  /**
+   * Image file path
+   * @example "/fCayJrkfRaCRCTh8GqN30f8oyQF.jpg"
+   */
+  file_path?: string;
+  /**
+   * Vote average
+   * @example 5.384
+   */
+  vote_average?: number;
+  /**
+   * Vote count
+   * @example 4
+   */
+  vote_count?: number;
+  /**
+   * Width in pixels
+   * @example 1920
+   */
+  width?: number;
+}
+
+export interface MovieImagesDto {
+  /** Backdrop images */
+  backdrops?: ImageDto[];
+  /**
+   * Movie ID
+   * @example 550
+   */
+  id?: number;
+  /** Logo images */
+  logos?: ImageDto[];
+  /** Poster images */
+  posters?: ImageDto[];
+}
+
+export interface TmdbMovieFull {
+  /**
+   * Whether the movie is adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Path to backdrop image
+   * @example "/hZkgoQYus5vegHoetLkCJzb17zJ.jpg"
+   */
+  backdrop_path?: string;
+  /** Collection information if part of a collection */
+  belongs_to_collection?: object;
+  /**
+   * Movie production budget
+   * @example 63000000
+   */
+  budget?: number;
+  /** Array of genres */
+  genres?: GenreDto[];
+  /**
+   * Official movie website
+   * @example "http://www.foxmovies.com/movies/fight-club"
+   */
+  homepage?: string;
+  /**
+   * Movie ID
+   * @example 550
+   */
+  id?: number;
+  /**
+   * IMDb identifier
+   * @example "tt0137523"
+   */
+  imdb_id?: string;
+  /**
+   * Original language code (ISO 639-1)
+   * @example "en"
+   */
+  original_language?: string;
+  /**
+   * Original movie title
+   * @example "Fight Club"
+   */
+  original_title?: string;
+  /**
+   * Movie plot summary
+   * @example "A ticking-time-bomb insomniac and a slippery soap salesman channel primal male aggression into a shocking new form of therapy."
+   */
+  overview?: string;
+  /**
+   * Popularity score
+   * @example 61.416
+   */
+  popularity?: number;
+  /**
+   * Path to poster image
+   * @example "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg"
+   */
+  poster_path?: string;
+  /** Array of production companies */
+  production_companies?: ProductionCompanyDto[];
+  /** Array of production countries */
+  production_countries?: ProductionCountryDto[];
+  /**
+   * Release date (YYYY-MM-DD)
+   * @example "1999-10-15"
+   */
+  release_date?: string;
+  /**
+   * Box office revenue
+   * @example 100853753
+   */
+  revenue?: number;
+  /**
+   * Duration in minutes
+   * @example 139
+   */
+  runtime?: number;
+  /** Array of spoken languages */
+  spoken_languages?: SpokenLanguageDto[];
+  /**
+   * Release status
+   * @example "Released"
+   */
+  status?: string;
+  /**
+   * Movie tagline
+   * @example "Mischief. Mayhem. Soap."
+   */
+  tagline?: string;
+  /**
+   * Movie title
+   * @example "Fight Club"
+   */
+  title?: string;
+  /**
+   * Whether video is available
+   * @example false
+   */
+  video?: boolean;
+  /**
+   * Average rating
+   * @example 8.433
+   */
+  vote_average?: number;
+  /**
+   * Number of votes
+   * @example 26280
+   */
+  vote_count?: number;
+  videos: MovieVideosDto;
+  credits: MovieCreditsDto;
+  external_ids: MovieExternalIdsDto;
+  images: MovieImagesDto;
+}
+
 export interface MovieMetadata {
   id?: string;
   tmdbId: string;
-  tmdbMovie?: object;
+  tmdbMovie?: TmdbMovieFull;
   name?: string;
   releaseDate?: string;
   libraryItems?: any[][];
   updatedAt: string;
 }
 
+export interface CreatorDto {
+  /**
+   * Creator ID
+   * @example 9813
+   */
+  id?: number;
+  /**
+   * Credit ID
+   * @example "5256c8c219c2956ff604858a"
+   */
+  credit_id?: string;
+  /**
+   * Creator name
+   * @example "David Benioff"
+   */
+  name?: string;
+  /**
+   * Gender (0=not specified, 1=female, 2=male)
+   * @example 2
+   */
+  gender?: number;
+  /**
+   * Profile image path
+   * @example "/xvNN5huL0X8yJ7h3IZfGG4O2zBD.jpg"
+   */
+  profile_path?: string;
+}
+
+export interface EpisodeToAirDto {
+  /**
+   * Episode ID
+   * @example 1551830
+   */
+  id?: number;
+  /**
+   * Episode name
+   * @example "The Iron Throne"
+   */
+  name?: string;
+  /**
+   * Episode overview
+   * @example "In the aftermath of the devastating attack..."
+   */
+  overview?: string;
+  /**
+   * Vote average
+   * @example 4.809
+   */
+  vote_average?: number;
+  /**
+   * Vote count
+   * @example 241
+   */
+  vote_count?: number;
+  /**
+   * Air date (YYYY-MM-DD)
+   * @example "2019-05-19"
+   */
+  air_date?: string;
+  /**
+   * Episode number
+   * @example 6
+   */
+  episode_number?: number;
+  /**
+   * Production code
+   * @example "806"
+   */
+  production_code?: string;
+  /**
+   * Runtime in minutes
+   * @example 80
+   */
+  runtime?: number;
+  /**
+   * Season number
+   * @example 8
+   */
+  season_number?: number;
+  /**
+   * Show ID
+   * @example 1399
+   */
+  show_id?: number;
+  /**
+   * Still image path
+   * @example "/zBi2O5EJfgTS6Ae0HdAYLm9o2nf.jpg"
+   */
+  still_path?: string;
+}
+
+export interface NextEpisodeToAir {
+  air_date?: string;
+}
+
+export interface NetworkDto {
+  /**
+   * Network ID
+   * @example 49
+   */
+  id?: number;
+  /**
+   * Network logo path
+   * @example "/tuomPhY2UtuPTqqFnKMVHvSb724.png"
+   */
+  logo_path?: string;
+  /**
+   * Network name
+   * @example "HBO"
+   */
+  name?: string;
+  /**
+   * Origin country code
+   * @example "US"
+   */
+  origin_country?: string;
+}
+
+export interface SeasonDto {
+  /**
+   * Season air date
+   * @example "2010-12-05"
+   */
+  air_date?: string;
+  /**
+   * Episode count
+   * @example 272
+   */
+  episode_count?: number;
+  /**
+   * Season ID
+   * @example 3627
+   */
+  id?: number;
+  /**
+   * Season name
+   * @example "Specials"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example ""
+   */
+  overview?: string;
+  /**
+   * Poster path
+   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 0
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 0
+   */
+  vote_average?: number;
+}
+
+export interface TvSeriesDetailsDto {
+  /**
+   * Whether adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Backdrop path
+   * @example "/6LWy0jvMpmjoS9fojNgHIKoWL05.jpg"
+   */
+  backdrop_path?: string;
+  /** Array of series creators */
+  created_by?: CreatorDto[];
+  /**
+   * Array of typical episode durations
+   * @example [60,45]
+   */
+  episode_run_time?: number[];
+  /**
+   * First air date
+   * @example "2011-04-17"
+   */
+  first_air_date?: string;
+  /** Array of genres */
+  genres?: GenreDto[];
+  /**
+   * Official homepage
+   * @example "http://www.hbo.com/game-of-thrones"
+   */
+  homepage?: string;
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /**
+   * Whether still in production
+   * @example false
+   */
+  in_production?: boolean;
+  /**
+   * Array of language codes
+   * @example ["en","es"]
+   */
+  languages?: string[];
+  /**
+   * Most recent air date
+   * @example "2019-05-19"
+   */
+  last_air_date?: string;
+  /** Last episode to air */
+  last_episode_to_air?: EpisodeToAirDto;
+  /**
+   * Series name
+   * @example "Game of Thrones"
+   */
+  name?: string;
+  /** Next episode to air (if any) */
+  next_episode_to_air?: object;
+  /** Array of networks */
+  networks?: NetworkDto[];
+  /**
+   * Total number of episodes
+   * @example 73
+   */
+  number_of_episodes?: number;
+  /**
+   * Total number of seasons
+   * @example 8
+   */
+  number_of_seasons?: number;
+  /**
+   * Array of origin countries
+   * @example ["US","GB"]
+   */
+  origin_country?: string[];
+  /**
+   * Original language code
+   * @example "en"
+   */
+  original_language?: string;
+  /**
+   * Original series name
+   * @example "Game of Thrones"
+   */
+  original_name?: string;
+  /**
+   * Series description
+   * @example "Seven noble families fight for control of the mythical land of Westeros..."
+   */
+  overview?: string;
+  /**
+   * Popularity score
+   * @example 346.098
+   */
+  popularity?: number;
+  /**
+   * Poster path
+   * @example "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg"
+   */
+  poster_path?: string;
+  /** Array of production companies */
+  production_companies?: ProductionCompanyDto[];
+  /** Array of production countries */
+  production_countries?: ProductionCountryDto[];
+  /** Array of seasons */
+  seasons?: SeasonDto[];
+  /** Array of spoken languages */
+  spoken_languages?: SpokenLanguageDto[];
+  /**
+   * Series status
+   * @example "Ended"
+   */
+  status?: string;
+  /**
+   * Series tagline
+   * @example "Winter Is Coming"
+   */
+  tagline?: string;
+  /**
+   * Series type
+   * @example "Scripted"
+   */
+  type?: string;
+  /**
+   * Average rating
+   * @example 8.438
+   */
+  vote_average?: number;
+  /**
+   * Vote count
+   * @example 21390
+   */
+  vote_count?: number;
+}
+
+export interface AggregateRoleDto {
+  /**
+   * Credit ID
+   * @example "52542282760ee313280017f9"
+   */
+  credit_id?: string;
+  /**
+   * Character name
+   * @example "Eddard Stark"
+   */
+  character?: string;
+  /**
+   * Episode count
+   * @example 10
+   */
+  episode_count?: number;
+}
+
+export interface AggregateCastMemberDto {
+  /**
+   * Adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Gender
+   * @example 2
+   */
+  gender?: number;
+  /**
+   * Actor ID
+   * @example 239019
+   */
+  id?: number;
+  /**
+   * Known for department
+   * @example "Acting"
+   */
+  known_for_department?: string;
+  /**
+   * Actor name
+   * @example "Sean Bean"
+   */
+  name?: string;
+  /**
+   * Original name
+   * @example "Sean Bean"
+   */
+  original_name?: string;
+  /**
+   * Popularity
+   * @example 20.991
+   */
+  popularity?: number;
+  /**
+   * Profile path
+   * @example "/kTjiABk3TJ3yI0Cto5RsvyT6V3o.jpg"
+   */
+  profile_path?: string;
+  /** Roles played */
+  roles?: AggregateRoleDto[];
+  /**
+   * Total episode count
+   * @example 9
+   */
+  total_episode_count?: number;
+  /**
+   * Billing order
+   * @example 0
+   */
+  order?: number;
+}
+
+export interface AggregateJobDto {
+  /**
+   * Credit ID
+   * @example "5256c8a019c2956ff6046e1b"
+   */
+  credit_id?: string;
+  /**
+   * Job title
+   * @example "Director"
+   */
+  job?: string;
+  /**
+   * Episode count
+   * @example 22
+   */
+  episode_count?: number;
+}
+
+export interface AggregateCrewMemberDto {
+  /**
+   * Adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Gender
+   * @example 2
+   */
+  gender?: number;
+  /**
+   * Person ID
+   * @example 44797
+   */
+  id?: number;
+  /**
+   * Known for department
+   * @example "Directing"
+   */
+  known_for_department?: string;
+  /**
+   * Name
+   * @example "Timothy Van Patten"
+   */
+  name?: string;
+  /**
+   * Original name
+   * @example "Timothy Van Patten"
+   */
+  original_name?: string;
+  /**
+   * Popularity
+   * @example 7.775
+   */
+  popularity?: number;
+  /**
+   * Profile path
+   * @example "/MzSOFrd99HRdr6pkSRSctk3kBR.jpg"
+   */
+  profile_path?: string;
+  /** Jobs performed */
+  jobs?: AggregateJobDto[];
+  /**
+   * Department
+   * @example "Directing"
+   */
+  department?: string;
+  /**
+   * Total episode count
+   * @example 22
+   */
+  total_episode_count?: number;
+}
+
+export interface TvSeriesAggregateCreditsDto {
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /** Cast members */
+  cast?: AggregateCastMemberDto[];
+  /** Crew members */
+  crew?: AggregateCrewMemberDto[];
+}
+
+export interface TvSeriesExternalIdsDto {
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /**
+   * IMDb ID
+   * @example "tt0944947"
+   */
+  imdb_id?: string;
+  /**
+   * Freebase MID
+   * @example "/m/0524b41"
+   */
+  freebase_mid?: string;
+  /**
+   * Freebase ID
+   * @example "/en/game_of_thrones"
+   */
+  freebase_id?: string;
+  /**
+   * TVDB ID
+   * @example 121361
+   */
+  tvdb_id?: number;
+  /**
+   * TVRage ID
+   * @example 24493
+   */
+  tvrage_id?: number;
+  /**
+   * Wikidata ID
+   * @example "Q23572"
+   */
+  wikidata_id?: string;
+  /**
+   * Facebook page name
+   * @example "GameOfThrones"
+   */
+  facebook_id?: string;
+  /**
+   * Instagram handle
+   * @example "gameofthrones"
+   */
+  instagram_id?: string;
+  /**
+   * Twitter handle
+   * @example "GameOfThrones"
+   */
+  twitter_id?: string;
+}
+
+export interface TvSeriesImagesDto {
+  /** Backdrop images */
+  backdrops?: ImageDto[];
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /** Logo images */
+  logos?: ImageDto[];
+  /** Poster images */
+  posters?: ImageDto[];
+}
+
+export interface TmdbSeriesFull {
+  /**
+   * Whether adult content
+   * @example false
+   */
+  adult?: boolean;
+  /**
+   * Backdrop path
+   * @example "/6LWy0jvMpmjoS9fojNgHIKoWL05.jpg"
+   */
+  backdrop_path?: string;
+  /** Array of series creators */
+  created_by?: CreatorDto[];
+  /**
+   * Array of typical episode durations
+   * @example [60,45]
+   */
+  episode_run_time?: number[];
+  /**
+   * First air date
+   * @example "2011-04-17"
+   */
+  first_air_date?: string;
+  /** Array of genres */
+  genres?: GenreDto[];
+  /**
+   * Official homepage
+   * @example "http://www.hbo.com/game-of-thrones"
+   */
+  homepage?: string;
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /**
+   * Whether still in production
+   * @example false
+   */
+  in_production?: boolean;
+  /**
+   * Array of language codes
+   * @example ["en","es"]
+   */
+  languages?: string[];
+  /**
+   * Most recent air date
+   * @example "2019-05-19"
+   */
+  last_air_date?: string;
+  /** Last episode to air */
+  last_episode_to_air?: EpisodeToAirDto;
+  /**
+   * Series name
+   * @example "Game of Thrones"
+   */
+  name?: string;
+  /** Next episode to air (if any) */
+  next_episode_to_air?: NextEpisodeToAir;
+  /** Array of networks */
+  networks?: NetworkDto[];
+  /**
+   * Total number of episodes
+   * @example 73
+   */
+  number_of_episodes?: number;
+  /**
+   * Total number of seasons
+   * @example 8
+   */
+  number_of_seasons?: number;
+  /**
+   * Array of origin countries
+   * @example ["US","GB"]
+   */
+  origin_country?: string[];
+  /**
+   * Original language code
+   * @example "en"
+   */
+  original_language?: string;
+  /**
+   * Original series name
+   * @example "Game of Thrones"
+   */
+  original_name?: string;
+  /**
+   * Series description
+   * @example "Seven noble families fight for control of the mythical land of Westeros..."
+   */
+  overview?: string;
+  /**
+   * Popularity score
+   * @example 346.098
+   */
+  popularity?: number;
+  /**
+   * Poster path
+   * @example "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg"
+   */
+  poster_path?: string;
+  /** Array of production companies */
+  production_companies?: ProductionCompanyDto[];
+  /** Array of production countries */
+  production_countries?: ProductionCountryDto[];
+  /** Array of seasons */
+  seasons?: any[][];
+  /** Array of spoken languages */
+  spoken_languages?: SpokenLanguageDto[];
+  /**
+   * Series status
+   * @example "Ended"
+   */
+  status?: string;
+  /**
+   * Series tagline
+   * @example "Winter Is Coming"
+   */
+  tagline?: string;
+  /**
+   * Series type
+   * @example "Scripted"
+   */
+  type?: string;
+  /**
+   * Average rating
+   * @example 8.438
+   */
+  vote_average?: number;
+  /**
+   * Vote count
+   * @example 21390
+   */
+  vote_count?: number;
+  videos: TvSeriesDetailsDto;
+  aggregate_credits: TvSeriesAggregateCreditsDto;
+  external_ids: TvSeriesExternalIdsDto;
+  images: TvSeriesImagesDto;
+}
+
 export interface SeriesMetadata {
   id?: string;
   tmdbId: string;
-  tmdbSeries?: object;
+  tmdbSeries?: TmdbSeriesFull;
   name?: string;
   firstReleaseDate?: string;
   lastReleaseDate?: string;
@@ -743,21 +1867,6 @@ export interface BulkUpdatePlayStateDto {
   playStates: UpdatePlayStateDto[];
 }
 
-export interface NextEpisodeToAir {
-  air_date?: string;
-}
-
-export interface Season {
-  air_date?: string;
-  episode_count?: number;
-  id?: number;
-  name?: string;
-  overview?: string;
-  poster_path?: string;
-  season_number?: number;
-  vote_average?: number;
-}
-
 export interface TmdbItemDto {
   id?: number;
   poster_path?: string;
@@ -769,7 +1878,7 @@ export interface TmdbItemDto {
   first_air_date?: string;
   last_air_date?: string;
   next_episode_to_air?: NextEpisodeToAir;
-  seasons?: Season[];
+  seasons?: SeasonDto[];
 }
 
 export interface LibraryItemDto {
@@ -1895,6 +3004,36 @@ export class Api<
      * No description
      *
      * @tags metadata
+     * @name GetMovie
+     * @request GET:/api/metadata/movie/{tmdbId}
+     */
+    getMovie: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<MovieMetadata, any>({
+        path: `/api/metadata/movie/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags metadata
+     * @name GetSeries
+     * @request GET:/api/metadata/series/{tmdbId}
+     */
+    getSeries: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SeriesMetadata, any>({
+        path: `/api/metadata/series/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags metadata
      * @name ClearCache
      * @request POST:/api/metadata/clear-cache
      */
@@ -2090,7 +3229,7 @@ export class Api<
      * No description
      *
      * @tags library
-     * @name updateLibraryItem
+     * @name UpdateLibraryItem
      * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
      */
     updateLibraryItem: (
