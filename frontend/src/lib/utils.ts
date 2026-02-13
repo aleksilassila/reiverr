@@ -416,6 +416,11 @@ export function proxyFn<T extends (...args: any[]) => any>(
 	}) as T;
 }
 
+/**
+ * Subscribes to a store until a condition is met, then unsubscribes.
+ *
+ * Runs condition check once immediately, then on every store update. Unsubscribes as soon as condition returns true.
+ */
 export function waitFor<T>(
 	store: Readable<T>,
 	condition: (value: T) => boolean,

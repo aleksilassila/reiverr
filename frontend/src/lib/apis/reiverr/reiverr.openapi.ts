@@ -524,10 +524,10 @@ export interface TmdbMovieFull {
    * @example 26280
    */
   vote_count?: number;
-  videos: MovieVideosDto;
-  credits: MovieCreditsDto;
-  external_ids: MovieExternalIdsDto;
-  images: MovieImagesDto;
+  videos?: MovieVideosDto;
+  credits?: MovieCreditsDto;
+  external_ids?: MovieExternalIdsDto;
+  images?: MovieImagesDto;
 }
 
 export interface MovieMetadata {
@@ -658,183 +658,129 @@ export interface NetworkDto {
   origin_country?: string;
 }
 
-export interface SeasonDto {
+export interface GuestStarDto {
   /**
-   * Season air date
-   * @example "2010-12-05"
+   * Character name
+   * @example "Benjen Stark"
    */
-  air_date?: string;
+  character?: string;
   /**
-   * Episode count
-   * @example 272
+   * Credit ID
+   * @example "5256c8b919c2956ff604836a"
    */
-  episode_count?: number;
+  credit_id?: string;
   /**
-   * Season ID
-   * @example 3627
+   * Billing order
+   * @example 62
    */
-  id?: number;
+  order?: number;
   /**
-   * Season name
-   * @example "Specials"
-   */
-  name?: string;
-  /**
-   * Season overview
-   * @example ""
-   */
-  overview?: string;
-  /**
-   * Poster path
-   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
-   */
-  poster_path?: string;
-  /**
-   * Season number
-   * @example 0
-   */
-  season_number?: number;
-  /**
-   * Vote average
-   * @example 0
-   */
-  vote_average?: number;
-}
-
-export interface TvSeriesDetailsDto {
-  /**
-   * Whether adult content
+   * Adult content
    * @example false
    */
   adult?: boolean;
   /**
-   * Backdrop path
-   * @example "/6LWy0jvMpmjoS9fojNgHIKoWL05.jpg"
+   * Gender
+   * @example 2
    */
-  backdrop_path?: string;
-  /** Array of series creators */
-  created_by?: CreatorDto[];
+  gender?: number;
   /**
-   * Array of typical episode durations
-   * @example [60,45]
-   */
-  episode_run_time?: number[];
-  /**
-   * First air date
-   * @example "2011-04-17"
-   */
-  first_air_date?: string;
-  /** Array of genres */
-  genres?: GenreDto[];
-  /**
-   * Official homepage
-   * @example "http://www.hbo.com/game-of-thrones"
-   */
-  homepage?: string;
-  /**
-   * Series ID
-   * @example 1399
+   * Person ID
+   * @example 119783
    */
   id?: number;
   /**
-   * Whether still in production
-   * @example false
+   * Known for department
+   * @example "Acting"
    */
-  in_production?: boolean;
+  known_for_department?: string;
   /**
-   * Array of language codes
-   * @example ["en","es"]
-   */
-  languages?: string[];
-  /**
-   * Most recent air date
-   * @example "2019-05-19"
-   */
-  last_air_date?: string;
-  /** Last episode to air */
-  last_episode_to_air?: EpisodeToAirDto;
-  /**
-   * Series name
-   * @example "Game of Thrones"
+   * Name
+   * @example "Joseph Mawle"
    */
   name?: string;
-  /** Next episode to air (if any) */
-  next_episode_to_air?: object;
-  /** Array of networks */
-  networks?: NetworkDto[];
   /**
-   * Total number of episodes
-   * @example 73
-   */
-  number_of_episodes?: number;
-  /**
-   * Total number of seasons
-   * @example 8
-   */
-  number_of_seasons?: number;
-  /**
-   * Array of origin countries
-   * @example ["US","GB"]
-   */
-  origin_country?: string[];
-  /**
-   * Original language code
-   * @example "en"
-   */
-  original_language?: string;
-  /**
-   * Original series name
-   * @example "Game of Thrones"
+   * Original name
+   * @example "Joseph Mawle"
    */
   original_name?: string;
   /**
-   * Series description
-   * @example "Seven noble families fight for control of the mythical land of Westeros..."
-   */
-  overview?: string;
-  /**
-   * Popularity score
-   * @example 346.098
+   * Popularity
+   * @example 6.758
    */
   popularity?: number;
   /**
-   * Poster path
-   * @example "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg"
+   * Profile path
+   * @example "/1Ocb9v3h54beGVoJMm4w50UQhLf.jpg"
    */
-  poster_path?: string;
-  /** Array of production companies */
-  production_companies?: ProductionCompanyDto[];
-  /** Array of production countries */
-  production_countries?: ProductionCountryDto[];
-  /** Array of seasons */
-  seasons?: SeasonDto[];
-  /** Array of spoken languages */
-  spoken_languages?: SpokenLanguageDto[];
+  profile_path?: string;
+}
+
+export interface SeasonEpisodeDto {
   /**
-   * Series status
-   * @example "Ended"
+   * Episode air date
+   * @example "2011-04-17"
    */
-  status?: string;
+  air_date?: string;
   /**
-   * Series tagline
+   * Episode number
+   * @example 1
+   */
+  episode_number?: number;
+  /**
+   * Episode ID
+   * @example 63056
+   */
+  id?: number;
+  /**
+   * Episode name
    * @example "Winter Is Coming"
    */
-  tagline?: string;
+  name?: string;
   /**
-   * Series type
-   * @example "Scripted"
+   * Overview
+   * @example "Jon Arryn, the Hand of the King, is dead..."
    */
-  type?: string;
+  overview?: string;
   /**
-   * Average rating
-   * @example 8.438
+   * Production code
+   * @example "101"
+   */
+  production_code?: string;
+  /**
+   * Runtime in minutes
+   * @example 62
+   */
+  runtime?: number;
+  /**
+   * Season number
+   * @example 1
+   */
+  season_number?: number;
+  /**
+   * Show ID
+   * @example 1399
+   */
+  show_id?: number;
+  /**
+   * Still path
+   * @example "/9hGF3WUkBf7cSjMg0cdMDHJkByd.jpg"
+   */
+  still_path?: string;
+  /**
+   * Vote average
+   * @example 7.838
    */
   vote_average?: number;
   /**
    * Vote count
-   * @example 21390
+   * @example 291
    */
   vote_count?: number;
+  /** Crew members */
+  crew?: CrewMemberDto[];
+  /** Guest stars */
+  guest_stars?: GuestStarDto[];
 }
 
 export interface AggregateRoleDto {
@@ -993,6 +939,62 @@ export interface TvSeriesAggregateCreditsDto {
   cast?: AggregateCastMemberDto[];
   /** Crew members */
   crew?: AggregateCrewMemberDto[];
+}
+
+export interface TmdbSeasonFull {
+  /**
+   * Internal ID
+   * @example "5256c89f19c2956ff6046d47"
+   */
+  _id?: string;
+  /**
+   * Season air date
+   * @example "2011-04-17"
+   */
+  air_date?: string;
+  /** Episodes in season */
+  episodes?: SeasonEpisodeDto[];
+  /**
+   * Season name
+   * @example "Season 1"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example "Trouble is brewing in the Seven Kingdoms of Westeros..."
+   */
+  overview?: string;
+  /**
+   * Season ID
+   * @example 3624
+   */
+  id?: number;
+  /**
+   * Poster path
+   * @example "/wgfKiqzuMrFIkU1M68DDDY8kGC1.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 1
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 8.3
+   */
+  vote_average?: number;
+  aggregate_credits?: TvSeriesAggregateCreditsDto;
+}
+
+export interface TvSeriesVideosDto {
+  /**
+   * Series ID
+   * @example 1399
+   */
+  id?: number;
+  /** Array of videos */
+  results?: VideoDto[];
 }
 
 export interface TvSeriesExternalIdsDto {
@@ -1168,7 +1170,7 @@ export interface TmdbSeriesFull {
   /** Array of production countries */
   production_countries?: ProductionCountryDto[];
   /** Array of seasons */
-  seasons?: any[][];
+  seasons?: TmdbSeasonFull[];
   /** Array of spoken languages */
   spoken_languages?: SpokenLanguageDto[];
   /**
@@ -1196,10 +1198,10 @@ export interface TmdbSeriesFull {
    * @example 21390
    */
   vote_count?: number;
-  videos: TvSeriesDetailsDto;
-  aggregate_credits: TvSeriesAggregateCreditsDto;
-  external_ids: TvSeriesExternalIdsDto;
-  images: TvSeriesImagesDto;
+  videos?: TvSeriesVideosDto;
+  aggregate_credits?: TvSeriesAggregateCreditsDto;
+  external_ids?: TvSeriesExternalIdsDto;
+  images?: TvSeriesImagesDto;
 }
 
 export interface SeriesMetadata {
@@ -1865,6 +1867,49 @@ export interface UpdatePlayStateDto {
 
 export interface BulkUpdatePlayStateDto {
   playStates: UpdatePlayStateDto[];
+}
+
+export interface SeasonDto {
+  /**
+   * Season air date
+   * @example "2010-12-05"
+   */
+  air_date?: string;
+  /**
+   * Episode count
+   * @example 272
+   */
+  episode_count?: number;
+  /**
+   * Season ID
+   * @example 3627
+   */
+  id?: number;
+  /**
+   * Season name
+   * @example "Specials"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example ""
+   */
+  overview?: string;
+  /**
+   * Poster path
+   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 0
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 0
+   */
+  vote_average?: number;
 }
 
 export interface TmdbItemDto {

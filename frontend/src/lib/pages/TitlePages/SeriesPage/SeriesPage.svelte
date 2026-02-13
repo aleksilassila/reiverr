@@ -5,6 +5,7 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import TmdbEpisodeCard from '$lib/components/EpisodeCard/TmdbEpisodeCard.svelte';
+	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
@@ -23,7 +24,6 @@
 	import TitleSheet from '../TitleSheet.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import StreamablesView from './StreamablesView.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 
 	export let id: string;
 
@@ -58,7 +58,7 @@
 
 	$tmdbSeries.then((series) => {
 		const backgrounds =
-			series?.images.backdrops
+			series?.images?.backdrops
 				?.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
 				?.map((bd, i) => ({
 					backdropUri: `${bd.file_path}`,
@@ -78,10 +78,8 @@
 	// const { openEpisodeMenu, openManageSeries } = titlePageContext.getContext();
 
 	const {
-		data: episodes,
 		selectedEpisode,
 		selectedTmdbEpisode,
-		interactionObserver: episodeCardsObserver,
 		onEpisodeMount,
 		onEpisodeCardMouseEnter,
 		onEpisodeCardMouseLeave
@@ -297,7 +295,8 @@
 	</HeroCarousel>
 	<div class="relative z-10" style={$visibleStyle}>
 		{#await $tmdbSeries then tmdbSeries}
-			{#if $episodes.length}
+			{@const episodes = tmdbSeries?.seasons?.map((s) => s?.episodes ?? [])?.flat() ?? []}
+			{#if episodes.length}
 				<Carousel
 					scrollClass="px-32"
 					on:enter={scrollIntoView({ bottom: 64 })}
@@ -306,7 +305,7 @@
 					scrollIndexes
 					focusFirstOnBack={false}
 					on:scrollIndex={({ detail: i }) => {
-						const episode = $episodes[i];
+						const episode = episodes[i];
 
 						selectedEpisode.set({
 							season: episode?.season_number ?? 1,
@@ -331,7 +330,7 @@
 						{/if}
 					</span>
 
-					{#each $episodes as episode, i (episode.id)}
+					{#each episodes as episode, i (episode.id)}
 						{@const userData = $episodesData.episodes.find(
 							(e) => e.season === episode.season_number && e.episode === episode.episode_number
 						)}
@@ -373,21 +372,24 @@
 							/>
 						{/key}
 					{/each}
-					<div use:episodeCardsObserver />
+					<!-- <div use:episodeCardsObserver /> -->
 				</Carousel>
 			{/if}
 		{/await}
 
 		{#await $tmdbSeries then series}
+			{@const seasonCredits = series?.seasons?.find(
+				(s) => s.season_number === ($selectedTmdbEpisode?.season_number ?? 1)
+			)?.aggregate_credits}
 			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
 				<div slot="header">
-					{#if $selectedTmdbEpisode?.season.aggregate_credits}
-						Season {$selectedTmdbEpisode.season_number} Cast
+					{#if seasonCredits}
+						Season {$selectedTmdbEpisode?.season_number ?? 1} Cast
 					{:else}
 						Show Cast
 					{/if}
 				</div>
-				{#each ($selectedTmdbEpisode?.season.aggregate_credits ?? series?.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
+				{#each (seasonCredits ?? series?.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
 					<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} index={i} />
 				{/each}
 			</Carousel>
@@ -418,10 +420,10 @@
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
 							<div>{series?.networks?.[0]?.name}</div>
 						</div>
-						{#if series.number_of_seasons}
+						{#if series?.number_of_seasons}
 							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Seasons</h2>
-								<div>{series.number_of_seasons}</div>
+								<div>{series?.number_of_seasons}</div>
 							</div>
 						{/if}
 					</div>
@@ -434,10 +436,10 @@
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
 							<div>{series?.last_air_date}</div>
 						</div>
-						{#if series.number_of_episodes}
+						{#if series?.number_of_episodes}
 							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Episodes</h2>
-								<div>{series.number_of_episodes}</div>
+								<div>{series?.number_of_episodes}</div>
 							</div>
 						{/if}
 					</div>

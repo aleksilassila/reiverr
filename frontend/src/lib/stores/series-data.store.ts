@@ -1,5 +1,4 @@
-import type { SeriesUserDataDto } from '$lib/apis/reiverr/reiverr.openapi';
-import type { TmdbSeriesFull } from '$lib/apis/tmdb/tmdb-api';
+import type { SeriesUserDataDto, TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext, waitFor } from '$lib/utils';
 import { tick } from 'svelte';
@@ -85,19 +84,13 @@ function useData<TResponse>(fetchData: () => Promise<TResponse>) {
 }
 
 function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDto) {
-	let nextEpisodeData: EpisodeUserData = {
-		season: 1,
-		episode: 1,
-		progress: 0,
-		watched: false,
-		upcoming: false
-	};
+	let nextEpisodeData: EpisodeUserData | undefined = undefined;
 	const episodesData: EpisodeUserData[] = [];
 	let foundNext = false;
 	const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
 	for (let season = 1; season <= (tmdbSeries?.number_of_seasons ?? 0); season++) {
 		const s = tmdbSeries?.seasons?.find((s) => s.season_number === season);
-		for (let episode = 1; episode <= (s?.episode_count ?? 0); episode++) {
+		for (let episode = 1; episode <= (s?.episodes?.length ?? 0); episode++) {
 			const ep = userData?.playStates?.find((p) => p.season === season && p.episode === episode);
 			const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
 
@@ -111,9 +104,9 @@ function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDt
 
 			if (
 				!foundNext &&
-				((lastWatchedPlayState?.season ?? 0) < season ||
-					((lastWatchedPlayState?.season ?? 0) === season &&
-						(lastWatchedPlayState?.episode ?? 0) < episode))
+				((lastWatchedPlayState?.season ?? Infinity) < season ||
+					((lastWatchedPlayState?.season ?? Infinity) === season &&
+						(lastWatchedPlayState?.episode ?? Infinity) < episode))
 			) {
 				nextEpisodeData = episodeData;
 				foundNext = true;
@@ -146,7 +139,7 @@ function useSeriesData(tmdbId: string) {
 	const isWatched = writable(false);
 
 	const seriesData = useData(async () => {
-		const data = await tmdbApi.getSeriesFull(Number(tmdbId));
+		const data = await reiverrApi.metadata.getSeries(tmdbId).then((r) => r.data.tmdbSeries);
 		return data;
 	});
 	const userData = useData(async () => {
