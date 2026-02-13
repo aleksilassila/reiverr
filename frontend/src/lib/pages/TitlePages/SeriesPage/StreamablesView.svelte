@@ -6,11 +6,14 @@
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
-	import { reiverrApi } from '$lib/stores/user.store';
+	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TriangleRight } from 'radix-icons-svelte';
 	import { breadcrumbsContext } from '../ActionsPage/actions-page';
+	import { get } from 'svelte/store';
+	import { useSeriesContext } from '$lib/stores/series-data.store';
+	import { useMovieContext } from '$lib/stores/movie-data.store';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
@@ -19,8 +22,10 @@
 	export let name = '';
 
 	const componentStack = useComponentStack();
-	const { background } = backgroundContext.getContext();
+	const { background, playMedia } = backgroundContext.getContext();
 	// playableDataContext.createContext({ tmdbId, season, episode });
+	const { setStale: setSeriesStale } = useSeriesContext(tmdbId).getContext();
+	const { setStale: setMovieStale } = useMovieContext(tmdbId).getContext();
 
 	if (name) breadcrumbsContext.createContext(name);
 
@@ -32,9 +37,29 @@
 		{ action: 'stream', disabled: false, type: 'action', label: 'Play' },
 		{ action: 'offline-dl', disabled: true, type: 'action', label: 'Download offline' }
 	];
+
+	const handleProgressUpdate = (progress: number) => {
+		const userId = get(user)?.id;
+
+		if (userId && season !== undefined && episode !== undefined) {
+			reiverrApi.users
+				.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+					progress,
+					...(progress > 0.9 && { watched: true })
+				})
+				.finally(() => setSeriesStale?.());
+		} else if (userId) {
+			reiverrApi.users
+				.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+					progress,
+					...(progress > 0.9 && { watched: true })
+				})
+				.finally(() => setMovieStale?.());
+		}
+	};
 </script>
 
-<div class="fixed inset-0 scale-110 z-[21]">
+<div class="fixed inset-0 scale-110 z-[-1]">
 	<div
 		class="absolute inset-0 bg-center bg-cover bg-no-repeat blur-md brightness-[0.2] saturate-50"
 		style={$background?.backdropUri
@@ -44,7 +69,7 @@
 </div>
 
 <Container
-	class={classNames('pt-16 flex flex-col min-h-screen bg-primary-900/50', 'h-screen')}
+	class={classNames('pt-16 flex flex-col min-h-screen bg-primary-900/50 h-screen')}
 	on:back={({ detail }) => {
 		componentStack.close();
 		detail.stopPropagation();
@@ -111,7 +136,18 @@
 
 							if (el) scrollElementIntoView(el, { top: 32 });
 						}}
-						on:select={() => {}}
+						on:select={() => {
+							playMedia?.({
+								title: name,
+								subtitle: `${capitalize(group.label)} - ${capitalize(row.label)}`,
+								pluginId: group.pluginId,
+								streamId: row.id,
+								sourceName: group.label,
+								progress: 0,
+								handleProgressUpdate
+							});
+							componentStack.close();
+						}}
 						on:click={() => {
 							selectedRow = row;
 							selectedActionIndex = 0;

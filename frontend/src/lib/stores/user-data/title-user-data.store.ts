@@ -1,7 +1,7 @@
 import type { TmdbSeriesFull } from '$lib/apis/tmdb/tmdb-api';
 import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
-import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
+import TmdbVideoPlayer from '$lib/components/VideoPlayer/MediaVideoPlayer.svelte';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import type {
@@ -366,7 +366,7 @@ export function useSeriesUserData(tmdbId: string) {
 			.tvEpisodeDetails(Number(tmdbId), season, episode)
 			.then((r) => r.data);
 
-		return background?.playTmdbVideo({
+		return background?.playMedia({
 			source,
 			streamId,
 			tmdbId,
@@ -521,7 +521,7 @@ export function useMovieUserData(tmdbId: string) {
 
 		const tmdbMovieData = get(tmdbMovie);
 
-		return background?.playTmdbVideo({
+		return background?.playMedia({
 			source,
 			streamId,
 			tmdbId,

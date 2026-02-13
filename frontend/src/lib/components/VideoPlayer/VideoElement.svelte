@@ -1,140 +1,126 @@
 <script lang="ts">
+	import type { VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Hls from 'hls.js';
+	import { onDestroy, onMount } from 'svelte';
 	import { isTizen } from '../../utils/browser-detection';
 	import {
 		createErrorNotification,
 		createInfoNotification
 	} from '../Notifications/notification.store';
-	import type { VideoSource } from './VideoPlayer';
-	import type { SubtitlesDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { onDestroy, onMount } from 'svelte';
+	import { videoPlayerContext } from './VideoPlayer';
 
-	export let videoSource: VideoSource | undefined;
-	// export let subtitles: Subtitles[] = [];
-	// export let enabledSubtitle: string = '';
+	const videoPlayer = videoPlayerContext.getContext();
+	const {
+		video,
+		videoTracks,
+		subtitleTracks,
+		videoDidLoad,
+		paused,
+		duration,
+		currentTime,
+		bufferedTime,
+		buffering,
+		muted,
+		volume,
+		handleProgress,
+		handleLoadedData,
+		handleWaiting,
+		handlePlaying,
+		updateSubtitlesVisibility
+	} = videoPlayer;
 
-	export let video: HTMLVideoElement | undefined;
+	$: $videoTracks.current && $video && loadVideoSource($videoTracks.current);
 
-	export let videoDidLoad = false;
-	export let paused = false;
-	export let duration = 0;
-	export let currentTime = 0;
-	export let bufferedTime = 0;
-	export let buffering = false;
-	export let muted = false;
-	export let volume = 1;
-
-	export let subtitles: {
-		id?: string;
-		src: string;
-		lang: string;
-		kind: 'subtitles' | 'captions' | 'descriptions';
-		label: string;
-		showing: boolean;
-	}[] = [];
-
-	$: videoSource && video && loadVideoSource(videoSource);
-
-	function loadVideoSource(videoSource: VideoSource) {
-		if (!video) {
+	function loadVideoSource(track: VideoTrackDto) {
+		if (!$video) {
 			throw new Error('Video element not found');
 		}
 
-		videoDidLoad = false;
-		// video.src = '';
-		// video.srcObject = null;
-		// hls?.destroy();
+		$videoDidLoad = false;
 
-		const { src, directPlay, backdropUrl } = videoSource;
-		console.log('setting video source', src, directPlay, backdropUrl);
+		// const { src, directPlay, backdropUrl } = videoSource;
+		// console.log('setting video source', src, directPlay, backdropUrl);
 
-		if (backdropUrl) {
-			video.poster = backdropUrl;
-		}
+		// if (backdropUrl) {
+		// 	$video.poster = backdropUrl;
+		// }
 
-		if (!directPlay) {
+		if (track.type === 'hls') {
 			if (Hls.isSupported()) {
 				console.log('HLS is supported, loading HLS.js');
 				const hls = new Hls();
 
-				hls.loadSource(src);
-				hls.attachMedia(video);
-			} else if (video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
+				hls.loadSource(track.url);
+				hls.attachMedia($video);
+			} else if ($video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
 				/*
 				 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
 				 * This is not a problem, since HLS is natively supported on iOS. But any other browser
 				 * that does not support MSE will not be able to play the video.
 				 */
-				video.src = src;
+				$video.src = track.url;
 			} else {
 				throw new Error('HLS is not supported');
 			}
 		} else {
-			video.src = src;
+			$video.src = track.url;
 		}
-	}
 
-	function handleProgress() {
-		let timeRanges = video!.buffered;
-		// Find the first one whose end time is after the current time
-		// (the time ranges given by the browser are normalized, which means
-		// that they are sorted and non-overlapping)
-		for (let i = 0; i < timeRanges.length; i++) {
-			if (timeRanges.end(i) > video!.currentTime) {
-				bufferedTime = timeRanges.end(i);
-				break;
+		if (reportProgressInterval) clearInterval(reportProgressInterval);
+		reportProgressInterval = setInterval(() => {
+			let currentTime = $video?.currentTime || 0;
+			let duration = $video?.duration || 0;
+
+			if ($video?.readyState === 4 && currentTime > 5 && duration > 0) {
+				videoPlayer.progressUpdateHandler(currentTime / duration);
 			}
-		}
+		}, 10_000);
 	}
 
-	$: updateSubtitlesVisibility(subtitles);
-	const updateSubtitlesVisibility = (subs: typeof subtitles) => {
-		const enabledSubtitle = subs.find((sub) => sub.showing);
-		const tracks = video?.textTracks ?? [];
-		for (const track of tracks) {
-			track.mode =
-				track.id === (enabledSubtitle?.id ?? enabledSubtitle?.src) ? 'showing' : 'disabled';
-		}
-	};
+	$: ($subtitleTracks, updateSubtitlesVisibility?.());
+
+	let reportProgressInterval: ReturnType<typeof setInterval>;
 
 	onMount(() => {
-		video?.textTracks.addEventListener('addtrack', () => updateSubtitlesVisibility(subtitles));
+		$video?.textTracks.addEventListener('addtrack', () => updateSubtitlesVisibility?.());
 	});
 
 	onDestroy(() => {
-		video?.textTracks.removeEventListener('addtrack', () => updateSubtitlesVisibility(subtitles));
-		video?.pause();
-		video?.removeAttribute('src');
-		video?.load();
+		let currentTime = $video?.currentTime || 0;
+		let duration = $video?.duration || 0;
+
+		if (currentTime > 5 && duration > 0) {
+			videoPlayer.progressUpdateHandler(currentTime / duration);
+		}
+
+		$video?.textTracks.removeEventListener('addtrack', () => updateSubtitlesVisibility?.());
+		$video?.pause();
+		$video?.removeAttribute('src');
+		$video?.load();
+
+		clearInterval(reportProgressInterval);
 	});
 </script>
 
 <!-- svelte-ignore a11y-media-has-caption -->
 <video
-	bind:this={video}
-	bind:paused
-	bind:duration
-	bind:volume
-	bind:muted
-	bind:currentTime
-	on:progress={handleProgress}
+	bind:this={$video}
+	bind:paused={$paused}
+	bind:duration={$duration}
+	bind:volume={$volume}
+	bind:muted={$muted}
+	bind:currentTime={$currentTime}
+	on:progress={() => handleProgress()}
 	on:loadeddata={() => {
-		// console.log('video loaded', video.currentTime, video.duration, playbackInfo?.progress);
-		// video.currentTime = progressTime;
-		videoDidLoad = true;
-
-		if (video && video.currentTime < video?.duration * (videoSource?.progress || 0)) {
-			video.currentTime = video?.duration * (videoSource?.progress || 0);
-		}
-
+		handleLoadedData();
 		console.log('Video loaded');
 		createInfoNotification('Video loaded');
 	}}
-	on:waiting={() => (buffering = true)}
-	on:playing={() => (buffering = false)}
+	on:waiting={() => handleWaiting()}
+	on:playing={() => handlePlaying()}
 	on:dblclick
 	on:click
-	on:error={(e) => {
+	on:error={() => {
 		createErrorNotification('Error loading video', 'Unsupported video format');
 	}}
 	on:loadstart={() => createInfoNotification('Loading video')}
@@ -143,23 +129,13 @@
 	playsinline
 	class="w-full h-full"
 >
-	{#each subtitles as subtitle (subtitle.src)}
+	{#each $subtitleTracks.tracks as subtitle (subtitle.url)}
 		<track
-			id={subtitle.id ?? subtitle.src}
-			src={subtitle.src}
+			id={subtitle.label ?? subtitle.url}
+			src={subtitle.url}
 			kind={subtitle.kind}
-			srclang={subtitle.src}
+			srclang={subtitle.lang}
 			label={subtitle.label}
 		/>
 	{/each}
-	<!-- {#each subtitles as subtitle}
-		<track
-			default={subtitle.url === enabledSubtitle}
-			id={subtitle.url}
-			src={subtitle.url}
-			kind={subtitle.kind}
-			srclang={subtitle.srclang}
-			label={subtitle.language}
-		/>
-	{/each} -->
 </video>

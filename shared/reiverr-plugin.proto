@@ -138,14 +138,15 @@ message GetStreamRequest {
 
 message StreamResponse {
   repeated VideoTrack videoTracks = 1;
-  repeated SubtitleTrack  subtitleTracks = 2;
-  repeated AudioTrack audioTracks = 3;
+  repeated SubtitleTrack subtitleTracks = 2;
+  // repeated AudioTrack audioTracks = 3;
 }
 
 message VideoTrack {
   string label = 1;
   string url = 2;
   string type = 3; // "direct", "hls", "dash"
+  optional string lang = 4;
   // optional string quality = 4;
   // optional string codec = 5;
   // optional int32 bitrate = 6;
@@ -158,12 +159,12 @@ message SubtitleTrack {
   string kind = 4; // "subtitles", "captions", "descriptions"
 }
 
-message AudioTrack {
-  string label = 1;
-  string url = 2;
-  string lang = 3;
-  // optional string codec = 4;
-}
+// message AudioTrack {
+//   string label = 1;
+//   string url = 2;
+//   string lang = 3;
+//   // optional string codec = 4;
+// }
 
 message SettingsTemplate {
   map<string, SettingField> fields = 1;

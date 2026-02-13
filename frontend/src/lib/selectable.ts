@@ -134,6 +134,8 @@ export class Selectable {
 		return false;
 	});
 
+	didUnmount = false;
+
 	static objects = new Map<HTMLElement, Selectable>();
 	static rootObjectsStack: Selectable[] = [];
 
@@ -630,6 +632,7 @@ export class Selectable {
 		// work because unmount and destroy are both called
 		// before the next element unmounts :(
 		Selectable._childrenToRemove.push(this);
+		this.didUnmount = true;
 	}
 
 	/**

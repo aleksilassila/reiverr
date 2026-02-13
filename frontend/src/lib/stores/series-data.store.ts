@@ -62,7 +62,12 @@ function useData<TResponse>(fetchData: () => Promise<TResponse>) {
 				(isFocused) => !!isFocused,
 				() => {
 					const p = fetchData();
+					isLoading.set(true);
 					resolves.splice(0).forEach((r) => r(p));
+					p.then((d) => {
+						data.set(d);
+						isLoading.set(false);
+					});
 					return p;
 				}
 			).unsubscribe;

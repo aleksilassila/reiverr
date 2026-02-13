@@ -54,8 +54,8 @@ export interface GetStreamRequest {
 
 export interface StreamResponse {
   videoTracks: VideoTrack[];
+  /** repeated AudioTrack audioTracks = 3; */
   subtitleTracks: SubtitleTrack[];
-  audioTracks: AudioTrack[];
 }
 
 export interface VideoTrack {
@@ -63,6 +63,12 @@ export interface VideoTrack {
   url: string;
   /** "direct", "hls", "dash" */
   type: string;
+  /**
+   * optional string quality = 4;
+   * optional string codec = 5;
+   * optional int32 bitrate = 6;
+   */
+  lang?: string | undefined;
 }
 
 export interface SubtitleTrack {
@@ -71,13 +77,6 @@ export interface SubtitleTrack {
   lang: string;
   /** "subtitles", "captions", "descriptions" */
   kind: string;
-}
-
-export interface AudioTrack {
-  label: string;
-  url: string;
-  /** optional string codec = 4; */
-  lang: string;
 }
 
 export interface SettingsTemplate {

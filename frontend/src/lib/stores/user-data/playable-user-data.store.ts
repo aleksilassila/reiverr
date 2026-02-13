@@ -1,6 +1,6 @@
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { getBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
-import TmdbVideoPlayer from '$lib/components/VideoPlayer/TmdbVideoPlayer.svelte';
+import TmdbVideoPlayer from '$lib/components/VideoPlayer/MediaVideoPlayer.svelte';
 import { get } from 'svelte/store';
 import { seriesUserDataContext } from './title-user-data.store';
 import { user } from '../user.store';

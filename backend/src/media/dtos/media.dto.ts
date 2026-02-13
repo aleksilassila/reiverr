@@ -1,3 +1,8 @@
+import {
+  StreamResponse,
+  SubtitleTrack,
+  VideoTrack,
+} from '@aleksilassila/reiverr-shared';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class StreamableDto {
@@ -19,14 +24,52 @@ export class StreamablesDto {
   streamables: StreamableDto[];
 }
 
-export class VideoTrack {}
+export class VideoTrackDto implements VideoTrack {
+  @ApiProperty()
+  label: string;
 
-export class SubtitleTrack {}
+  @ApiProperty()
+  url: string;
 
-export class AudioTrack {}
+  @ApiProperty({ enum: ['direct', 'hls', 'dash'] })
+  type: string;
 
-export class StreamDto {
-  videoTracks: VideoTrack[];
-  subtitleTracks: SubtitleTrack[];
-  audioTracks: AudioTrack[];
+  @ApiProperty({ required: false })
+  lang?: string;
+}
+
+export class SubtitleTrackDto implements SubtitleTrack {
+  @ApiProperty()
+  label: string;
+
+  @ApiProperty()
+  url: string;
+
+  @ApiProperty()
+  lang: string;
+
+  @ApiProperty()
+  kind: string;
+}
+
+// export class AudioTrack {
+//   @ApiProperty()
+//   label: string;
+
+//   @ApiProperty()
+//   url: string;
+
+//   @ApiProperty()
+//   lang: string;
+// }
+
+export class StreamDto implements StreamResponse {
+  @ApiProperty({ type: [VideoTrackDto] })
+  videoTracks: VideoTrackDto[];
+
+  @ApiProperty({ type: [SubtitleTrackDto] })
+  subtitleTracks: SubtitleTrackDto[];
+
+  // @ApiProperty({ type: [AudioTrack] })
+  // audioTracks: AudioTrack[];
 }

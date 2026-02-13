@@ -1763,7 +1763,10 @@ export interface SubtitlesDto {
   default: boolean;
 }
 
-export type StreamDto = object;
+export interface StreamDto {
+  videoTracks: VideoTrackDto[];
+  subtitleTracks: SubtitleTrackDto[];
+}
 
 export interface StreamActionResponseDto {
   error?: ActionResponseErrorDto;
@@ -1847,6 +1850,20 @@ export interface StreamablesDto {
   pluginId: string;
   label: string;
   streamables: StreamableDto[];
+}
+
+export interface VideoTrackDto {
+  label: string;
+  url: string;
+  type: "direct" | "hls" | "dash";
+  lang?: string;
+}
+
+export interface SubtitleTrackDto {
+  label: string;
+  url: string;
+  lang: string;
+  kind: string;
 }
 
 export interface UpdatePlayStateDto {

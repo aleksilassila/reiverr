@@ -2,10 +2,11 @@ import { Selectable, useRegistrar } from '$lib/selectable';
 import { onDestroy, SvelteComponentTyped, type ComponentProps, type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
-import TmdbVideoPlayer from '../VideoPlayer/TmdbVideoPlayer.svelte';
+import MediaVideoPlayer from '../VideoPlayer/MediaVideoPlayer.svelte';
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
+import { reiverrApi, user } from '$lib/stores/user.store';
 
 export const BACKGROUND_CONTEXT_KEY = 'background-context';
 
@@ -202,20 +203,26 @@ function _createBackgroundPage(
 		if (!onBackground) focus();
 	}
 
-	async function playTmdbVideo(props: {
-		source: MediaSourceDto;
-		streamId: string;
-		tmdbId: string;
+	async function playMedia(props: {
 		title: string;
-		season?: number;
-		episode?: number;
-		progress: number;
-		subtitle: string;
+		subtitle?: string;
+		sourceName?: string;
+		pluginId: string;
+		streamId: string;
+		progress?: number;
+		handleProgressUpdate?: (progress: number) => void;
 	}) {
 		setVideo({
 			id: Symbol(),
-			component: TmdbVideoPlayer,
-			props
+			component: MediaVideoPlayer,
+			props: {
+				...props,
+				source: {
+					pluginId: props.pluginId,
+					streamId: props.streamId
+				},
+				handleProgressUpdate: props.handleProgressUpdate ?? (() => {})
+			}
 		});
 
 		focus();
@@ -255,7 +262,7 @@ function _createBackgroundPage(
 		setVideo,
 		destroyVideo,
 		playYoutubeVideo,
-		playTmdbVideo,
+		playMedia,
 		focus,
 		unfocus,
 		destroy
@@ -300,9 +307,11 @@ export function focusGlobalBackground() {
 }
 
 export function unfocusGlobalBackground() {
-	if (lastFocused) {
+	if (lastFocused && !lastFocused.didUnmount) {
 		lastFocused.focus();
 		lastFocused = undefined;
+	} else {
+		Selectable.rootObjectsStack[Selectable.rootObjectsStack.length - 1]?.focus();
 	}
 	//  else {
 	// 	console.error('[Background Stack]: No focused object to return to');

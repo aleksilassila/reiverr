@@ -5,13 +5,13 @@
 	import { Check, TextAlignLeft } from 'radix-icons-svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
-	import type { SubtitlesDto as Subtitles } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { SubtitlesDto as Subtitles, SubtitleTrack } from '$lib/apis/reiverr/reiverr.openapi';
 
 	const { close } = useComponentStack();
 
-	export let subtitles: Subtitles[];
-	export let selectedSubtitles: Subtitles | undefined;
-	export let selectSubtitles: (subtitles?: Subtitles) => void;
+	export let available: SubtitleTrack[];
+	export let current: SubtitleTrack | undefined;
+	export let selectSubtitles: (subtitles?: SubtitleTrack) => void;
 </script>
 
 <Dialog>
@@ -28,14 +28,14 @@
 			class="relative"
 			on:enter={scrollIntoView({ vertical: 64 })}
 		>
-			{#if !selectedSubtitles}
+			{#if !current}
 				<div class="absolute inset-y-0 right-6 flex items-center justify-center">
 					<Check size={24} />
 				</div>
 			{/if}
 			<div class="text-left">No Subtitles</div>
 		</Button>
-		{#each subtitles as subtitles}
+		{#each available as subtitles}
 			<Button
 				on:clickOrSelect={() => {
 					close();
@@ -44,7 +44,7 @@
 				on:enter={scrollIntoView({ vertical: 64 })}
 				class="relative"
 			>
-				{#if selectedSubtitles?.src === subtitles.src}
+				{#if current?.url === subtitles.url}
 					<div class="absolute inset-y-0 right-6 flex items-center justify-center">
 						<Check size={24} />
 					</div>

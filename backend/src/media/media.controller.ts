@@ -1,3 +1,4 @@
+import { StreamableItem } from '@aleksilassila/reiverr-shared';
 import {
   Controller,
   Get,
@@ -13,7 +14,6 @@ import { PaginatedResponseDto } from 'src/common/common.dto';
 import { PluginsService } from 'src/plugins/plugins.service';
 import { User } from 'src/users/user.entity';
 import { StreamablesDto, StreamDto } from './dtos/media.dto';
-import { StreamableItem } from '@aleksilassila/reiverr-shared';
 
 @ApiTags('media')
 @Controller('media')
@@ -85,7 +85,6 @@ export class MediaController {
     return {
       videoTracks: streamResponse.videoTracks,
       subtitleTracks: streamResponse.subtitleTracks,
-      audioTracks: streamResponse.audioTracks,
     };
   }
 }
