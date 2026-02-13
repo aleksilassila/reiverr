@@ -3,41 +3,28 @@
 	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
+	import { useMovieContext } from '$lib/stores/movie-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
-	import { movieUserDataContext } from '$lib/stores/user-data/title-user-data.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
-	import { Bookmark, Check, ExternalLink, Minus, Play, Video } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let id: string;
 
-	const background = createBackgroundPage({ backgroundMediaId: id, videoMediaId: id });
-	const {
-		tmdbId,
-		tmdbMovie,
-		inLibrary,
-		progress,
-		handleAddToLibrary,
-		handleRemoveFromLibrary,
-		isWatched,
-		toggleIsWatched,
-		autoplayCandidate,
-		autoplayStream,
-		unsubscribe
-	} = movieUserDataContext.createContext(id);
-	// const { componentStack } = titlePageContext.createContext();
-
-	// componentStack.push({ component: MoviePageDetails, props: {} });
+	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
+	const { movieData, inLibrary, isWatched, setInLibrary, setWatched, unsubscribe } =
+		useMovieContext(id).createContext();
+	const { promise: tmdbMovie } = movieData;
 
 	$tmdbMovie.then(async (movie) => {
 		const backgrounds =
@@ -65,7 +52,7 @@
 	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];
 
-	$: recommendations = tmdbApi.v3.movieRecommendations(Number(tmdbId)).then((r) => r.data.results);
+	$: recommendations = tmdbApi.v3.movieRecommendations(Number(id)).then((r) => r.data.results);
 
 	$tmdbMovie.then(async (movie) => {
 		trailerId = movie?.videos?.results?.find(
@@ -81,7 +68,7 @@
 		if (movie?.vote_average) {
 			titleProperties.push({
 				label: `${movie.vote_average.toFixed(1)} TMDB (${formatThousands(movie.vote_count ?? 0)})`,
-				href: `https://www.themoviedb.org/movie/${movie.id}`
+				href: `https://www.themoviedb.org/movie/${id}`
 			});
 		}
 
@@ -101,18 +88,8 @@
 		titleProperties = titleProperties;
 	});
 	$: if ($localSettings.autoplayTrailers && trailerId) {
-		background?.playYoutubeVideo({ tmdbId, videoId: trailerId, onBackground: true });
+		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
-
-	function openEpisodeMenu() {
-		// 	componentStack.create(ActionsMenu, {
-		// 		tmdbId
-		// 	});
-	}
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 
 	onDestroy(() => {
 		unsubscribe();
@@ -135,19 +112,10 @@
 				{/if}
 			{/await}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				<Button
-					action={autoplayStream}
-					secondaryAction={openEpisodeMenu}
-					disabled={!$autoplayCandidate.candidate}
-				>
-					Play
-					<Play size={19} slot="icon" />
-				</Button>
-
 				{#if trailerId}
 					<Button
 						on:clickOrSelect={() =>
-							trailerId && background?.playYoutubeVideo({ tmdbId, videoId: trailerId })}
+							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
 					>
 						<Video slot="icon" size={19} />
 						Play Trailer
@@ -155,24 +123,20 @@
 				{/if}
 
 				{#if !$inLibrary}
-					<Button action={handleAddToLibrary} icon={Bookmark}>Add to Library</Button>
+					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to Library</Button>
 				{:else}
-					<Button action={handleRemoveFromLibrary} icon={Minus}>Remove from Library</Button>
+					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
 				{/if}
 
-				<Button action={toggleIsWatched}>
-					{#if $isWatched}
-						Mark as Unwatched
-					{:else}
-						Mark as Watched
-					{/if}
-					<Check slot="icon" size={19} />
-				</Button>
+				{#if $isWatched}
+					<Button action={() => setWatched(false)} icon={Check}>Mark as Unwatched</Button>
+				{:else}
+					<Button action={() => setWatched(true)} icon={Check}>Mark as Watched</Button>
+				{/if}
 
 				{#if PLATFORM_WEB}
 					<Button
-						on:clickOrSelect={() =>
-							window.open('https://www.themoviedb.org/movie/' + tmdbId, '_blank')}
+						on:clickOrSelect={() => window.open('https://www.themoviedb.org/movie/' + id, '_blank')}
 					>
 						Open In TMDB
 						<ExternalLink size={19} slot="icon-after" />
@@ -192,12 +156,14 @@
 				</Carousel>
 			{/await}
 			{#await recommendations then recommendations}
-				<Carousel scrollClass="px-32" class="mb-16">
-					<div slot="header">Recommendations</div>
-					{#each recommendations || [] as recommendation}
-						<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
-					{/each}
-				</Carousel>
+				{#if recommendations?.length}
+					<Carousel scrollClass="px-32" class="mb-16">
+						<div slot="header">Recommendations</div>
+						{#each recommendations as recommendation}
+							<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+						{/each}
+					</Carousel>
+				{/if}
 			{/await}
 		</Container>
 		{#await $tmdbMovie then movie}
@@ -208,7 +174,7 @@
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Directed By</h2>
 							<div>
-								{movie?.credits.crew
+								{movie?.credits?.crew
 									?.filter((c) => c.job === 'Director')
 									?.map((c) => c.name)
 									.join(', ')}
@@ -217,7 +183,7 @@
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Written By</h2>
 							<div>
-								{movie?.credits.crew
+								{movie?.credits?.crew
 									?.filter((c) => c.job === 'Writer')
 									?.map((c) => c.name)
 									.join(', ')}

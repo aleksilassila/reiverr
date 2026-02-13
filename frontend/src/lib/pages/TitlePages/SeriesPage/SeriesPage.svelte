@@ -395,12 +395,14 @@
 			</Carousel>
 		{/await}
 		{#await recommendations then recommendations}
-			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
-				<div slot="header">Recommendations</div>
-				{#each recommendations || [] as recommendation (recommendation.id)}
-					<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
-				{/each}
-			</Carousel>
+			{#if recommendations?.length}
+				<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
+					<div slot="header">Recommendations</div>
+					{#each recommendations as recommendation (recommendation.id)}
+						<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+					{/each}
+				</Carousel>
+			{/if}
 		{/await}
 		{#await $tmdbSeries then series}
 			<Container

@@ -214,7 +214,6 @@ export function useStackRouter({
 	};
 	// Only updates when historyState changes
 	const visibleStack: Writable<Array<CompStackPage>> = writable([]);
-	visibleStack.subscribe(console.log);
 
 	initializeFromUrl();
 
