@@ -1,7 +1,7 @@
 <script lang="ts">
 	import classNames from 'classnames';
 
-	export let title: string;
+	export let title = '';
 	export let size: 'md' | 'sm' = 'md';
 </script>
 
@@ -22,5 +22,9 @@
 		$$restProps.class
 	)}
 >
-	{title}
+	{#if title}
+		{title}
+	{:else}
+		<slot />
+	{/if}
 </h1>

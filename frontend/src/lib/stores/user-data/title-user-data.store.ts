@@ -695,7 +695,3 @@ export const seriesUserDataContext = createStoreContext(
 		required: true
 	}
 );
-
-export const movieUserDataContext = createStoreContext(TITLE_USER_DATA_CONTEXT, useMovieUserData, {
-	required: true
-});

@@ -4,7 +4,7 @@
 	import type { TitleInfoProperty } from './HeroTitleInfo';
 	import TitleText from '$lib/components/TitleText.svelte';
 
-	export let title: string;
+	export let title = '';
 	export let properties: TitleInfoProperty[] = [];
 	export let overview: string;
 	export let onClickTitle: (() => void) | undefined = undefined;
@@ -14,7 +14,9 @@
 	{title}
 	on:click={onClickTitle}
 	class={classNames({ 'hover:text-amber-200 cursor-pointer': !!onClickTitle })}
-/>
+>
+	<slot name="title" />
+</TitleText>
 
 <div
 	class="flex items-center gap-1 uppercase text-secondary-200 font-semibold tracking-wider mt-2 text-lg"

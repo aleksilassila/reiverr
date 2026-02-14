@@ -417,6 +417,23 @@ export function proxyFn<T extends (...args: any[]) => any>(
 	}) as T;
 }
 
+export function betterSubscribe<T>(
+	store: Readable<T>,
+	cb: (value: T, unsubscribe: () => void) => void
+) {
+	let unsub: (() => void) | undefined;
+	let unsubImmediately = false;
+	unsub = store.subscribe((v) => {
+		cb(v, () => {
+			if (!unsub) unsubImmediately = true;
+			else unsub();
+		});
+	});
+	if (unsubImmediately) unsub();
+
+	return unsub;
+}
+
 /**
  * Subscribes to a store until a condition is met, then unsubscribes.
  *
@@ -427,19 +444,15 @@ export function waitFor<T>(
 	condition: (value: T) => boolean,
 	cb: (value: T) => void
 ) {
-	let unsub: (() => void) | undefined;
-	let unsubImmediately = false;
-	unsub = store.subscribe((v) => {
+	const unsubEarly = betterSubscribe(store, (v, unsubscribe) => {
 		if (condition(v)) {
 			cb(v);
-			if (!unsub) unsubImmediately = true;
-			else unsub();
+			unsubscribe();
 		}
 	});
-	if (unsubImmediately && unsub) unsub();
 
 	return {
-		unsubscribe: unsub
+		unsubscribe: unsubEarly
 	};
 }
 

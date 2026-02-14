@@ -68,10 +68,9 @@ function useSeriesData(tmdbId: string) {
 	const inLibrary = writable(false);
 	const isWatched = writable(false);
 
-	const seriesData = useData(async () => {
-		const data = await reiverrApi.metadata.getSeries(tmdbId).then((r) => r.data.tmdbSeries);
-		return data;
-	});
+	const seriesData = useData(() =>
+		reiverrApi.metadata.getSeries(tmdbId).then((r) => r.data.tmdbSeries)
+	);
 	const userData = useData(async () => {
 		const data = await reiverrApi.users
 			.getSeriesUserData(get(user)?.id as string, tmdbId)
@@ -142,6 +141,7 @@ function useSeriesData(tmdbId: string) {
 		componentStack,
 		// backgroundStack,
 		seriesData,
+		userData,
 		inLibrary,
 		isWatched,
 		setInLibrary,

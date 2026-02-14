@@ -1,34 +1,27 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
-	import { useEpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
+	import { useEpisodeContext } from '$lib/stores/episode-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
+	import StreamablesView from './SeriesPage/StreamablesView.svelte';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
 	export let episode: string;
 
-	const background = createBackgroundPage({ videoMediaId: id });
+	const background = backgroundContext.createContext({ videoMediaId: id });
 
-	const {
-		progress,
-		tmdbEpisode,
-		handleAutoplay,
-		handleOpenStreamSelector,
-		canStream,
-		isWatched,
-		toggleIsWatched,
-		unsubscribe
-	} = useEpisodeUserData(id, Number(season), Number(episode));
+	const { componentStack, episodeData, progress, isWatched, setIsWatched, unsubscribe } =
+		useEpisodeContext(id, Number(season), Number(episode)).createContext();
 
 	let titleProperties: { href?: string; label: string }[] = [];
-	$tmdbEpisode.then((episode) => {
+	$episodeData.then((episode) => {
 		background?.setBackgrounds([
 			{
 				backdropUri: `${episode?.still_path}`
@@ -58,12 +51,27 @@
 		}
 	});
 
+	function openStreamablesView() {
+		componentStack.push({
+			component: StreamablesView,
+			props: {
+				tmdbId: id,
+				season: Number(season),
+				episode: Number(episode),
+				openStream: async ({ id, pluginId }) => {
+					// playStream();
+				}
+			},
+			group: 'top'
+		});
+	}
+
 	onDestroy(() => {
 		unsubscribe();
 	});
 </script>
 
-{#await $tmdbEpisode then tmdbEpisode}
+{#await $episodeData then tmdbEpisode}
 	<!-- <div class="absolute inset-0 flex flex-col -z-10">
 		<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 		<div class="flex-1 bg-secondary-500" />
@@ -71,33 +79,30 @@
 
 	<Container focusOnMount class="h-screen flex flex-col justify-end mx-32 py-16">
 		<HeroCarousel>
-			<div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
+			<!-- <div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
-			</div>
-			<TitleProperties
-				title={tmdbEpisode?.name ?? ''}
-				properties={titleProperties}
-				overview={tmdbEpisode?.overview ?? ''}
-			/>
+			</div> -->
+			<TitleProperties properties={titleProperties} overview={tmdbEpisode?.overview ?? ''}>
+				<span slot="title">
+					<span class="text-secondary-400">
+						{`S${tmdbEpisode?.season_number}E${tmdbEpisode?.episode_number}`}
+					</span>
+					{tmdbEpisode?.name ?? ''}
+				</span>
+			</TitleProperties>
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				<Button
-					class="mr-4"
-					action={handleAutoplay}
-					secondaryAction={handleOpenStreamSelector}
-					disabled={!$canStream}
-				>
+				<Button class="mr-4" on:clickOrSelect={openStreamablesView}>
 					Play
 					<Play size={19} slot="icon" />
 				</Button>
 
-				<Button action={toggleIsWatched}>
-					{#if $isWatched}
+				{#if $isWatched}
+					<Button on:clickOrSelect={() => setIsWatched(false)} icon={Check}>
 						Mark as Unwatched
-					{:else}
-						Mark as Watched
-					{/if}
-					<Check slot="icon" size={19} />
-				</Button>
+					</Button>
+				{:else}
+					<Button on:clickOrSelect={() => setIsWatched(true)} icon={Check}>Mark as Watched</Button>
+				{/if}
 
 				{#if PLATFORM_WEB}
 					<Button>

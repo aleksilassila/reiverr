@@ -24,6 +24,7 @@
 	import TitleSheet from '../TitleSheet.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import StreamablesView from './StreamablesView.svelte';
+	import { navigate } from '$lib/components/StackRouter/stack-router.store';
 
 	export let id: string;
 
@@ -364,11 +365,14 @@
 								isWatched={userData?.watched || false}
 								progress={userData?.progress}
 								on:clickOrSelect={() =>
-									openStreamableSelectorModal({
-										tmdbId: id,
-										season: episode.season_number ?? 1,
-										episode: episode.episode_number ?? 1
-									})}
+									// openStreamableSelectorModal({
+									// 	tmdbId: id,
+									// 	season: episode.season_number ?? 1,
+									// 	episode: episode.episode_number ?? 1
+									// })
+									navigate(
+										`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`
+									)}
 							/>
 						{/key}
 					{/each}

@@ -1,54 +1,7 @@
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
-import {
-	createErrorNotification,
-	createInfoNotification
-} from '$lib/components/Notifications/notification.store';
-import {
-	getContext,
-	hasContext,
-	useComponentStack
-} from '$lib/components/StackRouter/stack-router.store';
-import {
-	TITLE_USER_DATA_CONTEXT,
-	type TitleUserData
-} from '$lib/stores/user-data/title-user-data.store';
-import { reiverrApi } from '$lib/stores/user.store';
+import { getContext, hasContext } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { writable } from 'svelte/store';
-
-function usePlayableDataStore(options: { tmdbId: string; season?: number; episode?: number }) {
-	const { tmdbId, season, episode } = options;
-
-	if (!hasContext(TITLE_USER_DATA_CONTEXT)) throw new Error('TitleUserDataContext not found');
-	const titleUserData = getContext<TitleUserData>(TITLE_USER_DATA_CONTEXT);
-
-	async function handleAction(source: MediaSourceDto, targetId: string, action: string) {
-		const { toast, result, error } = await reiverrApi.sources
-			.handleViewAction(source.id, targetId, action)
-			.then((r) => r.data);
-
-		if (toast && toast.type === 'info') {
-			createInfoNotification(toast.title, toast.message);
-		} else if (toast && toast.type === 'error') {
-			createErrorNotification(toast.title, toast.message);
-		}
-
-		// if (error) {
-
-		// }
-	}
-
-	async function handleOpenView(source: MediaSourceDto, viewId: string, callerId: string) {}
-
-	return {
-		...options,
-		...titleUserData,
-		handleAction,
-		handleOpenView,
-		playStream: ({ source, streamId }: { source: MediaSourceDto; streamId: string }) =>
-			titleUserData.playStream({ source, streamId, season, episode })
-	};
-}
 
 // /** @deprecated */
 // function useTitlePage() {
@@ -78,12 +31,6 @@ function usePlayableDataStore(options: { tmdbId: string; season?: number; episod
 // 		openManageSeries
 // 	};
 // }
-
-export const playableDataContext = createStoreContext(
-	'actions-page-context',
-	usePlayableDataStore,
-	{ required: true }
-);
 
 const BREADCRUMBS_CONTEXT = 'actions-page-breadcrumbs';
 export const breadcrumbsContext = createStoreContext(BREADCRUMBS_CONTEXT, (bc: string) => {

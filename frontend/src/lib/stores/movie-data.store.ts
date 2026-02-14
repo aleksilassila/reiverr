@@ -1,78 +1,8 @@
-import type { MovieUserDataDto, TmdbMovieFull } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-import { createStoreContext, waitFor } from '$lib/utils';
-import { tick } from 'svelte';
-import { derived, get, writable } from 'svelte/store';
-import { awaitAppInitialization, reiverrApi, user } from './user.store';
-
-type DataState = 'loading' | 'refreshing' | 'ready' | 'error';
-
-/**
- * A store for fetching data with the ability to make it stale and refetch automatically when the component page comes to front
- */
-function useData<TResponse>(fetchData: () => Promise<TResponse>) {
-	const componentStack = useComponentStack();
-
-	const data = writable<TResponse | undefined>(undefined);
-	const isLoading = writable(true);
-	const promise = writable(
-		createPromise().then((d) => {
-			data.set(d);
-			isLoading.set(false);
-			return d;
-		})
-	);
-
-	async function createPromise() {
-		return awaitAppInitialization().then(() => fetchData());
-	}
-
-	let unsubToStaleWatcher: (() => void) | undefined;
-	const resolves: ((v: unknown) => void)[] = [];
-	function setStale(timeout = 1500) {
-		const out = new Promise((resolve) => {
-			let t: ReturnType<typeof setTimeout>;
-
-			const f = (v: unknown) => {
-				clearTimeout(t);
-				resolve(v);
-			};
-
-			resolves.push(f);
-
-			t = setTimeout(() => {
-				resolves.splice(resolves.indexOf(f), 1).forEach((r) => r(undefined));
-			}, timeout);
-		});
-
-		// Hack because hasFocusWithin is still true when new page mounts
-		tick().then(() => {
-			unsubToStaleWatcher?.();
-			unsubToStaleWatcher = waitFor(
-				componentStack.hasFocusWithin,
-				(isFocused) => !!isFocused,
-				() => {
-					const p = fetchData();
-					resolves.splice(0).forEach((r) => r(p));
-					return p;
-				}
-			).unsubscribe;
-		});
-
-		return out;
-	}
-
-	return {
-		data,
-		isLoading,
-		promise,
-		setStale,
-		unsubscribeEarly: () => {
-			unsubToStaleWatcher?.();
-			resolves.splice(0).forEach((r) => r(undefined));
-		}
-	};
-}
+import { createStoreContext } from '$lib/utils';
+import { get, writable } from 'svelte/store';
+import { useData } from './data.store';
+import { reiverrApi, user } from './user.store';
 
 export const useMovieContext = (tmdbId: string) =>
 	createStoreContext(`movie-${tmdbId}`, () => useMovieData(tmdbId));
