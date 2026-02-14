@@ -12,6 +12,7 @@ import { UserDataModule } from './user-data/user-data.module';
 import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { MediaModule } from './media/media.module';
+import { CataloguesModule } from './catalogues/catalogues.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MediaModule } from './media/media.module';
     UserDataModule,
     PermissionsModule,
     MediaModule,
+    CataloguesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

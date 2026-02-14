@@ -13,7 +13,7 @@ import {
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { GetAuthToken, UserAccessControl } from 'src/auth/auth.guard';
 import {
-  GetPaginationParams as GetPaginationQuery,
+  GetPaginationParams,
   PaginatedApiOkResponse,
   PaginationApiQuery,
 } from 'src/common/common.decorator';
@@ -47,7 +47,7 @@ export class LibraryController {
   @PaginationApiQuery()
   @PaginatedApiOkResponse(LibraryItemDto)
   async getMyList(
-    @GetPaginationQuery() pagination: PaginationDto,
+    @GetPaginationParams() pagination: PaginationDto,
     @Param('userId') userId: string,
     @Query('status', new ParseEnumPipe(MyListStatusFilter, { optional: true }))
     status?: MyListStatusFilter,
@@ -79,7 +79,7 @@ export class LibraryController {
   @PaginationApiQuery()
   @PaginatedApiOkResponse(LibraryItemDto)
   async getCatalogue(
-    @GetPaginationQuery() pagination: PaginationDto,
+    @GetPaginationParams() pagination: PaginationDto,
     @Param('userId') userId: string,
     @Param('sourceId') sourceId: string,
     @GetAuthToken() token: string,

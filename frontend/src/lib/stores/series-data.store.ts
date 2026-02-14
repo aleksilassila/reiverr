@@ -1,12 +1,9 @@
 import type { SeriesUserDataDto, TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-import { createStoreContext, waitFor } from '$lib/utils';
-import { tick } from 'svelte';
+import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
-import { awaitAppInitialization, reiverrApi, tmdbApi, user } from './user.store';
-import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
-
-type DataState = 'loading' | 'refreshing' | 'ready' | 'error';
+import { useData } from './data.store';
+import { reiverrApi, user } from './user.store';
 
 type EpisodeUserData = {
 	season: number;
@@ -15,78 +12,6 @@ type EpisodeUserData = {
 	progress: number;
 	upcoming: boolean;
 };
-
-/**
- * A store for fetching data with the ability to make it stale and refetch automatically when the component page comes to front
- */
-function useData<TResponse>(fetchData: () => Promise<TResponse>) {
-	const componentStack = useComponentStack();
-
-	const data = writable<TResponse | undefined>(undefined);
-	const isLoading = writable(true);
-	const promise = writable(
-		createPromise().then((d) => {
-			data.set(d);
-			isLoading.set(false);
-			return d;
-		})
-	);
-
-	async function createPromise() {
-		return awaitAppInitialization().then(() => fetchData());
-	}
-
-	let unsubToStaleWatcher: (() => void) | undefined;
-	const resolves: ((v: unknown) => void)[] = [];
-	function setStale(timeout = 1500) {
-		const out = new Promise((resolve) => {
-			let t: ReturnType<typeof setTimeout>;
-
-			const f = (v: unknown) => {
-				clearTimeout(t);
-				resolve(v);
-			};
-
-			resolves.push(f);
-
-			t = setTimeout(() => {
-				resolves.splice(resolves.indexOf(f), 1).forEach((r) => r(undefined));
-			}, timeout);
-		});
-
-		// Hack because hasFocusWithin is still true when new page mounts
-		tick().then(() => {
-			unsubToStaleWatcher?.();
-			unsubToStaleWatcher = waitFor(
-				componentStack.hasFocusWithin,
-				(isFocused) => !!isFocused,
-				() => {
-					const p = fetchData();
-					isLoading.set(true);
-					resolves.splice(0).forEach((r) => r(p));
-					p.then((d) => {
-						data.set(d);
-						isLoading.set(false);
-					});
-					return p;
-				}
-			).unsubscribe;
-		});
-
-		return out;
-	}
-
-	return {
-		data,
-		isLoading,
-		promise,
-		setStale,
-		unsubscribeEarly: () => {
-			unsubToStaleWatcher?.();
-			resolves.splice(0).forEach((r) => r(undefined));
-		}
-	};
-}
 
 function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDto) {
 	let nextEpisodeData: EpisodeUserData | undefined = undefined;
@@ -201,6 +126,8 @@ function useSeriesData(tmdbId: string) {
 		if (success) {
 			inLibrary.set(state);
 			previous.inLibrary?.set(state);
+			previous.setStale?.();
+
 			// previousLibrary.setStale?.();
 			// previousNextUp.setStale?.();
 		}

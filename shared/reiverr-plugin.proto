@@ -11,84 +11,28 @@ service PluginService {
 // Media Source Provider Service - handles user-specific requests
 service PluginMediaService {
   // Get a list of available streamables
-  rpc GetStreamables(GetStreamablesRequest) returns (StreamablesResponse);
+  rpc GetStreamables(StreamablesRequest) returns (StreamablesResponse);
 
   // Get a link to a streamable - on the plugin side, this can create a transcoding session for example
-  rpc GetStream(GetStreamRequest) returns (StreamResponse);
-
-  // // Get available views for a media item
-  // rpc GetMediaSourceViews(MediaSourceViewsRequest) returns (MediaSourceViewsResponse);
-
-  // // Get a specific view
-  // rpc GetMediaSourceView(MediaSourceViewRequest) returns (MediaSourceViewResponse);
-
-  // // Get autoplay stream
-  // rpc GetAutoplayStream(AutoplayStreamRequest) returns (AutoplayStreamResponse);
-
-  // // Get stream details
-  // rpc GetStream(GetStreamRequest) returns (StreamResponse);
-
-  // // Handle stream actions (download, delete, etc.)
-  // rpc HandleAction(HandleActionRequest) returns (ActionResponse);
-
-  // // Proxy handler for streaming (bidirectional for video/subtitle streaming)
-  // rpc ProxyStream(stream ProxyRequest) returns (stream ProxyResponse);
-
-  // // Legacy methods (deprecated)
-  // rpc GetTmdbMovieCandidates(TmdbMovieRequest) returns (StreamCandidatesResponse);
-  // rpc GetTmdbEpisodeCandidates(TmdbEpisodeRequest) returns (StreamCandidatesResponse);
+  rpc GetStream(StreamRequest) returns (StreamResponse);
 }
 
 // Catalogue Provider Service - handles library catalogues
-service CatalogueProviderService {
-  // Get catalogue capabilities
-  rpc GetCatalogueCapabilities(Empty) returns (CatalogueCapabilities);
+service PluginCatalogueService {
+  // Get what catalogues are available
+  rpc GetCatalogues(CataloguesRequest) returns (CataloguesResponse);
 
-  // Get combined catalogue
+  // Get everything in a catalogue - e.g. all movies or all series
   rpc GetCatalogue(CatalogueRequest) returns (CatalogueResponse);
 
-  // Get movies catalogue
-  rpc GetMovieCatalogue(CatalogueRequest) returns (CatalogueResponse);
-
-  // Get series catalogue
-  rpc GetSeriesCatalogue(CatalogueRequest) returns (CatalogueResponse);
-
-  // Get missing items in catalogue
-  rpc GetMissingInCatalogue(MissingCatalogueRequest) returns (MissingCatalogueResponse);
+  // // Get missing items in catalogue
+  // rpc GetMissingInCatalogue(MissingCatalogueRequest) returns (MissingCatalogueResponse);
 }
 
 // Management Profile Service - NEW for monitoring/management profiles
-service ManagementProfileService {
-  // Get available management profiles
-  rpc GetManagementProfiles(Empty) returns (ManagementProfilesResponse);
+// service ManagementProfileService {
 
-  // Get management profile for specific media
-  rpc GetMediaManagementProfile(MediaManagementProfileRequest) returns (ManagementProfile);
-
-  // Update management profile for media
-  rpc UpdateMediaManagementProfile(UpdateManagementProfileRequest) returns (ManagementProfile);
-}
-
-// Job Management Service - NEW for monitoring downloads, transcoding, etc.
-service JobManagementService {
-  // Get all active jobs
-  rpc GetActiveJobs(Empty) returns (JobsResponse);
-
-  // Get job details
-  rpc GetJobDetails(JobDetailsRequest) returns (JobDetails);
-
-  // Cancel a job
-  rpc CancelJob(CancelJobRequest) returns (ActionResponse);
-
-  // Get disk space usage
-  rpc GetDiskSpaceUsage(Empty) returns (DiskSpaceUsage);
-
-  // Get cleanup history
-  rpc GetCleanupHistory(CleanupHistoryRequest) returns (CleanupHistoryResponse);
-
-  // Trigger cleanup
-  rpc TriggerCleanup(TriggerCleanupRequest) returns (ActionResponse);
-}
+// }
 
 // Common Messages
 
@@ -102,7 +46,7 @@ message PluginInfo {
   bool catalogues_supported = 5;
 }
 
-message GetStreamablesRequest {
+message StreamablesRequest {
   string title = 1;
   optional int32 season = 2;
   optional int32 episode = 3;
@@ -132,14 +76,13 @@ message StreamableItem {
   // string media_type = 5; // "movie" or "series"
 }
 
-message GetStreamRequest {
+message StreamRequest {
   string id = 1;
 }
 
 message StreamResponse {
   repeated VideoTrack videoTracks = 1;
   repeated SubtitleTrack subtitleTracks = 2;
-  // repeated AudioTrack audioTracks = 3;
 }
 
 message VideoTrack {
@@ -159,452 +102,67 @@ message SubtitleTrack {
   string kind = 4; // "subtitles", "captions", "descriptions"
 }
 
-// message AudioTrack {
-//   string label = 1;
-//   string url = 2;
-//   string lang = 3;
-//   // optional string codec = 4;
-// }
-
-message SettingsTemplate {
-  map<string, SettingField> fields = 1;
-}
-
-message SettingField {
-  string type = 1; // "string", "number", "boolean", "password", "link"
-  string label = 2;
-  string placeholder = 3;
-  bool required = 4;
-
-  // For link type
-  string url = 5;
-}
-
-message ValidateSettingsRequest {
-  map<string, string> settings = 1;
-}
-
-message ValidationResponse {
-  bool is_valid = 1;
-  map<string, string> errors = 2;
-  map<string, string> validated_settings = 3;
-}
-
-// User Context - passed with most requests
-message UserContext {
-  string user_id = 1;
-  string token = 2;
-  string source_id = 3;
-  map<string, string> settings = 4;
-}
-
-// Playable Context
-message PlayableContext {
-  optional string tmdb_movie_json = 1;
-  optional string tmdb_series_json = 2;
-  optional string tmdb_episode_json = 3;
-}
-
-// Media Source Views
-
-message MediaSourceViewsRequest {
-  UserContext user_context = 1;
-  PlayableContext playable_context = 2;
-}
-
-message MediaSourceViewsResponse {
-  repeated MediaSourceView views = 1;
-}
-
-message MediaSourceView {
-  string id = 1;
-  string title = 2;
-  repeated StreamProperty properties = 3;
-  repeated StreamAction actions = 4;
-}
-
-message MediaSourceViewRequest {
-  UserContext user_context = 1;
-  PlayableContext playable_context = 2;
-  string view_id = 3;
-}
-
-message MediaSourceViewResponse {
-  optional MediaSourceView view = 1;
-}
-
-// Autoplay Stream
-
-message AutoplayStreamRequest {
-  UserContext user_context = 1;
-  PlayableContext playable_context = 2;
-}
-
-message AutoplayStreamResponse {
-  optional StreamBase candidate = 1;
-}
-
-// Stream Messages
-
-// message GetStreamRequest {
-//   UserContext user_context = 1;
-//   string stream_id = 2;
-//   optional PlaybackConfig config = 3;
-// }
-
-// message StreamResponse {
-//   optional Stream stream = 1;
-//   optional Toast toast = 2;
-//   optional ErrorMessage error = 3;
-// }
-
-message Stream {
-  string stream_id = 1;
-  string title = 2;
-  repeated StreamProperty properties = 3;
-  string src = 4;
-  bool direct_play = 5;
-  double progress = 6;
-  double duration = 7;
-  repeated AudioStream audio_streams = 8;
-  int32 audio_stream_index = 9;
-  repeated Quality qualities = 10;
-  int32 quality_index = 11;
-  repeated Subtitle subtitles = 12;
-}
-
-message StreamBase {
-  string stream_id = 1;
-  string title = 2;
-  repeated StreamProperty properties = 3;
-}
-
-message StreamProperty {
-  string label = 1;
-  string value = 2;
-  optional string formatted = 3;
-}
-
-message AudioStream {
-  int32 index = 1;
-  string label = 2;
-  optional string codec = 3;
-  optional int32 bitrate = 4;
-}
-
-message Quality {
-  int32 index = 1;
-  int32 bitrate = 2;
-  string label = 3;
-  optional string codec = 4;
-  bool original = 5;
-}
-
-message Subtitle {
-  string src = 1;
-  string lang = 2;
-  string kind = 3; // "subtitles", "captions", "descriptions"
-  string label = 4;
-}
-
-message PlaybackConfig {
-  optional int32 bitrate = 1;
-  optional int32 audio_stream_index = 2;
-  optional double progress = 3;
-  optional string device_profile_json = 4;
-  optional string default_language = 5;
-}
-
-// Actions
-
-message StreamAction {
-  string label = 1;
-  string type = 2;
-}
-
-message HandleActionRequest {
-  UserContext user_context = 1;
-  string target_id = 2;
-  string action = 3;
-}
-
-message ActionResponse {
-  optional Toast toast = 1;
-  optional ErrorMessage error = 2;
-  optional ActionResult result = 3;
-}
-
-message ActionResult {
-  bool success = 1;
-  optional string message = 2;
-}
-
-message Toast {
-  string title = 1;
-  string message = 2;
-  string type = 3; // "info", "success", "error"
-}
-
-message ErrorMessage {
-  string message = 1;
-}
-
-// Proxy Streaming
-
-message ProxyRequest {
-  UserContext user_context = 1;
-  string uri = 2;
-  optional string target_url = 3;
-  map<string, string> headers = 4;
-  bytes body = 5;
-}
-
-message ProxyResponse {
-  int32 status_code = 1;
-  map<string, string> headers = 2;
-  bytes chunk = 3;
-  bool is_final = 4;
-}
-
-// Legacy Stream Candidates
-
-message TmdbMovieRequest {
-  UserContext user_context = 1;
-  string tmdb_movie_json = 2;
-}
-
-message TmdbEpisodeRequest {
-  UserContext user_context = 1;
-  string tmdb_series_json = 2;
-  string tmdb_episode_json = 3;
-}
-
-message StreamCandidatesResponse {
-  repeated StreamCandidate candidates = 1;
-}
-
-message StreamCandidate {
-  string stream_id = 1;
-  string title = 2;
-  repeated StreamProperty properties = 3;
-  repeated StreamAction actions = 4;
-}
-
 // Catalogue Messages
 
-message CatalogueCapabilities {
-  CatalogueCapability movies_catalogue = 1;
-  CatalogueCapability series_catalogue = 2;
-  CatalogueCapability combined_catalogue = 3;
-  CatalogueCapability missing_catalogue = 4;
+message CataloguesRequest {}
+
+message CataloguesResponse {
+  repeated CatalogueInfo catalogues = 1;
 }
 
-message CatalogueCapability {
-  bool is_supported = 1;
-  repeated OrderOption order_options = 2;
+message CatalogueInfo {
+  string id = 1;
+  string label = 2;
+  repeated OrderOption order_options = 3;
 }
 
 message OrderOption {
   string label = 1;
   string value = 2;
-  repeated DirectionOption directions = 3;
-}
-
-message DirectionOption {
-  string label = 1;
-  string value = 2;
+  optional string direction = 3; // Define for direction grouping
 }
 
 message CatalogueRequest {
-  UserContext user_context = 1;
-  PaginationParams pagination = 2;
-  optional string order = 3;
-  optional string direction = 4;
+  string catalogue_id = 1;
+  optional string order = 2; // Referes to OrderOption.value
+  optional PaginationParams pagination = 3;
+  // PaginationParams pagination = 2;
+  // optional string order = 3;
+  // optional string direction = 4;
 }
 
 message CatalogueResponse {
   repeated CatalogueItem items = 1;
-  int32 total = 2;
-  int32 page = 3;
-  int32 items_per_page = 4;
+  // int32 total = 2;
+  // int32 page = 3;
+  // int32 items_per_page = 4;
 }
 
 message CatalogueItem {
-  string tmdb_id = 1;
-  string media_type = 2; // "movie" or "series"
+  string id = 1;
+  string label = 2;
+  string media_type = 3; // "movie" or "series"
+  optional string tmdb_id = 4;
+  optional string poster_url = 5;
+  optional string backdrop_url = 6;
 }
 
 message PaginationParams {
-  int32 page = 1;
+  int32 page = 1; // 1-based page number
   int32 items_per_page = 2;
 }
 
-message MissingCatalogueRequest {
-  UserContext user_context = 1;
-  PaginationParams pagination = 2;
-  optional string order = 3;
-  optional string direction = 4;
-  map<string, string> my_list_items_json = 5;
-}
+// message MissingCatalogueRequest {
+//   UserContext user_context = 1;
+//   PaginationParams pagination = 2;
+//   optional string order = 3;
+//   optional string direction = 4;
+//   map<string, string> my_list_items_json = 5;
+// }
 
-message MissingCatalogueResponse {
-  repeated string items_json = 1;
-  int32 total = 2;
-  int32 page = 3;
-  int32 items_per_page = 4;
-}
-
-// Management Profile Messages (NEW)
-
-message ManagementProfilesResponse {
-  repeated ManagementProfile profiles = 1;
-}
-
-message ManagementProfile {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  AutoRequestOptions auto_requests = 4;
-  AutoRemoveOptions auto_remove = 5;
-}
-
-message AutoRequestOptions {
-  // Episodes: Next up + x episodes (0-n)
-  optional int32 next_episodes_count = 1;
-
-  // Episodes: Current season + x next seasons
-  optional int32 next_seasons_count = 2;
-
-  // Watch RSS feed
-  bool watch_rss = 3;
-}
-
-message AutoRemoveOptions {
-  // After watched + x days
-  optional int32 days_after_watched = 1;
-
-  // After downloaded + x days
-  optional int32 days_after_downloaded = 2;
-
-  // When seeding ratio > x
-  optional double min_seeding_ratio = 3;
-
-  // Lazy deletion (delete when disk space needed)
-  bool lazy_deletion = 4;
-
-  // Priority for lazy deletion
-  optional int32 deletion_priority = 5;
-}
-
-message MediaManagementProfileRequest {
-  UserContext user_context = 1;
-  string tmdb_id = 2;
-  string media_type = 3; // "movie" or "series"
-}
-
-message UpdateManagementProfileRequest {
-  UserContext user_context = 1;
-  string tmdb_id = 2;
-  string media_type = 3;
-  string profile_id = 4;
-}
-
-// Job Management Messages (NEW)
-
-message JobsResponse {
-  repeated Job jobs = 1;
-}
-
-message Job {
-  string id = 1;
-  string type = 2; // "download", "transcode", "seed"
-  string status = 3; // "pending", "active", "completed", "failed", "cancelled"
-  string tmdb_id = 4;
-  string media_type = 5;
-  optional int32 season = 6;
-  optional int32 episode = 7;
-  double progress = 8;
-  optional string eta = 9;
-  map<string, string> metadata = 10;
-}
-
-message JobDetailsRequest {
-  UserContext user_context = 1;
-  string job_id = 2;
-}
-
-message JobDetails {
-  Job job = 1;
-  repeated JobLogEntry logs = 2;
-  JobStats stats = 3;
-}
-
-message JobLogEntry {
-  string timestamp = 1;
-  string level = 2; // "info", "warning", "error"
-  string message = 3;
-}
-
-message JobStats {
-  optional double download_speed = 1;
-  optional double upload_speed = 2;
-  optional int32 seeders = 3;
-  optional int32 peers = 4;
-  optional double seeding_ratio = 5;
-  optional int64 size_bytes = 6;
-  optional int64 downloaded_bytes = 7;
-}
-
-message CancelJobRequest {
-  UserContext user_context = 1;
-  string job_id = 2;
-}
-
-message DiskSpaceUsage {
-  int64 total_bytes = 1;
-  int64 used_bytes = 2;
-  int64 available_bytes = 3;
-  repeated MediaFileInfo media_files = 4;
-}
-
-message MediaFileInfo {
-  string id = 1;
-  string tmdb_id = 2;
-  string media_type = 3;
-  optional int32 season = 4;
-  optional int32 episode = 5;
-  int64 size_bytes = 6;
-  string file_path = 7;
-  bool watched = 8;
-  optional double seeding_ratio = 9;
-  optional string added_date = 10;
-  optional string watched_date = 11;
-  bool marked_for_deletion = 12;
-}
-
-message CleanupHistoryRequest {
-  UserContext user_context = 1;
-  PaginationParams pagination = 2;
-}
-
-message CleanupHistoryResponse {
-  repeated CleanupHistoryEntry entries = 1;
-  int32 total = 2;
-  int32 page = 3;
-  int32 items_per_page = 4;
-}
-
-message CleanupHistoryEntry {
-  string timestamp = 1;
-  string tmdb_id = 2;
-  string media_type = 3;
-  optional int32 season = 4;
-  optional int32 episode = 5;
-  int64 size_bytes = 6;
-  string reason = 7; // "watched_timeout", "download_timeout", "seeding_complete", "disk_space_needed", "manual"
-}
-
-message TriggerCleanupRequest {
-  UserContext user_context = 1;
-  optional int64 target_free_space_bytes = 2;
-}
+// message MissingCatalogueResponse {
+//   repeated string items_json = 1;
+//   int32 total = 2;
+//   int32 page = 3;
+//   int32 items_per_page = 4;
+// }

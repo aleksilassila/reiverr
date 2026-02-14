@@ -4,6 +4,7 @@ import {
 	hasContext as hasSvelteContext,
 	setContext as setSvelteContext
 } from 'svelte';
+import type { Action } from 'svelte/action';
 
 import { get, readable, type Readable, type Writable, writable } from 'svelte/store';
 
@@ -444,4 +445,30 @@ export function waitFor<T>(
 
 export function toReadable<T>(store: Writable<T>): Readable<T> {
 	return store as Readable<T>;
+}
+
+export function useInteractionObserver(
+	callback: (entry: IntersectionObserverEntry) => void
+): Action {
+	return (node) => {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						callback(entry);
+					}
+				});
+			},
+			{
+				threshold: 0.1
+			}
+		);
+		observer.observe(node);
+
+		return {
+			destroy() {
+				observer.unobserve(node);
+			}
+		};
+	};
 }

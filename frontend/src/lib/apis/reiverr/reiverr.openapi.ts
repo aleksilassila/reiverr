@@ -1866,24 +1866,12 @@ export interface SubtitleTrackDto {
   kind: string;
 }
 
-export interface UpdatePlayStateDto {
-  season?: number;
-  episode?: number;
-  /**
-   * Whether the user has watched this media
-   * @default false
-   */
-  watched?: boolean;
-  /**
-   * A number between 0 and 1
-   * @default false
-   * @example 0.5
-   */
-  progress?: number;
-}
-
-export interface BulkUpdatePlayStateDto {
-  playStates: UpdatePlayStateDto[];
+export interface CatalogueDto {
+  id: string;
+  label: string;
+  orderOptions: OrderOptionDto[];
+  pluginId: string;
+  pluginLabel: string;
 }
 
 export interface SeasonDto {
@@ -1941,6 +1929,30 @@ export interface TmdbItemDto {
   last_air_date?: string;
   next_episode_to_air?: NextEpisodeToAir;
   seasons?: SeasonDto[];
+}
+
+export interface CatalogueItemsDto {
+  items: TmdbItemDto[];
+}
+
+export interface UpdatePlayStateDto {
+  season?: number;
+  episode?: number;
+  /**
+   * Whether the user has watched this media
+   * @default false
+   */
+  watched?: boolean;
+  /**
+   * A number between 0 and 1
+   * @default false
+   * @example 0.5
+   */
+  progress?: number;
+}
+
+export interface BulkUpdatePlayStateDto {
+  playStates: UpdatePlayStateDto[];
 }
 
 export interface LibraryItemDto {
@@ -3206,6 +3218,52 @@ export class Api<
     ) =>
       this.request<StreamDto, any>({
         path: `/api/media/stream`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+  };
+  catalogues = {
+    /**
+     * No description
+     *
+     * @tags catalogues
+     * @name GetCatalogues
+     * @request GET:/api/catalogues
+     */
+    getCatalogues: (params: RequestParams = {}) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: CatalogueDto[];
+        },
+        any
+      >({
+        path: `/api/catalogues`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags catalogues
+     * @name GetCatalogue
+     * @request GET:/api/catalogues/catalogue
+     */
+    getCatalogue: (
+      query: {
+        pluginId: string;
+        catalogueId: string;
+        order?: string;
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<CatalogueItemsDto, any>({
+        path: `/api/catalogues/catalogue`,
         method: "GET",
         query: query,
         format: "json",

@@ -7,6 +7,7 @@ import {
 } from './metadata.entity';
 import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
 import { TmdbService } from './tmdb/tmdb.service';
+import { TmdbItemDto } from './tmdb/tmdb.dto';
 
 @Injectable()
 export class MetadataService {
@@ -168,6 +169,35 @@ export class MetadataService {
 
   async getBulkMoviesByTmdbIds(tmdbIds: string[]): Promise<any[]> {
     return [];
+  }
+
+  async getTmdbItem(tmdbId: string, mediaType: string): Promise<TmdbItemDto> {
+    const movieMetadata =
+      mediaType === 'movie'
+        ? await this.getMovieByTmdbId(tmdbId, false)
+        : undefined;
+    const seriesMetadata =
+      mediaType === 'series'
+        ? await this.getSeriesByTmdbId(tmdbId, false)
+        : undefined;
+
+    return {
+      id: movieMetadata?.tmdbMovie.id ?? seriesMetadata?.tmdbSeries.id,
+      poster_path:
+        movieMetadata?.tmdbMovie.poster_path ??
+        seriesMetadata?.tmdbSeries.poster_path,
+      vote_average:
+        movieMetadata?.tmdbMovie.vote_average ??
+        seriesMetadata?.tmdbSeries.vote_average,
+      title: movieMetadata?.tmdbMovie.title,
+      release_date: movieMetadata?.tmdbMovie.release_date,
+      runtime: movieMetadata?.tmdbMovie.runtime,
+      name: seriesMetadata?.tmdbSeries.name,
+      first_air_date: seriesMetadata?.tmdbSeries.first_air_date,
+      last_air_date: seriesMetadata?.tmdbSeries.last_air_date,
+      next_episode_to_air: seriesMetadata?.tmdbSeries.next_episode_to_air,
+      // seasons: seriesMetadata?.tmdbSeries.seasons,
+    };
   }
 }
 

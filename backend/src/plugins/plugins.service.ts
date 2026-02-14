@@ -1,6 +1,7 @@
 import {
   PluginService,
   PluginMediaService,
+  PluginCatalogueService,
 } from '@aleksilassila/reiverr-shared';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
@@ -30,6 +31,7 @@ interface PluginClient {
   client: ClientGrpcProxy;
   pluginService: PluginService;
   mediaService?: PluginMediaService;
+  catalogueService?: PluginCatalogueService;
 }
 
 /**
@@ -61,6 +63,10 @@ export class PluginsService implements OnModuleInit {
         url: config.url,
         package: 'aleksilassila.reiverr.plugin.v1',
         protoPath: join(__dirname, '../../../../shared/reiverr-plugin.proto'),
+        loader: {
+          // keepCase: false,
+          arrays: true,
+        },
       },
     });
 
@@ -101,6 +107,12 @@ export class PluginsService implements OnModuleInit {
     if (pluginInfo.streamingSupported) {
       pluginClient.mediaService =
         client.getService<PluginMediaService>('PluginMediaService');
+    }
+
+    if (pluginInfo.cataloguesSupported) {
+      pluginClient.catalogueService = client.getService<PluginCatalogueService>(
+        'PluginCatalogueService',
+      );
     }
 
     this.clients[config.id] = pluginClient;
@@ -173,5 +185,11 @@ export class PluginsService implements OnModuleInit {
 
   getMediaServices(): PluginClient[] {
     return Object.values(this.clients).filter((client) => client.mediaService);
+  }
+
+  getCatalogueServices(): PluginClient[] {
+    return Object.values(this.clients).filter(
+      (client) => client.catalogueService,
+    );
   }
 }

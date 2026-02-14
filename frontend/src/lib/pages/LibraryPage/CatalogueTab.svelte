@@ -1,22 +1,48 @@
 <script lang="ts">
-	import type { MediaSourceDto, OrderOptionDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import Button from '$lib/components/Button/Button.svelte';
+	import type {
+		CatalogueDto,
+		CatalogueItemsDto,
+		MediaSourceDto,
+		OrderOptionDto
+	} from '$lib/apis/reiverr/reiverr.openapi';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
-	import { createModal } from '$lib/components/Modal/modal.store';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { usePaginatedRequest } from '$lib/stores/data.store';
+	import { useData } from '$lib/stores/data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi } from '$lib/stores/user.store';
-	import { MixerHorizontal } from 'radix-icons-svelte';
-	import { writable } from 'svelte/store';
-	import CatalogueOptions from './CatalogueOptions.svelte';
-	import TabItem from './TabItem.svelte';
+	import { useInteractionObserver } from '$lib/utils';
 
-	export let source: MediaSourceDto;
+	export let catalogue: CatalogueDto;
+
+	const {
+		data,
+		isLoading,
+		updateSequential: fetchMore
+	} = useData(async (prev: (CatalogueItemsDto & { page: number; stop?: boolean }) | undefined) => {
+		if (prev?.stop) {
+			return prev;
+		}
+
+		const page = prev?.page ?? 1;
+		const newItems = await reiverrApi.catalogues
+			.getCatalogue({
+				pluginId: catalogue.pluginId,
+				catalogueId: catalogue.id,
+				page
+			})
+			.then((r) => r.data.items);
+
+		return {
+			items: [...(prev?.items ?? []), ...newItems],
+			page: page + 1,
+			stop: newItems.length === 0
+		};
+	});
+	const observer = useInteractionObserver(() => fetchMore());
 
 	const { topVisible } = getScrollContext();
 
@@ -28,51 +54,51 @@
 	// 	direction: source.capabilities.sortOptions[0]?.directions[0]?.value
 	// });
 
-	$: filterOptions = getFilters(source);
-	$: filter = filterOptions[0];
+	// $: filterOptions = getFilters(source);
+	// $: filter = filterOptions[0];
 
-	const viewSettings = writable<{
-		order: string | undefined;
-		direction: string | undefined;
-	}>({
-		order: undefined,
-		direction: undefined
-	});
-	$: {
-		$viewSettings = {
-			order: filter?.orderOptions[0]?.value,
-			direction: filter?.orderOptions[0]?.directions[0]?.value
-		};
-	}
+	// const viewSettings = writable<{
+	// 	order: string | undefined;
+	// 	direction: string | undefined;
+	// }>({
+	// 	order: undefined,
+	// 	direction: undefined
+	// });
+	// $: {
+	// 	$viewSettings = {
+	// 		order: filter?.orderOptions[0]?.value,
+	// 		direction: filter?.orderOptions[0]?.directions[0]?.value
+	// 	};
+	// }
 
-	const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
-		async (page) => {
-			if (!filter) {
-				return {
-					items: [],
-					total: 0,
-					itemsPerPage: 0,
-					page: 0
-				};
-			}
+	// const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
+	// 	async (page) => {
+	// 		if (!filter) {
+	// 			return {
+	// 				items: [],
+	// 				total: 0,
+	// 				itemsPerPage: 0,
+	// 				page: 0
+	// 			};
+	// 		}
 
-			return reiverrApi.library
-				.getCatalogue(source.userId, source.id, {
-					type: filter.type,
-					order: $viewSettings.order,
-					direction: $viewSettings.direction,
-					page
-				})
-				.then((r) => r.data);
-		},
-		{ loadOnInit: false }
-	);
+	// 		return reiverrApi.library
+	// 			.getCatalogue(source.userId, source.id, {
+	// 				type: filter.type,
+	// 				order: $viewSettings.order,
+	// 				direction: $viewSettings.direction,
+	// 				page
+	// 			})
+	// 			.then((r) => r.data);
+	// 	},
+	// 	{ loadOnInit: false }
+	// );
 
-	$: {
-		filter;
-		$viewSettings;
-		load({ lazy: true });
-	}
+	// $: {
+	// 	filter;
+	// 	$viewSettings;
+	// 	load({ lazy: true });
+	// }
 
 	// $: items = selectedFilter
 	// 	? reiverrApi.library
@@ -132,11 +158,11 @@
 
 <FloatingHeader visible={$topVisible} class="px-32">
 	<h2 class="uppercase text-zinc-300 font-semibold tracking-wider text-base">Source Catalogue</h2>
-	<TitleText title={source.name} size="sm" />
+	<TitleText title={catalogue.label} size="sm" />
 </FloatingHeader>
 
 <Container class="min-h-full mx-32 space-y-8 pb-16 flex flex-col">
-	<Container direction="horizontal" class="flex space-x-4 items-center justify-between">
+	<!-- <Container direction="horizontal" class="flex space-x-4 items-center justify-between">
 		<div class="flex space-x-4">
 			{#each filterOptions ?? [] as f}
 				<TabItem selected={filter === f} on:select={() => (filter = f)}>
@@ -155,11 +181,11 @@
 		>
 			Options
 		</Button>
-	</Container>
+	</Container> -->
 	<div class="flex-1 flex flex-col">
-		{#if $data.length}
+		{#if $data?.items.length}
 			<CardGrid focusOnMount let:columns>
-				{#each $data.map((i) => i.tmdbItem) as item, index (item.id)}
+				{#each $data?.items as item, index}
 					<TmdbCard
 						{index}
 						{item}
@@ -167,7 +193,7 @@
 					/>
 				{/each}
 			</CardGrid>
-			<div use:interactionObserver />
+			<div use:observer />
 		{:else if $isLoading}
 			<Container class="h-ghost m-auto px-32">Loading...</Container>
 		{:else}

@@ -20,7 +20,7 @@ export interface PluginInfo {
   cataloguesSupported: boolean;
 }
 
-export interface GetStreamablesRequest {
+export interface StreamablesRequest {
   title: string;
   season?: number | undefined;
   episode?: number | undefined;
@@ -48,13 +48,12 @@ export interface StreamableItem {
   bitrate?: string | undefined;
 }
 
-export interface GetStreamRequest {
+export interface StreamRequest {
   id: string;
 }
 
 export interface StreamResponse {
   videoTracks: VideoTrack[];
-  /** repeated AudioTrack audioTracks = 3; */
   subtitleTracks: SubtitleTrack[];
 }
 
@@ -79,474 +78,63 @@ export interface SubtitleTrack {
   kind: string;
 }
 
-export interface SettingsTemplate {
-  fields: { [key: string]: SettingField };
+export interface CataloguesRequest {
 }
 
-export interface SettingsTemplate_FieldsEntry {
-  key: string;
-  value: SettingField | undefined;
+export interface CataloguesResponse {
+  catalogues: CatalogueInfo[];
 }
 
-export interface SettingField {
-  /** "string", "number", "boolean", "password", "link" */
-  type: string;
-  label: string;
-  placeholder: string;
-  required: boolean;
-  /** For link type */
-  url: string;
-}
-
-export interface ValidateSettingsRequest {
-  settings: { [key: string]: string };
-}
-
-export interface ValidateSettingsRequest_SettingsEntry {
-  key: string;
-  value: string;
-}
-
-export interface ValidationResponse {
-  isValid: boolean;
-  errors: { [key: string]: string };
-  validatedSettings: { [key: string]: string };
-}
-
-export interface ValidationResponse_ErrorsEntry {
-  key: string;
-  value: string;
-}
-
-export interface ValidationResponse_ValidatedSettingsEntry {
-  key: string;
-  value: string;
-}
-
-/** User Context - passed with most requests */
-export interface UserContext {
-  userId: string;
-  token: string;
-  sourceId: string;
-  settings: { [key: string]: string };
-}
-
-export interface UserContext_SettingsEntry {
-  key: string;
-  value: string;
-}
-
-/** Playable Context */
-export interface PlayableContext {
-  tmdbMovieJson?: string | undefined;
-  tmdbSeriesJson?: string | undefined;
-  tmdbEpisodeJson?: string | undefined;
-}
-
-export interface MediaSourceViewsRequest {
-  userContext: UserContext | undefined;
-  playableContext: PlayableContext | undefined;
-}
-
-export interface MediaSourceViewsResponse {
-  views: MediaSourceView[];
-}
-
-export interface MediaSourceView {
+export interface CatalogueInfo {
   id: string;
-  title: string;
-  properties: StreamProperty[];
-  actions: StreamAction[];
-}
-
-export interface MediaSourceViewRequest {
-  userContext: UserContext | undefined;
-  playableContext: PlayableContext | undefined;
-  viewId: string;
-}
-
-export interface MediaSourceViewResponse {
-  view?: MediaSourceView | undefined;
-}
-
-export interface AutoplayStreamRequest {
-  userContext: UserContext | undefined;
-  playableContext: PlayableContext | undefined;
-}
-
-export interface AutoplayStreamResponse {
-  candidate?: StreamBase | undefined;
-}
-
-export interface Stream {
-  streamId: string;
-  title: string;
-  properties: StreamProperty[];
-  src: string;
-  directPlay: boolean;
-  progress: number;
-  duration: number;
-  audioStreams: AudioStream[];
-  audioStreamIndex: number;
-  qualities: Quality[];
-  qualityIndex: number;
-  subtitles: Subtitle[];
-}
-
-export interface StreamBase {
-  streamId: string;
-  title: string;
-  properties: StreamProperty[];
-}
-
-export interface StreamProperty {
   label: string;
-  value: string;
-  formatted?: string | undefined;
-}
-
-export interface AudioStream {
-  index: number;
-  label: string;
-  codec?: string | undefined;
-  bitrate?: number | undefined;
-}
-
-export interface Quality {
-  index: number;
-  bitrate: number;
-  label: string;
-  codec?: string | undefined;
-  original: boolean;
-}
-
-export interface Subtitle {
-  src: string;
-  lang: string;
-  /** "subtitles", "captions", "descriptions" */
-  kind: string;
-  label: string;
-}
-
-export interface PlaybackConfig {
-  bitrate?: number | undefined;
-  audioStreamIndex?: number | undefined;
-  progress?: number | undefined;
-  deviceProfileJson?: string | undefined;
-  defaultLanguage?: string | undefined;
-}
-
-export interface StreamAction {
-  label: string;
-  type: string;
-}
-
-export interface HandleActionRequest {
-  userContext: UserContext | undefined;
-  targetId: string;
-  action: string;
-}
-
-export interface ActionResponse {
-  toast?: Toast | undefined;
-  error?: ErrorMessage | undefined;
-  result?: ActionResult | undefined;
-}
-
-export interface ActionResult {
-  success: boolean;
-  message?: string | undefined;
-}
-
-export interface Toast {
-  title: string;
-  message: string;
-  /** "info", "success", "error" */
-  type: string;
-}
-
-export interface ErrorMessage {
-  message: string;
-}
-
-export interface ProxyRequest {
-  userContext: UserContext | undefined;
-  uri: string;
-  targetUrl?: string | undefined;
-  headers: { [key: string]: string };
-  body: Uint8Array;
-}
-
-export interface ProxyRequest_HeadersEntry {
-  key: string;
-  value: string;
-}
-
-export interface ProxyResponse {
-  statusCode: number;
-  headers: { [key: string]: string };
-  chunk: Uint8Array;
-  isFinal: boolean;
-}
-
-export interface ProxyResponse_HeadersEntry {
-  key: string;
-  value: string;
-}
-
-export interface TmdbMovieRequest {
-  userContext: UserContext | undefined;
-  tmdbMovieJson: string;
-}
-
-export interface TmdbEpisodeRequest {
-  userContext: UserContext | undefined;
-  tmdbSeriesJson: string;
-  tmdbEpisodeJson: string;
-}
-
-export interface StreamCandidatesResponse {
-  candidates: StreamCandidate[];
-}
-
-export interface StreamCandidate {
-  streamId: string;
-  title: string;
-  properties: StreamProperty[];
-  actions: StreamAction[];
-}
-
-export interface CatalogueCapabilities {
-  moviesCatalogue: CatalogueCapability | undefined;
-  seriesCatalogue: CatalogueCapability | undefined;
-  combinedCatalogue: CatalogueCapability | undefined;
-  missingCatalogue: CatalogueCapability | undefined;
-}
-
-export interface CatalogueCapability {
-  isSupported: boolean;
   orderOptions: OrderOption[];
 }
 
 export interface OrderOption {
   label: string;
   value: string;
-  directions: DirectionOption[];
-}
-
-export interface DirectionOption {
-  label: string;
-  value: string;
+  /** Define for direction grouping */
+  direction?: string | undefined;
 }
 
 export interface CatalogueRequest {
-  userContext: UserContext | undefined;
-  pagination: PaginationParams | undefined;
-  order?: string | undefined;
-  direction?: string | undefined;
+  catalogueId: string;
+  /** Referes to OrderOption.value */
+  order?:
+    | string
+    | undefined;
+  /**
+   * PaginationParams pagination = 2;
+   * optional string order = 3;
+   * optional string direction = 4;
+   */
+  pagination?: PaginationParams | undefined;
 }
 
 export interface CatalogueResponse {
+  /**
+   * int32 total = 2;
+   * int32 page = 3;
+   * int32 items_per_page = 4;
+   */
   items: CatalogueItem[];
-  total: number;
-  page: number;
-  itemsPerPage: number;
 }
 
 export interface CatalogueItem {
-  tmdbId: string;
+  id: string;
+  label: string;
   /** "movie" or "series" */
   mediaType: string;
+  tmdbId?: string | undefined;
+  posterUrl?: string | undefined;
+  backdropUrl?: string | undefined;
 }
 
 export interface PaginationParams {
+  /** 1-based page number */
   page: number;
   itemsPerPage: number;
-}
-
-export interface MissingCatalogueRequest {
-  userContext: UserContext | undefined;
-  pagination: PaginationParams | undefined;
-  order?: string | undefined;
-  direction?: string | undefined;
-  myListItemsJson: { [key: string]: string };
-}
-
-export interface MissingCatalogueRequest_MyListItemsJsonEntry {
-  key: string;
-  value: string;
-}
-
-export interface MissingCatalogueResponse {
-  itemsJson: string[];
-  total: number;
-  page: number;
-  itemsPerPage: number;
-}
-
-export interface ManagementProfilesResponse {
-  profiles: ManagementProfile[];
-}
-
-export interface ManagementProfile {
-  id: string;
-  name: string;
-  description: string;
-  autoRequests: AutoRequestOptions | undefined;
-  autoRemove: AutoRemoveOptions | undefined;
-}
-
-export interface AutoRequestOptions {
-  /** Episodes: Next up + x episodes (0-n) */
-  nextEpisodesCount?:
-    | number
-    | undefined;
-  /** Episodes: Current season + x next seasons */
-  nextSeasonsCount?:
-    | number
-    | undefined;
-  /** Watch RSS feed */
-  watchRss: boolean;
-}
-
-export interface AutoRemoveOptions {
-  /** After watched + x days */
-  daysAfterWatched?:
-    | number
-    | undefined;
-  /** After downloaded + x days */
-  daysAfterDownloaded?:
-    | number
-    | undefined;
-  /** When seeding ratio > x */
-  minSeedingRatio?:
-    | number
-    | undefined;
-  /** Lazy deletion (delete when disk space needed) */
-  lazyDeletion: boolean;
-  /** Priority for lazy deletion */
-  deletionPriority?: number | undefined;
-}
-
-export interface MediaManagementProfileRequest {
-  userContext: UserContext | undefined;
-  tmdbId: string;
-  /** "movie" or "series" */
-  mediaType: string;
-}
-
-export interface UpdateManagementProfileRequest {
-  userContext: UserContext | undefined;
-  tmdbId: string;
-  mediaType: string;
-  profileId: string;
-}
-
-export interface JobsResponse {
-  jobs: Job[];
-}
-
-export interface Job {
-  id: string;
-  /** "download", "transcode", "seed" */
-  type: string;
-  /** "pending", "active", "completed", "failed", "cancelled" */
-  status: string;
-  tmdbId: string;
-  mediaType: string;
-  season?: number | undefined;
-  episode?: number | undefined;
-  progress: number;
-  eta?: string | undefined;
-  metadata: { [key: string]: string };
-}
-
-export interface Job_MetadataEntry {
-  key: string;
-  value: string;
-}
-
-export interface JobDetailsRequest {
-  userContext: UserContext | undefined;
-  jobId: string;
-}
-
-export interface JobDetails {
-  job: Job | undefined;
-  logs: JobLogEntry[];
-  stats: JobStats | undefined;
-}
-
-export interface JobLogEntry {
-  timestamp: string;
-  /** "info", "warning", "error" */
-  level: string;
-  message: string;
-}
-
-export interface JobStats {
-  downloadSpeed?: number | undefined;
-  uploadSpeed?: number | undefined;
-  seeders?: number | undefined;
-  peers?: number | undefined;
-  seedingRatio?: number | undefined;
-  sizeBytes?: number | undefined;
-  downloadedBytes?: number | undefined;
-}
-
-export interface CancelJobRequest {
-  userContext: UserContext | undefined;
-  jobId: string;
-}
-
-export interface DiskSpaceUsage {
-  totalBytes: number;
-  usedBytes: number;
-  availableBytes: number;
-  mediaFiles: MediaFileInfo[];
-}
-
-export interface MediaFileInfo {
-  id: string;
-  tmdbId: string;
-  mediaType: string;
-  season?: number | undefined;
-  episode?: number | undefined;
-  sizeBytes: number;
-  filePath: string;
-  watched: boolean;
-  seedingRatio?: number | undefined;
-  addedDate?: string | undefined;
-  watchedDate?: string | undefined;
-  markedForDeletion: boolean;
-}
-
-export interface CleanupHistoryRequest {
-  userContext: UserContext | undefined;
-  pagination: PaginationParams | undefined;
-}
-
-export interface CleanupHistoryResponse {
-  entries: CleanupHistoryEntry[];
-  total: number;
-  page: number;
-  itemsPerPage: number;
-}
-
-export interface CleanupHistoryEntry {
-  timestamp: string;
-  tmdbId: string;
-  mediaType: string;
-  season?: number | undefined;
-  episode?: number | undefined;
-  sizeBytes: number;
-  /** "watched_timeout", "download_timeout", "seeding_complete", "disk_space_needed", "manual" */
-  reason: string;
-}
-
-export interface TriggerCleanupRequest {
-  userContext: UserContext | undefined;
-  targetFreeSpaceBytes?: number | undefined;
 }
 
 /** Plugin Service - handles plugin metadata and configuration */
@@ -558,47 +146,19 @@ export interface PluginService {
 /** Media Source Provider Service - handles user-specific requests */
 export interface PluginMediaService {
   /** Get a list of available streamables */
-  GetStreamables(request: GetStreamablesRequest): Observable<StreamablesResponse>;
+  GetStreamables(request: StreamablesRequest): Observable<StreamablesResponse>;
   /** Get a link to a streamable - on the plugin side, this can create a transcoding session for example */
-  GetStream(request: GetStreamRequest): Observable<StreamResponse>;
+  GetStream(request: StreamRequest): Observable<StreamResponse>;
 }
 
 /** Catalogue Provider Service - handles library catalogues */
-export interface CatalogueProviderService {
-  /** Get catalogue capabilities */
-  GetCatalogueCapabilities(request: Empty): Observable<CatalogueCapabilities>;
-  /** Get combined catalogue */
+export interface PluginCatalogueService {
+  /** Get what catalogues are available */
+  GetCatalogues(request: CataloguesRequest): Observable<CataloguesResponse>;
+  /** Get everything in a catalogue - e.g. all movies or all series */
   GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
-  /** Get movies catalogue */
-  GetMovieCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
-  /** Get series catalogue */
-  GetSeriesCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
-  /** Get missing items in catalogue */
-  GetMissingInCatalogue(request: MissingCatalogueRequest): Observable<MissingCatalogueResponse>;
 }
 
 /** Management Profile Service - NEW for monitoring/management profiles */
 export interface ManagementProfileService {
-  /** Get available management profiles */
-  GetManagementProfiles(request: Empty): Observable<ManagementProfilesResponse>;
-  /** Get management profile for specific media */
-  GetMediaManagementProfile(request: MediaManagementProfileRequest): Observable<ManagementProfile>;
-  /** Update management profile for media */
-  UpdateMediaManagementProfile(request: UpdateManagementProfileRequest): Observable<ManagementProfile>;
-}
-
-/** Job Management Service - NEW for monitoring downloads, transcoding, etc. */
-export interface JobManagementService {
-  /** Get all active jobs */
-  GetActiveJobs(request: Empty): Observable<JobsResponse>;
-  /** Get job details */
-  GetJobDetails(request: JobDetailsRequest): Observable<JobDetails>;
-  /** Cancel a job */
-  CancelJob(request: CancelJobRequest): Observable<ActionResponse>;
-  /** Get disk space usage */
-  GetDiskSpaceUsage(request: Empty): Observable<DiskSpaceUsage>;
-  /** Get cleanup history */
-  GetCleanupHistory(request: CleanupHistoryRequest): Observable<CleanupHistoryResponse>;
-  /** Trigger cleanup */
-  TriggerCleanup(request: TriggerCleanupRequest): Observable<ActionResponse>;
 }

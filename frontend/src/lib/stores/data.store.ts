@@ -3,11 +3,13 @@ import type { Action } from 'svelte/action';
 import { derived, get, readable, writable, type Readable } from 'svelte/store';
 import { awaitAppInitialization } from './user.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-import { nestedDerived } from '$lib/utils';
+import { nestedDerived, waitFor } from '$lib/utils';
+import { tick } from 'svelte';
 
 type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
 // type Refresher = ReturnType<typeof createRefresher>;
 
+/** @deprecated */
 export class Refresher {
 	private subscribers: {
 		key?: string;
@@ -86,6 +88,7 @@ export class Refresher {
 	}
 }
 
+/** @deprecated */
 export function useRequest<TResponse>(
 	fn: () => Promise<TResponse>,
 	options: {
@@ -159,6 +162,7 @@ type MapRequestsToPromises<T> = {
 // 	a: MapRequestsToPromises<A>
 // ) => Promise<TReturn>;
 
+/** @deprecated */
 export function derviedRequest<const R extends Array<Request<unknown>>, TReturn>(
 	requests: R,
 	fn: (a: MapRequestsToPromises<R>) => Promise<TReturn>
@@ -232,6 +236,7 @@ export function derviedRequest<const R extends Array<Request<unknown>>, TReturn>
 
 type RequestStoreRequest<TResponse> = Request<TResponse> & { unsubscribe: () => void };
 
+/** @deprecated */
 export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 	fn: (...args: TArgs) => Promise<TResponse>,
 	options: { persistant?: boolean } = {}
@@ -301,6 +306,7 @@ export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
 
 /**
  * Useful for infinite scroll. By default, loads the initial page automatically.
+ * @deprecated
  */
 export function usePaginatedRequest<TResponseItem>(
 	fn: (page: number) => Promise<{ items: TResponseItem[] } & PaginatedResponseDto>,
@@ -431,7 +437,117 @@ export function usePaginatedRequest<TResponseItem>(
 	};
 }
 
+/** @deprecated */
 export const movieUserDataRefresher = new Refresher();
+/** @deprecated */
 export const seriesUserDataRefresher = new Refresher();
+/** @deprecated */
 export const episodeUserDataRefresher = new Refresher();
+/** @deprecated */
 export const libraryRefresher = new Refresher();
+
+/**
+ * A store for fetching data with the ability to make it stale and refetch automatically when the component page comes to front
+ *
+ * If prev is used, the return type must be explicitly defined
+ */
+export function useData<TResponse>(fetchData: (prev: TResponse | undefined) => Promise<TResponse>) {
+	const componentStack = useComponentStack();
+
+	let lastRequestId = 0;
+
+	const lastData = writable<TResponse | undefined>(undefined);
+	const isLoading = writable(true);
+	const promise = writable(makeRequest(false));
+
+	async function makeRequest(setPromise = true) {
+		const requestId = lastRequestId;
+		isLoading.set(true);
+		const p = awaitAppInitialization().then(() => fetchData(get(lastData)));
+		if (setPromise) promise.set(p);
+
+		await p;
+		// If no new requests has been made since this one started
+		if (requestId === lastRequestId) {
+			lastData.set(await p);
+			isLoading.set(false);
+			lastRequestId++;
+		} else {
+			console.log('Data request outdated, discarding result...', componentStack);
+		}
+
+		return await p;
+	}
+
+	type RefetchPromise = ReturnType<typeof makeRequest> | undefined;
+	let unsubToStaleWatcher: (() => void) | undefined;
+	const resolves: ((v: RefetchPromise) => void)[] = [];
+	/**
+	 * Waits for the component to come to front and then refetches the data.
+	 *
+	 * @returns a promise that resolves when the data is set to stale and refetching starts, or undefined if the component is unmounted before that
+	 * */
+	function setStale(timeout = 1500) {
+		const out = new Promise<RefetchPromise>((resolve) => {
+			let t: ReturnType<typeof setTimeout>;
+
+			const f = (v: RefetchPromise) => {
+				clearTimeout(t);
+				resolve(v);
+			};
+
+			resolves.push(f);
+
+			t = setTimeout(() => {
+				resolves.splice(resolves.indexOf(f), 1).forEach((r) => r(undefined));
+			}, timeout);
+		});
+
+		console.log('setStale called, waiting for component to come to front...', componentStack);
+
+		// Hack because hasFocusWithin is still true when new page mounts
+		tick().then(() => {
+			unsubToStaleWatcher?.();
+			unsubToStaleWatcher = waitFor(
+				componentStack.hasFocusWithin,
+				(isFocused) => !!isFocused,
+				() => {
+					console.log('Component focused, refetching data...', componentStack);
+					const p = makeRequest();
+					// const p = fetchData();
+					// isLoading.set(true);
+					resolves.splice(0).forEach((r) => r(p));
+				}
+			).unsubscribe;
+		});
+
+		return out;
+	}
+
+	/**
+	 * Wait for current update
+	 * Check if it was invalidated and that the promise that was waited is still current promise
+	 * If yes, proceed with updating with up to date data
+	 */
+	async function updateSequential() {
+		const currentPromise = get(promise);
+		const data = await currentPromise;
+
+		// Check if data is invalid, repeat
+		if (get(promise) !== currentPromise) return updateSequential();
+
+		return makeRequest();
+	}
+
+	return {
+		data: lastData,
+		isLoading,
+		promise,
+		setStale,
+		updateSequential,
+		unsubscribeEarly: () => {
+			unsubToStaleWatcher?.();
+			resolves.splice(0).forEach((r) => r(undefined));
+		}
+	};
+}

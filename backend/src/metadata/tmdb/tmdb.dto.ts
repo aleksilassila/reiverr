@@ -137,6 +137,9 @@ export type TmdbEpisodeFull = TmdbEpisode;
 //   vote_average?: number;
 // }
 
+/**
+ * Basically TmdbSeriesSmall + TmdbMovieSmall, used to render cards in catalogues
+ */
 export class TmdbItemDto implements MovieDetailsDto, TvSeriesDetailsDto {
   // TmdbMovie & TmdbSeries
 
