@@ -10,10 +10,10 @@
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TriangleRight } from 'radix-icons-svelte';
-	import { breadcrumbsContext } from '../ActionsPage/actions-page';
 	import { get } from 'svelte/store';
 	import { useSeriesContext } from '$lib/stores/series-data.store';
 	import { useMovieContext } from '$lib/stores/movie-data.store';
+	import { breadcrumbsContext } from '$lib/stores/breadcrumbs.store';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;

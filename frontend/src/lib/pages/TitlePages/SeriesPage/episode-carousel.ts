@@ -1,12 +1,9 @@
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
-import { usePaginatedRequest } from '$lib/stores/data.store';
-import { seriesUserDataContext } from '$lib/stores/user-data/title-user-data.store';
-import { tmdbApi } from '$lib/stores/user.store';
-import { formatThousands, waitFor } from '$lib/utils';
-import { derived, get, writable, type Writable } from 'svelte/store';
-import type { TitleInfoProperty } from '../HeroTitleInfo';
 import { useSeriesContext } from '$lib/stores/series-data.store';
+import { formatThousands, waitFor } from '$lib/utils';
+import { derived, writable, type Writable } from 'svelte/store';
+import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 type SelectedEpisode = { episode: number; season: number } | undefined;
 

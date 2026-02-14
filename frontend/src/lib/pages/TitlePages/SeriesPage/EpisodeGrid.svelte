@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import type { EpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
+	import { scrollIntoView } from '$lib/selectable';
+	import { getScrollContext } from '$lib/stores/scroll.store';
+	import type { EpisodeUserData } from '$lib/stores/series-data.store';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
 	import {
@@ -14,9 +16,6 @@
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { navigate } from '../../../components/StackRouter/stack-router.store';
 	import { Selectable } from '../../../selectable';
-	import { scrollIntoView } from '$lib/selectable';
-	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 
 	const { topVisible } = getScrollContext();
 

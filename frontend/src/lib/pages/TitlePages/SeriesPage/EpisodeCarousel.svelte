@@ -4,7 +4,6 @@
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView } from '$lib/selectable';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import type { EpisodeUserData } from '$lib/stores/user-data/title-user-data.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
@@ -16,6 +15,7 @@
 	} from '../../../apis/tmdb/tmdb-api';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { Selectable } from '../../../selectable';
+	import type { EpisodeUserData } from '$lib/stores/series-data.store';
 
 	const { topVisible } = getScrollContext();
 

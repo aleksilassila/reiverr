@@ -5,7 +5,7 @@ import { derived, get, writable } from 'svelte/store';
 import { useData } from './data.store';
 import { reiverrApi, user } from './user.store';
 
-type EpisodeUserData = {
+export type EpisodeUserData = {
 	season: number;
 	episode: number;
 	watched: boolean;

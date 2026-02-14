@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import type { TmdbEpisode, TmdbSeries } from '$lib/apis/tmdb/tmdb-api';
 	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
@@ -8,6 +7,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
+	import { navigate } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
@@ -21,10 +21,8 @@
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
-	import TitleSheet from '../TitleSheet.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import StreamablesView from './StreamablesView.svelte';
-	import { navigate } from '$lib/components/StackRouter/stack-router.store';
 
 	export let id: string;
 
@@ -94,7 +92,6 @@
 	let titleProperties: TitleInfoProperty[] = [];
 	const { topVisible } = getScrollContext();
 
-	let sheetProps: { episode: TmdbEpisode; series: TmdbSeries } | undefined;
 	$: recommendations = tmdbApi.v3.tvSeriesRecommendations(Number(id)).then((r) => r.data.results);
 
 	$tmdbSeries.then((series) => {
@@ -454,14 +451,3 @@
 		{/await}
 	</div>
 </div>
-
-{#if sheetProps}
-	<TitleSheet
-		episode={sheetProps.episode}
-		series={sheetProps.series}
-		handleMarkAsWatched={async ({ series, episode }) => {
-			// handleMarkAsWatched({ series, episode });
-		}}
-		handleClose={() => (sheetProps = undefined)}
-	/>
-{/if}
