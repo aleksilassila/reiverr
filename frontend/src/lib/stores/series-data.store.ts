@@ -2,7 +2,9 @@ import type { SeriesUserDataDto, TmdbSeriesFull } from '$lib/apis/reiverr/reiver
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
-import { useData } from './data.store';
+import { continueWatchingSeriesContext } from './continue-watching-data.store';
+import { _useData, useStaleable } from './data.store';
+import { libraryContext } from './data/library-data.store';
 import { reiverrApi, user } from './user.store';
 
 export type EpisodeUserData = {
@@ -56,8 +58,8 @@ export const useSeriesContext = (tmdbId: string) =>
 
 function useSeriesData(tmdbId: string) {
 	const previous = useSeriesContext(tmdbId).getContext();
-	// const previousLibrary = useSeriesContext(tmdbId).getContext();
-	// const previousNextUp = useSeriesContext(tmdbId).getContext();
+	const previousContinueWatching = continueWatchingSeriesContext.getContext();
+	const previousLibrary = libraryContext.getContext();
 
 	const componentStack = useComponentStack();
 	// const backgroundStack = backgroundContext.createContext({
@@ -68,10 +70,10 @@ function useSeriesData(tmdbId: string) {
 	const inLibrary = writable(false);
 	const isWatched = writable(false);
 
-	const seriesData = useData(() =>
+	const seriesData = _useData(() =>
 		reiverrApi.metadata.getSeries(tmdbId).then((r) => r.data.tmdbSeries)
 	);
-	const userData = useData(async () => {
+	const userData = _useData(async () => {
 		const data = await reiverrApi.users
 			.getSeriesUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);
@@ -107,7 +109,7 @@ function useSeriesData(tmdbId: string) {
 				}))
 		});
 
-		return setUserDataStale();
+		return invalidateData();
 	}
 
 	async function setInLibrary(state: boolean) {
@@ -125,17 +127,23 @@ function useSeriesData(tmdbId: string) {
 		if (success) {
 			inLibrary.set(state);
 			previous.inLibrary?.set(state);
-			previous.setStale?.();
+			// previous.setStale?.();
+			previousContinueWatching.setStale?.();
+			previousLibrary.setStale?.();
 
 			// previousLibrary.setStale?.();
 			// previousNextUp.setStale?.();
 		}
 	}
 
-	function setUserDataStale() {
+	function invalidateData() {
 		previous.setStale?.();
-		return userData.setStale();
+		previousContinueWatching.setStale?.();
+		previousLibrary.setStale?.();
+		return userData.update();
 	}
+
+	const { setStale, unsubscribe } = useStaleable(() => invalidateData());
 
 	return {
 		componentStack,
@@ -147,67 +155,9 @@ function useSeriesData(tmdbId: string) {
 		setInLibrary,
 		setWatched,
 		episodesData,
-		setStale: setUserDataStale,
+		setStale,
 		unsubscribe: () => {
-			seriesData.unsubscribeEarly();
-			userData.unsubscribeEarly();
+			unsubscribe();
 		}
 	};
 }
-
-/**
- * DataProvider makes sure that data mutations are reflected everywhere in the component stack
- *
- * Belongs to a component, is not global. Gives access to the global data
- */
-function useDataProvider() {
-	const componentStack = useComponentStack();
-
-	// function getEpisodeData(tmdbId: string, seasonNumber: number, episodeNumber: number) {
-	// 	const key = `episode-${tmdbId}-${seasonNumber}-${episodeNumber}`;
-
-	// 	if (!componentStack.hasContext(key)) {
-	// 		const data = useEpisodeData(tmdbId, seasonNumber, episodeNumber);
-	// 		componentStack.setContext(key, data);
-	// 		return data;
-	// 	}
-
-	// 	return componentStack.getContext<EpisodeData>(key);
-	// }
-
-	return {};
-}
-
-// getLibraryPageData() {
-// 	// fetch data
-
-// 	// get or create seriesWatchStatus[]
-
-// 	// update each from data
-
-// 	// Return watcher for seriesWatchStatus[]
-// }
-
-// getSeriesPageData() {
-// 	// fetch data
-
-// 	// get or create seriesWatchStatus
-
-// 	// update from data
-
-// 	// Return watcher, mutator for seriesWatchStatus
-// }
-
-// getEpisodeData() {
-// 	// changes from seriesPage (set all as watched), changes seriesPage (set as watched)
-// }
-
-// // Library page
-// const {seriesWatchStatus[]} = getLibraryPageData()
-
-// // Series page
-// const {seriesWatchStatus} = getSeriesPageData()
-
-// // Episode page
-
-// const {episodeWatchStatus} = getEpisodeData()

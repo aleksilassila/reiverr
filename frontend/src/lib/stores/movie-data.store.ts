@@ -1,7 +1,9 @@
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { get, writable } from 'svelte/store';
-import { useData } from './data.store';
+import { continueWatchingMoviesContext } from './continue-watching-data.store';
+import { _useData, useStaleable } from './data.store';
+import { libraryContext } from './data/library-data.store';
 import { reiverrApi, user } from './user.store';
 
 export const useMovieContext = (tmdbId: string) =>
@@ -9,6 +11,8 @@ export const useMovieContext = (tmdbId: string) =>
 
 function useMovieData(tmdbId: string) {
 	const previous = useMovieContext(tmdbId).getContext();
+	const previousContinueWatching = continueWatchingMoviesContext.getContext();
+	const previousLibrary = libraryContext.getContext();
 
 	const componentStack = useComponentStack();
 
@@ -16,12 +20,12 @@ function useMovieData(tmdbId: string) {
 	const isWatched = writable(false);
 	const progress = writable(0);
 
-	const movieData = useData(async () => {
+	const movieData = _useData(async () => {
 		const data = await reiverrApi.metadata.getMovie(tmdbId).then((r) => r.data.tmdbMovie);
 		return data;
 	});
 
-	const userData = useData(async () => {
+	const userData = _useData(async () => {
 		const data = await reiverrApi.users
 			.getMovieUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);
@@ -45,7 +49,7 @@ function useMovieData(tmdbId: string) {
 			watched
 		});
 
-		return setUserDataStale();
+		return invalidateUserData();
 	}
 
 	async function setInLibrary(state: boolean) {
@@ -63,13 +67,18 @@ function useMovieData(tmdbId: string) {
 		if (success) {
 			inLibrary.set(state);
 			previous.inLibrary?.set(state);
+			previousContinueWatching.setStale?.();
 		}
 	}
 
-	function setUserDataStale() {
+	function invalidateUserData() {
 		previous.setStale?.();
-		return userData.setStale();
+		previousContinueWatching.setStale?.();
+		previousLibrary.setStale?.();
+		return userData.update();
 	}
+
+	const { setStale, unsubscribe } = useStaleable(() => invalidateUserData());
 
 	return {
 		componentStack,
@@ -79,10 +88,9 @@ function useMovieData(tmdbId: string) {
 		progress,
 		setInLibrary,
 		setWatched,
-		setStale: setUserDataStale,
+		setStale,
 		unsubscribe: () => {
-			movieData.unsubscribeEarly();
-			userData.unsubscribeEarly();
+			unsubscribe();
 		}
 	};
 }

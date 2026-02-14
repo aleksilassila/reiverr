@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type {
 		CatalogueDto,
-		CatalogueItemsDto,
 		MediaSourceDto,
 		OrderOptionDto
 	} from '$lib/apis/reiverr/reiverr.openapi';
@@ -11,38 +10,21 @@
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { useData } from '$lib/stores/data.store';
+	import { usePaginatedRequest2 } from '$lib/stores/data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi } from '$lib/stores/user.store';
-	import { useInteractionObserver } from '$lib/utils';
 
 	export let catalogue: CatalogueDto;
 
-	const {
-		data,
-		isLoading,
-		updateSequential: fetchMore
-	} = useData(async (prev: (CatalogueItemsDto & { page: number; stop?: boolean }) | undefined) => {
-		if (prev?.stop) {
-			return prev;
-		}
-
-		const page = prev?.page ?? 1;
-		const newItems = await reiverrApi.catalogues
+	const { observer, loading, ...catalogueItems } = usePaginatedRequest2((page) =>
+		reiverrApi.catalogues
 			.getCatalogue({
 				pluginId: catalogue.pluginId,
 				catalogueId: catalogue.id,
 				page
 			})
-			.then((r) => r.data.items);
-
-		return {
-			items: [...(prev?.items ?? []), ...newItems],
-			page: page + 1,
-			stop: newItems.length === 0
-		};
-	});
-	const observer = useInteractionObserver(() => fetchMore());
+			.then((r) => r.data.items)
+	);
 
 	const { topVisible } = getScrollContext();
 
@@ -183,9 +165,9 @@
 		</Button>
 	</Container> -->
 	<div class="flex-1 flex flex-col">
-		{#if $data?.items.length}
+		{#if $catalogueItems?.length}
 			<CardGrid focusOnMount let:columns>
-				{#each $data?.items as item, index}
+				{#each $catalogueItems as item, index}
 					<TmdbCard
 						{index}
 						{item}
@@ -194,7 +176,7 @@
 				{/each}
 			</CardGrid>
 			<div use:observer />
-		{:else if $isLoading}
+		{:else if $loading}
 			<Container class="h-ghost m-auto px-32">Loading...</Container>
 		{:else}
 			<Container class="h-ghost m-auto px-32">No items found</Container>

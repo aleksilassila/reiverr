@@ -6,99 +6,109 @@
 	import { createModal } from '$lib/components/Modal/modal.store';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
-	import { libraryRefresher, usePaginatedRequest } from '$lib/stores/data.store';
+	import { libraryContext } from '$lib/stores/data/library-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { MixerHorizontal } from 'radix-icons-svelte';
+	import { onDestroy } from 'svelte';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
-	import { libraryViewSettings } from './LibraryPage';
 	import MyListOptions from './MyListOptions.svelte';
 	import TabItem from './TabItem.svelte';
 
 	const { topVisible } = getScrollContext();
 
 	let didMount = false;
-	let category: 'all' | 'series' | 'movies' = 'all';
+	// let category: 'all' | 'series' | 'movies' = 'all';
 
-	const {
-		data: upcoming,
-		interactionObserver: upcomingObserver,
-		load: loadUpcoming,
-		isLoading: loadingUpcoming
-	} = usePaginatedRequest(
-		async (page) => {
-			if (!$user?.id || !$libraryViewSettings.separateWatched) {
-				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-			}
+	const { category, libraryViewSettings, upcoming, unwatched, watched, unsubscribe } =
+		libraryContext.createContext();
 
-			return reiverrApi.library
-				.getMyList($user.id, {
-					status: 'upcoming',
-					type: category,
-					order: $libraryViewSettings.order,
-					direction: $libraryViewSettings.direction,
-					page
-				})
-				.then((i) => i.data);
-		},
-		{
-			loadOnInit: false,
-			refresher: libraryRefresher
-		}
-	);
+	const { loading: loadingUpcoming, observer: upcomingObserver } = upcoming;
+	const { loading: loadingWatched, observer: watchedObserver } = watched;
+	const { loading: loadingUnwatched, observer: interactionObserver } = unwatched;
 
-	const {
-		data: watched,
-		interactionObserver: watchedObserver,
-		load: loadWatched,
-		isLoading: loadingWatched
-	} = usePaginatedRequest(
-		async (page) => {
-			if (!$user?.id || !$libraryViewSettings.separateWatched) {
-				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-			}
+	// const {
+	// 	data: upcoming,
+	// 	interactionObserver: upcomingObserver,
+	// 	load: loadUpcoming,
+	// 	isLoading: loadingUpcoming
+	// } = usePaginatedRequest(
+	// 	async (page) => {
+	// 		if (!$user?.id || !$libraryViewSettings.separateWatched) {
+	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+	// 		}
 
-			return reiverrApi.library
-				.getMyList($user.id, {
-					status: 'watched',
-					type: category,
-					order: $libraryViewSettings.order,
-					direction: $libraryViewSettings.direction,
-					page
-				})
-				.then((i) => i.data);
-		},
-		{ loadOnInit: false, refresher: libraryRefresher }
-	);
+	// 		return reiverrApi.library
+	// 			.getMyList($user.id, {
+	// 				status: 'upcoming',
+	// 				type: category,
+	// 				order: $libraryViewSettings.order,
+	// 				direction: $libraryViewSettings.direction,
+	// 				page
+	// 			})
+	// 			.then((i) => i.data);
+	// 	},
+	// 	{
+	// 		loadOnInit: false,
+	// 		refresher: libraryRefresher
+	// 	}
+	// );
 
-	const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
-		async (page) => {
-			if (!$user?.id) {
-				return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-			}
+	// const {
+	// 	data: watched,
+	// 	interactionObserver: watchedObserver,
+	// 	load: loadWatched,
+	// 	isLoading: loadingWatched
+	// } = usePaginatedRequest(
+	// 	async (page) => {
+	// 		if (!$user?.id || !$libraryViewSettings.separateWatched) {
+	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+	// 		}
 
-			return reiverrApi.library
-				.getMyList($user.id, {
-					type: category,
-					order: $libraryViewSettings.order,
-					direction: $libraryViewSettings.direction,
-					...($libraryViewSettings.separateWatched ? { status: 'unwatched' } : {}),
-					page
-				})
-				.then((i) => i.data);
-		},
-		{ loadOnInit: false, refresher: libraryRefresher }
-	);
+	// 		return reiverrApi.library
+	// 			.getMyList($user.id, {
+	// 				status: 'watched',
+	// 				type: category,
+	// 				order: $libraryViewSettings.order,
+	// 				direction: $libraryViewSettings.direction,
+	// 				page
+	// 			})
+	// 			.then((i) => i.data);
+	// 	},
+	// 	{ loadOnInit: false, refresher: libraryRefresher }
+	// );
 
-	$: {
-		$libraryViewSettings;
-		category;
-		$user;
-		load({ lazy: true });
-		loadUpcoming({ lazy: true });
-		loadWatched({ lazy: true });
-	}
+	// const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
+	// 	async (page) => {
+	// 		if (!$user?.id) {
+	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
+	// 		}
+
+	// 		return reiverrApi.library
+	// 			.getMyList($user.id, {
+	// 				type: category,
+	// 				order: $libraryViewSettings.order,
+	// 				direction: $libraryViewSettings.direction,
+	// 				...($libraryViewSettings.separateWatched ? { status: 'unwatched' } : {}),
+	// 				page
+	// 			})
+	// 			.then((i) => i.data);
+	// 	},
+	// 	{ loadOnInit: false, refresher: libraryRefresher }
+	// );
+
+	// $: {
+	// 	$libraryViewSettings;
+	// 	category;
+	// 	$user;
+	// 	load({ lazy: true });
+	// 	loadUpcoming({ lazy: true });
+	// 	loadWatched({ lazy: true });
+	// }
+
+	onDestroy(() => {
+		unsubscribe();
+	});
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
@@ -113,14 +123,14 @@
 				class="flex space-x-4"
 				direction="horizontal"
 				on:blur={({ detail: selectable }) => {
-					selectable.activateChild(category === 'all' ? 0 : category === 'series' ? 1 : 2);
+					selectable.activateChild($category === 'all' ? 0 : $category === 'series' ? 1 : 2);
 				}}
 			>
-				<TabItem selected={category === 'all'} on:select={() => (category = 'all')}>All</TabItem>
-				<TabItem selected={category === 'series'} on:select={() => (category = 'series')}>
+				<TabItem selected={$category === 'all'} on:select={() => ($category = 'all')}>All</TabItem>
+				<TabItem selected={$category === 'series'} on:select={() => ($category = 'series')}>
 					Series
 				</TabItem>
-				<TabItem selected={category === 'movies'} on:select={() => (category = 'movies')}>
+				<TabItem selected={$category === 'movies'} on:select={() => ($category = 'movies')}>
 					Movies
 				</TabItem>
 			</Container>
@@ -152,13 +162,13 @@
 					</Carousel>
 				</div>
 			{/if}
-			{#if $data.length}
+			{#if $unwatched.length}
 				<div class="my-6">
 					{#if $libraryViewSettings.separateWatched}
 						<div class="px-32 mb-6 h3">Unwatched</div>
 					{/if}
 					<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-						{#each $data as item, index (item.tmdbId)}
+						{#each $unwatched as item, index (item.tmdbId)}
 							<TmdbCard
 								{index}
 								item={item.tmdbItem}
@@ -187,9 +197,9 @@
 				</div>
 			{/if}
 
-			{#if ($isLoading || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$data.length && !$watched.length}
+			{#if ($loadingUnwatched || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$unwatched.length && !$watched.length}
 				<Container class="h-ghost m-auto px-32">Loading...</Container>
-			{:else if !$upcoming.length && !$data.length && !$watched.length}
+			{:else if !$upcoming.length && !$unwatched.length && !$watched.length}
 				<Container focusOnMount class="h-ghost m-auto px-32">
 					Add content to your list to see it here.
 				</Container>

@@ -3,11 +3,8 @@ import type { Action } from 'svelte/action';
 import { derived, get, readable, writable, type Readable } from 'svelte/store';
 import { awaitAppInitialization } from './user.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-import { nestedDerived, waitFor } from '$lib/utils';
+import { nestedDerived, useInteractionObserver, waitFor } from '$lib/utils';
 import { tick } from 'svelte';
-
-type Request<TResponse> = ReturnType<typeof useRequest<TResponse>>;
-// type Refresher = ReturnType<typeof createRefresher>;
 
 /** @deprecated */
 export class Refresher {
@@ -86,222 +83,6 @@ export class Refresher {
 
 		return Promise.all(promises);
 	}
-}
-
-/** @deprecated */
-export function useRequest<TResponse>(
-	fn: () => Promise<TResponse>,
-	options: {
-		refresher?: Refresher;
-		key?: string;
-	} = {}
-) {
-	async function _createPromise() {
-		return awaitAppInitialization().then(() => fn());
-	}
-
-	// const { hasFocus: isActive } = getcs();
-	const { root } = useComponentStack();
-	const isActive = nestedDerived(root, ($root) => $root?.hasFocusWithin ?? readable(false));
-	// const hasFocusWithin = derived(root, ($root) => $root?.hasFocusWithin);
-	const { refresher, key } = options;
-
-	const initialPromise = _createPromise();
-	const promise = writable(initialPromise);
-	const isLoading = writable(true);
-	const data = writable<TResponse | undefined>(undefined);
-	initialPromise.then((d) => {
-		data.set(d);
-		isLoading.set(false);
-	});
-
-	async function refresh() {
-		isLoading.set(true);
-
-		return _createPromise().then((d) => {
-			data.set(d);
-			promise.set(Promise.resolve(d));
-			isLoading.set(false);
-			return d;
-		});
-	}
-
-	let updateTimeout: NodeJS.Timeout;
-	function refreshIn(ms = 1500) {
-		return new Promise((resolve) => {
-			clearTimeout(updateTimeout);
-			updateTimeout = setTimeout(() => {
-				refresh().then(resolve);
-			}, ms);
-		});
-	}
-
-	let unsubscribeRefresher = () => {};
-	if (refresher) {
-		unsubscribeRefresher = refresher.subscribe({ isActive, refresh, refreshIn, key });
-	}
-
-	return {
-		subscribe: data.subscribe,
-		isLoading: { subscribe: isLoading.subscribe },
-		promise: { subscribe: promise.subscribe },
-		refresh,
-		refreshIn,
-		unsubscribe: () => unsubscribeRefresher()
-	};
-}
-
-type StoreValue<T extends Readable<unknown>> = T extends Readable<infer U> ? U : never;
-type MapRequestsToPromises<T> = {
-	[K in keyof T]: T[K] extends Request<unknown> ? Awaited<StoreValue<T[K]['promise']>> : never;
-};
-
-// type RequestPromise<T extends Request<K>, K> = T['promise'];
-
-// type Asd<TReturn, A extends Array<Request<unknown>>> = (
-// 	a: MapRequestsToPromises<A>
-// ) => Promise<TReturn>;
-
-/** @deprecated */
-export function derviedRequest<const R extends Array<Request<unknown>>, TReturn>(
-	requests: R,
-	fn: (a: MapRequestsToPromises<R>) => Promise<TReturn>
-) {
-	const unsubs: Array<() => void> = [];
-	const data = writable<TReturn | undefined>(undefined);
-	let id = Symbol();
-	const promise = derived(
-		requests.map((r) => r.promise),
-		async (promises) => {
-			id = Symbol();
-			const currentId = id;
-
-			const values = await Promise.all(promises);
-			if (currentId !== id) return;
-			const res = await fn(values as any);
-			if (currentId !== id) return;
-			data.set(res);
-			return res;
-		}
-	);
-
-	return {
-		subscribe: data.subscribe,
-		promise: {
-			subscribe: promise.subscribe
-		},
-		unsubscribe: () => unsubs.forEach((unsub) => unsub())
-	};
-}
-
-// derviedRequest([{} as Request<number>, {} as Request<string>], async ([a, b]) => {
-// 	a?.subscribe((a) => a);
-// });
-
-// async function f<TReturn>(a: Array<Request<unknown>['promise']>): Promise<TReturn> {}
-
-// declare type Requests =
-// 	| Request<any>
-// 	| [Request<any>, ...Array<Request<any>>]
-// 	| Array<Request<any>>;
-// declare type RequestsValues<T> = T extends Request<infer U>
-// 	? U
-// 	: {
-// 			[K in keyof T]: T[K] extends Request<infer U> ? U : never;
-// 	  };
-
-// export function derviedRequest<TResponse, R extends Requests>(requests: R, fn: (values: RequestsValues<R>) => Promise<TResponse>) {
-// 	const unsubs: Array<() => void> = [];
-// 	const data = writable<TResponse | undefined>(undefined);
-// 	let id = Symbol();
-
-// 	derived(Array.isArray(requests) ? requests.map(r => r.promise) : [requests.promise], async (promises) => {
-// 		let currentId = id;
-// 		const values = await Promise.all(promises);
-// 		if (currentId !== id) return;
-
-// 	})
-
-// 	return {
-// 		unsubscribe: () => unsubs.forEach((unsub) => unsub()),
-// 	}
-// }
-
-// type Asd<T> = {
-// 	[K in keyof T]: T[K] extends Request<infer U> ? U : never;
-// };
-// export function test<T extends Request<unknown>[]>(requests: T, fn: (p: Asd<T>) => Promise<unknown>) {
-// 	fn(requests);
-// }
-
-type RequestStoreRequest<TResponse> = Request<TResponse> & { unsubscribe: () => void };
-
-/** @deprecated */
-export function useRequestsStore<TArgs extends Array<unknown>, TResponse>(
-	fn: (...args: TArgs) => Promise<TResponse>,
-	options: { persistant?: boolean } = {}
-) {
-	const requests: Map<string, { subscribers: symbol[]; request: Request<TResponse> }> = new Map();
-
-	function subscribe(...args: TArgs): RequestStoreRequest<TResponse> {
-		const id = Symbol();
-		let request = requests.get(JSON.stringify(args))?.request;
-
-		if (!request) {
-			request = useRequest(() => fn(...args));
-			requests.set(JSON.stringify(args), {
-				subscribers: [id],
-				request
-			});
-		} else {
-			requests.get(JSON.stringify(args))?.subscribers.push(id);
-		}
-
-		return {
-			...request,
-			unsubscribe: () => {
-				const subscribers = requests.get(JSON.stringify(args))?.subscribers;
-				const index = subscribers?.indexOf(id) ?? -1;
-				if (index !== -1) {
-					subscribers?.splice(index, 1);
-				}
-
-				if (subscribers?.length === 0 && options.persistant !== true) {
-					requests.delete(JSON.stringify(args));
-					console.log('deleting request', args);
-				}
-			}
-		};
-	}
-
-	function _get(...args: TArgs) {
-		const res = subscribe(...args);
-		res.unsubscribe();
-		return get(res.promise);
-	}
-
-	const refresh = async (...args: TArgs) => {
-		const request = requests.get(JSON.stringify(args))?.request;
-
-		if (request) {
-			return request.refresh();
-		}
-	};
-
-	const refreshIn = async (ms: number, ...args: TArgs) => {
-		const request = requests.get(JSON.stringify(args))?.request;
-
-		if (request) {
-			return request.refreshIn(ms);
-		}
-	};
-
-	return {
-		subscribe,
-		get: _get,
-		refresh,
-		refreshIn
-	};
 }
 
 /**
@@ -437,49 +218,10 @@ export function usePaginatedRequest<TResponseItem>(
 	};
 }
 
-/** @deprecated */
-export const movieUserDataRefresher = new Refresher();
-/** @deprecated */
-export const seriesUserDataRefresher = new Refresher();
-/** @deprecated */
-export const episodeUserDataRefresher = new Refresher();
-/** @deprecated */
-export const libraryRefresher = new Refresher();
-
-/**
- * A store for fetching data with the ability to make it stale and refetch automatically when the component page comes to front
- *
- * If prev is used, the return type must be explicitly defined
- */
-export function useData<TResponse>(fetchData: (prev: TResponse | undefined) => Promise<TResponse>) {
+export function useStaleable(refetch: () => Promise<unknown>) {
 	const componentStack = useComponentStack();
 
-	let lastRequestId = 0;
-
-	const lastData = writable<TResponse | undefined>(undefined);
-	const isLoading = writable(true);
-	const promise = writable(makeRequest(false));
-
-	async function makeRequest(setPromise = true) {
-		const requestId = lastRequestId;
-		isLoading.set(true);
-		const p = awaitAppInitialization().then(() => fetchData(get(lastData)));
-		if (setPromise) promise.set(p);
-
-		await p;
-		// If no new requests has been made since this one started
-		if (requestId === lastRequestId) {
-			lastData.set(await p);
-			isLoading.set(false);
-			lastRequestId++;
-		} else {
-			console.log('Data request outdated, discarding result...', componentStack);
-		}
-
-		return await p;
-	}
-
-	type RefetchPromise = ReturnType<typeof makeRequest> | undefined;
+	type RefetchPromise = ReturnType<typeof refetch> | undefined;
 	let unsubToStaleWatcher: (() => void) | undefined;
 	const resolves: ((v: RefetchPromise) => void)[] = [];
 	/**
@@ -513,7 +255,7 @@ export function useData<TResponse>(fetchData: (prev: TResponse | undefined) => P
 				(isFocused) => !!isFocused,
 				() => {
 					console.log('Component focused, refetching data...', componentStack);
-					const p = makeRequest();
+					const p = refetch();
 					// const p = fetchData();
 					// isLoading.set(true);
 					resolves.splice(0).forEach((r) => r(p));
@@ -524,30 +266,133 @@ export function useData<TResponse>(fetchData: (prev: TResponse | undefined) => P
 		return out;
 	}
 
-	/**
-	 * Wait for current update
-	 * Check if it was invalidated and that the promise that was waited is still current promise
-	 * If yes, proceed with updating with up to date data
-	 */
-	async function updateSequential() {
-		const currentPromise = get(promise);
-		const data = await currentPromise;
+	return {
+		setStale,
+		unsubscribe: () => {
+			unsubToStaleWatcher?.();
+			resolves.splice(0).forEach((r) => r(undefined));
+		}
+	};
+}
 
-		// Check if data is invalid, repeat
-		if (get(promise) !== currentPromise) return updateSequential();
+/**
+ * Utility hook for making consistent atomic updates from promise callbacks
+ */
+export function useAtomicUpdates() {
+	let version = 0;
+	let chain: Promise<unknown> = Promise.resolve();
 
-		return makeRequest();
+	/** Invalidates all previous pending update callbacks */
+	function atomicThen<T>(fn: Promise<T>, cb: (v: T) => void) {
+		const v = ++version;
+		chain = fn.catch(() => {});
+
+		fn.then((val) => {
+			if (version === v) {
+				cb(val);
+			}
+		});
+	}
+
+	/** Waits for all previous updates to complete before callback */
+	function sequentialThen<T>(fn: Promise<T>, cb: (v: T) => void) {
+		const v = version;
+		chain = chain
+			.then(() => fn)
+			.then((val) => {
+				if (version === v) {
+					cb(val);
+				}
+			})
+			.catch(() => {});
+	}
+
+	return {
+		atomicThen,
+		sequentialThen,
+		invalidate: () => {
+			version += 1;
+		}
+	};
+}
+
+/**
+ * A store for fetching data with the ability to make it stale and refetch automatically when the component page comes to front
+ *
+ * If prev is used, the return type must be explicitly defined
+ */
+export function _useData<TResponse>(fetchData: () => Promise<TResponse>) {
+	const atomicUpdates = useAtomicUpdates();
+
+	const lastData = writable<TResponse | undefined>(undefined);
+	const isLoading = writable(true);
+	const promise = writable(makeRequest(false));
+
+	async function makeRequest(setPromise = true) {
+		return new Promise<TResponse>((resolve) => {
+			isLoading.set(true);
+
+			const p = awaitAppInitialization().then(() => fetchData());
+			if (setPromise) promise.set(p);
+
+			atomicUpdates.atomicThen(p, (data) => {
+				lastData.set(data);
+				isLoading.set(false);
+				resolve(data);
+			});
+		});
 	}
 
 	return {
 		data: lastData,
 		isLoading,
 		promise,
-		setStale,
-		updateSequential,
-		unsubscribeEarly: () => {
-			unsubToStaleWatcher?.();
-			resolves.splice(0).forEach((r) => r(undefined));
-		}
+		update: () => makeRequest()
+	};
+}
+
+export function usePaginatedRequest2<T>(fn: (page: number) => Promise<T[]>) {
+	let p = 1;
+	let stop = false;
+	const data = writable([] as T[]);
+	const loading = writable(false);
+	const atomicUpdates = useAtomicUpdates();
+
+	function fetchPage() {
+		if (stop) return;
+		const page = p;
+		p++;
+		loading.set(true);
+
+		atomicUpdates.sequentialThen(fn(page), (newItems) => {
+			console.log('atomic update', { page, newItems });
+			data.update((d) => {
+				d.push(...newItems);
+				return d;
+			});
+			loading.set(false);
+			if (newItems.length === 0) {
+				stop = true;
+			}
+		});
+	}
+
+	function reset() {
+		p = 1;
+		stop = false;
+		data.set([] as T[]);
+		loading.set(false);
+		atomicUpdates.invalidate();
+		console.log('Data reset, version invalidated');
+	}
+
+	const observer = useInteractionObserver(() => fetchPage());
+
+	return {
+		subscribe: data.subscribe,
+		loading,
+		fetchPage,
+		observer,
+		reset
 	};
 }

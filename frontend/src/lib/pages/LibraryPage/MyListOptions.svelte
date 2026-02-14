@@ -2,7 +2,13 @@
 	import Dialog from '$lib/components/Dialog/Dialog.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
-	import { libraryViewSettings, type MyListOrder, type MyListOrderDirection } from './LibraryPage';
+	import {
+		libraryContext,
+		type MyListOrder,
+		type MyListOrderDirection
+	} from '$lib/stores/data/library-data.store';
+
+	const { libraryViewSettings } = libraryContext.getContext(true);
 
 	const sortByOptions: { label: string; value: MyListOrder }[] = [
 		{ label: 'Last Release Date', value: 'last-release-date' },
