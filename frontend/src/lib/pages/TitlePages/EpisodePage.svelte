@@ -2,7 +2,7 @@
 	import Container from '$components/Container.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
-	import { useEpisodeContext } from '$lib/stores/episode-data.store';
+	import { useEpisodeContext } from '$lib/stores/data/episode-data.store';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import Button from '../../components/Button/Button.svelte';

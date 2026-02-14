@@ -10,13 +10,13 @@
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { usePaginatedRequest2 } from '$lib/stores/data.store';
+	import { usePaginatedData } from '$lib/stores/data/data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { reiverrApi } from '$lib/stores/user.store';
 
 	export let catalogue: CatalogueDto;
 
-	const { observer, loading, ...catalogueItems } = usePaginatedRequest2((page) =>
+	const { observer, loading, ...catalogueItems } = usePaginatedData((page) =>
 		reiverrApi.catalogues
 			.getCatalogue({
 				pluginId: catalogue.pluginId,

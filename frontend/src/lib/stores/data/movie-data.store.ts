@@ -2,9 +2,9 @@ import { useComponentStack } from '$lib/components/StackRouter/stack-router.stor
 import { createStoreContext } from '$lib/utils';
 import { get, writable } from 'svelte/store';
 import { continueWatchingMoviesContext } from './continue-watching-data.store';
-import { _useData, useStaleable } from './data.store';
-import { libraryContext } from './data/library-data.store';
-import { reiverrApi, user } from './user.store';
+import { useData, useStaleable } from './data.store';
+import { libraryContext } from './library-data.store';
+import { reiverrApi, user } from '../user.store';
 
 export const useMovieContext = (tmdbId: string) =>
 	createStoreContext(`movie-${tmdbId}`, () => useMovieData(tmdbId));
@@ -20,12 +20,12 @@ function useMovieData(tmdbId: string) {
 	const isWatched = writable(false);
 	const progress = writable(0);
 
-	const movieData = _useData(async () => {
+	const movieData = useData(async () => {
 		const data = await reiverrApi.metadata.getMovie(tmdbId).then((r) => r.data.tmdbMovie);
 		return data;
 	});
 
-	const userData = _useData(async () => {
+	const userData = useData(async () => {
 		const data = await reiverrApi.users
 			.getMovieUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);

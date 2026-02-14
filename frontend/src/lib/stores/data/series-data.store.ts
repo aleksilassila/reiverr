@@ -3,9 +3,9 @@ import { useComponentStack } from '$lib/components/StackRouter/stack-router.stor
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import { continueWatchingSeriesContext } from './continue-watching-data.store';
-import { _useData, useStaleable } from './data.store';
-import { libraryContext } from './data/library-data.store';
-import { reiverrApi, user } from './user.store';
+import { useData, useStaleable } from './data.store';
+import { libraryContext } from './library-data.store';
+import { reiverrApi, user } from '../user.store';
 
 export type EpisodeUserData = {
 	season: number;
@@ -70,10 +70,10 @@ function useSeriesData(tmdbId: string) {
 	const inLibrary = writable(false);
 	const isWatched = writable(false);
 
-	const seriesData = _useData(() =>
+	const seriesData = useData(() =>
 		reiverrApi.metadata.getSeries(tmdbId).then((r) => r.data.tmdbSeries)
 	);
-	const userData = _useData(async () => {
+	const userData = useData(async () => {
 		const data = await reiverrApi.users
 			.getSeriesUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);

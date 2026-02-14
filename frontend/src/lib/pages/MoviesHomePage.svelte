@@ -6,7 +6,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import { continueWatchingMoviesContext } from '$lib/stores/continue-watching-data.store';
+	import { continueWatchingMoviesContext } from '$lib/stores/data/continue-watching-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';

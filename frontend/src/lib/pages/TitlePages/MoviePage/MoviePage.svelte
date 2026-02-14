@@ -9,7 +9,7 @@
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
-	import { useMovieContext } from '$lib/stores/movie-data.store';
+	import { useMovieContext } from '$lib/stores/data/movie-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi } from '$lib/stores/user.store';

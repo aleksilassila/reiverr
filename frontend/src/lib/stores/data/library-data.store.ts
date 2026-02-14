@@ -1,6 +1,6 @@
 import { betterSubscribe, createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
-import { usePaginatedRequest2, useStaleable } from '../data.store';
+import { usePaginatedData, useStaleable } from './data.store';
 import { createLocalStorageStore } from '../localstorage.store';
 import { reiverrApi, user } from '../user.store';
 
@@ -19,51 +19,53 @@ export const libraryContext = createStoreContext(`library`, () => {
 		separateWatched: true
 	});
 
-	const upcoming = usePaginatedRequest2((page) =>
-		reiverrApi.library
-			.getMyList(String(get(user)?.id), {
-				type: 'series',
-				order: 'last-played',
-				status: 'continue-watching',
-				page
-			})
-			.then((r) => r.data.items)
+	const upcoming = usePaginatedData(
+		(page) =>
+			reiverrApi.library
+				.getMyList(String(get(user)?.id), {
+					type: 'series',
+					order: 'last-played',
+					status: 'continue-watching',
+					page
+				})
+				.then((r) => r.data.items),
+		{ initialize: false }
 	);
 
-	const watched = usePaginatedRequest2((page) =>
-		reiverrApi.library
-			.getMyList(String(get(user)?.id), {
-				status: 'watched',
-				type: get(category),
-				order: get(libraryViewSettings).order,
-				direction: get(libraryViewSettings).direction,
-				page
-			})
-			.then((i) => i.data.items)
+	const watched = usePaginatedData(
+		(page) =>
+			reiverrApi.library
+				.getMyList(String(get(user)?.id), {
+					status: 'watched',
+					type: get(category),
+					order: get(libraryViewSettings).order,
+					direction: get(libraryViewSettings).direction,
+					page
+				})
+				.then((i) => i.data.items),
+		{ initialize: false }
 	);
 
 	watched.subscribe((items) => console.log('Watched items:', items));
 
-	const unwatched = usePaginatedRequest2((page) =>
-		reiverrApi.library
-			.getMyList(String(get(user)?.id), {
-				type: get(category),
-				order: get(libraryViewSettings).order,
-				direction: get(libraryViewSettings).direction,
-				...(get(libraryViewSettings).separateWatched ? { status: 'unwatched' } : {}),
-				page
-			})
-			.then((i) => i.data.items)
+	const unwatched = usePaginatedData(
+		(page) =>
+			reiverrApi.library
+				.getMyList(String(get(user)?.id), {
+					type: get(category),
+					order: get(libraryViewSettings).order,
+					direction: get(libraryViewSettings).direction,
+					...(get(libraryViewSettings).separateWatched ? { status: 'unwatched' } : {}),
+					page
+				})
+				.then((i) => i.data.items),
+		{ initialize: false }
 	);
 
 	const { setStale, unsubscribe: unsubStale } = useStaleable(async () => {
 		upcoming.reset();
 		watched.reset();
 		unwatched.reset();
-
-		upcoming.fetchPage();
-		watched.fetchPage();
-		unwatched.fetchPage();
 	});
 
 	const unsubscribe = betterSubscribe(
@@ -71,10 +73,6 @@ export const libraryContext = createStoreContext(`library`, () => {
 			upcoming.reset();
 			watched.reset();
 			unwatched.reset();
-
-			upcoming.fetchPage();
-			watched.fetchPage();
-			unwatched.fetchPage();
 		}),
 		() => {}
 	);

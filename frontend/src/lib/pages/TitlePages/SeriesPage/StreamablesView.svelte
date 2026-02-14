@@ -6,14 +6,14 @@
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
+	import { breadcrumbsContext } from '$lib/stores/breadcrumbs.store';
+	import { useSeriesContext } from '$lib/stores/data/series-data.store';
+	import { useMovieContext } from '$lib/stores/data/movie-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { TriangleRight } from 'radix-icons-svelte';
 	import { get } from 'svelte/store';
-	import { useSeriesContext } from '$lib/stores/series-data.store';
-	import { useMovieContext } from '$lib/stores/movie-data.store';
-	import { breadcrumbsContext } from '$lib/stores/breadcrumbs.store';
 
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;

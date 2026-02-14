@@ -3,6 +3,7 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView } from '$lib/selectable';
+	import type { EpisodeUserData } from '$lib/stores/data/series-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
@@ -15,7 +16,6 @@
 	} from '../../../apis/tmdb/tmdb-api';
 	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { Selectable } from '../../../selectable';
-	import type { EpisodeUserData } from '$lib/stores/series-data.store';
 
 	const { topVisible } = getScrollContext();
 

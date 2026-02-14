@@ -1,6 +1,6 @@
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
-import { useSeriesContext } from '$lib/stores/series-data.store';
+import { useSeriesContext } from '$lib/stores/data/series-data.store';
 import { formatThousands, waitFor } from '$lib/utils';
 import { derived, writable, type Writable } from 'svelte/store';
 import type { TitleInfoProperty } from '../HeroTitleInfo';

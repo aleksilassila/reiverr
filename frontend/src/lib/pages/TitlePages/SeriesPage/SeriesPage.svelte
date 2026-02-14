@@ -12,7 +12,7 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
-	import { useSeriesContext } from '$lib/stores/series-data.store';
+	import { useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';

@@ -2,7 +2,7 @@ import { useComponentStack } from '$lib/components/StackRouter/stack-router.stor
 import { betterSubscribe, createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import { useSeriesContext } from './series-data.store';
-import { reiverrApi, user } from './user.store';
+import { reiverrApi, user } from '../user.store';
 
 export const useEpisodeContext = (tmdbId: string, season: number, episode: number) =>
 	createStoreContext(`episode-${tmdbId}-s${season}e${episode}`, () =>
