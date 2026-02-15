@@ -1,7 +1,6 @@
-import { type VideoTrackDto, type SubtitleTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
+import { type SubtitleTrackDto, type VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { _createStoreContext } from '$lib/utils';
 import type { Subtitles } from '@aleksilassila/reiverr-shared/dist/src/old';
-import { time } from 'svelte-i18n';
 import { derived, get, writable } from 'svelte/store';
 
 export type VideoPlayerProps = {
@@ -120,7 +119,11 @@ export interface UseVideoPlayerOptions {
 	initialProgress?: number;
 }
 
-export function useVideoPlayer(_options: UseVideoPlayerOptions = {}) {
+export function useVideoPlayer(
+	_options: UseVideoPlayerOptions = {
+		initialProgress: 0
+	}
+) {
 	// --- State (writable stores) ---
 	const video = writable<HTMLVideoElement | undefined>(undefined);
 	/** @deprecated */
@@ -237,9 +240,13 @@ export function useVideoPlayer(_options: UseVideoPlayerOptions = {}) {
 	function handleLoadedData() {
 		videoDidLoad.set(true);
 		const el = get(video);
-		const source = get(videoSource);
-		if (el && source?.progress && el.currentTime < el.duration * source.progress) {
-			el.currentTime = el.duration * source.progress;
+
+		if (
+			el &&
+			_options.initialProgress !== undefined &&
+			el.currentTime < el.duration * _options.initialProgress
+		) {
+			el.currentTime = el.duration * _options.initialProgress;
 		}
 	}
 
@@ -335,6 +342,7 @@ export function useVideoPlayer(_options: UseVideoPlayerOptions = {}) {
 		handleKeyboardShortcut,
 		destroy,
 
+		initialProgress: _options.initialProgress ?? 0,
 		progressUpdateHandler: (time: number) => {}
 	};
 }

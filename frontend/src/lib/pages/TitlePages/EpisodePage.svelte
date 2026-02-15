@@ -58,11 +58,8 @@
 				tmdbId: id,
 				season: Number(season),
 				episode: Number(episode),
-				openStream: async ({ id, pluginId }) => {
-					// playStream();
-				}
-			},
-			group: 'top'
+				progress: $progress
+			}
 		});
 	}
 

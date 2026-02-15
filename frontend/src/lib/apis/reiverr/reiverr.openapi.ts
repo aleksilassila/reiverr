@@ -1857,6 +1857,7 @@ export interface VideoTrackDto {
   url: string;
   type: "direct" | "hls" | "dash";
   lang?: string;
+  proxy?: boolean;
 }
 
 export interface SubtitleTrackDto {
@@ -1864,6 +1865,7 @@ export interface SubtitleTrackDto {
   url: string;
   lang: string;
   kind: string;
+  proxy?: boolean;
 }
 
 export interface CatalogueDto {
@@ -3267,6 +3269,127 @@ export class Api<
         method: "GET",
         query: query,
         format: "json",
+        ...params,
+      }),
+  };
+  proxy = {
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllGet
+     * @summary Proxy all requests to a destination URL
+     * @request GET:/api/proxy/*
+     */
+    proxyAllGet: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "GET",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllPost
+     * @summary Proxy all requests to a destination URL
+     * @request POST:/api/proxy/*
+     */
+    proxyAllPost: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllPut
+     * @summary Proxy all requests to a destination URL
+     * @request PUT:/api/proxy/*
+     */
+    proxyAllPut: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "PUT",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllDelete
+     * @summary Proxy all requests to a destination URL
+     * @request DELETE:/api/proxy/*
+     */
+    proxyAllDelete: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllPatch
+     * @summary Proxy all requests to a destination URL
+     * @request PATCH:/api/proxy/*
+     */
+    proxyAllPatch: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "PATCH",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllOptions
+     * @summary Proxy all requests to a destination URL
+     * @request OPTIONS:/api/proxy/*
+     */
+    proxyAllOptions: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "OPTIONS",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllHead
+     * @summary Proxy all requests to a destination URL
+     * @request HEAD:/api/proxy/*
+     */
+    proxyAllHead: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "HEAD",
+        ...params,
+      }),
+
+    /**
+     * @description Forwards all HTTP requests (GET, POST, PUT, DELETE, etc.) to the specified destination URL. The URL should be provided in the path after /proxy/
+     *
+     * @tags proxy
+     * @name ProxyAllSearch
+     * @summary Proxy all requests to a destination URL
+     * @request SEARCH:/api/proxy/*
+     */
+    proxyAllSearch: (params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/proxy/*`,
+        method: "SEARCH",
         ...params,
       }),
   };

@@ -1,4 +1,5 @@
 export const ENV = process.env.NODE_ENV || 'production';
+export const DEV = ENV === 'development';
 export const JWT_SECRET =
   process.env.SECRET ||
   (ENV === 'development'

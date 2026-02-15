@@ -10,6 +10,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build --mode production --outDir ../backend/dist/dist",
+		"build:here": "vite build --mode production",
 		"build:tizen": "VITE_PLATFORM=tv vite build --mode production --outDir tizen/dist",
 		"preview": "npm run build && npm run --prefix backend start:prod",
 		"preview:tizen": "npm run build:tizen && vite preview --outDir tizen/dist",

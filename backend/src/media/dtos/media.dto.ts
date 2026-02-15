@@ -36,6 +36,9 @@ export class VideoTrackDto implements VideoTrack {
 
   @ApiProperty({ required: false })
   lang?: string;
+
+  @ApiProperty({ required: false })
+  proxy?: boolean;
 }
 
 export class SubtitleTrackDto implements SubtitleTrack {
@@ -50,6 +53,9 @@ export class SubtitleTrackDto implements SubtitleTrack {
 
   @ApiProperty()
   kind: string;
+
+  @ApiProperty({ required: false })
+  proxy?: boolean;
 }
 
 // export class AudioTrack {

@@ -12,13 +12,17 @@ import { GetAuthToken, GetAuthUser } from 'src/auth/auth.guard';
 import { PaginatedApiOkResponse } from 'src/common/common.decorator';
 import { PaginatedResponseDto } from 'src/common/common.dto';
 import { PluginsService } from 'src/plugins/plugins.service';
+import { MetadataService } from 'src/metadata/metadata.service';
 import { User } from 'src/users/user.entity';
 import { StreamablesDto, StreamDto } from './dtos/media.dto';
 
 @ApiTags('media')
 @Controller('media')
 export class MediaController {
-  constructor(private readonly clientsService: PluginsService) {}
+  constructor(
+    private readonly clientsService: PluginsService,
+    private readonly metadataService: MetadataService,
+  ) {}
 
   @Get('streamables')
   @ApiQuery({ name: 'tmdbId', required: true, type: String })
@@ -32,12 +36,25 @@ export class MediaController {
     @Query('season', new ParseIntPipe({ optional: true })) season?: number,
     @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
   ): Promise<PaginatedResponseDto<StreamablesDto>> {
+    // Fetch metadata to get the correct title
+    const isSeries = season !== undefined || episode !== undefined;
+    const metadata = isSeries
+      ? await this.metadataService.getSeriesByTmdbId(tmdbId)
+      : await this.metadataService.getMovieByTmdbId(tmdbId);
+
+    const title = metadata?.name || 'Unknown';
+
     const mediaServices = this.clientsService.getMediaServices();
 
     const groupResponses = mediaServices.map(
       async (s): Promise<StreamablesDto> => {
         const response = await firstValueFrom(
-          s.mediaService!.GetStreamables({ title: 'test' }),
+          s.mediaService!.GetStreamables({
+            title,
+            season,
+            episode,
+            tmdbId,
+          }),
         ).catch((e) => ({ items: [] as StreamableItem[] }));
 
         return {

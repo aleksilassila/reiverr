@@ -12,7 +12,7 @@
 	import { topBackground } from '../GlobalBackground/BackgroundStack';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import Spinner from '../Utils/Spinner.svelte';
-	import type { VideoPlayerProps } from './VideoPlayer';
+	import type { VideoPlayerProps } from './video-player.store';
 
 	const STOP_WHEN_REMAINING = 0;
 

@@ -89,7 +89,9 @@ message VideoTrack {
   string label = 1;
   string url = 2;
   string type = 3; // "direct", "hls", "dash"
-  optional string lang = 4;
+  optional string lang = 5;
+  optional bool proxy = 4;
+  
   // optional string quality = 4;
   // optional string codec = 5;
   // optional int32 bitrate = 6;
@@ -100,6 +102,7 @@ message SubtitleTrack {
   string url = 2;
   string lang = 3;
   string kind = 4; // "subtitles", "captions", "descriptions"
+  optional bool proxy = 5;
 }
 
 // Catalogue Messages

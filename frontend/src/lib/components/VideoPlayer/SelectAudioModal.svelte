@@ -5,7 +5,7 @@
 	import Button from '../Button/Button.svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { useComponentStack } from '../StackRouter/stack-router.store';
-	import type { AudioTrack } from './VideoPlayer';
+	import type { AudioTrack } from './video-player.store';
 
 	const { close } = useComponentStack();
 

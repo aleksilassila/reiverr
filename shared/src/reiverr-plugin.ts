@@ -62,12 +62,8 @@ export interface VideoTrack {
   url: string;
   /** "direct", "hls", "dash" */
   type: string;
-  /**
-   * optional string quality = 4;
-   * optional string codec = 5;
-   * optional int32 bitrate = 6;
-   */
   lang?: string | undefined;
+  proxy?: boolean | undefined;
 }
 
 export interface SubtitleTrack {
@@ -76,6 +72,7 @@ export interface SubtitleTrack {
   lang: string;
   /** "subtitles", "captions", "descriptions" */
   kind: string;
+  proxy?: boolean | undefined;
 }
 
 export interface CataloguesRequest {
@@ -157,8 +154,4 @@ export interface PluginCatalogueService {
   GetCatalogues(request: CataloguesRequest): Observable<CataloguesResponse>;
   /** Get everything in a catalogue - e.g. all movies or all series */
   GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
-}
-
-/** Management Profile Service - NEW for monitoring/management profiles */
-export interface ManagementProfileService {
 }

@@ -52,7 +52,9 @@
 	let trailerId: string | undefined;
 	let titleProperties: TitleInfoProperty[] = [];
 
-	$: recommendations = tmdbApi.v3.movieRecommendations(Number(id)).then((r) => r.data.results);
+	$: recommendations = tmdbApi.v3
+		.movieRecommendations(Number(id))
+		.then((r) => (r.data as any).results);
 
 	$tmdbMovie.then(async (movie) => {
 		trailerId = movie?.videos?.results?.find(

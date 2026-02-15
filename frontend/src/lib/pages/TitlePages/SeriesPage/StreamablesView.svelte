@@ -18,7 +18,7 @@
 	export let tmdbId: string;
 	export let season: number | undefined = undefined;
 	export let episode: number | undefined = undefined;
-	export let openStream: (opts: { id: string; pluginId: string }) => Promise<void>;
+	export let progress = 0;
 	export let name = '';
 
 	const componentStack = useComponentStack();
@@ -143,7 +143,7 @@
 								pluginId: group.pluginId,
 								streamId: row.id,
 								sourceName: group.label,
-								progress: 0,
+								progress,
 								handleProgressUpdate
 							});
 							componentStack.close();

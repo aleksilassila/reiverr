@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { reiverrApi } from '../../stores/user.store';
-	import { videoPlayerContext } from './VideoPlayer';
+	import { videoPlayerContext } from './video-player.store';
 	import VideoPlayer from './VideoPlayer.svelte';
 
 	export let title: string;
@@ -14,7 +14,7 @@
 	export let progress: number = 0;
 	export let handleProgressUpdate: (progress: number) => void;
 
-	const videoPlayer = videoPlayerContext.createContext();
+	const videoPlayer = videoPlayerContext.createContext({ initialProgress: progress });
 	const { videoTracks, subtitleTracks } = videoPlayer;
 
 	videoPlayer.progressUpdateHandler = handleProgressUpdate;

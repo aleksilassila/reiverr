@@ -13,6 +13,8 @@ import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { MediaModule } from './media/media.module';
 import { CataloguesModule } from './catalogues/catalogues.module';
+import { ProxyModule } from './proxy/proxy.module';
+import { DEV } from './consts';
 
 @Module({
   imports: [
@@ -20,7 +22,9 @@ import { CataloguesModule } from './catalogues/catalogues.module';
     UsersModule,
     AuthModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '../dist'),
+      rootPath: DEV
+        ? join(__dirname, '../../../frontend/dist')
+        : join(__dirname, '../dist'),
     }),
     MetadataModule,
     SourceProvidersModule,
@@ -28,6 +32,7 @@ import { CataloguesModule } from './catalogues/catalogues.module';
     PermissionsModule,
     MediaModule,
     CataloguesModule,
+    ProxyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

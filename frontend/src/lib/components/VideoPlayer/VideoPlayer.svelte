@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { ChatBubble, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
+	import { ChatBubble, EnterFullScreen, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { useRegistrar } from '../../selectable';
 	import Container from '../Container.svelte';
@@ -8,15 +8,15 @@
 	import Spinner from '../Utils/Spinner.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 
+	import type { VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { derived, get } from 'svelte/store';
 	import { useSimpleModal as useSimpleModalStack } from '../Modal/modal.store';
 	import ModalStackProvider from '../Modal/ModalStackProvider.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import SelectVideoModal from './SelectVideoModal.svelte';
 	import VideoElement from './VideoElement.svelte';
-	import { videoPlayerContext } from './VideoPlayer';
-	import type { VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { t } from 'svelte-i18n';
+	import { videoPlayerContext } from './video-player.store';
+	import { isTv } from '$lib/utils/browser-detection';
 
 	export let title: string;
 	export let subtitle: string = '';
@@ -41,6 +41,7 @@
 		pause: pauseVideo,
 		seekAndPlay,
 		selectSubtitles,
+		toggleFullscreen,
 		handleKeyboardShortcut
 	} = videoPlayerContext.getContext();
 
@@ -111,6 +112,12 @@
 			detail.preventNavigation();
 		}
 		handleShowInterface();
+	}}
+	on:back={({ detail }) => {
+		if (document.fullscreenElement) {
+			detail.stopPropagation();
+			return;
+		}
 	}}
 	on:click={() => togglePause?.()}
 	let:hasFocusWithin
@@ -256,20 +263,11 @@
 							<ChatBubble size={24} />
 						</IconButton>
 					{/if}
-					<!-- <IconButton
-						on:clickOrSelect={() => {
-							push({
-								component: SelectAudioModal,
-								props: {
-									selectedAudioStreamIndex: playbackInfo?.audioStreamIndex || -1,
-									audioTracks: playbackInfo?.audioTracks || [],
-									selectAudioStream
-								}
-							});
-						}}
-					>
-						<ChatBubble size={24} />
-					</IconButton> -->
+					{#if !isTv()}
+						<IconButton on:clickOrSelect={() => toggleFullscreen()}>
+							<EnterFullScreen size={24} />
+						</IconButton>
+					{/if}
 				</div>
 			</Container>
 			<ProgressBar

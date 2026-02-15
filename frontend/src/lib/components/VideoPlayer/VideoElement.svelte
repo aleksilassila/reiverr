@@ -7,7 +7,9 @@
 		createErrorNotification,
 		createInfoNotification
 	} from '../Notifications/notification.store';
-	import { videoPlayerContext } from './VideoPlayer';
+	import { videoPlayerContext } from './video-player.store';
+	import { get } from 'svelte/store';
+	import { sessions } from '$lib/stores/session.store';
 
 	const videoPlayer = videoPlayerContext.getContext();
 	const {
@@ -16,6 +18,7 @@
 		subtitleTracks,
 		videoDidLoad,
 		paused,
+		initialProgress,
 		duration,
 		currentTime,
 		bufferedTime,
@@ -45,25 +48,25 @@
 		// 	$video.poster = backdropUrl;
 		// }
 
-		if (track.type === 'hls') {
-			if (Hls.isSupported()) {
-				console.log('HLS is supported, loading HLS.js');
-				const hls = new Hls();
+		if (track.type === 'hls' && Hls.isSupported()) {
+			console.log('HLS is supported, loading HLS.js');
+			const hls = new Hls();
 
-				hls.loadSource(track.url);
-				hls.attachMedia($video);
-			} else if ($video.canPlayType('application/vnd.apple.mpegurl') || isTizen()) {
-				/*
-				 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
-				 * This is not a problem, since HLS is natively supported on iOS. But any other browser
-				 * that does not support MSE will not be able to play the video.
-				 */
-				$video.src = track.url;
-			} else {
-				throw new Error('HLS is not supported');
-			}
-		} else {
+			hls.loadSource(track.url);
+			hls.attachMedia($video);
+		} else if (
+			(track.type === 'hls' && $video.canPlayType('application/vnd.apple.mpegurl')) ||
+			track.type === 'direct' ||
+			isTizen()
+		) {
+			/*
+			 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
+			 * This is not a problem, since HLS is natively supported on iOS. But any other browser
+			 * that does not support MSE will not be able to play the video.
+			 */
 			$video.src = track.url;
+		} else {
+			throw new Error('HLS is not supported');
 		}
 
 		if (reportProgressInterval) clearInterval(reportProgressInterval);
@@ -132,7 +135,9 @@
 	{#each $subtitleTracks.tracks as subtitle (subtitle.url)}
 		<track
 			id={subtitle.label ?? subtitle.url}
-			src={subtitle.url}
+			src={subtitle.proxy
+				? `${get(sessions).activeSession?.baseUrl}/api/proxy/${subtitle.url}`
+				: subtitle.url}
 			kind={subtitle.kind}
 			srclang={subtitle.lang}
 			label={subtitle.label}
