@@ -4,7 +4,7 @@
 		globalBackground,
 		topBackground,
 		unfocusGlobalBackground
-	} from '$lib/components/GlobalBackground/BackgroundStack';
+	} from '$lib/components/GlobalBackground/background-stack.store';
 	import { PLATFORM_WEB } from '$lib/constants';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { userActivity } from '$lib/stores/user-activity.store';

@@ -4,7 +4,7 @@
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import TmdbEpisodeCard from '$lib/components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { navigate } from '$lib/components/StackRouter/stack-router.store';
@@ -138,19 +138,6 @@
 			tmdbId: id,
 			videoId: trailerId,
 			onBackground: true
-		});
-	}
-
-	function openStreamableSelectorModal(opts: { tmdbId: string; season: number; episode: number }) {
-		componentStack.push({
-			component: StreamablesView,
-			props: {
-				...opts,
-				openStream: async ({ id, pluginId }) => {
-					// playStream();
-				}
-			},
-			group: 'top'
 		});
 	}
 

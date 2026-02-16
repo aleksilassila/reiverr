@@ -4,7 +4,7 @@
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
 	import { createEventDispatcher } from 'svelte';
 	import BackgroundCard from './BackgroundCard.svelte';
-	import type { Background } from './BackgroundStack';
+	import type { Background } from './background-stack.store';
 
 	const dispatch = createEventDispatcher<{
 		jumpTo: number;

@@ -6,7 +6,7 @@
 	import Container from '../Container.svelte';
 	import Sidebar from '../Sidebar/Sidebar.svelte';
 	import { _setComponentStack, type CompStackPage } from './stack-router.store';
-	import { backgroundContext } from '../GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '../GlobalBackground/background-stack.store';
 
 	export let page: CompStackPage;
 	export let isHidden;

@@ -4,7 +4,7 @@
 	import {
 		focusGlobalBackground,
 		toggleFocusGlobalBackground
-	} from '../GlobalBackground/BackgroundStack';
+	} from '../GlobalBackground/background-stack.store';
 	import HeroContainer from './HeroContainer.svelte';
 </script>
 

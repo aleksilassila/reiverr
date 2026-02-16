@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { TmdbItemDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { tmdbApi } from '../apis/tmdb/tmdb-api';
 	import { TMDB_POSTER_SMALL } from '../constants.js';
 	import CollectionPage from './CollectionPages/CollectionPage.svelte';
 	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
-	createBackgroundPage();
+	backgroundContext.createContext();
 
 	export let id: string;
 

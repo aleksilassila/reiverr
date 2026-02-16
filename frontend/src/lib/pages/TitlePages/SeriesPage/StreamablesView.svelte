@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { StreamableDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import Marquee from '$lib/components/Marquee.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';

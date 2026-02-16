@@ -3,7 +3,7 @@
 	import CardGrid from '$lib/components/CardGrid.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
-	import { createBackgroundPage } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { setScrollContext } from '$lib/stores/scroll.store';
@@ -14,7 +14,7 @@
 	export let items: ComponentProps<TmdbCard>['item'][];
 	export let loading = false;
 
-	const background = createBackgroundPage();
+	backgroundContext.createContext();
 	const { registrar: registerScroll, topVisible } = setScrollContext();
 </script>
 

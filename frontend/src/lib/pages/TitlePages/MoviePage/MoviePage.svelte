@@ -3,7 +3,7 @@
 	import Button from '$lib/components/Button/Button.svelte';
 	import TmdbCard from '$lib/components/Card/TmdbCard.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB } from '$lib/constants';

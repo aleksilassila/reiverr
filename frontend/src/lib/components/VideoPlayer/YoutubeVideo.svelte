@@ -9,7 +9,7 @@
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
-	import { topBackground } from '../GlobalBackground/BackgroundStack';
+	import { topBackground } from '../GlobalBackground/background-stack.store';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import Spinner from '../Utils/Spinner.svelte';
 	import type { VideoPlayerProps } from './video-player.store';

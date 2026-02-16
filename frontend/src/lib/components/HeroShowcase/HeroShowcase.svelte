@@ -5,11 +5,10 @@
 	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { get, type Readable } from 'svelte/store';
-	import { TMDB_IMAGES_ORIGINAL, TMDB_POSTER_SMALL } from '../../constants';
+	import { TMDB_POSTER_SMALL } from '../../constants';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
-	import { getBackgroundPage } from '../GlobalBackground/BackgroundStack';
-	import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
+	import { backgroundContext } from '../GlobalBackground/background-stack.store';
 	import HeroContainer from './HeroContainer.svelte';
 	import PageDots from './PageDots.svelte';
 
@@ -25,7 +24,7 @@
 		url?: string;
 	};
 
-	const background = getBackgroundPage();
+	const background = backgroundContext.getContext();
 	const dispatch = createEventDispatcher<{
 		select: ShowcaseItem | undefined;
 	}>();
@@ -39,7 +38,7 @@
 	$: items.then((items) => {
 		awaitedItems = items;
 
-		background?.setBackgrounds(
+		background.setBackgrounds?.(
 			items.map((i) => ({
 				backdropUri: `${i.backdropUri}`,
 				mediaId: String(i.id)
@@ -52,7 +51,7 @@
 	}
 	function updateTrailer() {
 		// destroyBackgroundVideo();
-		background?.destroyVideo();
+		background.destroyVideo?.();
 		if (get(localSettings).autoplayTrailers) {
 			playTrailer(true);
 		}
@@ -63,12 +62,12 @@
 		const tmdbId = awaitedItems?.[index]?.id;
 		if (!videoId) return;
 
-		background?.playYoutubeVideo({ videoId, tmdbId: String(tmdbId), onBackground });
+		background.playYoutubeVideo?.({ videoId, tmdbId: String(tmdbId), onBackground });
 	}
 
 	function focusTrailer() {
 		if (!get(localSettings).autoplayTrailers) playTrailer();
-		else background?.focus();
+		else background.focus?.();
 		// toggleFocusGlobalBackground();
 	}
 
@@ -81,7 +80,7 @@
 			index = (index + 1) % awaitedItems.length;
 		}
 
-		background?.setIndex(index);
+		background.setIndex?.(index);
 
 		// if (autoFocusVideo && awaitedItems[index]?.videoUrl) {
 		// 	videoHasFocus = true;
@@ -101,7 +100,7 @@
 			index = (index - 1 + awaitedItems.length) % awaitedItems.length;
 		}
 
-		background?.setIndex(index);
+		background.setIndex?.(index);
 
 		// if (autoFocusVideo && items[index]?.videoUrl) {
 		// 	videoHasFocus = true;
@@ -114,7 +113,7 @@
 
 	function onJump(i: number) {
 		index = i;
-		background?.setIndex(index);
+		background.setIndex?.(index);
 		return true;
 	}
 

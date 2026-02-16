@@ -2,7 +2,7 @@
 	import { networksList } from '$lib/components/Collection/collections';
 	import NetworkCard from '$lib/components/Collection/NetworkCard.svelte';
 	import Container from '$lib/components/Container.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { continueWatchingSeriesContext } from '$lib/stores/data/continue-watching-data.store';

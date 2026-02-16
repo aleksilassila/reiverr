@@ -3,7 +3,7 @@
 	import { collectionsList, companiesList } from '$lib/components/Collection/collections';
 	import CompanyCard from '$lib/components/Collection/CompanyCard.svelte';
 	import Container from '$lib/components/Container.svelte';
-	import { backgroundContext } from '$lib/components/GlobalBackground/BackgroundStack';
+	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { continueWatchingMoviesContext } from '$lib/stores/data/continue-watching-data.store';
