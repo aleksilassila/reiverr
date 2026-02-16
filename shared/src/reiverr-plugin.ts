@@ -20,6 +20,12 @@ export interface PluginInfo {
   cataloguesSupported: boolean;
 }
 
+export interface PaginationParams {
+  /** 1-based page number */
+  page: number;
+  itemsPerPage: number;
+}
+
 export interface StreamablesRequest {
   title: string;
   season?: number | undefined;
@@ -128,10 +134,22 @@ export interface CatalogueItem {
   backdropUrl?: string | undefined;
 }
 
-export interface PaginationParams {
-  /** 1-based page number */
-  page: number;
-  itemsPerPage: number;
+export interface StreamablesCatalogueRequest {
+  title: string;
+  tmdbId?: string | undefined;
+  imdbId?: string | undefined;
+  tvdbId?: string | undefined;
+}
+
+export interface StreamablesCatalogueResponse {
+  items: StreamableCatalogueItem[];
+}
+
+export interface StreamableCatalogueItem {
+  id: string;
+  label: string;
+  season?: number | undefined;
+  episode?: number | undefined;
 }
 
 /** Plugin Service - handles plugin metadata and configuration */
@@ -154,4 +172,6 @@ export interface PluginCatalogueService {
   GetCatalogues(request: CataloguesRequest): Observable<CataloguesResponse>;
   /** Get everything in a catalogue - e.g. all movies or all series */
   GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
+  /** Get streamable items for movie or server - used in the ui to show wether an episode is streamable from the plugin */
+  GetStreamablesCatalogue(request: StreamablesCatalogueRequest): Observable<StreamablesCatalogueResponse>;
 }

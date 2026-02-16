@@ -25,6 +25,9 @@ service PluginCatalogueService {
   // Get everything in a catalogue - e.g. all movies or all series
   rpc GetCatalogue(CatalogueRequest) returns (CatalogueResponse);
 
+  // Get streamable items for movie or server - used in the ui to show wether an episode is streamable from the plugin
+  rpc GetStreamablesCatalogue(StreamablesCatalogueRequest) returns (StreamablesCatalogueResponse);
+
   // // Get missing items in catalogue
   // rpc GetMissingInCatalogue(MissingCatalogueRequest) returns (MissingCatalogueResponse);
 }
@@ -45,6 +48,13 @@ message PluginInfo {
   bool streaming_supported = 4;
   bool catalogues_supported = 5;
 }
+
+message PaginationParams {
+  int32 page = 1; // 1-based page number
+  int32 items_per_page = 2;
+}
+
+// Meida Service Messages
 
 message StreamablesRequest {
   string title = 1;
@@ -150,10 +160,24 @@ message CatalogueItem {
   optional string backdrop_url = 6;
 }
 
-message PaginationParams {
-  int32 page = 1; // 1-based page number
-  int32 items_per_page = 2;
+message StreamablesCatalogueRequest {
+    string title = 1;
+    optional string tmdb_id = 5;
+    optional string imdb_id = 6;
+    optional string tvdb_id = 7;
 }
+
+message StreamablesCatalogueResponse {
+  repeated StreamableCatalogueItem items = 1;
+}
+
+message StreamableCatalogueItem {
+  string id = 1;
+  string label = 2;
+  optional int32 season = 3;
+  optional int32 episode = 4;
+}
+
 
 // message MissingCatalogueRequest {
 //   UserContext user_context = 1;
