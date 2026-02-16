@@ -3,8 +3,14 @@
 .DS_Store
 .git
 
+# Build output
 ./**/node_modules
 ./**/dist
+./**/dist.*
+./**/.buildResult
+
+# Useless
+images/
 
 backend/plugins
 wireguard

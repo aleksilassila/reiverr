@@ -28,6 +28,7 @@
     "start:prod": "npm run start:prod --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run start:dev --workspace=backend",
+    "deploy:tizen": "docker build -f ./tizen/Dockerfile -t reiverr-tizen . && docker run --rm reiverr-tizen",
     "test": "npm run test --workspace=frontend && npm run test --workspace=backend",
     "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
     "format": "npm run format --workspace=frontend && npm run format --workspace=backend",

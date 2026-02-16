@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Please pass the IP address of your Samsung TV as part of the commandline arguments for this script.";
+    echo "Usage: $0 <TV_IP_ADDRESS> [CERTIFICATE_PASSWORD]";
 		exit 1;
 fi
 

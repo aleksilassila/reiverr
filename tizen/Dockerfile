@@ -6,19 +6,24 @@ WORKDIR /usr/src/app
 COPY package.json .
 COPY package-lock.json .
 
+COPY frontend/package.json ./frontend/package.json
+
+COPY shared/package.json ./shared/package.json
+
 RUN npm i
 
-COPY . .
+COPY frontend ./frontend
+# COPY tizen ./tizen
 
-RUN npm run build:tizen
+RUN npm run --prefix frontend build:tizen
 
 FROM --platform=linux/amd64 vitalets/tizen-webos-sdk
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-# ENV NODE_ENV=production
-COPY --from=pre-production /usr/src/app/tizen ./tizen
+COPY tizen ./tizen
+COPY --from=pre-production /usr/src/app/frontend/dist.tizen ./tizen/dist
 
 RUN tizen build-web -- tizen
 RUN tizen package -t wgt -o ./tizen -- ./tizen/.buildResult
