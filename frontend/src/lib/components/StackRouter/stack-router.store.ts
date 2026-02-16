@@ -198,7 +198,7 @@ type HistoryState = {
 
 export type StackRouterStore = ReturnType<typeof useStackRouter>;
 
-export function useStackRouter({
+function useStackRouter({
 	routes,
 	notFound,
 	maxDepth
