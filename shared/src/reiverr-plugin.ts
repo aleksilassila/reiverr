@@ -18,12 +18,26 @@ export interface PluginInfo {
   description: string;
   streamingSupported: boolean;
   cataloguesSupported: boolean;
+  requestsSupported: boolean;
 }
 
 export interface PaginationParams {
   /** 1-based page number */
   page: number;
   itemsPerPage: number;
+}
+
+/** Identifies a movie, series or episode */
+export interface MediaItem {
+  /** Movie or series title */
+  title: string;
+  /** "movie" or "series" */
+  mediaType?: string | undefined;
+  season?: number | undefined;
+  episode?: number | undefined;
+  tmdbId?: string | undefined;
+  imdbId?: string | undefined;
+  tvdbId?: string | undefined;
 }
 
 export interface StreamablesRequest {
@@ -152,6 +166,103 @@ export interface StreamableCatalogueItem {
   episode?: number | undefined;
 }
 
+export interface RequestProfile {
+  id: string;
+  label: string;
+  description?: string | undefined;
+  canAdd: boolean;
+  canDisable: boolean;
+  canDelete: boolean;
+  hasQueue: boolean;
+  /** "single", "multiple", "ordered" */
+  queueType?: string | undefined;
+}
+
+export interface RequestItem {
+  id: string;
+  mediaItem: MediaItem | undefined;
+  profileId: string;
+  /** "fulfilled", "unfulfilled", "downloading", "inactive", "disabled" */
+  status: string;
+}
+
+export interface QueueItem {
+  id: string;
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  /** For ordered queues */
+  priority?:
+    | number
+    | undefined;
+  /** Highlight that it's the automatic option */
+  auto?: boolean | undefined;
+}
+
+export interface WatchStatus {
+  mediaItem: MediaItem | undefined;
+  watched: boolean;
+  lastWatchedAt?: string | undefined;
+}
+
+export interface RequestsRequest {
+  /** If provided, filters requests to the ones matching the media item */
+  mediaItem?: MediaItem | undefined;
+}
+
+export interface RequestsResponse {
+  profiles: RequestProfile[];
+  items: RequestItem[];
+}
+
+export interface CreateRequestsRequest {
+  mediaItems: MediaItem[];
+  profileId: string;
+  disabled?: boolean | undefined;
+}
+
+export interface CreateRequestsResponse {
+  success: boolean;
+  items: RequestItem[];
+}
+
+export interface RequestQueueRequest {
+  requestId: string;
+}
+
+export interface RequestQueueResponse {
+  queue: QueueItem[];
+}
+
+export interface BulkUpdateRequestsRequest {
+  requestIds: string[];
+  /** repeated WatchStatus watch_statuses = 3; */
+  disabled?: boolean | undefined;
+}
+
+export interface UpdateQueueRequest {
+  requestId: string;
+  /** For ordered queues, the order of ids defines the queue order */
+  queueItemIds: string[];
+}
+
+export interface UpdateRequestsResponse {
+  success: boolean;
+  items: RequestItem[];
+}
+
+export interface DeleteRequestsRequest {
+  requestId: string;
+}
+
+export interface DeleteRequestsResponse {
+  success: boolean;
+}
+
+export interface SyncWatchStatusRequest {
+  watchStatuses: WatchStatus[];
+}
+
 /** Plugin Service - handles plugin metadata and configuration */
 export interface PluginService {
   /** Get plugin metadata and version */
@@ -172,6 +283,21 @@ export interface PluginCatalogueService {
   GetCatalogues(request: CataloguesRequest): Observable<CataloguesResponse>;
   /** Get everything in a catalogue - e.g. all movies or all series */
   GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
-  /** Get streamable items for movie or server - used in the ui to show wether an episode is streamable from the plugin */
-  GetStreamablesCatalogue(request: StreamablesCatalogueRequest): Observable<StreamablesCatalogueResponse>;
+}
+
+/** Requests Service - Managing requests and request profiles */
+export interface PluginRequestsService {
+  /** Get all requests+request profiles for the user - optionally filtered by movie/series */
+  GetRequests(request: RequestsRequest): Observable<RequestsResponse>;
+  /** Instatiate request profile for a movie/episode */
+  CreateRequests(request: CreateRequestsRequest): Observable<CreateRequestsResponse>;
+  /** Update requests - e.g. activate/deactivate, change queue */
+  BulkUpdateRequests(request: BulkUpdateRequestsRequest): Observable<UpdateRequestsResponse>;
+  /** Delete request */
+  DeleteRequests(request: DeleteRequestsRequest): Observable<DeleteRequestsResponse>;
+  /** Get request queue for a request profile */
+  GetRequestQueue(request: RequestQueueRequest): Observable<RequestQueueResponse>;
+  /** Update request queue */
+  UpdateQueue(request: UpdateQueueRequest): Observable<UpdateRequestsResponse>;
+  SyncWatchStatus(request: SyncWatchStatusRequest): Observable<UpdateRequestsResponse>;
 }

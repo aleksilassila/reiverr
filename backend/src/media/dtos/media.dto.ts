@@ -1,11 +1,12 @@
 import {
+  StreamableItem,
   StreamResponse,
   SubtitleTrack,
   VideoTrack,
 } from '@aleksilassila/reiverr-shared';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class StreamableDto {
+export class StreamableDto implements StreamableItem {
   @ApiProperty()
   id: string;
 

@@ -2,6 +2,7 @@ import {
   PluginService,
   PluginMediaService,
   PluginCatalogueService,
+  PluginRequestsService,
 } from '@aleksilassila/reiverr-shared';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
@@ -32,6 +33,7 @@ interface PluginClient {
   pluginService: PluginService;
   mediaService?: PluginMediaService;
   catalogueService?: PluginCatalogueService;
+  requestsService?: PluginRequestsService;
 }
 
 /**
@@ -115,6 +117,12 @@ export class PluginsService implements OnModuleInit {
       );
     }
 
+    if (pluginInfo.requestsSupported) {
+      pluginClient.requestsService = client.getService<PluginRequestsService>(
+        'PluginRequestsService',
+      );
+    }
+
     this.clients[config.id] = pluginClient;
     this.logger.log(
       `Plugin ${pluginInfo.name} (ID: ${config.id}) initialized successfully`,
@@ -190,6 +198,12 @@ export class PluginsService implements OnModuleInit {
   getCatalogueServices(): PluginClient[] {
     return Object.values(this.clients).filter(
       (client) => client.catalogueService,
+    );
+  }
+
+  getRequestsServices(): PluginClient[] {
+    return Object.values(this.clients).filter(
+      (client) => client.requestsService,
     );
   }
 }

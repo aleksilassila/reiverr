@@ -1868,6 +1868,82 @@ export interface SubtitleTrackDto {
   proxy?: boolean;
 }
 
+export interface RequestProfileDto {
+  id: string;
+  label: string;
+  description?: string;
+  canAdd: boolean;
+  canDisable: boolean;
+  canDelete: boolean;
+  hasQueue: boolean;
+  queueType?: "single" | "multiple" | "ordered";
+  pluginId: string;
+  pluginLabel: string;
+}
+
+export interface MediaItemDto {
+  title: string;
+  season?: number;
+  episode?: number;
+  tmdbId?: string;
+  imdbId?: string;
+  tvdbId?: string;
+}
+
+export interface RequestDto {
+  id: string;
+  mediaItem: MediaItemDto;
+  profileId: string;
+  status: "fulfilled" | "unfulfilled" | "downloading" | "inactive" | "disabled";
+  pluginId: string;
+}
+
+export interface RequestsDto {
+  profiles: RequestProfileDto[];
+  items: RequestDto[];
+  pluginId: string;
+  label: string;
+}
+
+export interface CreateRequestBodyDto {
+  mediaItems: MediaItemDto[];
+  profileId: string;
+  disabled?: boolean;
+}
+
+export interface CreateRequestDto {
+  success: boolean;
+  items: RequestDto[];
+}
+
+export interface BulkUpdateRequestsBodyDto {
+  requestIds: string[];
+  disabled?: boolean;
+}
+
+export interface UpdateRequestDto {
+  success: boolean;
+  items: RequestDto[];
+}
+
+export interface DeleteRequestDto {
+  success: boolean;
+}
+
+export interface QueueItemDto {
+  id: string;
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  priority?: number;
+  auto?: boolean;
+}
+
+export interface UpdateQueueBodyDto {
+  requestId: string;
+  queueItemIds: string[];
+}
+
 export interface CatalogueDto {
   id: string;
   label: string;
@@ -3222,6 +3298,125 @@ export class Api<
         path: `/api/media/stream`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+  };
+  requests = {
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name GetRequests
+     * @request GET:/api/requests
+     */
+    getRequests: (
+      query: {
+        tmdbId: string;
+        type: "movie" | "series";
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: RequestsDto[];
+        },
+        any
+      >({
+        path: `/api/requests`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name CreateRequests
+     * @request POST:/api/requests/{pluginId}
+     */
+    createRequests: (
+      pluginId: string,
+      data: CreateRequestBodyDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<CreateRequestDto, any>({
+        path: `/api/requests/${pluginId}`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name UpdateQueue
+     * @request PUT:/api/requests/queue
+     */
+    updateQueue: (
+      query: {
+        pluginId: string;
+      },
+      data: UpdateQueueBodyDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<UpdateRequestDto, any>({
+        path: `/api/requests/queue`,
+        method: "PUT",
+        query: query,
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name GetRequestQueue
+     * @request GET:/api/requests/queue
+     */
+    getRequestQueue: (
+      query: {
+        pluginId: string;
+        requestId: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: QueueItemDto[];
+        },
+        any
+      >({
+        path: `/api/requests/queue`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name DeleteRequest
+     * @request DELETE:/api/requests/{pluginId}/{requestId}
+     */
+    deleteRequest: (
+      pluginId: string,
+      requestId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<DeleteRequestDto, any>({
+        path: `/api/requests/${pluginId}/${requestId}`,
+        method: "DELETE",
         format: "json",
         ...params,
       }),

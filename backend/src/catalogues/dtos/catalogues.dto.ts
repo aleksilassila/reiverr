@@ -17,7 +17,7 @@ export class OrderOptionDto implements OrderOption {
   direction?: string | undefined;
 }
 
-export class CatalogueInfoDto implements CatalogueInfo {
+class CatalogueInfoDto implements CatalogueInfo {
   @ApiProperty()
   id: string;
 

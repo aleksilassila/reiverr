@@ -26,14 +26,36 @@ service PluginCatalogueService {
   rpc GetCatalogue(CatalogueRequest) returns (CatalogueResponse);
 
   // Get streamable items for movie or server - used in the ui to show wether an episode is streamable from the plugin
-  rpc GetStreamablesCatalogue(StreamablesCatalogueRequest) returns (StreamablesCatalogueResponse);
+  // rpc GetStreamablesCatalogue(StreamablesCatalogueRequest) returns (StreamablesCatalogueResponse);
 
   // // Get missing items in catalogue
   // rpc GetMissingInCatalogue(MissingCatalogueRequest) returns (MissingCatalogueResponse);
 }
 
-// Management Profile Service - NEW for monitoring/management profiles
-// service ManagementProfileService {
+// Requests Service - Managing requests and request profiles
+service PluginRequestsService {
+  // Get all requests+request profiles for the user - optionally filtered by movie/series
+  rpc GetRequests(RequestsRequest) returns (RequestsResponse);
+
+  // Instatiate request profile for a movie/episode
+  rpc CreateRequests(CreateRequestsRequest) returns (CreateRequestsResponse);
+
+  // Update requests - e.g. activate/deactivate, change queue
+  rpc BulkUpdateRequests(BulkUpdateRequestsRequest) returns (UpdateRequestsResponse);
+
+  // Delete request
+  rpc DeleteRequests(DeleteRequestsRequest) returns (DeleteRequestsResponse);
+
+  // Get request queue for a request profile
+  rpc GetRequestQueue(RequestQueueRequest) returns (RequestQueueResponse);
+
+  // Update request queue
+  rpc UpdateQueue(UpdateQueueRequest) returns (UpdateRequestsResponse);
+
+  rpc SyncWatchStatus(SyncWatchStatusRequest) returns (UpdateRequestsResponse);
+}
+
+// service EventsService {
 
 // }
 
@@ -47,11 +69,23 @@ message PluginInfo {
   string description = 3;
   bool streaming_supported = 4;
   bool catalogues_supported = 5;
+  bool requests_supported = 6;
 }
 
 message PaginationParams {
   int32 page = 1; // 1-based page number
   int32 items_per_page = 2;
+}
+
+// Identifies a movie, series or episode
+message MediaItem {
+  string title = 1; // Movie or series title
+  optional string media_type = 2; // "movie" or "series"
+  optional int32 season = 3;
+  optional int32 episode = 4;
+  optional string tmdb_id = 5;
+  optional string imdb_id = 6;
+  optional string tvdb_id = 7;
 }
 
 // Meida Service Messages
@@ -193,3 +227,94 @@ message StreamableCatalogueItem {
 //   int32 page = 3;
 //   int32 items_per_page = 4;
 // }
+
+// Requests Service Messages
+
+message RequestProfile {
+  string id = 1;
+  string label = 2;
+  optional string description = 3;
+  bool can_add = 4;
+  bool can_disable = 5;
+  bool can_delete = 6;
+  bool has_queue = 7;
+  optional string queue_type = 8; // "single", "multiple", "ordered"
+}
+
+message RequestItem {
+  string id = 1;
+  MediaItem media_item = 2;
+  string profile_id = 3;
+  string status = 4; // "fulfilled", "unfulfilled", "downloading", "inactive", "disabled"
+}
+
+message QueueItem {
+  string id = 1;
+  string label = 2;
+  bool selected = 3;
+  bool disabled = 4;
+  optional int32 priority = 5; // For ordered queues
+  optional bool auto = 6; // Highlight that it's the automatic option
+}
+
+message WatchStatus {
+  MediaItem media_item = 1;
+  bool watched = 2;
+  optional string last_watched_at = 3;
+}
+
+message RequestsRequest {
+  optional MediaItem media_item = 1; // If provided, filters requests to the ones matching the media item
+}
+
+message RequestsResponse {
+  repeated RequestProfile profiles = 1;
+  repeated RequestItem items = 2;
+}
+
+message CreateRequestsRequest {
+  repeated MediaItem media_items = 1;
+  string profile_id = 2;
+  optional bool disabled = 3;
+}
+
+message CreateRequestsResponse {
+  bool success = 1;
+  repeated RequestItem items = 2;
+}
+
+message RequestQueueRequest {
+  string request_id = 1;
+}
+
+message RequestQueueResponse {
+  repeated QueueItem queue = 1;
+}
+
+message BulkUpdateRequestsRequest {
+  repeated string request_ids = 1;
+  optional bool disabled = 2;
+  // repeated WatchStatus watch_statuses = 3;
+}
+
+message UpdateQueueRequest {
+  string request_id = 1;
+  repeated string queue_item_ids = 2; // For ordered queues, the order of ids defines the queue order
+}
+
+message UpdateRequestsResponse {
+  bool success = 1;
+  repeated RequestItem items = 2;
+}
+
+message DeleteRequestsRequest {
+  string request_id = 1;
+}
+
+message DeleteRequestsResponse {
+  bool success = 1;
+}
+
+message SyncWatchStatusRequest {
+  repeated WatchStatus watch_statuses = 2;
+}
