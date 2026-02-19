@@ -7,6 +7,7 @@
 
 <div class="w-full h-full flex flex-1">
 	<Container
+		{...$$restProps}
 		class={classNames(
 			'flex-1 overflow-hidden',
 			{

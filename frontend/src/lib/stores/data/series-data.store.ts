@@ -1,4 +1,9 @@
-import type { SeriesUserDataDto, TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
+import type {
+	RequestDto,
+	RequestProfileDto,
+	SeriesUserDataDto,
+	TmdbSeriesFull
+} from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
@@ -13,6 +18,10 @@ export type EpisodeUserData = {
 	watched: boolean;
 	progress: number;
 	upcoming: boolean;
+};
+
+export type Request = RequestDto & {
+	profile: RequestProfileDto;
 };
 
 function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDto) {
@@ -53,6 +62,28 @@ function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDt
 	};
 }
 
+function useEpisodeData(tmdbId: string, season: number, episode: number) {}
+
+// function useEpisodesData() {
+// 	let stores = new Map<string, ReturnType<typeof useEpisodeData>>();
+
+// 	const episodesData = derived([seriesData.data, userData.data], ([$seriesData, $userData]) =>
+// 		getEpisodeData($seriesData, $userData)
+// 	);
+
+// 	function getEpisode(tmdbId: string, season: number, episode: number) {
+// 		const key = `${tmdbId}-${season}-${episode}`;
+// 		if (!stores.has(key)) {
+// 			stores.set(key, useEpisodeData(tmdbId, season, episode));
+// 		}
+// 		return stores.get(key) as ReturnType<typeof useEpisodeData>;
+// 	}
+
+// 	return {
+// 		getEpisode,
+// 	}
+// }
+
 export const useSeriesContext = (tmdbId: string) =>
 	createStoreContext(`series-${tmdbId}`, () => useSeriesData(tmdbId));
 
@@ -82,6 +113,38 @@ function useSeriesData(tmdbId: string) {
 		isWatched.set(data.playStates.every((ps) => ps.watched));
 
 		return data;
+	});
+
+	const requestsData = useData(async () => {
+		const data = await reiverrApi.requests.getRequests({ tmdbId, type: 'series' });
+
+		const episodeRequests = new Map<string, Request[]>();
+
+		data.data.requests.forEach((r) => {
+			if (r.mediaItem.season && r.mediaItem.episode) {
+				const key = `${r.mediaItem.season}-${r.mediaItem.episode}`;
+				if (!episodeRequests.has(key)) {
+					episodeRequests.set(key, []);
+				}
+
+				const profile = data.data.profiles.find((p) => p.id === r.profileId);
+
+				if (profile) {
+					const requestWithProfile = {
+						...r,
+						profile
+					};
+					episodeRequests.get(key)?.push(requestWithProfile);
+				} else {
+					console.warn(`Profile with ID ${r.profileId} not found for request ${r.id}`);
+				}
+			}
+		});
+
+		return {
+			episodeRequests,
+			profiles: data.data.profiles
+		};
 	});
 	const episodesData = derived([seriesData.data, userData.data], ([$seriesData, $userData]) =>
 		getEpisodeData($seriesData, $userData)
@@ -150,6 +213,7 @@ function useSeriesData(tmdbId: string) {
 		// backgroundStack,
 		seriesData,
 		userData,
+		requestsData,
 		inLibrary,
 		isWatched,
 		setInLibrary,

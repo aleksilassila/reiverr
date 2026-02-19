@@ -1900,18 +1900,16 @@ export interface RequestDto {
 
 export interface RequestsDto {
   profiles: RequestProfileDto[];
-  items: RequestDto[];
-  pluginId: string;
-  label: string;
+  requests: RequestDto[];
 }
 
-export interface CreateRequestBodyDto {
+export interface CreateRequestsBodyDto {
   mediaItems: MediaItemDto[];
   profileId: string;
   disabled?: boolean;
 }
 
-export interface CreateRequestDto {
+export interface CreateRequestsDto {
   success: boolean;
   items: RequestDto[];
 }
@@ -1919,6 +1917,8 @@ export interface CreateRequestDto {
 export interface BulkUpdateRequestsBodyDto {
   requestIds: string[];
   disabled?: boolean;
+  /** Unused in the dto */
+  watchStatuses?: string[];
 }
 
 export interface UpdateRequestDto {
@@ -3317,12 +3317,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: RequestsDto[];
-        },
-        any
-      >({
+      this.request<RequestsDto, any>({
         path: `/api/requests`,
         method: "GET",
         query: query,
@@ -3335,16 +3330,19 @@ export class Api<
      *
      * @tags requests
      * @name CreateRequests
-     * @request POST:/api/requests/{pluginId}
+     * @request POST:/api/requests
      */
     createRequests: (
-      pluginId: string,
-      data: CreateRequestBodyDto,
+      query: {
+        pluginId: string;
+      },
+      data: CreateRequestsBodyDto,
       params: RequestParams = {},
     ) =>
-      this.request<CreateRequestDto, any>({
-        path: `/api/requests/${pluginId}`,
+      this.request<CreateRequestsDto, any>({
+        path: `/api/requests`,
         method: "POST",
+        query: query,
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -3355,22 +3353,62 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name UpdateQueue
-     * @request PUT:/api/requests/queue
+     * @name BulkUpdateRequest
+     * @request PUT:/api/requests
      */
-    updateQueue: (
-      query: {
-        pluginId: string;
-      },
-      data: UpdateQueueBodyDto,
+    bulkUpdateRequest: (
+      data: BulkUpdateRequestsBodyDto,
       params: RequestParams = {},
     ) =>
       this.request<UpdateRequestDto, any>({
-        path: `/api/requests/queue`,
+        path: `/api/requests`,
         method: "PUT",
-        query: query,
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name DeleteRequest
+     * @request DELETE:/api/requests
+     */
+    deleteRequest: (
+      query: {
+        pluginId: string;
+        requestId: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<DeleteRequestDto, any>({
+        path: `/api/requests`,
+        method: "DELETE",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name SyncWatchStatuses
+     * @request PUT:/api/requests/sync
+     */
+    syncWatchStatuses: (
+      query: {
+        tmdbId: string;
+        type: "movie" | "series";
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<UpdateRequestDto, any>({
+        path: `/api/requests/sync`,
+        method: "PUT",
+        query: query,
         format: "json",
         ...params,
       }),
@@ -3406,17 +3444,22 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name DeleteRequest
-     * @request DELETE:/api/requests/{pluginId}/{requestId}
+     * @name UpdateQueue
+     * @request PUT:/api/requests/queue
      */
-    deleteRequest: (
-      pluginId: string,
-      requestId: string,
+    updateQueue: (
+      query: {
+        pluginId: string;
+      },
+      data: UpdateQueueBodyDto,
       params: RequestParams = {},
     ) =>
-      this.request<DeleteRequestDto, any>({
-        path: `/api/requests/${pluginId}/${requestId}`,
-        method: "DELETE",
+      this.request<UpdateRequestDto, any>({
+        path: `/api/requests/queue`,
+        method: "PUT",
+        query: query,
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

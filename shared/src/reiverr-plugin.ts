@@ -184,6 +184,7 @@ export interface RequestItem {
   profileId: string;
   /** "fulfilled", "unfulfilled", "downloading", "inactive", "disabled" */
   status: string;
+  queueItem?: string | undefined;
 }
 
 export interface QueueItem {
@@ -212,7 +213,7 @@ export interface RequestsRequest {
 
 export interface RequestsResponse {
   profiles: RequestProfile[];
-  items: RequestItem[];
+  requests: RequestItem[];
 }
 
 export interface CreateRequestsRequest {
@@ -269,7 +270,7 @@ export interface PluginService {
   GetInfo(request: Empty): Observable<PluginInfo>;
 }
 
-/** Media Source Provider Service - handles user-specific requests */
+/** Media Service - media playback */
 export interface PluginMediaService {
   /** Get a list of available streamables */
   GetStreamables(request: StreamablesRequest): Observable<StreamablesResponse>;
@@ -277,7 +278,7 @@ export interface PluginMediaService {
   GetStream(request: StreamRequest): Observable<StreamResponse>;
 }
 
-/** Catalogue Provider Service - handles library catalogues */
+/** Catalogue Service - list available media and collections */
 export interface PluginCatalogueService {
   /** Get what catalogues are available */
   GetCatalogues(request: CataloguesRequest): Observable<CataloguesResponse>;
@@ -285,7 +286,7 @@ export interface PluginCatalogueService {
   GetCatalogue(request: CatalogueRequest): Observable<CatalogueResponse>;
 }
 
-/** Requests Service - Managing requests and request profiles */
+/** Requests Service - requesting and managing media */
 export interface PluginRequestsService {
   /** Get all requests+request profiles for the user - optionally filtered by movie/series */
   GetRequests(request: RequestsRequest): Observable<RequestsResponse>;
@@ -299,5 +300,6 @@ export interface PluginRequestsService {
   GetRequestQueue(request: RequestQueueRequest): Observable<RequestQueueResponse>;
   /** Update request queue */
   UpdateQueue(request: UpdateQueueRequest): Observable<UpdateRequestsResponse>;
+  /** Update request statuses on watch status change */
   SyncWatchStatus(request: SyncWatchStatusRequest): Observable<UpdateRequestsResponse>;
 }

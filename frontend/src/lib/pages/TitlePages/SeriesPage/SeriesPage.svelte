@@ -7,17 +7,16 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
-	import { navigate } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
+	import { useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
-	import { useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, ExternalLink, Gear, Minus, Video } from 'radix-icons-svelte';
+	import { Bookmark, Disc, ExternalLink, Gear, Minus, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
@@ -27,33 +26,17 @@
 	export let id: string;
 
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
-	const { componentStack, seriesData, inLibrary, setInLibrary, episodesData, unsubscribe } =
-		useSeriesContext(id).createContext();
+	const {
+		componentStack,
+		seriesData,
+		requestsData,
+		inLibrary,
+		setInLibrary,
+		episodesData,
+		unsubscribe
+	} = useSeriesContext(id).createContext();
 	const { promise: tmdbSeries } = seriesData;
-
-	// const { componentStack } = componentStackContext.createContext();
-	// const componentStack = useComponentStack();
-	// const {
-	// 	tmdbId,
-	// 	tmdbSeries,
-	// 	inLibrary,
-	// 	handleAddToLibrary,
-	// 	handleRemoveFromLibrary,
-	// 	nextEpisode,
-	// 	episodesUserData,
-	// 	isWatched,
-	// 	toggleIsWatched,
-	// 	autoplayCandidate,
-	// 	playStream,
-	// 	autoplayStream,
-	// 	unsubscribe
-	// } = seriesUserDataContext.createContext(id);
-	// titlePageContext.createContext();
-
-	// componentStack.push({
-	// 	component: SeriesPageDetails,
-	// 	props: {}
-	// });
+	const { data: requests } = requestsData;
 
 	$tmdbSeries.then((series) => {
 		const backgrounds =
@@ -73,8 +56,6 @@
 			...backgrounds
 		]);
 	});
-
-	// const { openEpisodeMenu, openManageSeries } = titlePageContext.getContext();
 
 	const {
 		selectedEpisode,
@@ -249,6 +230,7 @@
 				{:else}
 					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
 				{/if}
+				<Button icon={Disc}>Media</Button>
 
 				<!-- <Button action={toggleIsWatched}>
 						{#if $isWatched}
@@ -258,14 +240,14 @@
 						{/if}
 						<Check slot="icon" size={19} />
 					</Button> -->
-				<Button
+				<!-- <Button
 					on:clickOrSelect={() => {
 						// openManageSeries(tmdbId)
 					}}
 				>
 					Manage
 					<Gear slot="icon" size={19} />
-				</Button>
+				</Button> -->
 
 				{#if PLATFORM_WEB}
 					<Button
@@ -319,10 +301,14 @@
 						{@const userData = $episodesData.episodes.find(
 							(e) => e.season === episode.season_number && e.episode === episode.episode_number
 						)}
+						{@const episodeRequests = $requests?.episodeRequests.get(
+							`${episode.season_number}-${episode.episode_number}`
+						)}
 
 						{#key episode.id}
 							<TmdbEpisodeCard
 								{episode}
+								requests={episodeRequests}
 								series={tmdbSeries}
 								on:mount={(e) =>
 									onEpisodeMount(e.detail, episode.season_number ?? 1, episode.episode_number ?? 1)}
@@ -348,15 +334,20 @@
 								on:mouseleave={() => onEpisodeCardMouseLeave()}
 								isWatched={userData?.watched || false}
 								progress={userData?.progress}
-								on:clickOrSelect={() =>
-									// openStreamableSelectorModal({
-									// 	tmdbId: id,
-									// 	season: episode.season_number ?? 1,
-									// 	episode: episode.episode_number ?? 1
-									// })
-									navigate(
-										`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`
-									)}
+								on:clickOrSelect={() => {
+									componentStack.push({
+										component: StreamablesView,
+										props: {
+											tmdbId: id,
+											season: Number(episode.season_number),
+											episode: Number(episode.episode_number),
+											progress: userData?.progress
+										}
+									});
+									// navigate(
+									// 	`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`
+									// )}
+								}}
 							/>
 						{/key}
 					{/each}

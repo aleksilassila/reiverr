@@ -117,15 +117,15 @@ export class RequestsDto implements RequestsResponse {
   profiles: RequestProfileDto[];
 
   @ApiProperty({ type: [RequestDto] })
-  items: RequestDto[];
+  requests: RequestDto[];
 
   // Additional properties
 
-  @ApiProperty()
-  pluginId: string;
+  // @ApiProperty()
+  // pluginId: string;
 
-  @ApiProperty()
-  label: string;
+  // @ApiProperty()
+  // label: string;
 }
 
 export class CreateRequestsBodyDto implements CreateRequestsRequest {

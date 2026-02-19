@@ -49,12 +49,12 @@ export class RequestsController {
   @Get()
   @ApiQuery({ name: 'tmdbId', type: String })
   @ApiQuery({ name: 'type', enum: ['movie', 'series'] })
-  @PaginatedApiOkResponse(RequestsDto)
+  @ApiOkResponse({ type: RequestsDto })
   async getRequests(
     @GetAuthUser() user: User,
     @Query('tmdbId') tmdbId: string,
     @Query('type') type: 'movie' | 'series',
-  ): Promise<PaginatedResponseDto<RequestsDto>> {
+  ): Promise<RequestsDto> {
     const requestsServices = this.pluginsService.getRequestsServices();
 
     const mediaItem = await this.getMediaItem(tmdbId, type);
@@ -68,17 +68,15 @@ export class RequestsController {
         s.requestsService!.GetRequests({
           mediaItem,
         }),
-      ).catch(() => ({ profiles: [], items: [] }) as RequestsResponse);
+      ).catch(() => ({ profiles: [], requests: [] }) as RequestsResponse);
 
       return {
-        pluginId: s.config.id,
-        label: s.config.id,
         profiles: response.profiles.map((p) => ({
           ...p,
           pluginId: s.config.id,
           pluginLabel: s.config.id,
         })),
-        items: response.items.map((i) => ({
+        requests: response.requests.map((i) => ({
           ...i,
           pluginId: s.config.id,
         })),
@@ -88,10 +86,8 @@ export class RequestsController {
     const items = await Promise.all(responses);
 
     return {
-      items,
-      itemsPerPage: items.length,
-      page: 1,
-      total: items.length,
+      requests: items.map((r) => r.requests).flat(),
+      profiles: items.map((r) => r.profiles).flat(),
     };
   }
 

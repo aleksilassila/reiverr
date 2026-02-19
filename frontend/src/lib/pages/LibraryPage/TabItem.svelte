@@ -12,6 +12,7 @@
 	class="group cursor-pointer"
 	let:hasFocus
 	on:clickOrSelect={() => dispatch('select')}
+	on:enter
 	focusOnClick
 >
 	<span

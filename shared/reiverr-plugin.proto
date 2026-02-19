@@ -8,7 +8,7 @@ service PluginService {
   rpc GetInfo(Empty) returns (PluginInfo);
 }
 
-// Media Source Provider Service - handles user-specific requests
+// Media Service - media playback
 service PluginMediaService {
   // Get a list of available streamables
   rpc GetStreamables(StreamablesRequest) returns (StreamablesResponse);
@@ -17,7 +17,7 @@ service PluginMediaService {
   rpc GetStream(StreamRequest) returns (StreamResponse);
 }
 
-// Catalogue Provider Service - handles library catalogues
+// Catalogue Service - list available media and collections
 service PluginCatalogueService {
   // Get what catalogues are available
   rpc GetCatalogues(CataloguesRequest) returns (CataloguesResponse);
@@ -32,7 +32,7 @@ service PluginCatalogueService {
   // rpc GetMissingInCatalogue(MissingCatalogueRequest) returns (MissingCatalogueResponse);
 }
 
-// Requests Service - Managing requests and request profiles
+// Requests Service - requesting and managing media
 service PluginRequestsService {
   // Get all requests+request profiles for the user - optionally filtered by movie/series
   rpc GetRequests(RequestsRequest) returns (RequestsResponse);
@@ -52,6 +52,7 @@ service PluginRequestsService {
   // Update request queue
   rpc UpdateQueue(UpdateQueueRequest) returns (UpdateRequestsResponse);
 
+  // Update request statuses on watch status change
   rpc SyncWatchStatus(SyncWatchStatusRequest) returns (UpdateRequestsResponse);
 }
 
@@ -246,6 +247,7 @@ message RequestItem {
   MediaItem media_item = 2;
   string profile_id = 3;
   string status = 4; // "fulfilled", "unfulfilled", "downloading", "inactive", "disabled"
+  optional string queue_item = 5;
 }
 
 message QueueItem {
@@ -269,7 +271,7 @@ message RequestsRequest {
 
 message RequestsResponse {
   repeated RequestProfile profiles = 1;
-  repeated RequestItem items = 2;
+  repeated RequestItem requests = 2;
 }
 
 message CreateRequestsRequest {

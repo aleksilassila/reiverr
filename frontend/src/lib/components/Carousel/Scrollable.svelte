@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import Container from '../Container.svelte';
 
+	export let fadeWidth = 6;
+
 	let element: Container;
 	let scrollX = 0;
 	let maxScrollX = 0;
@@ -30,9 +32,7 @@
 		$$restProps.class,
 		'overflow-x-auto scrollbar-hide relative overflow-y-visible'
 	)}
-	style={`mask-image: linear-gradient(to right, transparent 0%, ${
-		fadeLeft ? '' : 'black 0%, '
-	}black 5%, black 95%, ${fadeRight ? '' : 'black 100%, '}transparent 100%);`}
+	style={`backface-visibility: hidden; -webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
 	on:scroll={updateScrollPosition}
 	on:enter
 	bind:this={element}

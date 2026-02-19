@@ -1,10 +1,11 @@
 <script lang="ts">
-	import Container from '../Container.svelte';
+	import type { Request } from '$lib/stores/data/series-data.store';
 	import classNames from 'classnames';
-	import { ArrowDown, Check, TriangleRight } from 'radix-icons-svelte';
+	import { Check } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
-	import AnimateScale from '../AnimateScale.svelte';
 	import { getCardDimensions } from '../../utils';
+	import AnimateScale from '../AnimateScale.svelte';
+	import Container from '../Container.svelte';
 
 	export let episodeNumber: number;
 	export let episodeName: string;
@@ -14,6 +15,7 @@
 	export let progress = 0;
 	export let runtime = 0;
 	export let releaseDate = 0;
+	export let requests: Request[] | undefined = undefined;
 
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
@@ -158,6 +160,12 @@
 			</h2>
 		</div>
 		<div class="self-end flex-shrink-0 ml-2">
+			{#each requests ?? [] as request}
+				<div class="text-xs bg-primary-500/25 text-primary-300 px-2 py-1 rounded-full">
+					{request.profile.label} -
+					{request.status}
+				</div>
+			{/each}
 			<!-- <div class="text-secondary-300 font-medium">
 				{#if releaseDate > 0 && releaseDate > Date.now()}
 					{new Date(releaseDate).toLocaleDateString('en-US', {
