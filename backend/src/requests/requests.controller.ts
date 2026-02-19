@@ -1,4 +1,5 @@
 import {
+  CreateRequestsRequest,
   CreateRequestsResponse,
   DeleteRequestsResponse,
   MediaItem,
@@ -33,7 +34,8 @@ import {
   QueueItemDto,
   RequestsDto,
   UpdateQueueBodyDto,
-  UpdateRequestDto,
+  UpdateRequestsBodyDto,
+  UpdateRequestsDto,
 } from './dtos/requests.dto';
 import { PlayStatesService } from 'src/user-data/play-state/play-states.service';
 
@@ -92,86 +94,162 @@ export class RequestsController {
   }
 
   @Post()
-  @ApiQuery({ name: 'pluginId', type: String })
-  @ApiBody({ type: CreateRequestsBodyDto })
-  @ApiOkResponse({ type: CreateRequestsDto })
-  async createRequests(
-    @GetAuthUser() user: User,
-    @Query('pluginId') pluginId: string,
-    @Body() body: CreateRequestsBodyDto,
-  ): Promise<CreateRequestsDto> {
-    const service = this.pluginsService
-      .getRequestsServices()
-      .find((s) => s.config.id === pluginId)?.requestsService;
+  @ApiQuery({ name: 'tmdbId', type: String })
+  @ApiQuery({ name: 'type', enum: ['movie', 'series'] })
+  @ApiBody({ type: UpdateRequestsBodyDto })
+  @ApiOkResponse({ type: UpdateRequestsDto })
+  async updateRequests(
+    @Query('tmdbId') tmdbId: string,
+    @Query('type') type: 'movie' | 'series',
+    @Body() body: UpdateRequestsBodyDto,
+  ): Promise<UpdateRequestsDto> {
+    const services = this.pluginsService.getRequestsServices();
+    const mediaItem = await this.getMediaItem(tmdbId, type);
 
-    if (!service) {
-      throw new NotFoundException('Plugin not found');
+    if (!mediaItem) {
+      throw new NotFoundException('Media item not found');
     }
 
-    const response = await firstValueFrom(
-      service.CreateRequests({
-        mediaItems: body.mediaItems,
-        profileId: body.profileId,
-        disabled: body.disabled,
-      }),
-    ).catch(() => ({ success: false, items: [] }) as CreateRequestsResponse);
+    const mediaItems: MediaItem[] =
+      type === 'movie'
+        ? [mediaItem]
+        : body.episodeIds.map((id) => ({
+            ...mediaItem,
+            season: Number(id.split('-')[0]),
+            episode: Number(id.split('-')[1]),
+          }));
 
-    const items = response.items.map((item) => ({
-      ...item,
-      pluginId,
-    }));
-
-    return { success: response.success, items };
-  }
-
-  @Put()
-  @ApiBody({ type: BulkUpdateRequestsBodyDto })
-  @ApiOkResponse({ type: UpdateRequestDto })
-  async bulkUpdateRequest(
-    @GetAuthUser() user: User,
-    @Body() body: BulkUpdateRequestsBodyDto,
-  ): Promise<UpdateRequestDto> {
-    const requestsServices = this.pluginsService.getRequestsServices();
-
-    const responses = requestsServices.map(async (s) => {
-      const response = await firstValueFrom(
-        s.requestsService!.BulkUpdateRequests({
-          requestIds: body.requestIds,
-          disabled: body.disabled,
-        }),
-      ).catch(() => ({ success: false, items: [] }) as UpdateRequestsResponse);
-
-      return { ...response, pluginId: s.config.id };
-    });
-
-    const successfulResponse = await Promise.all(responses).then((results) =>
-      results
-        .sort((a, b) => b.items.length - a.items.length)
-        .find((r) => r.success),
+    const addServices = services.filter((s) =>
+      body.pluginProfilesToAdd.some((p) => p.startsWith(s.config.id)),
     );
 
-    if (!successfulResponse) {
-      return { success: false, items: [] };
-    }
+    const createPromises = addServices.map(async (s) => {
+      const profileIds = body.pluginProfilesToAdd
+        .filter((p) => p.startsWith(s.config.id))
+        .map((p) => p.split(':')[1]);
 
-    return {
-      success: successfulResponse.success,
-      items: successfulResponse.items.map((item) => ({
-        ...item,
-        pluginId: successfulResponse.pluginId,
-      })),
-    };
+      const promises = profileIds.map((profileId) =>
+        firstValueFrom(
+          s.requestsService!.CreateRequests({
+            mediaItems,
+            profileId,
+            disabled: true,
+          }),
+        )
+          .then((r) => r.success)
+          .catch(() => false),
+      );
+
+      return Promise.all(promises).then((r) => r.every((s) => s));
+    });
+
+    const deleteServices = services.filter((s) =>
+      body.pluginRequestsToDelete.some((r) => r.startsWith(s.config.id)),
+    );
+
+    const deletePromises = deleteServices.map(async (s) => {
+      const requestIds = body.pluginRequestsToDelete
+        .filter((r) => r.startsWith(s.config.id))
+        .map((r) => r.split(':')[1]);
+
+      const promises = requestIds.map((requestId) =>
+        firstValueFrom(s.requestsService!.DeleteRequests({ requestId })).then(
+          (r) => r.success,
+        ),
+      );
+
+      return Promise.all(promises).then((r) => r.every((s) => s));
+    });
+
+    const success = await Promise.all([
+      ...createPromises,
+      ...deletePromises,
+    ]).then((r) => r.every((s) => s));
+
+    return { success, items: [] };
   }
+
+  // @Post()
+  // @ApiQuery({ name: 'pluginId', type: String })
+  // @ApiBody({ type: CreateRequestsBodyDto })
+  // @ApiOkResponse({ type: CreateRequestsDto })
+  // async createRequests(
+  //   @GetAuthUser() user: User,
+  //   @Query('pluginId') pluginId: string,
+  //   @Body() body: CreateRequestsBodyDto,
+  // ): Promise<CreateRequestsDto> {
+  //   const service = this.pluginsService
+  //     .getRequestsServices()
+  //     .find((s) => s.config.id === pluginId)?.requestsService;
+
+  //   if (!service) {
+  //     throw new NotFoundException('Plugin not found');
+  //   }
+
+  //   const response = await firstValueFrom(
+  //     service.CreateRequests({
+  //       mediaItems: body.mediaItems,
+  //       profileId: body.profileId,
+  //       disabled: body.disabled,
+  //     }),
+  //   ).catch(() => ({ success: false, items: [] }) as CreateRequestsResponse);
+
+  //   const items = response.items.map((item) => ({
+  //     ...item,
+  //     pluginId,
+  //   }));
+
+  //   return { success: response.success, items };
+  // }
+
+  // @Put()
+  // @ApiBody({ type: BulkUpdateRequestsBodyDto })
+  // @ApiOkResponse({ type: UpdateRequestsDto })
+  // async bulkUpdateRequest(
+  //   @GetAuthUser() user: User,
+  //   @Body() body: BulkUpdateRequestsBodyDto,
+  // ): Promise<UpdateRequestsDto> {
+  //   const requestsServices = this.pluginsService.getRequestsServices();
+
+  //   const responses = requestsServices.map(async (s) => {
+  //     const response = await firstValueFrom(
+  //       s.requestsService!.BulkUpdateRequests({
+  //         requestIds: body.requestIds,
+  //         disabled: body.disabled,
+  //       }),
+  //     ).catch(() => ({ success: false, items: [] }) as UpdateRequestsResponse);
+
+  //     return { ...response, pluginId: s.config.id };
+  //   });
+
+  //   const successfulResponse = await Promise.all(responses).then((results) =>
+  //     results
+  //       .sort((a, b) => b.items.length - a.items.length)
+  //       .find((r) => r.success),
+  //   );
+
+  //   if (!successfulResponse) {
+  //     return { success: false, items: [] };
+  //   }
+
+  //   return {
+  //     success: successfulResponse.success,
+  //     items: successfulResponse.items.map((item) => ({
+  //       ...item,
+  //       pluginId: successfulResponse.pluginId,
+  //     })),
+  //   };
+  // }
 
   @Put('sync')
   @ApiQuery({ name: 'tmdbId', type: String })
   @ApiQuery({ name: 'type', enum: ['movie', 'series'] })
-  @ApiOkResponse({ type: UpdateRequestDto })
+  @ApiOkResponse({ type: UpdateRequestsDto })
   async syncWatchStatuses(
     @GetAuthUser() user: User,
     @Query('tmdbId') tmdbId: string,
     @Query('type') type: 'movie' | 'series',
-  ): Promise<UpdateRequestDto> {
+  ): Promise<UpdateRequestsDto> {
     const requestsServices = this.pluginsService.getRequestsServices();
     const mediaItem = await this.getMediaItem(tmdbId, type);
 
@@ -211,7 +289,7 @@ export class RequestsController {
     }
 
     const responsesP = requestsServices.map(
-      async (s): Promise<UpdateRequestDto> => {
+      async (s): Promise<UpdateRequestsDto> => {
         const response = await firstValueFrom(
           s.requestsService!.SyncWatchStatus({
             watchStatuses,
@@ -238,29 +316,29 @@ export class RequestsController {
     };
   }
 
-  @Delete()
-  @ApiQuery({ name: 'pluginId', type: String })
-  @ApiQuery({ name: 'requestId', type: String })
-  @ApiOkResponse({ type: DeleteRequestDto })
-  async deleteRequest(
-    @GetAuthUser() user: User,
-    @Query('pluginId') pluginId: string,
-    @Query('requestId') requestId: string,
-  ): Promise<DeleteRequestDto> {
-    const service = this.pluginsService
-      .getRequestsServices()
-      .find((s) => s.config.id === pluginId)?.requestsService;
+  // @Delete()
+  // @ApiQuery({ name: 'pluginId', type: String })
+  // @ApiQuery({ name: 'requestId', type: String })
+  // @ApiOkResponse({ type: DeleteRequestDto })
+  // async deleteRequest(
+  //   @GetAuthUser() user: User,
+  //   @Query('pluginId') pluginId: string,
+  //   @Query('requestId') requestId: string,
+  // ): Promise<DeleteRequestDto> {
+  //   const service = this.pluginsService
+  //     .getRequestsServices()
+  //     .find((s) => s.config.id === pluginId)?.requestsService;
 
-    if (!service) {
-      throw new NotFoundException('Plugin not found');
-    }
+  //   if (!service) {
+  //     throw new NotFoundException('Plugin not found');
+  //   }
 
-    const response = await firstValueFrom(
-      service.DeleteRequests({ requestId }),
-    ).catch(() => ({ success: false }) as DeleteRequestsResponse);
+  //   const response = await firstValueFrom(
+  //     service.DeleteRequests({ requestId }),
+  //   ).catch(() => ({ success: false }) as DeleteRequestsResponse);
 
-    return { success: response.success };
-  }
+  //   return { success: response.success };
+  // }
 
   @Get('queue')
   @ApiQuery({ name: 'pluginId', type: String })
@@ -294,12 +372,12 @@ export class RequestsController {
   @Put('queue')
   @ApiQuery({ name: 'pluginId', type: String })
   @ApiBody({ type: UpdateQueueBodyDto })
-  @ApiOkResponse({ type: UpdateRequestDto })
+  @ApiOkResponse({ type: UpdateRequestsDto })
   async updateQueue(
     @GetAuthUser() user: User,
     @Query('pluginId') pluginId: string,
     @Body() body: UpdateQueueBodyDto,
-  ): Promise<UpdateRequestDto> {
+  ): Promise<UpdateRequestsDto> {
     const service = this.pluginsService
       .getRequestsServices()
       .find((s) => s.config.id === pluginId)?.requestsService;
@@ -323,7 +401,10 @@ export class RequestsController {
     return { success: response.success, items };
   }
 
-  private async getMediaItem(tmdbId: string, type: 'movie' | 'series') {
+  private async getMediaItem(
+    tmdbId: string,
+    type: 'movie' | 'series',
+  ): Promise<MediaItem | undefined> {
     const metadata =
       type === 'series'
         ? await this.metadataService.getSeriesByTmdbId(tmdbId)

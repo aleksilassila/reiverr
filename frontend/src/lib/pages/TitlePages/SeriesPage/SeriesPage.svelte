@@ -16,12 +16,22 @@
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Bookmark, Disc, ExternalLink, Gear, Minus, Video } from 'radix-icons-svelte';
+	import {
+		Bookmark,
+		Disc,
+		ExternalLink,
+		Gear,
+		Minus,
+		Plus,
+		Reload,
+		Video
+	} from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import StreamablesView from './StreamablesView.svelte';
+	import RequestsView from './RequestsView.svelte';
 
 	export let id: string;
 
@@ -230,7 +240,14 @@
 				{:else}
 					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
 				{/if}
-				<Button icon={Disc}>Media</Button>
+				<Button
+					icon={Plus}
+					on:clickOrSelect={() =>
+						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
+				>
+					Requests
+				</Button>
+				<Button icon={Reload}>Sync Requests</Button>
 
 				<!-- <Button action={toggleIsWatched}>
 						{#if $isWatched}
@@ -253,7 +270,7 @@
 					<Button
 						on:clickOrSelect={() => window.open(`https://www.themoviedb.org/tv/${id}`, '_blank')}
 					>
-						Open In TMDB
+						Open in TMDB
 						<ExternalLink size={19} slot="icon-after" />
 					</Button>
 				{/if}

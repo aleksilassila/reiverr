@@ -101,7 +101,7 @@
 		<div class="h-px w-full bg-secondary-700 mt-4"></div>
 	</Container>
 
-	<div class="mx-32 mt-8 font-semibold text-secondary-500 mb-1">
+	<!-- <div class="mx-32 mt-8 font-semibold text-secondary-500 mb-1">
 		{tabSubheading}
 	</div>
 	<Scrollable
@@ -147,102 +147,71 @@
 		>
 			Add request
 		</TabItem>
-	</Scrollable>
-	<TabContainer class="flex-1 flex *:flex-1" focusOnMount>
-		<Tab class="h-full" tab={0} {...tab}>
-			<div
-				class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
-				style="backface-visibility: hidden"
-			>
-				{#await groups}
-					Loading...
-				{:then view}
-					{#each view.data.items as group}
-						<div class="text-lg font-semibold text-secondary-300">
-							{capitalize(group.label)}
-						</div>
-						{#each group.streamables as row, index}
-							<Container
-								on:enter={({ detail }) => {
-									const el =
-										detail.selectable.getSibling(-1)?.getHtmlElement() ??
-										detail.selectable?.getHtmlElement();
+	</Scrollable> -->
+	<div
+		class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
+		style="backface-visibility: hidden"
+	>
+		{#await groups}
+			Loading...
+		{:then view}
+			{#each view.data.items as group}
+				<div class="text-lg font-semibold text-secondary-300">
+					{capitalize(group.label)}
+				</div>
+				{#each group.streamables as row, index}
+					<Container
+						on:enter={({ detail }) => {
+							const el =
+								detail.selectable.getSibling(-1)?.getHtmlElement() ??
+								detail.selectable?.getHtmlElement();
 
-									if (el) scrollElementIntoView(el, { top: 32 });
-								}}
-								on:clickOrSelect={() => {
-									playMedia?.({
-										title: name,
-										subtitle: `${capitalize(group.label)} - ${capitalize(row.label)}`,
-										pluginId: group.pluginId,
-										streamId: row.id,
-										sourceName: group.label,
-										progress,
-										handleProgressUpdate
-									});
-									componentStack.close();
-								}}
-								focusOnClick
-								let:hasFocus
+							if (el) scrollElementIntoView(el, { top: 32 });
+						}}
+						on:clickOrSelect={() => {
+							playMedia?.({
+								title: name,
+								subtitle: `${capitalize(group.label)} - ${capitalize(row.label)}`,
+								pluginId: group.pluginId,
+								streamId: row.id,
+								sourceName: group.label,
+								progress,
+								handleProgressUpdate
+							});
+							componentStack.close();
+						}}
+						focusOnClick
+						let:hasFocus
+					>
+						<div class={classNames('cursor-pointer my-8 rounded-xl', {})}>
+							<span
+								class={classNames(
+									'text-3xl font-semibold flex items-center',
+									// 'text-secondary-200',
+									{
+										'text-secondary-500': !hasFocus,
+										'text-primary-500': hasFocus
+									}
+								)}
 							>
-								<div class={classNames('cursor-pointer my-8 rounded-xl', {})}>
-									<span
-										class={classNames(
-											'text-3xl font-semibold flex items-center',
-											// 'text-secondary-200',
-											{
-												'text-secondary-500': !hasFocus,
-												'text-primary-500': hasFocus
-											}
-										)}
-									>
-										<span class="line-clamp-1">
-											{capitalize(row.label)}
-										</span>
-										<!-- {#if hasFocus}
+								<span class="line-clamp-1">
+									{capitalize(row.label)}
+								</span>
+								<!-- {#if hasFocus}
 								<Play class="w-8 h-8 ml-4" />
 							{/if} -->
-									</span>
-									<!-- <span class="text-secondary-200">
+							</span>
+							<!-- <span class="text-secondary-200">
 								{row.properties?.map((p) => `${p.label}: ${p.formatted || p.value}`).join(', ')}
 							</span> -->
-								</div>
-							</Container>
-
-							<!-- <div class="h-[1px] w-full my-2 bg-secondary-400" /> -->
-						{:else}
-							<div class="h-ghost m-auto">No streams available</div>
-						{/each}
-					{/each}
-				{/await}
-			</div>
-		</Tab>
-		{#each $requests ?? [] as request, index (request.id)}
-			<Tab class="h-full" tab={index + 2} {...tab}>
-				<div
-					class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
-					style="backface-visibility: hidden"
-				>
-					<Container direction="horizontal" class="flex items-center justify-between space-x-8">
-						<div class="text-2xl font-semibold mb-4">{request.profile.label}</div>
-						<div class="flex items-center">
-							<Button action={() => deleteRequest(request.pluginId, request.id)} icon={Trash}>
-								Delete
-							</Button>
 						</div>
 					</Container>
-					<div class="space-y-4">
-						<!-- {#each request.requests as r}
-							<div class="p-4 bg-secondary-900 rounded">
-								<div class="font-semibold">{r.title}</div>
-								<div class="text-sm text-secondary-500">{r.status}</div>
-							</div>
-						{/each} -->
-						Queue will come here
-					</div>
-				</div>
-			</Tab>
-		{/each}
-		<Tab tab={1} {...tab}>Add request</Tab>
-	</TabContainer>
+
+					<!-- <div class="h-[1px] w-full my-2 bg-secondary-400" /> -->
+				{:else}
+					<div class="h-ghost m-auto">No streams available</div>
+				{/each}
+			{/each}
+		{/await}
+	</div>
 </Container>

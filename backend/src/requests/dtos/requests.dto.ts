@@ -162,7 +162,7 @@ export class BulkUpdateRequestsBodyDto implements BulkUpdateRequestsRequest {
   watchStatuses: WatchStatus[];
 }
 
-export class UpdateRequestDto implements UpdateRequestsResponse {
+export class UpdateRequestsDto implements UpdateRequestsResponse {
   @ApiProperty()
   success: boolean;
 
@@ -181,4 +181,15 @@ export class UpdateQueueBodyDto implements UpdateQueueRequest {
 export class DeleteRequestDto implements DeleteRequestsResponse {
   @ApiProperty()
   success: boolean;
+}
+
+export class UpdateRequestsBodyDto {
+  @ApiProperty({ type: [String] })
+  episodeIds: string[];
+
+  @ApiProperty({ type: [String] })
+  pluginProfilesToAdd: string[];
+
+  @ApiProperty({ type: [String] })
+  pluginRequestsToDelete: string[];
 }
