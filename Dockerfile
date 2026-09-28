@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 node:18-alpine as pre-production
+FROM node:18-alpine as pre-production
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -29,7 +29,7 @@ COPY . .
 
 RUN npm run build
 
-FROM --platform=linux/amd64 node:18-alpine as production
+FROM node:18-alpine as production
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app

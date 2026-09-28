@@ -15,6 +15,7 @@ import { MediaModule } from './media/media.module';
 import { RequestsModule } from './requests/requests.module';
 import { CataloguesModule } from './catalogues/catalogues.module';
 import { ProxyModule } from './proxy/proxy.module';
+import { LocalMediaModule } from './local-media/local-media.module';
 import { DEV } from './consts';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -37,6 +38,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     RequestsModule,
     CataloguesModule,
     ProxyModule,
+    LocalMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

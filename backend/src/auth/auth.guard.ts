@@ -2,6 +2,7 @@ import {
   CanActivate,
   createParamDecorator,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -51,6 +52,23 @@ export class UserAccessControl implements CanActivate {
     const targetUser = request.params.userId;
     if (targetUser && targetUser !== user.id && user.isAdmin === false) {
       throw new UnauthorizedException();
+    }
+
+    return true;
+  }
+}
+
+@Injectable()
+export class AdminAccessControl implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const user: User = context.switchToHttp().getRequest()['user'];
+
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    if (!user.isAdmin) {
+      throw new ForbiddenException();
     }
 
     return true;

@@ -1,7 +1,4 @@
 import {
-  CreateRequestsRequest,
-  CreateRequestsResponse,
-  DeleteRequestsResponse,
   MediaItem,
   RequestsResponse,
   UpdateRequestsResponse,
@@ -10,10 +7,8 @@ import {
 import {
   Body,
   Controller,
-  Delete,
   Get,
   NotFoundException,
-  ParseBoolPipe,
   Post,
   Put,
   Query,
@@ -25,19 +20,15 @@ import { PaginatedApiOkResponse } from 'src/common/common.decorator';
 import { PaginatedResponseDto } from 'src/common/common.dto';
 import { MetadataService } from 'src/metadata/metadata.service';
 import { PluginsService } from 'src/plugins/plugins.service';
+import { PlayStatesService } from 'src/user-data/play-state/play-states.service';
 import { User } from 'src/users/user.entity';
 import {
-  BulkUpdateRequestsBodyDto,
-  CreateRequestsBodyDto,
-  CreateRequestsDto,
-  DeleteRequestDto,
   QueueItemDto,
   RequestsDto,
   UpdateQueueBodyDto,
   UpdateRequestsBodyDto,
   UpdateRequestsDto,
 } from './dtos/requests.dto';
-import { PlayStatesService } from 'src/user-data/play-state/play-states.service';
 
 @ApiTags('requests')
 @Controller('requests')
