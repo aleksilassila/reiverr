@@ -13,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { MediaModule } from './media/media.module';
 import { RequestsModule } from './requests/requests.module';
+import { MediaRequestsModule } from './media-requests/media-requests.module';
 import { CataloguesModule } from './catalogues/catalogues.module';
 import { ProxyModule } from './proxy/proxy.module';
 import { LocalMediaModule } from './local-media/local-media.module';
@@ -36,6 +37,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     PermissionsModule,
     MediaModule,
     RequestsModule,
+    MediaRequestsModule,
     CataloguesModule,
     ProxyModule,
     LocalMediaModule,

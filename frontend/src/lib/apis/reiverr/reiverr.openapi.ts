@@ -1914,17 +1914,6 @@ export interface UpdateRequestsDto {
   items: RequestDto[];
 }
 
-export interface BulkUpdateRequestsBodyDto {
-  requestIds: string[];
-  disabled?: boolean;
-  /** Unused in the dto */
-  watchStatuses?: string[];
-}
-
-export interface DeleteRequestDto {
-  success: boolean;
-}
-
 export interface QueueItemDto {
   id: string;
   label: string;
@@ -1937,6 +1926,55 @@ export interface QueueItemDto {
 export interface UpdateQueueBodyDto {
   requestId: string;
   queueItemIds: string[];
+}
+
+export interface MediaRequestDto {
+  id: string;
+  userId: string;
+  tmdbId: string;
+  mediaType: "movie" | "series" | "episode";
+  /** 0 for movies */
+  season: number;
+  /** 0 for movies */
+  episode: number;
+  approved: boolean;
+  movieMetadata?: MovieMetadata;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MovieRequestDto {
+  tmdbId: string;
+  request?: MediaRequestDto;
+}
+
+export interface SuccessResponseDto {
+  success: boolean;
+}
+
+export interface RequesterDto {
+  id: string;
+  name: string;
+}
+
+export interface AdminMediaRequestDto {
+  id: string;
+  userId: string;
+  tmdbId: string;
+  mediaType: "movie" | "series" | "episode";
+  /** 0 for movies */
+  season: number;
+  /** 0 for movies */
+  episode: number;
+  approved: boolean;
+  movieMetadata?: MovieMetadata;
+  createdAt: string;
+  updatedAt: string;
+  user: RequesterDto;
+}
+
+export interface UpdateMediaRequestDto {
+  approved: boolean;
 }
 
 export interface CatalogueDto {
@@ -2008,6 +2046,25 @@ export interface CatalogueItemsDto {
   items: TmdbItemDto[];
 }
 
+export interface LocalMediaSettingsDto {
+  movieFolders: string[];
+  seriesFolders: string[];
+}
+
+export interface LocalMediaFileDto {
+  id: string;
+  fileName: string;
+  size: number;
+}
+
+export interface LocalEpisodeFileDto {
+  id: string;
+  fileName: string;
+  size: number;
+  season: number;
+  episodes: number[];
+}
+
 export interface UpdatePlayStateDto {
   season?: number;
   episode?: number;
@@ -2035,10 +2092,6 @@ export interface LibraryItemDto {
   tmdbItem: TmdbItemDto;
   lastPlayState?: PlayStateDto;
   watched?: boolean;
-}
-
-export interface SuccessResponseDto {
-  success: boolean;
 }
 
 import type {
@@ -3349,48 +3402,6 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name BulkUpdateRequest
-     * @request PUT:/api/requests
-     */
-    bulkUpdateRequest: (
-      data: BulkUpdateRequestsBodyDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<UpdateRequestsDto, any>({
-        path: `/api/requests`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
-     * @name DeleteRequest
-     * @request DELETE:/api/requests
-     */
-    deleteRequest: (
-      query: {
-        pluginId: string;
-        requestId: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<DeleteRequestDto, any>({
-        path: `/api/requests`,
-        method: "DELETE",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
      * @name SyncWatchStatuses
      * @request PUT:/api/requests/sync
      */
@@ -3456,6 +3467,156 @@ export class Api<
         query: query,
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
+  mediaRequests = {
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name GetUserMediaRequests
+     * @request GET:/api/v2/users/{userId}/media-requests
+     */
+    getUserMediaRequests: (
+      userId: string,
+      query?: {
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: MediaRequestDto[];
+        },
+        any
+      >({
+        path: `/api/v2/users/${userId}/media-requests`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name GetMovieRequest
+     * @request GET:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     */
+    getMovieRequest: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<MovieRequestDto, any>({
+        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name CreateMovieRequest
+     * @request PUT:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     */
+    createMovieRequest: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<MediaRequestDto, any>({
+        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        method: "PUT",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name DeleteMovieRequest
+     * @request DELETE:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     */
+    deleteMovieRequest: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name GetAllMediaRequests
+     * @request GET:/api/v2/media-requests
+     */
+    getAllMediaRequests: (
+      query?: {
+        approved?: boolean;
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: AdminMediaRequestDto[];
+        },
+        any
+      >({
+        path: `/api/v2/media-requests`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name UpdateMediaRequest
+     * @request PUT:/api/v2/media-requests/{id}
+     */
+    updateMediaRequest: (
+      id: string,
+      data: UpdateMediaRequestDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<AdminMediaRequestDto, any>({
+        path: `/api/v2/media-requests/${id}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags media-requests
+     * @name DeleteMediaRequest
+     * @request DELETE:/api/v2/media-requests/{id}
+     */
+    deleteMediaRequest: (id: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/media-requests/${id}`,
+        method: "DELETE",
         format: "json",
         ...params,
       }),
@@ -3624,6 +3785,106 @@ export class Api<
       this.request<void, any>({
         path: `/api/proxy/*`,
         method: "SEARCH",
+        ...params,
+      }),
+  };
+  localMedia = {
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name GetLocalMediaSettings
+     * @request GET:/api/v2/local-media/settings
+     */
+    getLocalMediaSettings: (params: RequestParams = {}) =>
+      this.request<LocalMediaSettingsDto, any>({
+        path: `/api/v2/local-media/settings`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name UpdateLocalMediaSettings
+     * @request PUT:/api/v2/local-media/settings
+     */
+    updateLocalMediaSettings: (
+      data: LocalMediaSettingsDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<LocalMediaSettingsDto, any>({
+        path: `/api/v2/local-media/settings`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name GetMovieFiles
+     * @request GET:/api/v2/local-media/movies/{tmdbId}
+     */
+    getMovieFiles: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<LocalMediaFileDto[], any>({
+        path: `/api/v2/local-media/movies/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name GetSeriesFiles
+     * @request GET:/api/v2/local-media/series/{tmdbId}
+     */
+    getSeriesFiles: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<LocalEpisodeFileDto[], any>({
+        path: `/api/v2/local-media/series/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name GetEpisodeFiles
+     * @request GET:/api/v2/local-media/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     */
+    getEpisodeFiles: (
+      tmdbId: string,
+      season: number,
+      episode: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<LocalEpisodeFileDto[], any>({
+        path: `/api/v2/local-media/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name StreamFile
+     * @request GET:/api/v2/local-media/files/{id}/stream
+     */
+    streamFile: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/local-media/files/${id}/stream`,
+        method: "GET",
         ...params,
       }),
   };

@@ -66,16 +66,6 @@
 				.finally(() => setMovieStale?.());
 		}
 	};
-
-	async function deleteRequest(pluginId: string, requestId: string) {
-		reiverrApi.requests.deleteRequest({ pluginId, requestId }).then(() => {
-			if (season !== undefined && episode !== undefined) {
-				// return seriesData.
-			} else {
-				// movieData.requestsData?.refetch();
-			}
-		});
-	}
 </script>
 
 <div class="fixed inset-0 scale-110 z-[-1]">
