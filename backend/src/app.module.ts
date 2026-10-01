@@ -17,6 +17,7 @@ import { MediaRequestsModule } from './media-requests/media-requests.module.js';
 import { CataloguesModule } from './catalogues/catalogues.module.js';
 import { ProxyModule } from './proxy/proxy.module.js';
 import { LocalMediaModule } from './local-media/local-media.module.js';
+import { JobsModule } from './jobs/jobs.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -42,6 +43,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     CataloguesModule,
     ProxyModule,
     LocalMediaModule,
+    JobsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
