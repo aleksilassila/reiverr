@@ -1,5 +1,5 @@
 import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
-import { PlayState } from './play-state.entity';
+import { PlayState } from './play-state.entity.js';
 
 export class PlayStateDto extends PlayState {}
 

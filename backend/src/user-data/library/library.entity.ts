@@ -1,76 +1,78 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { MediaType } from 'src/common/common.dto';
-import { MovieMetadata, SeriesMetadata } from 'src/metadata/metadata.entity';
-import { User } from 'src/users/user.entity';
+import type { Rel } from '@mikro-orm/core';
 import {
-  Column,
-  CreateDateColumn,
   Entity,
-  JoinColumn,
   ManyToOne,
-  OneToMany,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
+  PrimaryKey,
+  Property,
   Unique,
-  UpdateDateColumn,
-} from 'typeorm';
-import { PlayStateDto } from '../play-state/play-state.dto';
-import { PlayState } from '../play-state/play-state.entity';
+} from '@mikro-orm/decorators/legacy';
+import { ApiProperty } from '@nestjs/swagger';
+import { randomUUID } from 'node:crypto';
+import { MediaType } from '../../common/common.dto.js';
+import {
+  MovieMetadata,
+  SeriesMetadata,
+} from '../../metadata/metadata.entity.js';
+import { User } from '../../users/user.entity.js';
+import { PlayStateDto } from '../play-state/play-state.dto.js';
+import { PlayState } from '../play-state/play-state.entity.js';
 
 @Entity()
-@Unique(['tmdbId', 'userId'])
+@Unique({ properties: ['tmdbId', 'userId'] })
 export class LibraryItem {
   @ApiProperty({ required: false, type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ required: true })
-  @Column()
+  @Property()
   tmdbId: string;
 
   @ApiProperty({ required: true, enum: MediaType })
-  @Column()
+  @Property({ type: 'string' })
   mediaType: MediaType;
 
   @ApiProperty({ type: 'string', required: false })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   lastPlayedAt?: Date;
 
-  @ApiProperty({ required: false, type: MovieMetadata })
+  @ApiProperty({ required: false, type: () => MovieMetadata })
   @ManyToOne(() => MovieMetadata, {
-    createForeignKeyConstraints: false,
+    targetKey: 'tmdbId',
+    fieldName: 'tmdb_id',
+    persist: false,
     nullable: true,
+    createForeignKeyConstraint: false,
   })
-  @JoinColumn({ name: 'tmdbId', referencedColumnName: 'tmdbId' })
-  movieMetadata?: MovieMetadata;
+  movieMetadata?: Rel<MovieMetadata>;
 
-  @ApiProperty({ required: false, type: SeriesMetadata })
+  @ApiProperty({ required: false, type: () => SeriesMetadata })
   @ManyToOne(() => SeriesMetadata, {
-    createForeignKeyConstraints: false,
+    targetKey: 'tmdbId',
+    fieldName: 'tmdb_id',
+    persist: false,
     nullable: true,
+    createForeignKeyConstraint: false,
   })
-  @JoinColumn({ name: 'tmdbId', referencedColumnName: 'tmdbId' })
-  seriesMetadata?: SeriesMetadata;
+  seriesMetadata?: Rel<SeriesMetadata>;
 
   @ApiProperty({ required: true, type: 'string' })
-  @PrimaryColumn()
+  @ManyToOne(() => User, {
+    mapToPk: true,
+    fieldName: 'user_id',
+    deleteRule: 'cascade',
+  })
   userId: string;
 
-  @ApiProperty({ required: false, type: 'string' })
-  @ManyToOne(() => User, (user) => user.libraryItems, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
-  @ApiProperty({ type: [PlayStateDto], required: false })
-  @OneToMany(() => PlayState, (playState) => playState.libraryItem)
+  @ApiProperty({ type: () => [PlayStateDto], required: false })
   playStates?: PlayState[];
 
   /** @deprecated */
   @ApiProperty({ type: 'string' })
-  @UpdateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
-  updatedAt: Date;
+  @Property({ onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 
   @ApiProperty({ type: 'string' })
-  @CreateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  @Property()
+  createdAt: Date = new Date();
 }

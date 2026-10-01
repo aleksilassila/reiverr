@@ -11,18 +11,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { GetAuthToken, UserAccessControl } from 'src/auth/auth.guard';
+import { GetAuthToken, UserAccessControl } from '../../auth/auth.guard.js';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
   PaginationApiQuery,
-} from 'src/common/common.decorator';
+} from '../../common/common.decorator.js';
 import {
   MediaType,
   PaginatedResponseDto,
   PaginationDto,
   SuccessResponseDto,
-} from 'src/common/common.dto';
+} from '../../common/common.dto.js';
 import {
   CatalogueTypeFilter,
   LibraryItemDto,
@@ -30,8 +30,8 @@ import {
   MyListStatusFilter,
   MyListTypeFilter,
   OrderDirection,
-} from './library.dto';
-import { LibraryService } from './library.service';
+} from './library.dto.js';
+import { LibraryService } from './library.service.js';
 
 @ApiTags('library')
 @Controller('users/:userId/library')
@@ -138,7 +138,7 @@ export class LibraryController {
       );
 
       return {
-        success: deleteAction.affected > 0,
+        success: deleteAction > 0,
       };
     }
   }

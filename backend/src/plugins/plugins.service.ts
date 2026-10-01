@@ -11,9 +11,9 @@ import {
   Transport,
 } from '@nestjs/microservices';
 import { join } from 'path';
-import { SettingsService } from 'src/settings/settings.service';
+import { SettingsService } from '../settings/settings.service.js';
 import { firstValueFrom } from 'rxjs';
-import { mediaPluginVersion } from '@aleksilassila/reiverr-shared/dist/src/old';
+import { mediaPluginVersion } from '@aleksilassila/reiverr-shared/dist/src/old.js';
 
 const SETTINGS_KEY = 'plugin-clients';
 
@@ -64,7 +64,10 @@ export class PluginsService implements OnModuleInit {
       options: {
         url: config.url,
         package: 'aleksilassila.reiverr.plugin.v1',
-        protoPath: join(__dirname, '../../../../shared/reiverr-plugin.proto'),
+        protoPath: join(
+          import.meta.dirname,
+          '../../../../shared/reiverr-plugin.proto',
+        ),
         loader: {
           // keepCase: false,
           arrays: true,

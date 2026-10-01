@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MediaModule } from 'src/media/media.module';
-import { PermissionsController } from './permissions.controller';
-import { PermissionsService } from './permissions.service';
+import { MediaModule } from '../media/media.module.js';
+import { PermissionsController } from './permissions.controller.js';
+import { PermissionsService } from './permissions.service.js';
 
 // Get available permissions
 // Get default permissions

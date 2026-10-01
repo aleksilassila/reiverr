@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   Type,
 } from '@nestjs/common';
-import { PaginatedResponseDto, PaginationDto } from './common.dto';
+import { PaginatedResponseDto, PaginationDto } from './common.dto.js';
 import {
   ApiExtraModels,
   ApiOkResponse,

@@ -1,14 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { CreateRequestContext } from '@mikro-orm/decorators/legacy';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository, sql } from '@mikro-orm/sqlite';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import {
   MediaType,
   PaginatedResponseDto,
   PaginationDto,
-} from 'src/common/common.dto';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
-import { Brackets, Repository } from 'typeorm';
-import { PlayState } from '../play-state/play-state.entity';
-import { USER_PLAY_STATE_REPOSITORY } from '../play-state/play-state.providers';
+} from '../../common/common.dto.js';
+import { MetadataService } from '../../metadata/metadata.service.js';
+import { MediaSourcesService } from '../../users/media-sources/media-sources.service.js';
+import { PlayState } from '../play-state/play-state.entity.js';
 import {
   CatalogueTypeFilter,
   LibraryItemDto,
@@ -16,30 +17,33 @@ import {
   MyListStatusFilter,
   MyListTypeFilter,
   OrderDirection,
-} from './library.dto';
-import { LibraryItem } from './library.entity';
-import { USER_LIBRARY_REPOSITORY } from './library.providers';
+} from './library.dto.js';
+import { LibraryItem } from './library.entity.js';
 
 @Injectable()
-export class LibraryService {
+export class LibraryService implements OnApplicationBootstrap {
   constructor(
-    @Inject(USER_LIBRARY_REPOSITORY)
-    private readonly libraryRepository: Repository<LibraryItem>,
-    @Inject(USER_PLAY_STATE_REPOSITORY)
-    private readonly playStateRepository: Repository<PlayState>,
+    @InjectRepository(LibraryItem)
+    private readonly libraryRepository: EntityRepository<LibraryItem>,
+    @InjectRepository(PlayState)
+    private readonly playStateRepository: EntityRepository<PlayState>,
+    private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
     private readonly mediaSourceService: MediaSourcesService,
-  ) {
+  ) {}
+
+  @CreateRequestContext()
+  async onApplicationBootstrap() {
     // Make sure library items are cached
-    this.libraryRepository.find().then((r) =>
-      r.forEach((i) => {
-        if (i.mediaType === 'movie') {
-          this.metadataService.getMovieByTmdbId(i.tmdbId);
-        } else if (i.mediaType === 'series') {
-          this.metadataService.getSeriesByTmdbId(i.tmdbId);
-        }
-      }),
-    );
+    const items = await this.libraryRepository.findAll();
+
+    items.forEach((i) => {
+      if (i.mediaType === 'movie') {
+        this.metadataService.getMovieByTmdbId(i.tmdbId);
+      } else if (i.mediaType === 'series') {
+        this.metadataService.getSeriesByTmdbId(i.tmdbId);
+      }
+    });
   }
 
   /** TODO: decouple librayItem and movie/seriesItem */
@@ -66,136 +70,84 @@ export class LibraryService {
         : MediaType.Series
       : undefined;
 
-    let builder = this.libraryRepository
-      .createQueryBuilder('libraryItem')
-      .leftJoinAndSelect('libraryItem.playStates', 'playStates')
-      .leftJoinAndSelect('libraryItem.movieMetadata', 'movieMetadata')
-      .leftJoinAndSelect('libraryItem.seriesMetadata', 'seriesMetadata')
-      .addSelect('libraryItem.createdAt', 'createdAt')
-      .addSelect(['libraryItem.createdAt', 'libraryItem.updatedAt'])
-      .where('libraryItem.userId = :userId', { userId });
+    // Each library item is joined with its play states (ps), so the status
+    // filter selects both the items and the play states returned with them
+    const statusFilter = getStatusFilter(status);
 
-    if (mediaType) {
-      builder = builder.andWhere('libraryItem.mediaType = :mediaType', {
-        mediaType,
-      });
-    }
+    const builder = this.libraryRepository
+      .createQueryBuilder('li')
+      .leftJoin(sql.ref('play_state'), 'ps', {
+        'ps.tmdb_id': sql.ref('li.tmdb_id'),
+        'ps.user_id': sql.ref('li.user_id'),
+      })
+      .leftJoin('li.movieMetadata', 'mm')
+      .leftJoin('li.seriesMetadata', 'sm')
+      .where({ userId });
 
-    const watched = new Brackets((qb) =>
-      qb
-        .where(
-          "(libraryItem.mediaType = 'movie' AND playStates.watched = true)",
-        )
-        .orWhere(
-          new Brackets((qb) =>
-            qb
-              .where("libraryItem.mediaType = 'series'")
-              .andWhere(
-                'playStates.watched = true AND playStates.season = seriesMetadata.lastSeasonNumber AND playStates.episode = seriesMetadata.lastEpisodeNumber',
-              ),
-          ),
-        ),
-    );
-    const upcoming = new Brackets((qb) =>
-      qb
-        .where(watched)
-        .andWhere(
-          new Brackets((qb) =>
-            qb
-              .where('seriesMetadata.nextReleaseDate > date("now")')
-              .orWhere('movieMetadata.releaseDate > date("now")'),
-          ),
-        ),
-    );
-    const watchedAndNotUpcoming = new Brackets((qb) =>
-      qb
-        .where(watched)
-        .andWhere(
-          new Brackets((qb) =>
-            qb
-              .where('seriesMetadata.nextReleaseDate < date("now")')
-              .orWhere('movieMetadata.releaseDate < date("now")')
-              .orWhere(
-                '(seriesMetadata.nextReleaseDate IS NULL AND movieMetadata.releaseDate IS NULL)',
-              ),
-          ),
-        ),
-    );
-    if (status === MyListStatusFilter.Upcoming) {
-      builder = builder.andWhere(upcoming);
-    } else if (status === MyListStatusFilter.Watched) {
-      builder = builder.andWhere(watchedAndNotUpcoming);
-    } else if (
-      status === MyListStatusFilter.Unwatched ||
-      status === MyListStatusFilter.ContinueWatching
-    ) {
-      builder = builder.andWhere(
-        new Brackets((qb) =>
-          qb
-            .where(
-              "(libraryItem.mediaType = 'movie' AND playStates.watched = false)",
-            )
-            .orWhere(
-              "(libraryItem.mediaType = 'movie' AND playStates.watched IS NULL)",
-            )
-            .orWhere(
-              new Brackets((qb) =>
-                qb
-                  .where("libraryItem.mediaType = 'series'")
-                  .andWhere(
-                    'playStates.watched = false AND playStates.season = seriesMetadata.lastSeasonNumber AND playStates.episode = seriesMetadata.lastEpisodeNumber',
-                  ),
-              ),
-            )
-            .orWhere(
-              new Brackets((qb) =>
-                qb.where("libraryItem.mediaType = 'series'").andWhere(
-                  `NOT EXISTS (
-                    select 1 from play_state playStates
-                    LEFT JOIN movie_metadata movieMetadata on playStates.tmdbId = movieMetadata.tmdbId
-                    LEFT JOIN series_metadata seriesMetadata on playStates.tmdbId = seriesMetadata.tmdbId
-                    where playStates.tmdbId = libraryItem.tmdbId AND playStates.userId = libraryItem.userId
-                    AND seriesMetadata.lastEpisodeNumber = playStates.episode AND seriesMetadata.lastSeasonNumber = playStates.season
-                  )`,
-                ),
-              ),
-            ),
-        ),
-      );
+    if (mediaType) builder.andWhere({ mediaType });
+    if (statusFilter) builder.andWhere(statusFilter);
 
-      if (status === MyListStatusFilter.ContinueWatching) {
-        builder = builder.andWhere(
-          "libraryItem.lastPlayedAt IS NOT NULL AND libraryItem.lastPlayedAt > date('now', '-1 month')",
-        );
-      }
-    }
+    const total = await builder.clone().getCount('li.id', true);
 
-    const DIRECTION = direction === OrderDirection.Asc ? 'ASC' : 'DESC';
+    const DIRECTION = direction === OrderDirection.Asc ? 'asc' : 'desc';
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
     if (order === MyListOrder.Name) {
-      builder.addOrderBy('seriesMetadata.name', DIRECTION);
-      builder.addOrderBy('movieMetadata.name', DIRECTION);
+      orderBy['sm.name'] = DIRECTION;
+      orderBy['mm.name'] = DIRECTION;
     } else if (order === MyListOrder.DateAdded) {
-      builder.addOrderBy('libraryItem.createdAt', DIRECTION);
+      orderBy['li.createdAt'] = DIRECTION;
     } else if (order === MyListOrder.FirstReleaseDate) {
-      builder.addOrderBy('movieMetadata.releaseDate', DIRECTION);
-      builder.addOrderBy('seriesMetadata.firstReleaseDate', DIRECTION);
+      orderBy['mm.releaseDate'] = DIRECTION;
+      orderBy['sm.firstReleaseDate'] = DIRECTION;
     } else if (order === MyListOrder.LastReleaseDate) {
-      builder.addOrderBy('movieMetadata.releaseDate', DIRECTION);
-      builder.addOrderBy('seriesMetadata.lastReleaseDate', DIRECTION);
+      orderBy['mm.releaseDate'] = DIRECTION;
+      orderBy['sm.lastReleaseDate'] = DIRECTION;
     } else if (order === MyListOrder.LastPlayed) {
-      builder.addOrderBy('libraryItem.lastPlayedAt', DIRECTION);
+      orderBy['li.lastPlayedAt'] = DIRECTION;
     }
+    orderBy['li.id'] = 'asc';
 
-    const [items, total] = await builder
-      .take(pagination.itemsPerPage)
-      .skip(pagination.itemsPerPage * (pagination.page - 1))
-      .getManyAndCount();
+    const items: Pick<LibraryItem, 'tmdbId' | 'mediaType'>[] = await builder
+      .select(['li.tmdbId', 'li.mediaType'])
+      .groupBy('li.id')
+      .orderBy(orderBy)
+      .limit(pagination.itemsPerPage)
+      .offset(pagination.itemsPerPage * (pagination.page - 1))
+      .execute();
 
-    // console.log(builder.getQuery());
+    const playStatesBuilder = this.playStateRepository
+      .createQueryBuilder('ps')
+      .select('*')
+      .innerJoin(sql.ref('library_item'), 'li', {
+        'li.tmdb_id': sql.ref('ps.tmdb_id'),
+        'li.user_id': sql.ref('ps.user_id'),
+      })
+      .leftJoin(sql.ref('movie_metadata'), 'mm', {
+        'mm.tmdb_id': sql.ref('li.tmdb_id'),
+      })
+      .leftJoin(sql.ref('series_metadata'), 'sm', {
+        'sm.tmdb_id': sql.ref('li.tmdb_id'),
+      })
+      .where({ userId, tmdbId: { $in: items.map((item) => item.tmdbId) } })
+      .orderBy({ season: 'asc', episode: 'asc' });
+
+    if (statusFilter) playStatesBuilder.andWhere(statusFilter);
+
+    const playStates = items.length
+      ? await playStatesBuilder.getResultList()
+      : [];
 
     return {
       items: await Promise.all(
-        items.map((item) => this.getLibraryItemDto(item)),
+        items.map((item) =>
+          this.getLibraryItemDto({
+            tmdbId: item.tmdbId,
+            mediaType: item.mediaType,
+            playStates: playStates.filter(
+              (playState) => playState.tmdbId === item.tmdbId,
+            ),
+          }),
+        ),
       ),
       total,
       itemsPerPage: pagination.itemsPerPage,
@@ -314,7 +266,7 @@ export class LibraryService {
     userId: string,
     tmdbId: string,
   ): Promise<LibraryItem | null> {
-    return this.libraryRepository.findOne({ where: { userId, tmdbId } });
+    return this.libraryRepository.findOne({ userId, tmdbId });
   }
 
   async findOrCreateByTmdbId(
@@ -325,36 +277,30 @@ export class LibraryService {
     let libraryItem = await this.findByTmdbId(userId, tmdbId);
 
     if (!libraryItem) {
-      libraryItem = this.libraryRepository.create({
-        userId,
-        tmdbId,
-        mediaType,
-      });
+      libraryItem = new LibraryItem();
+      libraryItem.userId = userId;
+      libraryItem.tmdbId = tmdbId;
+      libraryItem.mediaType = mediaType;
 
       const lastPlayedAt = await this.playStateRepository
-        .find({
-          where: {
-            userId,
-            tmdbId,
-          },
-        })
+        .find({ userId, tmdbId })
         .then((states) =>
           states.map((s) => new Date(s.lastPlayedAt).getTime() || 0),
         )
-        .then((dates) => Math.max(...dates));
+        .then((dates) => Math.max(0, ...dates));
 
       if (lastPlayedAt) {
         libraryItem.lastPlayedAt = new Date(lastPlayedAt);
       }
 
-      await this.libraryRepository.save(libraryItem);
+      await this.em.persist(libraryItem).flush();
     }
 
     return libraryItem;
   }
 
   async deleteByTmdbId(userId: string, tmdbId: string) {
-    return await this.libraryRepository.delete({ userId, tmdbId });
+    return await this.libraryRepository.nativeDelete({ userId, tmdbId });
   }
 
   async getLibraryItemDto(options: {
@@ -425,4 +371,54 @@ export class LibraryService {
 
     return libraryItem;
   }
+}
+
+function getStatusFilter(status?: MyListStatusFilter) {
+  // Release dates are compared by UTC day, a release today counts as upcoming
+  const today = new Date().setUTCHours(0, 0, 0, 0);
+
+  const watched = sql`(
+    (li.media_type = 'movie' and ps.watched = true)
+    or (li.media_type = 'series' and ps.watched = true
+      and ps.season = sm.last_season_number and ps.episode = sm.last_episode_number)
+  )`;
+
+  if (status === MyListStatusFilter.Upcoming) {
+    return sql`(${watched}
+      and (sm.next_release_date >= ${today} or mm.release_date >= ${today}))`;
+  } else if (status === MyListStatusFilter.Watched) {
+    return sql`(${watched} and (
+      sm.next_release_date < ${today} or mm.release_date < ${today}
+      or (sm.next_release_date is null and mm.release_date is null)
+    ))`;
+  } else if (
+    status === MyListStatusFilter.Unwatched ||
+    status === MyListStatusFilter.ContinueWatching
+  ) {
+    const unwatched = sql`(
+      (li.media_type = 'movie' and ps.watched = false)
+      or (li.media_type = 'movie' and ps.watched is null)
+      or (li.media_type = 'series' and ps.watched = false
+        and ps.season = sm.last_season_number and ps.episode = sm.last_episode_number)
+      or (li.media_type = 'series' and not exists (
+        select 1 from play_state last_episode
+        left join series_metadata series on series.tmdb_id = last_episode.tmdb_id
+        where last_episode.tmdb_id = li.tmdb_id and last_episode.user_id = li.user_id
+          and series.last_episode_number = last_episode.episode
+          and series.last_season_number = last_episode.season
+      ))
+    )`;
+
+    if (status === MyListStatusFilter.ContinueWatching) {
+      const monthAgo = new Date();
+      monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+
+      return sql`(${unwatched} and li.last_played_at is not null
+        and li.last_played_at >= ${monthAgo.setUTCHours(0, 0, 0, 0)})`;
+    }
+
+    return unwatched;
+  }
+
+  return undefined;
 }

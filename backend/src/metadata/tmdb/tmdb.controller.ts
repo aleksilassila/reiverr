@@ -9,11 +9,11 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
-import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
-import { TMDB_API_KEY, TMDB_CACHE_TTL } from 'src/consts';
-import { User } from 'src/users/user.entity';
-import { MetadataService } from '../metadata.service';
+import type { Request, Response } from 'express';
+import { GetAuthUser, UserAccessControl } from '../../auth/auth.guard.js';
+import { TMDB_API_KEY, TMDB_CACHE_TTL } from '../../consts.js';
+import { User } from '../../users/user.entity.js';
+import { MetadataService } from '../metadata.service.js';
 import axios, { AxiosError } from 'axios';
 
 @UseGuards(UserAccessControl)
@@ -27,14 +27,14 @@ export class TmdbController {
 
   // @UseInterceptors(CacheInterceptor)
   // @CacheTTL(METADATA_CACHE_TTL)
-  @All('v3/proxy/*')
+  @All('v3/proxy/*path')
   async tmdbProxy(
     @Param() params: any,
     @Req() req: Request,
     @Res() res: Response,
     @GetAuthUser() user: User,
   ) {
-    const uri = params[0] + '?' + req.url.split('?')[1];
+    const uri = params.path.join('/') + '?' + req.url.split('?')[1];
     const cached = await this.cacheManager.get(uri).catch((e) => {
       this.logger.error('Error getting cache', e);
       return null;

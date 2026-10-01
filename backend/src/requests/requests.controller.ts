@@ -15,20 +15,20 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { GetAuthUser } from 'src/auth/auth.guard';
-import { PaginatedApiOkResponse } from 'src/common/common.decorator';
-import { PaginatedResponseDto } from 'src/common/common.dto';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { PluginsService } from 'src/plugins/plugins.service';
-import { PlayStatesService } from 'src/user-data/play-state/play-states.service';
-import { User } from 'src/users/user.entity';
+import { GetAuthUser } from '../auth/auth.guard.js';
+import { PaginatedApiOkResponse } from '../common/common.decorator.js';
+import { PaginatedResponseDto } from '../common/common.dto.js';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { PluginsService } from '../plugins/plugins.service.js';
+import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
+import { User } from '../users/user.entity.js';
 import {
   QueueItemDto,
   RequestsDto,
   UpdateQueueBodyDto,
   UpdateRequestsBodyDto,
   UpdateRequestsDto,
-} from './dtos/requests.dto';
+} from './dtos/requests.dto.js';
 
 @ApiTags('requests')
 @Controller('requests')

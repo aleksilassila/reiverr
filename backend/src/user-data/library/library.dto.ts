@@ -1,8 +1,8 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
-import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
-import { LibraryItem } from './library.entity';
-import { PlayStateDto } from '../play-state/play-state.dto';
-import { PlayState } from '../play-state/play-state.entity';
+import { TmdbItemDto } from '../../metadata/tmdb/tmdb.dto.js';
+import { LibraryItem } from './library.entity.js';
+import { PlayStateDto } from '../play-state/play-state.dto.js';
+import { PlayState } from '../play-state/play-state.entity.js';
 
 export enum OrderDirection {
   Asc = 'asc',

@@ -1,23 +1,25 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   MediaTypeFull,
   PaginatedResponseDto,
   PaginationDto,
-} from 'src/common/common.dto';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { DeleteResult, Repository } from 'typeorm';
-import { MediaRequest } from './media-request.entity';
+} from '../common/common.dto.js';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { User } from '../users/user.entity.js';
+import { MediaRequest } from './media-request.entity.js';
 import {
   AdminMediaRequestDto,
   UpdateMediaRequestDto,
-} from './media-requests.dto';
-import { MEDIA_REQUEST_REPOSITORY } from './media-requests.providers';
+} from './media-requests.dto.js';
 
 @Injectable()
 export class MediaRequestsService {
   constructor(
-    @Inject(MEDIA_REQUEST_REPOSITORY)
-    private readonly requestRepository: Repository<MediaRequest>,
+    @InjectRepository(MediaRequest)
+    private readonly requestRepository: EntityRepository<MediaRequest>,
+    private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
   ) {}
 
@@ -25,13 +27,15 @@ export class MediaRequestsService {
     userId: string,
     pagination: PaginationDto,
   ): Promise<PaginatedResponseDto<MediaRequest>> {
-    const [items, total] = await this.requestRepository.findAndCount({
-      where: { userId },
-      relations: { movieMetadata: true },
-      order: { createdAt: 'DESC' },
-      skip: (pagination.page - 1) * pagination.itemsPerPage,
-      take: pagination.itemsPerPage,
-    });
+    const [items, total] = await this.requestRepository.findAndCount(
+      { userId },
+      {
+        populate: ['movieMetadata'],
+        orderBy: { createdAt: 'desc' },
+        offset: (pagination.page - 1) * pagination.itemsPerPage,
+        limit: pagination.itemsPerPage,
+      },
+    );
 
     return {
       items,
@@ -45,10 +49,10 @@ export class MediaRequestsService {
     userId: string,
     tmdbId: string,
   ): Promise<MediaRequest | undefined> {
-    return this.requestRepository.findOne({
-      where: { userId, tmdbId, season: 0, episode: 0 },
-      relations: { movieMetadata: true },
-    });
+    return this.requestRepository.findOne(
+      { userId, tmdbId, season: 0, episode: 0 },
+      { populate: ['movieMetadata'] },
+    );
   }
 
   async createMovieRequest(
@@ -62,24 +66,18 @@ export class MediaRequestsService {
     const existing = await this.findMovieRequest(userId, tmdbId);
     if (existing) return existing;
 
-    const request = await this.requestRepository.save(
-      this.requestRepository.create({
-        userId,
-        tmdbId,
-        mediaType: MediaTypeFull.Movie,
-        approved,
-      }),
-    );
-    request.movieMetadata = movie;
+    const request = new MediaRequest();
+    request.userId = userId;
+    request.tmdbId = tmdbId;
+    request.mediaType = MediaTypeFull.Movie;
+    request.approved = approved;
+    await this.em.persist(request).flush();
 
-    return request;
+    return this.findMovieRequest(userId, tmdbId);
   }
 
-  async deleteMovieRequest(
-    userId: string,
-    tmdbId: string,
-  ): Promise<DeleteResult> {
-    return this.requestRepository.delete({
+  async deleteMovieRequest(userId: string, tmdbId: string): Promise<number> {
+    return this.requestRepository.nativeDelete({
       userId,
       tmdbId,
       season: 0,
@@ -91,19 +89,18 @@ export class MediaRequestsService {
     pagination: PaginationDto,
     approved?: boolean,
   ): Promise<PaginatedResponseDto<AdminMediaRequestDto>> {
-    const builder = this.withRequester()
-      .orderBy('request.createdAt', 'DESC')
-      .skip((pagination.page - 1) * pagination.itemsPerPage)
-      .take(pagination.itemsPerPage);
-
-    if (approved !== undefined) {
-      builder.where('request.approved = :approved', { approved });
-    }
-
-    const [items, total] = await builder.getManyAndCount();
+    const [items, total] = await this.requestRepository.findAndCount(
+      approved === undefined ? {} : { approved },
+      {
+        populate: ['movieMetadata'],
+        orderBy: { createdAt: 'desc' },
+        offset: (pagination.page - 1) * pagination.itemsPerPage,
+        limit: pagination.itemsPerPage,
+      },
+    );
 
     return {
-      items: items.map(toAdminDto),
+      items: await this.withRequesters(items),
       total,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
@@ -111,43 +108,46 @@ export class MediaRequestsService {
   }
 
   async findById(id: string): Promise<AdminMediaRequestDto | undefined> {
-    const request = await this.withRequester()
-      .where('request.id = :id', { id })
-      .getOne();
+    const request = await this.requestRepository.findOne(
+      { id },
+      { populate: ['movieMetadata'] },
+    );
 
-    return request ? toAdminDto(request) : undefined;
+    return request
+      ? this.withRequesters([request]).then((requests) => requests[0])
+      : undefined;
   }
 
   async update(
     id: string,
     update: UpdateMediaRequestDto,
   ): Promise<AdminMediaRequestDto> {
-    const result = await this.requestRepository.update(id, {
-      approved: update.approved,
-    });
-    if (!result.affected) throw new NotFoundException('Request not found');
+    const affected = await this.requestRepository.nativeUpdate(
+      { id },
+      { approved: update.approved, updatedAt: new Date() },
+    );
+    if (!affected) throw new NotFoundException('Request not found');
 
     return this.findById(id);
   }
 
-  async deleteById(id: string): Promise<DeleteResult> {
-    return this.requestRepository.delete({ id });
+  async deleteById(id: string): Promise<number> {
+    return this.requestRepository.nativeDelete({ id });
   }
 
-  private withRequester() {
-    return this.requestRepository
-      .createQueryBuilder('request')
-      .leftJoinAndSelect('request.movieMetadata', 'movieMetadata')
-      .leftJoin('request.user', 'user')
-      .addSelect(['user.id', 'user.name']);
-  }
-}
+  private async withRequesters(
+    requests: MediaRequest[],
+  ): Promise<AdminMediaRequestDto[]> {
+    const users = await this.em.find(
+      User,
+      { id: { $in: requests.map((request) => request.userId) } },
+      { fields: ['id', 'name'], disableIdentityMap: true },
+    );
 
-// TypeORM instantiates User for the partial selection and its field
-// initializers would otherwise serialize default values for the requester
-function toAdminDto(request: MediaRequest): AdminMediaRequestDto {
-  return {
-    ...request,
-    user: { id: request.user.id, name: request.user.name },
-  };
+    return requests.map((request) => {
+      const user = users.find((user) => user.id === request.userId);
+
+      return { ...request, user: { id: user.id, name: user.name } };
+    });
+  }
 }

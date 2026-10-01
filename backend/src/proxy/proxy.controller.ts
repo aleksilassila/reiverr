@@ -7,8 +7,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Request, Response } from 'express';
-import { ProxyService } from './proxy.service';
+import type { Request, Response } from 'express';
+import { ProxyService } from './proxy.service.js';
 
 @ApiTags('proxy')
 @Controller('proxy')
@@ -19,7 +19,7 @@ export class ProxyController {
    * Catch-all route that proxies all HTTP methods to the specified destination
    * Usage: /proxy/https://example.com/api/endpoint?param=value
    */
-  @All('*')
+  @All('{*path}')
   @ApiOperation({
     summary: 'Proxy all requests to a destination URL',
     description:

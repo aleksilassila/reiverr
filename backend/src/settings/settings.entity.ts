@@ -1,17 +1,17 @@
+import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
-import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity()
 export class Settings {
   @ApiProperty({ required: true })
-  @PrimaryColumn()
+  @PrimaryKey()
   key: string;
 
   @ApiProperty({ required: true })
-  @Column('json')
+  @Property({ type: 'json' })
   value: any;
 
   @ApiProperty({ required: true })
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Property({ onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 }

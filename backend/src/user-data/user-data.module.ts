@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { LibraryModule } from './library/library.module';
-import { PlayStatesModule } from './play-state/play-states.module';
-import { UserDataController } from './user-data.controller';
+import { LibraryModule } from './library/library.module.js';
+import { PlayStatesModule } from './play-state/play-states.module.js';
+import { UserDataController } from './user-data.controller.js';
 
 @Module({
   imports: [PlayStatesModule, LibraryModule],

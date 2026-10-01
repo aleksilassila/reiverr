@@ -3,7 +3,7 @@ import {
   isInsideFolder,
   parseEpisodeNumbers,
   parseMediaFolderName,
-} from './local-media.utils';
+} from './local-media.utils.js';
 
 describe('parseMediaFolderName', () => {
   it('parses the title and year', () => {

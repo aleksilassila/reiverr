@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SettingsModule } from 'src/settings/settings.module';
-import { PluginsService } from './plugins.service';
+import { SettingsModule } from '../settings/settings.module.js';
+import { PluginsService } from './plugins.service.js';
 
 @Module({
   imports: [SettingsModule],

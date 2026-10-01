@@ -1,15 +1,17 @@
+import { MikroORM, RequestContext } from '@mikro-orm/core';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
-import { UsersService } from './users/users.service';
-import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts';
+import { createRequire } from 'node:module';
+import { UsersService } from './users/users.service.js';
+import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts.js';
 import { json, urlencoded } from 'express';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 // import * as proxy from 'express-http-proxy';
-require('ts-node/register'); // For importing plugins
+createRequire(import.meta.url)('ts-node/register'); // For importing plugins
 
 async function createAdminUser(userService: UsersService) {
   if (!ADMIN_USERNAME || ADMIN_PASSWORD === undefined) return;
@@ -34,6 +36,9 @@ async function bootstrap() {
     //   ...(ENV === 'development' ? (['debug'] as const) : []),
     // ],
   });
+  const orm = app.get(MikroORM);
+  await orm.migrator.up();
+
   app.setGlobalPrefix('api');
   app.enableCors();
   app.use(json({ limit: '50mb' }));
@@ -52,13 +57,16 @@ async function bootstrap() {
       deepScanRoutes: true,
       operationIdFactory: (controllerKey: string, methodKey: string) =>
         methodKey,
+      autoTagControllers: false,
     });
 
     SwaggerModule.setup('openapi', app, document);
     fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
   }
 
-  await createAdminUser(app.get(UsersService));
+  await RequestContext.create(orm.em, () =>
+    createAdminUser(app.get(UsersService)),
+  );
 
   // const microservice = app.connectMicroservice<MicroserviceOptions>({
   //   transport: Transport.TCP,
@@ -76,4 +84,4 @@ async function bootstrap() {
   );
 }
 
-bootstrap();
+await bootstrap();

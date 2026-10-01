@@ -9,7 +9,7 @@ import {
 import {
   PaginatedResponse,
   PaginationParams,
-} from '@aleksilassila/reiverr-shared/dist/src/old';
+} from '@aleksilassila/reiverr-shared/dist/src/old.js';
 
 export const PickAndPartial = <T, K extends keyof T>(
   clazz: Type<T>,
@@ -46,6 +46,17 @@ export class PaginationDto implements PaginationParams {
 export class SuccessResponseDto {
   @ApiProperty()
   success: boolean;
+}
+
+export class ErrorResponseDto {
+  @ApiProperty()
+  statusCode: number;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({ required: false })
+  error?: string;
 }
 
 export enum MediaType {

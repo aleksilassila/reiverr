@@ -1,17 +1,17 @@
 import { Controller, Get, NotFoundException, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { GetAuthToken, GetAuthUser } from 'src/auth/auth.guard';
+import { GetAuthToken, GetAuthUser } from '../auth/auth.guard.js';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
   PaginationApiQuery,
-} from 'src/common/common.decorator';
-import { PaginatedResponseDto, PaginationDto } from 'src/common/common.dto';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { PluginsService } from 'src/plugins/plugins.service';
-import { User } from 'src/users/user.entity';
-import { CatalogueDto, CatalogueItemsDto } from './dtos/catalogues.dto';
+} from '../common/common.decorator.js';
+import { PaginatedResponseDto, PaginationDto } from '../common/common.dto.js';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { PluginsService } from '../plugins/plugins.service.js';
+import { User } from '../users/user.entity.js';
+import { CatalogueDto, CatalogueItemsDto } from './dtos/catalogues.dto.js';
 import {
   CatalogueResponse,
   CataloguesResponse,

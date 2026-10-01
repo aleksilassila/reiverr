@@ -1,4 +1,3 @@
-import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
 import {
   BadRequestException,
   Body,
@@ -14,11 +13,18 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetAuthUser, UserAccessControl } from '../auth/auth.guard';
-import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
-import { User } from './user.entity';
-import { UserServiceError, UsersService } from './users.service';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/common.dto.js';
+import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
+import { User } from './user.entity.js';
+import { UserServiceError, UsersService } from './users.service.js';
 
 @ApiTags('users')
 @Controller('users')
@@ -59,7 +65,10 @@ export class UsersController {
   @UseGuards(UserAccessControl)
   @Get(':id')
   @ApiOkResponse({ description: 'User found', type: UserDto })
-  @ApiException(() => NotFoundException, { description: 'User not found' })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+    type: ErrorResponseDto,
+  })
   async findUserById(
     @Param('id') id: string,
     @GetAuthUser() callerUser: User,
@@ -85,8 +94,11 @@ export class UsersController {
 
   @Post()
   @ApiOkResponse({ description: 'User created', type: UserDto })
-  @ApiException(() => UnauthorizedException, { description: 'Unauthorized' })
-  @ApiException(() => BadRequestException)
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
+  })
+  @ApiBadRequestResponse({ type: ErrorResponseDto })
   async createUser(
     @Body()
     userCreateDto: CreateUserDto,
@@ -113,7 +125,10 @@ export class UsersController {
   @UseGuards(UserAccessControl)
   @Put(':id')
   @ApiOkResponse({ description: 'User updated', type: UserDto })
-  @ApiException(() => NotFoundException, { description: 'User not found' })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+    type: ErrorResponseDto,
+  })
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -142,7 +157,10 @@ export class UsersController {
   @UseGuards(UserAccessControl)
   @Delete(':id')
   @ApiOkResponse({ description: 'User deleted' })
-  @ApiException(() => NotFoundException, { description: 'User not found' })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+    type: ErrorResponseDto,
+  })
   async deleteUser(@Param('id') id: string, @GetAuthUser() callerUser: User) {
     if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
       throw new NotFoundException();

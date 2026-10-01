@@ -1,4 +1,7 @@
-FROM node:18-alpine as pre-production
+FROM node:24-alpine as pre-production
+
+# npm 11 compiles better-sqlite3 from source when installing from a lockfile
+RUN apk add --no-cache python3 make g++
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -29,7 +32,7 @@ COPY . .
 
 RUN npm run build
 
-FROM node:18-alpine as production
+FROM node:24-alpine as production
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app

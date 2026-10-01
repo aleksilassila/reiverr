@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TmdbApi } from './tmdb.providers';
+import { TmdbApi } from './tmdb.providers.js';
 import {
   MovieCreditsDto,
   MovieDetailsDto,
@@ -13,7 +13,7 @@ import {
   TvSeriesExternalIdsDto,
   TvSeriesImagesDto,
   TvSeriesVideosDto,
-} from './tmdb.v3.generated.dto';
+} from './tmdb.v3.generated.dto.js';
 
 export type MovieVideos = Awaited<
   ReturnType<TmdbApi['v3']['movieVideos']>
@@ -103,10 +103,10 @@ export class TmdbSeriesFull extends TvSeriesDetailsDto {
   images?: TvSeriesImagesDto;
 
   @ApiProperty({ required: false, type: NextEpisodeToAir })
-  next_episode_to_air?: NextEpisodeToAir;
+  declare next_episode_to_air?: NextEpisodeToAir;
 
   @ApiProperty({ required: false, type: [TmdbSeasonFull] })
-  seasons?: TmdbSeasonFull[];
+  declare seasons?: TmdbSeasonFull[];
 }
 
 export type TmdbEpisodeFull = TmdbEpisode;

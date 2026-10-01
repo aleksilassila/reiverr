@@ -6,8 +6,8 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
-import { User } from '../users/user.entity';
+import type { Request } from 'express';
+import { User } from '../users/user.entity.js';
 
 export const GetAuthUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {

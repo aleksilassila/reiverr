@@ -1,4 +1,4 @@
-import { SourceProviderError } from '@aleksilassila/reiverr-shared/dist/src/old';
+import { SourceProviderError } from '@aleksilassila/reiverr-shared/dist/src/old.js';
 import {
   All,
   BadRequestException,
@@ -24,26 +24,26 @@ import {
   GetAuthToken,
   GetAuthUser,
   UserAccessControl,
-} from 'src/auth/auth.guard';
-import { MetadataService } from 'src/metadata/metadata.service';
+} from '../../auth/auth.guard.js';
+import { MetadataService } from '../../metadata/metadata.service.js';
 import {
   ActionResponseDto,
   MediaSourceActionBodyDto,
   StreamActionResponseDto,
   StreamCandidatesDto,
-} from 'src/source-providers/source-provider.dto';
-import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import { User } from 'src/users/user.entity';
-import { AutoplayResponseDto } from './media-source-responses.dto';
+} from '../../source-providers/source-provider.dto.js';
+import { SourceProvidersService } from '../../source-providers/source-providers.service.js';
+import { User } from '../user.entity.js';
+import { AutoplayResponseDto } from './media-source-responses.dto.js';
 import {
   MediaSourceViewResponseDto,
   ProviderWithStreamsDto,
   ViewProvidersResponseDto as ViewGroupsResponseDto,
   ViewProviderDto,
-} from './media-source.dto';
-import { MediaSourcesService } from './media-sources.service';
-import { PaginatedResponseDto } from 'src/common/common.dto';
-import { PaginatedApiOkResponse } from 'src/common/common.decorator';
+} from './media-source.dto.js';
+import { MediaSourcesService } from './media-sources.service.js';
+import { PaginatedResponseDto } from '../../common/common.dto.js';
+import { PaginatedApiOkResponse } from '../../common/common.decorator.js';
 
 @Injectable()
 export class ServiceOwnershipValidator implements CanActivate {
@@ -413,7 +413,7 @@ export class MediaSourcesController {
   }
 
   /** @deprecated */
-  @All([':sourceId/proxy', ':sourceId/proxy/*'])
+  @All([':sourceId/proxy', ':sourceId/proxy/*path'])
   async proxyHandler(
     @Param() params: any,
     @Query() query: any,
@@ -450,7 +450,7 @@ export class MediaSourcesController {
     await provider.proxyHandler?.({
       req,
       res,
-      uri: `/${params[0]}?${req.url.split('?').slice(1).join('?') || ''}`,
+      uri: `/${params.path?.join('/')}?${req.url.split('?').slice(1).join('?') || ''}`,
       targetUrl,
     });
   }
@@ -474,13 +474,15 @@ export class MediaSourcesController {
   ) {
     const tmdbMovie =
       season === undefined && episode === undefined
-        ? this.metadataService.getMovieByTmdbId(tmdbId).then((m) => m.tmdbMovie)
+        ? this.metadataService
+            .getMovieByTmdbId(tmdbId)
+            .then((m) => m?.tmdbMovie)
         : undefined;
     const tmdbSeries =
       season !== undefined && episode !== undefined
         ? this.metadataService
             .getSeriesByTmdbId(tmdbId)
-            .then((s) => s.tmdbSeries)
+            .then((s) => s?.tmdbSeries)
         : undefined;
     const tmdbEpisode =
       season !== undefined && episode !== undefined

@@ -74,7 +74,7 @@ services:
 ### Building from Source
 
 1. Requirements(ish):
-   - Node v18.14.0 or higher
+   - Node v22.17.0 or higher
    - NPM v9.3.1 or higher
 2. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
 3. Build & run the app:\

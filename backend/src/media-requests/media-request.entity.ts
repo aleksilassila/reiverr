@@ -1,67 +1,68 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { MediaTypeFull } from 'src/common/common.dto';
-import { MovieMetadata } from 'src/metadata/metadata.entity';
-import { User } from 'src/users/user.entity';
+import type { Rel } from '@mikro-orm/core';
 import {
-  Column,
-  CreateDateColumn,
   Entity,
-  JoinColumn,
   ManyToOne,
-  PrimaryGeneratedColumn,
+  PrimaryKey,
+  Property,
   Unique,
-  UpdateDateColumn,
-} from 'typeorm';
+} from '@mikro-orm/decorators/legacy';
+import { ApiProperty } from '@nestjs/swagger';
+import { randomUUID } from 'node:crypto';
+import { MediaTypeFull } from '../common/common.dto.js';
+import { MovieMetadata } from '../metadata/metadata.entity.js';
+import { User } from '../users/user.entity.js';
 
 // Table already carries the name this module gets once the plugin requests are removed
-@Entity('request')
-@Unique(['userId', 'tmdbId', 'season', 'episode'])
+@Entity({ tableName: 'request' })
+@Unique({ properties: ['userId', 'tmdbId', 'season', 'episode'] })
 export class MediaRequest {
   @ApiProperty({ type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ type: 'string' })
-  @Column()
+  @ManyToOne(() => User, {
+    mapToPk: true,
+    fieldName: 'user_id',
+    deleteRule: 'cascade',
+  })
   userId: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
   @ApiProperty({ type: 'string' })
-  @Column()
+  @Property()
   tmdbId: string;
 
   @ApiProperty({ enum: MediaTypeFull })
-  @Column()
+  @Property({ type: 'string' })
   mediaType: MediaTypeFull;
 
   @ApiProperty({ type: 'number', description: '0 for movies' })
-  @Column({ default: 0 })
+  @Property({ default: 0 })
   season: number = 0;
 
   @ApiProperty({ type: 'number', description: '0 for movies' })
-  @Column({ default: 0 })
+  @Property({ default: 0 })
   episode: number = 0;
 
   @ApiProperty({ type: 'boolean' })
-  @Column({ default: false })
+  @Property({ default: false })
   approved: boolean = false;
 
-  @ApiProperty({ required: false, type: MovieMetadata })
+  @ApiProperty({ required: false, type: () => MovieMetadata })
   @ManyToOne(() => MovieMetadata, {
-    createForeignKeyConstraints: false,
+    targetKey: 'tmdbId',
+    fieldName: 'tmdb_id',
+    persist: false,
     nullable: true,
+    createForeignKeyConstraint: false,
   })
-  @JoinColumn({ name: 'tmdbId', referencedColumnName: 'tmdbId' })
-  movieMetadata?: MovieMetadata;
+  movieMetadata?: Rel<MovieMetadata>;
 
   @ApiProperty({ type: 'string' })
-  @CreateDateColumn()
-  createdAt: Date;
+  @Property()
+  createdAt: Date = new Date();
 
   @ApiProperty({ type: 'string' })
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Property({ onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 }

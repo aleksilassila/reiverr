@@ -1,10 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import { MediaSourcesService } from 'src/users/media-sources/media-sources.service';
-import { Repository } from 'typeorm';
-import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto';
-import { User } from './user.entity';
-import { USER_REPOSITORY } from './user.providers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { Injectable } from '@nestjs/common';
+import { SourceProvidersService } from '../source-providers/source-providers.service.js';
+import { MediaSourcesService } from './media-sources/media-sources.service.js';
+import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
+import { MediaSource } from './media-sources/media-source.entity.js';
+import { User } from './user.entity.js';
 
 export enum UserServiceError {
   PasswordMismatch = 'PasswordMismatch',
@@ -15,56 +16,41 @@ export enum UserServiceError {
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: EntityRepository<User>,
+    @InjectRepository(MediaSource)
+    private readonly mediaSourceRepository: EntityRepository<MediaSource>,
+    private readonly em: EntityManager,
     private readonly sourceProvidersService: SourceProvidersService,
     private readonly mediaSourcesService: MediaSourcesService,
   ) {}
 
   // Finds
   async findAll(): Promise<User[]> {
-    return this.userRepository
-      .find({
-        relations: {
-          mediaSources: true,
-        },
-      })
-      .then((users) =>
-        Promise.all(users.map((user) => this.filterMediaSources(user))),
-      );
+    return this.withMediaSources(await this.userRepository.findAll());
   }
 
   async findOne(id: string): Promise<User | undefined> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: {
-        mediaSources: true,
-      },
-    });
+    const user = await this.userRepository.findOne({ id });
 
     if (!user) return undefined;
 
-    return this.filterMediaSources(user);
+    return this.withMediaSources([user]).then((users) => users[0]);
   }
 
   async findOneByName(name: string): Promise<User | undefined> {
-    const user = await this.userRepository.findOne({
-      where: { name },
-      relations: {
-        mediaSources: true,
-      },
-    });
+    const user = await this.userRepository.findOne({ name });
 
     if (!user) return undefined;
 
-    return this.filterMediaSources(user);
+    return this.withMediaSources([user]).then((users) => users[0]);
   }
 
   // The rest
   async create(userCreateDto: CreateUserDto): Promise<User | undefined> {
     if (!userCreateDto.name) throw UserServiceError.UsernameRequired;
 
-    const user = this.userRepository.create();
+    const user = new User();
     user.name = userCreateDto.name;
     // TODO: Hash password
     user.password = userCreateDto.password;
@@ -81,7 +67,7 @@ export class UsersService {
       console.error(e);
     }
 
-    await this.userRepository.save(user);
+    await this.em.persist(user).flush();
     return this.findOne(user.id);
   }
 
@@ -90,7 +76,7 @@ export class UsersService {
     callerUser: User,
     updateUserDto: UpdateUserDto,
   ): Promise<User | undefined> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findOne({ id: userId });
 
     if (!user) throw new Error('Update user: User not found');
 
@@ -132,19 +118,17 @@ export class UsersService {
     if (updateUserDto.isAdmin !== undefined && callerUser.isAdmin)
       user.isAdmin = updateUserDto.isAdmin;
 
-    await this.userRepository.save(user);
+    await this.em.flush();
 
     return this.findOne(user.id);
   }
 
   async remove(id: string) {
-    return await this.userRepository.delete(id);
+    return await this.userRepository.nativeDelete({ id });
   }
 
   async noPreviousAdmins(): Promise<boolean> {
-    const adminCount = await this.userRepository.count({
-      where: { isAdmin: true },
-    });
+    const adminCount = await this.userRepository.count({ isAdmin: true });
 
     return adminCount === 0;
   }
@@ -185,14 +169,17 @@ export class UsersService {
     return out;
   }
 
-  private async filterMediaSources(user: User): Promise<User> {
+  private async withMediaSources(users: User[]): Promise<User[]> {
     const providers = this.sourceProvidersService.getProviders();
+    const mediaSources = await this.mediaSourceRepository.find({
+      userId: { $in: users.map((user) => user.id) },
+    });
 
-    return {
+    return users.map((user) => ({
       ...user,
-      mediaSources: user.mediaSources.filter(
-        (source) => !!providers[source.pluginId],
+      mediaSources: mediaSources.filter(
+        (source) => source.userId === user.id && !!providers[source.pluginId],
       ),
-    };
+    }));
   }
 }

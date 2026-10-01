@@ -6,13 +6,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from 'src/auth/auth.guard';
-import { LibraryService } from './library/library.service';
+import { UserAccessControl } from '../auth/auth.guard.js';
+import { LibraryService } from './library/library.service.js';
 import {
   MovieUserDataDto,
   SeriesUserDataDto,
-} from './play-state/play-state.dto';
-import { PlayStatesService } from './play-state/play-states.service';
+} from './play-state/play-state.dto.js';
+import { PlayStatesService } from './play-state/play-states.service.js';
 
 @ApiTags('users')
 @Controller('users')

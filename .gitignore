@@ -38,3 +38,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code (settings.json, commands, agents and skills stay shareable)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/agent-memory-local/
+CLAUDE.local.md

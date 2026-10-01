@@ -1,4 +1,4 @@
-import { ReiverrPlugin } from '@aleksilassila/reiverr-shared/dist/src/old';
+import { ReiverrPlugin } from '@aleksilassila/reiverr-shared/dist/src/old.js';
 import {
   Body,
   Controller,
@@ -15,15 +15,15 @@ import {
   GetAuthToken,
   GetAuthUser,
   UserAccessControl,
-} from 'src/auth/auth.guard';
-import { User } from 'src/users/user.entity';
+} from '../auth/auth.guard.js';
+import { User } from '../users/user.entity.js';
 import {
   PluginSettingsDto,
   PluginSettingsTemplateDto,
   SourceProviderCapabilitiesDto,
   ValidationResponseDto,
-} from './source-provider.dto';
-import { SourceProvidersService } from './source-providers.service';
+} from './source-provider.dto.js';
+import { SourceProvidersService } from './source-providers.service.js';
 
 export const JELLYFIN_DEVICE_ID = 'Reiverr Client';
 

@@ -2,17 +2,17 @@ import {
   CatalogueProvider,
   MediaSourceProvider,
   ValidationResponse,
-} from '@aleksilassila/reiverr-shared/dist/src/old';
-import { Inject, Injectable } from '@nestjs/common';
-import { SourceProvidersService } from 'src/source-providers/source-providers.service';
-import { User } from 'src/users/user.entity';
-import { Repository } from 'typeorm';
+} from '@aleksilassila/reiverr-shared/dist/src/old.js';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { Injectable } from '@nestjs/common';
+import { SourceProvidersService } from '../../source-providers/source-providers.service.js';
+import { User } from '../user.entity.js';
 import {
   MediaSourceDto,
   UpdateOrCreateMediaSourceDto,
-} from './media-source.dto';
-import { MediaSource } from './media-source.entity';
-import { MEIDA_SOURCE_REPOSITORY } from './media-source.providers';
+} from './media-source.dto.js';
+import { MediaSource } from './media-source.entity.js';
 
 export enum MediaSourcesServiceError {
   SourceNotFound = 'SourceNotFound',
@@ -22,25 +22,18 @@ export enum MediaSourcesServiceError {
 @Injectable()
 export class MediaSourcesService {
   constructor(
-    @Inject(MEIDA_SOURCE_REPOSITORY)
-    private readonly mediaSourceRepository: Repository<MediaSource>,
+    @InjectRepository(MediaSource)
+    private readonly mediaSourceRepository: EntityRepository<MediaSource>,
+    private readonly em: EntityManager,
     private sourceProvidersService: SourceProvidersService,
   ) {}
 
   private async findUserMediaSources(userId: string): Promise<MediaSource[]> {
-    return this.mediaSourceRepository.find({
-      where: {
-        userId: userId,
-      },
-    });
+    return this.mediaSourceRepository.find({ userId });
   }
 
   async findMediaSource(sourceId: string): Promise<MediaSource> {
-    const source = await this.mediaSourceRepository.findOne({
-      where: {
-        id: sourceId,
-      },
-    });
+    const source = await this.mediaSourceRepository.findOne({ id: sourceId });
 
     return source;
   }
@@ -56,7 +49,7 @@ export class MediaSourcesService {
       throw MediaSourcesServiceError.Unauthorized;
     }
 
-    await this.mediaSourceRepository.remove(source);
+    await this.em.remove(source).flush();
   }
 
   async updateOrCreateMediaSource(
@@ -77,7 +70,7 @@ export class MediaSourcesService {
         throw new Error('Plugin ID is required when creating a new source');
 
       source = new MediaSource();
-      source.user = user;
+      source.userId = user.id;
       source.pluginId = sourceDto.pluginId;
       source.adminControlled = false;
       source.name = sourceDto.name ?? sourceDto.pluginId;
@@ -122,14 +115,15 @@ export class MediaSourcesService {
 
       if (other.priority !== priority) {
         other.priority = priority;
-        await this.mediaSourceRepository.save(other);
       }
 
       priority++;
     }
 
+    await this.em.persist(source).flush();
+
     return {
-      mediaSource: await this.mediaSourceRepository.save(source),
+      mediaSource: source,
       validationResponse,
     };
   }

@@ -10,22 +10,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { AdminAccessControl } from 'src/auth/auth.guard';
+import { AdminAccessControl } from '../auth/auth.guard.js';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
   PaginationApiQuery,
-} from 'src/common/common.decorator';
+} from '../common/common.decorator.js';
 import {
   PaginatedResponseDto,
   PaginationDto,
   SuccessResponseDto,
-} from 'src/common/common.dto';
+} from '../common/common.dto.js';
 import {
   AdminMediaRequestDto,
   UpdateMediaRequestDto,
-} from './media-requests.dto';
-import { MediaRequestsService } from './media-requests.service';
+} from './media-requests.dto.js';
+import { MediaRequestsService } from './media-requests.service.js';
 
 @ApiTags('media-requests')
 @Controller('v2/media-requests')
@@ -61,6 +61,6 @@ export class AdminMediaRequestsController {
   ): Promise<SuccessResponseDto> {
     const result = await this.mediaRequestsService.deleteById(id);
 
-    return { success: result.affected > 0 };
+    return { success: result > 0 };
   }
 }

@@ -1,48 +1,44 @@
-import { ApiProperty } from '@nestjs/swagger';
 import {
-  Column,
   Entity,
-  JoinColumn,
   ManyToOne,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
+  PrimaryKey,
+  Property,
   Unique,
-  UpdateDateColumn,
-} from 'typeorm';
-import { LibraryItem } from '../library/library.entity';
-import { MediaTypeFull } from 'src/common/common.dto';
-import { User } from 'src/users/user.entity';
+} from '@mikro-orm/decorators/legacy';
+import { ApiProperty } from '@nestjs/swagger';
+import { randomUUID } from 'node:crypto';
+import { MediaTypeFull } from '../../common/common.dto.js';
+import { User } from '../../users/user.entity.js';
 
 @Entity()
-@Unique(['tmdbId', 'userId', 'season', 'episode'])
+@Unique({ properties: ['tmdbId', 'userId', 'season', 'episode'] })
 export class PlayState {
   @ApiProperty({ type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ required: true, type: 'number' })
-  @Column()
+  @Property()
   tmdbId: string;
 
   @ApiProperty({ enum: MediaTypeFull })
-  @Column()
+  @Property({ type: 'string' })
   mediaType: MediaTypeFull;
 
   @ApiProperty({ required: true, type: 'string' })
-  @Column()
+  @ManyToOne(() => User, {
+    mapToPk: true,
+    fieldName: 'user_id',
+    deleteRule: 'cascade',
+  })
   userId: string;
 
-  // @ApiProperty({ required: false, type: UserDto })
-  @ManyToOne(() => User, (user) => user.playStates, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user?: User;
-
   @ApiProperty({ required: false, type: 'number' })
-  @PrimaryColumn({ default: 0 })
+  @Property({ default: 0 })
   season: number = 0;
 
   @ApiProperty({ required: false, type: 'number' })
-  @PrimaryColumn({ default: 0 })
+  @Property({ default: 0 })
   episode: number = 0;
 
   @ApiProperty({
@@ -50,7 +46,7 @@ export class PlayState {
     default: false,
     description: 'Whether the user has watched this media',
   })
-  @Column({ default: false })
+  @Property({ default: false })
   watched: boolean = false;
 
   @ApiProperty({
@@ -58,23 +54,13 @@ export class PlayState {
     example: 0.5,
     description: 'A number between 0 and 1',
   })
-  @Column('double', { default: 0 })
+  @Property({ type: 'double', default: 0 })
   progress: number = 0;
 
   @ApiProperty({
     type: 'string',
     description: 'Last time the user played this media',
   })
-  @UpdateDateColumn()
-  lastPlayedAt: Date;
-
-  @ManyToOne(() => LibraryItem, (libraryItem) => libraryItem.playStates, {
-    nullable: true,
-    createForeignKeyConstraints: false,
-  })
-  @JoinColumn([
-    { name: 'tmdbId', referencedColumnName: 'tmdbId' },
-    { name: 'userId', referencedColumnName: 'userId' },
-  ])
-  libraryItem?: LibraryItem;
+  @Property({ onUpdate: () => new Date() })
+  lastPlayedAt: Date = new Date();
 }

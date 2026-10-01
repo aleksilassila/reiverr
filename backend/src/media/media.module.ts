@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MediaController } from './media.controller';
-import { PluginsModule } from 'src/plugins/plugins.module';
-import { MetadataModule } from 'src/metadata/metadata.module';
+import { MediaController } from './media.controller.js';
+import { PluginsModule } from '../plugins/plugins.module.js';
+import { MetadataModule } from '../metadata/metadata.module.js';
 
 @Module({
   imports: [PluginsModule, MetadataModule],

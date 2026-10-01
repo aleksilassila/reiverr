@@ -46,26 +46,573 @@ export interface Settings {
   tmdb: TmdbSettings;
 }
 
-export interface PlayState {
+export interface CatalogueOrderDirectionOption {
+  label: string;
+  value: string;
+}
+
+export interface OrderOptionDto {
+  label: string;
+  value: string;
+  directions: CatalogueOrderDirectionOption[];
+}
+
+export interface CatalogueCapability {
+  isSupported: boolean;
+  orderOptions: OrderOptionDto[];
+}
+
+export interface CatalogueCapabilitiesDto {
+  combinedCatalogue: CatalogueCapability;
+  missingCatalogue: CatalogueCapability;
+  moviesCatalogue: CatalogueCapability;
+  seriesCatalogue: CatalogueCapability;
+}
+
+export interface MediaSourceDto {
   id: string;
-  tmdbId: number;
-  mediaType: "movie" | "series" | "episode";
+  pluginId: string;
+  name: string;
   userId: string;
-  season?: number;
-  episode?: number;
+  /** @default false */
+  enabled?: boolean;
+  /** @default false */
+  adminControlled?: boolean;
+  priority: number;
+  pluginSettings?: Record<string, any>;
+  catalogueCapabilities: CatalogueCapabilitiesDto;
+}
+
+export interface UserDto {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+  onboardingDone?: boolean;
+  settings: Settings;
+  profilePicture: string;
+  mediaSources: MediaSourceDto[];
+}
+
+export interface ErrorResponseDto {
+  statusCode: number;
+  message: string;
+  error?: string;
+}
+
+export interface CreateUserDto {
+  name: string;
+  password: string;
+  isAdmin: boolean;
+  profilePicture?: string;
+}
+
+export interface UpdateUserDto {
+  name?: string;
+  password?: string;
+  isAdmin?: boolean;
+  onboardingDone?: boolean;
+  settings?: Settings;
+  profilePicture?: string;
+  oldPassword?: string;
+}
+
+export interface PaginatedResponseDto {
+  total: number;
+  page: number;
+  itemsPerPage: number;
+}
+
+export interface VideoStreamPropertyDto {
+  label: string;
+  value: string | number;
+  formatted?: string;
+}
+
+export interface StreamActionDto {
+  label: string;
+  type: string;
+}
+
+export interface StreamCandidateDto {
+  streamId: string;
+  title: string;
+  properties: VideoStreamPropertyDto[];
+  actions: StreamActionDto[];
+}
+
+export interface ProviderWithStreamsDto {
+  provider: MediaSourceDto;
+  streams: StreamCandidateDto[];
+}
+
+export interface ViewBaseDto {
+  id: string;
+  type: "general" | "list-with-details";
+  label: string;
+  priority?: number;
+}
+
+export interface ViewProviderDto {
+  view: ViewBaseDto;
+  sourceId: string;
+}
+
+export interface ViewGroupDto {
+  label: string;
+  viewProviders: ViewProviderDto[];
+}
+
+export interface ViewProvidersResponseDto {
+  viewGroups: ViewGroupDto[];
+}
+
+export interface HeadingElementDto {
+  type: "heading";
+  label: string;
+  description?: string;
+}
+
+export interface ToggleElementDto {
+  type: "toggle";
+  label: string;
+  description?: string;
+  value: boolean;
+  style: "checkbox" | "switch";
+}
+
+export interface SelectOptionDto {
+  label: string;
+  value: string;
+}
+
+export interface SelectElementDto {
+  type: "select";
+  label: string;
+  description?: string;
+  value: string;
+  options: SelectOptionDto[];
+  style: "dropdown" | "radio";
+}
+
+export interface StreamActionIconDto {
+  type: "play";
+  size?: "lg" | "md" | "sm";
+}
+
+export interface StreamActionElementDto {
+  type: "action";
+  label: "Stream";
+  action: "stream";
+  icon: StreamActionIconDto;
+  disabled?: boolean;
+}
+
+export interface IconDto {
+  type: "play" | "download" | "delete" | "info" | "external-link";
+  size?: "lg" | "md" | "sm";
+}
+
+export interface ActionElementDto {
+  type: "action";
+  label: string;
+  action: string;
+  disabled?: boolean;
+  icon?: IconDto;
+}
+
+export interface InputElementDto {
+  type: "input";
+  label: string;
+  description?: string;
+  value?: string;
+  placeholder?: string;
+  style: "number" | "text" | "email" | "password";
+  min?: number;
+  max?: number;
+  maxLength?: number;
+  minLength?: number;
+  disabled?: boolean;
+}
+
+export interface ExternalLinkElementDto {
+  type: "external-link";
+  label: string;
+  url: string;
+  icon?: IconDto;
+}
+
+export interface OpenViewElementDto {
+  type: "open-view";
+  label: string;
+  viewId: string;
+  icon?: IconDto;
+}
+
+export interface GeneralViewDto {
+  type: "general";
+  elements: (
+    | HeadingElementDto
+    | ToggleElementDto
+    | SelectElementDto
+    | StreamActionElementDto
+    | ActionElementDto
+    | InputElementDto
+    | ExternalLinkElementDto
+    | OpenViewElementDto
+  )[];
+}
+
+export interface SortablePropertyDto {
+  label: string;
+  value: string | number;
+  formatted: string;
+  secondary?: boolean;
+}
+
+export interface ListWithDetailsItemDto {
+  id: string;
+  label: string;
+  description: string;
+  properties: SortablePropertyDto[];
+  actions: (StreamActionElementDto | ActionElementDto | OpenViewElementDto)[];
+}
+
+export interface ListWithDetailsViewDto {
+  id: string;
+  type: "list-with-details";
+  label: string;
+  priority?: number;
+  items: ListWithDetailsItemDto[];
+  order?: OrderOptionDto;
+  orderOptions: OrderOptionDto[];
+}
+
+export interface MediaSourceViewResponseDto {
+  view: GeneralViewDto | ListWithDetailsViewDto;
+}
+
+export interface StreamCandidatesDto {
+  candidates: StreamCandidateDto[];
+}
+
+export interface StreamBaseDto {
+  streamId: string;
+  title: string;
+  properties: VideoStreamPropertyDto[];
+}
+
+export interface AutoplayResponseDto {
+  candidate?: StreamBaseDto;
+}
+
+export interface DirectPlayProfileDto {
+  /** Gets or sets the container. */
+  Container?: string | null;
+  /** Gets or sets the audio codec. */
+  AudioCodec?: string | null;
+  /** Gets or sets the video codec. */
+  VideoCodec?: string | null;
+  /** Gets or sets the Dlna profile type. */
+  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric";
+}
+
+export interface ProfileConditionDto {
+  /** Gets or sets the condition. */
+  Condition?:
+    | "Equals"
+    | "NotEquals"
+    | "LessThanEqual"
+    | "GreaterThanEqual"
+    | "EqualsAny"
+    | null;
+  /** Gets or sets the property. */
+  Property?:
+    | "AudioChannels"
+    | "AudioBitrate"
+    | "AudioProfile"
+    | "Width"
+    | "Height"
+    | "Has64BitOffsets"
+    | "PacketLength"
+    | "VideoBitDepth"
+    | "VideoBitrate"
+    | "VideoFramerate"
+    | "VideoLevel"
+    | "VideoProfile"
+    | "VideoTimestamp"
+    | "IsAnamorphic"
+    | "RefFrames"
+    | "NumAudioStreams"
+    | "NumVideoStreams"
+    | "IsSecondaryAudio"
+    | "VideoCodecTag"
+    | "IsAvc"
+    | "IsInterlaced"
+    | "AudioSampleRate"
+    | "AudioBitDepth"
+    | "VideoRangeType"
+    | null;
+  /** Gets or sets the value. */
+  Value?: string | null;
+  /** Indicates if the condition is required. */
+  IsRequired?: boolean | null;
+}
+
+export interface TranscodingProfileDto {
+  /** Gets or sets the container. */
+  Container?: string | null;
+  /** Gets or sets the DLNA profile type. */
+  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric";
+  /** Gets or sets the video codec. */
+  VideoCodec?: string | null;
+  /** Gets or sets the audio codec. */
+  AudioCodec?: string | null;
+  /** Media streaming protocol. */
+  Protocol?: "http" | "hls";
   /**
-   * Whether the user has watched this media
+   * Indicates if the content length should be estimated.
    * @default false
    */
-  watched: boolean;
+  EstimateContentLength?: boolean;
   /**
-   * A number between 0 and 1
+   * Indicates if M2TS mode is enabled.
    * @default false
-   * @example 0.5
    */
-  progress: number;
-  /** Last time the user played this media */
-  lastPlayedAt: string;
+  EnableMpegtsM2TsMode?: boolean;
+  /**
+   * Gets or sets the transcoding seek info mode.
+   * @default "Auto"
+   */
+  TranscodeSeekInfo?: "Auto" | "Bytes";
+  /**
+   * Indicates if timestamps should be copied.
+   * @default false
+   */
+  CopyTimestamps?: boolean;
+  /**
+   * Gets or sets the encoding context.
+   * @default "Streaming"
+   */
+  Context?: "Streaming" | "Static";
+  /**
+   * Indicates if subtitles are allowed in the manifest.
+   * @default false
+   */
+  EnableSubtitlesInManifest?: boolean;
+  /** Gets or sets the maximum audio channels. */
+  MaxAudioChannels?: string | null;
+  /**
+   * Gets or sets the minimum amount of segments.
+   * @format int32
+   * @default 0
+   */
+  MinSegments?: number;
+  /**
+   * Gets or sets the segment length.
+   * @format int32
+   * @default 0
+   */
+  SegmentLength?: number;
+  /**
+   * Indicates if breaking the video stream on non-keyframes is supported.
+   * @default false
+   */
+  BreakOnNonKeyFrames?: boolean;
+  /** Gets or sets the profile conditions. */
+  Conditions?: ProfileConditionDto[] | null;
+  /**
+   * Indicates if variable bitrate encoding is supported.
+   * @default true
+   */
+  EnableAudioVbrEncoding?: boolean;
+}
+
+export interface ContainerProfileDto {
+  /** Gets or sets the MediaBrowser.Model.Dlna.DlnaProfileType which this container must meet. */
+  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric" | null;
+  /** Gets or sets the profile conditions. */
+  Conditions?: ProfileConditionDto[] | null;
+  /** Gets or sets the container(s) which this container must meet. */
+  Container?: string | null;
+  /** Gets or sets the sub container(s) which this container must meet. */
+  SubContainer?: string | null;
+}
+
+export interface CodecProfileDto {
+  /** Gets or sets the MediaBrowser.Model.Dlna.CodecType which this container must meet. */
+  Type?: "Video" | "VideoAudio" | "Audio" | null;
+  /** Gets or sets the profile conditions. */
+  Conditions?: ProfileConditionDto[] | null;
+  /** Gets or sets the apply conditions if this profile is met. */
+  ApplyConditions?: ProfileConditionDto[] | null;
+  /** Gets or sets the codec(s) that this profile applies to. */
+  Codec?: string | null;
+  /** Gets or sets the container(s) which this profile will be applied to. */
+  Container?: string | null;
+  /** Gets or sets the sub-container(s) which this profile will be applied to. */
+  SubContainer?: string | null;
+}
+
+export interface SubtitleProfileDto {
+  /** Gets or sets the format. */
+  Format?: string | null;
+  /** Gets or sets the delivery method. */
+  Method?: "Encode" | "Embed" | "External" | "Hls" | "Drop" | null;
+  /** Gets or sets the DIDL mode. */
+  DidlMode?: string | null;
+  /** Gets or sets the language. */
+  Language?: string | null;
+  /** Gets or sets the container. */
+  Container?: string | null;
+}
+
+export interface DeviceProfileDto {
+  /** Gets or sets the name of this device profile. User profiles must have a unique name. */
+  Name?: string | null;
+  /**
+   * Gets or sets the unique internal identifier.
+   * @format uuid
+   */
+  Id?: string | null;
+  /**
+   * Gets or sets the maximum allowed bitrate for all streamed content.
+   * @format int32
+   */
+  MaxStreamingBitrate?: number | null;
+  /**
+   * Gets or sets the maximum allowed bitrate for statically streamed content (= direct played files).
+   * @format int32
+   */
+  MaxStaticBitrate?: number | null;
+  /**
+   * Gets or sets the maximum allowed bitrate for transcoded music streams.
+   * @format int32
+   */
+  MusicStreamingTranscodingBitrate?: number | null;
+  /**
+   * Gets or sets the maximum allowed bitrate for statically streamed (= direct played) music files.
+   * @format int32
+   */
+  MaxStaticMusicBitrate?: number | null;
+  /** Gets or sets the direct play profiles. */
+  DirectPlayProfiles?: DirectPlayProfileDto[] | null;
+  /** Gets or sets the transcoding profiles. */
+  TranscodingProfiles?: TranscodingProfileDto[] | null;
+  /** Gets or sets the container profiles. */
+  ContainerProfiles?: ContainerProfileDto[] | null;
+  /** Gets or sets the codec profiles. */
+  CodecProfiles?: CodecProfileDto[] | null;
+  /** Gets or sets the subtitle profiles. */
+  SubtitleProfiles?: SubtitleProfileDto[] | null;
+}
+
+export interface PlaybackConfigDto {
+  /** @example 0 */
+  bitrate?: number;
+  /** @example 0 */
+  audioStreamIndex?: number;
+  /** @example 0 */
+  progress?: number;
+  /** @example "en" */
+  deviceProfile?: DeviceProfileDto;
+  /** @example "en" */
+  defaultLanguage?: string;
+}
+
+export interface MediaSourceActionBodyDto {
+  playbackConfig?: PlaybackConfigDto;
+}
+
+export interface ActionResponseErrorDto {
+  /** @example "Stream not found" */
+  message: string;
+}
+
+export interface ToastDto {
+  title: string;
+  message: string;
+  type: "info" | "success" | "error";
+}
+
+export interface AudioStreamDto {
+  index: number;
+  label: string;
+  /** @example "aac" */
+  codec?: string;
+  /** @example 96000 */
+  bitrate?: number;
+}
+
+export interface QualityDto {
+  index: number;
+  bitrate: number;
+  label: string;
+  codec?: string;
+  original: boolean;
+}
+
+export interface SubtitlesDto {
+  src: string;
+  lang: string;
+  kind: "subtitles" | "captions" | "descriptions";
+  label: string;
+  default: boolean;
+}
+
+export interface StreamDto {
+  videoTracks: VideoTrackDto[];
+  subtitleTracks: SubtitleTrackDto[];
+}
+
+export interface StreamActionResponseDto {
+  error?: ActionResponseErrorDto;
+  toast?: ToastDto;
+  stream?: StreamDto;
+}
+
+export interface ActionResponseResultDto {
+  success: boolean;
+  message?: string;
+}
+
+export interface ActionResponseDto {
+  error?: ActionResponseErrorDto;
+  toast?: ToastDto;
+  result?: ActionResponseResultDto;
+}
+
+export interface UpdateOrCreateMediaSourceDto {
+  pluginId: string;
+  pluginSettings?: Record<string, any>;
+  id?: string;
+  name?: string;
+  /** @default false */
+  adminControlled?: boolean;
+  priority?: number;
+}
+
+export interface ValidationResponseDto {
+  /** @example true */
+  isValid: boolean;
+  /** @example {"setting1":"error message","setting2":"another error message"} */
+  errors: Record<string, string>;
+  /** @example {"setting1":"new value","setting2":"another new value"} */
+  settings: Record<string, any>;
+}
+
+export interface UpdateMediaSourceResponseDto {
+  mediaSource: MediaSourceDto;
+  validationResponse?: ValidationResponseDto;
+}
+
+export interface SignInDto {
+  name: string;
+  password: string;
+}
+
+export interface SignInResponse {
+  accessToken: string;
+  user: UserDto;
 }
 
 export interface GenreDto {
@@ -536,7 +1083,6 @@ export interface MovieMetadata {
   tmdbMovie?: TmdbMovieFull;
   name?: string;
   releaseDate?: string;
-  libraryItems?: any[][];
   updatedAt: string;
 }
 
@@ -1214,8 +1760,17 @@ export interface SeriesMetadata {
   nextReleaseDate?: string;
   lastSeasonNumber?: number;
   lastEpisodeNumber?: number;
-  libraryItems?: any[][];
   updatedAt: string;
+}
+
+export interface PluginSettingsTemplateDto {
+  /** @example {"setting1":"string","setting2":{"type":"link","url":"https://example.com"}} */
+  settings: Record<string, any>;
+}
+
+export interface PluginSettingsDto {
+  /** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
+  settings: Record<string, any>;
 }
 
 export interface PlayStateDto {
@@ -1238,595 +1793,6 @@ export interface PlayStateDto {
   progress: number;
   /** Last time the user played this media */
   lastPlayedAt: string;
-}
-
-export interface LibraryItem {
-  id?: string;
-  tmdbId: string;
-  mediaType: "movie" | "series";
-  lastPlayedAt?: string;
-  movieMetadata?: MovieMetadata;
-  seriesMetadata?: SeriesMetadata;
-  userId: string;
-  user?: string;
-  playStates?: PlayStateDto[];
-  updatedAt: string;
-  createdAt: string;
-}
-
-export interface CatalogueOrderDirectionOption {
-  label: string;
-  value: string;
-}
-
-export interface OrderOptionDto {
-  label: string;
-  value: string;
-  directions: CatalogueOrderDirectionOption[];
-}
-
-export interface CatalogueCapability {
-  isSupported: boolean;
-  orderOptions: OrderOptionDto[];
-}
-
-export interface CatalogueCapabilitiesDto {
-  combinedCatalogue: CatalogueCapability;
-  missingCatalogue: CatalogueCapability;
-  moviesCatalogue: CatalogueCapability;
-  seriesCatalogue: CatalogueCapability;
-}
-
-export interface MediaSourceDto {
-  id: string;
-  pluginId: string;
-  name: string;
-  userId: string;
-  /** @default false */
-  enabled?: boolean;
-  /** @default false */
-  adminControlled?: boolean;
-  priority: number;
-  pluginSettings?: Record<string, any>;
-  catalogueCapabilities: CatalogueCapabilitiesDto;
-}
-
-export interface UserDto {
-  id: string;
-  name: string;
-  isAdmin: boolean;
-  onboardingDone?: boolean;
-  settings: Settings;
-  playStates?: PlayState[];
-  libraryItems?: LibraryItem[];
-  profilePicture: string;
-  mediaSources: MediaSourceDto[];
-}
-
-export interface CreateUserDto {
-  name: string;
-  password: string;
-  isAdmin: boolean;
-  profilePicture?: string;
-}
-
-export interface UpdateUserDto {
-  name?: string;
-  password?: string;
-  isAdmin?: boolean;
-  onboardingDone?: boolean;
-  settings?: Settings;
-  profilePicture?: string;
-  oldPassword?: string;
-}
-
-export interface PaginatedResponseDto {
-  total: number;
-  page: number;
-  itemsPerPage: number;
-}
-
-export interface VideoStreamPropertyDto {
-  label: string;
-  value: string | number;
-  formatted?: string;
-}
-
-export interface StreamActionDto {
-  label: string;
-  type: string;
-}
-
-export interface StreamCandidateDto {
-  streamId: string;
-  title: string;
-  properties: VideoStreamPropertyDto[];
-  actions: StreamActionDto[];
-}
-
-export interface ProviderWithStreamsDto {
-  provider: MediaSourceDto;
-  streams: StreamCandidateDto[];
-}
-
-export interface ViewBaseDto {
-  id: string;
-  type: "general" | "list-with-details";
-  label: string;
-  priority?: number;
-}
-
-export interface ViewProviderDto {
-  view: ViewBaseDto;
-  sourceId: string;
-}
-
-export interface ViewGroupDto {
-  label: string;
-  viewProviders: ViewProviderDto[];
-}
-
-export interface ViewProvidersResponseDto {
-  viewGroups: ViewGroupDto[];
-}
-
-export interface HeadingElementDto {
-  type: "heading";
-  label: string;
-  description?: string;
-}
-
-export interface ToggleElementDto {
-  type: "toggle";
-  label: string;
-  description?: string;
-  value: boolean;
-  style: "checkbox" | "switch";
-}
-
-export interface SelectOptionDto {
-  label: string;
-  value: string;
-}
-
-export interface SelectElementDto {
-  type: "select";
-  label: string;
-  description?: string;
-  value: string;
-  options: SelectOptionDto[];
-  style: "dropdown" | "radio";
-}
-
-export interface StreamActionIconDto {
-  type: "play";
-  size?: "lg" | "md" | "sm";
-}
-
-export interface StreamActionElementDto {
-  type: "action";
-  label: "Stream";
-  action: "stream";
-  icon: StreamActionIconDto;
-  disabled?: boolean;
-}
-
-export interface IconDto {
-  type: "play" | "download" | "delete" | "info" | "external-link";
-  size?: "lg" | "md" | "sm";
-}
-
-export interface ActionElementDto {
-  type: "action";
-  label: string;
-  action: string;
-  disabled?: boolean;
-  icon?: IconDto;
-}
-
-export interface InputElementDto {
-  type: "input";
-  label: string;
-  description?: string;
-  value?: string;
-  placeholder?: string;
-  style: "number" | "text" | "email" | "password";
-  min?: number;
-  max?: number;
-  maxLength?: number;
-  minLength?: number;
-  disabled?: boolean;
-}
-
-export interface ExternalLinkElementDto {
-  type: "external-link";
-  label: string;
-  url: string;
-  icon?: IconDto;
-}
-
-export interface OpenViewElementDto {
-  type: "open-view";
-  label: string;
-  viewId: string;
-  icon?: IconDto;
-}
-
-export interface GeneralViewDto {
-  type: "general";
-  elements: (
-    | HeadingElementDto
-    | ToggleElementDto
-    | SelectElementDto
-    | StreamActionElementDto
-    | ActionElementDto
-    | InputElementDto
-    | ExternalLinkElementDto
-    | OpenViewElementDto
-  )[];
-}
-
-export interface SortablePropertyDto {
-  label: string;
-  value: string | number;
-  formatted: string;
-  secondary?: boolean;
-}
-
-export interface ListWithDetailsItemDto {
-  id: string;
-  label: string;
-  description: string;
-  properties: SortablePropertyDto[];
-  actions: (StreamActionElementDto | ActionElementDto | OpenViewElementDto)[];
-}
-
-export interface ListWithDetailsViewDto {
-  id: string;
-  type: "list-with-details";
-  label: string;
-  priority?: number;
-  items: ListWithDetailsItemDto[];
-  order?: OrderOptionDto;
-  orderOptions: OrderOptionDto[];
-}
-
-export interface MediaSourceViewResponseDto {
-  view: GeneralViewDto | ListWithDetailsViewDto;
-}
-
-export interface StreamCandidatesDto {
-  candidates: StreamCandidateDto[];
-}
-
-export interface StreamBaseDto {
-  streamId: string;
-  title: string;
-  properties: VideoStreamPropertyDto[];
-}
-
-export interface AutoplayResponseDto {
-  candidate?: StreamBaseDto;
-}
-
-export interface DirectPlayProfileDto {
-  /** Gets or sets the container. */
-  Container?: string | null;
-  /** Gets or sets the audio codec. */
-  AudioCodec?: string | null;
-  /** Gets or sets the video codec. */
-  VideoCodec?: string | null;
-  /** Gets or sets the Dlna profile type. */
-  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric";
-}
-
-export interface ProfileConditionDto {
-  /** Gets or sets the condition. */
-  Condition?:
-    | "Equals"
-    | "NotEquals"
-    | "LessThanEqual"
-    | "GreaterThanEqual"
-    | "EqualsAny"
-    | null;
-  /** Gets or sets the property. */
-  Property?:
-    | "AudioChannels"
-    | "AudioBitrate"
-    | "AudioProfile"
-    | "Width"
-    | "Height"
-    | "Has64BitOffsets"
-    | "PacketLength"
-    | "VideoBitDepth"
-    | "VideoBitrate"
-    | "VideoFramerate"
-    | "VideoLevel"
-    | "VideoProfile"
-    | "VideoTimestamp"
-    | "IsAnamorphic"
-    | "RefFrames"
-    | "NumAudioStreams"
-    | "NumVideoStreams"
-    | "IsSecondaryAudio"
-    | "VideoCodecTag"
-    | "IsAvc"
-    | "IsInterlaced"
-    | "AudioSampleRate"
-    | "AudioBitDepth"
-    | "VideoRangeType"
-    | null;
-  /** Gets or sets the value. */
-  Value?: string | null;
-  /** Indicates if the condition is required. */
-  IsRequired?: boolean | null;
-}
-
-export interface TranscodingProfileDto {
-  /** Gets or sets the container. */
-  Container?: string | null;
-  /** Gets or sets the DLNA profile type. */
-  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric";
-  /** Gets or sets the video codec. */
-  VideoCodec?: string | null;
-  /** Gets or sets the audio codec. */
-  AudioCodec?: string | null;
-  /** Media streaming protocol. */
-  Protocol?: "http" | "hls";
-  /**
-   * Indicates if the content length should be estimated.
-   * @default false
-   */
-  EstimateContentLength?: boolean;
-  /**
-   * Indicates if M2TS mode is enabled.
-   * @default false
-   */
-  EnableMpegtsM2TsMode?: boolean;
-  /**
-   * Gets or sets the transcoding seek info mode.
-   * @default "Auto"
-   */
-  TranscodeSeekInfo?: "Auto" | "Bytes";
-  /**
-   * Indicates if timestamps should be copied.
-   * @default false
-   */
-  CopyTimestamps?: boolean;
-  /**
-   * Gets or sets the encoding context.
-   * @default "Streaming"
-   */
-  Context?: "Streaming" | "Static";
-  /**
-   * Indicates if subtitles are allowed in the manifest.
-   * @default false
-   */
-  EnableSubtitlesInManifest?: boolean;
-  /** Gets or sets the maximum audio channels. */
-  MaxAudioChannels?: string | null;
-  /**
-   * Gets or sets the minimum amount of segments.
-   * @format int32
-   * @default 0
-   */
-  MinSegments?: number;
-  /**
-   * Gets or sets the segment length.
-   * @format int32
-   * @default 0
-   */
-  SegmentLength?: number;
-  /**
-   * Indicates if breaking the video stream on non-keyframes is supported.
-   * @default false
-   */
-  BreakOnNonKeyFrames?: boolean;
-  /** Gets or sets the profile conditions. */
-  Conditions?: ProfileConditionDto[] | null;
-  /**
-   * Indicates if variable bitrate encoding is supported.
-   * @default true
-   */
-  EnableAudioVbrEncoding?: boolean;
-}
-
-export interface ContainerProfileDto {
-  /** Gets or sets the MediaBrowser.Model.Dlna.DlnaProfileType which this container must meet. */
-  Type?: "Audio" | "Video" | "Photo" | "Subtitle" | "Lyric" | null;
-  /** Gets or sets the profile conditions. */
-  Conditions?: ProfileConditionDto[] | null;
-  /** Gets or sets the container(s) which this container must meet. */
-  Container?: string | null;
-  /** Gets or sets the sub container(s) which this container must meet. */
-  SubContainer?: string | null;
-}
-
-export interface CodecProfileDto {
-  /** Gets or sets the MediaBrowser.Model.Dlna.CodecType which this container must meet. */
-  Type?: "Video" | "VideoAudio" | "Audio" | null;
-  /** Gets or sets the profile conditions. */
-  Conditions?: ProfileConditionDto[] | null;
-  /** Gets or sets the apply conditions if this profile is met. */
-  ApplyConditions?: ProfileConditionDto[] | null;
-  /** Gets or sets the codec(s) that this profile applies to. */
-  Codec?: string | null;
-  /** Gets or sets the container(s) which this profile will be applied to. */
-  Container?: string | null;
-  /** Gets or sets the sub-container(s) which this profile will be applied to. */
-  SubContainer?: string | null;
-}
-
-export interface SubtitleProfileDto {
-  /** Gets or sets the format. */
-  Format?: string | null;
-  /** Gets or sets the delivery method. */
-  Method?: "Encode" | "Embed" | "External" | "Hls" | "Drop" | null;
-  /** Gets or sets the DIDL mode. */
-  DidlMode?: string | null;
-  /** Gets or sets the language. */
-  Language?: string | null;
-  /** Gets or sets the container. */
-  Container?: string | null;
-}
-
-export interface DeviceProfileDto {
-  /** Gets or sets the name of this device profile. User profiles must have a unique name. */
-  Name?: string | null;
-  /**
-   * Gets or sets the unique internal identifier.
-   * @format uuid
-   */
-  Id?: string | null;
-  /**
-   * Gets or sets the maximum allowed bitrate for all streamed content.
-   * @format int32
-   */
-  MaxStreamingBitrate?: number | null;
-  /**
-   * Gets or sets the maximum allowed bitrate for statically streamed content (= direct played files).
-   * @format int32
-   */
-  MaxStaticBitrate?: number | null;
-  /**
-   * Gets or sets the maximum allowed bitrate for transcoded music streams.
-   * @format int32
-   */
-  MusicStreamingTranscodingBitrate?: number | null;
-  /**
-   * Gets or sets the maximum allowed bitrate for statically streamed (= direct played) music files.
-   * @format int32
-   */
-  MaxStaticMusicBitrate?: number | null;
-  /** Gets or sets the direct play profiles. */
-  DirectPlayProfiles?: DirectPlayProfileDto[] | null;
-  /** Gets or sets the transcoding profiles. */
-  TranscodingProfiles?: TranscodingProfileDto[] | null;
-  /** Gets or sets the container profiles. */
-  ContainerProfiles?: ContainerProfileDto[] | null;
-  /** Gets or sets the codec profiles. */
-  CodecProfiles?: CodecProfileDto[] | null;
-  /** Gets or sets the subtitle profiles. */
-  SubtitleProfiles?: SubtitleProfileDto[] | null;
-}
-
-export interface PlaybackConfigDto {
-  /** @example 0 */
-  bitrate?: number;
-  /** @example 0 */
-  audioStreamIndex?: number;
-  /** @example 0 */
-  progress?: number;
-  /** @example "en" */
-  deviceProfile?: DeviceProfileDto;
-  /** @example "en" */
-  defaultLanguage?: string;
-}
-
-export interface MediaSourceActionBodyDto {
-  playbackConfig?: PlaybackConfigDto;
-}
-
-export interface ActionResponseErrorDto {
-  /** @example "Stream not found" */
-  message: string;
-}
-
-export interface ToastDto {
-  title: string;
-  message: string;
-  type: "info" | "success" | "error";
-}
-
-export interface AudioStreamDto {
-  index: number;
-  label: string;
-  /** @example "aac" */
-  codec?: string;
-  /** @example 96000 */
-  bitrate?: number;
-}
-
-export interface QualityDto {
-  index: number;
-  bitrate: number;
-  label: string;
-  codec?: string;
-  original: boolean;
-}
-
-export interface SubtitlesDto {
-  src: string;
-  lang: string;
-  kind: "subtitles" | "captions" | "descriptions";
-  label: string;
-  default: boolean;
-}
-
-export interface StreamDto {
-  videoTracks: VideoTrackDto[];
-  subtitleTracks: SubtitleTrackDto[];
-}
-
-export interface StreamActionResponseDto {
-  error?: ActionResponseErrorDto;
-  toast?: ToastDto;
-  stream?: StreamDto;
-}
-
-export interface ActionResponseResultDto {
-  success: boolean;
-  message?: string;
-}
-
-export interface ActionResponseDto {
-  error?: ActionResponseErrorDto;
-  toast?: ToastDto;
-  result?: ActionResponseResultDto;
-}
-
-export interface UpdateOrCreateMediaSourceDto {
-  pluginId: string;
-  pluginSettings?: Record<string, any>;
-  id?: string;
-  name?: string;
-  /** @default false */
-  adminControlled?: boolean;
-  priority?: number;
-}
-
-export interface ValidationResponseDto {
-  /** @example true */
-  isValid: boolean;
-  /** @example {"setting1":"error message","setting2":"another error message"} */
-  errors: Record<string, string>;
-  /** @example {"setting1":"new value","setting2":"another new value"} */
-  settings: Record<string, any>;
-}
-
-export interface UpdateMediaSourceResponseDto {
-  mediaSource: MediaSourceDto;
-  validationResponse?: ValidationResponseDto;
-}
-
-export interface SignInDto {
-  name: string;
-  password: string;
-}
-
-export interface SignInResponse {
-  accessToken: string;
-  user: UserDto;
-}
-
-export interface PluginSettingsTemplateDto {
-  /** @example {"setting1":"string","setting2":{"type":"link","url":"https://example.com"}} */
-  settings: Record<string, any>;
-}
-
-export interface PluginSettingsDto {
-  /** @example {"setting1":"some value","setting2":12345,"setting3":true,"setting4":{"nestedKey":"nestedValue"}} */
-  settings: Record<string, any>;
 }
 
 export interface MovieUserDataDto {
@@ -2301,25 +2267,7 @@ export class Api<
      * @request POST:/api/users
      */
     createUser: (data: CreateUserDto, params: RequestParams = {}) =>
-      this.request<
-        UserDto,
-        | {
-            /** @example 400 */
-            statusCode: number;
-            /** @example "Bad Request" */
-            message: string;
-            /** @example "Bad Request" */
-            error?: string;
-          }
-        | {
-            /** @example 401 */
-            statusCode: number;
-            /** @example "Unauthorized" */
-            message: string;
-            /** @example "Unauthorized" */
-            error?: string;
-          }
-      >({
+      this.request<UserDto, ErrorResponseDto>({
         path: `/api/users`,
         method: "POST",
         body: data,
@@ -2336,17 +2284,7 @@ export class Api<
      * @request GET:/api/users/{id}
      */
     findUserById: (id: string, params: RequestParams = {}) =>
-      this.request<
-        UserDto,
-        {
-          /** @example 404 */
-          statusCode: number;
-          /** @example "Not Found" */
-          message: string;
-          /** @example "Not Found" */
-          error?: string;
-        }
-      >({
+      this.request<UserDto, ErrorResponseDto>({
         path: `/api/users/${id}`,
         method: "GET",
         format: "json",
@@ -2361,17 +2299,7 @@ export class Api<
      * @request PUT:/api/users/{id}
      */
     updateUser: (id: string, data: UpdateUserDto, params: RequestParams = {}) =>
-      this.request<
-        UserDto,
-        {
-          /** @example 404 */
-          statusCode: number;
-          /** @example "Not Found" */
-          message: string;
-          /** @example "Not Found" */
-          error?: string;
-        }
-      >({
+      this.request<UserDto, ErrorResponseDto>({
         path: `/api/users/${id}`,
         method: "PUT",
         body: data,
@@ -2388,17 +2316,7 @@ export class Api<
      * @request DELETE:/api/users/{id}
      */
     deleteUser: (id: string, params: RequestParams = {}) =>
-      this.request<
-        void,
-        {
-          /** @example 404 */
-          statusCode: number;
-          /** @example "Not Found" */
-          message: string;
-          /** @example "Not Found" */
-          error?: string;
-        }
-      >({
+      this.request<void, ErrorResponseDto>({
         path: `/api/users/${id}`,
         method: "DELETE",
         ...params,
@@ -2906,13 +2824,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerGet2
-     * @request GET:/api/sources/{sourceId}/proxy/*
+     * @request GET:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerGet
      * @duplicate
      */
-    proxyHandlerGet2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerGet2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "GET",
         ...params,
       }),
@@ -2922,13 +2844,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerPost2
-     * @request POST:/api/sources/{sourceId}/proxy/*
+     * @request POST:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerPost
      * @duplicate
      */
-    proxyHandlerPost2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerPost2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "POST",
         ...params,
       }),
@@ -2938,13 +2864,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerPut2
-     * @request PUT:/api/sources/{sourceId}/proxy/*
+     * @request PUT:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerPut
      * @duplicate
      */
-    proxyHandlerPut2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerPut2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "PUT",
         ...params,
       }),
@@ -2954,13 +2884,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerDelete2
-     * @request DELETE:/api/sources/{sourceId}/proxy/*
+     * @request DELETE:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerDelete
      * @duplicate
      */
-    proxyHandlerDelete2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerDelete2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "DELETE",
         ...params,
       }),
@@ -2970,13 +2904,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerPatch2
-     * @request PATCH:/api/sources/{sourceId}/proxy/*
+     * @request PATCH:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerPatch
      * @duplicate
      */
-    proxyHandlerPatch2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerPatch2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "PATCH",
         ...params,
       }),
@@ -2986,13 +2924,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerOptions2
-     * @request OPTIONS:/api/sources/{sourceId}/proxy/*
+     * @request OPTIONS:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerOptions
      * @duplicate
      */
-    proxyHandlerOptions2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerOptions2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "OPTIONS",
         ...params,
       }),
@@ -3002,13 +2944,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerHead2
-     * @request HEAD:/api/sources/{sourceId}/proxy/*
+     * @request HEAD:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerHead
      * @duplicate
      */
-    proxyHandlerHead2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerHead2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "HEAD",
         ...params,
       }),
@@ -3018,13 +2964,17 @@ export class Api<
      *
      * @tags sources
      * @name ProxyHandlerSearch2
-     * @request SEARCH:/api/sources/{sourceId}/proxy/*
+     * @request SEARCH:/api/sources/{sourceId}/proxy/{path}
      * @originalName proxyHandlerSearch
      * @duplicate
      */
-    proxyHandlerSearch2: (sourceId: string, params: RequestParams = {}) =>
+    proxyHandlerSearch2: (
+      sourceId: string,
+      path: string,
+      params: RequestParams = {},
+    ) =>
       this.request<void, any>({
-        path: `/api/sources/${sourceId}/proxy/*`,
+        path: `/api/sources/${sourceId}/proxy/${path}`,
         method: "SEARCH",
         ...params,
       }),
@@ -3037,17 +2987,7 @@ export class Api<
      * @request POST:/api/auth
      */
     signIn: (data: SignInDto, params: RequestParams = {}) =>
-      this.request<
-        SignInResponse,
-        {
-          /** @example 401 */
-          statusCode: number;
-          /** @example "Unauthorized" */
-          message: string;
-          /** @example "Unauthorized" */
-          error?: string;
-        }
-      >({
+      this.request<SignInResponse, ErrorResponseDto>({
         path: `/api/auth`,
         method: "POST",
         body: data,
@@ -3060,11 +3000,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyGet
-     * @request GET:/api/tmdb/v3/proxy/*
+     * @request GET:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyGet: (params: RequestParams = {}) =>
+    tmdbProxyGet: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "GET",
         ...params,
       }),
@@ -3073,11 +3013,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyPost
-     * @request POST:/api/tmdb/v3/proxy/*
+     * @request POST:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyPost: (params: RequestParams = {}) =>
+    tmdbProxyPost: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "POST",
         ...params,
       }),
@@ -3086,11 +3026,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyPut
-     * @request PUT:/api/tmdb/v3/proxy/*
+     * @request PUT:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyPut: (params: RequestParams = {}) =>
+    tmdbProxyPut: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "PUT",
         ...params,
       }),
@@ -3099,11 +3039,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyDelete
-     * @request DELETE:/api/tmdb/v3/proxy/*
+     * @request DELETE:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyDelete: (params: RequestParams = {}) =>
+    tmdbProxyDelete: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "DELETE",
         ...params,
       }),
@@ -3112,11 +3052,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyPatch
-     * @request PATCH:/api/tmdb/v3/proxy/*
+     * @request PATCH:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyPatch: (params: RequestParams = {}) =>
+    tmdbProxyPatch: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "PATCH",
         ...params,
       }),
@@ -3125,11 +3065,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyOptions
-     * @request OPTIONS:/api/tmdb/v3/proxy/*
+     * @request OPTIONS:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyOptions: (params: RequestParams = {}) =>
+    tmdbProxyOptions: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "OPTIONS",
         ...params,
       }),
@@ -3138,11 +3078,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxyHead
-     * @request HEAD:/api/tmdb/v3/proxy/*
+     * @request HEAD:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxyHead: (params: RequestParams = {}) =>
+    tmdbProxyHead: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "HEAD",
         ...params,
       }),
@@ -3151,11 +3091,11 @@ export class Api<
      * No description
      *
      * @name TmdbProxySearch
-     * @request SEARCH:/api/tmdb/v3/proxy/*
+     * @request SEARCH:/api/tmdb/v3/proxy/{path}
      */
-    tmdbProxySearch: (params: RequestParams = {}) =>
+    tmdbProxySearch: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/*`,
+        path: `/api/tmdb/v3/proxy/${path}`,
         method: "SEARCH",
         ...params,
       }),
@@ -3674,11 +3614,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllGet
      * @summary Proxy all requests to a destination URL
-     * @request GET:/api/proxy/*
+     * @request GET:/api/proxy/{path}
      */
-    proxyAllGet: (params: RequestParams = {}) =>
+    proxyAllGet: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "GET",
         ...params,
       }),
@@ -3689,11 +3629,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllPost
      * @summary Proxy all requests to a destination URL
-     * @request POST:/api/proxy/*
+     * @request POST:/api/proxy/{path}
      */
-    proxyAllPost: (params: RequestParams = {}) =>
+    proxyAllPost: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "POST",
         ...params,
       }),
@@ -3704,11 +3644,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllPut
      * @summary Proxy all requests to a destination URL
-     * @request PUT:/api/proxy/*
+     * @request PUT:/api/proxy/{path}
      */
-    proxyAllPut: (params: RequestParams = {}) =>
+    proxyAllPut: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "PUT",
         ...params,
       }),
@@ -3719,11 +3659,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllDelete
      * @summary Proxy all requests to a destination URL
-     * @request DELETE:/api/proxy/*
+     * @request DELETE:/api/proxy/{path}
      */
-    proxyAllDelete: (params: RequestParams = {}) =>
+    proxyAllDelete: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "DELETE",
         ...params,
       }),
@@ -3734,11 +3674,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllPatch
      * @summary Proxy all requests to a destination URL
-     * @request PATCH:/api/proxy/*
+     * @request PATCH:/api/proxy/{path}
      */
-    proxyAllPatch: (params: RequestParams = {}) =>
+    proxyAllPatch: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "PATCH",
         ...params,
       }),
@@ -3749,11 +3689,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllOptions
      * @summary Proxy all requests to a destination URL
-     * @request OPTIONS:/api/proxy/*
+     * @request OPTIONS:/api/proxy/{path}
      */
-    proxyAllOptions: (params: RequestParams = {}) =>
+    proxyAllOptions: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "OPTIONS",
         ...params,
       }),
@@ -3764,11 +3704,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllHead
      * @summary Proxy all requests to a destination URL
-     * @request HEAD:/api/proxy/*
+     * @request HEAD:/api/proxy/{path}
      */
-    proxyAllHead: (params: RequestParams = {}) =>
+    proxyAllHead: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "HEAD",
         ...params,
       }),
@@ -3779,11 +3719,11 @@ export class Api<
      * @tags proxy
      * @name ProxyAllSearch
      * @summary Proxy all requests to a destination URL
-     * @request SEARCH:/api/proxy/*
+     * @request SEARCH:/api/proxy/{path}
      */
-    proxyAllSearch: (params: RequestParams = {}) =>
+    proxyAllSearch: (path: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/proxy/*`,
+        path: `/api/proxy/${path}`,
         method: "SEARCH",
         ...params,
       }),

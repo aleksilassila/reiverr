@@ -1,51 +1,41 @@
+import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
+import { randomUUID } from 'node:crypto';
+import { TMDB_CACHE_TTL } from '../consts.js';
 import {
-  Column,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import {
-  TmdbEpisodeFull,
+  type TmdbEpisodeFull,
   TmdbMovieFull,
   TmdbSeriesFull,
-} from './tmdb/tmdb.dto';
-import { TMDB_CACHE_TTL } from 'src/consts';
-import { LibraryItem } from 'src/user-data/library/library.entity';
+} from './tmdb/tmdb.dto.js';
 
 @Entity()
 export class MovieMetadata {
   @ApiProperty({ required: false, type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ required: true, type: 'string' })
-  @Column({ unique: true })
+  @Property({ unique: true })
   tmdbId: string;
 
   //
 
   @ApiProperty({ required: false, type: TmdbMovieFull })
-  @Column('json')
+  @Property({ type: 'json' })
   tmdbMovie: TmdbMovieFull;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   name?: string;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   releaseDate?: Date;
 
   //
 
-  @ApiProperty({ type: [LibraryItem], required: false })
-  @OneToMany(() => LibraryItem, (libraryItem) => libraryItem.seriesMetadata)
-  libraryItems?: LibraryItem[];
-
   @ApiProperty({ type: 'string' })
-  @UpdateDateColumn()
+  @Property()
   updatedAt: Date;
 
   private constructor() {}
@@ -89,51 +79,47 @@ export class MovieMetadata {
 @Entity()
 export class SeriesMetadata {
   @ApiProperty({ required: false, type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ required: true, type: 'string' })
-  @Column({ unique: true })
+  @Property({ unique: true })
   tmdbId: string;
 
   //
 
   @ApiProperty({ required: false, type: TmdbSeriesFull })
-  @Column('json')
+  @Property({ type: 'json' })
   tmdbSeries: TmdbSeriesFull;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   name?: string;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   firstReleaseDate?: Date;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   lastReleaseDate?: Date;
 
   @ApiProperty({ required: false, type: 'string' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   nextReleaseDate?: Date;
 
   @ApiProperty({ required: false, type: 'number' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   lastSeasonNumber?: number;
 
   @ApiProperty({ required: false, type: 'number' })
-  @Column({ nullable: true })
+  @Property({ nullable: true })
   lastEpisodeNumber?: number;
 
   //
 
-  @ApiProperty({ type: [LibraryItem], required: false })
-  @OneToMany(() => LibraryItem, (libraryItem) => libraryItem.seriesMetadata)
-  libraryItems?: LibraryItem[];
-
   @ApiProperty({ type: 'string' })
-  @UpdateDateColumn()
+  @Property()
   updatedAt: Date;
 
   private constructor() {}

@@ -1,4 +1,4 @@
-import { type ViewBase } from '@aleksilassila/reiverr-shared/dist/src/old';
+import { type ViewBase } from '@aleksilassila/reiverr-shared/dist/src/old.js';
 import { ApiProperty } from '@nestjs/swagger';
 
 enum ViewType {

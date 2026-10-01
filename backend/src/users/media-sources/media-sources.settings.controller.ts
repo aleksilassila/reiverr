@@ -10,18 +10,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
-import { UserDto } from 'src/users/user.dto';
-import { User } from 'src/users/user.entity';
-import { UsersService } from 'src/users/users.service';
+import { GetAuthUser, UserAccessControl } from '../../auth/auth.guard.js';
+import { UserDto } from '../user.dto.js';
+import { User } from '../user.entity.js';
+import { UsersService } from '../users.service.js';
 import {
   UpdateMediaSourceResponseDto,
   UpdateOrCreateMediaSourceDto,
-} from './media-source.dto';
+} from './media-source.dto.js';
 import {
   MediaSourcesService,
   MediaSourcesServiceError,
-} from './media-sources.service';
+} from './media-sources.service.js';
 
 @ApiTags('users')
 @Controller('users/:userId/sources')

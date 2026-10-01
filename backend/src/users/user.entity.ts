@@ -1,8 +1,7 @@
+import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
-import { MediaSource } from 'src/users/media-sources/media-source.entity';
-import { LibraryItem } from 'src/user-data/library/library.entity';
-import { PlayState } from 'src/user-data/play-state/play-state.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { randomUUID } from 'node:crypto';
+import { MediaSource } from './media-sources/media-source.entity.js';
 
 /** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class SonarrSettings {
@@ -109,48 +108,38 @@ const DEFAULT_SETTINGS: Settings = {
 @Entity()
 export class User {
   @ApiProperty({ required: true })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   @ApiProperty({ required: true })
-  @Column({ unique: true })
+  @Property({ unique: true })
   name: string;
 
   @ApiProperty({ required: true })
-  @Column()
+  @Property()
   password: string;
 
   @ApiProperty({ required: false })
-  @Column({ type: 'blob', nullable: true })
+  @Property({ type: 'blob', nullable: true })
   profilePicture: Buffer;
 
-  @Column()
   @ApiProperty({ required: true })
-  @Column({ default: false })
+  @Property({ default: false })
   isAdmin: boolean = false;
 
   @ApiProperty({ required: false })
-  @Column({ default: false })
+  @Property({ default: false })
   onboardingDone: boolean = false;
 
   /** @deprecated Use UserSettingsService to manage user settings instead */
   @ApiProperty({ required: true, type: Settings })
-  @Column('json', { default: JSON.stringify(DEFAULT_SETTINGS) })
-  settings = DEFAULT_SETTINGS;
+  @Property({ type: 'json' })
+  settings: Settings = structuredClone(DEFAULT_SETTINGS);
 
   // @ApiProperty({ required: false, type: 'object' })
   // @Column('json', { default: '{}' })
   // pluginSettings: PluginSettings = {};
 
-  @ApiProperty({ required: false, type: MediaSource, isArray: true })
-  @OneToMany(() => MediaSource, (mediaSource) => mediaSource.user)
-  mediaSources: MediaSource[];
-
-  @ApiProperty({ required: false, type: PlayState, isArray: true })
-  @OneToMany(() => PlayState, (playState) => playState.user)
-  playStates: PlayState[];
-
-  @ApiProperty({ required: false, type: LibraryItem, isArray: true })
-  @OneToMany(() => LibraryItem, (library) => library.user)
-  libraryItems: LibraryItem[];
+  @ApiProperty({ required: false, type: () => MediaSource, isArray: true })
+  mediaSources?: MediaSource[];
 }

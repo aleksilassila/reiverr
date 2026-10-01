@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SettingsService } from 'src/settings/settings.service';
+import { SettingsService } from '../settings/settings.service.js';
 
 export class SonarrSettings {
   apiKey: string;

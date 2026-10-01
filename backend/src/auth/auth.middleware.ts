@@ -1,10 +1,10 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { NextFunction, Request } from 'express';
-import { ENV, JWT_SECRET } from 'src/consts';
-import { User } from 'src/users/user.entity';
-import { UsersService } from 'src/users/users.service';
-import { AccessTokenPayload } from './auth.service';
+import type { NextFunction, Request } from 'express';
+import { ENV, JWT_SECRET } from '../consts.js';
+import { User } from '../users/user.entity.js';
+import { UsersService } from '../users/users.service.js';
+import { AccessTokenPayload } from './auth.service.js';
 
 function extractTokenFromRequest(request: Request): string | undefined {
   const [type, token] =

@@ -1,4 +1,4 @@
-import { PlayState } from './play-state.entity';
+import { PlayState } from './play-state.entity.js';
 
 export const PLAY_STATE_UPDATED = 'play-state.updated';
 

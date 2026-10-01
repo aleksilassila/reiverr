@@ -9,14 +9,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
-import { AdminAccessControl, UserAccessControl } from 'src/auth/auth.guard';
+import type { Response } from 'express';
+import { AdminAccessControl, UserAccessControl } from '../auth/auth.guard.js';
 import {
   LocalEpisodeFileDto,
   LocalMediaFileDto,
   LocalMediaSettingsDto,
-} from './local-media.dto';
-import { LocalMediaService } from './local-media.service';
+} from './local-media.dto.js';
+import { LocalMediaService } from './local-media.service.js';
 
 @ApiTags('local-media')
 @Controller('v2/local-media')

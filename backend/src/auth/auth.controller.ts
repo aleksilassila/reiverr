@@ -1,16 +1,13 @@
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { AuthService } from './auth.service.js';
+import { SignInDto, UserDto } from '../users/user.dto.js';
 import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { SignInDto, UserDto } from '../users/user.dto';
-import { ApiOkResponse, ApiProperty } from '@nestjs/swagger';
-import { ApiException } from '@nanogiants/nestjs-swagger-api-exception-decorator';
-import { UsersService } from 'src/users/users.service';
+  ApiOkResponse,
+  ApiProperty,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/common.dto.js';
+import { UsersService } from '../users/users.service.js';
 
 export class SignInResponse {
   @ApiProperty()
@@ -29,7 +26,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post()
   @ApiOkResponse({ description: 'User found', type: SignInResponse })
-  @ApiException(() => UnauthorizedException)
+  @ApiUnauthorizedResponse({ type: ErrorResponseDto })
   async signIn(@Body() signInDto: SignInDto) {
     const { token, user } = await this.authService.signIn(
       signInDto.name,

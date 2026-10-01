@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { CataloguesController } from './catalogues.controller';
-import { PluginsModule } from 'src/plugins/plugins.module';
-import { MetadataModule } from 'src/metadata/metadata.module';
+import { CataloguesController } from './catalogues.controller.js';
+import { PluginsModule } from '../plugins/plugins.module.js';
+import { MetadataModule } from '../metadata/metadata.module.js';
 
 @Module({
   imports: [PluginsModule, MetadataModule],

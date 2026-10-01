@@ -1,52 +1,50 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { SourceProviderSettings } from '@aleksilassila/reiverr-shared/dist/src/old';
-import { User } from 'src/users/user.entity';
 import {
-  Column,
   Entity,
-  JoinColumn,
   ManyToOne,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+  PrimaryKey,
+  Property,
+} from '@mikro-orm/decorators/legacy';
+import { ApiProperty } from '@nestjs/swagger';
+import type { SourceProviderSettings } from '@aleksilassila/reiverr-shared/dist/src/old.js';
+import { randomUUID } from 'node:crypto';
+import { User } from '../user.entity.js';
 
 @Entity()
 export class MediaSource {
   @ApiProperty({ required: true, type: 'string' })
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryKey({ type: 'uuid' })
+  id: string = randomUUID();
 
   /** TODO: Rename to providerId */
   @ApiProperty({ required: true, type: 'string' })
-  @Column()
+  @Property()
   pluginId: string;
 
   @ApiProperty()
-  @Column()
+  @Property()
   name: string;
 
   @ApiProperty({ required: true, type: 'string' })
-  @PrimaryColumn()
+  @ManyToOne(() => User, { mapToPk: true, fieldName: 'user_id' })
   userId: string;
 
-  @ApiProperty({ required: true, type: 'string' })
-  @ManyToOne(() => User, (user) => user.mediaSources)
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
   @ApiProperty({ required: false, type: 'boolean', default: false })
-  @Column({ default: false })
+  @Property({ default: false })
   enabled: boolean = false;
 
   @ApiProperty({ required: false, type: 'boolean', default: false })
-  @Column({ default: false })
+  @Property({ default: false })
   adminControlled: boolean;
 
-  @ApiProperty({ required: false, type: 'object', additionalProperties: true })
-  @Column('json', { default: '{}' })
+  @ApiProperty({
+    selfRequired: false,
+    type: 'object',
+    additionalProperties: true,
+  })
+  @Property({ type: 'json' })
   pluginSettings: SourceProviderSettings = {};
 
   @ApiProperty()
-  @Column({ default: 0 })
+  @Property({ default: 0 })
   priority: number = 0;
 }

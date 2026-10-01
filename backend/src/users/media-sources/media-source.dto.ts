@@ -5,16 +5,16 @@ import {
   OmitType,
   PartialType,
 } from '@nestjs/swagger';
-import { PickAndPartial } from 'src/common/common.dto';
+import { PickAndPartial } from '../../common/common.dto.js';
 import {
   StreamCandidateDto,
   ValidationResponseDto,
-} from 'src/source-providers/source-provider.dto';
-import { MediaSource } from './media-source.entity';
+} from '../../source-providers/source-provider.dto.js';
+import { MediaSource } from './media-source.entity.js';
 import {
   CatalogueCapabilities,
   DirectionOption,
-  OrderOption,
+  type OrderOption,
   MediaSourceViews,
   MediaSourceView,
   GeneralView,
@@ -30,8 +30,8 @@ import {
   SortableProperty,
   StreamActionElement,
   MediaSourceProvider,
-} from '@aleksilassila/reiverr-shared/dist/src/old';
-import { ViewBaseDto } from 'src/source-providers/ui.dto';
+} from '@aleksilassila/reiverr-shared/dist/src/old.js';
+import { ViewBaseDto } from '../../source-providers/ui.dto.js';
 
 class CatalogueOrderDirectionOption implements DirectionOption {
   @ApiProperty()
@@ -215,7 +215,7 @@ class IconDto {
 
 class StreamActionIconDto extends IconDto {
   @ApiProperty({ enum: ['play'] })
-  type: 'play';
+  declare type: 'play';
 }
 
 export class StreamActionElementDto implements StreamActionElement {

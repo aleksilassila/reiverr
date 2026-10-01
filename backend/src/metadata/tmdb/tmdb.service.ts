@@ -4,9 +4,9 @@ import {
   TmdbMovieFull,
   TmdbSeasonFull,
   TmdbSeriesFull,
-} from './tmdb.dto';
-import { TMDB_API, TmdbApi } from './tmdb.providers';
-import { TvSeasonDetailsDto } from './tmdb.v3.generated.dto';
+} from './tmdb.dto.js';
+import { TMDB_API, type TmdbApi } from './tmdb.providers.js';
+import { TvSeasonDetailsDto } from './tmdb.v3.generated.dto.js';
 
 @Injectable()
 export class TmdbService {

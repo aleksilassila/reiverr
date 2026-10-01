@@ -1,6 +1,6 @@
 import { ApiProperty, OmitType, PartialType, PickType } from '@nestjs/swagger';
-import { MediaSourceDto } from 'src/users/media-sources/media-source.dto';
-import { User } from './user.entity';
+import { MediaSourceDto } from './media-sources/media-source.dto.js';
+import { User } from './user.entity.js';
 
 export class UserDto extends OmitType(User, [
   'password',

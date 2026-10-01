@@ -6,10 +6,10 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UserAccessControl } from 'src/auth/auth.guard';
-import { MetadataService } from './metadata.service';
+import { UserAccessControl } from '../auth/auth.guard.js';
+import { MetadataService } from './metadata.service.js';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { MovieMetadata, SeriesMetadata } from './metadata.entity';
+import { MovieMetadata, SeriesMetadata } from './metadata.entity.js';
 
 @ApiTags('metadata')
 @Controller('metadata')

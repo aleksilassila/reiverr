@@ -1,14 +1,15 @@
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
-import { MetadataModule } from 'src/metadata/metadata.module';
-import { AdminMediaRequestsController } from './admin-media-requests.controller';
-import { MediaRequestsController } from './media-requests.controller';
-import { mediaRequestProviders } from './media-requests.providers';
-import { MediaRequestsService } from './media-requests.service';
+import { MetadataModule } from '../metadata/metadata.module.js';
+import { AdminMediaRequestsController } from './admin-media-requests.controller.js';
+import { MediaRequestsController } from './media-requests.controller.js';
+import { MediaRequest } from './media-request.entity.js';
+import { MediaRequestsService } from './media-requests.service.js';
 
 @Module({
-  imports: [MetadataModule],
+  imports: [MikroOrmModule.forFeature([MediaRequest]), MetadataModule],
   controllers: [MediaRequestsController, AdminMediaRequestsController],
-  providers: [...mediaRequestProviders, MediaRequestsService],
+  providers: [MediaRequestsService],
   exports: [MediaRequestsService],
 })
 export class MediaRequestsModule {}

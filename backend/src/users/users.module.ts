@@ -1,25 +1,25 @@
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
-import { MetadataModule } from 'src/metadata/metadata.module';
-import { SettingsModule } from 'src/settings/settings.module';
-import { SourceProvidersModule } from 'src/source-providers/source-providers.module';
-import { mediaSourceProviders } from './media-sources/media-source.providers';
-import { MediaSourcesController } from './media-sources/media-sources.controller';
-import { MediaSourcesService } from './media-sources/media-sources.service';
-import { MediaSourcesSettingsController } from './media-sources/media-sources.settings.controller';
-import { UserSettingsService } from './user-settings.service';
-import { userProviders } from './user.providers';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
+import { MetadataModule } from '../metadata/metadata.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
+import { SourceProvidersModule } from '../source-providers/source-providers.module.js';
+import { MediaSource } from './media-sources/media-source.entity.js';
+import { MediaSourcesController } from './media-sources/media-sources.controller.js';
+import { MediaSourcesService } from './media-sources/media-sources.service.js';
+import { MediaSourcesSettingsController } from './media-sources/media-sources.settings.controller.js';
+import { UserSettingsService } from './user-settings.service.js';
+import { User } from './user.entity.js';
+import { UsersController } from './users.controller.js';
+import { UsersService } from './users.service.js';
 
 @Module({
-  imports: [SourceProvidersModule, MetadataModule, SettingsModule],
-  providers: [
-    ...userProviders,
-    UsersService,
-    ...mediaSourceProviders,
-    MediaSourcesService,
-    UserSettingsService,
+  imports: [
+    MikroOrmModule.forFeature([User, MediaSource]),
+    SourceProvidersModule,
+    MetadataModule,
+    SettingsModule,
   ],
+  providers: [UsersService, MediaSourcesService, UserSettingsService],
   controllers: [
     UsersController,
     MediaSourcesController,

@@ -8,9 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from 'src/auth/auth.guard';
-import { BulkUpdatePlayStateDto, UpdatePlayStateDto } from './play-state.dto';
-import { PlayStatesService } from './play-states.service';
+import { UserAccessControl } from '../../auth/auth.guard.js';
+import {
+  BulkUpdatePlayStateDto,
+  UpdatePlayStateDto,
+} from './play-state.dto.js';
+import { PlayStatesService } from './play-states.service.js';
 
 @ApiTags('users')
 @Controller('users/:userId/play-state')

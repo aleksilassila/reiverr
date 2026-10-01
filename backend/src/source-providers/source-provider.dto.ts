@@ -5,10 +5,10 @@ import {
   CatalogueItem,
   PlaybackConfig,
   Quality,
-  SourceProviderSettings,
+  type SourceProviderSettings,
   SourceProviderSettingsInput,
   SourceProviderSettingsLink,
-  SourceProviderSettingsTemplate,
+  type SourceProviderSettingsTemplate,
   Stream,
   StreamAction,
   StreamBase,
@@ -17,14 +17,14 @@ import {
   StreamResponse,
   Subtitles,
   ValidationResponse,
-} from '@aleksilassila/reiverr-shared/dist/src/old';
+} from '@aleksilassila/reiverr-shared/dist/src/old.js';
 import {
   ApiProperty,
   ApiPropertyOptional,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { DeviceProfileDto } from './device-profile.dto';
-import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
+import { DeviceProfileDto } from './device-profile.dto.js';
+import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 
 export class CatalogueItemDto implements CatalogueItem {
   @ApiProperty()

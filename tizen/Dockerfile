@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 node:18-alpine as pre-production
+FROM --platform=linux/amd64 node:24-alpine as pre-production
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app

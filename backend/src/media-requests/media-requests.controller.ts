@@ -1,19 +1,19 @@
 import { Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { GetAuthUser, UserAccessControl } from 'src/auth/auth.guard';
+import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
   PaginationApiQuery,
-} from 'src/common/common.decorator';
+} from '../common/common.decorator.js';
 import {
   PaginatedResponseDto,
   PaginationDto,
   SuccessResponseDto,
-} from 'src/common/common.dto';
-import { User } from 'src/users/user.entity';
-import { MediaRequestDto, MovieRequestDto } from './media-requests.dto';
-import { MediaRequestsService } from './media-requests.service';
+} from '../common/common.dto.js';
+import { User } from '../users/user.entity.js';
+import { MediaRequestDto, MovieRequestDto } from './media-requests.dto.js';
+import { MediaRequestsService } from './media-requests.service.js';
 
 @ApiTags('media-requests')
 @Controller('v2/users/:userId/media-requests')
@@ -70,6 +70,6 @@ export class MediaRequestsController {
       tmdbId,
     );
 
-    return { success: result.affected > 0 };
+    return { success: result > 0 };
   }
 }

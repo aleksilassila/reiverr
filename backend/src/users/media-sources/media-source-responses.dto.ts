@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { StreamBaseDto } from 'src/source-providers/source-provider.dto';
+import { StreamBaseDto } from '../../source-providers/source-provider.dto.js';
 
 export class AutoplayResponseDto {
   @ApiProperty({ type: StreamBaseDto, required: false })

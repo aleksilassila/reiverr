@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { RequestsController } from './requests.controller';
-import { PluginsModule } from 'src/plugins/plugins.module';
-import { MetadataModule } from 'src/metadata/metadata.module';
-import { PlayStatesModule } from 'src/user-data/play-state/play-states.module';
+import { RequestsController } from './requests.controller.js';
+import { PluginsModule } from '../plugins/plugins.module.js';
+import { MetadataModule } from '../metadata/metadata.module.js';
+import { PlayStatesModule } from '../user-data/play-state/play-states.module.js';
 
 @Module({
   imports: [PluginsModule, MetadataModule, PlayStatesModule],

@@ -1,13 +1,13 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   EpisodeMetadata,
   MovieMetadata,
   SeriesMetadata,
-} from './metadata.entity';
-import { MOVIE_REPOSITORY, SERIES_REPOSITORY } from './metadata.providers';
-import { TmdbService } from './tmdb/tmdb.service';
-import { TmdbItemDto } from './tmdb/tmdb.dto';
+} from './metadata.entity.js';
+import { TmdbService } from './tmdb/tmdb.service.js';
+import { TmdbItemDto } from './tmdb/tmdb.dto.js';
 
 @Injectable()
 export class MetadataService {
@@ -16,27 +16,34 @@ export class MetadataService {
   private updateLocks = new MetadataUpdateLock();
 
   constructor(
-    @Inject(MOVIE_REPOSITORY)
-    private movieRepository: Repository<MovieMetadata>,
+    @InjectRepository(MovieMetadata)
+    private movieRepository: EntityRepository<MovieMetadata>,
 
-    @Inject(SERIES_REPOSITORY)
-    private seriesRepository: Repository<SeriesMetadata>,
+    @InjectRepository(SeriesMetadata)
+    private seriesRepository: EntityRepository<SeriesMetadata>,
 
+    private readonly em: EntityManager,
     private readonly tmdbService: TmdbService,
   ) {}
 
   async clearMetadataCache() {
-    await this.movieRepository.clear();
-    await this.seriesRepository.clear();
+    await this.movieRepository.nativeDelete({});
+    await this.seriesRepository.nativeDelete({});
   }
 
   async getMovieByTmdbId(
     tmdbId: string,
     eager = false,
   ): Promise<MovieMetadata | undefined> {
+    if (!tmdbId) return undefined;
+
     const unlock = await this.updateLocks.acquire(tmdbId);
 
-    let movie = await this.movieRepository.findOne({ where: { tmdbId } });
+    // The cached documents are large, so they are kept out of the unit of work
+    let movie = await this.movieRepository.findOne(
+      { tmdbId },
+      { disableIdentityMap: true },
+    );
     const updatedAt = movie?.updatedAt;
 
     if (!movie || movie.needsUpdate()) {
@@ -58,8 +65,8 @@ export class MetadataService {
                 );
             } else {
               movie.updateFrom(tmdbMovie);
-              await this.movieRepository
-                .save(movie)
+              await this.em
+                .upsert(movie)
                 .catch((e) =>
                   this.logger.error(
                     `Failed to update movie metadata for tmdbId ${tmdbId}`,
@@ -95,9 +102,14 @@ export class MetadataService {
     tmdbId: string,
     eager = false,
   ): Promise<SeriesMetadata | undefined> {
+    if (!tmdbId) return undefined;
+
     const unlock = await this.updateLocks.acquire(tmdbId);
 
-    let series = await this.seriesRepository.findOne({ where: { tmdbId } });
+    let series = await this.seriesRepository.findOne(
+      { tmdbId },
+      { disableIdentityMap: true },
+    );
     const updatedAt = series?.updatedAt;
 
     if (!series || series.needsUpdate()) {
@@ -119,8 +131,8 @@ export class MetadataService {
                 );
             } else {
               series.updateFrom(tmdbSeries);
-              await this.seriesRepository
-                .save(series)
+              await this.em
+                .upsert(series)
                 .catch((e) =>
                   this.logger.error(
                     `Failed to update series metadata for tmdbId ${tmdbId}`,

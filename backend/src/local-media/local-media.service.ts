@@ -5,13 +5,13 @@ import {
 } from '@nestjs/common';
 import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { SettingsService } from 'src/settings/settings.service';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 import {
   LocalEpisodeFileDto,
   LocalMediaFileDto,
   LocalMediaSettingsDto,
-} from './local-media.dto';
+} from './local-media.dto.js';
 import {
   decodeFileId,
   encodeFileId,
@@ -23,7 +23,7 @@ import {
   parseEpisodeNumbers,
   parseMediaFolderName,
   yearOf,
-} from './local-media.utils';
+} from './local-media.utils.js';
 
 const SETTINGS_KEY = 'local-media';
 

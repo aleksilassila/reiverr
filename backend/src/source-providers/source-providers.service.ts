@@ -1,12 +1,15 @@
 import {
   getReiverrPluginVersion,
   ReiverrPlugin,
-} from '@aleksilassila/reiverr-shared/dist/src/old';
+} from '@aleksilassila/reiverr-shared/dist/src/old.js';
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
+import { createRequire } from 'node:module';
 import * as path from 'path';
 import { default as jellyfinPlugin } from '@aleksilassila/jellyfin.plugin';
 import { default as torrentStreamPlugin } from '@aleksilassila/torrent-stream.plugin';
+
+const require = createRequire(import.meta.url);
 
 @Injectable()
 export class SourceProvidersService {
@@ -20,7 +23,7 @@ export class SourceProvidersService {
 
     this.providers = {
       // ...this.loadPlugins(path.join(require.main.path, '..', '..', 'packages')),
-      ...this.loadPlugins(path.join(require.main.path, '..', '..', 'plugins')),
+      ...this.loadPlugins(path.join(process.cwd(), 'plugins')),
     };
 
     this.logger.log(

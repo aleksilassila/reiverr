@@ -1,25 +1,23 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { MediaTypeFull } from 'src/common/common.dto';
-import { Repository } from 'typeorm';
-import { UpdatePlayStateDto } from './play-state.dto';
-import { PlayState } from './play-state.entity';
-import { USER_PLAY_STATE_REPOSITORY } from './play-state.providers';
-import { USER_LIBRARY_REPOSITORY } from '../library/library.providers';
-import { LibraryItem } from '../library/library.entity';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { Injectable } from '@nestjs/common';
+import { MediaTypeFull } from '../../common/common.dto.js';
+import { UpdatePlayStateDto } from './play-state.dto.js';
+import { PlayState } from './play-state.entity.js';
+import { LibraryItem } from '../library/library.entity.js';
 
 @Injectable()
 export class PlayStatesService {
   constructor(
-    @Inject(USER_PLAY_STATE_REPOSITORY)
-    private readonly playStateRepository: Repository<PlayState>,
-    @Inject(USER_LIBRARY_REPOSITORY)
-    private readonly libraryRepository: Repository<LibraryItem>,
+    @InjectRepository(PlayState)
+    private readonly playStateRepository: EntityRepository<PlayState>,
+    @InjectRepository(LibraryItem)
+    private readonly libraryRepository: EntityRepository<LibraryItem>,
+    private readonly em: EntityManager,
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
-    return this.playStateRepository.findOne({
-      where: { userId, tmdbId },
-    });
+    return this.playStateRepository.findOne({ userId, tmdbId });
   }
 
   async findSeriesPlayStates(
@@ -30,12 +28,10 @@ export class PlayStatesService {
   ): Promise<PlayState[]> {
     const playStates =
       (await this.playStateRepository.find({
-        where: {
-          userId,
-          tmdbId,
-          ...(season ? { season } : {}),
-          ...(episode ? { episode } : {}),
-        },
+        userId,
+        tmdbId,
+        ...(season ? { season } : {}),
+        ...(episode ? { episode } : {}),
       })) ?? [];
 
     playStates.sort((a, b) => {
@@ -56,12 +52,10 @@ export class PlayStatesService {
     episode?: number,
   ): Promise<PlayState | undefined> {
     return this.playStateRepository.findOne({
-      where: {
-        userId,
-        tmdbId,
-        ...(season ? { season } : {}),
-        ...(episode ? { episode } : {}),
-      },
+      userId,
+      tmdbId,
+      ...(season ? { season } : {}),
+      ...(episode ? { episode } : {}),
     });
   }
 
@@ -83,7 +77,7 @@ export class PlayStatesService {
     );
 
     if (!state) {
-      state = this.playStateRepository.create();
+      state = new PlayState();
       state.userId = userId;
       state.tmdbId = tmdbId;
       if (options.season) state.season = options.season;
@@ -92,7 +86,7 @@ export class PlayStatesService {
     }
 
     if (options.save) {
-      return this.playStateRepository.save(state);
+      await this.em.persist(state).flush();
     }
 
     return state;
@@ -110,14 +104,10 @@ export class PlayStatesService {
     if (playState.progress !== undefined) state.progress = playState.progress;
     if (playState.watched !== undefined) state.watched = playState.watched;
 
-    return this.playStateRepository.save(state).then(async (state) => {
-      await this.libraryRepository.update(
-        { tmdbId, userId },
-        { lastPlayedAt: new Date() },
-      );
+    await this.em.persist(state).flush();
+    await this.touchLibraryItem(userId, tmdbId);
 
-      return state;
-    });
+    return state;
   }
 
   async updateOrCreateEpisodePlayState(
@@ -136,19 +126,17 @@ export class PlayStatesService {
     if (playState.progress !== undefined) state.progress = playState.progress;
     if (playState.watched !== undefined) state.watched = playState.watched;
 
-    return this.playStateRepository.save(state).then(async (state) => {
-      await this.libraryRepository.update(
-        { tmdbId, userId },
-        { lastPlayedAt: new Date() },
-      );
+    await this.em.persist(state).flush();
+    await this.touchLibraryItem(userId, tmdbId);
 
-      return state;
-    });
+    return state;
   }
 
   async deleteMoviePlayState(userId: string, tmdbId: string) {
     const state = await this.findMoviePlayState(userId, tmdbId);
-    return await this.playStateRepository.remove(state);
+    await this.em.remove(state).flush();
+
+    return state;
   }
 
   async deleteEpisodePlayState(
@@ -160,7 +148,9 @@ export class PlayStatesService {
     const state = await this.getPlayState(userId, tmdbId, season, episode);
 
     if (state) {
-      return await this.playStateRepository.remove(state);
+      await this.em.remove(state).flush();
+
+      return state;
     }
   }
 
@@ -182,10 +172,21 @@ export class PlayStatesService {
         if (updatedState.watched !== undefined)
           state.watched = updatedState.watched;
 
-        return this.playStateRepository.save(state);
+        return state;
       }),
     );
 
+    await this.em.persist(states).flush();
+
     return states;
+  }
+
+  private async touchLibraryItem(userId: string, tmdbId: string) {
+    const now = new Date();
+
+    await this.libraryRepository.nativeUpdate(
+      { tmdbId, userId },
+      { lastPlayedAt: now, updatedAt: now },
+    );
   }
 }

@@ -8,13 +8,13 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { GetAuthToken, GetAuthUser } from 'src/auth/auth.guard';
-import { PaginatedApiOkResponse } from 'src/common/common.decorator';
-import { PaginatedResponseDto } from 'src/common/common.dto';
-import { PluginsService } from 'src/plugins/plugins.service';
-import { MetadataService } from 'src/metadata/metadata.service';
-import { User } from 'src/users/user.entity';
-import { StreamablesDto, StreamDto } from './dtos/media.dto';
+import { GetAuthToken, GetAuthUser } from '../auth/auth.guard.js';
+import { PaginatedApiOkResponse } from '../common/common.decorator.js';
+import { PaginatedResponseDto } from '../common/common.dto.js';
+import { PluginsService } from '../plugins/plugins.service.js';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { User } from '../users/user.entity.js';
+import { StreamablesDto, StreamDto } from './dtos/media.dto.js';
 
 @ApiTags('media')
 @Controller('media')

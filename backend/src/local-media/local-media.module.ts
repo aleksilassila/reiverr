@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MetadataModule } from 'src/metadata/metadata.module';
-import { SettingsModule } from 'src/settings/settings.module';
-import { LocalMediaController } from './local-media.controller';
-import { LocalMediaService } from './local-media.service';
+import { MetadataModule } from '../metadata/metadata.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
+import { LocalMediaController } from './local-media.controller.js';
+import { LocalMediaService } from './local-media.service.js';
 
 @Module({
   imports: [SettingsModule, MetadataModule],

@@ -1,8 +1,8 @@
-import { ApiProperty, OmitType, PickType } from '@nestjs/swagger';
-import { User } from 'src/users/user.entity';
-import { MediaRequest } from './media-request.entity';
+import { ApiProperty, PickType } from '@nestjs/swagger';
+import { User } from '../users/user.entity.js';
+import { MediaRequest } from './media-request.entity.js';
 
-export class MediaRequestDto extends OmitType(MediaRequest, ['user']) {}
+export class MediaRequestDto extends MediaRequest {}
 
 export class RequesterDto extends PickType(User, ['id', 'name']) {}
 

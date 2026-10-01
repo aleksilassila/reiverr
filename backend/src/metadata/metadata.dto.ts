@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MovieMetadata } from './metadata.entity';
+import { MovieMetadata } from './metadata.entity.js';
 
 // export class MovieUserDataDto {
 //   @ApiProperty()

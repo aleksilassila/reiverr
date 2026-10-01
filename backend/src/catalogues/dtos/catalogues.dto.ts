@@ -4,7 +4,7 @@ import {
   OrderOption,
 } from '@aleksilassila/reiverr-shared';
 import { ApiProperty } from '@nestjs/swagger';
-import { TmdbItemDto } from 'src/metadata/tmdb/tmdb.dto';
+import { TmdbItemDto } from '../../metadata/tmdb/tmdb.dto.js';
 
 export class OrderOptionDto implements OrderOption {
   @ApiProperty()
