@@ -1,4 +1,4 @@
-FROM node:24-alpine as pre-production
+FROM node:24-alpine as base
 
 # npm 11 compiles better-sqlite3 from source when installing from a lockfile
 RUN apk add --no-cache python3 make g++
@@ -29,6 +29,14 @@ COPY jellyfin.plugin/package.json ./jellyfin.plugin/package.json
 RUN npm i
 
 COPY . .
+
+FROM base as development
+
+RUN npm run build:shared && npm run build:torrent-stream && npm run build:jellyfin
+
+CMD [ "npm", "run", "dev:backend" ]
+
+FROM base as pre-production
 
 RUN npm run build
 

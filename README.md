@@ -132,13 +132,25 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 
 To get started with development:
 
-1. Clone the repository
-2. Check out the `dev` branch
-3. Install dependencies\
-   `npm install`\
-   `npm install --prefix backend`
-4. To start the frontend: `npm run dev` or `npx vite --host` if you want to expose the server
-5. To start the backend: `npm run --prefix backend start:dev`
+```sh
+# 1. Clone the repository
+# 2. Check out the `dev` branch
+# 3. Install dependencies\
+npm install
+npm install --prefix backend
+# 4. To start the frontend:
+npm run dev # or npx vite --host if you want to expose the server
+# 5. To start the backend:
+npm run --prefix backend start:dev
+```
+
+OR
+
+```sh
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Frontend will run on port 5173 and backend port 9494
 
 ## Notes
 

@@ -1,6 +1,6 @@
 {
   "name": "reiverr-monorepo",
-  "version": "2.2.0",
+  "version": "3.0.0-beta.1",
   "private": true,
   "description": "Reiverr - A media server application",
   "author": "aleksilassila",

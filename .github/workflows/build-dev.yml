@@ -30,7 +30,7 @@ jobs:
           password: ${{secrets.GITHUB_TOKEN}}
 
       - name: Build containers
-        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+        run: docker compose build
 
       - name: Add tag
         run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:dev

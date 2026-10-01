@@ -1,16 +1,8 @@
-version: '3.8'
-
-name: reiverr
+# Applied on top of docker-compose.yml by default: the image is built from
+# this checkout instead of being pulled
 
 services:
-  reiverr-frontend:
-    volumes:
-      - ./:/usr/src/app/
-      - /usr/src/app/node_modules
+  reiverr:
     build:
       context: .
-      target: development
-    environment:
-      - NODE_ENV=development
-    ports:
-      - 5173:5173
+      target: production

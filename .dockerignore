@@ -16,3 +16,7 @@ backend/plugins
 wireguard
 
 ./**/torrent-stream-downloads
+
+# Local data
+./**/*.sqlite
+.claude

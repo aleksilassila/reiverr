@@ -1,11 +1,15 @@
-version: '3.8'
-
-name: reiverr-dev
+name: reiverr
 
 services:
-  reiverr-frontend:
-    container_name: reiverr-dev
+  reiverr:
     image: ghcr.io/aleksilassila/reiverr:latest
-    restart: unless-stopped
+    container_name: reiverr
+    ports:
+      - 9494:9494
+    environment:
+      - SECRET
+      - ADMIN_USERNAME
+      - ADMIN_PASSWORD
     volumes:
       - ./backend/config:/config
+    restart: unless-stopped
