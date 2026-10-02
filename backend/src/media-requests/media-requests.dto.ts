@@ -1,4 +1,5 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
+import { EpisodeRefDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 import { MediaRequest } from './media-request.entity.js';
 
@@ -22,3 +23,11 @@ export class MovieRequestDto {
 export class UpdateMediaRequestDto extends PickType(MediaRequest, [
   'approved',
 ]) {}
+
+export class UpdateSeriesRequestsDto {
+  @ApiProperty({ type: [EpisodeRefDto] })
+  episodes: EpisodeRefDto[];
+
+  @ApiProperty({ description: 'Whether the episodes are requested' })
+  requested: boolean;
+}

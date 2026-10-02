@@ -2,6 +2,7 @@ import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { Migrator } from '@mikro-orm/migrations';
 import { defineConfig } from '@mikro-orm/sqlite';
 import { DEV } from './consts.js';
+import { TorrentSelection } from './downloads/torrent-selection.entity.js';
 import { Job } from './jobs/job.entity.js';
 import { MediaRequest } from './media-requests/media-request.entity.js';
 import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
@@ -22,6 +23,7 @@ export default defineConfig({
     PlayState,
     SeriesMetadata,
     Settings,
+    TorrentSelection,
     User,
   ],
   metadataProvider: ReflectMetadataProvider,

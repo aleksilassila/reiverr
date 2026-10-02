@@ -6,6 +6,7 @@
     "dist",
     "**/*spec.ts",
     "vitest.config*.ts",
-    "plugins/*"
+    "plugins/*",
+    "downloads"
   ]
 }

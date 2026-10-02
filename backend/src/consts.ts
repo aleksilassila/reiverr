@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 export const ENV = process.env.NODE_ENV || 'production';
 export const DEV = ENV === 'development';
 export const JWT_SECRET =
@@ -13,3 +15,8 @@ export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 export const TMDB_CACHE_TTL = Number.isNaN(Number(process.env.TMDB_CACHE_TTL))
   ? 1000 * 60 * 60 * 24 * 3 // 3 days
   : Number(process.env.TMDB_CACHE_TTL);
+export const DOWNLOADS_DIR = resolve(
+  process.env.DOWNLOADS_DIR ||
+    process.env.TORRENT_STREAM_DOWNLOADS ||
+    './downloads',
+);

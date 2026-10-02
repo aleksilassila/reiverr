@@ -1,0 +1,26 @@
+import { Module } from '@nestjs/common';
+import { IndexersModule } from '../indexers/indexers.module.js';
+import { LocalMediaModule } from '../local-media/local-media.module.js';
+import { MediaRequestsModule } from '../media-requests/media-requests.module.js';
+import { MetadataModule } from '../metadata/metadata.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
+import { DownloadsController } from './downloads.controller.js';
+import { DownloadsService } from './downloads.service.js';
+import { TORRENT_ENGINE } from './torrent-engine.js';
+import { TorrentStreamEngine } from './torrent-stream.engine.js';
+
+@Module({
+  imports: [
+    SettingsModule,
+    MetadataModule,
+    MediaRequestsModule,
+    IndexersModule,
+    LocalMediaModule,
+  ],
+  controllers: [DownloadsController],
+  providers: [
+    DownloadsService,
+    { provide: TORRENT_ENGINE, useClass: TorrentStreamEngine },
+  ],
+})
+export class DownloadsModule {}

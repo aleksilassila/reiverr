@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Request } from '$lib/stores/data/series-data.store';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
@@ -15,7 +14,7 @@
 	export let progress = 0;
 	export let runtime = 0;
 	export let releaseDate = 0;
-	export let requests: Request[] | undefined = undefined;
+	export let requestStatus: string | undefined = undefined;
 
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
@@ -160,12 +159,11 @@
 			</h2>
 		</div>
 		<div class="self-end flex-shrink-0 ml-2">
-			{#each requests ?? [] as request}
+			{#if requestStatus}
 				<div class="text-xs bg-primary-500/25 text-primary-300 px-2 py-1 rounded-full">
-					{request.profile.label} -
-					{request.status}
+					{requestStatus}
 				</div>
-			{/each}
+			{/if}
 			<!-- <div class="text-secondary-300 font-medium">
 				{#if releaseDate > 0 && releaseDate > Date.now()}
 					{new Date(releaseDate).toLocaleDateString('en-US', {

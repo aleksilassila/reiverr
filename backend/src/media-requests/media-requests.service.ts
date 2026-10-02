@@ -1,18 +1,30 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
-import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { randomUUID } from 'node:crypto';
+import {
+  EpisodeRefDto,
   MediaTypeFull,
   PaginatedResponseDto,
   PaginationDto,
 } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
+import { hasEpisode } from '../metadata/metadata.utils.js';
 import { User } from '../users/user.entity.js';
 import { MediaRequest } from './media-request.entity.js';
 import {
   AdminMediaRequestDto,
   UpdateMediaRequestDto,
 } from './media-requests.dto.js';
+import {
+  MEDIA_REQUESTS_CHANGED,
+  MediaRequestsChangedEvent,
+} from './media-requests.events.js';
 
 @Injectable()
 export class MediaRequestsService {
@@ -21,6 +33,7 @@ export class MediaRequestsService {
     private readonly requestRepository: EntityRepository<MediaRequest>,
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findByUser(
@@ -38,7 +51,7 @@ export class MediaRequestsService {
     );
 
     return {
-      items,
+      items: items.map(withOwnMetadata),
       total,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
@@ -72,17 +85,94 @@ export class MediaRequestsService {
     request.mediaType = MediaTypeFull.Movie;
     request.approved = approved;
     await this.em.persist(request).flush();
+    await this.emitChanged(tmdbId, MediaTypeFull.Movie);
 
     return this.findMovieRequest(userId, tmdbId);
   }
 
   async deleteMovieRequest(userId: string, tmdbId: string): Promise<number> {
-    return this.requestRepository.nativeDelete({
+    const deleted = await this.requestRepository.nativeDelete({
       userId,
       tmdbId,
       season: 0,
       episode: 0,
     });
+    await this.emitChanged(tmdbId, MediaTypeFull.Movie);
+
+    return deleted;
+  }
+
+  async findSeriesRequests(
+    userId: string,
+    tmdbId: string,
+  ): Promise<MediaRequest[]> {
+    return this.requestRepository.find(
+      { userId, tmdbId, mediaType: MediaTypeFull.Episode },
+      { orderBy: { season: 'asc', episode: 'asc' } },
+    );
+  }
+
+  async setEpisodeRequests(options: {
+    userId: string;
+    tmdbId: string;
+    episodes: EpisodeRefDto[];
+    requested: boolean;
+    approved: boolean;
+  }): Promise<MediaRequest[]> {
+    const { userId, tmdbId, episodes, requested, approved } = options;
+
+    const series = await this.metadataService.getSeriesByTmdbId(tmdbId);
+    if (!series) throw new NotFoundException('Series not found');
+
+    const unknown = episodes.find(
+      (e) => !hasEpisode(series.tmdbSeries, e.season, e.episode),
+    );
+    if (unknown) {
+      throw new BadRequestException(
+        `Season ${unknown.season} episode ${unknown.episode} does not exist`,
+      );
+    }
+
+    if (episodes.length && requested) {
+      const now = new Date();
+      await this.em
+        .createQueryBuilder(MediaRequest)
+        .insert(
+          episodes.map(({ season, episode }) => ({
+            id: randomUUID(),
+            userId,
+            tmdbId,
+            mediaType: MediaTypeFull.Episode,
+            season,
+            episode,
+            approved,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        )
+        .onConflict(['userId', 'tmdbId', 'season', 'episode'])
+        .ignore()
+        .execute();
+    } else if (episodes.length) {
+      await this.requestRepository.nativeDelete({
+        userId,
+        tmdbId,
+        mediaType: MediaTypeFull.Episode,
+        $or: episodes.map(({ season, episode }) => ({ season, episode })),
+      });
+    }
+    await this.emitChanged(tmdbId, MediaTypeFull.Episode);
+
+    return this.findSeriesRequests(userId, tmdbId);
+  }
+
+  /** Episodes of a series that any user has an approved request for */
+  async findApprovedEpisodes(tmdbId: string): Promise<EpisodeRefDto[]> {
+    return this.em
+      .createQueryBuilder(MediaRequest)
+      .select(['season', 'episode'], true)
+      .where({ tmdbId, mediaType: MediaTypeFull.Episode, approved: true })
+      .execute();
   }
 
   async findAll(
@@ -100,7 +190,7 @@ export class MediaRequestsService {
     );
 
     return {
-      items: await this.withRequesters(items),
+      items: await this.withRequesters(items.map(withOwnMetadata)),
       total,
       page: pagination.page,
       itemsPerPage: pagination.itemsPerPage,
@@ -114,7 +204,9 @@ export class MediaRequestsService {
     );
 
     return request
-      ? this.withRequesters([request]).then((requests) => requests[0])
+      ? this.withRequesters([withOwnMetadata(request)]).then(
+          (requests) => requests[0],
+        )
       : undefined;
   }
 
@@ -128,11 +220,25 @@ export class MediaRequestsService {
     );
     if (!affected) throw new NotFoundException('Request not found');
 
-    return this.findById(id);
+    const request = await this.findById(id);
+    await this.emitChanged(request.tmdbId, request.mediaType);
+
+    return request;
   }
 
   async deleteById(id: string): Promise<number> {
-    return this.requestRepository.nativeDelete({ id });
+    const request = await this.requestRepository.findOne({ id });
+    if (!request) return 0;
+
+    const deleted = await this.requestRepository.nativeDelete({ id });
+    await this.emitChanged(request.tmdbId, request.mediaType);
+
+    return deleted;
+  }
+
+  private emitChanged(tmdbId: string, mediaType: MediaTypeFull) {
+    const event: MediaRequestsChangedEvent = { tmdbId, mediaType };
+    return this.eventEmitter.emitAsync(MEDIA_REQUESTS_CHANGED, event);
   }
 
   private async withRequesters(
@@ -150,4 +256,14 @@ export class MediaRequestsService {
       return { ...request, user: { id: user.id, name: user.name } };
     });
   }
+}
+
+// The metadata relation joins on the TMDB id alone, and movies and series
+// share ids, so an episode request can pick up an unrelated movie
+function withOwnMetadata(request: MediaRequest): MediaRequest {
+  if (request.mediaType !== MediaTypeFull.Movie) {
+    request.movieMetadata = undefined;
+  }
+
+  return request;
 }

@@ -1,8 +1,12 @@
 import {
+  episodeFileName,
   folderMatchesTarget,
   isInsideFolder,
+  normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
+  seasonFolderName,
+  seriesFolderName,
 } from './local-media.utils.js';
 
 describe('parseMediaFolderName', () => {
@@ -143,5 +147,36 @@ describe('isInsideFolder', () => {
       false,
     );
     expect(isInsideFolder('/media/moviesx/a.mkv', '/media/movies')).toBe(false);
+  });
+});
+
+describe('import naming', () => {
+  it('names a series folder that the folder matching reads back', () => {
+    const name = seriesFolderName('Title: Part 2?', 2020, '123');
+
+    expect(name).toBe('Title Part 2 (2020) [tmdbid-123]');
+    expect(
+      folderMatchesTarget(parseMediaFolderName(name), {
+        tmdbId: '123',
+        titles: [normalizeTitle('Something else')],
+      }),
+    ).toBe(true);
+    expect(seriesFolderName('Title', undefined, '123')).toBe(
+      'Title [tmdbid-123]',
+    );
+  });
+
+  it('names episode files that the episode parsing reads back', () => {
+    const single = episodeFileName('Show: Name', 1, [2], '.MKV');
+    const double = episodeFileName('Show', 12, [3, 4], '.mp4');
+
+    expect(seasonFolderName(1)).toBe('Season 01');
+    expect(single).toBe('Show Name - S01E02.mkv');
+    expect(double).toBe('Show - S12E03-E04.mp4');
+    expect(parseEpisodeNumbers(single)).toEqual({ season: 1, episodes: [2] });
+    expect(parseEpisodeNumbers(double)).toEqual({
+      season: 12,
+      episodes: [3, 4],
+    });
   });
 });

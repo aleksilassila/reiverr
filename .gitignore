@@ -44,3 +44,5 @@ dist-ssr
 .claude/settings.local.json
 .claude/agent-memory-local/
 CLAUDE.local.md
+
+docker-compose.*.local.yml

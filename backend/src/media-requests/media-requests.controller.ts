@@ -1,4 +1,13 @@
-import { Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
 import {
@@ -12,7 +21,11 @@ import {
   SuccessResponseDto,
 } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import { MediaRequestDto, MovieRequestDto } from './media-requests.dto.js';
+import {
+  MediaRequestDto,
+  MovieRequestDto,
+  UpdateSeriesRequestsDto,
+} from './media-requests.dto.js';
 import { MediaRequestsService } from './media-requests.service.js';
 
 @ApiTags('media-requests')
@@ -71,5 +84,43 @@ export class MediaRequestsController {
     );
 
     return { success: result > 0 };
+  }
+
+  @Get('series/tmdb/:tmdbId')
+  @ApiOkResponse({ type: [MediaRequestDto] })
+  async getSeriesRequests(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<MediaRequestDto[]> {
+    return this.mediaRequestsService.findSeriesRequests(userId, tmdbId);
+  }
+
+  @Put('series/tmdb/:tmdbId')
+  @ApiOkResponse({ type: [MediaRequestDto] })
+  async updateSeriesRequests(
+    @GetAuthUser() user: User,
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Body() body: UpdateSeriesRequestsDto,
+  ): Promise<MediaRequestDto[]> {
+    const isValid =
+      typeof body?.requested === 'boolean' &&
+      Array.isArray(body.episodes) &&
+      body.episodes.every(
+        (e) => Number.isInteger(e?.season) && Number.isInteger(e?.episode),
+      );
+    if (!isValid) {
+      throw new BadRequestException(
+        'Expected { episodes: [{ season, episode }], requested }',
+      );
+    }
+
+    return this.mediaRequestsService.setEpisodeRequests({
+      userId,
+      tmdbId,
+      episodes: body.episodes,
+      requested: body.requested,
+      approved: user.isAdmin,
+    });
   }
 }

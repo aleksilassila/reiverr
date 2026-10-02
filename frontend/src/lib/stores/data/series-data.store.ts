@@ -1,8 +1,11 @@
 import type {
-	RequestDto,
-	RequestProfileDto,
+	EpisodeDownloadDto,
+	EpisodeRefDto,
+	MediaRequestDto,
 	SeriesUserDataDto,
-	TmdbSeriesFull
+	TmdbSeriesFull,
+	TorrentSelectionDto,
+	TorrentStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
@@ -20,9 +23,50 @@ export type EpisodeUserData = {
 	upcoming: boolean;
 };
 
-export type Request = RequestDto & {
-	profile: RequestProfileDto;
+export const episodeKey = (season: number, episode: number) => `${season}-${episode}`;
+
+/** Everything is keyed by {@link episodeKey}; a season pack selection has episode 0 */
+export type SeriesRequests = {
+	/** Requests of the current user */
+	requests: Map<string, MediaRequestDto>;
+	selections: Map<string, TorrentSelectionDto>;
+	downloads: Map<string, EpisodeDownloadDto>;
+	/** Running torrents by selection id */
+	torrents: Map<string, TorrentStateDto>;
+	onDisk: Set<string>;
 };
+
+export type EpisodeRequestStatus = {
+	requested: boolean;
+	/** The torrent the episode is downloaded from: its own, or else the season pack */
+	selection?: TorrentSelectionDto;
+	label?: string;
+	isError: boolean;
+};
+
+export function getEpisodeRequestStatus(
+	data: SeriesRequests | undefined,
+	season: number,
+	episode: number
+): EpisodeRequestStatus {
+	const key = episodeKey(season, episode);
+	const request = data?.requests.get(key);
+	const selection = data?.selections.get(key) ?? data?.selections.get(episodeKey(season, 0));
+	const download = data?.downloads.get(key);
+	const torrent = download && data?.torrents.get(download.selectionId);
+	const onDisk = !!data?.onDisk.has(key);
+
+	let label: string | undefined;
+	if (onDisk) label = 'On disk';
+	else if (download?.error) label = download.error;
+	else if (torrent?.status === 'starting') label = 'Starting';
+	else if (download) label = `Downloading ${Math.floor(download.progress * 100)}%`;
+	else if (request && !request.approved) label = 'Waiting for approval';
+	else if (request && !selection) label = 'No torrent selected';
+	else if (request) label = 'Requested';
+
+	return { requested: !!request, selection, label, isError: !onDisk && !!download?.error };
+}
 
 function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDto) {
 	let nextEpisodeData: EpisodeUserData | undefined = undefined;
@@ -115,35 +159,20 @@ function useSeriesData(tmdbId: string) {
 		return data;
 	});
 
-	const requestsData = useData(async () => {
-		const data = await reiverrApi.requests.getRequests({ tmdbId, type: 'series' });
-
-		const episodeRequests = new Map<string, Request[]>();
-
-		data.data.requests.forEach((r) => {
-			if (r.mediaItem.season && r.mediaItem.episode) {
-				const key = `${r.mediaItem.season}-${r.mediaItem.episode}`;
-				if (!episodeRequests.has(key)) {
-					episodeRequests.set(key, []);
-				}
-
-				const profile = data.data.profiles.find((p) => p.id === r.profileId);
-
-				if (profile) {
-					const requestWithProfile = {
-						...r,
-						profile
-					};
-					episodeRequests.get(key)?.push(requestWithProfile);
-				} else {
-					console.warn(`Profile with ID ${r.profileId} not found for request ${r.id}`);
-				}
-			}
-		});
+	const requestsData = useData(async (): Promise<SeriesRequests> => {
+		const [requests, downloads] = await Promise.all([
+			reiverrApi.mediaRequests
+				.getSeriesRequests(get(user)?.id as string, tmdbId)
+				.then((r) => r.data),
+			reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data)
+		]);
 
 		return {
-			episodeRequests,
-			profiles: data.data.profiles
+			requests: new Map(requests.map((r) => [episodeKey(r.season, r.episode), r])),
+			selections: new Map(downloads.selections.map((s) => [episodeKey(s.season, s.episode), s])),
+			downloads: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
+			torrents: new Map(downloads.torrents.map((t) => [t.selectionId, t])),
+			onDisk: new Set(downloads.onDisk.map((e) => episodeKey(e.season, e.episode)))
 		};
 	});
 	const episodesData = derived([seriesData.data, userData.data], ([$seriesData, $userData]) =>
@@ -173,6 +202,15 @@ function useSeriesData(tmdbId: string) {
 		});
 
 		return invalidateData();
+	}
+
+	async function setRequested(episodes: EpisodeRefDto[], requested: boolean) {
+		await reiverrApi.mediaRequests.updateSeriesRequests(get(user)?.id as string, tmdbId, {
+			episodes,
+			requested
+		});
+
+		return requestsData.update();
 	}
 
 	async function setInLibrary(state: boolean) {
@@ -217,6 +255,7 @@ function useSeriesData(tmdbId: string) {
 		inLibrary,
 		isWatched,
 		setInLibrary,
+		setRequested,
 		setWatched,
 		episodesData,
 		setStale,

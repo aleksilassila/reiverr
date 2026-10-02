@@ -135,6 +135,46 @@ export function parseEpisodeNumbers(
   return { season, episodes };
 }
 
+/** Removes the characters that are not allowed in file names on common filesystems */
+export function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[. ]+$/, '')
+    .trim();
+}
+
+/** "Name (Year) [tmdbid-123]", the Jellyfin naming that the folder matching reads back */
+export function seriesFolderName(
+  name: string,
+  year: number | undefined,
+  tmdbId: string,
+): string {
+  return [sanitizeFileName(name), year && `(${year})`, `[tmdbid-${tmdbId}]`]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function seasonFolderName(season: number): string {
+  return `Season ${String(season).padStart(2, '0')}`;
+}
+
+/** "Name - S01E02.mkv", or "Name - S01E02-E03.mkv" for a file with several episodes */
+export function episodeFileName(
+  name: string,
+  season: number,
+  episodes: number[],
+  extension: string,
+): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const first = Math.min(...episodes);
+  const last = Math.max(...episodes);
+  const numbering =
+    `S${pad(season)}E${pad(first)}` + (last > first ? `-E${pad(last)}` : '');
+
+  return `${sanitizeFileName(name)} - ${numbering}${extension.toLowerCase()}`;
+}
+
 export function isInsideFolder(filePath: string, folder: string): boolean {
   const relative = path.relative(folder, filePath);
   return (

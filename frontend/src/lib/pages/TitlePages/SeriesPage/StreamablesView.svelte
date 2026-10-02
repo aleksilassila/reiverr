@@ -18,7 +18,7 @@
 	import { capitalize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Trash } from 'radix-icons-svelte';
-	import { derived, get, readable } from 'svelte/store';
+	import { get } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let tmdbId: string;
@@ -32,14 +32,6 @@
 	// playableDataContext.createContext({ tmdbId, season, episode });
 	const { setStale: setSeriesStale, ...seriesData } = useSeriesContext(tmdbId).getContext();
 	const { setStale: setMovieStale, ...movieData } = useMovieContext(tmdbId).getContext();
-	const requestsData = seriesData.requestsData?.data ?? readable(undefined);
-	const requests = derived(requestsData, ($requestsData) => {
-		if (season !== undefined && episode !== undefined) {
-			return $requestsData?.episodeRequests.get(`${season}-${episode}`);
-		}
-		return undefined;
-	});
-
 	if (name) breadcrumbsContext.createContext(name);
 
 	const tab = useTabs(0);

@@ -9,23 +9,14 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollIntoView } from '$lib/selectable';
-	import { useSeriesContext } from '$lib/stores/data/series-data.store';
+	import { getEpisodeRequestStatus, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
-	import {
-		Bookmark,
-		Disc,
-		ExternalLink,
-		Gear,
-		Minus,
-		Plus,
-		Reload,
-		Video
-	} from 'radix-icons-svelte';
+	import { Bookmark, Disc, ExternalLink, Gear, Minus, Plus, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
@@ -247,7 +238,6 @@
 				>
 					Requests
 				</Button>
-				<Button icon={Reload}>Sync Requests</Button>
 
 				<!-- <Button action={toggleIsWatched}>
 						{#if $isWatched}
@@ -318,14 +308,16 @@
 						{@const userData = $episodesData.episodes.find(
 							(e) => e.season === episode.season_number && e.episode === episode.episode_number
 						)}
-						{@const episodeRequests = $requests?.episodeRequests.get(
-							`${episode.season_number}-${episode.episode_number}`
+						{@const requestStatus = getEpisodeRequestStatus(
+							$requests,
+							episode.season_number ?? 0,
+							episode.episode_number ?? 0
 						)}
 
 						{#key episode.id}
 							<TmdbEpisodeCard
 								{episode}
-								requests={episodeRequests}
+								requestStatus={requestStatus.isError ? 'Download failed' : requestStatus.label}
 								series={tmdbSeries}
 								on:mount={(e) =>
 									onEpisodeMount(e.detail, episode.season_number ?? 1, episode.episode_number ?? 1)}

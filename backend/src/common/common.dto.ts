@@ -48,6 +48,14 @@ export class SuccessResponseDto {
   success: boolean;
 }
 
+export class EpisodeRefDto {
+  @ApiProperty()
+  season: number;
+
+  @ApiProperty()
+  episode: number;
+}
+
 export class ErrorResponseDto {
   @ApiProperty()
   statusCode: number;

@@ -18,6 +18,7 @@
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user } from '../../stores/user.store';
+	import Downloads from './Downloads.ManagePage.svelte';
 	import MediaSources from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {
@@ -198,6 +199,10 @@
 				</div>
 
 				<MediaSources />
+
+				{#if $user?.isAdmin}
+					<Downloads />
+				{/if}
 
 				<div>
 					<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>

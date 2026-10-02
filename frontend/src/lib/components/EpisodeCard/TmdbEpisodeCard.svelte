@@ -1,12 +1,11 @@
 <script lang="ts">
-	import type { Request } from '$lib/stores/data/series-data.store';
 	import type { TmdbSeasonEpisode, TmdbSeries } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 	import EpisodeCard from './EpisodeCard.svelte';
 
 	export let episode: TmdbSeasonEpisode;
 	export let series: TmdbSeries | undefined = undefined;
-	export let requests: Request[] | undefined = undefined;
+	export let requestStatus: string | undefined = undefined;
 	// export let handlePlay: (() => void) | undefined;
 	export let isWatched = false;
 	export let progress = 0;
@@ -18,7 +17,7 @@
 	backdropUrl={TMDB_BACKDROP_SMALL + (episode.still_path || series?.backdrop_path)}
 	{isWatched}
 	{progress}
-	{requests}
+	{requestStatus}
 	runtime={episode.runtime}
 	releaseDate={episode.air_date ? new Date(episode.air_date).getTime() : 0}
 	on:enter

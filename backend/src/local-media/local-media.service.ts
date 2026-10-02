@@ -15,6 +15,7 @@ import {
 import {
   decodeFileId,
   encodeFileId,
+  episodeFileName,
   folderMatchesTarget,
   isInsideFolder,
   isVideoFile,
@@ -22,6 +23,8 @@ import {
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
+  seasonFolderName,
+  seriesFolderName,
   yearOf,
 } from './local-media.utils.js';
 
@@ -87,22 +90,7 @@ export class LocalMediaService {
   }
 
   async getSeriesFiles(tmdbId: string): Promise<LocalEpisodeFileDto[]> {
-    const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
-    if (!metadata) throw new NotFoundException('Series not found');
-
-    const series = metadata.tmdbSeries;
-    const target: MediaMatchTarget = {
-      tmdbId,
-      imdbId: series.external_ids?.imdb_id,
-      tvdbId: series.external_ids?.tvdb_id
-        ? String(series.external_ids.tvdb_id)
-        : undefined,
-      titles: [series.name, series.original_name]
-        .filter(Boolean)
-        .map(normalizeTitle),
-      year: yearOf(series.first_air_date),
-    };
-
+    const { target } = await this.getSeriesTarget(tmdbId);
     const { seriesFolders } = await this.getSettings();
     const files = await this.findFiles(seriesFolders, target);
 
@@ -125,6 +113,51 @@ export class LocalMediaService {
   }
 
   /**
+   * Adds a video file to the library as the given episodes of a series. The
+   * file is hard linked so it takes no extra space, or copied when the
+   * source is on another filesystem.
+   */
+  async importEpisodeFile(options: {
+    tmdbId: string;
+    season: number;
+    episodes: number[];
+    sourcePath: string;
+  }): Promise<string> {
+    const { tmdbId, season, episodes, sourcePath } = options;
+    const { name, target } = await this.getSeriesTarget(tmdbId);
+    const { seriesFolders } = await this.getSettings();
+    if (!seriesFolders.length) {
+      throw new Error('No series folder is configured');
+    }
+
+    const [titleFolder] = await this.findTitleFolders(seriesFolders, target);
+    const seasonFolder = path.join(
+      titleFolder ??
+        path.join(
+          seriesFolders[0],
+          seriesFolderName(name, target.year, tmdbId),
+        ),
+      seasonFolderName(season),
+    );
+    const destination = path.join(
+      seasonFolder,
+      episodeFileName(name, season, episodes, path.extname(sourcePath)),
+    );
+
+    await fs.mkdir(seasonFolder, { recursive: true });
+    await fs.link(sourcePath, destination).catch(async (error) => {
+      if (error.code === 'EEXIST') throw error;
+
+      // A file that is still being copied must not look like an episode
+      const partial = `${destination}.partial`;
+      await fs.copyFile(sourcePath, partial);
+      await fs.rename(partial, destination);
+    });
+
+    return destination;
+  }
+
+  /**
    * Turns a file id back into a path, accepting only video files below one
    * of the configured library folders.
    */
@@ -144,6 +177,30 @@ export class LocalMediaService {
     if (!stats?.isFile()) throw new NotFoundException('File not found');
 
     return filePath;
+  }
+
+  private async getSeriesTarget(
+    tmdbId: string,
+  ): Promise<{ name: string; target: MediaMatchTarget }> {
+    const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
+    if (!metadata) throw new NotFoundException('Series not found');
+
+    const series = metadata.tmdbSeries;
+
+    return {
+      name: series.name,
+      target: {
+        tmdbId,
+        imdbId: series.external_ids?.imdb_id,
+        tvdbId: series.external_ids?.tvdb_id
+          ? String(series.external_ids.tvdb_id)
+          : undefined,
+        titles: [series.name, series.original_name]
+          .filter(Boolean)
+          .map(normalizeTitle),
+        year: yearOf(series.first_air_date),
+      },
+    };
   }
 
   private async resolveFolders(folders: unknown): Promise<string[]> {
@@ -174,22 +231,30 @@ export class LocalMediaService {
   ): Promise<FoundFile[]> {
     const files: FoundFile[] = [];
 
+    for (const titleFolder of await this.findTitleFolders(folders, target)) {
+      files.push(...(await this.walkVideoFiles(titleFolder, MAX_DEPTH)));
+    }
+
+    return files;
+  }
+
+  private async findTitleFolders(
+    folders: string[],
+    target: MediaMatchTarget,
+  ): Promise<string[]> {
+    const titleFolders: string[] = [];
+
     for (const folder of folders) {
       for (const entry of await this.readDirectory(folder)) {
         if (!(await this.isDirectory(entry, folder))) continue;
         if (!folderMatchesTarget(parseMediaFolderName(entry.name), target))
           continue;
 
-        files.push(
-          ...(await this.walkVideoFiles(
-            path.join(folder, entry.name),
-            MAX_DEPTH,
-          )),
-        );
+        titleFolders.push(path.join(folder, entry.name));
       }
     }
 
-    return files;
+    return titleFolders;
   }
 
   private async walkVideoFiles(
