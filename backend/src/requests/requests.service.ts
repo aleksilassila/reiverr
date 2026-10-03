@@ -16,18 +16,12 @@ import {
 import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode } from '../metadata/metadata.utils.js';
 import { User } from '../users/user.entity.js';
-import { MediaRequest } from './media-request.entity.js';
-import {
-  AdminMediaRequestDto,
-  UpdateMediaRequestDto,
-} from './media-requests.dto.js';
-import {
-  MEDIA_REQUESTS_CHANGED,
-  MediaRequestsChangedEvent,
-} from './media-requests.events.js';
+import { MediaRequest } from './request.entity.js';
+import { AdminMediaRequestDto, UpdateMediaRequestDto } from './requests.dto.js';
+import { REQUESTS_CHANGED, RequestsChangedEvent } from './requests.events.js';
 
 @Injectable()
-export class MediaRequestsService {
+export class RequestsService {
   constructor(
     @InjectRepository(MediaRequest)
     private readonly requestRepository: EntityRepository<MediaRequest>,
@@ -236,8 +230,8 @@ export class MediaRequestsService {
   }
 
   private emitChanged(tmdbId: string, mediaType: MediaTypeFull) {
-    const event: MediaRequestsChangedEvent = { tmdbId, mediaType };
-    return this.eventEmitter.emitAsync(MEDIA_REQUESTS_CHANGED, event);
+    const event: RequestsChangedEvent = { tmdbId, mediaType };
+    return this.eventEmitter.emitAsync(REQUESTS_CHANGED, event);
   }
 
   private async withRequesters(

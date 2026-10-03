@@ -12,7 +12,6 @@ import { MediaTypeFull } from '../common/common.dto.js';
 import { MovieMetadata } from '../metadata/metadata.entity.js';
 import { User } from '../users/user.entity.js';
 
-// The table already has the name this module is to be renamed to
 @Entity({ tableName: 'request' })
 @Unique({
   properties: ['userId', 'mediaType', 'tmdbId', 'season', 'episode'],

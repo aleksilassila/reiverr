@@ -2145,15 +2145,15 @@ export class Api<
         ...params,
       }),
   };
-  mediaRequests = {
+  requests = {
     /**
      * No description
      *
-     * @tags media-requests
-     * @name GetUserMediaRequests
-     * @request GET:/api/v2/users/{userId}/media-requests
+     * @tags requests
+     * @name GetUserRequests
+     * @request GET:/api/v2/users/{userId}/requests
      */
-    getUserMediaRequests: (
+    getUserRequests: (
       userId: string,
       query?: {
         page?: number;
@@ -2167,7 +2167,7 @@ export class Api<
         },
         any
       >({
-        path: `/api/v2/users/${userId}/media-requests`,
+        path: `/api/v2/users/${userId}/requests`,
         method: "GET",
         query: query,
         format: "json",
@@ -2177,9 +2177,9 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
+     * @tags requests
      * @name GetMovieRequest
-     * @request GET:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     * @request GET:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
      */
     getMovieRequest: (
       userId: string,
@@ -2187,7 +2187,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MovieRequestDto, any>({
-        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2196,9 +2196,9 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
+     * @tags requests
      * @name CreateMovieRequest
-     * @request PUT:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     * @request PUT:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
      */
     createMovieRequest: (
       userId: string,
@@ -2206,7 +2206,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto, any>({
-        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
         method: "PUT",
         format: "json",
         ...params,
@@ -2215,9 +2215,9 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
+     * @tags requests
      * @name DeleteMovieRequest
-     * @request DELETE:/api/v2/users/{userId}/media-requests/movie/tmdb/{tmdbId}
+     * @request DELETE:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
      */
     deleteMovieRequest: (
       userId: string,
@@ -2225,7 +2225,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/media-requests/movie/tmdb/${tmdbId}`,
+        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2234,9 +2234,9 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
+     * @tags requests
      * @name GetSeriesRequests
-     * @request GET:/api/v2/users/{userId}/media-requests/series/tmdb/{tmdbId}
+     * @request GET:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}
      */
     getSeriesRequests: (
       userId: string,
@@ -2244,7 +2244,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/v2/users/${userId}/media-requests/series/tmdb/${tmdbId}`,
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2253,9 +2253,9 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
+     * @tags requests
      * @name UpdateSeriesRequests
-     * @request PUT:/api/v2/users/{userId}/media-requests/series/tmdb/{tmdbId}
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}
      */
     updateSeriesRequests: (
       userId: string,
@@ -2264,7 +2264,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/v2/users/${userId}/media-requests/series/tmdb/${tmdbId}`,
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2275,11 +2275,11 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
-     * @name GetAllMediaRequests
-     * @request GET:/api/v2/media-requests
+     * @tags requests
+     * @name GetAllRequests
+     * @request GET:/api/v2/requests
      */
-    getAllMediaRequests: (
+    getAllRequests: (
       query?: {
         approved?: boolean;
         page?: number;
@@ -2293,7 +2293,7 @@ export class Api<
         },
         any
       >({
-        path: `/api/v2/media-requests`,
+        path: `/api/v2/requests`,
         method: "GET",
         query: query,
         format: "json",
@@ -2303,17 +2303,17 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
-     * @name UpdateMediaRequest
-     * @request PUT:/api/v2/media-requests/{id}
+     * @tags requests
+     * @name UpdateRequest
+     * @request PUT:/api/v2/requests/{id}
      */
-    updateMediaRequest: (
+    updateRequest: (
       id: string,
       data: UpdateMediaRequestDto,
       params: RequestParams = {},
     ) =>
       this.request<AdminMediaRequestDto, any>({
-        path: `/api/v2/media-requests/${id}`,
+        path: `/api/v2/requests/${id}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2324,13 +2324,13 @@ export class Api<
     /**
      * No description
      *
-     * @tags media-requests
-     * @name DeleteMediaRequest
-     * @request DELETE:/api/v2/media-requests/{id}
+     * @tags requests
+     * @name DeleteRequest
+     * @request DELETE:/api/v2/requests/{id}
      */
-    deleteMediaRequest: (id: string, params: RequestParams = {}) =>
+    deleteRequest: (id: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/media-requests/${id}`,
+        path: `/api/v2/requests/${id}`,
         method: "DELETE",
         format: "json",
         ...params,

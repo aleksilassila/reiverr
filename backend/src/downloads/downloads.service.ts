@@ -22,10 +22,10 @@ import { IndexersService } from '../indexers/indexers.service.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { parseEpisodeNumbers } from '../local-media/local-media.utils.js';
 import {
-  MEDIA_REQUESTS_CHANGED,
-  type MediaRequestsChangedEvent,
-} from '../media-requests/media-requests.events.js';
-import { MediaRequestsService } from '../media-requests/media-requests.service.js';
+  REQUESTS_CHANGED,
+  type RequestsChangedEvent,
+} from '../requests/requests.events.js';
+import { RequestsService } from '../requests/requests.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -89,7 +89,7 @@ export class DownloadsService
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
-    private readonly mediaRequestsService: MediaRequestsService,
+    private readonly requestsService: RequestsService,
     private readonly indexersService: IndexersService,
     private readonly localMediaService: LocalMediaService,
     @Inject(TORRENT_ENGINE) private readonly engine: TorrentEngine,
@@ -124,8 +124,8 @@ export class DownloadsService
     });
   }
 
-  @OnEvent(MEDIA_REQUESTS_CHANGED)
-  async onMediaRequestsChanged(event: MediaRequestsChangedEvent) {
+  @OnEvent(REQUESTS_CHANGED)
+  async onRequestsChanged(event: RequestsChangedEvent) {
     if (event.mediaType === MediaTypeFull.Episode) {
       await this.reconcile(event.tmdbId);
     }
@@ -291,8 +291,7 @@ export class DownloadsService
 
     const { seedRatio } = await this.getSettings();
     const selections = await this.findSelections(tmdbId);
-    const requested =
-      await this.mediaRequestsService.findApprovedEpisodes(tmdbId);
+    const requested = await this.requestsService.findApprovedEpisodes(tmdbId);
     const onDisk = new Set(
       (await this.getEpisodesOnDisk(tmdbId)).map(episodeKey),
     );

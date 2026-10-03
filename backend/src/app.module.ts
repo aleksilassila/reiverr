@@ -9,7 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { MetadataModule } from './metadata/metadata.module.js';
 import { UserDataModule } from './user-data/user-data.module.js';
 import { UsersModule } from './users/users.module.js';
-import { MediaRequestsModule } from './media-requests/media-requests.module.js';
+import { RequestsModule } from './requests/requests.module.js';
 import { LocalMediaModule } from './local-media/local-media.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { IndexersModule } from './indexers/indexers.module.js';
@@ -31,7 +31,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     }),
     MetadataModule,
     UserDataModule,
-    MediaRequestsModule,
+    RequestsModule,
     LocalMediaModule,
     JobsModule,
     IndexersModule,

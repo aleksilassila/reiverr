@@ -161,9 +161,7 @@ function useSeriesData(tmdbId: string) {
 
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
 		const [requests, downloads] = await Promise.all([
-			reiverrApi.mediaRequests
-				.getSeriesRequests(get(user)?.id as string, tmdbId)
-				.then((r) => r.data),
+			reiverrApi.requests.getSeriesRequests(get(user)?.id as string, tmdbId).then((r) => r.data),
 			reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data)
 		]);
 
@@ -205,7 +203,7 @@ function useSeriesData(tmdbId: string) {
 	}
 
 	async function setRequested(episodes: EpisodeRefDto[], requested: boolean) {
-		await reiverrApi.mediaRequests.updateSeriesRequests(get(user)?.id as string, tmdbId, {
+		await reiverrApi.requests.updateSeriesRequests(get(user)?.id as string, tmdbId, {
 			episodes,
 			requested
 		});

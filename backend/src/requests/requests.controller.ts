@@ -25,23 +25,23 @@ import {
   MediaRequestDto,
   MovieRequestDto,
   UpdateSeriesRequestsDto,
-} from './media-requests.dto.js';
-import { MediaRequestsService } from './media-requests.service.js';
+} from './requests.dto.js';
+import { RequestsService } from './requests.service.js';
 
-@ApiTags('media-requests')
-@Controller('v2/users/:userId/media-requests')
+@ApiTags('requests')
+@Controller('v2/users/:userId/requests')
 @UseGuards(UserAccessControl)
-export class MediaRequestsController {
-  constructor(private readonly mediaRequestsService: MediaRequestsService) {}
+export class RequestsController {
+  constructor(private readonly requestsService: RequestsService) {}
 
   @Get()
   @PaginationApiQuery()
   @PaginatedApiOkResponse(MediaRequestDto)
-  async getUserMediaRequests(
+  async getUserRequests(
     @Param('userId') userId: string,
     @GetPaginationParams() pagination: PaginationDto,
   ): Promise<PaginatedResponseDto<MediaRequestDto>> {
-    return this.mediaRequestsService.findByUser(userId, pagination);
+    return this.requestsService.findByUser(userId, pagination);
   }
 
   @Get('movie/tmdb/:tmdbId')
@@ -50,10 +50,7 @@ export class MediaRequestsController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieRequestDto> {
-    const request = await this.mediaRequestsService.findMovieRequest(
-      userId,
-      tmdbId,
-    );
+    const request = await this.requestsService.findMovieRequest(userId, tmdbId);
 
     return { tmdbId, request: request ?? undefined };
   }
@@ -65,7 +62,7 @@ export class MediaRequestsController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MediaRequestDto> {
-    return this.mediaRequestsService.createMovieRequest(
+    return this.requestsService.createMovieRequest(
       userId,
       tmdbId,
       user.isAdmin,
@@ -78,7 +75,7 @@ export class MediaRequestsController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SuccessResponseDto> {
-    const result = await this.mediaRequestsService.deleteMovieRequest(
+    const result = await this.requestsService.deleteMovieRequest(
       userId,
       tmdbId,
     );
@@ -92,7 +89,7 @@ export class MediaRequestsController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MediaRequestDto[]> {
-    return this.mediaRequestsService.findSeriesRequests(userId, tmdbId);
+    return this.requestsService.findSeriesRequests(userId, tmdbId);
   }
 
   @Put('series/tmdb/:tmdbId')
@@ -115,7 +112,7 @@ export class MediaRequestsController {
       );
     }
 
-    return this.mediaRequestsService.setEpisodeRequests({
+    return this.requestsService.setEpisodeRequests({
       userId,
       tmdbId,
       episodes: body.episodes,

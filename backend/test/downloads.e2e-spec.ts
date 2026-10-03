@@ -228,7 +228,7 @@ describe('Series downloads (e2e)', () => {
       .then((res) => res.body);
 
   const setRequested = (episodes: number[], requested: boolean) =>
-    api('put', `/v2/users/${userId}/media-requests/series/tmdb/${TMDB_ID}`)
+    api('put', `/v2/users/${userId}/requests/series/tmdb/${TMDB_ID}`)
       .send({
         episodes: episodes.map((episode) => ({ season: 1, episode })),
         requested,
@@ -571,10 +571,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('rejects requests for episodes that do not exist', async () => {
-    await api(
-      'put',
-      `/v2/users/${userId}/media-requests/series/tmdb/${TMDB_ID}`,
-    )
+    await api('put', `/v2/users/${userId}/requests/series/tmdb/${TMDB_ID}`)
       .send({ episodes: [{ season: 1, episode: 9 }], requested: true })
       .expect(400);
   });
@@ -612,7 +609,7 @@ describe('Series downloads (e2e)', () => {
 
     const res = await asGuest(
       'put',
-      `/v2/users/${signIn.body.user.id}/media-requests/series/tmdb/${TMDB_ID}`,
+      `/v2/users/${signIn.body.user.id}/requests/series/tmdb/${TMDB_ID}`,
     )
       .send({ episodes: [{ season: 2, episode: 1 }], requested: true })
       .expect(200);
@@ -623,7 +620,7 @@ describe('Series downloads (e2e)', () => {
 
     expect(engine.running(SEASON_2_TORRENT)).toBeUndefined();
 
-    await api('put', `/v2/media-requests/${res.body[0].id}`)
+    await api('put', `/v2/requests/${res.body[0].id}`)
       .send({ approved: true })
       .expect(200);
     await settle();

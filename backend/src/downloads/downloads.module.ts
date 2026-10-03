@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IndexersModule } from '../indexers/indexers.module.js';
 import { LocalMediaModule } from '../local-media/local-media.module.js';
-import { MediaRequestsModule } from '../media-requests/media-requests.module.js';
+import { RequestsModule } from '../requests/requests.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { DownloadsController } from './downloads.controller.js';
@@ -13,7 +13,7 @@ import { TorrentStreamEngine } from './torrent-stream.engine.js';
   imports: [
     SettingsModule,
     MetadataModule,
-    MediaRequestsModule,
+    RequestsModule,
     IndexersModule,
     LocalMediaModule,
   ],

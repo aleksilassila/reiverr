@@ -21,45 +21,40 @@ import {
   PaginationDto,
   SuccessResponseDto,
 } from '../common/common.dto.js';
-import {
-  AdminMediaRequestDto,
-  UpdateMediaRequestDto,
-} from './media-requests.dto.js';
-import { MediaRequestsService } from './media-requests.service.js';
+import { AdminMediaRequestDto, UpdateMediaRequestDto } from './requests.dto.js';
+import { RequestsService } from './requests.service.js';
 
-@ApiTags('media-requests')
-@Controller('v2/media-requests')
+@ApiTags('requests')
+@Controller('v2/requests')
 @UseGuards(AdminAccessControl)
-export class AdminMediaRequestsController {
-  constructor(private readonly mediaRequestsService: MediaRequestsService) {}
+export class AdminRequestsController {
+  constructor(private readonly requestsService: RequestsService) {}
 
   @Get()
   @ApiQuery({ name: 'approved', type: Boolean, required: false })
   @PaginationApiQuery()
   @PaginatedApiOkResponse(AdminMediaRequestDto)
-  async getAllMediaRequests(
+  async getAllRequests(
     @GetPaginationParams() pagination: PaginationDto,
     @Query('approved', new ParseBoolPipe({ optional: true }))
     approved?: boolean,
   ): Promise<PaginatedResponseDto<AdminMediaRequestDto>> {
-    return this.mediaRequestsService.findAll(pagination, approved);
+    return this.requestsService.findAll(pagination, approved);
   }
 
   @Put(':id')
   @ApiOkResponse({ type: AdminMediaRequestDto })
-  async updateMediaRequest(
+  async updateRequest(
     @Param('id') id: string,
     @Body() body: UpdateMediaRequestDto,
   ): Promise<AdminMediaRequestDto> {
-    return this.mediaRequestsService.update(id, body);
+    return this.requestsService.update(id, body);
   }
 
   @Delete(':id')
   @ApiOkResponse({ type: SuccessResponseDto })
-  async deleteMediaRequest(
-    @Param('id') id: string,
-  ): Promise<SuccessResponseDto> {
-    const result = await this.mediaRequestsService.deleteById(id);
+  async deleteRequest(@Param('id') id: string): Promise<SuccessResponseDto> {
+    const result = await this.requestsService.deleteById(id);
 
     return { success: result > 0 };
   }

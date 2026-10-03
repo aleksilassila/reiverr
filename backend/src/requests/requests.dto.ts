@@ -1,7 +1,7 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { EpisodeRefDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import { MediaRequest } from './media-request.entity.js';
+import { MediaRequest } from './request.entity.js';
 
 export class MediaRequestDto extends MediaRequest {}
 
