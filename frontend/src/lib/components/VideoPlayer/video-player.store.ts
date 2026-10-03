@@ -1,41 +1,29 @@
-import { type SubtitleTrackDto, type VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { _createStoreContext } from '$lib/utils';
-import type { Subtitles } from '@aleksilassila/reiverr-shared/dist/src/old';
 import { derived, get, writable } from 'svelte/store';
 
-export type VideoPlayerProps = {
-	load: boolean;
-	paused: boolean;
-	muted: boolean;
-};
-
-export type SubtitleInfo = {
-	subtitles?: Subtitles;
-	availableSubtitles: Subtitles[];
-	selectSubtitles: (subtitles?: Subtitles) => void;
-};
-
-export type AudioTrack = {
-	language: string;
-	index: number;
-};
-
-export interface VideoPlayerContext {
-	title?: string;
-	subtitle?: string;
-	playbackInfo?: VideoSource;
-}
-
-export type VideoSource = {
+export type VideoTrack = {
+	id: string;
+	label: string;
 	src: string;
-	directPlay: boolean;
-	backdropUrl?: string;
-	progress?: number;
-
-	audioStreamIndex: number;
-	audioTracks: AudioTrack[];
-	selectAudioTrack: (index: number) => void;
+	/** Direct tracks are given to the video element as they are, HLS tracks go through hls.js where needed */
+	type: 'direct' | 'hls';
 };
+
+export type SubtitleTrack = {
+	id: string;
+	label: string;
+	src: string;
+	lang?: string;
+};
+
+export interface VideoPlayerOptions {
+	videoTracks: VideoTrack[];
+	subtitleTracks: SubtitleTrack[];
+	/** From 0 to 1, where playback starts */
+	initialProgress?: number;
+	/** Called with the progress from 0 to 1 every now and then and when the player closes */
+	onProgress?: (progress: number) => void;
+}
 
 export function getBrowserSpecificMediaFunctions() {
 	// These functions are different in every browser
@@ -106,38 +94,15 @@ export function getBrowserSpecificMediaFunctions() {
 	};
 }
 
-export type VideoPlayerSubtitle = {
-	id?: string;
-	src: string;
-	lang: string;
-	kind: 'subtitles' | 'captions' | 'descriptions';
-	label: string;
-	showing: boolean;
-};
-
-export interface UseVideoPlayerOptions {
-	initialProgress?: number;
-}
-
-export function useVideoPlayer(
-	_options: UseVideoPlayerOptions = {
-		initialProgress: 0
-	}
-) {
-	// --- State (writable stores) ---
+export function useVideoPlayer(options: VideoPlayerOptions) {
 	const video = writable<HTMLVideoElement | undefined>(undefined);
-	/** @deprecated */
-	const videoSource = writable<VideoSource | undefined>(undefined);
-	/** @deprecated */
-	const subtitleInfo = writable<SubtitleInfo | undefined>(undefined);
-	/** @deprecated */
-	const subtitles = writable<VideoPlayerSubtitle[]>([]);
 
-	const videoTracks = writable<{ current?: VideoTrackDto; tracks: VideoTrackDto[] }>({
-		tracks: []
+	const videoTracks = writable<{ current?: VideoTrack; tracks: VideoTrack[] }>({
+		current: options.videoTracks[0],
+		tracks: options.videoTracks
 	});
-	const subtitleTracks = writable<{ current?: SubtitleTrackDto; tracks: SubtitleTrackDto[] }>({
-		tracks: []
+	const subtitleTracks = writable<{ current?: SubtitleTrack; tracks: SubtitleTrack[] }>({
+		tracks: options.subtitleTracks
 	});
 
 	const paused = writable(false);
@@ -149,13 +114,12 @@ export function useVideoPlayer(
 	const buffering = writable(false);
 	const videoDidLoad = writable(false);
 	const seeking = writable(false);
+	/** Why the current track cannot be played */
+	const error = writable<string | undefined>(undefined);
 
-	// --- Derived state ---
 	const progress = derived([currentTime, duration], ([$currentTime, $duration]) =>
 		$duration > 0 ? $currentTime / $duration : 0
 	);
-
-	// --- Actions ---
 
 	function play() {
 		get(video)?.play();
@@ -207,20 +171,19 @@ export function useVideoPlayer(
 		else el.requestFullscreen();
 	}
 
-	function selectSubtitles(sub?: SubtitleTrackDto) {
-		// const info = get(subtitleInfo);
-		// if (info) info.selectSubtitles(sub);
-		// else console.error('No subtitle info when selecting subtitles');
-		subtitleTracks.update((prev) => ({
-			...prev,
-			current: sub
-		}));
+	function selectVideoTrack(track?: VideoTrack) {
+		videoTracks.update((prev) => ({ ...prev, current: track }));
 	}
 
-	function selectAudioTrack(index: number) {
-		const source = get(videoSource);
-		if (source) source.selectAudioTrack(index);
-		else console.error('No video source when selecting audio track');
+	function selectSubtitles(track?: SubtitleTrack) {
+		subtitleTracks.update((prev) => ({ ...prev, current: track }));
+	}
+
+	function reportProgress() {
+		const el = get(video);
+		if (el && el.duration > 0 && el.currentTime > 5) {
+			options.onProgress?.(el.currentTime / el.duration);
+		}
 	}
 
 	/** Update bufferedTime from the video element's buffered TimeRanges */
@@ -240,13 +203,10 @@ export function useVideoPlayer(
 	function handleLoadedData() {
 		videoDidLoad.set(true);
 		const el = get(video);
+		const initialProgress = options.initialProgress ?? 0;
 
-		if (
-			el &&
-			_options.initialProgress !== undefined &&
-			el.currentTime < el.duration * _options.initialProgress
-		) {
-			el.currentTime = el.duration * _options.initialProgress;
+		if (el && el.currentTime < el.duration * initialProgress) {
+			el.currentTime = el.duration * initialProgress;
 		}
 	}
 
@@ -261,12 +221,9 @@ export function useVideoPlayer(
 	/** Update subtitles track visibility based on the active subtitle */
 	function updateSubtitlesVisibility() {
 		const el = get(video);
-		const subs = get(subtitleTracks);
-		const enabledSubtitle = subs.current;
-		const tracks = el?.textTracks ?? [];
-		for (const track of tracks) {
-			track.mode =
-				track.id === (enabledSubtitle?.label ?? enabledSubtitle?.url) ? 'showing' : 'disabled';
+		const current = get(subtitleTracks).current;
+		for (const track of el?.textTracks ?? []) {
+			track.mode = track.id === current?.id ? 'showing' : 'disabled';
 		}
 	}
 
@@ -292,21 +249,8 @@ export function useVideoPlayer(
 		}
 	}
 
-	function destroy() {
-		const el = get(video);
-		if (el) {
-			el.pause();
-			el.removeAttribute('src');
-			el.load();
-		}
-	}
-
 	return {
-		// State (Writable — can be bound in components via $store syntax)
 		video,
-		videoSource,
-		subtitleInfo,
-		subtitles,
 		videoTracks,
 		subtitleTracks,
 		paused,
@@ -318,11 +262,9 @@ export function useVideoPlayer(
 		buffering,
 		videoDidLoad,
 		seeking,
-
-		// Derived state (Readable)
+		error,
 		progress,
 
-		// Actions
 		play,
 		pause,
 		togglePause,
@@ -332,18 +274,15 @@ export function useVideoPlayer(
 		adjustVolume,
 		toggleMute,
 		toggleFullscreen,
+		selectVideoTrack,
 		selectSubtitles,
-		selectAudioTrack,
+		reportProgress,
 		handleProgress,
 		handleLoadedData,
 		handleWaiting,
 		handlePlaying,
 		updateSubtitlesVisibility,
-		handleKeyboardShortcut,
-		destroy,
-
-		initialProgress: _options.initialProgress ?? 0,
-		progressUpdateHandler: (time: number) => {}
+		handleKeyboardShortcut
 	};
 }
 

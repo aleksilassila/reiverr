@@ -64,6 +64,12 @@ export class LocalMediaController {
     return this.localMediaService.getEpisodeFiles(tmdbId, season, episode);
   }
 
+  @Get('subtitles/:id')
+  @ApiOkResponse({ description: 'The subtitles as WebVTT' })
+  async getSubtitles(@Param('id') id: string, @Res() res: Response) {
+    res.type('text/vtt').send(await this.localMediaService.readSubtitles(id));
+  }
+
   @Get('files/:id/stream')
   @ApiOkResponse({
     description:

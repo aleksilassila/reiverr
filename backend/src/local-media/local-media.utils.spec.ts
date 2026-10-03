@@ -5,8 +5,10 @@ import {
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
+  parseSubtitleName,
   seasonFolderName,
   seriesFolderName,
+  srtToWebVtt,
 } from './local-media.utils.js';
 
 describe('parseMediaFolderName', () => {
@@ -178,5 +180,48 @@ describe('import naming', () => {
       season: 12,
       episodes: [3, 4],
     });
+  });
+});
+
+describe('parseSubtitleName', () => {
+  it('reads the language and tags of a sidecar subtitle', () => {
+    expect(parseSubtitleName('Show - S01E02.srt', 'Show - S01E02.mkv')).toEqual(
+      {
+        lang: undefined,
+        label: 'Subtitles',
+      },
+    );
+    expect(
+      parseSubtitleName('Show - S01E02.en.forced.srt', 'Show - S01E02.mkv'),
+    ).toEqual({
+      lang: 'en',
+      label: 'en forced',
+    });
+    expect(
+      parseSubtitleName('Show - S01E02.fin.vtt', 'Show - S01E02.mp4'),
+    ).toEqual({
+      lang: 'fin',
+      label: 'fin',
+    });
+  });
+
+  it('rejects subtitles of other videos', () => {
+    expect(
+      parseSubtitleName('Show - S01E03.srt', 'Show - S01E02.mkv'),
+    ).toBeUndefined();
+    expect(
+      parseSubtitleName('Show - S01E02x.srt', 'Show - S01E02.mkv'),
+    ).toBeUndefined();
+  });
+});
+
+describe('srtToWebVtt', () => {
+  it('converts timestamps and strips styling tags', () => {
+    const srt =
+      '﻿1\r\n00:00:01,000 --> 00:00:02,500\r\n{\\an8}Hello <i>there</i>\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\nBye\r\n';
+
+    expect(srtToWebVtt(srt)).toBe(
+      'WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.500\nHello <i>there</i>\n\n2\n00:00:03.000 --> 00:00:04.000\nBye\n',
+    );
   });
 });

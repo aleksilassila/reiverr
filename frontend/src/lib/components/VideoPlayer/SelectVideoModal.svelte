@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { VideoTrack } from '$lib/apis/reiverr/reiverr.openapi';
 	import { scrollIntoView } from '$lib/selectable';
-	import { Check, TextAlignLeft, Video } from 'radix-icons-svelte';
+	import { Check, Video } from 'radix-icons-svelte';
 	import Button from '../Button/Button.svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import { useComponentStack } from '../StackRouter/stack-router.store';
+	import type { VideoTrack } from './video-player.store';
 
 	const { close } = useComponentStack();
 
@@ -28,7 +28,7 @@
 				on:enter={scrollIntoView({ vertical: 64 })}
 				class="relative"
 			>
-				{#if current?.url === videoTrack.url}
+				{#if current?.id === videoTrack.id}
 					<div class="absolute inset-y-0 right-6 flex items-center justify-center">
 						<Check size={24} />
 					</div>

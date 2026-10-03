@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { ChatBubble, EnterFullScreen, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
+	import { EnterFullScreen, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { useRegistrar } from '../../selectable';
 	import Container from '../Container.svelte';
@@ -8,51 +8,49 @@
 	import Spinner from '../Utils/Spinner.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 
-	import type { VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { derived, get } from 'svelte/store';
+	import { get } from 'svelte/store';
 	import { useSimpleModal as useSimpleModalStack } from '../Modal/modal.store';
 	import ModalStackProvider from '../Modal/ModalStackProvider.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import SelectVideoModal from './SelectVideoModal.svelte';
 	import VideoElement from './VideoElement.svelte';
-	import { videoPlayerContext } from './video-player.store';
+	import { videoPlayerContext, type SubtitleTrack, type VideoTrack } from './video-player.store';
 	import { isTv } from '$lib/utils/browser-detection';
 
 	export let title: string;
 	export let subtitle: string = '';
-	export let sourceName: string = '';
+	export let videoTracks: VideoTrack[];
+	export let subtitleTracks: SubtitleTrack[] = [];
+	/** From 0 to 1 */
+	export let progress = 0;
+	export let onProgress: (progress: number) => void = () => {};
 
 	export let modalHidden = false;
 
 	const {
-		videoTracks,
-		subtitleTracks,
+		videoTracks: videoTrackState,
+		subtitleTracks: subtitleTrackState,
 		paused,
-		muted,
-		volume,
 		duration,
 		currentTime,
 		bufferedTime,
 		buffering,
 		videoDidLoad,
 		seeking,
+		error,
 		togglePause,
 		play,
 		pause: pauseVideo,
 		seekAndPlay,
+		selectVideoTrack,
 		selectSubtitles,
 		toggleFullscreen,
 		handleKeyboardShortcut
-	} = videoPlayerContext.getContext();
-
-	const languages = derived(videoTracks, (tracks) => {
-		const uniqueLanguages = new Set<string>();
-		tracks.tracks.forEach((track) => {
-			if (track.lang) {
-				uniqueLanguages.add(track.lang);
-			}
-		});
-		return Array.from(uniqueLanguages);
+	} = videoPlayerContext.createContext({
+		videoTracks,
+		subtitleTracks,
+		initialProgress: progress,
+		onProgress
 	});
 
 	const modalStack = useSimpleModalStack();
@@ -86,13 +84,6 @@
 		hideInterfaceTimeout = setTimeout(() => {
 			get(progressBar)?.activate();
 		}, 200);
-	}
-
-	function selectVideoTrack(videoTrack?: VideoTrackDto) {
-		videoTracks.update((prev) => ({
-			...prev,
-			current: videoTrack
-		}));
 	}
 
 	onDestroy(() => {
@@ -150,7 +141,13 @@
 	>
 	</Container> -->
 
-	{#if $paused && showInterface && !$seeking}
+	{#if $error}
+		<div class="absolute inset-0 flex items-center justify-center px-32 text-center">
+			<div class="text-2xl font-medium text-secondary-200 bg-black/50 rounded-xl px-8 py-6">
+				{$error}
+			</div>
+		</div>
+	{:else if $paused && showInterface && !$seeking}
 		<div
 			class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-2"
 		>
@@ -174,12 +171,7 @@
 		<div
 			class="flex justify-between items-center text-secondary-300 font-medium text-wider text-xl tracking-wide"
 		>
-			<div>
-				{#if sourceName}
-					@{sourceName}
-				{/if}
-			</div>
-
+			<div></div>
 			<div>
 				Ends at {new Date(
 					clockTime + (($duration ?? 0) - ($currentTime ?? 0)) * 1000
@@ -206,12 +198,12 @@
 					<h1 class="h1">{title}</h1>
 				</div>
 				<div class="flex space-x-2">
-					{#if $subtitleTracks?.tracks?.length}
+					{#if $subtitleTrackState.tracks.length}
 						<IconButton
 							on:clickOrSelect={() => {
 								modalStack.createModal(SelectSubtitlesModal, {
-									available: $subtitleTracks?.tracks ?? [],
-									current: $subtitleTracks?.current,
+									available: $subtitleTrackState.tracks,
+									current: $subtitleTrackState.current,
 									selectSubtitles
 								});
 							}}
@@ -219,48 +211,17 @@
 							<TextAlignLeft size={24} />
 						</IconButton>
 					{/if}
-					{#if $videoTracks?.tracks?.length}
+					{#if $videoTrackState.tracks.length > 1}
 						<IconButton
 							on:clickOrSelect={() => {
 								modalStack.createModal(SelectVideoModal, {
-									available: $videoTracks?.tracks ?? [],
-									current: $videoTracks?.current,
+									available: $videoTrackState.tracks,
+									current: $videoTrackState.current,
 									selectVideoTrack
 								});
 							}}
 						>
 							<Video size={24} />
-						</IconButton>
-					{/if}
-					{#if $languages.length > 1}
-						<IconButton
-							on:clickOrSelect={() => {
-								modalStack.createModal(SelectVideoModal, {
-									available: $languages
-										.map((lang) => $videoTracks.tracks.find((track) => track.lang === lang))
-										.filter((track) => track !== undefined)
-										.map((t) => ({ ...t, label: t.lang })),
-									current: $videoTracks?.current
-										? {
-												...$videoTracks?.current,
-												label: $videoTracks?.current?.lang
-											}
-										: undefined,
-									selectVideoTrack: (track) => {
-										videoTracks.update((prev) => {
-											const newCurrent = track
-												? prev.tracks.find((t) => t.url === track.url)
-												: undefined;
-											return {
-												...prev,
-												current: newCurrent
-											};
-										});
-									}
-								});
-							}}
-						>
-							<ChatBubble size={24} />
 						</IconButton>
 					{/if}
 					{#if !isTv()}

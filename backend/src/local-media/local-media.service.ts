@@ -11,6 +11,7 @@ import {
   LocalEpisodeFileDto,
   LocalMediaFileDto,
   LocalMediaSettingsDto,
+  LocalSubtitleFileDto,
 } from './local-media.dto.js';
 import {
   decodeFileId,
@@ -18,13 +19,16 @@ import {
   episodeFileName,
   folderMatchesTarget,
   isInsideFolder,
+  isSubtitleFile,
   isVideoFile,
   MediaMatchTarget,
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
+  parseSubtitleName,
   seasonFolderName,
   seriesFolderName,
+  srtToWebVtt,
   yearOf,
 } from './local-media.utils.js';
 
@@ -42,6 +46,7 @@ interface FoundFile {
   path: string;
   name: string;
   size: number;
+  subtitles: LocalSubtitleFileDto[];
 }
 
 @Injectable()
@@ -161,12 +166,29 @@ export class LocalMediaService {
    * Turns a file id back into a path, accepting only video files below one
    * of the configured library folders.
    */
-  async resolveFilePath(id: string): Promise<string> {
+  resolveFilePath(id: string): Promise<string> {
+    return this.resolvePath(id, isVideoFile);
+  }
+
+  /** The subtitle file as WebVTT, which is what browsers play */
+  async readSubtitles(id: string): Promise<string> {
+    const filePath = await this.resolvePath(id, isSubtitleFile);
+    const text = await fs.readFile(filePath, 'utf8');
+
+    return path.extname(filePath).toLowerCase() === '.srt'
+      ? srtToWebVtt(text)
+      : text;
+  }
+
+  private async resolvePath(
+    id: string,
+    isAccepted: (fileName: string) => boolean,
+  ): Promise<string> {
     const filePath = path.resolve(decodeFileId(id));
     const { movieFolders, seriesFolders } = await this.getSettings();
 
     const isAllowed =
-      isVideoFile(filePath) &&
+      isAccepted(filePath) &&
       [...movieFolders, ...seriesFolders].some((folder) =>
         isInsideFolder(filePath, folder),
       );
@@ -257,11 +279,14 @@ export class LocalMediaService {
     return titleFolders;
   }
 
+  /** Video files with their sidecar subtitles */
   private async walkVideoFiles(
     dir: string,
     depth: number,
   ): Promise<FoundFile[]> {
     const files: FoundFile[] = [];
+    const videos: { path: string; name: string }[] = [];
+    const subtitles: { path: string; name: string }[] = [];
 
     for (const entry of await this.readDirectory(dir)) {
       const entryPath = path.join(dir, entry.name);
@@ -270,10 +295,32 @@ export class LocalMediaService {
         if (depth > 1)
           files.push(...(await this.walkVideoFiles(entryPath, depth - 1)));
       } else if (isVideoFile(entry.name)) {
-        const stats = await fs.stat(entryPath);
-        if (stats.isFile())
-          files.push({ path: entryPath, name: entry.name, size: stats.size });
+        videos.push({ path: entryPath, name: entry.name });
+      } else if (isSubtitleFile(entry.name)) {
+        subtitles.push({ path: entryPath, name: entry.name });
       }
+    }
+
+    for (const video of videos) {
+      const stats = await fs.stat(video.path);
+      if (!stats.isFile()) continue;
+
+      files.push({
+        ...video,
+        size: stats.size,
+        subtitles: subtitles.flatMap((subtitle) => {
+          const parsed = parseSubtitleName(subtitle.name, video.name);
+          return parsed
+            ? [
+                {
+                  id: encodeFileId(subtitle.path),
+                  fileName: subtitle.name,
+                  ...parsed,
+                },
+              ]
+            : [];
+        }),
+      });
     }
 
     return files;
@@ -298,5 +345,10 @@ export class LocalMediaService {
 }
 
 function toFileDto(file: FoundFile): LocalMediaFileDto {
-  return { id: encodeFileId(file.path), fileName: file.name, size: file.size };
+  return {
+    id: encodeFileId(file.path),
+    fileName: file.name,
+    size: file.size,
+    subtitles: file.subtitles,
+  };
 }

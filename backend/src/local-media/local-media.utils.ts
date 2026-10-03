@@ -15,6 +15,8 @@ const VIDEO_EXTENSIONS = new Set([
   '.mpeg',
 ]);
 
+const SUBTITLE_EXTENSIONS = new Set(['.srt', '.vtt']);
+
 // "[tmdbid-123]" (Jellyfin), "{tmdb-123}" (Radarr/Sonarr), imdb and tvdb likewise
 const ID_TAG_PATTERN = /[[{](tmdb|imdb|tvdb)(?:id)?[-=](tt\d+|\d+)[\]}]/gi;
 const YEAR_PATTERN = /\((\d{4})\)/g;
@@ -49,6 +51,52 @@ export interface ParsedEpisodeNumbers {
 
 export function isVideoFile(fileName: string): boolean {
   return VIDEO_EXTENSIONS.has(path.extname(fileName).toLowerCase());
+}
+
+export function isSubtitleFile(fileName: string): boolean {
+  return SUBTITLE_EXTENSIONS.has(path.extname(fileName).toLowerCase());
+}
+
+export interface ParsedSubtitleName {
+  lang?: string;
+  label: string;
+}
+
+/**
+ * Reads the tags of a sidecar subtitle, "Show - S01E02.en.forced.srt" next to
+ * "Show - S01E02.mkv", or undefined when the file belongs to another video.
+ */
+export function parseSubtitleName(
+  subtitleName: string,
+  videoName: string,
+): ParsedSubtitleName | undefined {
+  const base = videoName.slice(0, -path.extname(videoName).length);
+  const subtitleBase = subtitleName.slice(
+    0,
+    -path.extname(subtitleName).length,
+  );
+  if (subtitleBase !== base && !subtitleBase.startsWith(`${base}.`))
+    return undefined;
+
+  const tags = subtitleBase
+    .slice(base.length + 1)
+    .split('.')
+    .filter(Boolean);
+  const lang = tags.find((tag) => /^[a-z]{2,3}$/i.test(tag))?.toLowerCase();
+
+  return { lang, label: tags.join(' ') || 'Subtitles' };
+}
+
+/** Converts SubRip text to WebVTT: a header, dots in the timestamps and no styling tags */
+export function srtToWebVtt(srt: string): string {
+  const body = srt
+    .replace(/^\uFEFF/, '')
+    .replace(/\r/g, '')
+    .trim()
+    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+    .replace(/\{\\[^}]*\}/g, '');
+
+  return `WEBVTT\n\n${body}\n`;
 }
 
 /**

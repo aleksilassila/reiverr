@@ -8,6 +8,25 @@ export class LocalMediaSettingsDto {
   seriesFolders: string[];
 }
 
+export class LocalSubtitleFileDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  fileName: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Language code from the file name',
+  })
+  lang?: string;
+
+  @ApiProperty({
+    description: 'The tags of the file name, such as "en forced"',
+  })
+  label: string;
+}
+
 export class LocalMediaFileDto {
   @ApiProperty()
   id: string;
@@ -17,6 +36,12 @@ export class LocalMediaFileDto {
 
   @ApiProperty()
   size: number;
+
+  @ApiProperty({
+    type: [LocalSubtitleFileDto],
+    description: 'Subtitle files next to the video',
+  })
+  subtitles: LocalSubtitleFileDto[];
 }
 
 export class LocalEpisodeFileDto extends LocalMediaFileDto {

@@ -1,107 +1,83 @@
 <script lang="ts">
-	import type { VideoTrackDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Hls from 'hls.js';
 	import { onDestroy, onMount } from 'svelte';
 	import { isTizen } from '../../utils/browser-detection';
-	import {
-		createErrorNotification,
-		createInfoNotification
-	} from '../Notifications/notification.store';
-	import { videoPlayerContext } from './video-player.store';
-	import { get } from 'svelte/store';
-	import { sessions } from '$lib/stores/session.store';
+	import { videoPlayerContext, type VideoTrack } from './video-player.store';
 
-	const videoPlayer = videoPlayerContext.getContext();
+	const REPORT_PROGRESS_INTERVAL = 10_000;
+
 	const {
 		video,
 		videoTracks,
 		subtitleTracks,
 		videoDidLoad,
 		paused,
-		initialProgress,
 		duration,
 		currentTime,
-		bufferedTime,
-		buffering,
-		muted,
 		volume,
+		muted,
+		error,
+		reportProgress,
 		handleProgress,
 		handleLoadedData,
 		handleWaiting,
 		handlePlaying,
 		updateSubtitlesVisibility
-	} = videoPlayer;
+	} = videoPlayerContext.getContext();
 
-	$: $videoTracks.current && $video && loadVideoSource($videoTracks.current);
+	let hls: Hls | undefined;
 
-	function loadVideoSource(track: VideoTrackDto) {
-		if (!$video) {
-			throw new Error('Video element not found');
-		}
+	$: $videoTracks.current && $video && loadVideoTrack($videoTracks.current);
+	$: ($subtitleTracks, updateSubtitlesVisibility());
+
+	function loadVideoTrack(track: VideoTrack) {
+		if (!$video) return;
 
 		$videoDidLoad = false;
+		$error = undefined;
+		hls?.destroy();
+		hls = undefined;
 
-		// const { src, directPlay, backdropUrl } = videoSource;
-		// console.log('setting video source', src, directPlay, backdropUrl);
-
-		// if (backdropUrl) {
-		// 	$video.poster = backdropUrl;
-		// }
-
-		if (track.type === 'hls' && Hls.isSupported()) {
-			console.log('HLS is supported, loading HLS.js');
-			const hls = new Hls();
-
-			hls.loadSource(track.url);
+		// Tizen and Safari play HLS natively, other browsers need hls.js and its MediaSource support
+		if (track.type === 'hls' && !isTizen() && Hls.isSupported()) {
+			hls = new Hls();
+			hls.loadSource(track.src);
 			hls.attachMedia($video);
-		} else if (
-			(track.type === 'hls' && $video.canPlayType('application/vnd.apple.mpegurl')) ||
-			track.type === 'direct' ||
-			isTizen()
-		) {
-			/*
-			 * HLS.js does NOT work on iOS on iPhone because Safari on iPhone does not support MSE.
-			 * This is not a problem, since HLS is natively supported on iOS. But any other browser
-			 * that does not support MSE will not be able to play the video.
-			 */
-			$video.src = track.url;
 		} else {
-			throw new Error('HLS is not supported');
+			$video.src = track.src;
 		}
-
-		if (reportProgressInterval) clearInterval(reportProgressInterval);
-		reportProgressInterval = setInterval(() => {
-			let currentTime = $video?.currentTime || 0;
-			let duration = $video?.duration || 0;
-
-			if ($video?.readyState === 4 && currentTime > 5 && duration > 0) {
-				videoPlayer.progressUpdateHandler(currentTime / duration);
-			}
-		}, 10_000);
 	}
 
-	$: ($subtitleTracks, updateSubtitlesVisibility?.());
+	function describeError(mediaError: MediaError | null): string {
+		switch (mediaError?.code) {
+			case MediaError.MEDIA_ERR_NETWORK:
+				return 'The video could not be loaded from the server.';
+			case MediaError.MEDIA_ERR_DECODE:
+				return 'This device cannot decode the video or audio of this file.';
+			case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+				return 'This device does not support the format of this file.';
+			default:
+				return 'The video could not be played.';
+		}
+	}
 
-	let reportProgressInterval: ReturnType<typeof setInterval>;
+	const reportInterval = setInterval(() => {
+		if ($video?.readyState === 4) reportProgress();
+	}, REPORT_PROGRESS_INTERVAL);
 
 	onMount(() => {
-		$video?.textTracks.addEventListener('addtrack', () => updateSubtitlesVisibility?.());
+		$video?.textTracks.addEventListener('addtrack', updateSubtitlesVisibility);
 	});
 
 	onDestroy(() => {
-		let currentTime = $video?.currentTime || 0;
-		let duration = $video?.duration || 0;
+		clearInterval(reportInterval);
+		reportProgress();
 
-		if (currentTime > 5 && duration > 0) {
-			videoPlayer.progressUpdateHandler(currentTime / duration);
-		}
-
-		$video?.textTracks.removeEventListener('addtrack', () => updateSubtitlesVisibility?.());
+		$video?.textTracks.removeEventListener('addtrack', updateSubtitlesVisibility);
+		hls?.destroy();
 		$video?.pause();
 		$video?.removeAttribute('src');
 		$video?.load();
-
-		clearInterval(reportProgressInterval);
 	});
 </script>
 
@@ -113,32 +89,22 @@
 	bind:volume={$volume}
 	bind:muted={$muted}
 	bind:currentTime={$currentTime}
-	on:progress={() => handleProgress()}
-	on:loadeddata={() => {
-		handleLoadedData();
-		console.log('Video loaded');
-		createInfoNotification('Video loaded');
-	}}
-	on:waiting={() => handleWaiting()}
-	on:playing={() => handlePlaying()}
+	on:progress={handleProgress}
+	on:loadeddata={handleLoadedData}
+	on:waiting={handleWaiting}
+	on:playing={handlePlaying}
+	on:error={() => ($error = describeError($video?.error ?? null))}
 	on:dblclick
 	on:click
-	on:error={() => {
-		createErrorNotification('Error loading video', 'Unsupported video format');
-	}}
-	on:loadstart={() => createInfoNotification('Loading video')}
-	on:loadedmetadata={() => createInfoNotification('Loaded metadata')}
 	autoplay
 	playsinline
 	class="w-full h-full"
 >
-	{#each $subtitleTracks.tracks as subtitle (subtitle.url)}
+	{#each $subtitleTracks.tracks as subtitle (subtitle.id)}
 		<track
-			id={subtitle.label ?? subtitle.url}
-			src={subtitle.proxy
-				? `${get(sessions).activeSession?.baseUrl}/api/proxy/${subtitle.url}`
-				: subtitle.url}
-			kind={subtitle.kind}
+			id={subtitle.id}
+			src={subtitle.src}
+			kind="subtitles"
 			srclang={subtitle.lang}
 			label={subtitle.label}
 		/>

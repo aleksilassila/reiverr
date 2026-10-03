@@ -4,8 +4,8 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import { Check, TextAlignLeft } from 'radix-icons-svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
-	import { ISO_2_LANGUAGES } from '../../utils/iso-2-languages';
-	import type { SubtitlesDto as Subtitles, SubtitleTrack } from '$lib/apis/reiverr/reiverr.openapi';
+	import { getLanguageName } from '../../utils/iso-2-languages';
+	import type { SubtitleTrack } from './video-player.store';
 
 	const { close } = useComponentStack();
 
@@ -36,6 +36,7 @@
 			<div class="text-left">No Subtitles</div>
 		</Button>
 		{#each available as subtitles}
+			{@const language = subtitles.lang && getLanguageName(subtitles.lang)}
 			<Button
 				on:clickOrSelect={() => {
 					close();
@@ -44,14 +45,16 @@
 				on:enter={scrollIntoView({ vertical: 64 })}
 				class="relative"
 			>
-				{#if current?.url === subtitles.url}
+				{#if current?.id === subtitles.id}
 					<div class="absolute inset-y-0 right-6 flex items-center justify-center">
 						<Check size={24} />
 					</div>
 				{/if}
 				<div class="text-left">
 					{subtitles.label}
-					<!-- {ISO_2_LANGUAGES[subtitles.lang]?.name || subtitles.lang} -->
+					{#if language}
+						<span class="text-secondary-400">({language})</span>
+					{/if}
 				</div>
 			</Button>
 		{/each}

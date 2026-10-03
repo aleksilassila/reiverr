@@ -2,13 +2,24 @@ import { Selectable, useRegistrar } from '$lib/selectable';
 import { onDestroy, SvelteComponentTyped, type ComponentProps, type ComponentType } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
-import MediaVideoPlayer from '../VideoPlayer/MediaVideoPlayer.svelte';
+import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
+import type { SubtitleTrack, VideoTrack } from '../VideoPlayer/video-player.store';
 import type { MediaSourceDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { reiverrApi, user } from '$lib/stores/user.store';
 
 export const BACKGROUND_CONTEXT_KEY = 'background-context';
+
+export type PlayMediaOptions = {
+	title: string;
+	subtitle?: string;
+	videoTracks: VideoTrack[];
+	subtitleTracks?: SubtitleTrack[];
+	/** From 0 to 1 */
+	progress?: number;
+	onProgress?: (progress: number) => void;
+};
 
 export type Background = {
 	backdropUri: string;
@@ -203,28 +214,8 @@ function _createBackgroundPage(
 		if (!onBackground) focus();
 	}
 
-	async function playMedia(props: {
-		title: string;
-		subtitle?: string;
-		sourceName?: string;
-		pluginId: string;
-		streamId: string;
-		progress?: number;
-		handleProgressUpdate?: (progress: number) => void;
-	}) {
-		setVideo({
-			id: Symbol(),
-			component: MediaVideoPlayer,
-			props: {
-				...props,
-				source: {
-					pluginId: props.pluginId,
-					streamId: props.streamId
-				},
-				handleProgressUpdate: props.handleProgressUpdate ?? (() => {})
-			}
-		});
-
+	function playMedia(props: PlayMediaOptions) {
+		setVideo({ id: Symbol(), component: VideoPlayer, props });
 		focus();
 	}
 

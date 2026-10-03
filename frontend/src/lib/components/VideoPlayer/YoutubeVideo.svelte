@@ -12,7 +12,6 @@
 	import { topBackground } from '../GlobalBackground/background-stack.store';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import Spinner from '../Utils/Spinner.svelte';
-	import type { VideoPlayerProps } from './video-player.store';
 
 	const STOP_WHEN_REMAINING = 0;
 
@@ -25,9 +24,9 @@
 	export let videoId: string | null = null;
 	export let loadTime = PLATFORM_TV ? 2500 : 1000;
 
-	export let load: VideoPlayerProps['load'] = true;
-	export let paused: VideoPlayerProps['paused'] = false;
-	export let muted: VideoPlayerProps['muted'] = false;
+	export let load = true;
+	export let paused = false;
+	export let muted = false;
 	let hasFocus: Readable<boolean>;
 
 	let userPaused = false;

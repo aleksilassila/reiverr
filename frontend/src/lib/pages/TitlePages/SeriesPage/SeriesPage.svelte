@@ -21,7 +21,7 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
-	import StreamablesView from './StreamablesView.svelte';
+	import { playEpisode } from '../play-episode';
 	import RequestsView from './RequestsView.svelte';
 
 	export let id: string;
@@ -34,6 +34,7 @@
 		inLibrary,
 		setInLibrary,
 		episodesData,
+		setStale,
 		unsubscribe
 	} = useSeriesContext(id).createContext();
 	const { promise: tmdbSeries } = seriesData;
@@ -343,20 +344,17 @@
 								on:mouseleave={() => onEpisodeCardMouseLeave()}
 								isWatched={userData?.watched || false}
 								progress={userData?.progress}
-								on:clickOrSelect={() => {
-									componentStack.push({
-										component: StreamablesView,
-										props: {
-											tmdbId: id,
-											season: Number(episode.season_number),
-											episode: Number(episode.episode_number),
-											progress: userData?.progress
-										}
-									});
-									// navigate(
-									// 	`/series/${id}/season/${episode.season_number}/episode/${episode.episode_number}`
-									// )}
-								}}
+								on:clickOrSelect={() =>
+									playEpisode({
+										tmdbId: id,
+										season: episode.season_number ?? 0,
+										episode: episode.episode_number ?? 0,
+										title: episode.name ?? '',
+										subtitle: `${tmdbSeries?.name ?? ''} · Season ${episode.season_number} Episode ${episode.episode_number}`,
+										progress: userData?.progress,
+										playMedia: background.playMedia,
+										onProgressSaved: setStale
+									})}
 							/>
 						{/key}
 					{/each}

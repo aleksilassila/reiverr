@@ -9,7 +9,7 @@
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
-	import StreamablesView from './SeriesPage/StreamablesView.svelte';
+	import { playEpisode } from './play-episode';
 
 	export let id: string; // Series tmdbId
 	export let season: string;
@@ -17,7 +17,7 @@
 
 	const background = backgroundContext.createContext({ videoMediaId: id });
 
-	const { componentStack, episodeData, progress, isWatched, setIsWatched, unsubscribe } =
+	const { episodeData, progress, isWatched, setIsWatched, setStale, unsubscribe } =
 		useEpisodeContext(id, Number(season), Number(episode)).createContext();
 
 	let titleProperties: { href?: string; label: string }[] = [];
@@ -51,15 +51,18 @@
 		}
 	});
 
-	function openStreamablesView() {
-		componentStack.push({
-			component: StreamablesView,
-			props: {
-				tmdbId: id,
-				season: Number(season),
-				episode: Number(episode),
-				progress: $progress
-			}
+	async function play() {
+		const data = await $episodeData;
+
+		return playEpisode({
+			tmdbId: id,
+			season: Number(season),
+			episode: Number(episode),
+			title: data?.name ?? '',
+			subtitle: `Season ${season} Episode ${episode}`,
+			progress: $progress,
+			playMedia: background.playMedia,
+			onProgressSaved: setStale
 		});
 	}
 
@@ -88,7 +91,7 @@
 				</span>
 			</TitleProperties>
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				<Button class="mr-4" on:clickOrSelect={openStreamablesView}>
+				<Button class="mr-4" action={play}>
 					Play
 					<Play size={19} slot="icon" />
 				</Button>

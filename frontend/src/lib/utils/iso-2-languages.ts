@@ -2155,3 +2155,13 @@ export const ISO_2_LANGUAGES: {
 		iso6392B: 'zza'
 	}
 };
+
+/** The English name of a language given as a two or three letter code */
+export function getLanguageName(code: string): string | undefined {
+	const lower = code.toLowerCase();
+
+	return (
+		ISO_2_LANGUAGES[lower] ??
+		Object.values(ISO_2_LANGUAGES).find((language) => language.iso6391 === lower)
+	)?.name;
+}

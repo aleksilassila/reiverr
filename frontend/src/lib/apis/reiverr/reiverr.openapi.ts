@@ -2028,16 +2028,29 @@ export interface LocalMediaSettingsDto {
   seriesFolders: string[];
 }
 
+export interface LocalSubtitleFileDto {
+  id: string;
+  fileName: string;
+  /** Language code from the file name */
+  lang?: string;
+  /** The tags of the file name, such as "en forced" */
+  label: string;
+}
+
 export interface LocalMediaFileDto {
   id: string;
   fileName: string;
   size: number;
+  /** Subtitle files next to the video */
+  subtitles: LocalSubtitleFileDto[];
 }
 
 export interface LocalEpisodeFileDto {
   id: string;
   fileName: string;
   size: number;
+  /** Subtitle files next to the video */
+  subtitles: LocalSubtitleFileDto[];
   season: number;
   episodes: number[];
 }
@@ -3951,6 +3964,20 @@ export class Api<
         path: `/api/v2/local-media/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "GET",
         format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags local-media
+     * @name GetSubtitles
+     * @request GET:/api/v2/local-media/subtitles/{id}
+     */
+    getSubtitles: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/local-media/subtitles/${id}`,
+        method: "GET",
         ...params,
       }),
 
