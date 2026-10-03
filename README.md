@@ -39,6 +39,7 @@ docker run -it --init \
   --restart unless-stopped \
   -p 9494:9494 \
   -v /path/to/appdata/config:/config \
+  -v /path/to/data:/data \
   ghcr.io/aleksilassila/reiverr:latest
 ```
 
@@ -59,8 +60,11 @@ services:
       - ADMIN_PASSWORD=admin # optional
     volumes:
       - /path/to/appdata/config:/config
+      - /path/to/data:/data
     restart: unless-stopped
 ```
+
+The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold the media library too, for example `/data/tv` and `/data/movies`. When both are on the same volume, finished downloads are hard linked into the library and take no extra space; across volumes they are copied.
 
 ### Building from Source
 

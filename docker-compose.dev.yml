@@ -19,6 +19,8 @@ services:
     volumes:
       - ./backend:/usr/src/app/backend
       - /usr/src/app/backend/node_modules
+      # Downloads (/data/downloads) and the library folders, on one volume
+      - ./data:/data
 
   frontend:
     build: *build

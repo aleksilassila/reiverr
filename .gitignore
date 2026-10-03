@@ -16,6 +16,9 @@ vite.config.ts.timestamp-*
 backend/plugins
 !backend/plugins/.gitkeep
 
+# Downloads and library folders of the compose files
+/data
+
 # Logs
 logs
 *.log

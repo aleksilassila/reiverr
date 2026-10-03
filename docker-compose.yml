@@ -12,4 +12,8 @@ services:
       - ADMIN_PASSWORD
     volumes:
       - ./backend/config:/config
+      # Downloads go to /data/downloads. Keep the library folders on the same
+      # volume, for example /data/tv and /data/movies, so that finished
+      # downloads are hard linked into the library and take no extra space.
+      - ./data:/data
     restart: unless-stopped

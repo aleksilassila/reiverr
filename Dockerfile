@@ -23,6 +23,10 @@ COPY . .
 
 FROM base as development
 
+# Downloads and the library folders share the /data volume, so that finished
+# downloads are hard linked into the library instead of copied
+ENV DOWNLOADS_DIR=/data/downloads
+
 CMD [ "npm", "run", "dev:backend" ]
 
 FROM base as pre-production
@@ -35,6 +39,9 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
+# Downloads and the library folders share the /data volume, so that finished
+# downloads are hard linked into the library instead of copied
+ENV DOWNLOADS_DIR=/data/downloads
 
 COPY --from=pre-production /usr/src/app/package.json ./package.json
 COPY --from=pre-production /usr/src/app/package-lock.json ./package-lock.json
