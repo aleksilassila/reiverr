@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -11,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { GetAuthToken, UserAccessControl } from '../../auth/auth.guard.js';
+import { UserAccessControl } from '../../auth/auth.guard.js';
 import {
   GetPaginationParams,
   PaginatedApiOkResponse,
@@ -24,7 +23,6 @@ import {
   SuccessResponseDto,
 } from '../../common/common.dto.js';
 import {
-  CatalogueTypeFilter,
   LibraryItemDto,
   MyListOrder,
   MyListStatusFilter,
@@ -70,41 +68,6 @@ export class LibraryController {
     });
 
     return response;
-  }
-
-  @Get('catalogue/:sourceId')
-  @ApiQuery({ name: 'type', enum: CatalogueTypeFilter, required: false })
-  @ApiQuery({ name: 'order', required: false })
-  @ApiQuery({ name: 'direction', required: false })
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(LibraryItemDto)
-  async getCatalogue(
-    @GetPaginationParams() pagination: PaginationDto,
-    @Param('userId') userId: string,
-    @Param('sourceId') sourceId: string,
-    @GetAuthToken() token: string,
-    @Query('type', new ParseEnumPipe(CatalogueTypeFilter, { optional: true }))
-    type?: CatalogueTypeFilter,
-    @Query('order')
-    order?: string,
-    @Query('direction')
-    direction?: string,
-  ): Promise<PaginatedResponseDto<LibraryItemDto>> {
-    const items = await this.libraryService.getCatalogueItems({
-      sourceId,
-      userId,
-      token,
-      pagination,
-      type,
-      order,
-      direction,
-    });
-
-    if (!items) {
-      throw new BadRequestException();
-    }
-
-    return items;
   }
 
   @Put('tmdb/:tmdbId')

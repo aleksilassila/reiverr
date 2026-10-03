@@ -9,7 +9,6 @@ import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
 import { Settings } from './settings/settings.entity.js';
 import { LibraryItem } from './user-data/library/library.entity.js';
 import { PlayState } from './user-data/play-state/play-state.entity.js';
-import { MediaSource } from './users/media-sources/media-source.entity.js';
 import { User } from './users/user.entity.js';
 
 export default defineConfig({
@@ -18,7 +17,6 @@ export default defineConfig({
     Job,
     LibraryItem,
     MediaRequest,
-    MediaSource,
     MovieMetadata,
     PlayState,
     SeriesMetadata,

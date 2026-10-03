@@ -19,10 +19,6 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "plugin-api:version:patch": "npm version -w packages/reiverr-plugin --git-tag-version false --workspaces-update false patch && npm run -w packages/reiverr-plugin build && npm i",
-    "plugin-api:version:minor": "npm version -w packages/reiverr-plugin --git-tag-version false --workspaces-update false minor && npm run -w packages/reiverr-plugin build && npm i",
-    "plugin-api:version:major": "npm version -w packages/reiverr-plugin --git-tag-version false --workspaces-update false major && npm run -w packages/reiverr-plugin build && npm i",
-    "plugin-api:publish": "npm publish -w packages/reiverr-plugin",
     "generate:tmdb-openapi": "node --import @oxc-node/core/register scripts/generate-tmdb-openapi.ts",
     "generate:backend-openapi-spec": "node --import @oxc-node/core/register scripts/generate-openapi-spec.ts",
     "migration:create": "cross-env NODE_ENV=development mikro-orm migration:create",
@@ -30,11 +26,6 @@
     "migration:down": "cross-env NODE_ENV=development mikro-orm migration:down"
   },
   "dependencies": {
-    "@aleksilassila/jellyfin.plugin": "*",
-    "@aleksilassila/reiverr-shared": "*",
-    "@aleksilassila/torrent-stream.plugin": "*",
-    "@grpc/grpc-js": "^1.14.3",
-    "@grpc/proto-loader": "^0.8.0",
     "@mikro-orm/core": "^7.2.3",
     "@mikro-orm/decorators": "^7.2.3",
     "@mikro-orm/migrations": "^7.2.3",
@@ -45,16 +36,13 @@
     "@nestjs/core": "^12.1.2",
     "@nestjs/event-emitter": "^12.0.1",
     "@nestjs/jwt": "^12.0.2",
-    "@nestjs/microservices": "^12.1.2",
     "@nestjs/platform-express": "^12.1.2",
     "@nestjs/serve-static": "^12.0.0",
     "@nestjs/swagger": "^12.0.2",
-    "@types/express-http-proxy": "^1.6.6",
     "axios": "^1.11.0",
     "cache-manager": "^7.2.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "express-http-proxy": "^2.0.0",
     "fast-xml-parser": "^4.5.1",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
@@ -81,7 +69,6 @@
     "prettier": "^3.0.0",
     "source-map-support": "^0.5.21",
     "supertest": "^7.3.0",
-    "ts-node": "^10.9.1",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
@@ -90,10 +77,5 @@
     "tabWidth": 2,
     "semi": true,
     "singleQuote": true
-  },
-  "workspaces": [
-    "packages/reiverr-plugin",
-    "packages/jellyfin.plugin",
-    "packages/torrent-stream.plugin"
-  ]
+  }
 }

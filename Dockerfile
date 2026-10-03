@@ -17,22 +17,11 @@ COPY backend/package.json ./backend/package.json
 COPY frontend/package.json ./frontend/package.json
 # COPY frontend/package-lock.json ./frontend/package-lock.json
 
-COPY shared/package.json ./shared/package.json
-# COPY shared/package-lock.json ./shared/package-lock.json
-
-COPY torrent-stream.plugin/package.json ./torrent-stream.plugin/package.json
-# COPY torrent-stream.plugin/package-lock.json ./torrent-stream.plugin/package-lock.json
-
-COPY jellyfin.plugin/package.json ./jellyfin.plugin/package.json
-# COPY jellyfin.plugin/package-lock.json ./jellyfin.plugin/package-lock.json
-
 RUN npm i
 
 COPY . .
 
 FROM base as development
-
-RUN npm run build:shared && npm run build:torrent-stream && npm run build:jellyfin
 
 CMD [ "npm", "run", "dev:backend" ]
 
@@ -51,10 +40,6 @@ COPY --from=pre-production /usr/src/app/package.json ./package.json
 COPY --from=pre-production /usr/src/app/package-lock.json ./package-lock.json
 COPY --from=pre-production /usr/src/app/node_modules ./node_modules
 
-COPY --from=pre-production /usr/src/app/shared ./shared
-COPY --from=pre-production /usr/src/app/torrent-stream.plugin ./torrent-stream.plugin
-COPY --from=pre-production /usr/src/app/jellyfin.plugin ./jellyfin.plugin
-
 COPY --from=pre-production /usr/src/app/backend/package.json ./backend/package.json
 # # COPY --from=pre-production /usr/src/app/backend/package-lock.json ./backend/package-lock.json
 COPY --from=pre-production /usr/src/app/backend/tsconfig.json ./backend/tsconfig.json
@@ -72,9 +57,7 @@ COPY --from=pre-production /usr/src/app/backend/node_modules ./backend/node_modu
 #RUN npm ci --omit dev
 
 RUN mkdir -p ./backend/config
-RUN mkdir -p ./backend/plugins
 
 RUN ln -s /usr/src/app/backend/config /config
-RUN ln -s /usr/src/app/backend/plugins /plugins
 
 CMD [ "npm", "run", "start:prod" ]

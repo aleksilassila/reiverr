@@ -19,7 +19,6 @@
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user } from '../../stores/user.store';
 	import Downloads from './Downloads.ManagePage.svelte';
-	import MediaSources from './MediaSources.ManagePage.svelte';
 
 	enum Tabs {
 		Account,
@@ -197,8 +196,6 @@
 						{/await}
 					</Container>
 				</div>
-
-				<MediaSources />
 
 				{#if $user?.isAdmin}
 					<Downloads />

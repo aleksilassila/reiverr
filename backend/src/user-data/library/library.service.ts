@@ -9,10 +9,8 @@ import {
   PaginationDto,
 } from '../../common/common.dto.js';
 import { MetadataService } from '../../metadata/metadata.service.js';
-import { MediaSourcesService } from '../../users/media-sources/media-sources.service.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 import {
-  CatalogueTypeFilter,
   LibraryItemDto,
   MyListOrder,
   MyListStatusFilter,
@@ -32,7 +30,6 @@ export class LibraryService implements OnApplicationBootstrap {
     private readonly playStateRepository: EntityRepository<PlayState>,
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
-    private readonly mediaSourceService: MediaSourcesService,
   ) {}
 
   @CreateRequestContext()
@@ -171,113 +168,6 @@ export class LibraryService implements OnApplicationBootstrap {
       itemsPerPage: pagination.itemsPerPage,
       page: pagination.page,
     };
-  }
-
-  async getCatalogueItems(options: {
-    sourceId: string;
-    userId: string;
-    token: string;
-    pagination: PaginationDto;
-    type?: CatalogueTypeFilter;
-    order?: string;
-    direction?: string;
-  }): Promise<PaginatedResponseDto<LibraryItemDto> | undefined> {
-    const {
-      sourceId,
-      userId,
-      token,
-      pagination,
-      type = CatalogueTypeFilter.All,
-      order,
-      direction,
-    } = options;
-
-    const connection = await this.mediaSourceService.getConnection({
-      sourceId,
-      token,
-      userId,
-    });
-
-    if (!connection) {
-      console.error(
-        `No connection found for sourceId: ${sourceId}. Please check your media source configuration.`,
-      );
-      throw new Error('No connection found');
-    }
-
-    const combined = connection.catalogueProvider.getCatalogue;
-    const movies = connection.catalogueProvider.getMovieCatalogue;
-    const series = connection.catalogueProvider.getSeriesCatalogue;
-    const missing = connection.catalogueProvider.getMissingInCatalogue;
-    if (type === CatalogueTypeFilter.All && combined) {
-      const response = await combined({
-        pagination,
-        order,
-        direction,
-      });
-
-      return {
-        ...response,
-        items: await Promise.all(
-          response.items.map(async (item) => this.getLibraryItemDto(item)),
-        ),
-      };
-    } else if (type === CatalogueTypeFilter.Movies && movies) {
-      const response = await movies({
-        pagination,
-        order,
-        direction,
-      });
-
-      return {
-        ...response,
-        items: await Promise.all(
-          response.items.map(async (item) => this.getLibraryItemDto(item)),
-        ),
-      };
-    } else if (type === CatalogueTypeFilter.Series && series) {
-      const response = await series({
-        pagination,
-        order,
-        direction,
-      });
-
-      return {
-        ...response,
-        items: await Promise.all(
-          response.items.map(async (item) => this.getLibraryItemDto(item)),
-        ),
-      };
-    } else if (type === CatalogueTypeFilter.Missing && missing) {
-      const tmdbIdToMyListItem: Record<string, LibraryItemDto> = {};
-      const myListItems = await this.getMyList({
-        pagination: {
-          itemsPerPage: 500,
-          page: 1,
-        },
-        userId: connection.mediaSource.userId,
-        type: MyListTypeFilter.All,
-        status: MyListStatusFilter.All,
-        order: MyListOrder.DateAdded,
-      }).then((res) => res.items);
-
-      myListItems.forEach((i) => {
-        tmdbIdToMyListItem[i.tmdbId] = i;
-      });
-
-      const response = await missing({
-        pagination,
-        myListItems: tmdbIdToMyListItem,
-        order,
-        direction,
-      });
-
-      return response;
-    }
-
-    throw new Error(
-      `No catalogue provider found for type: ${type}. Please check your media source configuration.`,
-    );
   }
 
   async findByTmdbId(

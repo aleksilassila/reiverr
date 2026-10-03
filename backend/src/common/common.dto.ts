@@ -6,10 +6,6 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import {
-  PaginatedResponse,
-  PaginationParams,
-} from '@aleksilassila/reiverr-shared/dist/src/old.js';
 
 export const PickAndPartial = <T, K extends keyof T>(
   clazz: Type<T>,
@@ -21,7 +17,7 @@ export const PickAndPartial = <T, K extends keyof T>(
     PickType(PartialType(clazz), partial),
   );
 
-export class PaginatedResponseDto<T> implements PaginatedResponse<T> {
+export class PaginatedResponseDto<T> {
   @ApiProperty()
   total: number;
 
@@ -35,7 +31,7 @@ export class PaginatedResponseDto<T> implements PaginatedResponse<T> {
   items: T[];
 }
 
-export class PaginationDto implements PaginationParams {
+export class PaginationDto {
   @ApiProperty()
   page: number;
 

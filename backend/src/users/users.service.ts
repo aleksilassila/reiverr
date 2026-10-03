@@ -1,10 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
-import { SourceProvidersService } from '../source-providers/source-providers.service.js';
-import { MediaSourcesService } from './media-sources/media-sources.service.js';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
-import { MediaSource } from './media-sources/media-source.entity.js';
 import { User } from './user.entity.js';
 
 export enum UserServiceError {
@@ -18,32 +15,20 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
-    @InjectRepository(MediaSource)
-    private readonly mediaSourceRepository: EntityRepository<MediaSource>,
     private readonly em: EntityManager,
-    private readonly sourceProvidersService: SourceProvidersService,
-    private readonly mediaSourcesService: MediaSourcesService,
   ) {}
 
   // Finds
   async findAll(): Promise<User[]> {
-    return this.withMediaSources(await this.userRepository.findAll());
+    return this.userRepository.findAll();
   }
 
   async findOne(id: string): Promise<User | undefined> {
-    const user = await this.userRepository.findOne({ id });
-
-    if (!user) return undefined;
-
-    return this.withMediaSources([user]).then((users) => users[0]);
+    return this.userRepository.findOne({ id });
   }
 
   async findOneByName(name: string): Promise<User | undefined> {
-    const user = await this.userRepository.findOne({ name });
-
-    if (!user) return undefined;
-
-    return this.withMediaSources([user]).then((users) => users[0]);
+    return this.userRepository.findOne({ name });
   }
 
   // The rest
@@ -95,12 +80,6 @@ export class UsersService {
 
     if (updateUserDto.settings) user.settings = updateUserDto.settings;
 
-    // if (updateUserDto.pluginSettings) {
-    //   for (const key of Object.keys(updateUserDto.pluginSettings)) {
-    //     user.pluginSettings[key] = updateUserDto.pluginSettings[key];
-    //   }
-    // }
-
     if (updateUserDto.onboardingDone)
       user.onboardingDone = updateUserDto.onboardingDone;
 
@@ -139,16 +118,6 @@ export class UsersService {
   ): Promise<UserDto> {
     const { caller = user } = options;
 
-    const mediaSources = await Promise.all(
-      user.mediaSources?.map((m) =>
-        this.mediaSourcesService.getMediaSourceDto(m),
-      ) ?? [],
-    );
-
-    mediaSources.sort(
-      (a, b) => (a.priority ?? Infinity) - (b.priority ?? Infinity),
-    );
-
     const out = {
       ...user,
       // id: entity.id,
@@ -156,30 +125,13 @@ export class UsersService {
       // isAdmin: entity.isAdmin,
       // settings: entity.settings,
       // onboardingDone: entity.onboardingDone,
-      // mediaSources: entity.mediaSources,
       password: '',
       profilePicture:
         'data:image;base64,' + user.profilePicture?.toString('base64'),
-      mediaSources,
-      // pluginSettings: entity.pluginSettings,
     };
 
     delete out.password;
 
     return out;
-  }
-
-  private async withMediaSources(users: User[]): Promise<User[]> {
-    const providers = this.sourceProvidersService.getProviders();
-    const mediaSources = await this.mediaSourceRepository.find({
-      userId: { $in: users.map((user) => user.id) },
-    });
-
-    return users.map((user) => ({
-      ...user,
-      mediaSources: mediaSources.filter(
-        (source) => source.userId === user.id && !!providers[source.pluginId],
-      ),
-    }));
   }
 }

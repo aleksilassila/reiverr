@@ -76,7 +76,6 @@
 		]
 	},
 	"dependencies": {
-		"@aleksilassila/reiverr-shared": "*",
 		"gsap": "^3.12.5"
 	}
 }

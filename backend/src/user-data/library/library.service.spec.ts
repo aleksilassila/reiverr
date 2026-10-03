@@ -79,7 +79,6 @@ describe('LibraryService', () => {
         orm.em,
         undefined,
       ),
-      undefined,
     );
 
     for (const mediaType of [MediaType.Series, MediaType.Movie]) {

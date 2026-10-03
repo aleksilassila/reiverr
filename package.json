@@ -11,19 +11,13 @@
   },
   "workspaces": [
     "frontend",
-    "backend",
-    "shared",
-    "jellyfin.plugin",
-    "torrent-stream.plugin"
+    "backend"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=frontend",
-    "build": "npm run build:shared && npm run build:torrent-stream && npm run build:jellyfin && npm run build:backend && npm run build:frontend",
-    "build:shared": "npm run build --workspace=shared",
+    "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
-    "build:torrent-stream": "npm run build --workspace=torrent-stream.plugin",
-    "build:jellyfin": "npm run build --workspace=jellyfin.plugin",
     "start": "npm run start --workspace=backend",
     "start:prod": "npm run start:prod --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",

@@ -25,13 +25,6 @@ TMDB Discovery:
 - View details about movies and TV shows, such as cast, crew, ratings & a trailer.
 - Movie & TV show search
 
-Content Playback Plugins
-
-- Offers a plugin API that allows users to access media from various external sources
-- Currently built-in plugins for streaming content are:
-  - [Jellyfin plugin](backend/packages/jellyfin.plugin/README.md)
-  - [Torrent-Stream plugin](backend/packages/torrent-stream.plugin/README.md) (requires Jackett)
-
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
 # Installation
@@ -46,7 +39,6 @@ docker run -it --init \
   --restart unless-stopped \
   -p 9494:9494 \
   -v /path/to/appdata/config:/config \
-  -v /path/to/appdata/plugins:/plugins \
   ghcr.io/aleksilassila/reiverr:latest
 ```
 
@@ -67,7 +59,6 @@ services:
       - ADMIN_PASSWORD=admin # optional
     volumes:
       - /path/to/appdata/config:/config
-      - /path/to/appdata/plugins:/plugins
     restart: unless-stopped
 ```
 
@@ -108,9 +99,7 @@ The roadmap includes plans to support the following platforms in the future:
 
 To create the first user account, you can log in with any credentials and an admin account will be created. Alternatively, you can define the admin username and password using environment variables, as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
 
-To get access to media playback, connect to plugins by adding media sources in the settings. Additional plugins can be installed by dropping them in the `/plugins` folder. To get most out of Reiverr, it is recommended to also connect to TMDB.
-
-> Hint: Jellyfin API key is located under Administration > Dashboard > Advanced > API Keys in the Jellyfin Web UI.
+To get most out of Reiverr, it is recommended to also connect to TMDB.
 
 # Contributing
 
@@ -157,16 +146,6 @@ Frontend will run on port 5173 and backend port 9494
 - 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc. [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource for how to design for TVs.
 - The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that you might not be able to use the latest browser features, or that you'll have to use a polyfill. [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
   - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
-
-## Plugins
-
-If you'd like to develop your own plugin, easiest way to get started is by getting your hands dirty and checking how things are done in the built-in plugins. Couple of things to note:
-
-- Plugins are npm packages, that contain a `package.json` in a folder with `.plugin` extension.
-- Plugins have to implement (and default export) the `PluginProvider` class that can be imported from the [](backend/packages/reiverr-plugin) package.
-  - To install the [reiverr-plugin package](https://github.com/aleksilassila/reiverr/pkgs/npm/reiverr-plugin) from Github's npm registry, follow the steps outlined here: [Working with the Github npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package) (you'll need a .npmrc file and an access token to a Github account)
-  - The built-in packages use npm workspaces, which doesn't work if you're developing outisde of the repository
-- For a better understanding of the anatomy of a plugin, see the documentation in the following file: [reiverr-plugin/src/plugin.ts](backend/packages/reiverr-plugin/src/plugin.ts)
 
 ## Useful resources
 

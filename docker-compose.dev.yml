@@ -1,8 +1,8 @@
 # Development environment with live reload:
 #   docker compose -f docker-compose.dev.yml up --build
 #
-# Dependencies and the shared/plugin packages are part of the image. After
-# changing them, add --renew-anon-volumes to the command above.
+# Dependencies are part of the image. After changing them, add
+# --renew-anon-volumes to the command above.
 
 name: reiverr-dev
 
@@ -18,8 +18,6 @@ services:
       - 9494:9494
     volumes:
       - ./backend:/usr/src/app/backend
-      # The backend expects this directory, a fresh clone does not have it
-      - ./backend/plugins:/usr/src/app/backend/plugins
       - /usr/src/app/backend/node_modules
 
   frontend:

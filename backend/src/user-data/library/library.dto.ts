@@ -31,13 +31,6 @@ export enum MyListTypeFilter {
   All = 'all',
 }
 
-export enum CatalogueTypeFilter {
-  All = 'all',
-  Movies = 'movies',
-  Series = 'series',
-  Missing = 'missing',
-}
-
 export class LibraryItemDto extends PickType(LibraryItem, [
   'tmdbId',
   'mediaType',

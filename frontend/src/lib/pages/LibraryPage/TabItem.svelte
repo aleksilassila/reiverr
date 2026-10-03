@@ -4,12 +4,17 @@
 	import { createEventDispatcher } from 'svelte';
 
 	export let selected = false;
+	export let disabled = false;
 
 	const dispatch = createEventDispatcher<{ select: null }>();
 </script>
 
 <Container
-	class="group cursor-pointer"
+	class={classNames(
+		'group',
+		disabled ? 'cursor-not-allowed pointer-events-none opacity-40' : 'cursor-pointer'
+	)}
+	{disabled}
 	let:hasFocus
 	on:clickOrSelect={() => dispatch('select')}
 	on:enter

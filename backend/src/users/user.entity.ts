@@ -1,7 +1,6 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
-import { MediaSource } from './media-sources/media-source.entity.js';
 
 /** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class SonarrSettings {
@@ -135,11 +134,4 @@ export class User {
   @ApiProperty({ required: true, type: Settings })
   @Property({ type: 'json' })
   settings: Settings = structuredClone(DEFAULT_SETTINGS);
-
-  // @ApiProperty({ required: false, type: 'object' })
-  // @Column('json', { default: '{}' })
-  // pluginSettings: PluginSettings = {};
-
-  @ApiProperty({ required: false, type: () => MediaSource, isArray: true })
-  mediaSources?: MediaSource[];
 }

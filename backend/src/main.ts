@@ -4,14 +4,9 @@ import { AppModule } from './app.module.js';
 import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
-import { createRequire } from 'node:module';
 import { UsersService } from './users/users.service.js';
 import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts.js';
 import { json, urlencoded } from 'express';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-
-// import * as proxy from 'express-http-proxy';
-createRequire(import.meta.url)('ts-node/register'); // For importing plugins
 
 async function createAdminUser(userService: UsersService) {
   if (!ADMIN_USERNAME || ADMIN_PASSWORD === undefined) return;
@@ -67,16 +62,6 @@ async function bootstrap() {
   await RequestContext.create(orm.em, () =>
     createAdminUser(app.get(UsersService)),
   );
-
-  // const microservice = app.connectMicroservice<MicroserviceOptions>({
-  //   transport: Transport.TCP,
-  //   options: {
-  //     host: '0.0.0.0',
-  //     port: 3001,
-  //   },
-  // });
-
-  // await app.startAllMicroservices();
 
   await app.listen(9494);
   console.log(

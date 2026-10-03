@@ -8,8 +8,6 @@ COPY package-lock.json .
 
 COPY frontend/package.json ./frontend/package.json
 
-COPY shared/package.json ./shared/package.json
-
 RUN npm i
 
 COPY frontend ./frontend
