@@ -6,6 +6,7 @@
 	export let episode: TmdbSeasonEpisode;
 	export let series: TmdbSeries | undefined = undefined;
 	export let requestStatus: string | undefined = undefined;
+	export let onLongPress: (() => void) | undefined = undefined;
 	// export let handlePlay: (() => void) | undefined;
 	export let isWatched = false;
 	export let progress = 0;
@@ -18,6 +19,7 @@
 	{isWatched}
 	{progress}
 	{requestStatus}
+	{onLongPress}
 	runtime={episode.runtime}
 	releaseDate={episode.air_date ? new Date(episode.air_date).getTime() : 0}
 	on:enter

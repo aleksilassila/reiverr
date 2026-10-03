@@ -25,4 +25,6 @@ export type ContainerProps = SvelteHTMLElements['div'] & {
 	disabled?: boolean;
 	tag?: string;
 	index?: number | undefined;
+	/** Called when enter is held down, instead of select */
+	onLongPress?: () => void;
 };

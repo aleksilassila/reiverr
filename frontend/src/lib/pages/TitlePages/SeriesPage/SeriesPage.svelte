@@ -22,6 +22,7 @@
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import { playEpisode } from '../play-episode';
+	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
 	import RequestsView from './RequestsView.svelte';
 
 	export let id: string;
@@ -344,6 +345,17 @@
 								on:mouseleave={() => onEpisodeCardMouseLeave()}
 								isWatched={userData?.watched || false}
 								progress={userData?.progress}
+								onLongPress={() =>
+									componentStack.push({
+										component: EpisodeActionsSheet,
+										props: {
+											tmdbId: id,
+											season: episode.season_number ?? 0,
+											episode: episode.episode_number ?? 0,
+											name: episode.name ?? '',
+											seriesName: tmdbSeries?.name ?? ''
+										}
+									})}
 								on:clickOrSelect={() =>
 									playEpisode({
 										tmdbId: id,

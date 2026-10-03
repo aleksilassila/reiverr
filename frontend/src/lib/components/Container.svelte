@@ -34,6 +34,7 @@
 	export let focusOnClick: Required<ContainerProps>['focusOnClick'] = false;
 	export let focusedChild: Required<ContainerProps>['focusedChild'] = false;
 	export let index: ContainerProps['index'] = undefined;
+	export let onLongPress: ContainerProps['onLongPress'] = undefined;
 
 	export let disabled = false;
 
@@ -111,6 +112,7 @@
 	$: if (index !== undefined) selectable.updateIndex(index);
 
 	$: selectable.setIsDisabled(disabled);
+	$: selectable.setOnLongPress(onLongPress);
 	$: selectable.setGridColumns(gridCols);
 
 	function handleClick(e: MouseEvent) {

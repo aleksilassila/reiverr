@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { Check } from 'radix-icons-svelte';
+	import { Check, DotsVertical } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
 	import { getCardDimensions } from '../../utils';
 	import AnimateScale from '../AnimateScale.svelte';
@@ -15,6 +15,8 @@
 	export let runtime = 0;
 	export let releaseDate = 0;
 	export let requestStatus: string | undefined = undefined;
+	/** Opens the actions of the episode: a long press on the remote, or the dots that show on hover */
+	export let onLongPress: (() => void) | undefined = undefined;
 
 	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
 	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
@@ -53,7 +55,16 @@
 		on:mouseleave
 		bind:hasFocus
 		focusOnClick
+		{onLongPress}
 	>
+		{#if onLongPress}
+			<button
+				class="absolute top-2 right-2 z-20 rounded-full p-1.5 bg-secondary-950/75 text-secondary-200 opacity-0 group-hover:opacity-100 hover:bg-primary-500 hover:text-secondary-950 transition-opacity"
+				on:click|stopPropagation={onLongPress}
+			>
+				<DotsVertical size={20} />
+			</button>
+		{/if}
 		<div class="flex-1 flex flex-col z-10">
 			<div class="flex-1 flex flex-col">
 				<!--{#if isWatched}-->

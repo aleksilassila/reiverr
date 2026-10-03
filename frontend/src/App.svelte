@@ -15,7 +15,7 @@
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
-	import { handleKeyboardNavigation } from './lib/selectable';
+	import { handleKeyboardNavigation, handleKeyboardNavigationKeyUp } from './lib/selectable';
 	import { localSettings } from './lib/stores/localstorage.store';
 	import { sessions } from './lib/stores/session.store';
 	import { isAppInitialized, user } from './lib/stores/user.store';
@@ -109,4 +109,9 @@
 	on:unhandledrejection={handleError}
 /> -->
 
-<svelte:window on:mousemove={handleMouseMove} on:keydown={handleKeyDown} on:error={handleError} />
+<svelte:window
+	on:mousemove={handleMouseMove}
+	on:keydown={handleKeyDown}
+	on:keyup={handleKeyboardNavigationKeyUp}
+	on:error={handleError}
+/>

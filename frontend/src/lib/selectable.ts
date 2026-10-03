@@ -103,6 +103,7 @@ export class Selectable {
 	private onBack: KeyEventHandler = () => {};
 	private onPlayPause: KeyEventHandler = () => {};
 	private onSelect?: () => void;
+	private onLongPress?: () => void;
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
@@ -842,6 +843,14 @@ export class Selectable {
 		this.onSelect?.();
 	}
 
+	hasLongPress() {
+		return this.onLongPress !== undefined;
+	}
+
+	longPress() {
+		this.onLongPress?.();
+	}
+
 	back(options?: KeyEventOptions) {
 		const _options = options || createKeyEventOptions(this);
 		this.onBack(this, _options);
@@ -921,6 +930,11 @@ export class Selectable {
 		return this;
 	}
 
+	setOnLongPress(onLongPress: (() => void) | undefined) {
+		this.onLongPress = onLongPress;
+		return this;
+	}
+
 	setOnNavigate(onNavigate: NavigationHandler) {
 		this.onNavigate = onNavigate;
 		return this;
@@ -939,6 +953,61 @@ export class Selectable {
 	setAsFocusedChild(focusedChild: boolean) {
 		this.makeFocusedChild = focusedChild;
 		return this;
+	}
+}
+
+const LONG_PRESS_DURATION = 600;
+// Remotes repeat the key while it is held, and a key up can go missing when the
+// focus moves elsewhere, so a press that is older than this counts as a new one
+const PRESS_REPEAT_TIMEOUT = 1000;
+
+// A held enter key is one press until it is released. For a selectable with a
+// long press handler the press is decided when the key is released or the
+// long press duration passes, for others it selects right away.
+let enterPress:
+	| {
+			selectable: Selectable;
+			lastKeyDown: number;
+			timer?: ReturnType<typeof setTimeout>;
+			longPressed: boolean;
+	  }
+	| undefined;
+
+function handleEnterKeyDown(selectable: Selectable, shiftKey: boolean) {
+	const now = Date.now();
+
+	if (enterPress && now - enterPress.lastKeyDown < PRESS_REPEAT_TIMEOUT) {
+		enterPress.lastKeyDown = now;
+		return;
+	}
+
+	if (enterPress?.timer) clearTimeout(enterPress.timer);
+	enterPress = { selectable, lastKeyDown: now, longPressed: false };
+
+	if (shiftKey && selectable.hasLongPress()) {
+		enterPress.longPressed = true;
+		selectable.longPress();
+	} else if (!selectable.hasLongPress()) {
+		selectable.select();
+	} else {
+		enterPress.timer = setTimeout(() => {
+			if (!enterPress) return;
+			enterPress.timer = undefined;
+			enterPress.longPressed = true;
+			selectable.longPress();
+		}, LONG_PRESS_DURATION);
+	}
+}
+
+export function handleKeyboardNavigationKeyUp(event: KeyboardEvent) {
+	if (event.key !== 'Enter' || !enterPress) return;
+
+	const press = enterPress;
+	enterPress = undefined;
+
+	if (press.timer) {
+		clearTimeout(press.timer);
+		press.selectable.select();
 	}
 }
 
@@ -965,7 +1034,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	} else if (event.key === 'ArrowRight' && !event.metaKey && !event.ctrlKey) {
 		if (Selectable.giveFocus('right')) event.preventDefault();
 	} else if (event.key === 'Enter') {
-		currentlyFocusedObject.select();
+		handleEnterKeyDown(currentlyFocusedObject, event.shiftKey);
 	} else if (event.key === 'Back' || event.key === 'XF86Back' || event.key === 'Escape') {
 		currentlyFocusedObject.back();
 	} else if (event.key === 'MediaPlayPause') {

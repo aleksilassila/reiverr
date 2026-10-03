@@ -213,6 +213,17 @@ function useSeriesData(tmdbId: string) {
 		return requestsData.update();
 	}
 
+	async function setEpisodeWatched(season: number, episode: number, watched: boolean) {
+		const userId = get(user)?.id;
+		if (!userId) return;
+
+		await reiverrApi.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+			watched
+		});
+
+		return invalidateData();
+	}
+
 	async function setInLibrary(state: boolean) {
 		const userId = get(user)?.id;
 
@@ -256,6 +267,7 @@ function useSeriesData(tmdbId: string) {
 		isWatched,
 		setInLibrary,
 		setRequested,
+		setEpisodeWatched,
 		setWatched,
 		episodesData,
 		setStale,

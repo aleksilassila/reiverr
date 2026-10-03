@@ -20,7 +20,7 @@
 
 	$: sizeClasses = {
 		sm: 'max-w-xs w-full',
-		md: 'w-full',
+		md: 'max-w-sm w-full',
 		lg: 'max-w-md w-full'
 	}[size];
 </script>
@@ -36,7 +36,7 @@
 >
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 bg-primary-900/75 flex justify-end px-8 pt-16"
+		class="fixed inset-0 bg-primary-900/75 flex justify-end"
 		transition:fade={{ duration: 200 }}
 		on:click|self={handleClose}
 		on:keypress={() => {
@@ -46,11 +46,11 @@
 		<!-- Sheet Content -->
 		<div
 			class={classNames(
-				'h-full bg-primary-800 shadow-2xl flex flex-col overflow-hidden rounded-t-xl',
+				'h-full bg-primary-800 shadow-2xl flex flex-col overflow-hidden',
 				sizeClasses,
 				$$restProps.class
 			)}
-			transition:fly={{ y: 400, duration: 300, opacity: 1 }}
+			transition:fly={{ x: 400, duration: 300, opacity: 1 }}
 		>
 			<!-- Header with close button -->
 			{#if showCloseButton}
