@@ -1,6 +1,7 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   mkdirSync,
   mkdtempSync,
@@ -72,6 +73,7 @@ describe('LocalMediaService', () => {
       orm.em,
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
+      new EventEmitter2(),
     );
     await request(() =>
       localMedia.updateSettings({ movieFolders: [], seriesFolders: [library] }),

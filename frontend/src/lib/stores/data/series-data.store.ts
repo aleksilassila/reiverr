@@ -1,11 +1,9 @@
 import type {
-	EpisodeDownloadDto,
 	EpisodeRefDto,
-	MediaRequestDto,
+	EpisodeStatusDto,
 	SeriesUserDataDto,
 	TmdbSeriesFull,
-	TorrentSelectionDto,
-	TorrentStateDto
+	TorrentSelectionDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
@@ -27,22 +25,39 @@ export const episodeKey = (season: number, episode: number) => `${season}-${epis
 
 /** Everything is keyed by {@link episodeKey}; a season pack selection has episode 0 */
 export type SeriesRequests = {
-	/** Requests of the current user */
-	requests: Map<string, MediaRequestDto>;
+	/** The episodes the current user requested or that are on disk */
+	episodes: Map<string, EpisodeStatusDto>;
+	/** The torrents the current user selected */
 	selections: Map<string, TorrentSelectionDto>;
-	downloads: Map<string, EpisodeDownloadDto>;
-	/** Running torrents by selection id */
-	torrents: Map<string, TorrentStateDto>;
-	onDisk: Set<string>;
+	/** Info hashes of the torrents the server has for the series */
+	onServer: Set<string>;
 };
 
 export type EpisodeRequestStatus = {
 	requested: boolean;
+	onDisk: boolean;
 	/** The torrent the episode is downloaded from: its own, or else the season pack */
 	selection?: TorrentSelectionDto;
 	label?: string;
 	isError: boolean;
 };
+
+function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
+	switch (status?.status) {
+		case 'downloading':
+			return `Downloading ${Math.floor((status.progress ?? 0) * 100)}%`;
+		case 'resolving':
+			return 'Starting';
+		case 'failed':
+		case 'no-file-in-torrent':
+			return status.error;
+	}
+
+	// A file of another torrent, or one that was found on disk, plays as well
+	if (status?.onDisk) return 'On disk';
+	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';
+	if (status?.status === 'no-selection') return 'No torrent selected';
+}
 
 export function getEpisodeRequestStatus(
 	data: SeriesRequests | undefined,
@@ -50,22 +65,15 @@ export function getEpisodeRequestStatus(
 	episode: number
 ): EpisodeRequestStatus {
 	const key = episodeKey(season, episode);
-	const request = data?.requests.get(key);
-	const selection = data?.selections.get(key) ?? data?.selections.get(episodeKey(season, 0));
-	const download = data?.downloads.get(key);
-	const torrent = download && data?.torrents.get(download.selectionId);
-	const onDisk = !!data?.onDisk.has(key);
+	const status = data?.episodes.get(key);
 
-	let label: string | undefined;
-	if (onDisk) label = 'On disk';
-	else if (download?.error) label = download.error;
-	else if (torrent?.status === 'starting') label = 'Starting';
-	else if (download) label = `Downloading ${Math.floor(download.progress * 100)}%`;
-	else if (request && !request.approved) label = 'Waiting for approval';
-	else if (request && !selection) label = 'No torrent selected';
-	else if (request) label = 'Requested';
-
-	return { requested: !!request, selection, label, isError: !onDisk && !!download?.error };
+	return {
+		requested: !!status?.requested,
+		onDisk: !!status?.onDisk,
+		selection: data?.selections.get(key) ?? data?.selections.get(episodeKey(season, 0)),
+		label: getStatusLabel(status),
+		isError: status?.status === 'failed' || status?.status === 'no-file-in-torrent'
+	};
 }
 
 function getEpisodeData(tmdbSeries?: TmdbSeriesFull, userData?: SeriesUserDataDto) {
@@ -160,17 +168,12 @@ function useSeriesData(tmdbId: string) {
 	});
 
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
-		const [requests, downloads] = await Promise.all([
-			reiverrApi.requests.getSeriesRequests(get(user)?.id as string, tmdbId).then((r) => r.data),
-			reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data)
-		]);
+		const downloads = await reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data);
 
 		return {
-			requests: new Map(requests.map((r) => [episodeKey(r.season, r.episode), r])),
+			episodes: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
 			selections: new Map(downloads.selections.map((s) => [episodeKey(s.season, s.episode), s])),
-			downloads: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
-			torrents: new Map(downloads.torrents.map((t) => [t.selectionId, t])),
-			onDisk: new Set(downloads.onDisk.map((e) => episodeKey(e.season, e.episode)))
+			onServer: new Set(downloads.onServer)
 		};
 	});
 	const episodesData = derived([seriesData.data, userData.data], ([$seriesData, $userData]) =>

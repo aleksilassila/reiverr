@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'node:path';
 import torrentStream from 'torrent-stream';
 import {
-  Torrent,
+  TorrentHandle,
   TorrentEngine,
   TorrentFile,
   TorrentStats,
@@ -10,10 +10,10 @@ import {
 
 const COMPLETION_CHECK_INTERVAL = 1000;
 
-export class TorrentStreamTorrent implements Torrent {
+export class TorrentStreamHandle implements TorrentHandle {
   readonly ready: Promise<TorrentFile[]>;
 
-  private readonly logger = new Logger(TorrentStreamTorrent.name);
+  private readonly logger = new Logger(TorrentStreamHandle.name);
   // The typings cover a fraction of the engine (no torrent, bitfield, store or swarm speeds)
   private readonly engine: any;
   private readonly wanted = new Set<number>();
@@ -156,7 +156,7 @@ export class TorrentStreamTorrent implements Torrent {
 
 @Injectable()
 export class TorrentStreamEngine implements TorrentEngine {
-  add(source: string | Buffer, directory: string): Torrent {
-    return new TorrentStreamTorrent(source, directory);
+  add(source: string | Buffer, directory: string): TorrentHandle {
+    return new TorrentStreamHandle(source, directory);
   }
 }

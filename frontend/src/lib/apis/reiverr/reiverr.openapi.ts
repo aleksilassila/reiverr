@@ -1401,29 +1401,18 @@ export interface DownloadSettingsDto {
   seedRatio: number;
 }
 
-export interface TorrentSelectionDto {
+export interface TorrentDto {
   id: string;
-  mediaType: "movie" | "series";
-  tmdbId: string;
-  season: number;
-  /** 0 for a season pack */
-  episode: number;
-  releaseId: string;
+  infoHash: string;
   title: string;
   indexer: string;
   /** Bytes */
   size: number;
-  infoHash?: string;
   /** Bytes downloaded for the data currently in the downloads folder */
   downloadedBytes: number;
   /** Bytes uploaded for that data */
   uploadedBytes: number;
-  createdAt: string;
-}
-
-export interface TorrentStateDto {
-  selectionId: string;
-  status: "starting" | "downloading" | "seeding" | "failed";
+  status: "stopped" | "starting" | "downloading" | "seeding" | "failed";
   error?: string;
   peers: number;
   /** Bytes per second */
@@ -1432,22 +1421,44 @@ export interface TorrentStateDto {
   uploadSpeed: number;
 }
 
-export interface EpisodeDownloadDto {
+export interface TorrentSelectionDto {
+  id: string;
+  season: number;
+  /** 0 for a season pack */
+  episode: number;
+  /** The search result the user picked */
+  releaseId: string;
+  torrent: TorrentDto;
+}
+
+export interface EpisodeStatusDto {
   season: number;
   episode: number;
-  selectionId: string;
+  /** Whether the user has requested the episode */
+  requested: boolean;
+  /** Whether a file of the episode is in the library, from any torrent or found on disk */
+  onDisk: boolean;
+  /** Where the request of the user stands */
+  status?:
+    | "waiting-for-approval"
+    | "no-selection"
+    | "resolving"
+    | "no-file-in-torrent"
+    | "downloading"
+    | "failed"
+    | "available";
   /** From 0 to 1 */
-  progress: number;
+  progress?: number;
   error?: string;
 }
 
 export interface SeriesDownloadsDto {
+  /** The torrents the user selected for the series */
   selections: TorrentSelectionDto[];
-  /** Selections whose torrent is running */
-  torrents: TorrentStateDto[];
-  /** Episodes that are being downloaded */
-  episodes: EpisodeDownloadDto[];
-  onDisk: EpisodeRefDto[];
+  /** The episodes that the user requested or that are on disk */
+  episodes: EpisodeStatusDto[];
+  /** Info hashes of the torrents that someone selected for the series or that files of it came from */
+  onServer: string[];
 }
 
 export interface SelectReleaseDto {
@@ -2570,7 +2581,7 @@ export class Api<
       data: SelectReleaseDto,
       params: RequestParams = {},
     ) =>
-      this.request<TorrentSelectionDto, any>({
+      this.request<SuccessResponseDto, any>({
         path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/selection`,
         method: "PUT",
         body: data,
@@ -2612,7 +2623,7 @@ export class Api<
       data: SelectReleaseDto,
       params: RequestParams = {},
     ) =>
-      this.request<TorrentSelectionDto, any>({
+      this.request<SuccessResponseDto, any>({
         path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
         method: "PUT",
         body: data,

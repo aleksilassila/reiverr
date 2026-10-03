@@ -159,13 +159,12 @@ export class RequestsService {
     return this.findSeriesRequests(userId, tmdbId);
   }
 
-  /** Episodes of a series that any user has an approved request for */
-  async findApprovedEpisodes(tmdbId: string): Promise<EpisodeRefDto[]> {
-    return this.em
-      .createQueryBuilder(MediaRequest)
-      .select(['season', 'episode'], true)
-      .where({ tmdbId, mediaType: MediaTypeFull.Episode, approved: true })
-      .execute();
+  /** The approved episode requests of every user, oldest first */
+  async findApprovedEpisodeRequests(): Promise<MediaRequest[]> {
+    return this.requestRepository.find(
+      { mediaType: MediaTypeFull.Episode, approved: true },
+      { orderBy: { createdAt: 'asc' }, disableIdentityMap: true },
+    );
   }
 
   async findAll(

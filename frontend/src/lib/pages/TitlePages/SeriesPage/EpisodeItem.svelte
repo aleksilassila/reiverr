@@ -14,7 +14,7 @@
 
 <RequestRow
 	title={`S${seasonNumber}E${episodeNumber} - ${episodeName}`}
-	subtitle={ownSelection?.title}
+	subtitle={ownSelection?.torrent.title}
 	status={status.label}
 	isError={status.isError}
 	checked={status.requested}

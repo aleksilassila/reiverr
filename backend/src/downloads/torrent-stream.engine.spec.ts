@@ -1,65 +1,11 @@
-import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
-import { TorrentStreamTorrent } from './torrent-stream.engine.js';
-
-const PIECE_LENGTH = 16384;
-
-type Bencodable = number | string | Buffer | Bencodable[] | BencodableDict;
-interface BencodableDict {
-  [key: string]: Bencodable;
-}
-
-function bencode(value: Bencodable): Buffer {
-  if (typeof value === 'number') return Buffer.from(`i${value}e`);
-  if (typeof value === 'string') return bencode(Buffer.from(value));
-  if (Buffer.isBuffer(value)) {
-    return Buffer.concat([Buffer.from(`${value.length}:`), value]);
-  }
-  if (Array.isArray(value)) {
-    return Buffer.concat([
-      Buffer.from('l'),
-      ...value.map(bencode),
-      Buffer.from('e'),
-    ]);
-  }
-
-  return Buffer.concat([
-    Buffer.from('d'),
-    ...Object.keys(value)
-      .sort()
-      .flatMap((key) => [bencode(key), bencode(value[key])]),
-    Buffer.from('e'),
-  ]);
-}
-
-function createTorrent(name: string, files: { name: string; data: Buffer }[]) {
-  const data = Buffer.concat(files.map((file) => file.data));
-  const pieces: Buffer[] = [];
-  for (let offset = 0; offset < data.length; offset += PIECE_LENGTH) {
-    pieces.push(
-      createHash('sha1')
-        .update(data.subarray(offset, offset + PIECE_LENGTH))
-        .digest(),
-    );
-  }
-
-  return bencode({
-    info: {
-      name,
-      'piece length': PIECE_LENGTH,
-      pieces: Buffer.concat(pieces),
-      files: files.map((file) => ({
-        length: file.data.length,
-        path: [file.name],
-      })),
-    },
-  });
-}
+import { createTorrent, PIECE_LENGTH } from '../../test/torrent-fixture.js';
+import { TorrentStreamHandle } from './torrent-stream.engine.js';
 
 // Runs the real client without peer discovery, so nothing leaves the machine
-describe('TorrentStreamTorrent', () => {
+describe('TorrentStreamHandle', () => {
   const files = [
     { name: 'Show.S01E01.mkv', data: Buffer.alloc(PIECE_LENGTH * 3, 'a') },
     {
@@ -68,7 +14,7 @@ describe('TorrentStreamTorrent', () => {
     },
   ];
   let directory: string;
-  let torrent: TorrentStreamTorrent;
+  let torrent: TorrentStreamHandle;
 
   beforeEach(() => {
     directory = mkdtempSync(path.join(tmpdir(), 'reiverr-torrent-'));
@@ -80,7 +26,7 @@ describe('TorrentStreamTorrent', () => {
   });
 
   const add = () =>
-    new TorrentStreamTorrent(createTorrent('Show.S01', files), directory, {
+    new TorrentStreamHandle(createTorrent('Show.S01', files), directory, {
       dht: false,
       tracker: false,
     });
@@ -157,7 +103,7 @@ describe('TorrentStreamTorrent', () => {
 
   it('rejects a source that is not a torrent', () => {
     expect(
-      () => new TorrentStreamTorrent('not a magnet link', directory),
+      () => new TorrentStreamHandle('not a magnet link', directory),
     ).toThrow();
     torrent = add();
   });

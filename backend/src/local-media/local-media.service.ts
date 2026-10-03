@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Dirent, promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
@@ -16,6 +17,7 @@ import {
   LocalMediaSettingsDto,
   LocalSubtitleFileDto,
 } from './local-media.dto.js';
+import { LOCAL_MEDIA_VERSION_GONE } from './local-media.events.js';
 import {
   episodeFileName,
   folderMatchesTarget,
@@ -77,6 +79,7 @@ export class LocalMediaService {
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   getSettings(): Promise<LocalMediaSettingsDto> {
@@ -230,6 +233,24 @@ export class LocalMediaService {
     return destination;
   }
 
+  /** The indexed files of a title, as they were at its last lookup */
+  findIndexedFiles(mediaType: MediaType, tmdbId: string): Promise<MediaFile[]> {
+    return this.em.find(
+      MediaFile,
+      { mediaType, tmdbId },
+      { disableIdentityMap: true },
+    );
+  }
+
+  /** The indexed files that were imported from the given torrents */
+  findVersions(infoHashes: string[]): Promise<MediaFile[]> {
+    return this.em.find(
+      MediaFile,
+      { infoHash: { $in: infoHashes } },
+      { disableIdentityMap: true },
+    );
+  }
+
   /** The path of an indexed video file */
   async resolveFilePath(id: string): Promise<string> {
     const file = await this.findFile(id);
@@ -321,6 +342,9 @@ export class LocalMediaService {
       await this.em.nativeDelete(MediaFile, {
         id: { $in: gone.map((file) => file.id) },
       });
+    }
+    if (gone.some((file) => file.infoHash)) {
+      await this.eventEmitter.emitAsync(LOCAL_MEDIA_VERSION_GONE);
     }
     if (!changed.length) {
       return new Map(indexed.map((file) => [file.path, file.id]));

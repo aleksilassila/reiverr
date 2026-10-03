@@ -95,7 +95,7 @@
 		</div>
 		{#if selection}
 			<div class="text-lg font-medium text-secondary-300 mt-4 line-clamp-1">
-				Selected: {selection.title}
+				Selected: {selection.torrent.title}
 			</div>
 		{/if}
 		{#if error}
@@ -114,7 +114,10 @@
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
 		{:then releases}
 			{#each releases as release, index (release.id)}
-				{@const selected = release.id === selection?.releaseId}
+				{@const selected =
+					release.id === selection?.releaseId ||
+					(!!release.infoHash && release.infoHash === selection?.torrent.infoHash)}
+				{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
 				<Container
 					on:enter={({ detail }) => {
 						const el =
@@ -150,6 +153,8 @@
 								<Check size={24} class="mr-2" />
 								Selected
 							</div>
+						{:else if onServer}
+							<div class="flex-shrink-0 ml-4 text-lg font-medium text-secondary-300">On server</div>
 						{/if}
 					</div>
 				</Container>

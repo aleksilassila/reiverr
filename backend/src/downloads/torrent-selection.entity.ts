@@ -1,5 +1,6 @@
 import {
   Entity,
+  ManyToOne,
   PrimaryKey,
   Property,
   Unique,
@@ -7,19 +8,29 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaType } from '../common/common.dto.js';
+import { User } from '../users/user.entity.js';
+import { Torrent } from './torrent.entity.js';
 
+/** The torrent that the requests of a user for a target download from */
 @Entity()
-@Unique({ properties: ['mediaType', 'tmdbId', 'season', 'episode'] })
+@Unique({
+  properties: ['userId', 'mediaType', 'tmdbId', 'season', 'episode'],
+})
 export class TorrentSelection {
   @ApiProperty({ type: 'string' })
   @PrimaryKey({ type: 'uuid' })
   id: string = randomUUID();
 
-  @ApiProperty({ enum: MediaType })
+  @ManyToOne(() => User, {
+    mapToPk: true,
+    fieldName: 'user_id',
+    deleteRule: 'cascade',
+  })
+  userId: string;
+
   @Property({ type: 'string' })
   mediaType: MediaType;
 
-  @ApiProperty({ type: 'string' })
   @Property()
   tmdbId: string;
 
@@ -31,45 +42,16 @@ export class TorrentSelection {
   @Property({ default: 0 })
   episode: number = 0;
 
-  @ApiProperty({ type: 'string' })
+  @ManyToOne(() => Torrent, { mapToPk: true, fieldName: 'torrent_id' })
+  torrentId: string;
+
+  @ApiProperty({
+    type: 'string',
+    description: 'The search result the user picked',
+  })
   @Property()
   releaseId: string;
 
-  @ApiProperty({ type: 'string' })
-  @Property()
-  title: string;
-
-  @ApiProperty({ type: 'string' })
-  @Property()
-  indexer: string;
-
-  @ApiProperty({ type: 'number', description: 'Bytes' })
-  @Property()
-  size: number;
-
-  @ApiProperty({ required: false, type: 'string' })
-  @Property({ nullable: true })
-  infoHash?: string;
-
-  @Property({ type: 'text', nullable: true })
-  magnetUrl?: string;
-
-  @Property({ type: 'text', nullable: true })
-  downloadUrl?: string;
-
-  @ApiProperty({
-    type: 'number',
-    description:
-      'Bytes downloaded for the data currently in the downloads folder',
-  })
-  @Property({ default: 0 })
-  downloadedBytes: number = 0;
-
-  @ApiProperty({ type: 'number', description: 'Bytes uploaded for that data' })
-  @Property({ default: 0 })
-  uploadedBytes: number = 0;
-
-  @ApiProperty({ type: 'string' })
   @Property()
   createdAt: Date = new Date();
 }

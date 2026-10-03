@@ -4,11 +4,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { Sheet } from '$lib/components/Sheet';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-	import {
-		episodeKey,
-		getEpisodeRequestStatus,
-		useSeriesContext
-	} from '$lib/stores/data/series-data.store';
+	import { getEpisodeRequestStatus, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { Check, Play } from 'radix-icons-svelte';
 	import { readable } from 'svelte/store';
 	import { playEpisode } from '../play-episode';
@@ -26,8 +22,8 @@
 	const episodesData = seriesData.episodesData ?? readable(undefined);
 
 	$: userData = $episodesData?.episodes.find((e) => e.season === season && e.episode === episode);
-	$: onDisk = !!$requests?.onDisk.has(episodeKey(season, episode));
 	$: status = getEpisodeRequestStatus($requests, season, episode);
+	$: onDisk = status.onDisk;
 
 	async function play() {
 		componentStack.close();

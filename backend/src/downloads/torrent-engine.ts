@@ -18,7 +18,7 @@ export interface TorrentStats {
   uploaded: number;
 }
 
-export interface Torrent {
+export interface TorrentHandle {
   readonly infoHash: string;
   /** Resolves once the file list is known and data from an earlier run is verified */
   readonly ready: Promise<TorrentFile[]>;
@@ -43,5 +43,5 @@ export interface TorrentEngine {
    * Starts a torrent from a magnet link or the contents of a .torrent file.
    * Nothing is downloaded until files are wanted, data it has is seeded.
    */
-  add(source: string | Buffer, directory: string): Torrent;
+  add(source: string | Buffer, directory: string): TorrentHandle;
 }

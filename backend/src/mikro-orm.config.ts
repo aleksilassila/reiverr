@@ -3,6 +3,7 @@ import { Migrator } from '@mikro-orm/migrations';
 import { defineConfig } from '@mikro-orm/sqlite';
 import { DEV } from './consts.js';
 import { TorrentSelection } from './downloads/torrent-selection.entity.js';
+import { Torrent } from './downloads/torrent.entity.js';
 import { Job } from './jobs/job.entity.js';
 import { MediaFile } from './local-media/media-file.entity.js';
 import { MediaRequest } from './requests/request.entity.js';
@@ -23,6 +24,7 @@ export default defineConfig({
     PlayState,
     SeriesMetadata,
     Settings,
+    Torrent,
     TorrentSelection,
     User,
   ],

@@ -11,6 +11,7 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { IndexerDto } from './indexers.dto.js';
 import { parseReleaseTitle } from './release-title.utils.js';
+import { parseTorrentSource, TorrentSource } from './torrent-source.utils.js';
 import {
   parseTorznabCaps,
   parseTorznabItems,
@@ -29,11 +30,6 @@ export interface Release extends TorznabItem {
   seasons: number[];
   episodes: number[];
 }
-
-export type TorrentSource = Pick<
-  TorznabItem,
-  'magnetUrl' | 'downloadUrl' | 'infoHash'
->;
 
 interface SeriesQuery {
   name: string;
@@ -178,13 +174,30 @@ export class IndexersService {
     return entry && entry.expiresAt > Date.now() ? entry.release : undefined;
   }
 
-  /** A magnet link or the contents of a .torrent file */
-  async getTorrentSource(source: TorrentSource): Promise<string | Buffer> {
-    if (source.magnetUrl) return source.magnetUrl;
-    if (source.downloadUrl) return this.fetchTorrent(source.downloadUrl);
-    if (source.infoHash) return `magnet:?xt=urn:btih:${source.infoHash}`;
+  /**
+   * What a release is downloaded from: its magnet link, or the .torrent file
+   * behind its download link. Fails when the link does not lead to a torrent.
+   */
+  async resolveTorrent(release: Release): Promise<TorrentSource> {
+    try {
+      if (release.magnetUrl) return parseTorrentSource(release.magnetUrl);
+      if (release.downloadUrl) {
+        return parseTorrentSource(await this.fetchTorrent(release.downloadUrl));
+      }
+      if (release.infoHash) {
+        return parseTorrentSource(`magnet:?xt=urn:btih:${release.infoHash}`);
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
 
-    throw new Error('The release has no magnet link, download link or hash');
+      throw new BadGatewayException(
+        `Could not get the torrent of "${release.title}": ${reason}`,
+      );
+    }
+
+    throw new BadGatewayException(
+      `"${release.title}" has no magnet link, download link or hash`,
+    );
   }
 
   private async searchIndexer(indexer: IndexerDto, query: SeriesQuery) {

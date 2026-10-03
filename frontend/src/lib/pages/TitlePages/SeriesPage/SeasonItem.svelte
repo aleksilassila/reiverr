@@ -22,19 +22,19 @@
 		episode: e.episode_number ?? 0,
 		name: e.name ?? ''
 	}));
-	$: requestedCount = episodes.filter((e) =>
-		requests?.requests.has(episodeKey(e.season, e.episode))
+	$: requestedCount = episodes.filter(
+		(e) => requests?.episodes.get(episodeKey(e.season, e.episode))?.requested
 	).length;
 	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
 
 	$: seasonPack = requests?.selections.get(episodeKey(seasonNumber, 0));
-	$: seasonPackTorrent = seasonPack && requests?.torrents.get(seasonPack.id);
+	$: seasonPackTorrent = seasonPack?.torrent;
 	$: seasonPackStatus =
 		seasonPackTorrent?.status === 'seeding'
-			? `Seeding, ${formatSize(seasonPack?.uploadedBytes ?? 0)} uploaded`
+			? `Seeding, ${formatSize(seasonPackTorrent.uploadedBytes)} uploaded`
 			: seasonPackTorrent?.status === 'failed'
 				? seasonPackTorrent.error
-				: seasonPackTorrent
+				: seasonPackTorrent && seasonPackTorrent.status !== 'stopped'
 					? `${seasonPackTorrent.peers} peers, ${formatSize(seasonPackTorrent.downloadSpeed)}/s`
 					: '';
 </script>
@@ -43,7 +43,9 @@
 	<RequestRow
 		heading
 		title={`${seasonName} (${episodes.length} episodes)`}
-		subtitle={seasonPack ? `Season pack: ${seasonPack.title}` : 'No season pack selected'}
+		subtitle={seasonPackTorrent
+			? `Season pack: ${seasonPackTorrent.title}`
+			: 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}
 		checked={allRequested}
@@ -57,7 +59,8 @@
 	/>
 
 	{#each episodes as episode (episode.episode)}
-		{@const requested = !!requests?.requests.has(episodeKey(episode.season, episode.episode))}
+		{@const requested = !!requests?.episodes.get(episodeKey(episode.season, episode.episode))
+			?.requested}
 		<EpisodeItem
 			seasonNumber={episode.season}
 			episodeNumber={episode.episode}
