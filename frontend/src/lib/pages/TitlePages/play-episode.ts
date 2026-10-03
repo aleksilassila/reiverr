@@ -45,12 +45,11 @@ export async function playEpisode(options: {
 			type: 'direct'
 		})),
 		subtitleTracks: files.flatMap((file) =>
-			file.subtitles.map((subtitle) => ({
-				id: subtitle.id,
-				label: subtitle.label,
-				lang: subtitle.lang,
-				src: url(`subtitles/${subtitle.id}`)
-			}))
+			file.subtitles.map((subtitle) => {
+				const path = `files/${file.id}/subtitles/${encodeURIComponent(subtitle.fileName)}`;
+
+				return { id: path, label: subtitle.label, lang: subtitle.lang, src: url(path) };
+			})
 		),
 		onProgress: (progress) => {
 			const userId = get(user)?.id;

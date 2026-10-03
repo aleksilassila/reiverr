@@ -10,9 +10,6 @@ export class LocalMediaSettingsDto {
 
 export class LocalSubtitleFileDto {
   @ApiProperty()
-  id: string;
-
-  @ApiProperty()
   fileName: string;
 
   @ApiProperty({

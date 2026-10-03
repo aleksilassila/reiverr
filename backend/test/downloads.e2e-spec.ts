@@ -10,6 +10,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import * as path from 'node:path';
@@ -24,6 +25,7 @@ import {
   TorrentFile,
 } from '../src/downloads/torrent-engine.js';
 import { ReleaseDto } from '../src/indexers/indexers.dto.js';
+import { MediaFile } from '../src/local-media/media-file.entity.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
 
@@ -67,7 +69,16 @@ const TORRENT_FILES: Record<string, { path: string; length: number }[]> = {
   [SEASON_2_TORRENT]: [{ path: 'Test Show 2x01.mkv', length: 50 }],
 };
 
+// Like a real client: the hash of a magnet link, or of the .torrent contents
+const infoHash = (source: string) =>
+  /btih:([a-f0-9]{40})/.exec(source)?.[1] ??
+  createHash('sha1').update(source).digest('hex');
+
+// Imported files carry the start of the info hash as their version label
+const version = (source: string) => infoHash(source).slice(0, 8);
+
 class FakeTorrent implements Torrent {
+  readonly infoHash: string;
   readonly files: TorrentFile[];
   readonly ready: Promise<TorrentFile[]>;
   wanted: number[] = [];
@@ -85,6 +96,7 @@ class FakeTorrent implements Torrent {
     readonly source: string,
     readonly directory: string,
   ) {
+    this.infoHash = infoHash(source);
     this.files = TORRENT_FILES[source].map((file, index) => ({
       ...file,
       index,
@@ -446,7 +458,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
 
     expect(libraryFiles()).toEqual([
-      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+      `Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02 - ${version(EPISODE_TORRENT)}.mkv`,
     ]);
     expect(episode.destroyed).toBe(true);
     expect(existsSync(episode.directory)).toBe(false);
@@ -458,12 +470,34 @@ describe('Series downloads (e2e)', () => {
     await settle();
 
     expect(libraryFiles()).toEqual([
-      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
-      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+      `Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01 - ${version(PACK_MAGNET)}.mkv`,
+      `Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02 - ${version(EPISODE_TORRENT)}.mkv`,
     ]);
     expect(statSync(path.join(dirs.library, libraryFiles()[0])).ino).toBe(
       inode,
     );
+
+    const files = await api('get', `/v2/local-media/series/${TMDB_ID}`).expect(
+      200,
+    );
+    expect(files.body.map((file) => [file.season, file.episodes])).toEqual([
+      [1, [1]],
+      [1, [2]],
+    ]);
+    const stream = await api(
+      'get',
+      `/v2/local-media/files/${files.body[0].id}/stream`,
+    ).expect(200);
+    expect(stream.body.toString()).toBe('video 0');
+
+    const indexed = await app
+      .get(MikroORM)
+      .em.fork()
+      .find(MediaFile, {}, { orderBy: { episode: 'asc' } });
+    expect(indexed.map((file) => [file.managed, file.infoHash])).toEqual([
+      [true, infoHash(PACK_MAGNET)],
+      [true, infoHash(EPISODE_TORRENT)],
+    ]);
     expect(pack.destroyed).toBe(true);
     expect(existsSync(pack.directory)).toBe(false);
 

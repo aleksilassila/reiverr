@@ -207,11 +207,16 @@ export function seasonFolderName(season: number): string {
   return `Season ${String(season).padStart(2, '0')}`;
 }
 
-/** "Name - S01E02.mkv", or "Name - S01E02-E03.mkv" for a file with several episodes */
+/**
+ * "Name - S01E02 - label.mkv", or "Name - S01E02-E03 - label.mkv" for a file
+ * with several episodes. The label tells the versions of an episode apart,
+ * in the naming Jellyfin reads as versions.
+ */
 export function episodeFileName(
   name: string,
   season: number,
   episodes: number[],
+  label: string,
   extension: string,
 ): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -220,7 +225,7 @@ export function episodeFileName(
   const numbering =
     `S${pad(season)}E${pad(first)}` + (last > first ? `-E${pad(last)}` : '');
 
-  return `${sanitizeFileName(name)} - ${numbering}${extension.toLowerCase()}`;
+  return `${sanitizeFileName(name)} - ${numbering} - ${label}${extension.toLowerCase()}`;
 }
 
 export function isInsideFolder(filePath: string, folder: string): boolean {
@@ -228,12 +233,4 @@ export function isInsideFolder(filePath: string, folder: string): boolean {
   return (
     relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)
   );
-}
-
-export function encodeFileId(absolutePath: string): string {
-  return Buffer.from(absolutePath, 'utf8').toString('base64url');
-}
-
-export function decodeFileId(id: string): string {
-  return Buffer.from(id, 'base64url').toString('utf8');
 }

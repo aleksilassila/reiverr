@@ -1,10 +1,13 @@
+import { EntityManager } from '@mikro-orm/sqlite';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Dirent, promises as fs } from 'fs';
+import { randomUUID } from 'node:crypto';
 import * as path from 'path';
+import { MediaType } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
@@ -14,8 +17,6 @@ import {
   LocalSubtitleFileDto,
 } from './local-media.dto.js';
 import {
-  decodeFileId,
-  encodeFileId,
   episodeFileName,
   folderMatchesTarget,
   isInsideFolder,
@@ -31,6 +32,7 @@ import {
   srtToWebVtt,
   yearOf,
 } from './local-media.utils.js';
+import { MediaFile } from './media-file.entity.js';
 
 const SETTINGS_KEY = 'local-media';
 
@@ -42,16 +44,37 @@ const DEFAULT_SETTINGS: LocalMediaSettingsDto = {
 // Title folder -> season folder -> file is the deepest layout Radarr and Sonarr produce
 const MAX_DEPTH = 3;
 
+// The length of the version label in the names of imported files
+const VERSION_LABEL_LENGTH = 8;
+
+// SQLite limits the number of values in one statement
+const INDEX_BATCH_SIZE = 500;
+
 interface FoundFile {
   path: string;
   name: string;
   size: number;
+  modifiedAt: Date;
   subtitles: LocalSubtitleFileDto[];
 }
+
+/** What a file is, as far as its name tells */
+type FileTarget = Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>;
+
+const INDEXED_FIELDS = [
+  'mediaType',
+  'tmdbId',
+  'season',
+  'episode',
+  'lastEpisode',
+  'size',
+  'modifiedAt',
+] as const;
 
 @Injectable()
 export class LocalMediaService {
   constructor(
+    private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
   ) {}
@@ -89,20 +112,37 @@ export class LocalMediaService {
     };
 
     const { movieFolders } = await this.getSettings();
-    const files = await this.findFiles(movieFolders, target);
+    const found = (await this.findFiles(movieFolders, target)).map((file) => ({
+      ...file,
+      season: 0,
+      episode: 0,
+      lastEpisode: 0,
+    }));
+    const ids = await this.indexFiles(MediaType.Movie, tmdbId, found);
 
-    return files.map(toFileDto);
+    return found.map((file) => toFileDto(ids.get(file.path), file));
   }
 
   async getSeriesFiles(tmdbId: string): Promise<LocalEpisodeFileDto[]> {
     const { target } = await this.getSeriesTarget(tmdbId);
     const { seriesFolders } = await this.getSettings();
-    const files = await this.findFiles(seriesFolders, target);
 
-    return files.flatMap((file) => {
-      const numbers = parseEpisodeNumbers(file.name);
-      return numbers ? [{ ...toFileDto(file), ...numbers }] : [];
-    });
+    const found = (await this.findFiles(seriesFolders, target)).flatMap(
+      (file) => {
+        const numbers = parseEpisodeNumbers(file.name);
+
+        return numbers
+          ? [{ ...file, ...numbers, ...toFileTarget(numbers) }]
+          : [];
+      },
+    );
+    const ids = await this.indexFiles(MediaType.Series, tmdbId, found);
+
+    return found.map((file) => ({
+      ...toFileDto(ids.get(file.path), file),
+      season: file.season,
+      episodes: file.episodes,
+    }));
   }
 
   async getEpisodeFiles(
@@ -118,17 +158,18 @@ export class LocalMediaService {
   }
 
   /**
-   * Adds a video file to the library as the given episodes of a series. The
-   * file is hard linked so it takes no extra space, or copied when the
-   * source is on another filesystem.
+   * Adds a video file to the library as the given episodes of a series, as
+   * the version of the torrent it comes from. The file is hard linked so it
+   * takes no extra space, or copied when the source is on another filesystem.
    */
   async importEpisodeFile(options: {
     tmdbId: string;
     season: number;
     episodes: number[];
     sourcePath: string;
+    infoHash: string;
   }): Promise<string> {
-    const { tmdbId, season, episodes, sourcePath } = options;
+    const { tmdbId, season, episodes, sourcePath, infoHash } = options;
     const { name, target } = await this.getSeriesTarget(tmdbId);
     const { seriesFolders } = await this.getSettings();
     if (!seriesFolders.length) {
@@ -146,12 +187,19 @@ export class LocalMediaService {
     );
     const destination = path.join(
       seasonFolder,
-      episodeFileName(name, season, episodes, path.extname(sourcePath)),
+      episodeFileName(
+        name,
+        season,
+        episodes,
+        infoHash.slice(0, VERSION_LABEL_LENGTH),
+        path.extname(sourcePath),
+      ),
     );
 
     await fs.mkdir(seasonFolder, { recursive: true });
     await fs.link(sourcePath, destination).catch(async (error) => {
-      if (error.code === 'EEXIST') throw error;
+      // This file of the torrent was imported before
+      if (error.code === 'EEXIST') return;
 
       // A file that is still being copied must not look like an episode
       const partial = `${destination}.partial`;
@@ -159,46 +207,156 @@ export class LocalMediaService {
       await fs.rename(partial, destination);
     });
 
+    const stats = await fs.stat(destination);
+    await this.em
+      .createQueryBuilder(MediaFile)
+      .insert({
+        id: randomUUID(),
+        path: destination,
+        mediaType: MediaType.Series,
+        tmdbId,
+        ...toFileTarget({ season, episodes }),
+        size: stats.size,
+        modifiedAt: stats.mtime,
+        infoHash,
+        managed: true,
+        createdAt: new Date(),
+      })
+      // A lookup of the series can have indexed the file already
+      .onConflict('path')
+      .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
+      .execute();
+
     return destination;
   }
 
-  /**
-   * Turns a file id back into a path, accepting only video files below one
-   * of the configured library folders.
-   */
-  resolveFilePath(id: string): Promise<string> {
-    return this.resolvePath(id, isVideoFile);
+  /** The path of an indexed video file */
+  async resolveFilePath(id: string): Promise<string> {
+    const file = await this.findFile(id);
+    await this.assertInLibrary(file.path);
+
+    return file.path;
   }
 
-  /** The subtitle file as WebVTT, which is what browsers play */
-  async readSubtitles(id: string): Promise<string> {
-    const filePath = await this.resolvePath(id, isSubtitleFile);
-    const text = await fs.readFile(filePath, 'utf8');
+  /**
+   * A subtitle file next to an indexed video, as WebVTT, which is what
+   * browsers play
+   */
+  async readSubtitles(id: string, fileName: string): Promise<string> {
+    const file = await this.findFile(id);
 
-    return path.extname(filePath).toLowerCase() === '.srt'
+    const belongsToVideo =
+      fileName === path.basename(fileName) &&
+      isSubtitleFile(fileName) &&
+      !!parseSubtitleName(fileName, path.basename(file.path));
+    if (!belongsToVideo) throw new NotFoundException('File not found');
+
+    const subtitlePath = path.join(path.dirname(file.path), fileName);
+    await this.assertInLibrary(subtitlePath);
+    const text = await fs.readFile(subtitlePath, 'utf8');
+
+    return path.extname(subtitlePath).toLowerCase() === '.srt'
       ? srtToWebVtt(text)
       : text;
   }
 
-  private async resolvePath(
-    id: string,
-    isAccepted: (fileName: string) => boolean,
-  ): Promise<string> {
-    const filePath = path.resolve(decodeFileId(id));
+  private async findFile(id: string): Promise<MediaFile> {
+    const file = await this.em.findOne(
+      MediaFile,
+      { id },
+      { disableIdentityMap: true },
+    );
+    if (!file) throw new NotFoundException('File not found');
+
+    return file;
+  }
+
+  /** The library folders can have changed since the file was indexed */
+  private async assertInLibrary(filePath: string): Promise<void> {
     const { movieFolders, seriesFolders } = await this.getSettings();
 
-    const isAllowed =
-      isAccepted(filePath) &&
-      [...movieFolders, ...seriesFolders].some((folder) =>
-        isInsideFolder(filePath, folder),
-      );
-    const stats = isAllowed
+    const isInLibrary = [...movieFolders, ...seriesFolders].some((folder) =>
+      isInsideFolder(filePath, folder),
+    );
+    const stats = isInLibrary
       ? await fs.stat(filePath).catch(() => undefined)
       : undefined;
 
     if (!stats?.isFile()) throw new NotFoundException('File not found');
+  }
 
-    return filePath;
+  /**
+   * Brings the indexed files of a title in line with what was found on disk
+   * and returns their ids by path. Files that are new to the index are not
+   * managed, files that are gone are forgotten.
+   */
+  private async indexFiles(
+    mediaType: MediaType,
+    tmdbId: string,
+    found: (FoundFile & FileTarget)[],
+  ): Promise<Map<string, string>> {
+    const indexed = await this.em.find(
+      MediaFile,
+      { mediaType, tmdbId },
+      { disableIdentityMap: true },
+    );
+    const indexedByPath = new Map(indexed.map((file) => [file.path, file]));
+    const foundPaths = new Set(found.map((file) => file.path));
+
+    const gone = indexed.filter((file) => !foundPaths.has(file.path));
+    const changed = found.filter((file) => {
+      const current = indexedByPath.get(file.path);
+
+      return (
+        !current ||
+        current.size !== file.size ||
+        current.modifiedAt.getTime() !== file.modifiedAt.getTime() ||
+        current.season !== file.season ||
+        current.episode !== file.episode ||
+        current.lastEpisode !== file.lastEpisode
+      );
+    });
+
+    if (gone.length) {
+      await this.em.nativeDelete(MediaFile, {
+        id: { $in: gone.map((file) => file.id) },
+      });
+    }
+    if (!changed.length) {
+      return new Map(indexed.map((file) => [file.path, file.id]));
+    }
+
+    for (let i = 0; i < changed.length; i += INDEX_BATCH_SIZE) {
+      await this.em
+        .createQueryBuilder(MediaFile)
+        .insert(
+          changed.slice(i, i + INDEX_BATCH_SIZE).map((file) => ({
+            id: randomUUID(),
+            path: file.path,
+            mediaType,
+            tmdbId,
+            season: file.season,
+            episode: file.episode,
+            lastEpisode: file.lastEpisode,
+            size: file.size,
+            modifiedAt: file.modifiedAt,
+            managed: false,
+            createdAt: new Date(),
+          })),
+        )
+        // Keeps the id and where the file came from
+        .onConflict('path')
+        .merge([...INDEXED_FIELDS])
+        .execute();
+    }
+
+    const current = await this.em.find(
+      MediaFile,
+      { path: { $in: [...foundPaths] } },
+      { fields: ['id', 'path'], disableIdentityMap: true },
+    );
+
+    return new Map(current.map((file) => [file.path, file.id]));
   }
 
   private async getSeriesTarget(
@@ -286,7 +444,7 @@ export class LocalMediaService {
   ): Promise<FoundFile[]> {
     const files: FoundFile[] = [];
     const videos: { path: string; name: string }[] = [];
-    const subtitles: { path: string; name: string }[] = [];
+    const subtitles: string[] = [];
 
     for (const entry of await this.readDirectory(dir)) {
       const entryPath = path.join(dir, entry.name);
@@ -297,7 +455,7 @@ export class LocalMediaService {
       } else if (isVideoFile(entry.name)) {
         videos.push({ path: entryPath, name: entry.name });
       } else if (isSubtitleFile(entry.name)) {
-        subtitles.push({ path: entryPath, name: entry.name });
+        subtitles.push(entry.name);
       }
     }
 
@@ -308,17 +466,10 @@ export class LocalMediaService {
       files.push({
         ...video,
         size: stats.size,
-        subtitles: subtitles.flatMap((subtitle) => {
-          const parsed = parseSubtitleName(subtitle.name, video.name);
-          return parsed
-            ? [
-                {
-                  id: encodeFileId(subtitle.path),
-                  fileName: subtitle.name,
-                  ...parsed,
-                },
-              ]
-            : [];
+        modifiedAt: stats.mtime,
+        subtitles: subtitles.flatMap((fileName) => {
+          const parsed = parseSubtitleName(fileName, video.name);
+          return parsed ? [{ fileName, ...parsed }] : [];
         }),
       });
     }
@@ -344,9 +495,20 @@ export class LocalMediaService {
   }
 }
 
-function toFileDto(file: FoundFile): LocalMediaFileDto {
+function toFileTarget(numbers: {
+  season: number;
+  episodes: number[];
+}): FileTarget {
   return {
-    id: encodeFileId(file.path),
+    season: numbers.season,
+    episode: Math.min(...numbers.episodes),
+    lastEpisode: Math.max(...numbers.episodes),
+  };
+}
+
+function toFileDto(id: string, file: FoundFile): LocalMediaFileDto {
+  return {
+    id,
     fileName: file.name,
     size: file.size,
     subtitles: file.subtitles,

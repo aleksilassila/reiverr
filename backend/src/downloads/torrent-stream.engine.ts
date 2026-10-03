@@ -47,6 +47,10 @@ export class TorrentStreamTorrent implements Torrent {
     this.completionCheck.unref();
   }
 
+  get infoHash(): string {
+    return this.engine.infoHash;
+  }
+
   setWantedFiles(indexes: number[]): void {
     const next = new Set(indexes);
 

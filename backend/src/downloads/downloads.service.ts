@@ -359,6 +359,7 @@ export class DownloadsService
                 ? numbers.episodes
                 : states.map((e) => e.episode),
             sourcePath: active.torrent.getFilePath(fileIndex),
+            infoHash: active.torrent.infoHash,
           })
           .then(
             () => (imported = true),

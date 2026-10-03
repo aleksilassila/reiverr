@@ -169,12 +169,13 @@ describe('import naming', () => {
   });
 
   it('names episode files that the episode parsing reads back', () => {
-    const single = episodeFileName('Show: Name', 1, [2], '.MKV');
-    const double = episodeFileName('Show', 12, [3, 4], '.mp4');
+    const single = episodeFileName('Show: Name', 1, [2], 'a1b2c3d4', '.MKV');
+    // A label that starts like an episode number must not be read as one
+    const double = episodeFileName('Show', 12, [3, 4], 'e1234567', '.mp4');
 
     expect(seasonFolderName(1)).toBe('Season 01');
-    expect(single).toBe('Show Name - S01E02.mkv');
-    expect(double).toBe('Show - S12E03-E04.mp4');
+    expect(single).toBe('Show Name - S01E02 - a1b2c3d4.mkv');
+    expect(double).toBe('Show - S12E03-E04 - e1234567.mp4');
     expect(parseEpisodeNumbers(single)).toEqual({ season: 1, episodes: [2] });
     expect(parseEpisodeNumbers(double)).toEqual({
       season: 12,

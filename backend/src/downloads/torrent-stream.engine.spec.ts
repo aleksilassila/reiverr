@@ -88,6 +88,8 @@ describe('TorrentStreamTorrent', () => {
   it('lists the files of a torrent and has no data at first', async () => {
     torrent = add();
 
+    // Known before any peer has been asked for the file list
+    expect(torrent.infoHash).toMatch(/^[a-f0-9]{40}$/);
     expect(await torrent.ready).toEqual([
       {
         index: 0,

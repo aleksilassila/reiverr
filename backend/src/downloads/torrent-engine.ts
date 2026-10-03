@@ -19,6 +19,7 @@ export interface TorrentStats {
 }
 
 export interface Torrent {
+  readonly infoHash: string;
   /** Resolves once the file list is known and data from an earlier run is verified */
   readonly ready: Promise<TorrentFile[]>;
   /** Downloads these files and nothing else */

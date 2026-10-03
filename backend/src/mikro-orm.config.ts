@@ -4,6 +4,7 @@ import { defineConfig } from '@mikro-orm/sqlite';
 import { DEV } from './consts.js';
 import { TorrentSelection } from './downloads/torrent-selection.entity.js';
 import { Job } from './jobs/job.entity.js';
+import { MediaFile } from './local-media/media-file.entity.js';
 import { MediaRequest } from './requests/request.entity.js';
 import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
 import { Settings } from './settings/settings.entity.js';
@@ -16,6 +17,7 @@ export default defineConfig({
   entities: [
     Job,
     LibraryItem,
+    MediaFile,
     MediaRequest,
     MovieMetadata,
     PlayState,

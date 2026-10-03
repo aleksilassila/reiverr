@@ -1342,7 +1342,6 @@ export interface LocalMediaSettingsDto {
 }
 
 export interface LocalSubtitleFileDto {
-  id: string;
   fileName: string;
   /** Language code from the file name */
   lang?: string;
@@ -2427,11 +2426,11 @@ export class Api<
      *
      * @tags local-media
      * @name GetSubtitles
-     * @request GET:/api/v2/local-media/subtitles/{id}
+     * @request GET:/api/v2/local-media/files/{id}/subtitles/{fileName}
      */
-    getSubtitles: (id: string, params: RequestParams = {}) =>
+    getSubtitles: (id: string, fileName: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/v2/local-media/subtitles/${id}`,
+        path: `/api/v2/local-media/files/${id}/subtitles/${fileName}`,
         method: "GET",
         ...params,
       }),
