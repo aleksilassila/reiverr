@@ -1,9 +1,10 @@
 import { CreateRequestContext } from '@mikro-orm/decorators/legacy';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository, sql } from '@mikro-orm/sqlite';
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import {
   MediaType,
+  MediaTypeFull,
   PaginatedResponseDto,
   PaginationDto,
 } from '../../common/common.dto.js';
@@ -22,6 +23,8 @@ import { LibraryItem } from './library.entity.js';
 
 @Injectable()
 export class LibraryService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(LibraryService.name);
+
   constructor(
     @InjectRepository(LibraryItem)
     private readonly libraryRepository: EntityRepository<LibraryItem>,
@@ -38,11 +41,16 @@ export class LibraryService implements OnApplicationBootstrap {
     const items = await this.libraryRepository.findAll();
 
     items.forEach((i) => {
-      if (i.mediaType === 'movie') {
-        this.metadataService.getMovieByTmdbId(i.tmdbId);
-      } else if (i.mediaType === 'series') {
-        this.metadataService.getSeriesByTmdbId(i.tmdbId);
-      }
+      const metadata =
+        i.mediaType === 'movie'
+          ? this.metadataService.getMovieByTmdbId(i.tmdbId)
+          : this.metadataService.getSeriesByTmdbId(i.tmdbId);
+
+      metadata.catch((e) =>
+        this.logger.warn(
+          `Failed to cache ${i.mediaType} ${i.tmdbId}: ${e.message}`,
+        ),
+      );
     });
   }
 
@@ -79,9 +87,14 @@ export class LibraryService implements OnApplicationBootstrap {
       .leftJoin(sql.ref('play_state'), 'ps', {
         'ps.tmdb_id': sql.ref('li.tmdb_id'),
         'ps.user_id': sql.ref('li.user_id'),
+        'ps.media_type': sql`case li.media_type when 'movie' then 'movie' else 'episode' end`,
       })
-      .leftJoin('li.movieMetadata', 'mm')
-      .leftJoin('li.seriesMetadata', 'sm')
+      .leftJoin('li.movieMetadata', 'mm', {
+        [sql`li.media_type = 'movie'`]: [],
+      })
+      .leftJoin('li.seriesMetadata', 'sm', {
+        [sql`li.media_type = 'series'`]: [],
+      })
       .where({ userId });
 
     if (mediaType) builder.andWhere({ mediaType });
@@ -121,12 +134,15 @@ export class LibraryService implements OnApplicationBootstrap {
       .innerJoin(sql.ref('library_item'), 'li', {
         'li.tmdb_id': sql.ref('ps.tmdb_id'),
         'li.user_id': sql.ref('ps.user_id'),
+        'li.media_type': sql`case ps.media_type when 'movie' then 'movie' else 'series' end`,
       })
       .leftJoin(sql.ref('movie_metadata'), 'mm', {
         'mm.tmdb_id': sql.ref('li.tmdb_id'),
+        'li.media_type': MediaType.Movie,
       })
       .leftJoin(sql.ref('series_metadata'), 'sm', {
         'sm.tmdb_id': sql.ref('li.tmdb_id'),
+        'li.media_type': MediaType.Series,
       })
       .where({ userId, tmdbId: { $in: items.map((item) => item.tmdbId) } })
       .orderBy({ season: 'asc', episode: 'asc' });
@@ -144,7 +160,9 @@ export class LibraryService implements OnApplicationBootstrap {
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,
             playStates: playStates.filter(
-              (playState) => playState.tmdbId === item.tmdbId,
+              (playState) =>
+                playState.tmdbId === item.tmdbId &&
+                playStateMediaType(item.mediaType) === playState.mediaType,
             ),
           }),
         ),
@@ -265,8 +283,9 @@ export class LibraryService implements OnApplicationBootstrap {
   async findByTmdbId(
     userId: string,
     tmdbId: string,
+    mediaType: MediaType,
   ): Promise<LibraryItem | null> {
-    return this.libraryRepository.findOne({ userId, tmdbId });
+    return this.libraryRepository.findOne({ userId, tmdbId, mediaType });
   }
 
   async findOrCreateByTmdbId(
@@ -274,7 +293,7 @@ export class LibraryService implements OnApplicationBootstrap {
     tmdbId: string,
     mediaType: MediaType,
   ): Promise<LibraryItem> {
-    let libraryItem = await this.findByTmdbId(userId, tmdbId);
+    let libraryItem = await this.findByTmdbId(userId, tmdbId, mediaType);
 
     if (!libraryItem) {
       libraryItem = new LibraryItem();
@@ -283,7 +302,7 @@ export class LibraryService implements OnApplicationBootstrap {
       libraryItem.mediaType = mediaType;
 
       const lastPlayedAt = await this.playStateRepository
-        .find({ userId, tmdbId })
+        .find({ userId, tmdbId, mediaType: playStateMediaType(mediaType) })
         .then((states) =>
           states.map((s) => new Date(s.lastPlayedAt).getTime() || 0),
         )
@@ -299,8 +318,12 @@ export class LibraryService implements OnApplicationBootstrap {
     return libraryItem;
   }
 
-  async deleteByTmdbId(userId: string, tmdbId: string) {
-    return await this.libraryRepository.nativeDelete({ userId, tmdbId });
+  async deleteByTmdbId(userId: string, tmdbId: string, mediaType: MediaType) {
+    return await this.libraryRepository.nativeDelete({
+      userId,
+      tmdbId,
+      mediaType,
+    });
   }
 
   async getLibraryItemDto(options: {
@@ -373,6 +396,13 @@ export class LibraryService implements OnApplicationBootstrap {
   }
 }
 
+// The play states of a series are those of its episodes
+function playStateMediaType(mediaType: MediaType): MediaTypeFull {
+  return mediaType === MediaType.Movie
+    ? MediaTypeFull.Movie
+    : MediaTypeFull.Episode;
+}
+
 function getStatusFilter(status?: MyListStatusFilter) {
   // Release dates are compared by UTC day, a release today counts as upcoming
   const today = new Date().setUTCHours(0, 0, 0, 0);
@@ -404,6 +434,7 @@ function getStatusFilter(status?: MyListStatusFilter) {
         select 1 from play_state last_episode
         left join series_metadata series on series.tmdb_id = last_episode.tmdb_id
         where last_episode.tmdb_id = li.tmdb_id and last_episode.user_id = li.user_id
+          and last_episode.media_type = 'episode'
           and series.last_episode_number = last_episode.episode
           and series.last_season_number = last_episode.season
       ))

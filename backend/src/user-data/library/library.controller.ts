@@ -135,6 +135,7 @@ export class LibraryController {
       const deleteAction = await this.libraryService.deleteByTmdbId(
         userId,
         tmdbId,
+        mediaType,
       );
 
       return {

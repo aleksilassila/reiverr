@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -83,6 +84,17 @@ export class PlayStatesController {
     @Param('tmdbId') tmdbId: string,
     @Body() body: BulkUpdatePlayStateDto,
   ) {
+    const isValid =
+      Array.isArray(body?.playStates) &&
+      body.playStates.every(
+        (s) => Number.isInteger(s?.season) && Number.isInteger(s?.episode),
+      );
+    if (!isValid) {
+      throw new BadRequestException(
+        'Expected { playStates: [{ season, episode, watched?, progress? }] }',
+      );
+    }
+
     return this.playStateService.updateOrCreateSeriesPlayStates(
       userId,
       tmdbId,

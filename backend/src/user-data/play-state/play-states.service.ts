@@ -1,7 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
-import { MediaTypeFull } from '../../common/common.dto.js';
+import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
 import { UpdatePlayStateDto } from './play-state.dto.js';
 import { PlayState } from './play-state.entity.js';
 import { LibraryItem } from '../library/library.entity.js';
@@ -17,7 +17,11 @@ export class PlayStatesService {
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
-    return this.playStateRepository.findOne({ userId, tmdbId });
+    return this.playStateRepository.findOne({
+      userId,
+      tmdbId,
+      mediaType: MediaTypeFull.Movie,
+    });
   }
 
   async findSeriesPlayStates(
@@ -30,6 +34,7 @@ export class PlayStatesService {
       (await this.playStateRepository.find({
         userId,
         tmdbId,
+        mediaType: MediaTypeFull.Episode,
         ...(season ? { season } : {}),
         ...(episode ? { episode } : {}),
       })) ?? [];
@@ -45,17 +50,18 @@ export class PlayStatesService {
     return playStates;
   }
 
-  async getPlayState(
+  async findEpisodePlayState(
     userId: string,
     tmdbId: string,
-    season?: number,
-    episode?: number,
+    season: number,
+    episode: number,
   ): Promise<PlayState | undefined> {
     return this.playStateRepository.findOne({
       userId,
       tmdbId,
-      ...(season ? { season } : {}),
-      ...(episode ? { episode } : {}),
+      mediaType: MediaTypeFull.Episode,
+      season,
+      episode,
     });
   }
 
@@ -69,12 +75,15 @@ export class PlayStatesService {
       save?: boolean;
     },
   ) {
-    let state = await this.getPlayState(
-      userId,
-      tmdbId,
-      options.season,
-      options.episode,
-    );
+    let state =
+      options.mediaType === MediaTypeFull.Movie
+        ? await this.findMoviePlayState(userId, tmdbId)
+        : await this.findEpisodePlayState(
+            userId,
+            tmdbId,
+            options.season,
+            options.episode,
+          );
 
     if (!state) {
       state = new PlayState();
@@ -105,7 +114,7 @@ export class PlayStatesService {
     if (playState.watched !== undefined) state.watched = playState.watched;
 
     await this.em.persist(state).flush();
-    await this.touchLibraryItem(userId, tmdbId);
+    await this.touchLibraryItem(userId, tmdbId, MediaType.Movie);
 
     return state;
   }
@@ -127,7 +136,7 @@ export class PlayStatesService {
     if (playState.watched !== undefined) state.watched = playState.watched;
 
     await this.em.persist(state).flush();
-    await this.touchLibraryItem(userId, tmdbId);
+    await this.touchLibraryItem(userId, tmdbId, MediaType.Series);
 
     return state;
   }
@@ -145,7 +154,12 @@ export class PlayStatesService {
     season: number,
     episode: number,
   ) {
-    const state = await this.getPlayState(userId, tmdbId, season, episode);
+    const state = await this.findEpisodePlayState(
+      userId,
+      tmdbId,
+      season,
+      episode,
+    );
 
     if (state) {
       await this.em.remove(state).flush();
@@ -181,11 +195,15 @@ export class PlayStatesService {
     return states;
   }
 
-  private async touchLibraryItem(userId: string, tmdbId: string) {
+  private async touchLibraryItem(
+    userId: string,
+    tmdbId: string,
+    mediaType: MediaType,
+  ) {
     const now = new Date();
 
     await this.libraryRepository.nativeUpdate(
-      { tmdbId, userId },
+      { userId, tmdbId, mediaType },
       { lastPlayedAt: now, updatedAt: now },
     );
   }

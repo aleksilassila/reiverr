@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from '../auth/auth.guard.js';
+import { MediaType } from '../common/common.dto.js';
 import { LibraryService } from './library/library.service.js';
 import {
   MovieUserDataDto,
@@ -32,7 +33,11 @@ export class UserDataController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+    const libraryItem = await this.libraryService.findByTmdbId(
+      userId,
+      tmdbId,
+      MediaType.Movie,
+    );
     const playState = await this.playStateService.findMoviePlayState(
       userId,
       tmdbId,
@@ -55,7 +60,11 @@ export class UserDataController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SeriesUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
+    const libraryItem = await this.libraryService.findByTmdbId(
+      userId,
+      tmdbId,
+      MediaType.Series,
+    );
     const playState = await this.playStateService.findSeriesPlayStates(
       userId,
       tmdbId,
@@ -80,8 +89,12 @@ export class UserDataController {
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(userId, tmdbId);
-    const playState = await this.playStateService.getPlayState(
+    const libraryItem = await this.libraryService.findByTmdbId(
+      userId,
+      tmdbId,
+      MediaType.Series,
+    );
+    const playState = await this.playStateService.findEpisodePlayState(
       userId,
       tmdbId,
       season,

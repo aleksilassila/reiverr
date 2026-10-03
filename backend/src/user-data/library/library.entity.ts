@@ -18,7 +18,7 @@ import { PlayStateDto } from '../play-state/play-state.dto.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 
 @Entity()
-@Unique({ properties: ['tmdbId', 'userId'] })
+@Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })
 export class LibraryItem {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryKey({ type: 'uuid' })

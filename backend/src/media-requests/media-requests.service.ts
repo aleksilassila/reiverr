@@ -63,7 +63,7 @@ export class MediaRequestsService {
     tmdbId: string,
   ): Promise<MediaRequest | undefined> {
     return this.requestRepository.findOne(
-      { userId, tmdbId, season: 0, episode: 0 },
+      { userId, tmdbId, mediaType: MediaTypeFull.Movie },
       { populate: ['movieMetadata'] },
     );
   }
@@ -94,8 +94,7 @@ export class MediaRequestsService {
     const deleted = await this.requestRepository.nativeDelete({
       userId,
       tmdbId,
-      season: 0,
-      episode: 0,
+      mediaType: MediaTypeFull.Movie,
     });
     await this.emitChanged(tmdbId, MediaTypeFull.Movie);
 
@@ -150,7 +149,7 @@ export class MediaRequestsService {
             updatedAt: now,
           })),
         )
-        .onConflict(['userId', 'tmdbId', 'season', 'episode'])
+        .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
         .ignore()
         .execute();
     } else if (episodes.length) {

@@ -11,7 +11,9 @@ import { MediaTypeFull } from '../../common/common.dto.js';
 import { User } from '../../users/user.entity.js';
 
 @Entity()
-@Unique({ properties: ['tmdbId', 'userId', 'season', 'episode'] })
+@Unique({
+  properties: ['userId', 'mediaType', 'tmdbId', 'season', 'episode'],
+})
 export class PlayState {
   @ApiProperty({ type: 'string' })
   @PrimaryKey({ type: 'uuid' })

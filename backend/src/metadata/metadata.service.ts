@@ -39,63 +39,76 @@ export class MetadataService {
 
     const unlock = await this.updateLocks.acquire(tmdbId);
 
-    // The cached documents are large, so they are kept out of the unit of work
-    let movie = await this.movieRepository.findOne(
-      { tmdbId },
-      { disableIdentityMap: true },
-    );
-    const updatedAt = movie?.updatedAt;
+    try {
+      // The cached documents are large, so they are kept out of the unit of work
+      let movie = await this.movieRepository.findOne(
+        { tmdbId },
+        { disableIdentityMap: true },
+      );
+      const updatedAt = movie?.updatedAt;
 
-    if (!movie || movie.needsUpdate()) {
-      this.logger.debug(`Caching movie ${tmdbId}`);
-      const p = this.tmdbService
-        .getFullMovie(Number(tmdbId))
-        .then(async (tmdbMovie) => {
-          this.logger.debug(`Fetched movie data from TMDB for ${tmdbId}`);
-          if (tmdbMovie) {
-            if (!movie) {
-              movie = MovieMetadata.from(tmdbMovie);
-              await this.movieRepository
-                .insert(movie)
-                .catch((e) =>
-                  this.logger.error(
-                    `Failed to insert movie metadata for tmdbId ${tmdbId}`,
-                    e.stack,
-                  ),
-                );
+      if (!movie || movie.needsUpdate()) {
+        this.logger.debug(`Caching movie ${tmdbId}`);
+        const cached = !!movie;
+        const p = this.tmdbService
+          .getFullMovie(Number(tmdbId))
+          .then(async (tmdbMovie) => {
+            this.logger.debug(`Fetched movie data from TMDB for ${tmdbId}`);
+            if (tmdbMovie) {
+              if (!movie) {
+                movie = MovieMetadata.from(tmdbMovie);
+                await this.movieRepository
+                  .insert(movie)
+                  .catch((e) =>
+                    this.logger.error(
+                      `Failed to insert movie metadata for tmdbId ${tmdbId}`,
+                      e.stack,
+                    ),
+                  );
+              } else {
+                movie.updateFrom(tmdbMovie);
+                await this.em
+                  .upsert(movie)
+                  .catch((e) =>
+                    this.logger.error(
+                      `Failed to update movie metadata for tmdbId ${tmdbId}`,
+                      e.stack,
+                    ),
+                  );
+              }
             } else {
-              movie.updateFrom(tmdbMovie);
-              await this.em
-                .upsert(movie)
-                .catch((e) =>
-                  this.logger.error(
-                    `Failed to update movie metadata for tmdbId ${tmdbId}`,
-                    e.stack,
-                  ),
-                );
+              this.logger.warn(
+                `TMDB returned no data for movie with tmdbId ${tmdbId}`,
+              );
             }
-          } else {
-            this.logger.warn(
-              `TMDB returned no data for movie with tmdbId ${tmdbId}`,
-            );
-          }
 
-          if (!movie) {
-            throw new Error(
-              `Failed to fetch metadata for movie with tmdbId ${tmdbId}`,
-            );
-          }
+            if (!movie) {
+              throw new Error(
+                `Failed to fetch metadata for movie with tmdbId ${tmdbId}`,
+              );
+            }
 
-          return movie;
-        });
+            return movie;
+          });
 
-      if (!movie || eager) {
-        await p;
+        // A cached document is still served when it cannot be refreshed
+        const refresh = cached
+          ? p.catch((e) =>
+              this.logger.warn(
+                `Failed to refresh movie ${tmdbId}: ${e.message}`,
+              ),
+            )
+          : p;
+
+        if (!cached || eager) {
+          await refresh;
+        }
       }
-    }
 
-    unlock();
-    return movie;
+      return movie;
+    } finally {
+      unlock();
+    }
   }
 
   async getSeriesByTmdbId(
@@ -106,62 +119,75 @@ export class MetadataService {
 
     const unlock = await this.updateLocks.acquire(tmdbId);
 
-    let series = await this.seriesRepository.findOne(
-      { tmdbId },
-      { disableIdentityMap: true },
-    );
-    const updatedAt = series?.updatedAt;
+    try {
+      let series = await this.seriesRepository.findOne(
+        { tmdbId },
+        { disableIdentityMap: true },
+      );
+      const updatedAt = series?.updatedAt;
 
-    if (!series || series.needsUpdate()) {
-      this.logger.debug(`Caching series ${tmdbId}`);
-      const p = this.tmdbService
-        .getFullSeries(tmdbId)
-        .then(async (tmdbSeries) => {
-          this.logger.debug(`Fetched series data from TMDB for ${tmdbId}`);
-          if (tmdbSeries) {
-            if (!series) {
-              series = SeriesMetadata.from(tmdbSeries);
-              await this.seriesRepository
-                .insert(series)
-                .catch((e) =>
-                  this.logger.error(
-                    `Failed to insert series metadata for tmdbId ${tmdbId}`,
-                    e.stack,
-                  ),
-                );
+      if (!series || series.needsUpdate()) {
+        this.logger.debug(`Caching series ${tmdbId}`);
+        const cached = !!series;
+        const p = this.tmdbService
+          .getFullSeries(tmdbId)
+          .then(async (tmdbSeries) => {
+            this.logger.debug(`Fetched series data from TMDB for ${tmdbId}`);
+            if (tmdbSeries) {
+              if (!series) {
+                series = SeriesMetadata.from(tmdbSeries);
+                await this.seriesRepository
+                  .insert(series)
+                  .catch((e) =>
+                    this.logger.error(
+                      `Failed to insert series metadata for tmdbId ${tmdbId}`,
+                      e.stack,
+                    ),
+                  );
+              } else {
+                series.updateFrom(tmdbSeries);
+                await this.em
+                  .upsert(series)
+                  .catch((e) =>
+                    this.logger.error(
+                      `Failed to update series metadata for tmdbId ${tmdbId}`,
+                      e.stack,
+                    ),
+                  );
+              }
             } else {
-              series.updateFrom(tmdbSeries);
-              await this.em
-                .upsert(series)
-                .catch((e) =>
-                  this.logger.error(
-                    `Failed to update series metadata for tmdbId ${tmdbId}`,
-                    e.stack,
-                  ),
-                );
+              this.logger.warn(
+                `TMDB returned no data for series with tmdbId ${tmdbId}`,
+              );
             }
-          } else {
-            this.logger.warn(
-              `TMDB returned no data for series with tmdbId ${tmdbId}`,
-            );
-          }
 
-          if (!series) {
-            throw new Error(
-              `Failed to fetch metadata for series with tmdbId ${tmdbId}`,
-            );
-          }
+            if (!series) {
+              throw new Error(
+                `Failed to fetch metadata for series with tmdbId ${tmdbId}`,
+              );
+            }
 
-          return series;
-        });
+            return series;
+          });
 
-      if (!series || eager) {
-        await p;
+        // A cached document is still served when it cannot be refreshed
+        const refresh = cached
+          ? p.catch((e) =>
+              this.logger.warn(
+                `Failed to refresh series ${tmdbId}: ${e.message}`,
+              ),
+            )
+          : p;
+
+        if (!cached || eager) {
+          await refresh;
+        }
       }
-    }
 
-    unlock();
-    return series;
+      return series;
+    } finally {
+      unlock();
+    }
   }
 
   /**

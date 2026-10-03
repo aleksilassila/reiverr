@@ -14,7 +14,9 @@ import { User } from '../users/user.entity.js';
 
 // Table already carries the name this module gets once the plugin requests are removed
 @Entity({ tableName: 'request' })
-@Unique({ properties: ['userId', 'tmdbId', 'season', 'episode'] })
+@Unique({
+  properties: ['userId', 'mediaType', 'tmdbId', 'season', 'episode'],
+})
 export class MediaRequest {
   @ApiProperty({ type: 'string' })
   @PrimaryKey({ type: 'uuid' })

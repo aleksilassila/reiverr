@@ -320,7 +320,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -354,7 +354,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": false,
+          "unique": true,
           "length": null,
           "precision": null,
           "scale": null,
@@ -368,17 +368,6 @@
       "indexes": [
         {
           "columnNames": [
-            "tmdb_id",
-            "user_id"
-          ],
-          "composite": true,
-          "constraint": true,
-          "keyName": "library_item_tmdb_id_user_id_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
-          "columnNames": [
             "user_id"
           ],
           "composite": false,
@@ -386,6 +375,18 @@
           "keyName": "library_item_user_id_index",
           "primary": false,
           "unique": false
+        },
+        {
+          "columnNames": [
+            "user_id",
+            "media_type",
+            "tmdb_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "library_item_user_id_media_type_tmdb_id_unique",
+          "primary": false,
+          "unique": true
         },
         {
           "columnNames": [
@@ -840,7 +841,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -857,7 +858,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": false,
+          "unique": true,
           "length": null,
           "precision": null,
           "scale": null,
@@ -888,19 +889,6 @@
       "indexes": [
         {
           "columnNames": [
-            "tmdb_id",
-            "user_id",
-            "season",
-            "episode"
-          ],
-          "composite": true,
-          "constraint": true,
-          "keyName": "play_state_tmdb_id_user_id_season_episode_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
-          "columnNames": [
             "user_id"
           ],
           "composite": false,
@@ -908,6 +896,20 @@
           "keyName": "play_state_user_id_index",
           "primary": false,
           "unique": false
+        },
+        {
+          "columnNames": [
+            "user_id",
+            "media_type",
+            "tmdb_id",
+            "season",
+            "episode"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "play_state_user_id_media_type_tmdb_id_season_episode_unique",
+          "primary": false,
+          "unique": true
         },
         {
           "columnNames": [
@@ -1119,13 +1121,14 @@
         {
           "columnNames": [
             "user_id",
+            "media_type",
             "tmdb_id",
             "season",
             "episode"
           ],
           "composite": true,
           "constraint": true,
-          "keyName": "request_user_id_tmdb_id_season_episode_unique",
+          "keyName": "request_user_id_media_type_tmdb_id_season_episode_unique",
           "primary": false,
           "unique": true
         }

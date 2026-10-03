@@ -47,10 +47,14 @@ export class SettingsService {
     defaultValue: TReturn,
   ): Promise<TReturn> {
     const existingValue = await this.getValue<TReturn>(key);
-    if (existingValue !== undefined) {
-      return existingValue;
+    if (existingValue === undefined) {
+      return this.saveValue<TReturn>(key, defaultValue);
     }
-    return this.saveValue<TReturn>(key, defaultValue);
+
+    // Fields that were added to the defaults after the value was stored
+    return isPlainObject(defaultValue) && isPlainObject(existingValue)
+      ? { ...defaultValue, ...existingValue }
+      : existingValue;
   }
 
   /**
@@ -70,4 +74,8 @@ export class SettingsService {
   async getAllSettings(): Promise<Settings[]> {
     return this.em.findAll(Settings, { disableIdentityMap: true });
   }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
