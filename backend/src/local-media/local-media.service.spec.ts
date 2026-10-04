@@ -3,6 +3,7 @@ import { MikroORM } from '@mikro-orm/sqlite';
 import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -211,5 +212,77 @@ describe('LocalMediaService', () => {
     await expect(
       request(() => localMedia.resolveFilePath(file.id)),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  describe('deleting a managed file', () => {
+    const deleteFile = (id: string) =>
+      request(() => localMedia.deleteManagedFile(id));
+    const idOf = async (filePath: string) =>
+      (await indexed()).find((file) => file.path === filePath).id;
+
+    it('deletes the file with the folders it leaves empty', async () => {
+      const first = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const second = await importEpisode(write('downloads/S01E02.mkv'), [2]);
+      const seasonFolder = path.dirname(first);
+
+      await deleteFile(await idOf(first));
+      expect(readdirSync(seasonFolder)).toEqual([path.basename(second)]);
+      expect((await indexed()).map((file) => file.path)).toEqual([second]);
+
+      await deleteFile(await idOf(second));
+      expect(await indexed()).toEqual([]);
+      expect(readdirSync(library)).toEqual([]);
+      // The download is another link to the data and stays
+      expect(existsSync(path.join(root, 'downloads/S01E02.mkv'))).toBe(true);
+    });
+
+    it('leaves a folder that has something else in it', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const seasonFolder = path.dirname(imported);
+      writeFileSync(path.join(seasonFolder, 'notes.txt'), 'notes');
+
+      await deleteFile(await idOf(imported));
+
+      expect(readdirSync(seasonFolder)).toEqual(['notes.txt']);
+    });
+
+    it('keeps a file that is not as it was imported and stops managing it', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      rmSync(imported);
+      writeFileSync(imported, 'something else');
+
+      await deleteFile(id);
+
+      expect(existsSync(imported)).toBe(true);
+      expect(await indexed()).toMatchObject([{ id, managed: false }]);
+      await expect(deleteFile(id)).rejects.toThrow('is not managed');
+    });
+
+    it('keeps a file that the library folders no longer contain', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      await request(() =>
+        localMedia.updateSettings({
+          movieFolders: [],
+          seriesFolders: [path.join(root, 'downloads')],
+        }),
+      );
+
+      await deleteFile(id);
+
+      expect(existsSync(imported)).toBe(true);
+      expect(await indexed()).toMatchObject([{ id, managed: false }]);
+    });
+
+    it('forgets a file that is already gone', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      rmSync(imported);
+
+      await deleteFile(id);
+
+      expect(await indexed()).toEqual([]);
+    });
   });
 });

@@ -3,12 +3,29 @@ import { EpisodeRefDto } from '../common/common.dto.js';
 import { TorrentSelection } from './torrent-selection.entity.js';
 import { Torrent } from './torrent.entity.js';
 
+/** A cleanup runs at 4 in the morning, in the time zone of the server */
+export enum CleanupSchedule {
+  Off = 'off',
+  Daily = 'daily',
+  /** On Mondays */
+  Weekly = 'weekly',
+  /** On the first of the month */
+  Monthly = 'monthly',
+}
+
 export class DownloadSettingsDto {
   @ApiProperty({
     description:
       'Torrents are seeded until they have uploaded this many times what they downloaded. 0 disables seeding.',
   })
   seedRatio: number;
+
+  @ApiProperty({
+    enum: CleanupSchedule,
+    description:
+      'When the imported files that no request keeps are deleted: at 4 in the morning every day, on Mondays or on the first of the month',
+  })
+  cleanup: CleanupSchedule;
 }
 
 export class SelectReleaseDto {
@@ -99,6 +116,15 @@ export class EpisodeStatusDto extends EpisodeRefDto {
 
   @ApiProperty({ required: false })
   error?: string;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    required: false,
+    description:
+      'When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them',
+  })
+  cleanupAt?: Date;
 }
 
 export class SeriesDownloadsDto {

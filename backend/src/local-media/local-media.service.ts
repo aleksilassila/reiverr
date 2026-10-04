@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/sqlite';
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -75,6 +76,8 @@ const INDEXED_FIELDS = [
 
 @Injectable()
 export class LocalMediaService {
+  private readonly logger = new Logger(LocalMediaService.name);
+
   constructor(
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
@@ -242,13 +245,56 @@ export class LocalMediaService {
     );
   }
 
-  /** The indexed files that were imported from the given torrents */
-  findVersions(infoHashes: string[]): Promise<MediaFile[]> {
+  /** The indexed files that were imported from a torrent */
+  findVersions(mediaType: MediaType): Promise<MediaFile[]> {
     return this.em.find(
       MediaFile,
-      { infoHash: { $in: infoHashes } },
+      { mediaType, infoHash: { $ne: null } },
       { disableIdentityMap: true },
     );
+  }
+
+  /**
+   * Deletes an imported file from the library, with the folders that it
+   * leaves empty. A file that is not what was imported, or that the library
+   * folders no longer contain, is kept and becomes an external file.
+   */
+  async deleteManagedFile(id: string): Promise<void> {
+    const file = await this.findFile(id);
+    if (!file.managed) throw new Error(`"${file.path}" is not managed`);
+
+    const stats = await fs.stat(file.path).catch(() => undefined);
+    if (!stats) {
+      await this.em.nativeDelete(MediaFile, { id });
+      return;
+    }
+
+    const { movieFolders, seriesFolders } = await this.getSettings();
+    const libraryFolder = [...movieFolders, ...seriesFolders].find((folder) =>
+      isInsideFolder(file.path, folder),
+    );
+    if (!libraryFolder || !stats.isFile() || stats.size !== file.size) {
+      this.logger.warn(`"${file.path}" is not as imported, it is kept`);
+      await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
+      return;
+    }
+
+    await fs.unlink(file.path);
+    await this.em.nativeDelete(MediaFile, { id });
+    this.logger.log(`Deleted "${file.path}"`);
+
+    for (
+      let folder = path.dirname(file.path);
+      isInsideFolder(folder, libraryFolder);
+      folder = path.dirname(folder)
+    ) {
+      // Fails for a folder that still has something in it
+      const removed = await fs.rmdir(folder).then(
+        () => true,
+        () => false,
+      );
+      if (!removed) break;
+    }
   }
 
   /** The path of an indexed video file */

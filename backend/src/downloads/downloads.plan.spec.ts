@@ -56,12 +56,15 @@ const selection = (userId: string, episode: number, torrentId: string) => ({
   torrentId,
 });
 
+// A file without an info hash was found on disk and is not managed
 const version = (infoHash: string, episode: number, lastEpisode = episode) => ({
+  id: `${infoHash}/${episode}`,
   tmdbId: SERIES,
   season: 1,
   episode,
   lastEpisode,
   infoHash,
+  managed: !!infoHash,
 });
 
 const rule = (
@@ -108,6 +111,7 @@ function plan(state: Partial<DownloadsState>) {
   return {
     statuses: result.requests.map((r) => r.status),
     torrent: (id: string) => result.torrents.find((t) => t.torrentId === id),
+    unretained: result.unretained,
   };
 }
 
@@ -430,6 +434,76 @@ describe('planDownloads', () => {
       expect(torrent('pack').wanted).toEqual([
         { fileIndex: 1, tmdbId: SERIES, season: 1, episodes: [2] },
       ]);
+    });
+  });
+
+  describe('unretained files', () => {
+    const packE1 = version(PACK_HASH, 1);
+    const packE2E3 = version(PACK_HASH, 2, 3);
+    const episodeE2 = version(EPISODE_HASH, 2);
+    const found = version(undefined, 1);
+    const files = [packE1, packE2E3, episodeE2, found];
+    const unretained = (state: Partial<DownloadsState>) =>
+      plan({ files, ...state }).unretained;
+
+    it('are the managed files that no request holds', () => {
+      expect(unretained({})).toEqual([packE1, packE2E3, episodeE2]);
+
+      expect(
+        unretained({
+          requests: [request('a', 3)],
+          selections: [selection('a', 0, 'pack')],
+        }),
+      ).toEqual([packE1, episodeE2]);
+
+      // The request of one user is enough
+      expect(
+        unretained({
+          requests: [request('a', 3), request('b', 1), request('b', 2)],
+          selections: [
+            selection('a', 0, 'pack'),
+            selection('b', 0, 'pack'),
+            selection('b', 2, 'episode'),
+          ],
+        }),
+      ).toEqual([]);
+    });
+
+    it('are not held by a request that their file does not fulfil', () => {
+      const selections = [selection('a', 0, 'pack')];
+
+      // Without approval, and without a torrent
+      expect(
+        unretained({
+          requests: [request('a', 1, false), request('b', 2)],
+          selections,
+        }),
+      ).toEqual([packE1, packE2E3, episodeE2]);
+
+      // With another torrent selected for the episode
+      expect(
+        unretained({
+          requests: [request('a', 2)],
+          selections: [...selections, selection('a', 2, 'episode')],
+        }),
+      ).toEqual([packE1, packE2E3]);
+
+      // Made inactive by a rule
+      expect(
+        unretained({
+          requests: [request('a', 1), request('a', 3)],
+          selections,
+          rules: [rule('a', { keepNext: 1 })],
+        }),
+      ).toEqual([packE2E3, episodeE2]);
+      expect(
+        unretained({
+          requests: [request('a', 1), request('a', 3)],
+          selections,
+          rules: [rule('a', { keepWatchedHours: 1 })],
+          playStates: [watched('a', 1, 2)],
+        }),
+      ).toEqual([packE1, episodeE2]);
     });
   });
 

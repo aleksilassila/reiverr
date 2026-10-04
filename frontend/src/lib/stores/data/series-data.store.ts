@@ -42,6 +42,14 @@ export type EpisodeRequestStatus = {
 	isError: boolean;
 };
 
+function formatTimeUntil(date: string): string {
+	const hours = Math.max(1, Math.ceil((new Date(date).getTime() - Date.now()) / 3_600_000));
+	const days = Math.round(hours / 24);
+
+	if (hours < 24) return `in ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+	return `in ${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 	switch (status?.status) {
 		case 'downloading':
@@ -61,6 +69,10 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 				? 'Watched, not kept'
 				: undefined;
 
+	// No request of anyone keeps a file of the episode from the next cleanup
+	if (status?.onDisk && status.cleanupAt) {
+		return `On disk · Deleted ${formatTimeUntil(status.cleanupAt)}`;
+	}
 	// A file of another torrent, or one that was found on disk, plays as well
 	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';
 	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';

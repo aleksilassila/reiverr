@@ -722,7 +722,7 @@ describe('Series downloads (e2e)', () => {
 
   it('seeds until the ratio is reached, also after a restart', async () => {
     await api('put', '/v2/downloads/settings')
-      .send({ seedRatio: 2 })
+      .send({ seedRatio: 2, cleanup: 'daily' })
       .expect(200);
     await select('Test.Show.S01.1080p.WEB-GRP', { user: viewer });
     await settle();
@@ -766,7 +766,7 @@ describe('Series downloads (e2e)', () => {
     });
 
     await api('put', '/v2/downloads/settings')
-      .send({ seedRatio: 0 })
+      .send({ seedRatio: 0, cleanup: 'daily' })
       .expect(200);
   });
 
@@ -960,6 +960,63 @@ describe('Series downloads (e2e)', () => {
       .send({ ...rule, keepNext: 0 })
       .expect(400);
     await api('put', rulePath).send({ keepNext: 1 }).expect(400);
+  });
+
+  it('deletes the imported files that no request holds at a cleanup', async () => {
+    const setCleanup = (cleanup: string, status = 200) =>
+      api('put', '/v2/downloads/settings')
+        .send({ seedRatio: 0, cleanup })
+        .expect(status);
+    const cleanedUp = async (user = admin) =>
+      (await getDownloads(user)).episodes.map((e) => [
+        e.season,
+        e.episode,
+        !!e.cleanupAt,
+      ]);
+    const downloads = app.get(DownloadsService);
+
+    // The admin's request for episode 2 holds the version that the admin
+    // selected. Nothing holds the other version and the other episodes
+    const held = episodeFile(2, REDIRECT);
+    expect(libraryFiles()).toEqual([
+      episodeFile(1, PACK),
+      held,
+      episodeFile(2, EPISODE),
+      `Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
+    ]);
+
+    await setCleanup('hourly', 400);
+    await setCleanup('off');
+    expect(await cleanedUp()).toEqual([
+      [1, 1, false],
+      [1, 2, false],
+      [2, 1, false],
+    ]);
+    await downloads.onCleanupHour();
+    expect(libraryFiles()).toHaveLength(4);
+
+    // An episode is cleaned up when none of its files is held, by anyone
+    await setCleanup('daily');
+    for (const user of [admin, viewer]) {
+      expect(await cleanedUp(user)).toEqual([
+        [1, 1, true],
+        [1, 2, false],
+        [2, 1, true],
+      ]);
+    }
+    await downloads.onCleanupHour();
+
+    expect(libraryFiles()).toEqual([held]);
+    expect(
+      readdirSync(path.join(dirs.library, 'Test Show (2020) [tmdbid-100]')),
+    ).toEqual(['Season 01']);
+    expect(statuses(await getDownloads())).toEqual([
+      [1, 1, 'no-selection'],
+      [1, 2, 'available'],
+    ]);
+    expect(
+      await app.get(MikroORM).em.fork().count(MediaFile, { managed: true }),
+    ).toBe(1);
   });
 
   it('rejects requests for episodes that do not exist', async () => {

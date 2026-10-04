@@ -13,6 +13,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import * as path from 'node:path';
@@ -29,7 +30,9 @@ import { RequestsService } from '../requests/requests.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { WATCH_STATUS_CHANGED } from '../user-data/play-state/play-state.events.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
+import { CLEANUP_HOUR, getNextCleanup, isCleanupDay } from './cleanup.utils.js';
 import {
+  CleanupSchedule,
   DownloadSettingsDto,
   EpisodeDownloadStatus,
   EpisodeStatusDto,
@@ -53,7 +56,10 @@ import { TorrentSelection } from './torrent-selection.entity.js';
 import { Torrent } from './torrent.entity.js';
 
 const SETTINGS_KEY = 'downloads';
-const DEFAULT_SETTINGS: DownloadSettingsDto = { seedRatio: 0 };
+const DEFAULT_SETTINGS: DownloadSettingsDto = {
+  seedRatio: 0,
+  cleanup: CleanupSchedule.Daily,
+};
 const TICK_INTERVAL = 30_000;
 
 /** A torrent that runs in the engine */
@@ -130,6 +136,12 @@ export class DownloadsService
     this.reconcile();
   }
 
+  @Cron(`0 ${CLEANUP_HOUR} * * *`)
+  async onCleanupHour() {
+    const { cleanup } = await this.getSettings();
+    if (isCleanupDay(new Date(), cleanup)) await this.cleanUp();
+  }
+
   getSettings(): Promise<DownloadSettingsDto> {
     return this.settingsService.getOrCreateValue(
       SETTINGS_KEY,
@@ -140,12 +152,17 @@ export class DownloadsService
   async updateSettings(
     settings: DownloadSettingsDto,
   ): Promise<DownloadSettingsDto> {
-    const seedRatio = settings?.seedRatio;
+    const { seedRatio, cleanup } = settings ?? {};
     if (typeof seedRatio !== 'number' || !(seedRatio >= 0)) {
       throw new BadRequestException('seedRatio must be a number, 0 or greater');
     }
+    if (!Object.values(CleanupSchedule).includes(cleanup)) {
+      throw new BadRequestException(
+        `cleanup must be one of ${Object.values(CleanupSchedule).join(', ')}`,
+      );
+    }
 
-    return this.settingsService.saveValue(SETTINGS_KEY, { seedRatio });
+    return this.settingsService.saveValue(SETTINGS_KEY, { seedRatio, cleanup });
   }
 
   /** Where the requests and the selected torrents of a user stand for a series */
@@ -161,51 +178,63 @@ export class DownloadsService
       }
     }
 
-    const series = { mediaType: MediaType.Series, tmdbId };
-    const selections = await this.em.find(
+    // The series is planned for everyone, because anyone's request can be
+    // what keeps a file from the next cleanup
+    const selectionsOfEveryone = await this.em.find(
       TorrentSelection,
-      { ...series, userId },
+      { mediaType: MediaType.Series, tmdbId },
       { orderBy: { season: 'asc', episode: 'asc' }, disableIdentityMap: true },
     );
-    const torrents = await this.findTorrents(selections);
+    const torrents = await this.findTorrents(selectionsOfEveryone);
     const files = await this.localMediaService.findIndexedFiles(
       MediaType.Series,
       tmdbId,
     );
-    const { seedRatio } = await this.getSettings();
-    const rule = await this.requestsService.findSeriesRule(userId, tmdbId);
+    const { seedRatio, cleanup } = await this.getSettings();
     const plan = planDownloads({
-      requests: await this.requestsService.findSeriesRequests(userId, tmdbId),
-      selections,
+      requests: await this.requestsService.findAllSeriesRequests(tmdbId),
+      selections: selectionsOfEveryone,
       torrents: [...torrents.values()],
       files,
-      ...(await this.getRuleState(rule ? [rule] : [])),
+      ...(await this.getRuleState(
+        await this.requestsService.findRules(tmdbId),
+      )),
       seedRatio,
     });
 
     const requested = new Map(
-      plan.requests.map((planned) => [episodeKey(planned.request), planned]),
+      plan.requests
+        .filter((planned) => planned.request.userId === userId)
+        .map((planned) => [episodeKey(planned.request), planned]),
     );
     const episodes = [
-      ...plan.requests.map((planned) => planned.request),
+      ...[...requested.values()].map((planned) => planned.request),
       ...[...onDisk.values()].filter((e) => !requested.has(episodeKey(e))),
     ];
 
-    const selectedByAnyone = await this.findTorrents(
-      await this.em.find(TorrentSelection, series, {
-        fields: ['torrentId'],
-        disableIdentityMap: true,
-      }),
-    );
+    const nextCleanup = getNextCleanup(new Date(), cleanup);
+    const unretained = new Set(plan.unretained);
+    const isCleanedUp = (e: EpisodeRefDto) => {
+      const ofEpisode = files.filter(
+        (file) =>
+          file.season === e.season &&
+          file.episode <= e.episode &&
+          e.episode <= file.lastEpisode,
+      );
+
+      return ofEpisode.length > 0 && ofEpisode.every((f) => unretained.has(f));
+    };
 
     return {
-      selections: selections.map((selection) => ({
-        id: selection.id,
-        season: selection.season,
-        episode: selection.episode,
-        releaseId: selection.releaseId,
-        torrent: this.toTorrentDto(torrents.get(selection.torrentId)),
-      })),
+      selections: selectionsOfEveryone
+        .filter((selection) => selection.userId === userId)
+        .map((selection) => ({
+          id: selection.id,
+          season: selection.season,
+          episode: selection.episode,
+          releaseId: selection.releaseId,
+          torrent: this.toTorrentDto(torrents.get(selection.torrentId)),
+        })),
       episodes: episodes
         .map((episode): EpisodeStatusDto => ({
           season: episode.season,
@@ -213,11 +242,12 @@ export class DownloadsService
           requested: requested.has(episodeKey(episode)),
           onDisk: onDisk.has(episodeKey(episode)),
           ...this.getRequestStatus(requested.get(episodeKey(episode))),
+          cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
         }))
         .sort((a, b) => a.season - b.season || a.episode - b.episode),
       onServer: [
         ...new Set([
-          ...[...selectedByAnyone.values()].map((t) => t.infoHash),
+          ...[...torrents.values()].map((t) => t.infoHash),
           ...files.flatMap((file) => file.infoHash ?? []),
         ]),
       ],
@@ -336,10 +366,27 @@ export class DownloadsService
     return result;
   }
 
-  @CreateRequestContext()
-  private async apply(sweep: boolean): Promise<void> {
-    for (const active of this.active.values()) await this.storeCounters(active);
+  /**
+   * Deletes the imported files that no request holds. Never rejects. Runs in
+   * the queue, so nothing is imported or planned while it deletes.
+   */
+  cleanUp(): Promise<void> {
+    return this.serialize(() => this.deleteUnretained()).catch((error) =>
+      this.logger.error(`Cleanup failed: ${error.message}`, error.stack),
+    );
+  }
 
+  @CreateRequestContext()
+  private async deleteUnretained(): Promise<void> {
+    const { plan } = await this.planServer();
+
+    for (const file of plan.unretained) {
+      await this.localMediaService.deleteManagedFile(file.id);
+    }
+  }
+
+  /** The plan for every request, torrent and imported file of the server */
+  private async planServer() {
     const torrents = await this.em.find(
       Torrent,
       {},
@@ -354,14 +401,19 @@ export class DownloadsService
         { disableIdentityMap: true },
       ),
       torrents,
-      files: (
-        await this.localMediaService.findVersions(
-          torrents.map((torrent) => torrent.infoHash),
-        )
-      ).filter((file) => file.mediaType === MediaType.Series),
+      files: await this.localMediaService.findVersions(MediaType.Series),
       ...(await this.getRuleState(await this.requestsService.findRules())),
       seedRatio,
     });
+
+    return { plan, torrents };
+  }
+
+  @CreateRequestContext()
+  private async apply(sweep: boolean): Promise<void> {
+    for (const active of this.active.values()) await this.storeCounters(active);
+
+    const { plan, torrents } = await this.planServer();
 
     const torrentsById = new Map(torrents.map((t) => [t.id, t]));
     for (const planned of plan.torrents) {

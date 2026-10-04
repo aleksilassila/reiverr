@@ -112,6 +112,14 @@ export class RequestsService {
     );
   }
 
+  /** The episode requests of every user for a series */
+  async findAllSeriesRequests(tmdbId: string): Promise<MediaRequest[]> {
+    return this.requestRepository.find(
+      { tmdbId, mediaType: MediaTypeFull.Episode },
+      { disableIdentityMap: true },
+    );
+  }
+
   async setEpisodeRequests(options: {
     userId: string;
     tmdbId: string;
@@ -184,9 +192,11 @@ export class RequestsService {
     );
   }
 
-  /** The rules of every user */
-  async findRules(): Promise<RequestRule[]> {
-    return this.ruleRepository.find({}, { disableIdentityMap: true });
+  /** The rules of every user, for one series or for all of them */
+  async findRules(tmdbId?: string): Promise<RequestRule[]> {
+    return this.ruleRepository.find(tmdbId === undefined ? {} : { tmdbId }, {
+      disableIdentityMap: true,
+    });
   }
 
   /** A rule without limits is no rule */

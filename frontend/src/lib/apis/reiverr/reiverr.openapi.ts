@@ -1410,6 +1410,8 @@ export interface ReleaseDto {
 export interface DownloadSettingsDto {
   /** Torrents are seeded until they have uploaded this many times what they downloaded. 0 disables seeding. */
   seedRatio: number;
+  /** When the imported files that no request keeps are deleted: at 4 in the morning every day, on Mondays or on the first of the month */
+  cleanup: "off" | "daily" | "weekly" | "monthly";
 }
 
 export interface TorrentDto {
@@ -1463,6 +1465,11 @@ export interface EpisodeStatusDto {
   /** From 0 to 1 */
   progress?: number;
   error?: string;
+  /**
+   * When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them
+   * @format date-time
+   */
+  cleanupAt?: string;
 }
 
 export interface SeriesDownloadsDto {

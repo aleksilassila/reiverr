@@ -1,11 +1,12 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import type { IndexerDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { DownloadSettingsDto, IndexerDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { Pencil2, Plus } from 'radix-icons-svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import { createModal } from '../../components/Modal/modal.store';
+	import SelectButtonGroup from '../../components/SelectButtonGroup.svelte';
 	import SelectField from '../../components/SelectField.svelte';
 	import TextField from '../../components/TextField.svelte';
 	import { reiverrApi } from '../../stores/user.store';
@@ -15,9 +16,19 @@
 	let seedRatio = '';
 	let savedSeedRatio = '';
 	let seedRatioError = '';
+	let cleanup: DownloadSettingsDto['cleanup'] | undefined = undefined;
+	let cleanupError = '';
+
+	const cleanupOptions: { label: string; value: DownloadSettingsDto['cleanup'] }[] = [
+		{ label: 'Off', value: 'off' },
+		{ label: 'Every day', value: 'daily' },
+		{ label: 'Every Monday', value: 'weekly' },
+		{ label: 'First of the month', value: 'monthly' }
+	];
 
 	reiverrApi.downloads.getDownloadSettings().then((r) => {
 		seedRatio = savedSeedRatio = String(r.data.seedRatio);
+		cleanup = r.data.cleanup;
 	});
 
 	function getIndexers(): Promise<IndexerDto[]> {
@@ -25,12 +36,25 @@
 	}
 
 	async function saveSeedRatio() {
+		if (!cleanup) return;
 		seedRatioError = '';
 
 		await reiverrApi.downloads
-			.updateDownloadSettings({ seedRatio: Number(seedRatio) })
+			.updateDownloadSettings({ seedRatio: Number(seedRatio), cleanup })
 			.then((r) => (seedRatio = savedSeedRatio = String(r.data.seedRatio)))
 			.catch((e) => (seedRatioError = e?.response?.data?.message ?? e?.message));
+	}
+
+	async function saveCleanup(value: string) {
+		cleanupError = '';
+
+		await reiverrApi.downloads
+			.updateDownloadSettings({
+				seedRatio: Number(savedSeedRatio),
+				cleanup: value as DownloadSettingsDto['cleanup']
+			})
+			.then((r) => (cleanup = r.data.cleanup))
+			.catch((e) => (cleanupError = e?.response?.data?.message ?? e?.message));
 	}
 
 	const editIndexer = (current: IndexerDto[], indexer?: IndexerDto) =>
@@ -72,4 +96,18 @@
 	<Button class="mt-4" disabled={seedRatio === savedSeedRatio} action={saveSeedRatio}>
 		Save Seed Ratio
 	</Button>
+
+	{#if cleanup}
+		<div class="mt-8 max-w-sm">
+			<SelectButtonGroup
+				name="Delete downloaded files that no request keeps (at 4:00)"
+				options={cleanupOptions}
+				selected={cleanup}
+				on:select={({ detail }) => saveCleanup(detail)}
+			/>
+			{#if cleanupError}
+				<p class="error mt-4">{cleanupError}</p>
+			{/if}
+		</div>
+	{/if}
 </Container>

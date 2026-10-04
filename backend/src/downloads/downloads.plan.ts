@@ -24,7 +24,13 @@ export interface DownloadsState {
   /** Episode files in the library */
   files: Pick<
     MediaFile,
-    'tmdbId' | 'season' | 'episode' | 'lastEpisode' | 'infoHash'
+    | 'id'
+    | 'tmdbId'
+    | 'season'
+    | 'episode'
+    | 'lastEpisode'
+    | 'infoHash'
+    | 'managed'
   >[];
   rules: Pick<
     RequestRule,
@@ -84,6 +90,8 @@ export interface PlannedTorrent {
 export interface DownloadsPlan {
   requests: PlannedRequest[];
   torrents: PlannedTorrent[];
+  /** The managed files that no request holds, which a cleanup deletes */
+  unretained: DownloadsState['files'];
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -191,6 +199,10 @@ function evaluateRules(state: DownloadsState): {
  * episode, or else for the season. It is fulfilled by the file of that torrent
  * and by no other file of the episode. A request that a rule makes inactive
  * downloads nothing, and neither does one that a rule keeps (see evaluateRules).
+ *
+ * A request holds the file that fulfils it. Nothing else retains a file: not
+ * an inactive request, and not a request of a user who selected another
+ * torrent.
  */
 export function planDownloads(state: DownloadsState): DownloadsPlan {
   const torrents = new Map(state.torrents.map((t) => [t.id, t]));
@@ -221,6 +233,7 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
     (file) => keyOf(file.infoHash, file.tmdbId, file.season),
   );
   const { inactive, kept } = evaluateRules(state);
+  const retained = new Set<DownloadsState['files'][number]>();
 
   const requests = state.requests.map((request): PlannedRequest => {
     if (!request.approved) {
@@ -235,22 +248,24 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
       selections.get(keyOf(userId, tmdbId, season, episode)) ??
       selections.get(keyOf(userId, tmdbId, season, 0));
     const torrent = torrents.get(selection?.torrentId);
-    const isInLibrary =
-      !!torrent &&
-      versions
-        .get(keyOf(torrent.infoHash, tmdbId, season))
-        ?.some(
-          (file) => file.episode <= episode && episode <= file.lastEpisode,
-        );
+    const inLibrary = !torrent
+      ? []
+      : (versions
+          .get(keyOf(torrent.infoHash, tmdbId, season))
+          ?.filter(
+            (file) => file.episode <= episode && episode <= file.lastEpisode,
+          ) ?? []);
 
     // A kept request holds on to the file it has, it downloads none
-    if (kept.has(request) && !isInLibrary) {
+    if (kept.has(request) && !inLibrary.length) {
       return { request, status: PlannedStatus.InactiveWatched };
     }
     if (!selection) return { request, status: PlannedStatus.NoSelection };
 
     const torrentId = torrent.id;
-    if (isInLibrary) {
+    if (inLibrary.length) {
+      for (const file of inLibrary) retained.add(file);
+
       return { request, status: PlannedStatus.Available, torrentId };
     }
 
@@ -293,5 +308,11 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
     };
   });
 
-  return { requests, torrents: [...planned.values()] };
+  return {
+    requests,
+    torrents: [...planned.values()],
+    unretained: state.files.filter(
+      (file) => file.managed && !retained.has(file),
+    ),
+  };
 }

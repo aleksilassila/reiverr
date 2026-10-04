@@ -17,10 +17,12 @@ import { DownloadsModule } from './downloads/downloads.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     MikroOrmModule.forRoot(mikroOrmConfig),
     UsersModule,
     AuthModule,
