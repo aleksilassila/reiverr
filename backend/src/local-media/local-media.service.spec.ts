@@ -15,6 +15,8 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
+import { LogEntry } from '../server-log/log-entry.entity.js';
+import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { LocalMediaService } from './local-media.service.js';
 import { MediaFile } from './media-file.entity.js';
@@ -75,6 +77,7 @@ describe('LocalMediaService', () => {
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
       new EventEmitter2(),
+      new ServerLogService(orm.em, new SettingsService(orm.em)),
     );
     await request(() =>
       localMedia.updateSettings({ movieFolders: [], seriesFolders: [library] }),
@@ -216,7 +219,8 @@ describe('LocalMediaService', () => {
 
   describe('deleting a managed file', () => {
     const deleteFile = (id: string) =>
-      request(() => localMedia.deleteManagedFile(id));
+      request(() => localMedia.deleteManagedFile(id, 'a test'));
+    const logged = () => orm.em.fork().find(LogEntry, {});
     const idOf = async (filePath: string) =>
       (await indexed()).find((file) => file.path === filePath).id;
 
@@ -228,6 +232,22 @@ describe('LocalMediaService', () => {
       await deleteFile(await idOf(first));
       expect(readdirSync(seasonFolder)).toEqual([path.basename(second)]);
       expect((await indexed()).map((file) => file.path)).toEqual([second]);
+      expect(await logged()).toMatchObject([
+        {
+          type: 'file.deleted',
+          message: `Deleted "${first}": a test`,
+          data: {
+            path: first,
+            size: 5,
+            mediaType: 'series',
+            tmdbId: TMDB_ID,
+            season: 1,
+            episode: 1,
+            lastEpisode: 1,
+            infoHash: INFO_HASH,
+          },
+        },
+      ]);
 
       await deleteFile(await idOf(second));
       expect(await indexed()).toEqual([]);
@@ -257,6 +277,7 @@ describe('LocalMediaService', () => {
       expect(existsSync(imported)).toBe(true);
       expect(await indexed()).toMatchObject([{ id, managed: false }]);
       await expect(deleteFile(id)).rejects.toThrow('is not managed');
+      expect(await logged()).toEqual([]);
     });
 
     it('keeps a file that the library folders no longer contain', async () => {

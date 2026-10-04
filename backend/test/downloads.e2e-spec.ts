@@ -30,6 +30,7 @@ import { ReleaseDto } from '../src/indexers/indexers.dto.js';
 import { MediaFile } from '../src/local-media/media-file.entity.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
+import { LogEntry, LogType } from '../src/server-log/log-entry.entity.js';
 import { RequestRuleDto } from '../src/requests/requests.dto.js';
 import { RequestsService } from '../src/requests/requests.service.js';
 import { createTorrent } from './torrent-fixture.js';
@@ -561,6 +562,22 @@ describe('Series downloads (e2e)', () => {
     );
     expect(pack.destroyed).toBe(true);
     expect(existsSync(pack.directory)).toBe(false);
+    expect(
+      await app
+        .get(MikroORM)
+        .em.fork()
+        .find(LogEntry, { type: LogType.DownloadDeleted }),
+    ).toMatchObject([
+      {
+        message:
+          'Deleted the downloaded data of "Test.Show.S01E02.1080p.WEB-GRP"',
+        data: { infoHash: EPISODE },
+      },
+      {
+        message: 'Deleted the downloaded data of "Test.Show.S01.1080p.WEB-GRP"',
+        data: { directory: pack.directory, infoHash: PACK },
+      },
+    ]);
 
     const downloads = await getDownloads();
     expect(downloads.episodes).toEqual([
@@ -1017,6 +1034,22 @@ describe('Series downloads (e2e)', () => {
     expect(
       await app.get(MikroORM).em.fork().count(MediaFile, { managed: true }),
     ).toBe(1);
+
+    // Every deletion is in the log, with the file it was
+    const deleted = await app
+      .get(MikroORM)
+      .em.fork()
+      .find(LogEntry, { type: LogType.FileDeleted });
+    expect(deleted.map((entry) => entry.data.path).sort()).toEqual(
+      [
+        episodeFile(1, PACK),
+        episodeFile(2, EPISODE),
+        `Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
+      ].map((file) => path.join(dirs.library, file)),
+    );
+    expect(deleted[0].message).toBe(
+      `Deleted "${deleted[0].data.path}": no request holds it`,
+    );
   });
 
   it('rejects requests for episodes that do not exist', async () => {

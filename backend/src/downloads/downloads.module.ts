@@ -3,6 +3,7 @@ import { IndexersModule } from '../indexers/indexers.module.js';
 import { LocalMediaModule } from '../local-media/local-media.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
+import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { PlayStatesModule } from '../user-data/play-state/play-states.module.js';
 import { DownloadsController } from './downloads.controller.js';
@@ -18,6 +19,7 @@ import { TorrentStreamEngine } from './torrent-stream.engine.js';
     PlayStatesModule,
     IndexersModule,
     LocalMediaModule,
+    ServerLogModule,
   ],
   controllers: [DownloadsController],
   providers: [

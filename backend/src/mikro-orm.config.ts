@@ -6,6 +6,7 @@ import { TorrentSelection } from './downloads/torrent-selection.entity.js';
 import { Torrent } from './downloads/torrent.entity.js';
 import { Job } from './jobs/job.entity.js';
 import { MediaFile } from './local-media/media-file.entity.js';
+import { LogEntry } from './server-log/log-entry.entity.js';
 import { RequestRule } from './requests/request-rule.entity.js';
 import { MediaRequest } from './requests/request.entity.js';
 import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
@@ -19,6 +20,7 @@ export default defineConfig({
   entities: [
     Job,
     LibraryItem,
+    LogEntry,
     MediaFile,
     MediaRequest,
     MovieMetadata,

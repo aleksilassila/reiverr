@@ -1486,6 +1486,13 @@ export interface SelectReleaseDto {
   releaseId: string;
 }
 
+export interface ServerLogSettingsDto {
+  /** How many of the newest entries are kept, older ones are deleted. 0 keeps any number of them. */
+  maxEntries: number;
+  /** Entries older than this many days are deleted. 0 keeps them whatever their age. */
+  maxAgeDays: number;
+}
+
 export interface UpdatePlayStateDto {
   season?: number;
   episode?: number;
@@ -2709,6 +2716,42 @@ export class Api<
       this.request<SuccessResponseDto, any>({
         path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
         method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+  };
+  serverLog = {
+    /**
+     * No description
+     *
+     * @tags server-log
+     * @name GetServerLogSettings
+     * @request GET:/api/v2/server-log/settings
+     */
+    getServerLogSettings: (params: RequestParams = {}) =>
+      this.request<ServerLogSettingsDto, any>({
+        path: `/api/v2/server-log/settings`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server-log
+     * @name UpdateServerLogSettings
+     * @request PUT:/api/v2/server-log/settings
+     */
+    updateServerLogSettings: (
+      data: ServerLogSettingsDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<ServerLogSettingsDto, any>({
+        path: `/api/v2/server-log/settings`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

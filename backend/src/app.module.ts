@@ -14,6 +14,7 @@ import { LocalMediaModule } from './local-media/local-media.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { IndexersModule } from './indexers/indexers.module.js';
 import { DownloadsModule } from './downloads/downloads.module.js';
+import { ServerLogModule } from './server-log/server-log.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     JobsModule,
     IndexersModule,
     DownloadsModule,
+    ServerLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

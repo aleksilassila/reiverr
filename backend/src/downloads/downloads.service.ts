@@ -15,7 +15,7 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { rm, stat } from 'node:fs/promises';
 import * as path from 'node:path';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
@@ -27,6 +27,8 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { REQUESTS_CHANGED } from '../requests/requests.events.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { LogType } from '../server-log/log-entry.entity.js';
+import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { WATCH_STATUS_CHANGED } from '../user-data/play-state/play-state.events.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
@@ -106,6 +108,7 @@ export class DownloadsService
     private readonly playStatesService: PlayStatesService,
     private readonly indexersService: IndexersService,
     private readonly localMediaService: LocalMediaService,
+    private readonly serverLog: ServerLogService,
     @Inject(TORRENT_ENGINE) private readonly engine: TorrentEngine,
   ) {}
 
@@ -381,7 +384,10 @@ export class DownloadsService
     const { plan } = await this.planServer();
 
     for (const file of plan.unretained) {
-      await this.localMediaService.deleteManagedFile(file.id);
+      await this.localMediaService.deleteManagedFile(
+        file.id,
+        'no request holds it',
+      );
     }
   }
 
@@ -569,7 +575,19 @@ export class DownloadsService
     const active = this.active.get(torrent.id);
     if (active) await this.stop(active);
 
-    await rm(this.getDirectory(torrent), { recursive: true, force: true });
+    const directory = this.getDirectory(torrent);
+    const hasData = await stat(directory).then(
+      () => true,
+      () => false,
+    );
+    await rm(directory, { recursive: true, force: true });
+    if (hasData) {
+      await this.serverLog.write(
+        LogType.DownloadDeleted,
+        `Deleted the downloaded data of "${torrent.title}"`,
+        { directory, torrentId: torrent.id, infoHash: torrent.infoHash },
+      );
+    }
 
     if (torrent.downloadedBytes || torrent.uploadedBytes) {
       await this.em.nativeUpdate(

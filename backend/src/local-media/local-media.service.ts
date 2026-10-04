@@ -11,6 +11,8 @@ import { randomUUID } from 'node:crypto';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
+import { LogType } from '../server-log/log-entry.entity.js';
+import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
   LocalEpisodeFileDto,
@@ -83,6 +85,7 @@ export class LocalMediaService {
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly serverLog: ServerLogService,
   ) {}
 
   getSettings(): Promise<LocalMediaSettingsDto> {
@@ -256,10 +259,11 @@ export class LocalMediaService {
 
   /**
    * Deletes an imported file from the library, with the folders that it
-   * leaves empty. A file that is not what was imported, or that the library
-   * folders no longer contain, is kept and becomes an external file.
+   * leaves empty, and logs it with the reason. A file that is not what was
+   * imported, or that the library folders no longer contain, is kept and
+   * becomes an external file.
    */
-  async deleteManagedFile(id: string): Promise<void> {
+  async deleteManagedFile(id: string, reason: string): Promise<void> {
     const file = await this.findFile(id);
     if (!file.managed) throw new Error(`"${file.path}" is not managed`);
 
@@ -281,7 +285,20 @@ export class LocalMediaService {
 
     await fs.unlink(file.path);
     await this.em.nativeDelete(MediaFile, { id });
-    this.logger.log(`Deleted "${file.path}"`);
+    await this.serverLog.write(
+      LogType.FileDeleted,
+      `Deleted "${file.path}": ${reason}`,
+      {
+        path: file.path,
+        size: file.size,
+        mediaType: file.mediaType,
+        tmdbId: file.tmdbId,
+        season: file.season,
+        episode: file.episode,
+        lastEpisode: file.lastEpisode,
+        infoHash: file.infoHash,
+      },
+    );
 
     for (
       let folder = path.dirname(file.path);
