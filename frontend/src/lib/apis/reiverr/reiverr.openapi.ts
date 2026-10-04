@@ -1495,6 +1495,41 @@ export interface ServerLogSettingsDto {
   maxAgeDays: number;
 }
 
+export interface ServerLibraryEntryDto {
+  /** Where it is in the library folder, with / between the names */
+  path: string;
+  isDirectory: boolean;
+  /** Bytes, 0 for a directory */
+  size: number;
+  /** The id of the file, when it is a video that is indexed */
+  mediaFileId?: string;
+  /** For an indexed file, whether it was imported from a torrent, which leaves it to the cleanup */
+  managed?: boolean;
+  /** Why the entry could not be read. What is in a directory that could not be read is not listed */
+  error?: string;
+  /** For an indexed file, how many requests it fulfils. They are deleted with the file */
+  requests?: number;
+}
+
+export interface DeleteLibraryEntriesDto {
+  /** One of the library folders */
+  folder: string;
+  /** Where the files and directories to delete are in the folder, with / between the names */
+  paths: string[];
+}
+
+export interface FailedLibraryEntryDto {
+  path: string;
+  error: string;
+}
+
+export interface DeletedLibraryEntriesDto {
+  /** How many of the entries were deleted */
+  deleted: number;
+  /** The entries that could not be deleted, or not completely, and why */
+  failed: FailedLibraryEntryDto[];
+}
+
 export interface UpdatePlayStateDto {
   season?: number;
   episode?: number;
@@ -2752,6 +2787,48 @@ export class Api<
       this.request<ServerLogSettingsDto, any>({
         path: `/api/v2/server-log/settings`,
         method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
+  server = {
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetLibraryEntries
+     * @request GET:/api/v2/server/library
+     */
+    getLibraryEntries: (
+      query: {
+        folder: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ServerLibraryEntryDto[], any>({
+        path: `/api/v2/server/library`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name DeleteLibraryEntries
+     * @request POST:/api/v2/server/library/delete
+     */
+    deleteLibraryEntries: (
+      data: DeleteLibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<DeletedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/delete`,
+        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",

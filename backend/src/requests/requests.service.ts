@@ -339,6 +339,52 @@ export class RequestsService {
     return deleted;
   }
 
+  /** The requests that the given files fulfil */
+  findByMediaFiles(mediaFileIds: string[]): Promise<MediaRequest[]> {
+    return this.requestRepository.find(
+      { mediaFileId: { $in: mediaFileIds } },
+      { disableIdentityMap: true },
+    );
+  }
+
+  async deleteByIds(ids: string[]): Promise<number> {
+    const requests = await this.requestRepository.find(
+      { id: { $in: ids } },
+      { disableIdentityMap: true },
+    );
+    if (!requests.length) return 0;
+
+    await this.requestRepository.nativeDelete({
+      id: { $in: requests.map((request) => request.id) },
+    });
+    const titles = new Map(
+      requests.map((request) => [
+        `${request.mediaType}/${request.tmdbId}`,
+        request,
+      ]),
+    );
+    for (const { tmdbId, mediaType } of titles.values()) {
+      await this.emitChanged(tmdbId, mediaType);
+    }
+
+    return requests.length;
+  }
+
+  /** How many requests a file fulfils, for every file that fulfils one */
+  async countByMediaFile(): Promise<Map<string, number>> {
+    const requests = await this.requestRepository.find(
+      { mediaFileId: { $ne: null } },
+      { fields: ['mediaFileId'], disableIdentityMap: true },
+    );
+
+    const counts = new Map<string, number>();
+    for (const { mediaFileId } of requests) {
+      counts.set(mediaFileId, (counts.get(mediaFileId) ?? 0) + 1);
+    }
+
+    return counts;
+  }
+
   private emitChanged(tmdbId: string, mediaType: MediaTypeFull) {
     const event: RequestsChangedEvent = { tmdbId, mediaType };
     return this.eventEmitter.emitAsync(REQUESTS_CHANGED, event);

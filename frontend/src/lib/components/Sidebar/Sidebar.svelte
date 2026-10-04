@@ -8,7 +8,8 @@
 		Gear,
 		Laptop,
 		MagnifyingGlass,
-		Person
+		Person,
+		Stack
 	} from 'radix-icons-svelte';
 	import { onMount } from 'svelte';
 	import { type Readable, writable, type Writable } from 'svelte/store';
@@ -20,14 +21,16 @@
 	import { useTabs } from '../Tab/Tab';
 	import { sidebarRegistrar, unfocusSidebar } from './sidebar';
 
-	enum Tabs {
-		Users,
-		Series,
-		Movies,
-		Library,
-		Search,
-		Manage
-	}
+	// Entries are addressed by their position in the sidebar, and Server is only rendered for admins
+	$: Tabs = {
+		Users: 0,
+		Series: 1,
+		Movies: 2,
+		Library: 3,
+		Search: 4,
+		Server: $user?.isAdmin ? 5 : -1,
+		Manage: $user?.isAdmin ? 6 : 5
+	};
 
 	const { visibleStyle } = getUiVisibilityContext();
 
@@ -61,6 +64,7 @@
 				[Tabs.Movies]: '/movies',
 				[Tabs.Library]: '/library',
 				[Tabs.Search]: '/search',
+				[Tabs.Server]: '/server',
 				[Tabs.Manage]: '/manage'
 			}[index] || '/';
 		navigate(path);
@@ -83,6 +87,7 @@
 					'/movies': Tabs.Movies,
 					'/library': Tabs.Library,
 					'/search': Tabs.Search,
+					'/server': Tabs.Server,
 					'/manage': Tabs.Manage
 				}[uri] ?? -1;
 			selectable.focusIndex.set(activeIndex);
@@ -298,6 +303,45 @@
 		</Container>
 	</div>
 
+	{#if $user?.isAdmin}
+		<Container
+			class="w-full h-12 cursor-pointer"
+			on:clickOrSelect={selectIndex(Tabs.Server)}
+			let:hasFocus
+		>
+			<div
+				class={classNames(
+					'w-full h-full relative flex items-center justify-center transition-opacity',
+					{
+						'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Server),
+						'text-stone-300 hover:text-primary-500':
+							!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Server),
+						'opacity-0 pointer-events-none': hasFocusWithin === false,
+						'group-hover:opacity-100 group-hover:pointer-events-auto': true
+					}
+				)}
+			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Server })}
+						size={19}
+					/>
+				</div>
+				<Stack class="w-8 h-8" />
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+						{
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Server
+				</span>
+			</div>
+		</Container>
+	{/if}
 	<Container
 		class="w-full h-12 cursor-pointer"
 		on:clickOrSelect={selectIndex(Tabs.Manage)}

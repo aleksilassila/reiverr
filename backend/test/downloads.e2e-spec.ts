@@ -1159,6 +1159,75 @@ describe('Series downloads (e2e)', () => {
     );
   });
 
+  it('lets an admin delete from a library folder, with the requests that the files fulfil', async () => {
+    const SHOW = 'Test Show (2020) [tmdbid-100]';
+    const held = episodeFile(2, REDIRECT);
+    const getLibrary = (folder: string, user = admin) =>
+      api(
+        'get',
+        `/v2/server/library?folder=${encodeURIComponent(folder)}`,
+        user,
+      );
+    const deleteFromLibrary = (paths: string[], user = admin) =>
+      api('post', '/v2/server/library/delete', user).send({
+        folder: dirs.library,
+        paths,
+      });
+
+    // The viewer gets the file that the admin has
+    await select('Test.Show.S01E02.720p.WEB-GRP', { episode: 2, user: viewer });
+    await setRequested([2], true, { user: viewer });
+    const pending = await api('get', '/v2/requests?approved=false').expect(200);
+    await api('put', `/v2/requests/${pending.body.items[0].id}`)
+      .send({ approved: true })
+      .expect(200);
+    await settle();
+    expect(await references(viewer)).toEqual([[1, 2, REDIRECT, REDIRECT]]);
+
+    await getLibrary(dirs.library, viewer).expect(403);
+    await deleteFromLibrary([held], viewer).expect(403);
+    await getLibrary(dirs.root).expect(400);
+    await deleteFromLibrary(['../downloads']).expect(400);
+
+    expect((await getLibrary(dirs.library).expect(200)).body).toEqual([
+      { path: SHOW, isDirectory: true, size: 0 },
+      { path: `${SHOW}/Season 01`, isDirectory: true, size: 0 },
+      {
+        path: held,
+        isDirectory: false,
+        size: 7,
+        mediaFileId: expect.any(String),
+        managed: true,
+        requests: 2,
+      },
+    ]);
+
+    expect((await deleteFromLibrary([held]).expect(200)).body).toEqual({
+      deleted: 1,
+      failed: [],
+    });
+    await settle();
+
+    // Nothing downloads the file again: the requests for it are gone, the
+    // selections are not
+    expect(libraryFiles()).toEqual([]);
+    expect(await references()).toEqual([[1, 1, null, null]]);
+    expect(await references(viewer)).toEqual([]);
+    expect(engine.running(REDIRECT)).toBeUndefined();
+    expect((await getDownloads(viewer)).selections).toHaveLength(1);
+    expect(
+      await app
+        .get(MikroORM)
+        .em.fork()
+        .count(LogEntry, {
+          message: `Deleted "${path.join(dirs.library, held)}": deleted by admin`,
+        }),
+    ).toBe(1);
+
+    await deleteFromLibrary([SHOW]).expect(200);
+    expect(readdirSync(dirs.library)).toEqual([]);
+  });
+
   it('rejects requests for episodes that do not exist', async () => {
     await api('put', `/v2/users/${admin.id}/requests/series/tmdb/${TMDB_ID}`)
       .send({ episodes: [{ season: 1, episode: 9 }], requested: true })

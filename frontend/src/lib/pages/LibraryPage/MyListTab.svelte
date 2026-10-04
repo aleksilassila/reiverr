@@ -4,6 +4,7 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
+	import TabItem from '$lib/components/Tab/TabItem.svelte';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import { libraryContext } from '$lib/stores/data/library-data.store';
@@ -13,7 +14,6 @@
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 	import MyListOptions from './MyListOptions.svelte';
-	import TabItem from './TabItem.svelte';
 
 	const { topVisible } = getScrollContext();
 

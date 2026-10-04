@@ -15,6 +15,8 @@ import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
+  DeletedLibraryEntriesDto,
+  LibraryEntryDto,
   LocalEpisodeFileDto,
   LocalMediaFileDto,
   LocalMediaSettingsDto,
@@ -54,6 +56,9 @@ const VERSION_LABEL_LENGTH = 8;
 
 // SQLite limits the number of values in one statement
 const INDEX_BATCH_SIZE = 500;
+
+// How many files of a library folder are looked at at a time
+const STAT_BATCH_SIZE = 64;
 
 interface FoundFile {
   path: string;
@@ -285,20 +290,7 @@ export class LocalMediaService {
 
     await fs.unlink(file.path);
     await this.em.nativeDelete(MediaFile, { id });
-    await this.serverLog.write(
-      LogType.FileDeleted,
-      `Deleted "${file.path}": ${reason}`,
-      {
-        path: file.path,
-        size: file.size,
-        mediaType: file.mediaType,
-        tmdbId: file.tmdbId,
-        season: file.season,
-        episode: file.episode,
-        lastEpisode: file.lastEpisode,
-        infoHash: file.infoHash,
-      },
-    );
+    await this.logDeleted(file.path, reason, file);
 
     for (
       let folder = path.dirname(file.path);
@@ -312,6 +304,137 @@ export class LocalMediaService {
       );
       if (!removed) break;
     }
+  }
+
+  /**
+   * Everything in a library folder: its directories and files with their
+   * sizes, a directory before what is in it. Symbolic links are listed, not
+   * followed. A file that is indexed says so.
+   */
+  async getLibraryEntries(folder: string): Promise<LibraryEntryDto[]> {
+    await this.assertLibraryFolder(folder);
+
+    const entries: LibraryEntryDto[] = [];
+    const walk = async (dir: string, entry?: LibraryEntryDto) => {
+      const dirents = await fs
+        .readdir(dir, { withFileTypes: true })
+        .catch((error) => {
+          // The folder itself has to be readable, a directory in it is listed as it is
+          if (!entry) throw error;
+          entry.error = describeError(error);
+          return [];
+        });
+
+      for (const dirent of dirents.sort(byName)) {
+        const entryPath = path.join(dir, dirent.name);
+        const isDirectory = dirent.isDirectory();
+        const child: LibraryEntryDto = {
+          path: path.relative(folder, entryPath).split(path.sep).join('/'),
+          isDirectory,
+          size: 0,
+        };
+
+        entries.push(child);
+        if (isDirectory) await walk(entryPath, child);
+      }
+    };
+    await walk(folder);
+
+    const indexed = new Map(
+      (await this.findFilesInside(folder)).map((file) => [file.path, file]),
+    );
+    const files = entries.filter((entry) => !entry.isDirectory);
+    for (let i = 0; i < files.length; i += STAT_BATCH_SIZE) {
+      await Promise.all(
+        files.slice(i, i + STAT_BATCH_SIZE).map(async (entry) => {
+          const entryPath = path.join(folder, ...entry.path.split('/'));
+          // A link that leads nowhere has no size either
+          const stats = await fs.stat(entryPath).catch((error) => {
+            entry.error = describeError(error);
+            return undefined;
+          });
+          const file = indexed.get(entryPath);
+
+          entry.size = stats?.isFile() ? stats.size : 0;
+          entry.mediaFileId = file?.id;
+          entry.managed = file?.managed;
+        }),
+      );
+    }
+
+    return entries;
+  }
+
+  /** The indexed files that are among the given entries of a library folder */
+  async findLibraryFiles(
+    folder: string,
+    paths: string[],
+  ): Promise<MediaFile[]> {
+    const files: MediaFile[] = [];
+    for (const entryPath of await this.resolveLibraryEntries(folder, paths)) {
+      files.push(...(await this.findFilesAt(entryPath)));
+    }
+
+    return files;
+  }
+
+  /**
+   * Deletes entries of a library folder, a directory with everything in it,
+   * and forgets the indexed files among them. Nothing else is removed: a
+   * directory that this leaves empty stays. An entry that cannot be deleted,
+   * or only in part, is reported and the others are deleted anyway. Every
+   * deletion is logged with the reason.
+   */
+  async deleteLibraryEntries(
+    folder: string,
+    paths: string[],
+    reason: string,
+  ): Promise<DeletedLibraryEntriesDto & { files: MediaFile[] }> {
+    const result: DeletedLibraryEntriesDto & { files: MediaFile[] } = {
+      deleted: 0,
+      failed: [],
+      files: [],
+    };
+
+    for (const entryPath of await this.resolveLibraryEntries(folder, paths)) {
+      const files = await this.findFilesAt(entryPath);
+      const error = await fs.rm(entryPath, { recursive: true }).then(
+        () => undefined,
+        (error) => error,
+      );
+
+      // What is gone is gone, whether the deletion got through or not
+      const gone: MediaFile[] = [];
+      for (const file of files) {
+        if (!(await exists(file.path))) gone.push(file);
+      }
+      if (gone.length) {
+        await this.em.nativeDelete(MediaFile, {
+          id: { $in: gone.map((file) => file.id) },
+        });
+      }
+      for (const file of gone) {
+        await this.logDeleted(file.path, reason, file);
+      }
+      if (
+        !gone.some((file) => file.path === entryPath) &&
+        !(await exists(entryPath))
+      ) {
+        await this.logDeleted(entryPath, reason);
+      }
+
+      result.files.push(...gone);
+      if (error) {
+        result.failed.push({
+          path: path.relative(folder, entryPath).split(path.sep).join('/'),
+          error: describeError(error),
+        });
+      } else {
+        result.deleted++;
+      }
+    }
+
+    return result;
   }
 
   /** The path of an indexed video file */
@@ -353,6 +476,112 @@ export class LocalMediaService {
     if (!file) throw new NotFoundException('File not found');
 
     return file;
+  }
+
+  private async assertLibraryFolder(folder: string): Promise<void> {
+    const { movieFolders, seriesFolders } = await this.getSettings();
+
+    if (![...movieFolders, ...seriesFolders].includes(folder)) {
+      throw new BadRequestException('Not a library folder');
+    }
+  }
+
+  /**
+   * The absolute paths of entries of a library folder that exist, without the
+   * ones that are inside another one of them. An entry is something inside
+   * the folder that no symbolic link leads to.
+   */
+  private async resolveLibraryEntries(
+    folder: string,
+    paths: string[],
+  ): Promise<string[]> {
+    await this.assertLibraryFolder(folder);
+    if (
+      !Array.isArray(paths) ||
+      paths.some((entry) => typeof entry !== 'string' || !entry)
+    ) {
+      throw new BadRequestException('Paths must be a list of paths');
+    }
+
+    const realFolder = await fs.realpath(folder);
+    const resolved = new Set<string>();
+    for (const entry of paths) {
+      const entryPath = path.resolve(folder, ...entry.split('/'));
+      if (!isInsideFolder(entryPath, folder)) {
+        throw new BadRequestException(`Not in the library folder: ${entry}`);
+      }
+
+      const exists = await fs.lstat(entryPath).then(
+        () => true,
+        () => false,
+      );
+      if (!exists) continue;
+
+      const parent = await fs.realpath(path.dirname(entryPath));
+      if (parent !== realFolder && !isInsideFolder(parent, realFolder)) {
+        throw new BadRequestException(`Not in the library folder: ${entry}`);
+      }
+
+      resolved.add(entryPath);
+    }
+
+    const isInsideAnother = (entryPath: string) => {
+      for (
+        let dir = path.dirname(entryPath);
+        isInsideFolder(dir, folder);
+        dir = path.dirname(dir)
+      ) {
+        if (resolved.has(dir)) return true;
+      }
+
+      return false;
+    };
+
+    return [...resolved].filter((entryPath) => !isInsideAnother(entryPath));
+  }
+
+  /** The indexed file at a path, or the indexed files inside the directory there */
+  private async findFilesAt(entryPath: string): Promise<MediaFile[]> {
+    const file = await this.em.findOne(
+      MediaFile,
+      { path: entryPath },
+      { disableIdentityMap: true },
+    );
+
+    return file ? [file] : this.findFilesInside(entryPath);
+  }
+
+  private findFilesInside(dir: string): Promise<MediaFile[]> {
+    return this.em.find(
+      MediaFile,
+      {
+        path: {
+          $gte: dir + path.sep,
+          // The character after the separator ends the range of what is inside
+          $lt: dir + String.fromCharCode(path.sep.charCodeAt(0) + 1),
+        },
+      },
+      { disableIdentityMap: true },
+    );
+  }
+
+  private logDeleted(filePath: string, reason: string, file?: MediaFile) {
+    return this.serverLog.write(
+      LogType.FileDeleted,
+      `Deleted "${filePath}": ${reason}`,
+      {
+        path: filePath,
+        ...(file && {
+          size: file.size,
+          mediaType: file.mediaType,
+          tmdbId: file.tmdbId,
+          season: file.season,
+          episode: file.episode,
+          lastEpisode: file.lastEpisode,
+          infoHash: file.infoHash,
+        }),
+      },
+    );
   }
 
   /** The library folders can have changed since the file was indexed */
@@ -567,9 +796,7 @@ export class LocalMediaService {
   private async readDirectory(dir: string): Promise<Dirent[]> {
     const entries = await fs.readdir(dir, { withFileTypes: true });
 
-    return entries
-      .filter((entry) => !entry.name.startsWith('.'))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return entries.filter((entry) => !entry.name.startsWith('.')).sort(byName);
   }
 
   private async isDirectory(entry: Dirent, parent: string): Promise<boolean> {
@@ -581,6 +808,17 @@ export class LocalMediaService {
     return stats?.isDirectory() ?? false;
   }
 }
+
+const byName = (a: Dirent, b: Dirent) => a.name.localeCompare(b.name);
+
+const exists = (filePath: string) =>
+  fs.lstat(filePath).then(
+    () => true,
+    () => false,
+  );
+
+/** "EACCES: permission denied", without the system call and the path */
+const describeError = (error: Error) => error.message.split(',')[0];
 
 function toFileTarget(numbers: {
   season: number;

@@ -20,6 +20,7 @@ import * as path from 'node:path';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
 import { IndexersService } from '../indexers/indexers.service.js';
+import { DeletedLibraryEntriesDto } from '../local-media/local-media.dto.js';
 import { LOCAL_MEDIA_VERSION_GONE } from '../local-media/local-media.events.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { parseEpisodeNumbers } from '../local-media/local-media.utils.js';
@@ -397,6 +398,49 @@ export class DownloadsService
     return this.serialize(() => this.deleteUnretained()).catch((error) =>
       this.logger.error(`Cleanup failed: ${error.message}`, error.stack),
     );
+  }
+
+  /**
+   * Deletes what an admin selected in a library folder, and with it the
+   * requests that the deleted files fulfilled, which would download them
+   * again. Runs in the queue, so nothing is imported or planned while it
+   * deletes.
+   */
+  deleteLibraryEntries(
+    folder: string,
+    paths: string[],
+    reason: string,
+  ): Promise<DeletedLibraryEntriesDto> {
+    return this.serialize(async () => {
+      // So that the requests refer to every file that is imported by now
+      await this.apply(false);
+
+      const files = await this.localMediaService.findLibraryFiles(
+        folder,
+        paths,
+      );
+      // The references are gone with the rows of the files, so they are read first
+      const requests = await this.requestsService.findByMediaFiles(
+        files.map((file) => file.id),
+      );
+      const {
+        deleted,
+        failed,
+        files: gone,
+      } = await this.localMediaService.deleteLibraryEntries(
+        folder,
+        paths,
+        reason,
+      );
+      const goneIds = new Set(gone.map((file) => file.id));
+      await this.requestsService.deleteByIds(
+        requests
+          .filter((request) => goneIds.has(request.mediaFileId))
+          .map((request) => request.id),
+      );
+
+      return { deleted, failed };
+    });
   }
 
   @CreateRequestContext()

@@ -26,5 +26,6 @@ import { TorrentStreamEngine } from './torrent-stream.engine.js';
     DownloadsService,
     { provide: TORRENT_ENGINE, useClass: TorrentStreamEngine },
   ],
+  exports: [DownloadsService],
 })
 export class DownloadsModule {}

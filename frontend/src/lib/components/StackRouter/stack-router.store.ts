@@ -17,6 +17,7 @@ import PageNotFound from '../../pages/PageNotFound.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
+import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
 import EpisodePage from '../../pages/TitlePages/EpisodePage.svelte';
 import MoviePage from '../../pages/TitlePages/MoviePage/MoviePage.svelte';
 import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
@@ -449,6 +450,12 @@ const manageRoute: Route = {
 	root: true
 };
 
+const serverRoute: Route = {
+	path: '/server',
+	component: ServerPage,
+	root: true
+};
+
 const uiComponentsRoute: Route = {
 	path: '/ui-components',
 	component: UiComponents,
@@ -476,6 +483,7 @@ export const stackRouter = useStackRouter({
 		libraryRoute,
 		searchRoute,
 		manageRoute,
+		serverRoute,
 		uiComponentsRoute
 	],
 	notFound: notFoundRoute

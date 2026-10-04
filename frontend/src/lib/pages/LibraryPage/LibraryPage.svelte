@@ -3,9 +3,9 @@
 	import { useTabs } from '$lib/components/Tab/Tab';
 	import Tab from '$lib/components/Tab/Tab.svelte';
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
+	import TabItem from '$lib/components/Tab/TabItem.svelte';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import MyListTab from './MyListTab.svelte';
-	import TabItem from './TabItem.svelte';
 
 	const { registrar: scrollRegistrar } = setScrollContext();
 

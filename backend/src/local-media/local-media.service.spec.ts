@@ -1,14 +1,16 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -304,6 +306,213 @@ describe('LocalMediaService', () => {
       await deleteFile(id);
 
       expect(await indexed()).toEqual([]);
+    });
+  });
+
+  describe('the entries of a library folder', () => {
+    const SHOW = 'Test Show (2020) [tmdbid-100]';
+    const entries = () => request(() => localMedia.getLibraryEntries(library));
+    const deleteEntries = (paths: string[], folder = library) =>
+      request(() => localMedia.deleteLibraryEntries(folder, paths, 'a test'));
+    const logged = async () =>
+      (await orm.em.fork().find(LogEntry, {})).map((entry) => entry.message);
+
+    it('lists everything in the folder, a directory before what is in it', async () => {
+      const imported = await importEpisode(
+        write('downloads/S01E01.mkv', 'episode one'),
+        [1],
+      );
+      write(`tv/${SHOW}/Season 01/Test Show - S01E02.mkv`);
+      write(`tv/${SHOW}/Season 01/Test Show - S01E02.en.srt`, 'subtitles');
+      write(`tv/${SHOW}/.hidden`, '');
+      write('tv/Unknown/notes.txt', 'notes');
+      await getSeriesFiles();
+      const [managed, found] = await indexed();
+
+      expect(await entries()).toEqual([
+        { path: SHOW, isDirectory: true, size: 0 },
+        { path: `${SHOW}/.hidden`, isDirectory: false, size: 0 },
+        { path: `${SHOW}/Season 01`, isDirectory: true, size: 0 },
+        {
+          path: `${SHOW}/Season 01/${path.basename(imported)}`,
+          isDirectory: false,
+          size: 11,
+          mediaFileId: managed.id,
+          managed: true,
+        },
+        {
+          path: `${SHOW}/Season 01/Test Show - S01E02.en.srt`,
+          isDirectory: false,
+          size: 9,
+        },
+        {
+          path: `${SHOW}/Season 01/Test Show - S01E02.mkv`,
+          isDirectory: false,
+          size: 5,
+          mediaFileId: found.id,
+          managed: false,
+        },
+        { path: 'Unknown', isDirectory: true, size: 0 },
+        { path: 'Unknown/notes.txt', isDirectory: false, size: 5 },
+      ]);
+    });
+
+    it('lists a link without following it', async () => {
+      write('elsewhere/secret.txt', 'secret');
+      symlinkSync(path.join(root, 'elsewhere'), path.join(library, 'link'));
+      symlinkSync(path.join(root, 'nowhere'), path.join(library, 'broken'));
+
+      expect(await entries()).toEqual([
+        {
+          path: 'broken',
+          isDirectory: false,
+          size: 0,
+          error: 'ENOENT: no such file or directory',
+        },
+        { path: 'link', isDirectory: false, size: 0 },
+      ]);
+    });
+
+    it('lists a directory that it cannot read and goes on', async () => {
+      write('tv/Locked/secret.mkv');
+      write('tv/Open/notes.txt');
+      const locked = path.join(library, 'Locked');
+      chmodSync(locked, 0o000);
+
+      try {
+        expect(await entries()).toEqual([
+          {
+            path: 'Locked',
+            isDirectory: true,
+            size: 0,
+            error: 'EACCES: permission denied',
+          },
+          { path: 'Open', isDirectory: true, size: 0 },
+          { path: 'Open/notes.txt', isDirectory: false, size: 5 },
+        ]);
+      } finally {
+        chmodSync(locked, 0o755);
+      }
+    });
+
+    it('deletes what it can and reports what it cannot', async () => {
+      const kept = write(`tv/${SHOW}/Season 01/Test Show - S01E01.mkv`);
+      write('tv/Unknown/notes.txt');
+      await getSeriesFiles();
+      const locked = path.dirname(kept);
+      chmodSync(locked, 0o555);
+
+      try {
+        expect(
+          await deleteEntries([`${SHOW}/Season 01`, 'Unknown/notes.txt']),
+        ).toEqual({
+          deleted: 1,
+          failed: [
+            { path: `${SHOW}/Season 01`, error: 'EACCES: permission denied' },
+          ],
+          files: [],
+        });
+      } finally {
+        chmodSync(locked, 0o755);
+      }
+      expect(existsSync(kept)).toBe(true);
+      expect(existsSync(path.join(library, 'Unknown/notes.txt'))).toBe(false);
+      expect((await indexed()).map((file) => file.path)).toEqual([kept]);
+      expect(await logged()).toEqual([
+        `Deleted "${path.join(library, 'Unknown/notes.txt')}": a test`,
+      ]);
+    });
+
+    it('answers only for a library folder', async () => {
+      await expect(
+        request(() => localMedia.getLibraryEntries(root)),
+      ).rejects.toThrow(BadRequestException);
+      await expect(deleteEntries(['tv'], root)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('deletes files and directories, and forgets the indexed files among them', async () => {
+      const first = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const second = write(`tv/${SHOW}/Season 02/Test Show - S02E01.mkv`);
+      write(`tv/${SHOW}/Season 02/poster.jpg`);
+      write(`tv/${SHOW}/Season 03/Test Show - S03E01.mkv`);
+      write('tv/Unknown/notes.txt');
+      await getSeriesFiles();
+      const selected = {
+        mediaFile: `${SHOW}/Season 01/${path.basename(first)}`,
+        directory: `${SHOW}/Season 02`,
+        file: 'Unknown/notes.txt',
+      };
+
+      expect(
+        (
+          await request(() =>
+            localMedia.findLibraryFiles(library, Object.values(selected)),
+          )
+        )
+          .map((file) => file.path)
+          .sort(),
+      ).toEqual([first, second]);
+
+      // An entry inside a selected directory and one that is gone change nothing
+      expect(
+        await deleteEntries([
+          ...Object.values(selected),
+          `${SHOW}/Season 02/poster.jpg`,
+          'Unknown/gone.txt',
+        ]),
+      ).toMatchObject({
+        deleted: 3,
+        failed: [],
+        files: [{ path: first }, { path: second }],
+      });
+
+      // A directory that is left empty stays: it was not selected
+      expect(
+        readdirSync(library, { recursive: true }).map(String).sort(),
+      ).toEqual([
+        SHOW,
+        `${SHOW}/Season 01`,
+        `${SHOW}/Season 03`,
+        `${SHOW}/Season 03/Test Show - S03E01.mkv`,
+        'Unknown',
+      ]);
+      expect((await indexed()).map((file) => file.season)).toEqual([3]);
+      expect((await logged()).sort()).toEqual(
+        [first, second, path.join(library, selected.directory)]
+          .concat(path.join(library, selected.file))
+          .map((deleted) => `Deleted "${deleted}": a test`)
+          .sort(),
+      );
+      // The download is another link to the data and stays
+      expect(existsSync(path.join(root, 'downloads/S01E01.mkv'))).toBe(true);
+    });
+
+    it('deletes nothing outside the folder', async () => {
+      write('elsewhere/secret.txt');
+      write('tv/Unknown/notes.txt');
+      symlinkSync(path.join(root, 'elsewhere'), path.join(library, 'link'));
+
+      for (const paths of [
+        ['../elsewhere/secret.txt'],
+        ['Unknown/../../elsewhere'],
+        ['link/secret.txt'],
+        // The folder itself
+        ['.'],
+        ['Unknown/..'],
+        [''],
+        'Unknown' as unknown as string[],
+      ]) {
+        await expect(deleteEntries(paths)).rejects.toThrow(BadRequestException);
+      }
+      expect(existsSync(path.join(root, 'elsewhere/secret.txt'))).toBe(true);
+      expect(existsSync(path.join(library, 'Unknown/notes.txt'))).toBe(true);
+
+      // A link is deleted, what it leads to is not
+      await deleteEntries(['link']);
+      expect(readdirSync(library)).toEqual(['Unknown']);
+      expect(existsSync(path.join(root, 'elsewhere/secret.txt'))).toBe(true);
     });
   });
 });
