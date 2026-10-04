@@ -65,7 +65,7 @@
 		});
 </script>
 
-<Container on:enter={scrollIntoView({ vertical: 128 })}>
+<Container>
 	<div class="mb-8">
 		<h1 class="h3 mb-1">Downloads</h1>
 		<p class="body">
@@ -76,24 +76,44 @@
 	{#await indexers then indexers}
 		<Container class="flex flex-col space-y-4 mb-4 max-w-sm">
 			{#each indexers as indexer (indexer.id)}
-				<SelectField value={indexer.name} on:clickOrSelect={() => editIndexer(indexers, indexer)}>
+				<SelectField
+					value={indexer.name}
+					on:enter={scrollIntoView({ vertical: 128 })}
+					on:clickOrSelect={() => editIndexer(indexers, indexer)}
+				>
 					Indexer
 					<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 				</SelectField>
 			{/each}
 		</Container>
-		<Button icon={Plus} on:clickOrSelect={() => editIndexer(indexers)}>Add Indexer</Button>
+		<Button
+			icon={Plus}
+			on:enter={scrollIntoView({ vertical: 128 })}
+			on:clickOrSelect={() => editIndexer(indexers)}
+		>
+			Add Indexer
+		</Button>
 	{/await}
 
 	<Container class="flex flex-col space-y-4 mt-8 max-w-sm">
-		<TextField type="number" value={seedRatio} on:change={({ detail }) => (seedRatio = detail)}>
+		<TextField
+			type="number"
+			value={seedRatio}
+			on:enter={scrollIntoView({ vertical: 128 })}
+			on:change={({ detail }) => (seedRatio = detail)}
+		>
 			Seed ratio (uploaded / downloaded, 0 to not seed)
 		</TextField>
 		{#if seedRatioError}
 			<p class="error">{seedRatioError}</p>
 		{/if}
 	</Container>
-	<Button class="mt-4" disabled={seedRatio === savedSeedRatio} action={saveSeedRatio}>
+	<Button
+		class="mt-4"
+		disabled={seedRatio === savedSeedRatio}
+		action={saveSeedRatio}
+		on:enter={scrollIntoView({ vertical: 128 })}
+	>
 		Save Seed Ratio
 	</Button>
 
@@ -103,6 +123,7 @@
 				name="Delete downloaded files that no request keeps (at 4:00)"
 				options={cleanupOptions}
 				selected={cleanup}
+				on:enter={scrollIntoView({ vertical: 128 })}
 				on:select={({ detail }) => saveCleanup(detail)}
 			/>
 			{#if cleanupError}

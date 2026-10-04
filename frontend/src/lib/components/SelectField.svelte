@@ -39,6 +39,7 @@
 		$$restProps.class
 	)}
 	on:clickOrSelect={handleClickOrSelect}
+	on:enter
 	let:hasFocus
 >
 	<div>

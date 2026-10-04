@@ -43,6 +43,7 @@
 			{/if}
 			<Container
 				on:clickOrSelect={() => dispatch('select', option.value ?? option.label)}
+				on:enter
 				let:hasFocus
 				class="group"
 			>

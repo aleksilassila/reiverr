@@ -3,7 +3,7 @@
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
-	import { ArrowRight, Exit, Pencil2, Plus } from 'radix-icons-svelte';
+	import { ArrowRight, Exit, Pencil2 } from 'radix-icons-svelte';
 	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../../components/Button/Button.svelte';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
@@ -18,25 +18,21 @@
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user } from '../../stores/user.store';
+	import Accounts from './Accounts.ManagePage.svelte';
 	import Downloads from './Downloads.ManagePage.svelte';
 
 	enum Tabs {
 		Account,
-		Interface,
-		About
+		Device,
+		Server
 	}
 
-	const tab = useTabs(Tabs.Interface, { direction: 'vertical', remount: false });
+	const tab = useTabs(Tabs.Device, { direction: 'vertical', remount: false });
 
 	let lastKeyCode = 0;
 	let lastKey = '';
-	let tizenMediaKey = '';
+	const tizenMediaKey = '';
 	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
-	let users = getUsers();
-
-	function getUsers() {
-		return $user?.isAdmin ? reiverrApi.users.findAllUsers().then((r) => r.data) : undefined;
-	}
 
 	function handleLogOut() {
 		sessions.removeSession();
@@ -88,7 +84,7 @@
 					Account
 				</span>
 			</TabSelect>
-			<TabSelect tabValue={Tabs.Interface} openTab={tab.openTab} let:hasFocus let:isActive>
+			<TabSelect tabValue={Tabs.Device} openTab={tab.openTab} let:hasFocus let:isActive>
 				<span
 					class={classNames(
 						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
@@ -101,270 +97,173 @@
 						$$restProps.class
 					)}
 				>
-					Options
+					Device
 				</span>
 			</TabSelect>
-			<TabSelect tabValue={Tabs.About} openTab={tab.openTab} let:hasFocus let:isActive>
-				<span
-					class={classNames(
-						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
-						{
-							'bg-secondary-800': isActive,
-							'text-secondary-400': !isActive,
-							'text-secondary-200': isActive && !hasFocus,
-							'text-primary-500': hasFocus
-						},
-						$$restProps.class
-					)}
-				>
-					About
-				</span>
-			</TabSelect>
+			{#if $user?.isAdmin}
+				<TabSelect tabValue={Tabs.Server} openTab={tab.openTab} let:hasFocus let:isActive>
+					<span
+						class={classNames(
+							'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+							{
+								'bg-secondary-800': isActive,
+								'text-secondary-400': !isActive,
+								'text-secondary-200': isActive && !hasFocus,
+								'text-primary-500': hasFocus
+							},
+							$$restProps.class
+						)}
+					>
+						Server
+					</span>
+				</TabSelect>
+			{/if}
 		</Container>
 
 		<TabContainer absolute>
 			<Tab {...tab} tab={Tabs.Account} class="space-y-16 pb-16">
-				<div>
-					<Container class="bg-primary-800 rounded-xl p-8" on:enter={scrollIntoView({ top: 9999 })}>
-						<h1 class="h4 mb-4">My Profile</h1>
-						<SelectField
-							class="mb-4"
-							value={$user?.name || ''}
-							on:clickOrSelect={() => {
-								const u = $user;
-								if (u)
-									createModal(EditProfileModal, {
-										user: u
-									});
-							}}
-						>
-							Logged in as
-							<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
-						</SelectField>
-						<Container direction="horizontal" class="flex space-x-4">
-							<Button type="primary-dark" icon={Exit} on:clickOrSelect={handleLogOut}>
-								Log Out
-							</Button>
-						</Container>
-						{#await users then usersR}
-							{#if usersR?.length}
-								<div class="mt-8">
-									<h1 class="h4 mb-4">Server Accounts</h1>
-									<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
-										{#each usersR.filter((u) => u.id !== $user?.id) as user}
-											<SelectField
-												value={user?.name || ''}
-												on:clickOrSelect={() => {
-													createModal(EditProfileModal, {
-														user,
-														admin: true,
-														onComplete: () => (users = getUsers())
-													});
-												}}
-											>
-												{user.isAdmin ? 'Admin' : 'User'}
-												<Pencil2
-													slot="icon"
-													let:size
-													let:iconClass
-													{size}
-													class={classNames(iconClass)}
-												/>
-											</SelectField>
-										{/each}
-										<SelectField
-											value="New Account"
-											on:clickOrSelect={() => {
-												createModal(EditProfileModal, {
-													createNew: true,
-													onComplete: () => (users = getUsers())
-												});
-											}}
-										>
-											Create
-											<Plus
-												slot="icon"
-												let:size
-												let:iconClass
-												{size}
-												class={classNames(iconClass)}
-											/>
-										</SelectField>
-									</Container>
-								</div>
-							{/if}
-						{/await}
-					</Container>
-				</div>
-
-				{#if $user?.isAdmin}
-					<Downloads />
-				{/if}
-
-				<div>
-					<h1 class="font-semibold text-2xl text-secondary-100 mb-8">Integrations</h1>
-					<!-- <Container direction="horizontal" class="gap-16 grid grid-cols-2"> -->
-					<!-- <Container class="flex flex-col space-y-16">
-							<Container
-								class="bg-primary-800 rounded-xl p-8"
-								on:enter={scrollIntoView({ vertical: 64 })}
-							>
-								<h1 class="mb-4 h4">Sonarr</h1>
-								<SonarrIntegration let:stale let:handleSave>
-									<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
-								</SonarrIntegration>
-							</Container>
-
-							<Container
-								class="bg-primary-800 rounded-xl p-8"
-								on:enter={scrollIntoView({ vertical: 64 })}
-							>
-								<h1 class="mb-4 h4">Radarr</h1>
-								<RadarrIntegration let:stale let:handleSave>
-									<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
-								</RadarrIntegration>
-							</Container>
-						</Container> -->
-
-					<!-- <Container class="flex flex-col space-y-16"> -->
-					<Container
-						class="bg-primary-800 rounded-xl p-8 max-w-sm"
-						on:enter={scrollIntoView({ vertical: 64 })}
+				<Container class="max-w-sm" on:enter={scrollIntoView({ top: 9999 })}>
+					<h1 class="h3 mb-8">My Profile</h1>
+					<SelectField
+						class="mb-4"
+						value={$user?.name || ''}
+						on:clickOrSelect={() => {
+							const u = $user;
+							if (u)
+								createModal(EditProfileModal, {
+									user: u
+								});
+						}}
 					>
-						<h1 class="mb-4 h4">Tmdb Account</h1>
-						<TmdbIntegration let:connected>
-							{#if !connected}
-								<div class="flex space-x-4 mt-4">
-									<Button
-										type="primary-dark"
-										iconAfter={ArrowRight}
-										on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
-									>
-										Connect
-									</Button>
-								</div>
-							{/if}
-						</TmdbIntegration>
-
-						<!--{#await tmdbAccount then tmdbAccount}-->
-						<!--	{#if tmdbAccount}-->
-						<!--		<SelectField-->
-						<!--			value={tmdbAccount.username || ''}-->
-						<!--			action={handleDisconnectTmdb}-->
-						<!--			class="mb-4"-->
-						<!--		>-->
-						<!--			Connected to-->
-						<!--			<Trash-->
-						<!--				slot="icon"-->
-						<!--				let:size-->
-						<!--				let:iconClass-->
-						<!--				{size}-->
-						<!--				class={classNames(iconClass, '')}-->
-						<!--			/>-->
-						<!--		</SelectField>-->
-						<!--	{:else}-->
-						<!--		<div class="flex space-x-4">-->
-						<!--			<Button-->
-						<!--				type="primary-dark"-->
-						<!--				iconAfter={ArrowRight}-->
-						<!--				on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}-->
-						<!--				>Connect</Button-->
-						<!--			>-->
-						<!--		</div>-->
-						<!--	{/if}-->
-						<!--{/await}-->
-						<!-- </Container> -->
-
-						<!-- <Container
-								class="bg-primary-800 rounded-xl p-8"
-								on:enter={scrollIntoView({ vertical: 64 })}
-							>
-								<h1 class="mb-4 h4">Jellyfin</h1>
-								<JellyfinIntegration
-									on:click-user={({ detail }) =>
-										createModal(JellyfinIntegrationUsersDialog, {
-											selectedUser: detail.user,
-											users: detail.users,
-											handleSelectUser: detail.setJellyfinUser
-										})}
-									let:handleSave
-									let:stale
-								>
-									<Button disabled={!stale} type="primary-dark" action={handleSave}>Save</Button>
-								</JellyfinIntegration>
-							</Container> -->
+						Logged in as
+						<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+					</SelectField>
+					<Container direction="horizontal" class="flex space-x-4">
+						<Button icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
 					</Container>
-					<!-- </Container> -->
+				</Container>
+
+				<Container class="max-w-sm" on:enter={scrollIntoView({ vertical: 64 })}>
+					<h1 class="h3 mb-8">Tmdb Account</h1>
+					<TmdbIntegration let:connected>
+						{#if !connected}
+							<div class="flex space-x-4">
+								<Button
+									iconAfter={ArrowRight}
+									on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
+								>
+									Connect
+								</Button>
+							</div>
+						{/if}
+					</TmdbIntegration>
+				</Container>
+			</Tab>
+
+			<Tab {...tab} tab={Tabs.Device} class="space-y-16 pb-16">
+				<Container on:enter={scrollIntoView({ top: 9999 })}>
+					<p class="body mb-8">These options are saved on this device and only apply to it.</p>
+					<div
+						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
+					>
+						<label class="mr-2">Animate scrolling</label>
+						<Toggle
+							checked={$localSettings.animateScrolling}
+							on:change={({ detail }) =>
+								localSettings.update((p) => ({ ...p, animateScrolling: detail }))}
+						/>
+					</div>
+					<div
+						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
+					>
+						<label class="mr-2">Use CSS Transitions</label>
+						<Toggle
+							checked={$localSettings.useCssTransitions}
+							on:change={({ detail }) =>
+								localSettings.update((p) => ({ ...p, useCssTransitions: detail }))}
+						/>
+					</div>
+					<div
+						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
+					>
+						<label class="mr-2">Check for Updates</label>
+						<Toggle
+							checked={$localSettings.checkForUpdates}
+							on:change={({ detail }) =>
+								localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
+						/>
+					</div>
+					<div
+						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
+					>
+						<label class="mr-2">Enable Trailers</label>
+						<Toggle
+							checked={$localSettings.enableTrailers}
+							on:change={({ detail }) =>
+								localSettings.update((p) => ({ ...p, enableTrailers: detail }))}
+						/>
+					</div>
+					<div
+						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
+					>
+						<label class="mr-2">Autoplay Trailers</label>
+						<Toggle
+							checked={$localSettings.autoplayTrailers}
+							on:change={({ detail }) =>
+								localSettings.update((p) => ({ ...p, autoplayTrailers: detail }))}
+						/>
+					</div>
+				</Container>
+
+				<div>
+					<h1 class="h3 mb-8">About</h1>
+					<div>
+						Version: {REIVERR_VERSION}
+					</div>
+					<div>
+						Mode: {import.meta.env.MODE}
+					</div>
+					<div>
+						Platform: {import.meta.env.VITE_PLATFORM ?? 'web'}
+					</div>
+					<div>
+						meta.env: {JSON.stringify(import.meta.env, null, 2)}
+					</div>
+					User agent: {window?.navigator?.userAgent}
+					<div>Last key code: {lastKeyCode}</div>
+					<div>Last key: {lastKey}</div>
+					{#if tizenMediaKey}
+						<div>Tizen media key: {tizenMediaKey}</div>
+					{/if}
+					<div class="flex flex-col items-start space-y-4 mt-4">
+						<Button
+							on:clickOrSelect={handleLogOut}
+							on:enter={scrollIntoView({ vertical: 128 })}
+							class="hover:bg-red-500"
+						>
+							Log Out
+						</Button>
+					</div>
 				</div>
 			</Tab>
 
-			<Tab {...tab} tab={Tabs.Interface}>
-				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-					<label class="mr-2">Animate scrolling</label>
-					<Toggle
-						checked={$localSettings.animateScrolling}
-						on:change={({ detail }) =>
-							localSettings.update((p) => ({ ...p, animateScrolling: detail }))}
-					/>
-				</div>
-				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-					<label class="mr-2">Use CSS Transitions</label>
-					<Toggle
-						checked={$localSettings.useCssTransitions}
-						on:change={({ detail }) =>
-							localSettings.update((p) => ({ ...p, useCssTransitions: detail }))}
-					/>
-				</div>
-				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-					<label class="mr-2">Check for Updates</label>
-					<Toggle
-						checked={$localSettings.checkForUpdates}
-						on:change={({ detail }) =>
-							localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
-					/>
-				</div>
-				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-					<label class="mr-2">Enable Trailers</label>
-					<Toggle
-						checked={$localSettings.enableTrailers}
-						on:change={({ detail }) =>
-							localSettings.update((p) => ({ ...p, enableTrailers: detail }))}
-					/>
-				</div>
-				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
-					<label class="mr-2">Autoplay Trailers</label>
-					<Toggle
-						checked={$localSettings.autoplayTrailers}
-						on:change={({ detail }) =>
-							localSettings.update((p) => ({ ...p, autoplayTrailers: detail }))}
-					/>
-				</div>
-			</Tab>
+			{#if $user?.isAdmin}
+				<Tab {...tab} tab={Tabs.Server} class="space-y-16 pb-16">
+					<Accounts />
 
-			<Tab {...tab} tab={Tabs.About}>
-				<div>
-					Version: {REIVERR_VERSION}
-				</div>
-				<div>
-					Mode: {import.meta.env.MODE}
-				</div>
-				<div>
-					Platform: {import.meta.env.VITE_PLATFORM ?? 'web'}
-				</div>
-				<div>
-					meta.env: {JSON.stringify(import.meta.env, null, 2)}
-				</div>
-				User agent: {window?.navigator?.userAgent}
-				<div>Last key code: {lastKeyCode}</div>
-				<div>Last key: {lastKey}</div>
-				{#if tizenMediaKey}
-					<div>Tizen media key: {tizenMediaKey}</div>
-				{/if}
-				<div class="flex flex-col items-start space-y-4 mt-4">
-					<Button action={() => reiverrApi.metadata.clearCache()}>Clear TMDB Cache</Button>
-					<Button on:clickOrSelect={handleLogOut} class="hover:bg-red-500">Log Out</Button>
-				</div>
-			</Tab>
+					<Downloads />
+
+					<div>
+						<h1 class="h3 mb-8">Metadata</h1>
+						<Button
+							action={() => reiverrApi.metadata.clearCache()}
+							on:enter={scrollIntoView({ vertical: 128 })}
+						>
+							Clear TMDB Cache
+						</Button>
+					</div>
+				</Tab>
+			{/if}
 		</TabContainer>
 	</div>
 </Container>

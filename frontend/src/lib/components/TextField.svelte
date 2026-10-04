@@ -47,6 +47,7 @@
 			e.detail.options.setFocusedElement = input;
 		}
 	}}
+	on:enter
 	on:clickOrSelect={() => input?.focus()}
 	class={classNames('flex flex-col', $$restProps.class)}
 	let:hasFocus

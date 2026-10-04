@@ -173,7 +173,7 @@
 </script>
 
 <Dialog size={'dynamic'}>
-	<TabContainer absolute>
+	<TabContainer class="grid -m-4 p-4 *:col-start-1 *:row-start-1 *:-my-4 *:py-4">
 		<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
 			<h1 class="h3">
 				{createNew ? 'Create Account' : 'Edit Profile'}
