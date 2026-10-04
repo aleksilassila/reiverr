@@ -1,6 +1,7 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { EpisodeRefDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
+import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 
 export class MediaRequestDto extends MediaRequest {}
@@ -22,6 +23,12 @@ export class MovieRequestDto {
 
 export class UpdateMediaRequestDto extends PickType(MediaRequest, [
   'approved',
+]) {}
+
+export class RequestRuleDto extends PickType(RequestRule, [
+  'keepNext',
+  'keepWatched',
+  'keepWatchedHours',
 ]) {}
 
 export class UpdateSeriesRequestsDto {

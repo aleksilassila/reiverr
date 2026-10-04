@@ -52,6 +52,15 @@ export class PlayState {
   watched: boolean = false;
 
   @ApiProperty({
+    type: 'string',
+    required: false,
+    nullable: true,
+    description: 'When the media became watched',
+  })
+  @Property({ nullable: true })
+  watchedAt?: Date;
+
+  @ApiProperty({
     default: false,
     example: 0.5,
     description: 'A number between 0 and 1',

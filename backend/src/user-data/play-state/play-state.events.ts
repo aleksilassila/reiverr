@@ -1,9 +1,10 @@
-import { PlayState } from './play-state.entity.js';
+import { MediaTypeFull } from '../../common/common.dto.js';
 
-export const PLAY_STATE_UPDATED = 'play-state.updated';
+/** A movie or an episode became watched or unwatched */
+export const WATCH_STATUS_CHANGED = 'play-state.watch-status-changed';
 
-export class PlayStateUpdatedEvent {
+export interface WatchStatusChangedEvent {
   userId: string;
   tmdbId: string;
-  playState: PlayState;
+  mediaType: MediaTypeFull;
 }

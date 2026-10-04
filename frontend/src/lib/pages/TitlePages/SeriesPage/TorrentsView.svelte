@@ -26,6 +26,9 @@
 	const requests = seriesData.requestsData?.data ?? readable(undefined);
 
 	$: selection = $requests?.selections.get(episodeKey(season, episode ?? 0));
+	// An episode without a torrent of its own downloads from the season pack
+	$: seasonPack =
+		episode === undefined ? undefined : $requests?.selections.get(episodeKey(season, 0));
 
 	let error = '';
 	const releases: Promise<ReleaseDto[]> = reiverrApi.indexers
@@ -96,6 +99,10 @@
 		{#if selection}
 			<div class="text-lg font-medium text-secondary-300 mt-4 line-clamp-1">
 				Selected: {selection.torrent.title}
+			</div>
+		{:else if seasonPack}
+			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
+				From the season pack: {seasonPack.torrent.title}
 			</div>
 		{/if}
 		{#if error}

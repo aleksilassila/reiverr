@@ -8,13 +8,13 @@
 	export let requests: SeriesRequests | undefined = undefined;
 
 	$: status = getEpisodeRequestStatus(requests, seasonNumber, episodeNumber);
-	// The torrent of the season pack is shown on the season
-	$: ownSelection = status.selection?.episode ? status.selection : undefined;
 </script>
 
+<!-- The season pack is dimmed: it was not selected for this episode -->
 <RequestRow
 	title={`S${seasonNumber}E${episodeNumber} - ${episodeName}`}
-	subtitle={ownSelection?.torrent.title}
+	subtitle={status.selection?.torrent.title}
+	subtitleDimmed={status.selection?.episode === 0}
 	status={status.label}
 	isError={status.isError}
 	checked={status.requested}

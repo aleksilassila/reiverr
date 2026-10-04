@@ -1248,6 +1248,8 @@ export interface PlayStateDto {
    * @default false
    */
   watched: boolean;
+  /** When the media became watched */
+  watchedAt?: string | null;
   /**
    * A number between 0 and 1
    * @default false
@@ -1309,6 +1311,15 @@ export interface UpdateSeriesRequestsDto {
   episodes: EpisodeRefDto[];
   /** Whether the episodes are requested */
   requested: boolean;
+}
+
+export interface RequestRuleDto {
+  /** How many requests after the last episode the user watched are active */
+  keepNext: number | null;
+  /** How many of the last watched requests keep their file, while there is more to watch */
+  keepWatched: number | null;
+  /** For how many hours after it was watched a request keeps its file. With keepWatched, either one keeps it */
+  keepWatchedHours: number | null;
 }
 
 export interface RequesterDto {
@@ -1441,6 +1452,8 @@ export interface EpisodeStatusDto {
   /** Where the request of the user stands */
   status?:
     | "waiting-for-approval"
+    | "inactive-ahead"
+    | "inactive-watched"
     | "no-selection"
     | "resolving"
     | "no-file-in-torrent"
@@ -2275,6 +2288,47 @@ export class Api<
     ) =>
       this.request<MediaRequestDto[], any>({
         path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name GetSeriesRequestRule
+     * @request GET:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule
+     */
+    getSeriesRequestRule: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<RequestRuleDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name UpdateSeriesRequestRule
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule
+     */
+    updateSeriesRequestRule: (
+      userId: string,
+      tmdbId: string,
+      data: RequestRuleDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<RequestRuleDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule`,
         method: "PUT",
         body: data,
         type: ContentType.Json,

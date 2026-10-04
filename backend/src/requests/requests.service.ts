@@ -16,8 +16,13 @@ import {
 import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode } from '../metadata/metadata.utils.js';
 import { User } from '../users/user.entity.js';
+import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
-import { AdminMediaRequestDto, UpdateMediaRequestDto } from './requests.dto.js';
+import {
+  AdminMediaRequestDto,
+  RequestRuleDto,
+  UpdateMediaRequestDto,
+} from './requests.dto.js';
 import { REQUESTS_CHANGED, RequestsChangedEvent } from './requests.events.js';
 
 @Injectable()
@@ -25,6 +30,8 @@ export class RequestsService {
   constructor(
     @InjectRepository(MediaRequest)
     private readonly requestRepository: EntityRepository<MediaRequest>,
+    @InjectRepository(RequestRule)
+    private readonly ruleRepository: EntityRepository<RequestRule>,
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
     private readonly eventEmitter: EventEmitter2,
@@ -165,6 +172,57 @@ export class RequestsService {
       { mediaType: MediaTypeFull.Episode, approved: true },
       { orderBy: { createdAt: 'asc' }, disableIdentityMap: true },
     );
+  }
+
+  async findSeriesRule(
+    userId: string,
+    tmdbId: string,
+  ): Promise<RequestRule | undefined> {
+    return this.ruleRepository.findOne(
+      { userId, tmdbId },
+      { disableIdentityMap: true },
+    );
+  }
+
+  /** The rules of every user */
+  async findRules(): Promise<RequestRule[]> {
+    return this.ruleRepository.find({}, { disableIdentityMap: true });
+  }
+
+  /** A rule without limits is no rule */
+  async setSeriesRule(
+    userId: string,
+    tmdbId: string,
+    rule: RequestRuleDto,
+  ): Promise<RequestRuleDto> {
+    const series = await this.metadataService.getSeriesByTmdbId(tmdbId);
+    if (!series) throw new NotFoundException('Series not found');
+
+    const { keepNext, keepWatched, keepWatchedHours } = rule;
+    if (
+      keepNext === null &&
+      keepWatched === null &&
+      keepWatchedHours === null
+    ) {
+      await this.ruleRepository.nativeDelete({ userId, tmdbId });
+    } else {
+      await this.em
+        .createQueryBuilder(RequestRule)
+        .insert({
+          id: randomUUID(),
+          userId,
+          tmdbId,
+          keepNext,
+          keepWatched,
+          keepWatchedHours,
+        })
+        .onConflict(['userId', 'tmdbId'])
+        .merge(['keepNext', 'keepWatched', 'keepWatchedHours'])
+        .execute();
+    }
+    await this.emitChanged(tmdbId, MediaTypeFull.Episode);
+
+    return { keepNext, keepWatched, keepWatchedHours };
   }
 
   async findAll(

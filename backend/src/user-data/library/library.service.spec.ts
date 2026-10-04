@@ -1,5 +1,6 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType } from '../../common/common.dto.js';
 import {
   MovieMetadata,
@@ -68,7 +69,12 @@ describe('LibraryService', () => {
     const libraryItems = orm.em.getRepository(LibraryItem);
     const playStateRows = orm.em.getRepository(PlayState);
 
-    playStates = new PlayStatesService(playStateRows, libraryItems, orm.em);
+    playStates = new PlayStatesService(
+      playStateRows,
+      libraryItems,
+      orm.em,
+      new EventEmitter2(),
+    );
     library = new LibraryService(
       libraryItems,
       playStateRows,

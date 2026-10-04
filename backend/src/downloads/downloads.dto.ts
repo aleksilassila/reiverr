@@ -63,6 +63,10 @@ export class TorrentSelectionDto extends PickType(TorrentSelection, [
 
 export enum EpisodeDownloadStatus {
   WaitingForApproval = 'waiting-for-approval',
+  /** The rule of the user holds the request back until they have watched up to it */
+  InactiveAhead = 'inactive-ahead',
+  /** The rule of the user does not keep the request of the watched episode, or has no file of it to keep */
+  InactiveWatched = 'inactive-watched',
   NoSelection = 'no-selection',
   /** The files of the selected torrent are not known yet */
   Resolving = 'resolving',

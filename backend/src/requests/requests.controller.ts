@@ -24,6 +24,7 @@ import { User } from '../users/user.entity.js';
 import {
   MediaRequestDto,
   MovieRequestDto,
+  RequestRuleDto,
   UpdateSeriesRequestsDto,
 } from './requests.dto.js';
 import { RequestsService } from './requests.service.js';
@@ -119,5 +120,42 @@ export class RequestsController {
       requested: body.requested,
       approved: user.isAdmin,
     });
+  }
+
+  @Get('series/tmdb/:tmdbId/rule')
+  @ApiOkResponse({ type: RequestRuleDto })
+  async getSeriesRequestRule(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<RequestRuleDto> {
+    const rule = await this.requestsService.findSeriesRule(userId, tmdbId);
+
+    return {
+      keepNext: rule?.keepNext ?? null,
+      keepWatched: rule?.keepWatched ?? null,
+      keepWatchedHours: rule?.keepWatchedHours ?? null,
+    };
+  }
+
+  @Put('series/tmdb/:tmdbId/rule')
+  @ApiOkResponse({ type: RequestRuleDto })
+  async updateSeriesRequestRule(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Body() body: RequestRuleDto,
+  ): Promise<RequestRuleDto> {
+    const isLimit = (value: unknown) =>
+      value === null || (Number.isInteger(value) && (value as number) > 0);
+    const isValid =
+      isLimit(body?.keepNext) &&
+      isLimit(body.keepWatched) &&
+      isLimit(body.keepWatchedHours);
+    if (!isValid) {
+      throw new BadRequestException(
+        'Expected { keepNext, keepWatched, keepWatchedHours }, each null or a positive integer',
+      );
+    }
+
+    return this.requestsService.setSeriesRule(userId, tmdbId, body);
   }
 }

@@ -30,6 +30,8 @@ import { ReleaseDto } from '../src/indexers/indexers.dto.js';
 import { MediaFile } from '../src/local-media/media-file.entity.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
+import { RequestRuleDto } from '../src/requests/requests.dto.js';
+import { RequestsService } from '../src/requests/requests.service.js';
 import { createTorrent } from './torrent-fixture.js';
 
 // The downloads directory is read from the environment when the app is imported
@@ -68,6 +70,7 @@ const infoHash = (source: string | Buffer): string =>
 const PACK = infoHash(PACK_MAGNET);
 const REDIRECT = infoHash(REDIRECT_MAGNET);
 const EPISODE = infoHash(EPISODE_TORRENT);
+const SEASON_2 = infoHash(SEASON_2_TORRENT);
 
 // Imported files carry the start of the info hash as their version label
 const version = (hash: string) => hash.slice(0, 8);
@@ -312,8 +315,29 @@ describe('Series downloads (e2e)', () => {
       .map((torrent) => torrent.infoHash)
       .sort();
 
-  // Reconciliations triggered by torrent events run in the background
+  // Reconciliations run in the background
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
+
+  /** Holds the next reconciliation back, in the middle of its run */
+  function holdReconciliation() {
+    const requests = app.get(RequestsService);
+    const find = requests.findApprovedEpisodeRequests.bind(requests);
+    let start: () => void;
+    let release: () => void;
+    const started = new Promise<void>((resolve) => (start = resolve));
+    const released = new Promise<void>((resolve) => (release = resolve));
+
+    const reads = vi
+      .spyOn(requests, 'findApprovedEpisodeRequests')
+      .mockImplementationOnce(async () => {
+        start();
+        await released;
+
+        return find();
+      });
+
+    return { reads, started, release };
+  }
 
   const libraryFiles = () =>
     existsSync(dirs.library)
@@ -636,6 +660,7 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(PACK).wanted).toEqual([2]);
 
     await setRequested([3], false);
+    await settle();
     expect(engine.running(PACK)).toBeUndefined();
   });
 
@@ -684,6 +709,7 @@ describe('Series downloads (e2e)', () => {
       `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`,
       viewer,
     ).expect(200);
+    await settle();
 
     expect(engine.running(PACK)).toBeUndefined();
     expect(statuses(await getDownloads(viewer))).toEqual([
@@ -758,6 +784,7 @@ describe('Series downloads (e2e)', () => {
       [1, 3, 'downloading'],
     ]);
     await setRequested([3], false, { user: viewer });
+    await settle();
     expect(engine.running(PACK)).toBeUndefined();
   });
 
@@ -769,6 +796,7 @@ describe('Series downloads (e2e)', () => {
         user,
       ).expect(200);
     }
+    await settle();
 
     expect(await torrentHashes()).toEqual([REDIRECT]);
     // The admin's request for episode 1 has nothing to download from, although
@@ -779,6 +807,159 @@ describe('Series downloads (e2e)', () => {
       [1, 2, 'available'],
     ]);
     expect(downloads.episodes[0].onDisk).toBe(true);
+  });
+
+  it('answers a request before the torrents are brought in line', async () => {
+    await app.get(DownloadsService).reconcile();
+    const held = holdReconciliation();
+
+    await setRequested([1], true, { season: 2 });
+    await held.started;
+    expect(statuses(await getDownloads())).toContainEqual([
+      2,
+      1,
+      'no-selection',
+    ]);
+
+    held.release();
+    held.reads.mockRestore();
+    await setRequested([1], false, { season: 2 });
+    await settle();
+  });
+
+  it('covers the changes that arrive during a reconciliation with one more', async () => {
+    const downloads = app.get(DownloadsService);
+    await downloads.reconcile();
+    const held = holdReconciliation();
+
+    const running = downloads.reconcile();
+    await held.started;
+    const waiting = [1, 2, 3].map(() => downloads.reconcile());
+    held.release();
+    await Promise.all([running, ...waiting]);
+
+    expect(held.reads).toHaveBeenCalledTimes(2);
+    held.reads.mockRestore();
+  });
+
+  it('downloads only the requests that the rule of the user keeps active', async () => {
+    const rulePath = `/v2/users/${admin.id}/requests/series/tmdb/${TMDB_ID}/rule`;
+    const setRule = (rule: Partial<RequestRuleDto>) =>
+      api('put', rulePath)
+        .send({
+          keepNext: null,
+          keepWatched: null,
+          keepWatchedHours: null,
+          ...rule,
+        })
+        .expect(200);
+    const setPlayState = (season: number, episode: number, playState: object) =>
+      api(
+        'put',
+        `/users/${admin.id}/play-state/series/tmdb/${TMDB_ID}/season/${season}/episode/${episode}`,
+      )
+        .send(playState)
+        .expect(200);
+    const season2 = async () =>
+      (await getDownloads()).episodes
+        .filter((e) => e.season === 2)
+        .map((e) => e.status);
+
+    await setRule({ keepNext: 1 });
+    expect((await api('get', rulePath).expect(200)).body).toEqual({
+      keepNext: 1,
+      keepWatched: null,
+      keepWatchedHours: null,
+    });
+
+    // The next request is counted from the last watched episode on, over
+    // the seasons
+    await setRequested([1, 2, 3], true, { season: 2 });
+    expect(await season2()).toEqual(Array(3).fill('inactive-ahead'));
+
+    await setPlayState(1, 3, { watched: true });
+    expect(await season2()).toEqual([
+      'no-selection',
+      'inactive-ahead',
+      'inactive-ahead',
+    ]);
+
+    // An episode in progress is not watched yet
+    await setPlayState(2, 1, { progress: 0.3 });
+    expect(await season2()).toEqual([
+      'no-selection',
+      'inactive-ahead',
+      'inactive-ahead',
+    ]);
+
+    await setPlayState(2, 1, { watched: true });
+    await setPlayState(2, 2, { watched: true });
+    // The second episode is the last watched one, but has no file to keep
+    await setRule({ keepNext: 1, keepWatched: 1 });
+    expect(await season2()).toEqual([
+      'inactive-watched',
+      'inactive-watched',
+      'no-selection',
+    ]);
+
+    // The torrent has a file for the first episode only
+    const releases = await search('season=2');
+    await api('put', `/v2/downloads/series/${TMDB_ID}/seasons/2/selection`)
+      .send({
+        releaseId: releases.find((r) => r.title.includes('S02')).id,
+      })
+      .expect(200);
+    await settle();
+    expect(engine.running(SEASON_2)).toBeUndefined();
+
+    await setPlayState(2, 1, { watched: false });
+    await settle();
+    expect(engine.running(SEASON_2).wanted).toEqual([0]);
+    expect(await season2()).toEqual([
+      'downloading',
+      'inactive-watched',
+      'no-file-in-torrent',
+    ]);
+
+    // A watched request that the rule keeps holds on to its file
+    engine.running(SEASON_2).download(0);
+    await settle();
+    await setPlayState(2, 1, { watched: true });
+    await setRule({ keepNext: 1, keepWatched: 2 });
+    expect(await season2()).toEqual([
+      'available',
+      'inactive-watched',
+      'no-file-in-torrent',
+    ]);
+
+    // The last watched ones are not kept once nothing is left to watch
+    await setPlayState(2, 3, { watched: true });
+    expect(await season2()).toEqual(Array(3).fill('inactive-watched'));
+
+    await setRule({});
+    expect((await api('get', rulePath).expect(200)).body).toEqual({
+      keepNext: null,
+      keepWatched: null,
+      keepWatchedHours: null,
+    });
+    await setRequested([1, 2, 3], false, { season: 2 });
+    await api(
+      'delete',
+      `/v2/downloads/series/${TMDB_ID}/seasons/2/selection`,
+    ).expect(200);
+    await settle();
+    expect(engine.running(SEASON_2)).toBeUndefined();
+  });
+
+  it('accepts a rule only from its user and with positive limits', async () => {
+    const rulePath = `/v2/users/${admin.id}/requests/series/tmdb/${TMDB_ID}/rule`;
+    const rule = { keepNext: 1, keepWatched: null, keepWatchedHours: null };
+
+    await api('put', rulePath, viewer).send(rule).expect(401);
+    await api('put', rulePath)
+      .send({ ...rule, keepNext: 0 })
+      .expect(400);
+    await api('put', rulePath).send({ keepNext: 1 }).expect(400);
   });
 
   it('rejects requests for episodes that do not exist', async () => {

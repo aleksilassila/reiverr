@@ -7,6 +7,7 @@
 
 	export let title: string;
 	export let subtitle = '';
+	export let subtitleDimmed = false;
 	export let status = '';
 	export let isError = false;
 	export let checked = false;
@@ -68,7 +69,14 @@
 				{title}
 			</div>
 			{#if subtitle}
-				<div class="text-base font-medium text-secondary-400 line-clamp-1 mt-1">{subtitle}</div>
+				<div
+					class={classNames(
+						'text-base font-medium line-clamp-1 mt-1',
+						subtitleDimmed ? 'text-secondary-500 opacity-75' : 'text-secondary-400'
+					)}
+				>
+					{subtitle}
+				</div>
 			{/if}
 		</div>
 		{#if status}

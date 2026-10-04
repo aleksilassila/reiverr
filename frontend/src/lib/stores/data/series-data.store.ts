@@ -53,10 +53,20 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 			return status.error;
 	}
 
+	// The rule of the series keeps the request from downloading and from keeping its file
+	const inactive =
+		status?.status === 'inactive-ahead'
+			? 'Not needed yet'
+			: status?.status === 'inactive-watched'
+				? 'Watched, not kept'
+				: undefined;
+
 	// A file of another torrent, or one that was found on disk, plays as well
-	if (status?.onDisk) return 'On disk';
+	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';
 	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';
 	if (status?.status === 'no-selection') return 'No torrent selected';
+
+	return inactive;
 }
 
 export function getEpisodeRequestStatus(

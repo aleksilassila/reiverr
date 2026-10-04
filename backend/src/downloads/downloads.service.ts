@@ -27,6 +27,8 @@ import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { REQUESTS_CHANGED } from '../requests/requests.events.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { WATCH_STATUS_CHANGED } from '../user-data/play-state/play-state.events.js';
+import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import {
   DownloadSettingsDto,
   EpisodeDownloadStatus,
@@ -36,6 +38,7 @@ import {
   TorrentStatus,
 } from './downloads.dto.js';
 import {
+  type DownloadsState,
   planDownloads,
   type PlannedRequest,
   PlannedStatus,
@@ -85,6 +88,8 @@ export class DownloadsService
   private readonly active = new Map<string, ActiveTorrent>();
   private readonly importing = new Set<string>();
   private queue: Promise<unknown> = Promise.resolve();
+  /** The reconciliation that waits in the queue */
+  private pending?: Promise<void>;
   private timer?: NodeJS.Timeout;
 
   constructor(
@@ -92,6 +97,7 @@ export class DownloadsService
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
     private readonly requestsService: RequestsService,
+    private readonly playStatesService: PlayStatesService,
     private readonly indexersService: IndexersService,
     private readonly localMediaService: LocalMediaService,
     @Inject(TORRENT_ENGINE) private readonly engine: TorrentEngine,
@@ -99,7 +105,9 @@ export class DownloadsService
 
   async onApplicationBootstrap() {
     // Also removes what a torrent left behind when the server was stopped
-    await this.reconcile(true);
+    await this.serialize(() => this.apply(true)).catch((error) =>
+      this.logFailure(error),
+    );
 
     // Stores the transfer counters, ends finished seeding and retries imports
     this.timer = setInterval(() => {
@@ -114,10 +122,12 @@ export class DownloadsService
     await this.serialize(() => this.shutDown());
   }
 
+  // Not awaited, so whoever emits the event does not wait for the torrents
   @OnEvent(REQUESTS_CHANGED)
+  @OnEvent(WATCH_STATUS_CHANGED)
   @OnEvent(LOCAL_MEDIA_VERSION_GONE)
-  async onWantedChanged() {
-    await this.reconcile();
+  onWantedChanged() {
+    this.reconcile();
   }
 
   getSettings(): Promise<DownloadSettingsDto> {
@@ -163,11 +173,13 @@ export class DownloadsService
       tmdbId,
     );
     const { seedRatio } = await this.getSettings();
+    const rule = await this.requestsService.findSeriesRule(userId, tmdbId);
     const plan = planDownloads({
       requests: await this.requestsService.findSeriesRequests(userId, tmdbId),
       selections,
       torrents: [...torrents.values()],
       files,
+      ...(await this.getRuleState(rule ? [rule] : [])),
       seedRatio,
     });
 
@@ -278,7 +290,7 @@ export class DownloadsService
       const failed = this.active.get(torrent.id);
       if (failed?.error) await this.stop(failed);
     });
-    await this.reconcile();
+    this.reconcile();
   }
 
   async clearSelection(
@@ -296,16 +308,24 @@ export class DownloadsService
         episode,
       }),
     );
-    await this.reconcile();
+    this.reconcile();
 
     return deleted > 0;
   }
 
-  /** Brings the torrents in line with what is wanted. Never rejects. */
-  reconcile(sweep = false): Promise<void> {
-    return this.serialize(() => this.apply(sweep)).catch((error) =>
-      this.logger.error(`Reconciling failed: ${error.message}`, error.stack),
-    );
+  /**
+   * Brings the torrents in line with what is wanted. Never rejects. A run that
+   * has not started covers every change made until it does, so at most one
+   * waits in the queue.
+   */
+  reconcile(): Promise<void> {
+    this.pending ??= this.serialize(() => {
+      this.pending = undefined;
+
+      return this.apply(false);
+    }).catch((error) => this.logFailure(error));
+
+    return this.pending;
   }
 
   /** Runs changes to torrents one at a time */
@@ -339,11 +359,13 @@ export class DownloadsService
           torrents.map((torrent) => torrent.infoHash),
         )
       ).filter((file) => file.mediaType === MediaType.Series),
+      ...(await this.getRuleState(await this.requestsService.findRules())),
       seedRatio,
     });
 
+    const torrentsById = new Map(torrents.map((t) => [t.id, t]));
     for (const planned of plan.torrents) {
-      const torrent = torrents.find((t) => t.id === planned.torrentId);
+      const torrent = torrentsById.get(planned.torrentId);
       const active = this.active.get(torrent.id);
       const isNeeded = planned.wanted.length > 0 || planned.needsFiles;
 
@@ -526,6 +548,17 @@ export class DownloadsService
     active.stored = { downloaded: stats.downloaded, uploaded: stats.uploaded };
   }
 
+  /** The rules with what they are evaluated against */
+  private async getRuleState(
+    rules: DownloadsState['rules'],
+  ): Promise<Pick<DownloadsState, 'rules' | 'playStates' | 'now'>> {
+    return {
+      rules,
+      playStates: await this.playStatesService.findEpisodePlayStates(rules),
+      now: Date.now(),
+    };
+  }
+
   private async findTorrents(
     selections: Pick<TorrentSelection, 'torrentId'>[],
   ): Promise<Map<string, Torrent>> {
@@ -546,6 +579,10 @@ export class DownloadsService
     switch (planned.status) {
       case PlannedStatus.WaitingForApproval:
         return { status: EpisodeDownloadStatus.WaitingForApproval };
+      case PlannedStatus.InactiveAhead:
+        return { status: EpisodeDownloadStatus.InactiveAhead };
+      case PlannedStatus.InactiveWatched:
+        return { status: EpisodeDownloadStatus.InactiveWatched };
       case PlannedStatus.NoSelection:
         return { status: EpisodeDownloadStatus.NoSelection };
       case PlannedStatus.Available:
@@ -606,6 +643,10 @@ export class DownloadsService
       downloadSpeed: stats?.downloadSpeed ?? 0,
       uploadSpeed: stats?.uploadSpeed ?? 0,
     };
+  }
+
+  private logFailure(error: Error) {
+    this.logger.error(`Reconciling failed: ${error.message}`, error.stack);
   }
 
   private getDirectory(torrent: Pick<Torrent, 'id'>): string {

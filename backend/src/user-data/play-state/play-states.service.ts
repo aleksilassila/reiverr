@@ -1,9 +1,14 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
 import { UpdatePlayStateDto } from './play-state.dto.js';
 import { PlayState } from './play-state.entity.js';
+import {
+  WATCH_STATUS_CHANGED,
+  WatchStatusChangedEvent,
+} from './play-state.events.js';
 import { LibraryItem } from '../library/library.entity.js';
 
 @Injectable()
@@ -14,6 +19,7 @@ export class PlayStatesService {
     @InjectRepository(LibraryItem)
     private readonly libraryRepository: EntityRepository<LibraryItem>,
     private readonly em: EntityManager,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
@@ -48,6 +54,26 @@ export class PlayStatesService {
     });
 
     return playStates;
+  }
+
+  /** The episode play states of each user for the series given with them */
+  async findEpisodePlayStates(
+    series: { userId: string; tmdbId: string }[],
+  ): Promise<PlayState[]> {
+    const keyOf = (s: { userId: string; tmdbId: string }) =>
+      `${s.userId}/${s.tmdbId}`;
+    const keys = new Set(series.map(keyOf));
+
+    const playStates = await this.playStateRepository.find(
+      {
+        mediaType: MediaTypeFull.Episode,
+        userId: { $in: [...new Set(series.map((s) => s.userId))] },
+        tmdbId: { $in: [...new Set(series.map((s) => s.tmdbId))] },
+      },
+      { disableIdentityMap: true },
+    );
+
+    return playStates.filter((playState) => keys.has(keyOf(playState)));
   }
 
   async findEpisodePlayState(
@@ -109,12 +135,11 @@ export class PlayStatesService {
     const state = await this.getOrCreatePlayState(userId, tmdbId, {
       mediaType: MediaTypeFull.Movie,
     });
-
-    if (playState.progress !== undefined) state.progress = playState.progress;
-    if (playState.watched !== undefined) state.watched = playState.watched;
+    const changed = applyUpdate(state, playState);
 
     await this.em.persist(state).flush();
     await this.touchLibraryItem(userId, tmdbId, MediaType.Movie);
+    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Movie);
 
     return state;
   }
@@ -131,12 +156,11 @@ export class PlayStatesService {
       episode,
       mediaType: MediaTypeFull.Episode,
     });
-
-    if (playState.progress !== undefined) state.progress = playState.progress;
-    if (playState.watched !== undefined) state.watched = playState.watched;
+    const changed = applyUpdate(state, playState);
 
     await this.em.persist(state).flush();
     await this.touchLibraryItem(userId, tmdbId, MediaType.Series);
+    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
 
     return state;
   }
@@ -144,6 +168,7 @@ export class PlayStatesService {
   async deleteMoviePlayState(userId: string, tmdbId: string) {
     const state = await this.findMoviePlayState(userId, tmdbId);
     await this.em.remove(state).flush();
+    this.emitChanged(userId, tmdbId, MediaTypeFull.Movie);
 
     return state;
   }
@@ -163,6 +188,7 @@ export class PlayStatesService {
 
     if (state) {
       await this.em.remove(state).flush();
+      this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
 
       return state;
     }
@@ -173,6 +199,7 @@ export class PlayStatesService {
     tmdbId: string,
     playStates: UpdatePlayStateDto[],
   ) {
+    let changed = false;
     const states = await Promise.all(
       playStates.map(async (updatedState) => {
         const state = await this.getOrCreatePlayState(userId, tmdbId, {
@@ -180,17 +207,14 @@ export class PlayStatesService {
           episode: updatedState.episode,
           mediaType: MediaTypeFull.Episode,
         });
-
-        if (updatedState.progress !== undefined)
-          state.progress = updatedState.progress;
-        if (updatedState.watched !== undefined)
-          state.watched = updatedState.watched;
+        if (applyUpdate(state, updatedState)) changed = true;
 
         return state;
       }),
     );
 
     await this.em.persist(states).flush();
+    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
 
     return states;
   }
@@ -207,4 +231,26 @@ export class PlayStatesService {
       { lastPlayedAt: now, updatedAt: now },
     );
   }
+
+  private emitChanged(
+    userId: string,
+    tmdbId: string,
+    mediaType: MediaTypeFull,
+  ) {
+    const event: WatchStatusChangedEvent = { userId, tmdbId, mediaType };
+    this.eventEmitter.emit(WATCH_STATUS_CHANGED, event);
+  }
+}
+
+/** Applies an update and tells whether it changed whether the media is watched */
+function applyUpdate(state: PlayState, update: UpdatePlayStateDto): boolean {
+  const wasWatched = state.watched;
+
+  if (update.progress !== undefined) state.progress = update.progress;
+  if (update.watched !== undefined && update.watched !== state.watched) {
+    state.watched = update.watched;
+    state.watchedAt = update.watched ? new Date() : null;
+  }
+
+  return state.watched !== wasWatched;
 }

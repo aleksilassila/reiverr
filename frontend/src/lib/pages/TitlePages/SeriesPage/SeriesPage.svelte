@@ -218,6 +218,20 @@
 					<Play size={19} slot="icon" />
 				</Button> -->
 
+				<Button
+					icon={Plus}
+					on:clickOrSelect={() =>
+						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
+				>
+					Requests
+				</Button>
+
+				{#if !$inLibrary}
+					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to Library</Button>
+				{:else}
+					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
+				{/if}
+
 				{#if trailerId}
 					<Button
 						on:clickOrSelect={() =>
@@ -227,19 +241,6 @@
 						Play Trailer
 					</Button>
 				{/if}
-
-				{#if !$inLibrary}
-					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to Library</Button>
-				{:else}
-					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
-				{/if}
-				<Button
-					icon={Plus}
-					on:clickOrSelect={() =>
-						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
-				>
-					Requests
-				</Button>
 
 				<!-- <Button action={toggleIsWatched}>
 						{#if $isWatched}
