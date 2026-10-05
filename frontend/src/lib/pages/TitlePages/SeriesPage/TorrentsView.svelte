@@ -29,6 +29,23 @@
 	// An episode without a torrent of its own downloads from the season pack
 	$: seasonPack =
 		episode === undefined ? undefined : $requests?.selections.get(episodeKey(season, 0));
+	// A request that has its file keeps it when another torrent is selected for the season
+	$: kept = [...($requests?.episodes.values() ?? [])].filter(
+		(e) =>
+			e.season === season &&
+			(episode === undefined || e.episode === episode) &&
+			e.status === 'available' &&
+			e.torrent?.id !==
+				(
+					$requests?.selections.get(episodeKey(e.season, e.episode)) ??
+					$requests?.selections.get(episodeKey(e.season, 0))
+				)?.torrent.id
+	);
+	$: keptHint = !kept.length
+		? ''
+		: episode === undefined
+			? `${kept.length} ${kept.length === 1 ? 'episode keeps its file' : 'episodes keep their files'}. Select a torrent for an episode to replace it.`
+			: `On disk from: ${kept[0]?.torrent?.title}. Select a torrent to replace it.`;
 
 	let error = '';
 	const releases: Promise<ReleaseDto[]> = reiverrApi.indexers
@@ -104,6 +121,9 @@
 			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
 				From the season pack: {seasonPack.torrent.title}
 			</div>
+		{/if}
+		{#if keptHint}
+			<div class="text-lg font-medium text-secondary-500 mt-1 line-clamp-1">{keptHint}</div>
 		{/if}
 		{#if error}
 			<div class="text-lg font-medium text-red-400 mt-4">{error}</div>

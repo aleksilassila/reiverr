@@ -1211,6 +1211,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "media_file_id": {
+          "name": "media_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "media_type": {
           "name": "media_type",
           "type": "text",
@@ -1252,6 +1269,23 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "torrent_id": {
+          "name": "torrent_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
@@ -1310,6 +1344,26 @@
         },
         {
           "columnNames": [
+            "media_file_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "request_media_file_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "torrent_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "request_torrent_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
             "user_id"
           ],
           "composite": false,
@@ -1336,6 +1390,30 @@
       "checks": [],
       "triggers": [],
       "foreignKeys": {
+        "request_media_file_id_foreign": {
+          "columnNames": [
+            "media_file_id"
+          ],
+          "constraintName": "request_media_file_id_foreign",
+          "localTableName": "request",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "media_file",
+          "deleteRule": "set null"
+        },
+        "request_torrent_id_foreign": {
+          "columnNames": [
+            "torrent_id"
+          ],
+          "constraintName": "request_torrent_id_foreign",
+          "localTableName": "request",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "torrent",
+          "deleteRule": "set null"
+        },
         "request_user_id_foreign": {
           "columnNames": [
             "user_id"

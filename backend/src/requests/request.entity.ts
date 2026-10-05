@@ -9,6 +9,8 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaTypeFull } from '../common/common.dto.js';
+import { Torrent } from '../downloads/torrent.entity.js';
+import { MediaFile } from '../local-media/media-file.entity.js';
 import { MovieMetadata } from '../metadata/metadata.entity.js';
 import { User } from '../users/user.entity.js';
 
@@ -48,6 +50,27 @@ export class MediaRequest {
   @ApiProperty({ type: 'boolean' })
   @Property({ default: false })
   approved: boolean = false;
+
+  /** The torrent the request downloads from, once it is bound to one */
+  @ManyToOne(() => Torrent, {
+    mapToPk: true,
+    fieldName: 'torrent_id',
+    nullable: true,
+    deleteRule: 'set null',
+  })
+  torrentId?: string;
+
+  /**
+   * The file that fulfils the request, which the request holds. Without one
+   * the request is not fulfilled.
+   */
+  @ManyToOne(() => MediaFile, {
+    mapToPk: true,
+    fieldName: 'media_file_id',
+    nullable: true,
+    deleteRule: 'set null',
+  })
+  mediaFileId?: string;
 
   @ApiProperty({ required: false, type: () => MovieMetadata })
   @ManyToOne(() => MovieMetadata, {

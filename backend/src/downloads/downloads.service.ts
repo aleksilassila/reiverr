@@ -83,10 +83,11 @@ const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
 
 /**
  * Downloads what is requested from the torrents that are selected for it.
- * Nothing about a download is stored apart from the transfer counters: what
- * every torrent has to do is planned from the requests, the selections and
- * the files in the library (see planDownloads), and applied whenever one of
- * them changes.
+ * A request remembers the torrent it is bound to and the file that fulfils
+ * it. Nothing else about a download is stored apart from the transfer
+ * counters: what every torrent has to do is planned from the requests, the
+ * selections and the files in the library (see planDownloads), and applied
+ * whenever one of them changes.
  */
 @Injectable()
 export class DownloadsService
@@ -188,14 +189,19 @@ export class DownloadsService
       { mediaType: MediaType.Series, tmdbId },
       { orderBy: { season: 'asc', episode: 'asc' }, disableIdentityMap: true },
     );
-    const torrents = await this.findTorrents(selectionsOfEveryone);
+    const requestsOfEveryone =
+      await this.requestsService.findAllSeriesRequests(tmdbId);
+    const torrents = await this.findTorrents([
+      ...selectionsOfEveryone,
+      ...requestsOfEveryone,
+    ]);
     const files = await this.localMediaService.findIndexedFiles(
       MediaType.Series,
       tmdbId,
     );
     const { seedRatio, cleanup } = await this.getSettings();
     const plan = planDownloads({
-      requests: await this.requestsService.findAllSeriesRequests(tmdbId),
+      requests: requestsOfEveryone,
       selections: selectionsOfEveryone,
       torrents: [...torrents.values()],
       files,
@@ -245,6 +251,9 @@ export class DownloadsService
           requested: requested.has(episodeKey(episode)),
           onDisk: onDisk.has(episodeKey(episode)),
           ...this.getRequestStatus(requested.get(episodeKey(episode))),
+          torrent: this.toTorrentDto(
+            torrents.get(requested.get(episodeKey(episode))?.torrentId),
+          ),
           cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
         }))
         .sort((a, b) => a.season - b.season || a.episode - b.episode),
@@ -259,8 +268,10 @@ export class DownloadsService
 
   /**
    * Selects the torrent that the requests of a user for an episode, or with
-   * episode 0 for the rest of a season, are downloaded from. Changing the
-   * selection keeps what was downloaded for the previous one.
+   * episode 0 for the rest of a season, are bound to. For an episode this
+   * replaces what its request has: the request is bound again and lets go of
+   * its file. For a season the requests that have no file yet are bound again
+   * and the ones that have their file keep it.
    */
   async selectRelease(
     userId: string,
@@ -318,6 +329,10 @@ export class DownloadsService
         .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
         .merge(['torrentId', 'releaseId'])
         .execute();
+      // A torrent that is selected for an episode replaces what the episode has
+      await this.requestsService.unbind(userId, tmdbId, season, episode, {
+        withFile: episode !== 0,
+      });
 
       // Selecting a failed torrent again is the way to retry it
       const failed = this.active.get(torrent.id);
@@ -332,15 +347,20 @@ export class DownloadsService
     season: number,
     episode: number,
   ): Promise<boolean> {
-    const deleted = await this.serialize(() =>
-      this.em.nativeDelete(TorrentSelection, {
+    const deleted = await this.serialize(async () => {
+      const deleted = await this.em.nativeDelete(TorrentSelection, {
         userId,
         mediaType: MediaType.Series,
         tmdbId,
         season,
         episode,
-      }),
-    );
+      });
+      await this.requestsService.unbind(userId, tmdbId, season, episode, {
+        withFile: false,
+      });
+
+      return deleted;
+    });
     this.reconcile();
 
     return deleted > 0;
@@ -400,7 +420,7 @@ export class DownloadsService
     );
     const { seedRatio } = await this.getSettings();
     const plan = planDownloads({
-      requests: await this.requestsService.findApprovedEpisodeRequests(),
+      requests: await this.requestsService.findEpisodeRequests(),
       selections: await this.em.find(
         TorrentSelection,
         {},
@@ -420,6 +440,20 @@ export class DownloadsService
     for (const active of this.active.values()) await this.storeCounters(active);
 
     const { plan, torrents } = await this.planServer();
+    // Requests remember what they were bound to and what fulfils them
+    await this.requestsService.setReferences(
+      plan.requests
+        .filter(
+          ({ request, torrentId, mediaFileId }) =>
+            (request.torrentId ?? undefined) !== torrentId ||
+            (request.mediaFileId ?? undefined) !== mediaFileId,
+        )
+        .map(({ request, torrentId, mediaFileId }) => ({
+          id: request.id,
+          torrentId,
+          mediaFileId,
+        })),
+    );
 
     const torrentsById = new Map(torrents.map((t) => [t.id, t]));
     for (const planned of plan.torrents) {
@@ -427,7 +461,7 @@ export class DownloadsService
       const active = this.active.get(torrent.id);
       const isNeeded = planned.wanted.length > 0 || planned.needsFiles;
 
-      // A torrent that nobody selects and that is done seeding is forgotten
+      // A torrent that nothing refers to and that is done seeding is forgotten
       const release = async () => {
         if (
           active ||
@@ -437,7 +471,7 @@ export class DownloadsService
         ) {
           await this.discard(torrent);
         }
-        if (!planned.selected) {
+        if (!planned.referenced) {
           await this.em.nativeDelete(Torrent, { id: torrent.id });
         }
       };
@@ -629,12 +663,13 @@ export class DownloadsService
     };
   }
 
+  /** The torrents that selections and requests refer to */
   private async findTorrents(
-    selections: Pick<TorrentSelection, 'torrentId'>[],
+    references: { torrentId?: string }[],
   ): Promise<Map<string, Torrent>> {
     const torrents = await this.em.find(
       Torrent,
-      { id: { $in: selections.map((selection) => selection.torrentId) } },
+      { id: { $in: references.flatMap(({ torrentId }) => torrentId ?? []) } },
       { disableIdentityMap: true },
     );
 
@@ -683,7 +718,9 @@ export class DownloadsService
     };
   }
 
-  private toTorrentDto(torrent: Torrent): TorrentDto {
+  private toTorrentDto(torrent?: Torrent): TorrentDto | undefined {
+    if (!torrent) return undefined;
+
     const active = this.active.get(torrent.id);
     const stats = active?.handle?.getStats();
 

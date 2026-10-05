@@ -3,6 +3,7 @@ import type {
 	EpisodeStatusDto,
 	SeriesUserDataDto,
 	TmdbSeriesFull,
+	TorrentDto,
 	TorrentSelectionDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
@@ -36,8 +37,10 @@ export type SeriesRequests = {
 export type EpisodeRequestStatus = {
 	requested: boolean;
 	onDisk: boolean;
-	/** The torrent the episode is downloaded from: its own, or else the season pack */
-	selection?: TorrentSelectionDto;
+	/** The torrent of the request, or else the selected one: the episode's own, or the season pack */
+	torrent?: TorrentDto;
+	/** The torrent is the season pack, which was not selected for this episode */
+	isSeasonPack: boolean;
 	label?: string;
 	isError: boolean;
 };
@@ -88,11 +91,16 @@ export function getEpisodeRequestStatus(
 ): EpisodeRequestStatus {
 	const key = episodeKey(season, episode);
 	const status = data?.episodes.get(key);
+	const own = data?.selections.get(key);
+	const seasonPack = data?.selections.get(episodeKey(season, 0));
+	// A request that has its file keeps its torrent when another one is selected
+	const torrent = status?.torrent ?? (own ?? seasonPack)?.torrent;
 
 	return {
 		requested: !!status?.requested,
 		onDisk: !!status?.onDisk,
-		selection: data?.selections.get(key) ?? data?.selections.get(episodeKey(season, 0)),
+		torrent,
+		isSeasonPack: !own && !!torrent && torrent.id === seasonPack?.torrent.id,
 		label: getStatusLabel(status),
 		isError: status?.status === 'failed' || status?.status === 'no-file-in-torrent'
 	};

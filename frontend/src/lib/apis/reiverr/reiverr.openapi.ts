@@ -1465,6 +1465,8 @@ export interface EpisodeStatusDto {
   /** From 0 to 1 */
   progress?: number;
   error?: string;
+  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
+  torrent?: TorrentDto;
   /**
    * When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them
    * @format date-time
@@ -1473,11 +1475,11 @@ export interface EpisodeStatusDto {
 }
 
 export interface SeriesDownloadsDto {
-  /** The torrents the user selected for the series */
+  /** The torrents the user selected for the series, which their requests are bound to */
   selections: TorrentSelectionDto[];
   /** The episodes that the user requested or that are on disk */
   episodes: EpisodeStatusDto[];
-  /** Info hashes of the torrents that someone selected for the series or that files of it came from */
+  /** Info hashes of the torrents that someone selected for the series, that a request for it is bound to or that files of it came from */
   onServer: string[];
 }
 

@@ -47,6 +47,14 @@ const request = (userId: string, episode: number, approved = true) => ({
   approved,
 });
 
+/** A request that was planned before, with what it refers to since */
+const bound = (
+  userId: string,
+  episode: number,
+  torrentId: string,
+  file?: { id: string },
+) => ({ ...request(userId, episode), torrentId, mediaFileId: file?.id });
+
 const selection = (userId: string, episode: number, torrentId: string) => ({
   userId,
   mediaType: MediaType.Series,
@@ -110,6 +118,7 @@ function plan(state: Partial<DownloadsState>) {
 
   return {
     statuses: result.requests.map((r) => r.status),
+    references: result.requests.map((r) => [r.torrentId, r.mediaFileId]),
     torrent: (id: string) => result.torrents.find((t) => t.torrentId === id),
     unretained: result.unretained,
   };
@@ -119,8 +128,8 @@ describe('planDownloads', () => {
   it('wants nothing from a torrent that is selected but not requested', () => {
     const { torrent } = plan({ selections: [selection('a', 0, 'pack')] });
 
-    expect(torrent('pack')).toMatchObject({ wanted: [], selected: true });
-    expect(torrent('episode').selected).toBe(false);
+    expect(torrent('pack')).toMatchObject({ wanted: [], referenced: true });
+    expect(torrent('episode').referenced).toBe(false);
   });
 
   it('wants nothing for a request without a torrent or without approval', () => {
@@ -160,6 +169,15 @@ describe('planDownloads', () => {
     expect(torrent('episode').wanted).toMatchObject([
       { fileIndex: 0, episodes: [2] },
     ]);
+  });
+
+  it('takes the only video for the episode only of a torrent that is selected for it', () => {
+    const { statuses } = plan({
+      requests: [request('a', 2)],
+      selections: [selection('a', 0, 'episode')],
+    });
+
+    expect(statuses).toEqual([PlannedStatus.NoFileInTorrent]);
   });
 
   it('resolves every request with the selection of its own user', () => {
@@ -233,6 +251,107 @@ describe('planDownloads', () => {
     });
 
     expect(statuses).toEqual([PlannedStatus.NoFileInTorrent]);
+  });
+
+  describe('references', () => {
+    const packE1 = version(PACK_HASH, 1);
+    const episodeE2 = version(EPISODE_HASH, 2);
+
+    it('binds a request to the torrent its user prefers and to the file of that torrent', () => {
+      const { references, torrent } = plan({
+        requests: [request('a', 1), request('a', 2), request('b', 1)],
+        selections: [selection('a', 0, 'pack')],
+        files: [packE1],
+      });
+
+      expect(references).toEqual([
+        ['pack', packE1.id],
+        ['pack', undefined],
+        [undefined, undefined],
+      ]);
+      expect(torrent('pack').referenced).toBe(true);
+    });
+
+    it('keeps the torrent and the file of a request when its user selects another torrent', () => {
+      const requests = [bound('a', 2, 'episode', episodeE2)];
+      const files = [episodeE2, version(PACK_HASH, 2, 3)];
+
+      for (const selections of [[selection('a', 0, 'pack')], []]) {
+        const { statuses, references, torrent, unretained } = plan({
+          requests,
+          selections,
+          files,
+        });
+
+        expect(statuses).toEqual([PlannedStatus.Available]);
+        expect(references).toEqual([['episode', episodeE2.id]]);
+        expect(torrent('episode').referenced).toBe(true);
+        expect(unretained).toEqual([files[1]]);
+      }
+    });
+
+    it('downloads the file of a request again from its torrent', () => {
+      // The file of the request is gone, and with it the reference
+      const { statuses, references, torrent } = plan({
+        requests: [bound('a', 1, 'pack')],
+        selections: [selection('a', 0, 'episode')],
+      });
+
+      expect(statuses).toEqual([PlannedStatus.Wanted]);
+      expect(references).toEqual([['pack', undefined]]);
+      expect(torrent('pack').wanted.map((w) => w.fileIndex)).toEqual([0]);
+    });
+
+    it('binds no request that waits for approval or that a rule holds back', () => {
+      const { statuses, references } = plan({
+        requests: [request('a', 1, false), request('b', 1), request('b', 2)],
+        selections: [selection('a', 0, 'pack'), selection('b', 0, 'pack')],
+        files: [packE1],
+        rules: [rule('b', { keepNext: 1 })],
+      });
+
+      expect(statuses).toEqual([
+        PlannedStatus.WaitingForApproval,
+        PlannedStatus.Available,
+        PlannedStatus.InactiveAhead,
+      ]);
+      expect(references).toEqual([
+        [undefined, undefined],
+        ['pack', packE1.id],
+        [undefined, undefined],
+      ]);
+    });
+
+    it('leaves the references of an inactive request, which holds nothing', () => {
+      const { statuses, references, unretained } = plan({
+        requests: [bound('a', 1, 'pack', packE1), request('a', 2)],
+        files: [packE1],
+        rules: [rule('a', { keepWatchedHours: 1 })],
+        playStates: [watched('a', 1, 2)],
+      });
+
+      expect(statuses).toEqual([
+        PlannedStatus.InactiveWatched,
+        PlannedStatus.NoSelection,
+      ]);
+      expect(references[0]).toEqual(['pack', packE1.id]);
+      expect(unretained).toEqual([packE1]);
+    });
+
+    it('binds a request that a rule keeps only together with its file', () => {
+      const state = {
+        requests: [request('a', 1), request('a', 2)],
+        selections: [selection('a', 0, 'pack')],
+        rules: [rule('a', { keepWatched: 1 })],
+        playStates: [watched('a', 1)],
+      };
+
+      expect(plan(state).references[0]).toEqual([undefined, undefined]);
+      expect(plan({ ...state, files: [packE1] }).references[0]).toEqual([
+        'pack',
+        packE1.id,
+      ]);
+    });
   });
 
   describe('with a rule', () => {

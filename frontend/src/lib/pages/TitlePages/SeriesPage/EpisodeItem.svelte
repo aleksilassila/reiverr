@@ -13,8 +13,8 @@
 <!-- The season pack is dimmed: it was not selected for this episode -->
 <RequestRow
 	title={`S${seasonNumber}E${episodeNumber} - ${episodeName}`}
-	subtitle={status.selection?.torrent.title}
-	subtitleDimmed={status.selection?.episode === 0}
+	subtitle={status.torrent?.title}
+	subtitleDimmed={status.isSeasonPack}
 	status={status.label}
 	isError={status.isError}
 	checked={status.requested}

@@ -85,12 +85,12 @@ export enum EpisodeDownloadStatus {
   /** The rule of the user does not keep the request of the watched episode, or has no file of it to keep */
   InactiveWatched = 'inactive-watched',
   NoSelection = 'no-selection',
-  /** The files of the selected torrent are not known yet */
+  /** The files of the torrent of the request are not known yet */
   Resolving = 'resolving',
   NoFileInTorrent = 'no-file-in-torrent',
   Downloading = 'downloading',
   Failed = 'failed',
-  /** The file of the selected torrent is in the library */
+  /** The file of the torrent of the request is in the library */
   Available = 'available',
 }
 
@@ -118,6 +118,14 @@ export class EpisodeStatusDto extends EpisodeRefDto {
   error?: string;
 
   @ApiProperty({
+    type: TorrentDto,
+    required: false,
+    description:
+      'The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season',
+  })
+  torrent?: TorrentDto;
+
+  @ApiProperty({
     type: 'string',
     format: 'date-time',
     required: false,
@@ -130,7 +138,8 @@ export class EpisodeStatusDto extends EpisodeRefDto {
 export class SeriesDownloadsDto {
   @ApiProperty({
     type: [TorrentSelectionDto],
-    description: 'The torrents the user selected for the series',
+    description:
+      'The torrents the user selected for the series, which their requests are bound to',
   })
   selections: TorrentSelectionDto[];
 
@@ -143,7 +152,7 @@ export class SeriesDownloadsDto {
   @ApiProperty({
     type: [String],
     description:
-      'Info hashes of the torrents that someone selected for the series or that files of it came from',
+      'Info hashes of the torrents that someone selected for the series, that a request for it is bound to or that files of it came from',
   })
   onServer: string[];
 }

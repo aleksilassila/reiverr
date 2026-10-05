@@ -31,6 +31,7 @@ import { MediaFile } from '../src/local-media/media-file.entity.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
 import { LogEntry, LogType } from '../src/server-log/log-entry.entity.js';
+import { MediaRequest } from '../src/requests/request.entity.js';
 import { RequestRuleDto } from '../src/requests/requests.dto.js';
 import { RequestsService } from '../src/requests/requests.service.js';
 import { createTorrent } from './torrent-fixture.js';
@@ -316,20 +317,45 @@ describe('Series downloads (e2e)', () => {
       .map((torrent) => torrent.infoHash)
       .sort();
 
+  /**
+   * What the requests of a user refer to: the info hash of their torrent and
+   * of the torrent that their file came from
+   */
+  async function references(user = admin) {
+    const em = app.get(MikroORM).em.fork();
+    const requests = await em.find(
+      MediaRequest,
+      { userId: user.id },
+      { orderBy: { season: 'asc', episode: 'asc' } },
+    );
+    const torrents = await em.find(Torrent, {});
+    const files = await em.find(MediaFile, {});
+
+    // A reference to a row that is gone would show as undefined
+    return requests.map((request) => [
+      request.season,
+      request.episode,
+      request.torrentId &&
+        torrents.find((t) => t.id === request.torrentId)?.infoHash,
+      request.mediaFileId &&
+        files.find((f) => f.id === request.mediaFileId)?.infoHash,
+    ]);
+  }
+
   // Reconciliations run in the background
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
 
   /** Holds the next reconciliation back, in the middle of its run */
   function holdReconciliation() {
     const requests = app.get(RequestsService);
-    const find = requests.findApprovedEpisodeRequests.bind(requests);
+    const find = requests.findEpisodeRequests.bind(requests);
     let start: () => void;
     let release: () => void;
     const started = new Promise<void>((resolve) => (start = resolve));
     const released = new Promise<void>((resolve) => (release = resolve));
 
     const reads = vi
-      .spyOn(requests, 'findApprovedEpisodeRequests')
+      .spyOn(requests, 'findEpisodeRequests')
       .mockImplementationOnce(async () => {
         start();
         await released;
@@ -503,7 +529,7 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(PACK).wanted).toEqual([0, 1]);
 
     const downloads = await getDownloads();
-    expect(downloads.episodes).toEqual([
+    expect(downloads.episodes).toMatchObject([
       {
         season: 1,
         episode: 1,
@@ -511,6 +537,7 @@ describe('Series downloads (e2e)', () => {
         onDisk: false,
         status: 'downloading',
         progress: 0.5,
+        torrent: { infoHash: PACK, status: 'downloading' },
       },
       {
         season: 1,
@@ -519,7 +546,13 @@ describe('Series downloads (e2e)', () => {
         onDisk: false,
         status: 'downloading',
         progress: 0.5,
+        torrent: { infoHash: PACK },
       },
+    ]);
+    // The requests are bound to the torrent and have no file yet
+    expect(await references()).toEqual([
+      [1, 1, PACK, null],
+      [1, 2, PACK, null],
     ]);
     expect(downloads.selections[0].torrent).toMatchObject({
       status: 'downloading',
@@ -527,13 +560,17 @@ describe('Series downloads (e2e)', () => {
     });
   });
 
-  it('prefers the torrent selected for an episode over the season pack', async () => {
+  it('binds a request that has no file yet to the torrent that is selected for its episode', async () => {
     await select('Test.Show.S01E02.1080p.WEB-GRP', { episode: 2 });
     await settle();
 
     expect(engine.running(PACK).wanted).toEqual([0]);
     // The only video of an episode torrent is used, whatever it is called
     expect(engine.running(EPISODE).wanted).toEqual([0]);
+    expect(await references()).toEqual([
+      [1, 1, PACK, null],
+      [1, 2, EPISODE, null],
+    ]);
   });
 
   it('imports finished episodes as versions with hard links and stops finished torrents', async () => {
@@ -580,13 +617,14 @@ describe('Series downloads (e2e)', () => {
     ]);
 
     const downloads = await getDownloads();
-    expect(downloads.episodes).toEqual([
+    expect(downloads.episodes).toMatchObject([
       {
         season: 1,
         episode: 1,
         requested: true,
         onDisk: true,
         status: 'available',
+        torrent: { infoHash: PACK },
       },
       {
         season: 1,
@@ -594,7 +632,13 @@ describe('Series downloads (e2e)', () => {
         requested: true,
         onDisk: true,
         status: 'available',
+        torrent: { infoHash: EPISODE },
       },
+    ]);
+    // The requests refer to the files that fulfil them
+    expect(await references()).toEqual([
+      [1, 1, PACK, PACK],
+      [1, 2, EPISODE, EPISODE],
     ]);
     expect(downloads.selections.map((s) => s.torrent)).toMatchObject([
       { infoHash: PACK, status: 'stopped', downloadedBytes: 0 },
@@ -624,7 +668,7 @@ describe('Series downloads (e2e)', () => {
     ]);
   });
 
-  it('downloads another version when the selection changes and keeps the first', async () => {
+  it('replaces the version of an episode when another torrent is selected for it', async () => {
     // The download link of this release redirects to a magnet link
     await select('Test.Show.S01E02.720p.WEB-GRP', { episode: 2 });
     await settle();
@@ -634,6 +678,11 @@ describe('Series downloads (e2e)', () => {
     expect(statuses(await getDownloads())).toEqual([
       [1, 1, 'available'],
       [1, 2, 'downloading'],
+    ]);
+    // The request let go of the file it had
+    expect(await references()).toEqual([
+      [1, 1, PACK, PACK],
+      [1, 2, REDIRECT, null],
     ]);
 
     other.download(0);
@@ -650,13 +699,52 @@ describe('Series downloads (e2e)', () => {
       [1, 1, 'available'],
       [1, 2, 'available'],
     ]);
+    expect(await references()).toEqual([
+      [1, 1, PACK, PACK],
+      [1, 2, REDIRECT, REDIRECT],
+    ]);
 
-    // Nobody selects the first torrent any more. Its file stays and still
-    // tells search results that this release is on the server.
+    // Nothing refers to the first torrent any more. Its file stays until a
+    // cleanup and still tells search results that this release is on the server.
     expect(await torrentHashes()).toEqual([PACK, REDIRECT].sort());
     expect((await getDownloads()).onServer.sort()).toEqual(
       [PACK, REDIRECT, EPISODE].sort(),
     );
+  });
+
+  it('keeps the files of a season when another torrent is selected for the season', async () => {
+    const selectForSeason = (releaseId: string) =>
+      api('put', `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`)
+        .send({ releaseId })
+        .expect(200);
+    const releases = await search('season=1&episode=2');
+
+    await selectForSeason(
+      releases.find((r) => r.title === 'Test.Show.S01E02.1080p.WEB-GRP').id,
+    );
+    await settle();
+
+    expect(engine.running(EPISODE)).toBeUndefined();
+    expect(await references()).toEqual([
+      [1, 1, PACK, PACK],
+      [1, 2, REDIRECT, REDIRECT],
+    ]);
+
+    // The request shows the torrent it has its file from, not the selected one
+    const downloads = await getDownloads();
+    expect(statuses(downloads)).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'available'],
+    ]);
+    expect(downloads.selections[0].torrent.infoHash).toBe(EPISODE);
+    expect(downloads.episodes[0].torrent.infoHash).toBe(PACK);
+
+    // The request keeps the torrent of its file known
+    expect(await torrentHashes()).toEqual([PACK, EPISODE, REDIRECT].sort());
+
+    await select('Test.Show.S01.1080p.WEB-GRP');
+    await settle();
+    expect(await torrentHashes()).toEqual([PACK, REDIRECT].sort());
   });
 
   it('fails a selection whose download link does not lead to a torrent', async () => {
@@ -719,8 +807,8 @@ describe('Series downloads (e2e)', () => {
       [1, 2, 'available'],
     ]);
 
-    // Without the viewer's selection nothing is wanted from the torrent, and
-    // the admin's selection keeps it known
+    // Without the viewer's selection the request, which has no file yet, is
+    // bound to nothing. The admin's selection keeps the torrent known
     await api(
       'delete',
       `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`,
@@ -790,10 +878,14 @@ describe('Series downloads (e2e)', () => {
   it('downloads a version again when its file is gone from the library', async () => {
     rmSync(path.join(dirs.library, episodeFile(3, PACK)));
 
-    // Looking the series up notices the missing file
+    expect(await references(viewer)).toEqual([[1, 3, PACK, PACK]]);
+
+    // Looking the series up notices the missing file. The request no longer
+    // refers to it, and downloads it again from its torrent
     await getDownloads(viewer);
     await settle();
 
+    expect(await references(viewer)).toEqual([[1, 3, PACK, null]]);
     expect(engine.running(PACK).wanted).toEqual([2]);
     expect(statuses(await getDownloads(viewer))).toEqual([
       [1, 1, null],
@@ -805,7 +897,7 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(PACK)).toBeUndefined();
   });
 
-  it('forgets a torrent that nobody selects', async () => {
+  it('forgets a torrent that nobody selects and no request refers to', async () => {
     for (const user of [admin, viewer]) {
       await api(
         'delete',
@@ -815,15 +907,30 @@ describe('Series downloads (e2e)', () => {
     }
     await settle();
 
+    // The admin's request for episode 1 has its file from the torrent
+    expect(await torrentHashes()).toEqual([PACK, REDIRECT].sort());
+    expect(statuses(await getDownloads())).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'available'],
+    ]);
+
+    await setRequested([1], false);
+    await setRequested([1], true);
+    await settle();
+
     expect(await torrentHashes()).toEqual([REDIRECT]);
-    // The admin's request for episode 1 has nothing to download from, although
-    // the file of the forgotten torrent is still on disk
+    // Requested again, the episode has nothing to download from, although the
+    // file of the forgotten torrent is still on disk
     const downloads = await getDownloads();
     expect(statuses(downloads)).toEqual([
       [1, 1, 'no-selection'],
       [1, 2, 'available'],
     ]);
     expect(downloads.episodes[0].onDisk).toBe(true);
+    expect(await references()).toEqual([
+      [1, 1, null, null],
+      [1, 2, REDIRECT, REDIRECT],
+    ]);
   });
 
   it('answers a request before the torrents are brought in line', async () => {

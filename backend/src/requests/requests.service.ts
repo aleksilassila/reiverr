@@ -174,11 +174,54 @@ export class RequestsService {
     return this.findSeriesRequests(userId, tmdbId);
   }
 
-  /** The approved episode requests of every user, oldest first */
-  async findApprovedEpisodeRequests(): Promise<MediaRequest[]> {
+  /** The episode requests of every user, oldest first */
+  async findEpisodeRequests(): Promise<MediaRequest[]> {
     return this.requestRepository.find(
-      { mediaType: MediaTypeFull.Episode, approved: true },
+      { mediaType: MediaTypeFull.Episode },
       { orderBy: { createdAt: 'asc' }, disableIdentityMap: true },
+    );
+  }
+
+  /** Stores the torrent and the file that requests refer to */
+  async setReferences(
+    references: Pick<MediaRequest, 'id' | 'torrentId' | 'mediaFileId'>[],
+  ): Promise<void> {
+    if (!references.length) return;
+
+    await this.em.transactional(async (em) => {
+      for (const { id, torrentId, mediaFileId } of references) {
+        await em.nativeUpdate(
+          MediaRequest,
+          { id },
+          { torrentId: torrentId ?? null, mediaFileId: mediaFileId ?? null },
+        );
+      }
+    });
+  }
+
+  /**
+   * Makes the requests of a user for an episode, or with episode 0 for a
+   * season, forget their torrent, so that they are bound to the one the user
+   * prefers now. A request that has its file keeps both, unless it is to let
+   * go of the file as well.
+   */
+  async unbind(
+    userId: string,
+    tmdbId: string,
+    season: number,
+    episode: number,
+    options: { withFile: boolean },
+  ): Promise<void> {
+    await this.requestRepository.nativeUpdate(
+      {
+        userId,
+        tmdbId,
+        mediaType: MediaTypeFull.Episode,
+        season,
+        ...(episode === 0 ? {} : { episode }),
+        ...(options.withFile ? {} : { mediaFileId: null }),
+      },
+      { torrentId: null, mediaFileId: null },
     );
   }
 

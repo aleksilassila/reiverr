@@ -8,11 +8,19 @@ import type { TorrentSelection } from './torrent-selection.entity.js';
 import type { Torrent } from './torrent.entity.js';
 
 export interface DownloadsState {
-  /** Episode requests */
+  /** Episode requests, with the torrent and the file they refer to so far */
   requests: Pick<
     MediaRequest,
-    'id' | 'userId' | 'tmdbId' | 'season' | 'episode' | 'approved'
+    | 'id'
+    | 'userId'
+    | 'tmdbId'
+    | 'season'
+    | 'episode'
+    | 'approved'
+    | 'torrentId'
+    | 'mediaFileId'
   >[];
+  /** The torrents that users prefer for their requests */
   selections: Pick<
     TorrentSelection,
     'userId' | 'mediaType' | 'tmdbId' | 'season' | 'episode' | 'torrentId'
@@ -54,10 +62,11 @@ export enum PlannedStatus {
   InactiveAhead = 'inactive-ahead',
   /** A rule does not keep the request of the watched episode, or has no file of it to keep */
   InactiveWatched = 'inactive-watched',
+  /** The request is bound to no torrent and its user prefers none for it */
   NoSelection = 'no-selection',
-  /** The file of the selected torrent is in the library */
+  /** The file of the torrent of the request is in the library */
   Available = 'available',
-  /** The files of the selected torrent are not known yet */
+  /** The files of the torrent of the request are not known yet */
   Resolving = 'resolving',
   NoFileInTorrent = 'no-file-in-torrent',
   Wanted = 'wanted',
@@ -66,7 +75,10 @@ export enum PlannedStatus {
 export interface PlannedRequest {
   request: PlanRequest;
   status: PlannedStatus;
+  /** The torrent the request is to refer to */
   torrentId?: string;
+  /** The file the request is to refer to */
+  mediaFileId?: string;
   fileIndex?: number;
 }
 
@@ -84,7 +96,8 @@ export interface PlannedTorrent {
   /** A request waits for the file list of the torrent */
   needsFiles: boolean;
   seeds: boolean;
-  selected: boolean;
+  /** A selection or a request refers to the torrent */
+  referenced: boolean;
 }
 
 export interface DownloadsPlan {
@@ -193,20 +206,23 @@ function evaluateRules(state: DownloadsState): {
 }
 
 /**
- * What every request resolves to and what every torrent has to do for it.
+ * What every request refers to and what every torrent has to do for it.
  *
- * An approved request downloads from the torrent its user selected for the
- * episode, or else for the season. It is fulfilled by the file of that torrent
- * and by no other file of the episode. A request that a rule makes inactive
- * downloads nothing, and neither does one that a rule keeps (see evaluateRules).
+ * An approved request that refers to no torrent yet is bound to the one its
+ * user prefers: the selection for the episode, or else for the season. It then
+ * downloads from that torrent, whatever the user selects later. It is
+ * fulfilled by the file of that torrent and by no other file of the episode,
+ * and refers to the file from then on. The caller stores both references.
+ *
+ * A request that a rule makes inactive is not bound and downloads nothing.
+ * One that a rule keeps downloads nothing either (see evaluateRules): it is
+ * bound only together with a file of the preferred torrent that is there.
  *
  * A request holds the file that fulfils it. Nothing else retains a file: not
- * an inactive request, and not a request of a user who selected another
- * torrent.
+ * an inactive request, and not a request that is bound to another torrent.
  */
 export function planDownloads(state: DownloadsState): DownloadsPlan {
   const torrents = new Map(state.torrents.map((t) => [t.id, t]));
-  const selected = new Set(state.selections.map((s) => s.torrentId));
   const planned = new Map(
     state.torrents.map((torrent): [string, PlannedTorrent] => [
       torrent.id,
@@ -217,7 +233,7 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
         seeds:
           torrent.downloadedBytes > 0 &&
           torrent.uploadedBytes < state.seedRatio * torrent.downloadedBytes,
-        selected: selected.has(torrent.id),
+        referenced: false,
       },
     ]),
   );
@@ -227,6 +243,7 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
       .map((s) => [keyOf(s.userId, s.tmdbId, s.season, s.episode), s]),
   );
 
+  const filesById = new Map(state.files.map((file) => [file.id, file]));
   // The library files of a season by the torrent they were imported from
   const versions = groupBy(
     state.files.filter((file) => file.infoHash),
@@ -235,38 +252,51 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
   const { inactive, kept } = evaluateRules(state);
   const retained = new Set<DownloadsState['files'][number]>();
 
-  const requests = state.requests.map((request): PlannedRequest => {
+  const planRequest = (request: PlanRequest): PlannedRequest => {
+    const stored = {
+      request,
+      torrentId: request.torrentId ?? undefined,
+      mediaFileId: request.mediaFileId ?? undefined,
+    };
+
     if (!request.approved) {
-      return { request, status: PlannedStatus.WaitingForApproval };
+      return { ...stored, status: PlannedStatus.WaitingForApproval };
     }
     if (inactive.has(request)) {
-      return { request, status: inactive.get(request) };
+      return { ...stored, status: inactive.get(request) };
     }
 
     const { userId, tmdbId, season, episode } = request;
-    const selection =
-      selections.get(keyOf(userId, tmdbId, season, episode)) ??
-      selections.get(keyOf(userId, tmdbId, season, 0));
-    const torrent = torrents.get(selection?.torrentId);
-    const inLibrary = !torrent
-      ? []
-      : (versions
+    const ofEpisode = selections.get(keyOf(userId, tmdbId, season, episode));
+    const torrentId =
+      stored.torrentId ??
+      (ofEpisode ?? selections.get(keyOf(userId, tmdbId, season, 0)))
+        ?.torrentId;
+    const torrent = torrents.get(torrentId);
+    const inLibrary =
+      filesById.get(stored.mediaFileId) ??
+      (torrent &&
+        versions
           .get(keyOf(torrent.infoHash, tmdbId, season))
-          ?.filter(
+          ?.find(
             (file) => file.episode <= episode && episode <= file.lastEpisode,
-          ) ?? []);
+          ));
 
     // A kept request holds on to the file it has, it downloads none
-    if (kept.has(request) && !inLibrary.length) {
-      return { request, status: PlannedStatus.InactiveWatched };
+    if (kept.has(request) && !inLibrary) {
+      return { ...stored, status: PlannedStatus.InactiveWatched };
     }
-    if (!selection) return { request, status: PlannedStatus.NoSelection };
+    if (!torrent) return { ...stored, status: PlannedStatus.NoSelection };
 
-    const torrentId = torrent.id;
-    if (inLibrary.length) {
-      for (const file of inLibrary) retained.add(file);
+    if (inLibrary) {
+      retained.add(inLibrary);
 
-      return { request, status: PlannedStatus.Available, torrentId };
+      return {
+        request,
+        status: PlannedStatus.Available,
+        torrentId,
+        mediaFileId: inLibrary.id,
+      };
     }
 
     if (!torrent.files) {
@@ -274,10 +304,13 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
       return { request, status: PlannedStatus.Resolving, torrentId };
     }
 
-    // The only video of an episode torrent is the episode, whatever it is called
+    // The only video of a torrent that is selected for the episode is the
+    // episode, whatever it is called
     const file =
       findEpisodeFile(torrent.files, season, episode) ??
-      (selection.episode !== 0 ? findOnlyVideoFile(torrent.files) : undefined);
+      (ofEpisode?.torrentId === torrentId
+        ? findOnlyVideoFile(torrent.files)
+        : undefined);
     if (!file) {
       return { request, status: PlannedStatus.NoFileInTorrent, torrentId };
     }
@@ -306,7 +339,12 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
       torrentId,
       fileIndex: file.index,
     };
-  });
+  };
+
+  const requests = state.requests.map(planRequest);
+  for (const { torrentId } of [...state.selections, ...requests]) {
+    if (planned.has(torrentId)) planned.get(torrentId).referenced = true;
+  }
 
   return {
     requests,
