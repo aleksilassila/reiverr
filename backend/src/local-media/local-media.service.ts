@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Dirent, promises as fs } from 'fs';
@@ -272,16 +273,19 @@ export class LocalMediaService {
     const file = await this.findFile(id);
     if (!file.managed) throw new Error(`"${file.path}" is not managed`);
 
-    const stats = await fs.stat(file.path).catch(() => undefined);
-    if (!stats) {
-      await this.em.nativeDelete(MediaFile, { id });
-      return;
-    }
-
     const { movieFolders, seriesFolders } = await this.getSettings();
     const libraryFolder = [...movieFolders, ...seriesFolders].find((folder) =>
       isInsideFolder(file.path, folder),
     );
+
+    const stats = await fs.stat(file.path).catch(() => undefined);
+    if (!stats) {
+      // The file is only known to be gone when its folder can be read
+      if (libraryFolder) await this.readLibraryFolder(libraryFolder);
+      await this.em.nativeDelete(MediaFile, { id });
+      return;
+    }
+
     if (!libraryFolder || !stats.isFile() || stats.size !== file.size) {
       this.logger.warn(`"${file.path}" is not as imported, it is kept`);
       await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
@@ -313,6 +317,7 @@ export class LocalMediaService {
    */
   async getLibraryEntries(folder: string): Promise<LibraryEntryDto[]> {
     await this.assertLibraryFolder(folder);
+    await this.readLibraryFolder(folder);
 
     const entries: LibraryEntryDto[] = [];
     const walk = async (dir: string, entry?: LibraryEntryDto) => {
@@ -552,17 +557,7 @@ export class LocalMediaService {
   }
 
   private findFilesInside(dir: string): Promise<MediaFile[]> {
-    return this.em.find(
-      MediaFile,
-      {
-        path: {
-          $gte: dir + path.sep,
-          // The character after the separator ends the range of what is inside
-          $lt: dir + String.fromCharCode(path.sep.charCodeAt(0) + 1),
-        },
-      },
-      { disableIdentityMap: true },
-    );
+    return this.em.find(MediaFile, isInside(dir), { disableIdentityMap: true });
   }
 
   private logDeleted(filePath: string, reason: string, file?: MediaFile) {
@@ -741,7 +736,7 @@ export class LocalMediaService {
     const titleFolders: string[] = [];
 
     for (const folder of folders) {
-      for (const entry of await this.readDirectory(folder)) {
+      for (const entry of await this.readLibraryFolder(folder)) {
         if (!(await this.isDirectory(entry, folder))) continue;
         if (!folderMatchesTarget(parseMediaFolderName(entry.name), target))
           continue;
@@ -793,6 +788,28 @@ export class LocalMediaService {
     return files;
   }
 
+  /**
+   * What is in a library folder. A folder that cannot be read, or that is
+   * empty while files are indexed in it, is taken for a disk that is not
+   * mounted: nothing is read from it, so that no file is forgotten and
+   * nothing is written where the disk belongs.
+   */
+  private async readLibraryFolder(folder: string): Promise<Dirent[]> {
+    const unavailable = (reason: string) =>
+      new ServiceUnavailableException(
+        `Library folder "${folder}" is not available: ${reason}`,
+      );
+
+    const entries = await this.readDirectory(folder).catch((error) => {
+      throw unavailable(describeError(error));
+    });
+    if (!entries.length && (await this.em.count(MediaFile, isInside(folder)))) {
+      throw unavailable('it is empty, but files are indexed in it');
+    }
+
+    return entries;
+  }
+
   private async readDirectory(dir: string): Promise<Dirent[]> {
     const entries = await fs.readdir(dir, { withFileTypes: true });
 
@@ -810,6 +827,15 @@ export class LocalMediaService {
 }
 
 const byName = (a: Dirent, b: Dirent) => a.name.localeCompare(b.name);
+
+/** The condition for the files inside a directory */
+const isInside = (dir: string) => ({
+  path: {
+    $gte: dir + path.sep,
+    // The character after the separator ends the range of what is inside
+    $lt: dir + String.fromCharCode(path.sep.charCodeAt(0) + 1),
+  },
+});
 
 const exists = (filePath: string) =>
   fs.lstat(filePath).then(

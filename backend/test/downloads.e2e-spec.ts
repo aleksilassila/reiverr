@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -873,6 +874,39 @@ describe('Series downloads (e2e)', () => {
     await api('put', '/v2/downloads/settings')
       .send({ seedRatio: 0, cleanup: 'daily' })
       .expect(200);
+  });
+
+  it('keeps what it knows while the library folder is not mounted', async () => {
+    const disk = path.join(dirs.root, 'disk');
+    const countFiles = () => app.get(MikroORM).em.fork().count(MediaFile);
+    const before = statuses(await getDownloads(viewer));
+    const files = await countFiles();
+
+    // The folder is there with nothing in it
+    renameSync(dirs.library, disk);
+    mkdirSync(dirs.library);
+
+    const { body } = await api(
+      'get',
+      `/v2/downloads/series/${TMDB_ID}`,
+      viewer,
+    ).expect(503);
+    expect(body.message).toBe(
+      `Library folder "${dirs.library}" is not available: it is empty, but files are indexed in it`,
+    );
+    await app.get(DownloadsService).onCleanupHour();
+    await settle();
+
+    expect(await references(viewer)).toEqual([[1, 3, PACK, PACK]]);
+    expect(await countFiles()).toBe(files);
+    expect(engine.running(PACK)).toBeUndefined();
+    expect(readdirSync(dirs.library)).toEqual([]);
+
+    rmSync(dirs.library, { recursive: true });
+    renameSync(disk, dirs.library);
+
+    expect(statuses(await getDownloads(viewer))).toEqual(before);
+    expect(await references(viewer)).toEqual([[1, 3, PACK, PACK]]);
   });
 
   it('downloads a version again when its file is gone from the library', async () => {

@@ -1,6 +1,10 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   chmodSync,
@@ -8,6 +12,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -217,6 +222,86 @@ describe('LocalMediaService', () => {
     await expect(
       request(() => localMedia.resolveFilePath(file.id)),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  describe('a library folder that is not available', () => {
+    const disk = () => path.join(root, 'disk');
+    const attempts = [
+      () => getSeriesFiles(),
+      () => importEpisode(path.join(root, 'downloads/S01E03.mkv'), [3]),
+      () => request(() => localMedia.getLibraryEntries(library)),
+    ];
+
+    const fillLibrary = async () => {
+      await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+      );
+      write('downloads/S01E03.mkv');
+      await getSeriesFiles();
+
+      return indexed();
+    };
+
+    it('keeps the index of a folder that is empty and writes nothing to it', async () => {
+      const before = await fillLibrary();
+      expect(before.map((file) => file.managed)).toEqual([true, false]);
+
+      // The disk is not mounted: its folder is there with nothing in it
+      renameSync(library, disk());
+      mkdirSync(library);
+      writeFileSync(path.join(library, '.DS_Store'), '');
+
+      for (const attempt of attempts) {
+        await expect(attempt()).rejects.toThrow(ServiceUnavailableException);
+      }
+      await expect(
+        request(() => localMedia.deleteManagedFile(before[0].id, 'a test')),
+      ).rejects.toThrow('it is empty, but files are indexed in it');
+      expect(readdirSync(library)).toEqual(['.DS_Store']);
+      expect(await indexed()).toEqual(before);
+
+      // Mounted again, the files are what they were
+      rmSync(library, { recursive: true });
+      renameSync(disk(), library);
+
+      expect((await getSeriesFiles()).map((file) => file.id)).toEqual(
+        before.map((file) => file.id),
+      );
+      expect(await indexed()).toEqual(before);
+    });
+
+    it('keeps the index of a folder that is missing', async () => {
+      const before = await fillLibrary();
+      renameSync(library, disk());
+
+      for (const attempt of attempts) {
+        await expect(attempt()).rejects.toThrow(ServiceUnavailableException);
+      }
+      await expect(
+        request(() => localMedia.deleteManagedFile(before[0].id, 'a test')),
+      ).rejects.toThrow('ENOENT: no such file or directory');
+      expect(existsSync(library)).toBe(false);
+      expect(await indexed()).toEqual(before);
+    });
+
+    it('reads an empty folder that nothing is indexed in', async () => {
+      expect(await getSeriesFiles()).toEqual([]);
+      expect(
+        await request(() => localMedia.getLibraryEntries(library)),
+      ).toEqual([]);
+    });
+
+    it('forgets the files of a series whose folder is gone from a folder that has others', async () => {
+      await fillLibrary();
+      write('tv/Another Show (2020)/Season 01/Another Show - S01E01.mkv');
+      rmSync(path.join(library, 'Test Show (2020) [tmdbid-100]'), {
+        recursive: true,
+      });
+
+      expect(await getSeriesFiles()).toEqual([]);
+      expect(await indexed()).toEqual([]);
+    });
   });
 
   describe('deleting a managed file', () => {
