@@ -1,15 +1,11 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
 import { UpdatePlayStateDto } from './play-state.dto.js';
 import { PlayState } from './play-state.entity.js';
-import {
-  WATCH_STATUS_CHANGED,
-  WatchStatusChangedEvent,
-} from './play-state.events.js';
+import { RequestsService } from '../../requests/requests.service.js';
 import { LibraryItem } from '../library/library.entity.js';
 
 @Injectable()
@@ -17,10 +13,8 @@ export class PlayStatesService {
   constructor(
     @InjectRepository(PlayState)
     private readonly playStateRepository: EntityRepository<PlayState>,
-    @InjectRepository(LibraryItem)
-    private readonly libraryRepository: EntityRepository<LibraryItem>,
     private readonly em: EntityManager,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly requestsService: RequestsService,
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
@@ -93,6 +87,7 @@ export class PlayStatesService {
   }
 
   private async getOrCreatePlayState(
+    em: EntityManager,
     userId: string,
     tmdbId: string,
     options: {
@@ -111,7 +106,7 @@ export class PlayStatesService {
 
     // Two first reports for the same media, from the player and another
     // device, both create it
-    await this.em
+    await em
       .createQueryBuilder(PlayState)
       .insert({
         id: randomUUID(),
@@ -124,7 +119,7 @@ export class PlayStatesService {
       .ignore()
       .execute();
 
-    return this.playStateRepository.findOneOrFail(key);
+    return em.findOneOrFail(PlayState, key);
   }
 
   async updateOrCreateMoviePlayState(
@@ -132,16 +127,17 @@ export class PlayStatesService {
     tmdbId: string,
     playState: UpdatePlayStateDto,
   ) {
-    const state = await this.getOrCreatePlayState(userId, tmdbId, {
-      mediaType: MediaTypeFull.Movie,
+    return this.em.transactional(async (tx) => {
+      const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
+        mediaType: MediaTypeFull.Movie,
+      });
+      applyUpdate(state, playState);
+
+      await tx.flush();
+      await this.touchLibraryItem(tx, userId, tmdbId, MediaType.Movie);
+
+      return state;
     });
-    const changed = applyUpdate(state, playState);
-
-    await this.em.persist(state).flush();
-    await this.touchLibraryItem(userId, tmdbId, MediaType.Movie);
-    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Movie);
-
-    return state;
   }
 
   async updateOrCreateEpisodePlayState(
@@ -151,24 +147,25 @@ export class PlayStatesService {
     episode: number,
     playState: UpdatePlayStateDto,
   ) {
-    const state = await this.getOrCreatePlayState(userId, tmdbId, {
-      season,
-      episode,
-      mediaType: MediaTypeFull.Episode,
+    return this.em.transactional(async (tx) => {
+      const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
+        season,
+        episode,
+        mediaType: MediaTypeFull.Episode,
+      });
+      const changed = applyUpdate(state, playState);
+
+      await tx.flush();
+      await this.touchLibraryItem(tx, userId, tmdbId, MediaType.Series);
+      if (changed) await this.watchStatusChanged(tx, userId, tmdbId);
+
+      return state;
     });
-    const changed = applyUpdate(state, playState);
-
-    await this.em.persist(state).flush();
-    await this.touchLibraryItem(userId, tmdbId, MediaType.Series);
-    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
-
-    return state;
   }
 
   async deleteMoviePlayState(userId: string, tmdbId: string) {
     const state = await this.findMoviePlayState(userId, tmdbId);
     await this.em.remove(state).flush();
-    this.emitChanged(userId, tmdbId, MediaTypeFull.Movie);
 
     return state;
   }
@@ -187,8 +184,10 @@ export class PlayStatesService {
     );
 
     if (state) {
-      await this.em.remove(state).flush();
-      this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
+      await this.em.transactional(async (tx) => {
+        await tx.nativeDelete(PlayState, { id: state.id });
+        if (state.watched) await this.watchStatusChanged(tx, userId, tmdbId);
+      });
 
       return state;
     }
@@ -199,45 +198,51 @@ export class PlayStatesService {
     tmdbId: string,
     playStates: UpdatePlayStateDto[],
   ) {
-    let changed = false;
-    // One at a time, because they share the entity manager
-    const states: PlayState[] = [];
-    for (const updatedState of playStates) {
-      const state = await this.getOrCreatePlayState(userId, tmdbId, {
-        season: updatedState.season,
-        episode: updatedState.episode,
-        mediaType: MediaTypeFull.Episode,
-      });
-      if (applyUpdate(state, updatedState)) changed = true;
-      states.push(state);
-    }
+    return this.em.transactional(async (tx) => {
+      let changed = false;
+      // One at a time, because they share the entity manager
+      const states: PlayState[] = [];
+      for (const updatedState of playStates) {
+        const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
+          season: updatedState.season,
+          episode: updatedState.episode,
+          mediaType: MediaTypeFull.Episode,
+        });
+        if (applyUpdate(state, updatedState)) changed = true;
+        states.push(state);
+      }
 
-    await this.em.persist(states).flush();
-    if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);
+      await tx.flush();
+      if (changed) await this.watchStatusChanged(tx, userId, tmdbId);
 
-    return states;
+      return states;
+    });
   }
 
   private async touchLibraryItem(
+    em: EntityManager,
     userId: string,
     tmdbId: string,
     mediaType: MediaType,
   ) {
     const now = new Date();
 
-    await this.libraryRepository.nativeUpdate(
+    await em.nativeUpdate(
+      LibraryItem,
       { userId, tmdbId, mediaType },
       { lastPlayedAt: now, updatedAt: now },
     );
   }
 
-  private emitChanged(
+  /** What a rule makes of the requests of the series changes with it */
+  private watchStatusChanged(
+    em: EntityManager,
     userId: string,
     tmdbId: string,
-    mediaType: MediaTypeFull,
   ) {
-    const event: WatchStatusChangedEvent = { userId, tmdbId, mediaType };
-    this.eventEmitter.emit(WATCH_STATUS_CHANGED, event);
+    return this.requestsService.enqueueTorrentsOfPairs(em, [
+      { userId, tmdbId },
+    ]);
   }
 }
 

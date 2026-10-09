@@ -1,9 +1,10 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { Torrent } from '../downloads/torrent.entity.js';
 import { MediaFile } from '../local-media/media-file.entity.js';
+import { Job } from '../jobs/job.entity.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { User } from '../users/user.entity.js';
@@ -98,7 +99,7 @@ describe('RequestsService', () => {
       orm.em.getRepository(RequestRule),
       orm.em,
       metadata as unknown as MetadataService,
-      new EventEmitter2(),
+      new JobsService(orm.em),
     );
 
     await addTorrent('pack');
@@ -190,7 +191,35 @@ describe('RequestsService', () => {
     expect(movie.torrentId).toBeNull();
   });
 
-  async function addFile(): Promise<string> {
+  it('has the torrents of the pair reconciled, also one that loses its last selection', async () => {
+    const queued = async () =>
+      (await orm.em.fork().find(Job, {}, { orderBy: { dedupeKey: 'asc' } }))
+        .map((job) => job.dedupeKey)
+        .sort();
+
+    await select(0, 'pack');
+    expect(await queued()).toEqual(['torrent:pack']);
+    await orm.em.fork().nativeDelete(Job, {});
+
+    await requestEpisodes([1]);
+    expect(await queued()).toEqual(['torrent:pack']);
+    await orm.em.fork().nativeDelete(Job, {});
+
+    await select(0, 'episode');
+    expect(await queued()).toEqual(['torrent:episode', 'torrent:pack']);
+  });
+
+  it('keeps a file that a request holds but does not refer to yet when the season gets another torrent', async () => {
+    await select(0, 'pack');
+    await requestEpisodes([1]);
+    const file = await addFile('pack'.padEnd(40, '0'));
+
+    await select(0, 'episode');
+
+    expect(await references()).toEqual([[1, 'pack', file]]);
+  });
+
+  async function addFile(infoHash?: string): Promise<string> {
     const file = {
       ...new MediaFile(),
       path: '/tv/file.mkv',
@@ -202,6 +231,7 @@ describe('RequestsService', () => {
       size: 1,
       modifiedAt: new Date(),
       managed: true,
+      infoHash,
     };
     await orm.em.fork().insert(MediaFile, file);
 
@@ -215,74 +245,84 @@ describe('RequestsService', () => {
   }
 });
 
-describe('Migration20261009220000', () => {
+describe('Migration20261009201800', () => {
   it('binds the requests that are not bound yet to their preference', async () => {
     const orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
-    await orm.migrator.up({ to: 'Migration20261009201230' });
-    const em = orm.em.fork();
-    const user = { ...new User(), name: 'user', password: '' };
-    await em.insert(User, user);
-    for (const id of ['pack', 'episode', 'kept']) {
-      await em.insert(Torrent, {
-        ...new Torrent(),
-        id,
-        infoHash: id.padEnd(40, '0'),
-        title: id,
-        indexer: 'test',
-        size: 1,
-      });
-    }
-    const selection = (season: number, episode: number, torrentId: string) =>
-      em.execute(
-        `insert into torrent_selection (id, user_id, media_type, tmdb_id, season, episode, torrent_id, release_id, created_at)
+    try {
+      await orm.migrator.up({ to: 'Migration20261009201230' });
+      const em = orm.em.fork();
+      // The rows are written as the schema of the step before has them
+      const user = { id: 'user' };
+      await em.execute(
+        `insert into user (id, name, password, is_admin, onboarding_done, settings, profile_picture)
+       values ('user', 'user', '', 0, 0, '{}', null)`,
+      );
+      for (const id of ['pack', 'episode', 'kept']) {
+        await em.execute(
+          `insert into torrent (id, info_hash, title, indexer, size, downloaded_bytes, uploaded_bytes, created_at)
+         values (?, ?, ?, 'test', 1, 0, 0, 0)`,
+          [id, id.padEnd(40, '0'), id],
+        );
+      }
+      const selection = (season: number, episode: number, torrentId: string) =>
+        em.execute(
+          `insert into torrent_selection (id, user_id, media_type, tmdb_id, season, episode, torrent_id, release_id, created_at)
          values (?, ?, 'series', ?, ?, ?, ?, 'r', 0)`,
-        [`${season}/${episode}`, user.id, SERIES, season, episode, torrentId],
-      );
-    await selection(1, 0, 'pack');
-    await selection(1, 2, 'episode');
-    await selection(0, 0, 'pack');
-    const insert = (
-      mediaType: MediaTypeFull,
-      season: number,
-      episode: number,
-      torrentId?: string,
-    ) =>
-      em.insert(MediaRequest, {
-        id: `${mediaType}/${season}/${episode}`,
-        approved: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: user.id,
-        tmdbId: SERIES,
-        mediaType,
-        season,
-        episode,
-        torrentId,
-      });
-    await insert(MediaTypeFull.Episode, 1, 1);
-    await insert(MediaTypeFull.Episode, 1, 2);
-    await insert(MediaTypeFull.Episode, 1, 3, 'kept');
-    await insert(MediaTypeFull.Episode, 2, 1);
-    await insert(MediaTypeFull.Movie, 0, 0);
+          [`${season}/${episode}`, user.id, SERIES, season, episode, torrentId],
+        );
+      await selection(1, 0, 'pack');
+      await selection(1, 2, 'episode');
+      await selection(0, 0, 'pack');
+      const insert = (
+        mediaType: MediaTypeFull,
+        season: number,
+        episode: number,
+        torrentId?: string,
+      ) =>
+        em.execute(
+          `insert into request (id, user_id, tmdb_id, media_type, season, episode, approved, torrent_id, created_at, updated_at)
+         values (?, ?, ?, ?, ?, ?, 1, ?, 0, 0)`,
+          [
+            `${mediaType}/${season}/${episode}`,
+            user.id,
+            SERIES,
+            mediaType,
+            season,
+            episode,
+            torrentId ?? null,
+          ],
+        );
+      await insert(MediaTypeFull.Episode, 1, 1);
+      await insert(MediaTypeFull.Episode, 1, 2);
+      await insert(MediaTypeFull.Episode, 1, 3, 'kept');
+      await insert(MediaTypeFull.Episode, 2, 1);
+      await insert(MediaTypeFull.Movie, 0, 0);
 
-    await orm.migrator.up();
+      await orm.migrator.up();
 
-    const rows = await orm.em
-      .fork()
-      .find(
-        MediaRequest,
-        {},
-        { orderBy: { mediaType: 'asc', season: 'asc', episode: 'asc' } },
-      );
-    expect(
-      rows.map((r) => [r.mediaType, r.season, r.episode, r.torrentId ?? null]),
-    ).toEqual([
-      [MediaTypeFull.Episode, 1, 1, 'pack'],
-      [MediaTypeFull.Episode, 1, 2, 'episode'],
-      [MediaTypeFull.Episode, 1, 3, 'kept'],
-      [MediaTypeFull.Episode, 2, 1, null],
-      [MediaTypeFull.Movie, 0, 0, null],
-    ]);
-    await orm.close();
+      const rows = await orm.em
+        .fork()
+        .find(
+          MediaRequest,
+          {},
+          { orderBy: { mediaType: 'asc', season: 'asc', episode: 'asc' } },
+        );
+      expect(
+        rows.map((r) => [
+          r.mediaType,
+          r.season,
+          r.episode,
+          r.torrentId ?? null,
+        ]),
+      ).toEqual([
+        [MediaTypeFull.Episode, 1, 1, 'pack'],
+        [MediaTypeFull.Episode, 1, 2, 'episode'],
+        [MediaTypeFull.Episode, 1, 3, 'kept'],
+        [MediaTypeFull.Episode, 2, 1, null],
+        [MediaTypeFull.Movie, 0, 0, null],
+      ]);
+    } finally {
+      await orm.close();
+    }
   });
 });

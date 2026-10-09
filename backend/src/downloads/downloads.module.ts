@@ -10,6 +10,7 @@ import { PlayStatesModule } from '../user-data/play-state/play-states.module.js'
 import { DownloadsController } from './downloads.controller.js';
 import { DownloadsService } from './downloads.service.js';
 import { RetentionService } from './retention.service.js';
+import { TorrentRuntime } from './torrent-runtime.js';
 import { TORRENT_ENGINE } from './torrent-engine.js';
 import { TorrentStreamEngine } from './torrent-stream.engine.js';
 
@@ -28,6 +29,7 @@ import { TorrentStreamEngine } from './torrent-stream.engine.js';
   providers: [
     DownloadsService,
     RetentionService,
+    TorrentRuntime,
     { provide: TORRENT_ENGINE, useClass: TorrentStreamEngine },
   ],
   exports: [DownloadsService, RetentionService],

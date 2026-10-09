@@ -5,7 +5,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import {
   EpisodeRefDto,
@@ -24,8 +23,32 @@ import {
   RequestRuleDto,
   UpdateMediaRequestDto,
 } from './requests.dto.js';
-import { REQUESTS_CHANGED, RequestsChangedEvent } from './requests.events.js';
+import { Torrent } from '../downloads/torrent.entity.js';
+import { JobsService } from '../jobs/jobs.service.js';
+import { MediaFile } from '../local-media/media-file.entity.js';
+import { PlayState } from '../user-data/play-state/play-state.entity.js';
+import {
+  Activity,
+  evaluateActivity,
+  fileOf,
+  holdsFile,
+} from './request-activity.js';
 import { TorrentSelection } from './torrent-selection.entity.js';
+
+/** A user and a series, whose requests a rule looks at together */
+export interface Pair {
+  userId: string;
+  tmdbId: string;
+}
+
+const uniquePairs = (pairs: Pair[]): Pair[] => [
+  ...new Map(
+    pairs.map(({ userId, tmdbId }) => [
+      `${userId}/${tmdbId}`,
+      { userId, tmdbId },
+    ]),
+  ).values(),
+];
 
 /** A selection: of an episode, or with episode 0 of a season */
 export interface SelectionTarget {
@@ -68,7 +91,7 @@ export class RequestsService {
     private readonly ruleRepository: EntityRepository<RequestRule>,
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly jobs: JobsService,
   ) {}
 
   async findByUser(
@@ -112,7 +135,7 @@ export class RequestsService {
     if (!movie) throw new NotFoundException('Movie not found');
 
     const now = new Date();
-    const { affectedRows } = await this.em
+    await this.em
       .createQueryBuilder(MediaRequest)
       .insert({
         id: randomUUID(),
@@ -129,7 +152,6 @@ export class RequestsService {
       .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
       .ignore()
       .execute('run');
-    if (affectedRows) await this.emitChanged(tmdbId, MediaTypeFull.Movie);
 
     return this.findMovieRequest(userId, tmdbId);
   }
@@ -140,7 +162,6 @@ export class RequestsService {
       tmdbId,
       mediaType: MediaTypeFull.Movie,
     });
-    await this.emitChanged(tmdbId, MediaTypeFull.Movie);
 
     return deleted;
   }
@@ -184,74 +205,44 @@ export class RequestsService {
       );
     }
 
-    if (episodes.length && requested) {
-      const now = new Date();
-      await this.em.transactional(async (tx) => {
-        await tx
-          .createQueryBuilder(MediaRequest)
-          .insert(
-            episodes.map(({ season, episode }) => ({
-              id: randomUUID(),
+    const now = new Date();
+    if (episodes.length) {
+      await this.em.transactional((tx) =>
+        this.enqueuePairs(tx, [{ userId, tmdbId }], async () => {
+          if (!requested) {
+            await tx.nativeDelete(MediaRequest, {
               userId,
               tmdbId,
               mediaType: MediaTypeFull.Episode,
-              season,
-              episode,
-              approved,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          )
-          .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-          .ignore()
-          .execute();
-        await this.bind(tx, { userId, tmdbId });
-      });
-    } else if (episodes.length) {
-      await this.requestRepository.nativeDelete({
-        userId,
-        tmdbId,
-        mediaType: MediaTypeFull.Episode,
-        $or: episodes.map(({ season, episode }) => ({ season, episode })),
-      });
+              $or: episodes.map(({ season, episode }) => ({ season, episode })),
+            });
+            return;
+          }
+
+          await tx
+            .createQueryBuilder(MediaRequest)
+            .insert(
+              episodes.map(({ season, episode }) => ({
+                id: randomUUID(),
+                userId,
+                tmdbId,
+                mediaType: MediaTypeFull.Episode,
+                season,
+                episode,
+                approved,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            )
+            .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+            .ignore()
+            .execute();
+          await this.bind(tx, { userId, tmdbId });
+        }),
+      );
     }
-    await this.emitChanged(tmdbId, MediaTypeFull.Episode);
 
     return this.findSeriesRequests(userId, tmdbId);
-  }
-
-  /** The episode requests of every user, oldest first */
-  async findEpisodeRequests(): Promise<MediaRequest[]> {
-    return this.requestRepository.find(
-      { mediaType: MediaTypeFull.Episode },
-      { orderBy: { createdAt: 'asc' }, disableIdentityMap: true },
-    );
-  }
-
-  /** Stores the torrent and the file that requests refer to */
-  async setReferences(
-    references: Pick<MediaRequest, 'id' | 'torrentId' | 'mediaFileId'>[],
-  ): Promise<void> {
-    if (!references.length) return;
-
-    await this.em.transactional(async (em) => {
-      for (const { id, torrentId, mediaFileId } of references) {
-        // A file that the cleanup or an admin deleted since it was planned
-        // is not referred to
-        await em.execute(
-          `update request set torrent_id = ?, media_file_id = ?
-           where id = ? and (? is null or exists (select 1 from media_file where id = ?))`,
-          [
-            torrentId ?? null,
-            mediaFileId ?? null,
-            id,
-            mediaFileId ?? null,
-            mediaFileId ?? null,
-          ],
-          'run',
-        );
-      }
-    });
   }
 
   /**
@@ -329,20 +320,23 @@ export class RequestsService {
     target: SelectionTarget,
     selected: { torrentId: string; releaseId: string },
   ): Promise<void> {
-    await em
-      .createQueryBuilder(TorrentSelection)
-      .insert({
-        id: randomUUID(),
-        ...target,
-        mediaType: MediaType.Series,
-        ...selected,
-        createdAt: new Date(),
-      })
-      .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-      .merge(['torrentId', 'releaseId'])
-      .execute();
-    await this.unbind(em, target, { withFile: target.episode !== 0 });
-    await this.bind(em, scopeOf(target));
+    await this.enqueuePairs(em, [target], async () => {
+      await this.attachHeld(em, target);
+      await em
+        .createQueryBuilder(TorrentSelection)
+        .insert({
+          id: randomUUID(),
+          ...target,
+          mediaType: MediaType.Series,
+          ...selected,
+          createdAt: new Date(),
+        })
+        .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+        .merge(['torrentId', 'releaseId'])
+        .execute();
+      await this.unbind(em, target, { withFile: target.episode !== 0 });
+      await this.bind(em, scopeOf(target));
+    });
   }
 
   /**
@@ -351,14 +345,199 @@ export class RequestsService {
    * selection. Runs in the caller's transaction.
    */
   async deselect(em: EntityManager, target: SelectionTarget): Promise<boolean> {
-    const deleted = await em.nativeDelete(TorrentSelection, {
-      ...target,
-      mediaType: MediaType.Series,
-    });
-    await this.unbind(em, target, { withFile: false });
-    await this.bind(em, scopeOf(target));
+    return this.enqueuePairs(em, [target], async () => {
+      await this.attachHeld(em, target);
+      const deleted = await em.nativeDelete(TorrentSelection, {
+        ...target,
+        mediaType: MediaType.Series,
+      });
+      await this.unbind(em, target, { withFile: false });
+      await this.bind(em, scopeOf(target));
 
-    return deleted > 0;
+      return deleted > 0;
+    });
+  }
+
+  /**
+   * Stores the file of every request in the scope of a selection that holds
+   * one it does not refer to yet, so that the unbind that follows leaves the
+   * request its file, as it does for a request that refers to it
+   */
+  private async attachHeld(em: EntityManager, target: SelectionTarget) {
+    const { requests, activity } = await this.readActivity(em, [target]);
+    const inScope = requests.filter(
+      (request) =>
+        request.season === target.season &&
+        (target.episode === 0 || request.episode === target.episode) &&
+        request.torrentId &&
+        !request.mediaFileId &&
+        holdsFile(activity.get(request.id)),
+    );
+    if (!inScope.length) return;
+
+    const torrents = await em.find(
+      Torrent,
+      { id: { $in: inScope.map((request) => request.torrentId) } },
+      { fields: ['id', 'infoHash'], disableIdentityMap: true },
+    );
+    const files = await em.find(
+      MediaFile,
+      { mediaType: MediaType.Series, tmdbId: target.tmdbId },
+      { disableIdentityMap: true },
+    );
+    await this.attach(
+      em,
+      inScope.flatMap((request) => {
+        const infoHash = torrents.find(
+          (t) => t.id === request.torrentId,
+        )?.infoHash;
+        const file = fileOf(request, activity.get(request.id), infoHash, files);
+
+        return file ? [{ requestId: request.id, mediaFileId: file.id }] : [];
+      }),
+    );
+  }
+
+  /** Stores the file of requests that have none, while the file is there */
+  async attach(
+    em: EntityManager,
+    files: { requestId: string; mediaFileId: string }[],
+  ): Promise<void> {
+    for (const { requestId, mediaFileId } of files) {
+      await em.execute(
+        `update request set media_file_id = ?
+         where id = ? and media_file_id is null
+         and exists (select 1 from media_file where id = ?)`,
+        [mediaFileId, requestId, mediaFileId],
+        'run',
+      );
+    }
+  }
+
+  /**
+   * The episode requests of (user, series) pairs with their activity. A rule
+   * looks at all of a user's requests for a series, so a read covers whole
+   * pairs.
+   */
+  async readActivity(
+    em: EntityManager,
+    pairs: Pair[],
+  ): Promise<{ requests: MediaRequest[]; activity: Map<string, Activity> }> {
+    const where = {
+      $or: uniquePairs(pairs).map(({ userId, tmdbId }) => ({ userId, tmdbId })),
+    };
+    if (!where.$or.length) return { requests: [], activity: new Map() };
+
+    const requests = await em.find(
+      MediaRequest,
+      { ...where, mediaType: MediaTypeFull.Episode },
+      { disableIdentityMap: true },
+    );
+    const rules = await em.find(RequestRule, where, {
+      disableIdentityMap: true,
+    });
+    const playStates = rules.length
+      ? await em.find(
+          PlayState,
+          {
+            $or: rules.map(({ userId, tmdbId }) => ({ userId, tmdbId })),
+            mediaType: MediaTypeFull.Episode,
+          },
+          { disableIdentityMap: true },
+        )
+      : [];
+
+    return {
+      requests,
+      activity: evaluateActivity({
+        requests,
+        rules,
+        playStates,
+        now: Date.now(),
+      }),
+    };
+  }
+
+  /**
+   * Runs a write that changes what the requests of (user, series) pairs want
+   * or hold, and enqueues the torrents that the requests and selections of
+   * the pairs refer to before and after it, in the caller's transaction. The
+   * activity of a request depends on every request of its pair, so the whole
+   * pair counts.
+   */
+  async enqueuePairs<T>(
+    em: EntityManager,
+    pairs: Pair[],
+    write: () => Promise<T>,
+  ): Promise<T> {
+    const before = await this.torrentsOfPairs(em, pairs);
+    const result = await write();
+    const after = await this.torrentsOfPairs(em, pairs);
+    await this.enqueueTorrents(em, [...before, ...after]);
+
+    return result;
+  }
+
+  /** For a change of what the requests of the pairs want, such as a play state */
+  async enqueueTorrentsOfPairs(em: EntityManager, pairs: Pair[]) {
+    await this.enqueueTorrents(em, await this.torrentsOfPairs(em, pairs));
+  }
+
+  /** For a user that is deleted, before its rows go */
+  async enqueueTorrentsOfUser(em: EntityManager, userId: string) {
+    const rows: { torrent_id: string }[] = await em.execute(
+      `select torrent_id from request where user_id = ? and torrent_id is not null
+       union select torrent_id from torrent_selection where user_id = ?`,
+      [userId, userId],
+    );
+    await this.enqueueTorrents(
+      em,
+      rows.map((row) => row.torrent_id),
+    );
+  }
+
+  /** For files that are forgotten, before their rows go */
+  async enqueueTorrentsOfFiles(em: EntityManager, mediaFileIds: string[]) {
+    if (!mediaFileIds.length) return;
+
+    const requests = await em.find(
+      MediaRequest,
+      { mediaFileId: { $in: mediaFileIds }, torrentId: { $ne: null } },
+      { fields: ['torrentId'], disableIdentityMap: true },
+    );
+    await this.enqueueTorrents(
+      em,
+      requests.map((request) => request.torrentId),
+    );
+  }
+
+  private async enqueueTorrents(em: EntityManager, torrentIds: string[]) {
+    for (const torrentId of new Set(torrentIds)) {
+      await this.jobs.enqueue(em, 'torrent.reconcile', { torrentId });
+    }
+  }
+
+  private async torrentsOfPairs(
+    em: EntityManager,
+    pairs: Pair[],
+  ): Promise<string[]> {
+    const unique = uniquePairs(pairs);
+    if (!unique.length) return [];
+
+    const condition = unique
+      .map(() => '(user_id = ? and tmdb_id = ?)')
+      .join(' or ');
+    const params = unique.flatMap(({ userId, tmdbId }) => [userId, tmdbId]);
+    const rows: { torrent_id: string }[] = await em.execute(
+      `select torrent_id from request
+       where media_type = '${MediaTypeFull.Episode}' and torrent_id is not null and (${condition})
+       union
+       select torrent_id from torrent_selection
+       where media_type = '${MediaType.Series}' and (${condition})`,
+      [...params, ...params],
+    );
+
+    return rows.map((row) => row.torrent_id);
   }
 
   async findSeriesRule(
@@ -388,28 +567,32 @@ export class RequestsService {
     if (!series) throw new NotFoundException('Series not found');
 
     const { keepNext, keepWatched, keepWatchedHours } = rule;
-    if (
-      keepNext === null &&
-      keepWatched === null &&
-      keepWatchedHours === null
-    ) {
-      await this.ruleRepository.nativeDelete({ userId, tmdbId });
-    } else {
-      await this.em
-        .createQueryBuilder(RequestRule)
-        .insert({
-          id: randomUUID(),
-          userId,
-          tmdbId,
-          keepNext,
-          keepWatched,
-          keepWatchedHours,
-        })
-        .onConflict(['userId', 'tmdbId'])
-        .merge(['keepNext', 'keepWatched', 'keepWatchedHours'])
-        .execute();
-    }
-    await this.emitChanged(tmdbId, MediaTypeFull.Episode);
+    await this.em.transactional((tx) =>
+      this.enqueuePairs(tx, [{ userId, tmdbId }], async () => {
+        if (
+          keepNext === null &&
+          keepWatched === null &&
+          keepWatchedHours === null
+        ) {
+          await tx.nativeDelete(RequestRule, { userId, tmdbId });
+          return;
+        }
+
+        await tx
+          .createQueryBuilder(RequestRule)
+          .insert({
+            id: randomUUID(),
+            userId,
+            tmdbId,
+            keepNext,
+            keepWatched,
+            keepWatchedHours,
+          })
+          .onConflict(['userId', 'tmdbId'])
+          .merge(['keepNext', 'keepWatched', 'keepWatchedHours'])
+          .execute();
+      }),
+    );
 
     return { keepNext, keepWatched, keepWatchedHours };
   }
@@ -453,57 +636,39 @@ export class RequestsService {
     id: string,
     update: UpdateMediaRequestDto,
   ): Promise<AdminMediaRequestDto> {
-    const affected = await this.requestRepository.nativeUpdate(
-      { id },
-      { approved: update.approved, updatedAt: new Date() },
-    );
-    if (!affected) throw new NotFoundException('Request not found');
+    await this.em.transactional(async (tx) => {
+      const request = await tx.findOne(
+        MediaRequest,
+        { id },
+        { disableIdentityMap: true },
+      );
+      if (!request) throw new NotFoundException('Request not found');
 
-    const request = await this.findById(id);
-    await this.emitChanged(request.tmdbId, request.mediaType);
+      await this.enqueuePairs(tx, [request], () =>
+        tx.nativeUpdate(
+          MediaRequest,
+          { id },
+          { approved: update.approved, updatedAt: new Date() },
+        ),
+      );
+    });
 
-    return request;
+    return this.findById(id);
   }
 
   async deleteById(id: string): Promise<number> {
-    const request = await this.requestRepository.findOne({ id });
-    if (!request) return 0;
+    return this.em.transactional(async (tx) => {
+      const request = await tx.findOne(
+        MediaRequest,
+        { id },
+        { disableIdentityMap: true },
+      );
+      if (!request) return 0;
 
-    const deleted = await this.requestRepository.nativeDelete({ id });
-    await this.emitChanged(request.tmdbId, request.mediaType);
-
-    return deleted;
-  }
-
-  /** The requests that the given files fulfil */
-  findByMediaFiles(mediaFileIds: string[]): Promise<MediaRequest[]> {
-    return this.requestRepository.find(
-      { mediaFileId: { $in: mediaFileIds } },
-      { disableIdentityMap: true },
-    );
-  }
-
-  async deleteByIds(ids: string[]): Promise<number> {
-    const requests = await this.requestRepository.find(
-      { id: { $in: ids } },
-      { disableIdentityMap: true },
-    );
-    if (!requests.length) return 0;
-
-    await this.requestRepository.nativeDelete({
-      id: { $in: requests.map((request) => request.id) },
+      return this.enqueuePairs(tx, [request], () =>
+        tx.nativeDelete(MediaRequest, { id }),
+      );
     });
-    const titles = new Map(
-      requests.map((request) => [
-        `${request.mediaType}/${request.tmdbId}`,
-        request,
-      ]),
-    );
-    for (const { tmdbId, mediaType } of titles.values()) {
-      await this.emitChanged(tmdbId, mediaType);
-    }
-
-    return requests.length;
   }
 
   /** How many requests a file fulfils, for every file that fulfils one */
@@ -519,11 +684,6 @@ export class RequestsService {
     }
 
     return counts;
-  }
-
-  private emitChanged(tmdbId: string, mediaType: MediaTypeFull) {
-    const event: RequestsChangedEvent = { tmdbId, mediaType };
-    return this.eventEmitter.emitAsync(REQUESTS_CHANGED, event);
   }
 
   private async withRequesters(

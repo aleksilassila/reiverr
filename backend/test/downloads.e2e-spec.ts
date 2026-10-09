@@ -21,6 +21,8 @@ import { AppModule } from '../src/app.module.js';
 import { SeriesDownloadsDto } from '../src/downloads/downloads.dto.js';
 import { DownloadsService } from '../src/downloads/downloads.service.js';
 import { RetentionService } from '../src/downloads/retention.service.js';
+import { TorrentRuntime } from '../src/downloads/torrent-runtime.js';
+import { Job, JobStatus } from '../src/jobs/job.entity.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import {
   TorrentHandle,
@@ -106,6 +108,7 @@ class FakeTorrent implements TorrentHandle {
     uploaded: 0,
   };
   private listeners: ((index: number) => void)[] = [];
+  private errorListeners: ((error: Error) => void)[] = [];
 
   constructor(
     source: string | Buffer,
@@ -140,6 +143,14 @@ class FakeTorrent implements TorrentHandle {
 
   onFileComplete(listener: (index: number) => void) {
     this.listeners.push(listener);
+  }
+
+  onError(listener: (error: Error) => void) {
+    this.errorListeners.push(listener);
+  }
+
+  fail(error: Error) {
+    this.errorListeners.forEach((listener) => listener(error));
   }
 
   getFilePath(index: number) {
@@ -345,34 +356,14 @@ describe('Series downloads (e2e)', () => {
     ]);
   }
 
-  // Reconciliations run in the background
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
+  // The jobs run where the loop would run them
+  const settle = () => app.get(JobsService).drain();
 
   /** Holds the next reconciliation back, in the middle of its run */
   /** The 04:00 cron, with the cleanup jobs it queues */
   async function cleanUp() {
     await app.get(RetentionService).onCleanupHour();
     await app.get(JobsService).drain();
-  }
-
-  function holdReconciliation() {
-    const requests = app.get(RequestsService);
-    const find = requests.findEpisodeRequests.bind(requests);
-    let start: () => void;
-    let release: () => void;
-    const started = new Promise<void>((resolve) => (start = resolve));
-    const released = new Promise<void>((resolve) => (release = resolve));
-
-    const reads = vi
-      .spyOn(requests, 'findEpisodeRequests')
-      .mockImplementationOnce(async () => {
-        start();
-        await released;
-
-        return find();
-      });
-
-    return { reads, started, release };
   }
 
   const libraryFiles = () =>
@@ -869,7 +860,9 @@ describe('Series downloads (e2e)', () => {
     });
 
     pack.stats.uploaded = 150;
-    await app.get(DownloadsService).reconcile();
+    // The counters are stored every 30 seconds
+    await app.get(TorrentRuntime).flush();
+    await settle();
 
     expect(pack.destroyed).toBe(true);
     expect(existsSync(pack.directory)).toBe(false);
@@ -976,36 +969,38 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('answers a request before the torrents are brought in line', async () => {
-    await app.get(DownloadsService).reconcile();
-    const held = holdReconciliation();
+    const resume = app.get(JobsService).pause('torrent.reconcile');
 
     await setRequested([1], true, { season: 2 });
-    await held.started;
     expect(statuses(await getDownloads())).toContainEqual([
       2,
       1,
       'no-selection',
     ]);
 
-    held.release();
-    held.reads.mockRestore();
+    resume();
     await setRequested([1], false, { season: 2 });
     await settle();
   });
 
-  it('covers the changes that arrive during a reconciliation with one more', async () => {
-    const downloads = app.get(DownloadsService);
-    await downloads.reconcile();
-    const held = holdReconciliation();
+  it('queues one reconciliation of a torrent for the changes that arrive before it runs', async () => {
+    const resume = app.get(JobsService).pause('torrent.reconcile');
 
-    const running = downloads.reconcile();
-    await held.started;
-    const waiting = [1, 2, 3].map(() => downloads.reconcile());
-    held.release();
-    await Promise.all([running, ...waiting]);
+    for (const requested of [true, false, true]) {
+      await setRequested([1], requested, { season: 2 });
+    }
+    const queued = (
+      await app
+        .get(MikroORM)
+        .em.fork()
+        .find(Job, { type: 'torrent.reconcile', status: JobStatus.Queued })
+    ).map((job) => job.dedupeKey);
 
-    expect(held.reads).toHaveBeenCalledTimes(2);
-    held.reads.mockRestore();
+    expect(queued.length).toBeGreaterThan(0);
+    expect(new Set(queued).size).toBe(queued.length);
+    resume();
+    await setRequested([1], false, { season: 2 });
+    await settle();
   });
 
   it('downloads only the requests that the rule of the user keeps active', async () => {

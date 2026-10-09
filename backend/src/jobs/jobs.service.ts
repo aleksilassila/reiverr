@@ -116,6 +116,17 @@ export class JobsService implements OnModuleDestroy {
     return inserted;
   }
 
+  /** Runs the queued jobs of a type that wait for a later time now */
+  async runNow(em: EntityManager, type: JobType): Promise<void> {
+    const now = new Date();
+    await em.nativeUpdate(
+      Job,
+      { type, status: JobStatus.Queued, runAt: { $gt: now } },
+      { runAt: now },
+    );
+    this.notify();
+  }
+
   /** Fails the jobs that a restart interrupted and starts running jobs */
   async start(): Promise<void> {
     if (this.loop) throw new Error('The jobs are running already');

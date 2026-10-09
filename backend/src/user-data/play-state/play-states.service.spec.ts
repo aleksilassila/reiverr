@@ -1,12 +1,11 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType } from '../../common/common.dto.js';
 import mikroOrmConfig from '../../mikro-orm.config.js';
 import { User } from '../../users/user.entity.js';
 import { LibraryItem } from '../library/library.entity.js';
 import { PlayState } from './play-state.entity.js';
-import { WATCH_STATUS_CHANGED } from './play-state.events.js';
+import { RequestsService } from '../../requests/requests.service.js';
 import { PlayStatesService } from './play-states.service.js';
 
 // Movies and series have separate id ranges on TMDB that overlap
@@ -15,7 +14,7 @@ const TMDB_ID = '1';
 describe('PlayStatesService', () => {
   let orm: MikroORM;
   let playStates: PlayStatesService;
-  let events: EventEmitter2;
+  const requests = { enqueueTorrentsOfPairs: vi.fn(async () => {}) };
   let userId: string;
 
   // Every call gets its own entity manager, as every HTTP request does
@@ -32,12 +31,11 @@ describe('PlayStatesService', () => {
     await orm.em.fork().insert(user);
     userId = user.id;
 
-    events = new EventEmitter2();
+    requests.enqueueTorrentsOfPairs.mockClear();
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
-      orm.em.getRepository(LibraryItem),
       orm.em,
-      events,
+      requests as unknown as RequestsService,
     );
   });
 
@@ -159,9 +157,8 @@ describe('PlayStatesService', () => {
     ]);
   });
 
-  it('announces when something becomes watched or unwatched, not its progress', async () => {
-    const changes = vi.fn();
-    events.on(WATCH_STATUS_CHANGED, changes);
+  it('has the torrents of the series reconciled when something becomes watched or unwatched, not on progress', async () => {
+    const changes = requests.enqueueTorrentsOfPairs;
     const update = (playState: { watched?: boolean; progress?: number }) =>
       request(() =>
         playStates.updateOrCreateEpisodePlayState(
@@ -180,11 +177,9 @@ describe('PlayStatesService', () => {
     await update({ progress: 0.95, watched: true });
     await update({ progress: 0.97, watched: true });
     expect(changes).toHaveBeenCalledTimes(1);
-    expect(changes).toHaveBeenCalledWith({
-      userId,
-      tmdbId: TMDB_ID,
-      mediaType: 'episode',
-    });
+    expect(changes).toHaveBeenCalledWith(expect.anything(), [
+      { userId, tmdbId: TMDB_ID },
+    ]);
 
     await request(() =>
       playStates.updateOrCreateSeriesPlayStates(userId, TMDB_ID, [

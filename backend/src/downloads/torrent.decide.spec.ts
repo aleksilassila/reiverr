@@ -1,9 +1,59 @@
 import { MediaType } from '../common/common.dto.js';
 import {
-  DownloadsState,
-  planDownloads,
-  PlannedStatus,
-} from './downloads.plan.js';
+  ActivityState,
+  evaluateActivity,
+} from '../requests/request-activity.js';
+import { heldFiles } from './retention.js';
+import { TorrentFile } from './torrent-engine.js';
+import { decideTorrent, torrentDemand } from './torrent.decide.js';
+
+/**
+ * What the server-wide planner of before took: these cases were written for
+ * it, and run against the functions that replace it, composed the way the
+ * jobs and the status route compose them
+ */
+interface DownloadsState extends ActivityState {
+  requests: (ActivityState['requests'][number] & {
+    torrentId?: string;
+    mediaFileId?: string;
+  })[];
+  selections: {
+    userId: string;
+    mediaType: MediaType;
+    tmdbId: string;
+    season: number;
+    episode: number;
+    torrentId: string;
+  }[];
+  torrents: {
+    id: string;
+    infoHash: string;
+    files?: TorrentFile[];
+    downloadedBytes: number;
+    uploadedBytes: number;
+  }[];
+  files: {
+    id: string;
+    tmdbId: string;
+    season: number;
+    episode: number;
+    lastEpisode: number;
+    infoHash?: string;
+    managed: boolean;
+  }[];
+  seedRatio: number;
+}
+
+enum PlannedStatus {
+  WaitingForApproval = 'waiting-for-approval',
+  InactiveAhead = 'inactive-ahead',
+  InactiveWatched = 'inactive-watched',
+  NoSelection = 'no-selection',
+  Available = 'available',
+  Resolving = 'resolving',
+  NoFileInTorrent = 'no-file-in-torrent',
+  Wanted = 'wanted',
+}
 
 const SERIES = '100';
 const HOUR = 60 * 60 * 1000;
@@ -131,7 +181,7 @@ function bindToPreference(
 }
 
 function plan(state: Partial<DownloadsState>) {
-  const result = planDownloads({
+  const full: DownloadsState = {
     requests: [],
     selections: [],
     torrents: [pack, episodeTorrent],
@@ -144,17 +194,87 @@ function plan(state: Partial<DownloadsState>) {
     ...(state.requests && {
       requests: bindToPreference(state.requests, state.selections ?? []),
     }),
+  };
+  const activity = evaluateActivity(full);
+  const demands = new Map(
+    full.torrents.map((torrent) => [
+      torrent.id,
+      torrentDemand({
+        torrent,
+        requests: full.requests.filter((r) => r.torrentId === torrent.id),
+        activity,
+        files: full.files,
+        selections: full.selections,
+      }),
+    ]),
+  );
+  const attached = new Map(
+    [...demands.values()].flatMap((demand) =>
+      demand.attach.map((a) => [a.requestId, a.mediaFileId] as const),
+    ),
+  );
+
+  const statusOf = (request: DownloadsState['requests'][number]) => {
+    const of = activity.get(request.id);
+    if (of === 'waiting') return PlannedStatus.WaitingForApproval;
+    if (of === 'ahead') return PlannedStatus.InactiveAhead;
+    if (of === 'watched') return PlannedStatus.InactiveWatched;
+
+    const demand = demands.get(request.torrentId)?.requests.get(request.id);
+    if (!demand) {
+      return of === 'kept'
+        ? PlannedStatus.InactiveWatched
+        : PlannedStatus.NoSelection;
+    }
+
+    return {
+      file: PlannedStatus.Available,
+      none: PlannedStatus.InactiveWatched,
+      resolving: PlannedStatus.Resolving,
+      'no-file-in-torrent': PlannedStatus.NoFileInTorrent,
+      wanted: PlannedStatus.Wanted,
+    }[demand.kind];
+  };
+  const held = heldFiles({
+    requests: full.requests,
+    activity,
+    infoHashes: new Map(full.torrents.map((t) => [t.id, t.infoHash])),
+    files: full.files,
   });
 
   return {
-    statuses: result.requests.map((r) => r.status),
-    references: result.requests.map((r) => [r.torrentId, r.mediaFileId]),
-    torrent: (id: string) => result.torrents.find((t) => t.torrentId === id),
-    unretained: result.unretained,
+    statuses: full.requests.map(statusOf),
+    references: full.requests.map((r) => [
+      r.torrentId,
+      r.mediaFileId ?? attached.get(r.id),
+    ]),
+    torrent: (id: string) => {
+      const torrent = full.torrents.find((t) => t.id === id);
+      const demand = demands.get(id);
+
+      return {
+        torrentId: id,
+        wanted: demand.wanted,
+        needsFiles: demand.needsFiles,
+        referenced: [...full.requests, ...full.selections].some(
+          (r) => r.torrentId === id,
+        ),
+        // A torrent that nothing wants and that has data keeps going to seed
+        seeds:
+          decideTorrent({
+            demand: { wanted: [], needsFiles: false },
+            torrent: { ...torrent, attempts: 0, retryAt: undefined },
+            hasData: true,
+            seedRatio: full.seedRatio,
+            now: new Date(NOW),
+          }).kind !== 'release',
+      };
+    },
+    unretained: full.files.filter((file) => file.managed && !held.has(file.id)),
   };
 }
 
-describe('planDownloads', () => {
+describe('torrentDemand, evaluateActivity and heldFiles, as the planner of before', () => {
   it('wants nothing from a torrent that is selected but not requested', () => {
     const { torrent } = plan({ selections: [selection('a', 0, 'pack')] });
 
@@ -681,5 +801,97 @@ describe('planDownloads', () => {
     expect(seeding(199)).toBe(true);
     expect(seeding(200)).toBe(false);
     expect(plan({ seedRatio: 2 }).torrent('pack').seeds).toBe(false);
+  });
+});
+
+describe('decideTorrent', () => {
+  const MINUTE = 60 * 1000;
+  const now = new Date(NOW);
+  const wanted = [{ fileIndex: 1, tmdbId: SERIES, season: 1, episodes: [2] }];
+  const decide = (state: Partial<Parameters<typeof decideTorrent>[0]>) =>
+    decideTorrent({
+      demand: { wanted, needsFiles: false },
+      torrent: {
+        downloadedBytes: 0,
+        uploadedBytes: 0,
+        attempts: 0,
+        retryAt: undefined,
+      },
+      hasData: false,
+      seedRatio: 1,
+      now,
+      ...state,
+    });
+
+  it('starts a torrent that is wanted, and waits until the engine is ready', () => {
+    expect(decide({})).toEqual({ kind: 'start' });
+    expect(decide({ runtime: { ready: false, complete: new Set() } })).toEqual({
+      kind: 'wait',
+    });
+  });
+
+  it('runs a ready torrent and imports the wanted files that are complete', () => {
+    expect(
+      decide({
+        runtime: { ready: true, complete: new Set([0, 1]) },
+        demand: {
+          wanted: [...wanted, { ...wanted[0], season: 2 }],
+          needsFiles: false,
+        },
+      }),
+    ).toEqual({ kind: 'run', wanted: [1], imports: [1] });
+  });
+
+  it('fails a torrent the engine reports an error for, with a growing delay', () => {
+    const fail = (attempts: number) =>
+      decide({
+        runtime: { ready: true, error: 'tracker gone', complete: new Set() },
+        torrent: {
+          downloadedBytes: 0,
+          uploadedBytes: 0,
+          attempts,
+          retryAt: undefined,
+        },
+      });
+
+    expect(fail(0)).toEqual({
+      kind: 'fail',
+      error: 'tracker gone',
+      retryAt: new Date(NOW + 5 * MINUTE),
+    });
+    expect(fail(1)).toMatchObject({ retryAt: new Date(NOW + 10 * MINUTE) });
+    expect(fail(10)).toMatchObject({ retryAt: new Date(NOW + 360 * MINUTE) });
+  });
+
+  it('keeps a failed torrent stopped until its retry time', () => {
+    const retryAt = new Date(NOW + MINUTE);
+    const torrent = {
+      downloadedBytes: 0,
+      uploadedBytes: 0,
+      attempts: 1,
+      retryAt,
+    };
+
+    expect(decide({ torrent })).toEqual({ kind: 'backoff', retryAt });
+    expect(decide({ torrent, now: new Date(NOW + 2 * MINUTE) })).toEqual({
+      kind: 'start',
+    });
+  });
+
+  it('releases a torrent that nothing wants and that has nothing to seed from', () => {
+    const counted = {
+      downloadedBytes: 100,
+      uploadedBytes: 10,
+      attempts: 0,
+      retryAt: undefined,
+    };
+    const unwanted = { wanted: [], needsFiles: false };
+
+    expect(decide({ demand: unwanted, torrent: counted })).toEqual({
+      kind: 'release',
+    });
+    expect(
+      decide({ demand: unwanted, torrent: counted, hasData: true }),
+    ).toEqual({ kind: 'start' });
   });
 });

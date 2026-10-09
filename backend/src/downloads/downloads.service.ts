@@ -1,36 +1,36 @@
-import {
-  CreateRequestContext,
-  EnsureRequestContext,
-} from '@mikro-orm/decorators/legacy';
-import { EntityManager, raw } from '@mikro-orm/sqlite';
+import { EntityManager } from '@mikro-orm/sqlite';
 import {
   BadRequestException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
   OnApplicationBootstrap,
-  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { randomUUID } from 'node:crypto';
 import { rm, stat } from 'node:fs/promises';
 import * as path from 'node:path';
-import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
+import {
+  EpisodeRefDto,
+  MediaType,
+  MediaTypeFull,
+} from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
 import { IndexersService } from '../indexers/indexers.service.js';
-import { LOCAL_MEDIA_VERSION_GONE } from '../local-media/local-media.events.js';
+import { Job } from '../jobs/job.entity.js';
+import { JobPayloads } from '../jobs/job-types.js';
+import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { parseEpisodeNumbers } from '../local-media/local-media.utils.js';
+import { MediaFile } from '../local-media/media-file.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
-import { REQUESTS_CHANGED } from '../requests/requests.events.js';
+import { Activity, fileOf } from '../requests/request-activity.js';
+import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { TorrentSelection } from '../requests/torrent-selection.entity.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
-import { WATCH_STATUS_CHANGED } from '../user-data/play-state/play-state.events.js';
-import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import { getNextCleanup } from './cleanup.utils.js';
 import {
   CleanupSchedule,
@@ -42,110 +42,74 @@ import {
   TorrentStatus,
 } from './downloads.dto.js';
 import {
-  type DownloadsState,
-  planDownloads,
-  type PlannedRequest,
-  PlannedStatus,
-  type WantedFile,
-} from './downloads.plan.js';
+  DEFAULT_DOWNLOADS_SETTINGS,
+  DOWNLOADS_SETTINGS_KEY,
+} from './downloads.settings.js';
+import { heldFiles } from './retention.js';
+import { TorrentRuntime } from './torrent-runtime.js';
 import {
-  type TorrentHandle,
-  TORRENT_ENGINE,
-  type TorrentEngine,
-} from './torrent-engine.js';
-import { TorrentSelection } from '../requests/torrent-selection.entity.js';
+  Demand,
+  DemandState,
+  decideTorrent,
+  TorrentDecision,
+  torrentDemand,
+} from './torrent.decide.js';
 import { Torrent } from './torrent.entity.js';
 
-const SETTINGS_KEY = 'downloads';
-const DEFAULT_SETTINGS: DownloadSettingsDto = {
-  seedRatio: 0,
-  cleanup: CleanupSchedule.Daily,
-};
-const TICK_INTERVAL = 30_000;
-
-/** A torrent that runs in the engine */
-interface ActiveTorrent {
-  torrentId: string;
-  stopped: boolean;
-  handle?: TorrentHandle;
-  /** The engine knows the files and has verified the data of an earlier run */
-  ready: boolean;
-  error?: string;
-  /** The files it downloads, as of the last plan */
-  wanted: number[];
-  importErrors: Map<number, string>;
-  /** How much of the engine's transfer counters is stored in the torrent row */
-  stored: { downloaded: number; uploaded: number };
-}
+const READ = { disableIdentityMap: true };
 
 const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
 
+const exists = (filePath: string) =>
+  stat(filePath).then(
+    () => true,
+    () => false,
+  );
+
 /**
- * Downloads what is requested from the torrents that are selected for it.
- * A request remembers the torrent it is bound to and the file that fulfils
- * it. Nothing else about a download is stored apart from the transfer
- * counters: what every torrent has to do is planned from the requests, the
- * selections and the files in the library (see planDownloads), and applied
- * whenever one of them changes.
+ * Downloads what is requested from the torrents that the requests are bound
+ * to. Every torrent decides what it does in its own job, `torrent.reconcile`,
+ * from the requests that are bound to it, whenever something they depend on
+ * changes; `torrent.import` puts a finished file into the library.
  */
 @Injectable()
-export class DownloadsService
-  implements OnApplicationBootstrap, OnModuleDestroy
-{
+export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   private readonly logger = new Logger(DownloadsService.name);
-  private readonly active = new Map<string, ActiveTorrent>();
-  private readonly importing = new Set<string>();
-  private queue: Promise<unknown> = Promise.resolve();
-  /** The reconciliation that waits in the queue */
-  private pending?: Promise<void>;
-  private timer?: NodeJS.Timeout;
-  /** Nothing starts once the server stops */
-  private stopping = false;
 
   constructor(
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
     private readonly requestsService: RequestsService,
-    private readonly playStatesService: PlayStatesService,
     private readonly indexersService: IndexersService,
     private readonly localMediaService: LocalMediaService,
     private readonly serverLog: ServerLogService,
-    @Inject(TORRENT_ENGINE) private readonly engine: TorrentEngine,
+    private readonly jobs: JobsService,
+    private readonly runtime: TorrentRuntime,
   ) {}
 
+  onModuleInit() {
+    this.jobs.define('torrent.reconcile', {
+      concurrency: 2,
+      retry: true,
+      run: ({ torrentId }, context) => this.reconcile(torrentId, context),
+    });
+    this.jobs.define('torrent.import', {
+      concurrency: 2,
+      retry: true,
+      run: (payload, context) => this.import(payload, context),
+    });
+  }
+
+  /** Engine handles live in memory, so every torrent decides again */
   async onApplicationBootstrap() {
-    // Also removes what a torrent left behind when the server was stopped
-    await this.serialize(() => this.apply(true)).catch((error) =>
-      this.logFailure(error),
-    );
-
-    // Stores the transfer counters, ends finished seeding and retries imports
-    this.timer = setInterval(() => {
-      if (this.active.size) this.reconcile();
-    }, TICK_INTERVAL);
-    this.timer.unref();
-  }
-
-  async onModuleDestroy() {
-    this.stopping = true;
-    clearInterval(this.timer);
-
-    await this.serialize(() => this.shutDown());
-  }
-
-  // Not awaited, so whoever emits the event does not wait for the torrents
-  @OnEvent(REQUESTS_CHANGED)
-  @OnEvent(WATCH_STATUS_CHANGED)
-  @OnEvent(LOCAL_MEDIA_VERSION_GONE)
-  onWantedChanged() {
-    this.reconcile();
+    await this.enqueueEveryTorrent(this.em.fork());
   }
 
   getSettings(): Promise<DownloadSettingsDto> {
     return this.settingsService.getOrCreateValue(
-      SETTINGS_KEY,
-      DEFAULT_SETTINGS,
+      DOWNLOADS_SETTINGS_KEY,
+      DEFAULT_DOWNLOADS_SETTINGS,
     );
   }
 
@@ -162,7 +126,14 @@ export class DownloadsService
       );
     }
 
-    return this.settingsService.saveValue(SETTINGS_KEY, { seedRatio, cleanup });
+    const saved = await this.settingsService.saveValue(DOWNLOADS_SETTINGS_KEY, {
+      seedRatio,
+      cleanup,
+    });
+    // How long torrents seed changes
+    await this.enqueueEveryTorrent(this.em);
+
+    return saved;
   }
 
   /** Where the requests and the selected torrents of a user stand for a series */
@@ -170,6 +141,7 @@ export class DownloadsService
     userId: string,
     tmdbId: string,
   ): Promise<SeriesDownloadsDto> {
+    // Brings the index in line with the disk
     const onDisk = new Map<string, EpisodeRefDto>();
     for (const file of await this.localMediaService.getSeriesFiles(tmdbId)) {
       for (const episode of file.episodes) {
@@ -178,47 +150,32 @@ export class DownloadsService
       }
     }
 
-    // The series is planned for everyone, because anyone's request can be
-    // what keeps a file from the next cleanup
-    const selectionsOfEveryone = await this.em.find(
-      TorrentSelection,
-      { mediaType: MediaType.Series, tmdbId },
-      { orderBy: { season: 'asc', episode: 'asc' }, disableIdentityMap: true },
+    const series = await this.em.transactional((tx) =>
+      this.readSeries(tx, tmdbId),
     );
-    const requestsOfEveryone =
-      await this.requestsService.findAllSeriesRequests(tmdbId);
-    const torrents = await this.findTorrents([
-      ...selectionsOfEveryone,
-      ...requestsOfEveryone,
-    ]);
-    const files = await this.localMediaService.findIndexedFiles(
-      MediaType.Series,
-      tmdbId,
+    const { requests, activity, selections, torrents, files } = series;
+    const demands = new Map(
+      [...torrents.values()].map((torrent) => [
+        torrent.id,
+        torrentDemand({
+          torrent,
+          requests: requests.filter((r) => r.torrentId === torrent.id),
+          activity,
+          files,
+          selections,
+        }),
+      ]),
     );
-    const { seedRatio, cleanup } = await this.getSettings();
-    const plan = planDownloads({
-      requests: requestsOfEveryone,
-      selections: selectionsOfEveryone,
-      torrents: [...torrents.values()],
-      files,
-      ...(await this.getRuleState(
-        await this.requestsService.findRules(tmdbId),
-      )),
-      seedRatio,
-    });
-
-    const requested = new Map(
-      plan.requests
-        .filter((planned) => planned.request.userId === userId)
-        .map((planned) => [episodeKey(planned.request), planned]),
-    );
-    const episodes = [
-      ...[...requested.values()].map((planned) => planned.request),
-      ...[...onDisk.values()].filter((e) => !requested.has(episodeKey(e))),
-    ];
-
+    const { cleanup } = await this.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
-    const unretained = new Set(plan.unretained);
+    const held = heldFiles({
+      requests,
+      activity,
+      infoHashes: new Map(
+        [...torrents.values()].map((torrent) => [torrent.id, torrent.infoHash]),
+      ),
+      files,
+    });
     const isCleanedUp = (e: EpisodeRefDto) => {
       const ofEpisode = files.filter(
         (file) =>
@@ -227,11 +184,24 @@ export class DownloadsService
           e.episode <= file.lastEpisode,
       );
 
-      return ofEpisode.length > 0 && ofEpisode.every((f) => unretained.has(f));
+      return (
+        ofEpisode.length > 0 &&
+        ofEpisode.every((file) => file.managed && !held.has(file.id))
+      );
     };
 
+    const requested = new Map(
+      requests
+        .filter((request) => request.userId === userId)
+        .map((request) => [episodeKey(request), request]),
+    );
+    const episodes = [
+      ...requested.values(),
+      ...[...onDisk.values()].filter((e) => !requested.has(episodeKey(e))),
+    ];
+
     return {
-      selections: selectionsOfEveryone
+      selections: selections
         .filter((selection) => selection.userId === userId)
         .map((selection) => ({
           id: selection.id,
@@ -241,17 +211,27 @@ export class DownloadsService
           torrent: this.toTorrentDto(torrents.get(selection.torrentId)),
         })),
       episodes: episodes
-        .map((episode): EpisodeStatusDto => ({
-          season: episode.season,
-          episode: episode.episode,
-          requested: requested.has(episodeKey(episode)),
-          onDisk: onDisk.has(episodeKey(episode)),
-          ...this.getRequestStatus(requested.get(episodeKey(episode))),
-          torrent: this.toTorrentDto(
-            torrents.get(requested.get(episodeKey(episode))?.torrentId),
-          ),
-          cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
-        }))
+        .map((episode): EpisodeStatusDto => {
+          const request = requested.get(episodeKey(episode));
+          const torrent = torrents.get(request?.torrentId);
+
+          return {
+            season: episode.season,
+            episode: episode.episode,
+            requested: !!request,
+            onDisk: onDisk.has(episodeKey(episode)),
+            ...(request &&
+              this.describe(
+                request,
+                activity.get(request.id),
+                torrent,
+                demands.get(torrent?.id),
+                series,
+              )),
+            torrent: this.toTorrentDto(torrent),
+            cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
+          };
+        })
         .sort((a, b) => a.season - b.season || a.episode - b.episode),
       onServer: [
         ...new Set([
@@ -267,7 +247,8 @@ export class DownloadsService
    * episode 0 for the rest of a season, are bound to. For an episode this
    * replaces what its request has: the request is bound again and lets go of
    * its file. For a season the requests that have no file yet are bound again
-   * and the ones that have their file keep it.
+   * and the ones that have their file keep it. Selecting a torrent that
+   * failed starts it again.
    */
   async selectRelease(
     userId: string,
@@ -291,398 +272,458 @@ export class DownloadsService
     }
     const source = await this.indexersService.resolveTorrent(release);
 
-    // Behind the reconciliation that the changes before it queued, which
-    // gives a request that holds its file the file before the unbind
-    await this.serialize(async () => {
-      const torrentId = await this.em.transactional(async (tx) => {
-        let torrent = await tx.findOne(
+    await this.em.transactional(async (tx) => {
+      let torrent = await tx.findOne(
+        Torrent,
+        { infoHash: source.infoHash },
+        READ,
+      );
+      if (torrent) {
+        await tx.nativeUpdate(
           Torrent,
-          { infoHash: source.infoHash },
-          { disableIdentityMap: true },
+          { id: torrent.id },
+          { error: null, attempts: 0, retryAt: null },
         );
-        if (!torrent) {
-          torrent = new Torrent();
-          torrent.infoHash = source.infoHash;
-          torrent.title = release.title;
-          torrent.indexer = release.indexer;
-          torrent.size = release.size;
-          torrent.magnetUrl = source.magnetUrl;
-          torrent.torrentFile = source.torrentFile;
-          torrent.files = source.files;
-          await tx.insert(Torrent, { ...torrent });
-        }
+      } else {
+        torrent = new Torrent();
+        torrent.infoHash = source.infoHash;
+        torrent.title = release.title;
+        torrent.indexer = release.indexer;
+        torrent.size = release.size;
+        torrent.magnetUrl = source.magnetUrl;
+        torrent.torrentFile = source.torrentFile;
+        torrent.files = source.files;
+        await tx.insert(Torrent, { ...torrent });
+      }
 
-        await this.requestsService.select(
-          tx,
-          { userId, tmdbId, season, episode },
-          { torrentId: torrent.id, releaseId: release.id },
-        );
-
-        return torrent.id;
-      });
-
-      // Selecting a failed torrent again is the way to retry it
-      const failed = this.active.get(torrentId);
-      if (failed?.error) await this.stop(failed);
+      await this.requestsService.select(
+        tx,
+        { userId, tmdbId, season, episode },
+        { torrentId: torrent.id, releaseId: release.id },
+      );
     });
-    this.reconcile();
   }
 
-  async clearSelection(
+  clearSelection(
     userId: string,
     tmdbId: string,
     season: number,
     episode: number,
   ): Promise<boolean> {
-    const deleted = await this.serialize(() =>
-      this.em.transactional((tx) =>
-        this.requestsService.deselect(tx, { userId, tmdbId, season, episode }),
-      ),
-    );
-    this.reconcile();
-
-    return deleted;
-  }
-
-  /**
-   * Brings the torrents in line with what is wanted. Never rejects. A run that
-   * has not started covers every change made until it does, so at most one
-   * waits in the queue.
-   */
-  reconcile(): Promise<void> {
-    if (this.stopping) return Promise.resolve();
-
-    this.pending ??= this.serialize(() => {
-      this.pending = undefined;
-
-      return this.apply(false);
-    }).catch((error) => this.logFailure(error));
-
-    return this.pending;
-  }
-
-  /** Runs changes to torrents one at a time */
-  private serialize<T>(run: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(run);
-    this.queue = result.catch(() => {});
-
-    return result;
-  }
-
-  /** The plan for every request, torrent and imported file of the server */
-  private async planServer() {
-    const torrents = await this.em.find(
-      Torrent,
-      {},
-      { disableIdentityMap: true },
-    );
-    const { seedRatio } = await this.getSettings();
-    const plan = planDownloads({
-      requests: await this.requestsService.findEpisodeRequests(),
-      selections: await this.em.find(
-        TorrentSelection,
-        {},
-        { disableIdentityMap: true },
-      ),
-      torrents,
-      files: await this.localMediaService.findVersions(MediaType.Series),
-      ...(await this.getRuleState(await this.requestsService.findRules())),
-      seedRatio,
-    });
-
-    return { plan, torrents };
-  }
-
-  @CreateRequestContext()
-  private async apply(sweep: boolean): Promise<void> {
-    for (const active of this.active.values()) await this.storeCounters(active);
-
-    const { plan, torrents } = await this.planServer();
-    // Requests remember what they were bound to and what fulfils them
-    await this.requestsService.setReferences(
-      plan.requests
-        .filter(
-          ({ request, torrentId, mediaFileId }) =>
-            (request.torrentId ?? undefined) !== torrentId ||
-            (request.mediaFileId ?? undefined) !== mediaFileId,
-        )
-        .map(({ request, torrentId, mediaFileId }) => ({
-          id: request.id,
-          torrentId,
-          mediaFileId,
-        })),
-    );
-
-    const torrentsById = new Map(torrents.map((t) => [t.id, t]));
-    for (const planned of plan.torrents) {
-      const torrent = torrentsById.get(planned.torrentId);
-      const active = this.active.get(torrent.id);
-      const isNeeded = planned.wanted.length > 0 || planned.needsFiles;
-
-      // A torrent that nothing refers to and that is done seeding is forgotten
-      const release = async () => {
-        if (
-          active ||
-          sweep ||
-          torrent.downloadedBytes ||
-          torrent.uploadedBytes
-        ) {
-          await this.discard(torrent);
-        }
-        if (!planned.referenced) {
-          await this.em.nativeDelete(Torrent, { id: torrent.id });
-        }
-      };
-
-      if (!isNeeded && !planned.seeds) {
-        await release();
-        continue;
-      }
-      if (!active) {
-        this.start(torrent);
-        continue;
-      }
-      if (!active.ready) continue;
-
-      active.wanted = [...new Set(planned.wanted.map((w) => w.fileIndex))];
-      active.handle.setWantedFiles(active.wanted);
-
-      for (const wanted of planned.wanted) {
-        if (active.handle.isFileComplete(wanted.fileIndex)) {
-          this.import(active, torrent, wanted);
-        }
-      }
-
-      // There is nothing to seed from
-      if (!isNeeded && !active.handle.hasData()) await release();
-    }
-  }
-
-  private start(torrent: Torrent) {
-    if (this.stopping) return;
-
-    const active: ActiveTorrent = {
-      torrentId: torrent.id,
-      stopped: false,
-      ready: false,
-      wanted: [],
-      importErrors: new Map(),
-      stored: { downloaded: 0, uploaded: 0 },
-    };
-    this.active.set(torrent.id, active);
-
-    this.run(active, torrent)
-      .catch((error) => {
-        this.logger.warn(`"${torrent.title}" failed: ${error.message}`);
-        active.error = error.message;
-      })
-      .then(() => {
-        if (!active.stopped) return this.reconcile();
-      });
-  }
-
-  @CreateRequestContext()
-  private async run(active: ActiveTorrent, torrent: Torrent): Promise<void> {
-    const { torrentFile } = await this.em.findOneOrFail(
-      Torrent,
-      { id: torrent.id },
-      { populate: ['torrentFile'], disableIdentityMap: true },
-    );
-    if (active.stopped) return;
-
-    active.handle = this.engine.add(
-      torrentFile ?? torrent.magnetUrl,
-      this.getDirectory(torrent),
-    );
-    active.handle.onFileComplete(() => this.reconcile());
-
-    const files = await active.handle.ready;
-    if (!torrent.files) {
-      await this.em.nativeUpdate(Torrent, { id: torrent.id }, { files });
-    }
-    active.ready = true;
-  }
-
-  /**
-   * Adds a finished file to the library. Runs outside the queue, because
-   * copying a file to another filesystem takes its time.
-   */
-  private import(active: ActiveTorrent, torrent: Torrent, wanted: WantedFile) {
-    const key = `${torrent.id}:${wanted.fileIndex}:${wanted.tmdbId}`;
-    if (this.importing.has(key)) return;
-    this.importing.add(key);
-
-    this.importFile(active, torrent, wanted).then(
-      () => {
-        this.importing.delete(key);
-        active.importErrors.delete(wanted.fileIndex);
-
-        // The requests for the file are fulfilled, which can finish the torrent
-        return this.reconcile();
-      },
-      (error) => {
-        this.importing.delete(key);
-        this.logger.warn(
-          `Importing "${torrent.files[wanted.fileIndex].name}" failed: ${error.message}`,
-        );
-        active.importErrors.set(
-          wanted.fileIndex,
-          `Import failed: ${error.message}`,
-        );
-      },
+    return this.em.transactional((tx) =>
+      this.requestsService.deselect(tx, { userId, tmdbId, season, episode }),
     );
   }
 
-  @CreateRequestContext()
-  private async importFile(
-    active: ActiveTorrent,
-    torrent: Torrent,
-    wanted: WantedFile,
-  ): Promise<string> {
-    const numbers = parseEpisodeNumbers(torrent.files[wanted.fileIndex].name);
-
-    return this.localMediaService.importEpisodeFile({
-      tmdbId: wanted.tmdbId,
-      season: wanted.season,
-      episodes:
-        numbers?.season === wanted.season ? numbers.episodes : wanted.episodes,
-      sourcePath: active.handle.getFilePath(wanted.fileIndex),
-      infoHash: torrent.infoHash,
-    });
-  }
-
-  private async shutDown() {
-    for (const active of [...this.active.values()]) {
-      await this.storeCounters(active);
-      await this.stop(active);
-    }
-  }
-
-  private async stop(active: ActiveTorrent) {
-    active.stopped = true;
-    this.active.delete(active.torrentId);
-    await active.handle?.destroy();
-  }
-
-  /** Stops a torrent and deletes what it downloaded */
-  private async discard(torrent: Torrent) {
-    const active = this.active.get(torrent.id);
-    if (active) await this.stop(active);
-
-    const directory = this.getDirectory(torrent);
-    const hasData = await stat(directory).then(
-      () => true,
-      () => false,
-    );
-    await rm(directory, { recursive: true, force: true });
-    if (hasData) {
-      await this.serverLog.write(
-        LogType.DownloadDeleted,
-        `Deleted the downloaded data of "${torrent.title}"`,
-        { directory, torrentId: torrent.id, infoHash: torrent.infoHash },
+  /** Starts a torrent that failed again, at once */
+  async retryTorrent(torrentId: string): Promise<void> {
+    await this.em.transactional(async (tx) => {
+      const affected = await tx.nativeUpdate(
+        Torrent,
+        { id: torrentId },
+        { error: null, attempts: 0, retryAt: null },
       );
-    }
+      if (!affected) throw new NotFoundException('Torrent not found');
 
-    if (torrent.downloadedBytes || torrent.uploadedBytes) {
-      await this.em.nativeUpdate(
+      await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId });
+    });
+  }
+
+  /** What a torrent does next, decided and done */
+  private async reconcile(
+    torrentId: string,
+    context: JobContext,
+  ): Promise<void> {
+    const snapshot = this.runtime.snapshot(torrentId);
+    const hasDirectory = await exists(this.getDirectory(torrentId));
+
+    const decided = await context.em.transactional(async (tx) => {
+      const torrent = await tx.findOne(Torrent, { id: torrentId }, READ);
+      if (!torrent) return undefined;
+
+      if (!torrent.files && snapshot?.files) {
+        torrent.files = snapshot.files;
+        await tx.nativeUpdate(
+          Torrent,
+          { id: torrentId },
+          { files: snapshot.files },
+        );
+      }
+      const demand = torrentDemand(await this.readDemand(tx, torrent));
+      await this.requestsService.attach(tx, demand.attach);
+
+      const { seedRatio } = await this.getSettings();
+      const decision = decideTorrent({
+        demand,
+        torrent: {
+          downloadedBytes:
+            torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0),
+          uploadedBytes:
+            torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0),
+          attempts: torrent.attempts,
+          retryAt: torrent.retryAt,
+        },
+        runtime: snapshot,
+        hasData: snapshot?.ready ? snapshot.hasData : hasDirectory,
+        seedRatio,
+        now: new Date(),
+      });
+      await this.store(tx, torrent, decision);
+
+      return { torrent, decision };
+    });
+
+    if (decided) await this.act(context, decided.torrent, decided.decision);
+  }
+
+  /** What a decision changes in the database, in its transaction */
+  private async store(
+    tx: EntityManager,
+    torrent: Torrent,
+    decision: TorrentDecision,
+  ) {
+    const torrentId = torrent.id;
+
+    switch (decision.kind) {
+      case 'fail':
+        this.logger.warn(`"${torrent.title}" failed: ${decision.error}`);
+        await tx.nativeUpdate(
+          Torrent,
+          { id: torrentId },
+          {
+            error: decision.error,
+            attempts: torrent.attempts + 1,
+            retryAt: decision.retryAt,
+          },
+        );
+        await this.jobs.enqueue(
+          tx,
+          'torrent.reconcile',
+          { torrentId },
+          { runAt: decision.retryAt },
+        );
+        break;
+      case 'backoff':
+        await this.jobs.enqueue(
+          tx,
+          'torrent.reconcile',
+          { torrentId },
+          { runAt: decision.retryAt },
+        );
+        break;
+      case 'run':
+        if (torrent.error || torrent.attempts) {
+          await tx.nativeUpdate(
+            Torrent,
+            { id: torrentId },
+            { error: null, attempts: 0, retryAt: null },
+          );
+        }
+        for (const fileIndex of decision.imports) {
+          await this.jobs.enqueue(tx, 'torrent.import', {
+            torrentId,
+            fileIndex,
+          });
+        }
+        break;
+    }
+  }
+
+  /** What a decision does to the engine and the downloads folder */
+  private async act(
+    context: JobContext,
+    torrent: Torrent,
+    decision: TorrentDecision,
+  ) {
+    switch (decision.kind) {
+      case 'fail':
+        await this.runtime.stop(context, torrent.id);
+        break;
+      case 'release':
+        await this.release(context, torrent);
+        break;
+      case 'start': {
+        const { torrentFile } = await context.em.findOneOrFail(
+          Torrent,
+          { id: torrent.id },
+          { populate: ['torrentFile'], ...READ },
+        );
+        this.runtime.start(
+          context,
+          { id: torrent.id, magnetUrl: torrent.magnetUrl, torrentFile },
+          this.getDirectory(torrent.id),
+        );
+        break;
+      }
+      case 'run':
+        this.runtime.setWantedFiles(context, torrent.id, decision.wanted);
+        break;
+    }
+  }
+
+  /**
+   * Stops a torrent that nothing wants and that seeds no more, deletes what it
+   * downloaded, and forgets it when nothing refers to it
+   */
+  private async release(context: JobContext, torrent: Torrent) {
+    await this.runtime.stop(context, torrent.id);
+
+    const directory = this.getDirectory(torrent.id);
+    const hasData = await exists(directory);
+    if (hasData) await rm(directory, { recursive: true, force: true });
+
+    await context.em.transactional(async (tx) => {
+      if (hasData) {
+        await this.serverLog.writeIn(
+          tx,
+          LogType.DownloadDeleted,
+          `Deleted the downloaded data of "${torrent.title}"`,
+          { directory, torrentId: torrent.id, infoHash: torrent.infoHash },
+        );
+      }
+      await tx.nativeUpdate(
         Torrent,
         { id: torrent.id },
         { downloadedBytes: 0, uploadedBytes: 0 },
       );
+      await tx.execute(
+        `delete from torrent where id = ?
+         and not exists (select 1 from request where torrent_id = torrent.id)
+         and not exists (select 1 from torrent_selection where torrent_id = torrent.id)`,
+        [torrent.id],
+        'run',
+      );
+    });
+  }
+
+  /**
+   * Puts a finished file into the library for the requests that want it, and
+   * gives it to them
+   */
+  private async import(
+    { torrentId, fileIndex }: JobPayloads['torrent.import'],
+    context: JobContext,
+  ): Promise<void> {
+    // The torrent stopped since, or the file is not whole: the next
+    // reconciliation enqueues the import again
+    const snapshot = this.runtime.snapshot(torrentId);
+    if (!snapshot?.ready || !snapshot.complete.has(fileIndex)) return;
+
+    const read = await context.em.transactional(async (tx) => {
+      const torrent = await tx.findOne(Torrent, { id: torrentId }, READ);
+      if (!torrent) return undefined;
+
+      const state = await this.readDemand(tx, torrent);
+      return { torrent, state, demand: torrentDemand(state) };
+    });
+    if (!read) return;
+
+    const { torrent, state, demand } = read;
+    const name = snapshot.files[fileIndex].name;
+    for (const wanted of demand.wanted) {
+      if (wanted.fileIndex !== fileIndex) continue;
+
+      const numbers = parseEpisodeNumbers(name);
+      const episodes =
+        numbers?.season === wanted.season ? numbers.episodes : wanted.episodes;
+      // A rerun puts the file where the version of the torrent is already
+      const version = state.files.find(
+        (file) =>
+          file.infoHash === torrent.infoHash &&
+          file.tmdbId === wanted.tmdbId &&
+          file.season === wanted.season &&
+          file.episode === Math.min(...episodes) &&
+          file.lastEpisode === Math.max(...episodes),
+      );
+      const placed = await this.localMediaService.placeEpisodeFile({
+        tmdbId: wanted.tmdbId,
+        season: wanted.season,
+        episodes,
+        sourcePath: snapshot.filePath(fileIndex),
+        infoHash: torrent.infoHash,
+        destination: version?.path,
+      });
+
+      await context.em.transactional(async (tx) => {
+        const mediaFileId = await this.localMediaService.indexImportedFile(
+          tx,
+          placed,
+        );
+        // Every request that wanted the file has it, also one whose episode
+        // the name of the file does not cover
+        const wantedBy = state.requests.filter((request) => {
+          const result = demand.requests.get(request.id);
+          return (
+            result?.kind === 'wanted' &&
+            result.fileIndex === fileIndex &&
+            request.tmdbId === wanted.tmdbId &&
+            request.season === wanted.season
+          );
+        });
+        await this.requestsService.attach(
+          tx,
+          wantedBy.map((request) => ({ requestId: request.id, mediaFileId })),
+        );
+        await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId });
+      });
     }
   }
 
-  @EnsureRequestContext()
-  private async storeCounters(active: ActiveTorrent) {
-    const stats = active.handle?.getStats();
-    if (!stats) return;
-
-    const downloaded = stats.downloaded - active.stored.downloaded;
-    const uploaded = stats.uploaded - active.stored.uploaded;
-    if (!downloaded && !uploaded) return;
-
-    await this.em.nativeUpdate(
-      Torrent,
-      { id: active.torrentId },
-      {
-        downloadedBytes: raw(`downloaded_bytes + ${downloaded}`),
-        uploadedBytes: raw(`uploaded_bytes + ${uploaded}`),
-      },
+  /** What the requests that are bound to a torrent depend on */
+  private async readDemand(
+    tx: EntityManager,
+    torrent: Torrent,
+  ): Promise<
+    Omit<DemandState, 'files' | 'requests'> & {
+      files: MediaFile[];
+      requests: MediaRequest[];
+    }
+  > {
+    const bound = await tx.find(
+      MediaRequest,
+      { torrentId: torrent.id, mediaType: MediaTypeFull.Episode },
+      { ...READ, fields: ['userId', 'tmdbId'] },
     );
-    active.stored = { downloaded: stats.downloaded, uploaded: stats.uploaded };
-  }
+    const { requests, activity } = await this.requestsService.readActivity(
+      tx,
+      bound,
+    );
+    const files = await tx.find(
+      MediaFile,
+      {
+        mediaType: MediaType.Series,
+        tmdbId: { $in: [...new Set(bound.map((r) => r.tmdbId))] },
+        infoHash: torrent.infoHash,
+      },
+      READ,
+    );
+    const selections = await tx.find(
+      TorrentSelection,
+      { mediaType: MediaType.Series, torrentId: torrent.id },
+      READ,
+    );
 
-  /** The rules with what they are evaluated against */
-  private async getRuleState(
-    rules: DownloadsState['rules'],
-  ): Promise<Pick<DownloadsState, 'rules' | 'playStates' | 'now'>> {
     return {
-      rules,
-      playStates: await this.playStatesService.findEpisodePlayStates(rules),
-      now: Date.now(),
+      torrent,
+      requests: requests.filter((r) => r.torrentId === torrent.id),
+      activity,
+      files,
+      selections,
     };
   }
 
-  /** The torrents that selections and requests refer to */
-  private async findTorrents(
-    references: { torrentId?: string }[],
-  ): Promise<Map<string, Torrent>> {
-    const torrents = await this.em.find(
+  /** Everything the status of a series is derived from, for every user */
+  private async readSeries(tx: EntityManager, tmdbId: string) {
+    const users = await tx.find(
+      MediaRequest,
+      { mediaType: MediaTypeFull.Episode, tmdbId },
+      { ...READ, fields: ['userId', 'tmdbId'] },
+    );
+    const { requests, activity } = await this.requestsService.readActivity(
+      tx,
+      users,
+    );
+    const selections = await tx.find(
+      TorrentSelection,
+      { mediaType: MediaType.Series, tmdbId },
+      { ...READ, orderBy: { season: 'asc', episode: 'asc' } },
+    );
+    const torrents = await tx.find(
       Torrent,
-      { id: { $in: references.flatMap(({ torrentId }) => torrentId ?? []) } },
-      { disableIdentityMap: true },
+      {
+        id: {
+          $in: [...requests, ...selections].flatMap((r) => r.torrentId ?? []),
+        },
+      },
+      READ,
+    );
+    const files = await tx.find(
+      MediaFile,
+      { mediaType: MediaType.Series, tmdbId },
+      READ,
+    );
+    const imports = await tx.find(
+      Job,
+      {
+        type: 'torrent.import',
+        lockKey: { $in: torrents.map((torrent) => `torrent:${torrent.id}`) },
+      },
+      READ,
     );
 
-    return new Map(torrents.map((torrent) => [torrent.id, torrent]));
+    return {
+      requests,
+      activity,
+      selections,
+      torrents: new Map(torrents.map((torrent) => [torrent.id, torrent])),
+      files,
+      imports,
+    };
   }
 
-  private getRequestStatus(
-    planned?: PlannedRequest,
+  /** Where the request of a user stands */
+  private describe(
+    request: MediaRequest,
+    activity: Activity,
+    torrent: Torrent | undefined,
+    demand: Demand | undefined,
+    series: { files: MediaFile[]; imports: Job[] },
   ): Pick<EpisodeStatusDto, 'status' | 'progress' | 'error'> {
-    if (!planned) return {};
-
-    switch (planned.status) {
-      case PlannedStatus.WaitingForApproval:
+    switch (activity) {
+      case 'waiting':
         return { status: EpisodeDownloadStatus.WaitingForApproval };
-      case PlannedStatus.InactiveAhead:
+      case 'ahead':
         return { status: EpisodeDownloadStatus.InactiveAhead };
-      case PlannedStatus.InactiveWatched:
+      case 'watched':
         return { status: EpisodeDownloadStatus.InactiveWatched };
-      case PlannedStatus.NoSelection:
-        return { status: EpisodeDownloadStatus.NoSelection };
-      case PlannedStatus.Available:
-        return { status: EpisodeDownloadStatus.Available };
-      case PlannedStatus.NoFileInTorrent:
-        return {
-          status: EpisodeDownloadStatus.NoFileInTorrent,
-          error: 'The torrent has no file for this episode',
-        };
     }
 
-    const active = this.active.get(planned.torrentId);
-    if (active?.error) {
-      return { status: EpisodeDownloadStatus.Failed, error: active.error };
+    if (fileOf(request, activity, torrent?.infoHash, series.files)) {
+      return { status: EpisodeDownloadStatus.Available };
     }
-    if (planned.status === PlannedStatus.Resolving || !active?.ready) {
+    if (activity === 'kept') {
+      return { status: EpisodeDownloadStatus.InactiveWatched };
+    }
+    if (!torrent) return { status: EpisodeDownloadStatus.NoSelection };
+
+    const wants = demand?.requests.get(request.id);
+    if (wants?.kind === 'no-file-in-torrent') {
+      return {
+        status: EpisodeDownloadStatus.NoFileInTorrent,
+        error: 'The torrent has no file for this episode',
+      };
+    }
+
+    const snapshot = this.runtime.snapshot(torrent.id);
+    const failure = snapshot?.error ?? torrent.error;
+    if (failure) {
+      return { status: EpisodeDownloadStatus.Failed, error: failure };
+    }
+    if (wants?.kind !== 'wanted' || !snapshot?.ready) {
       return { status: EpisodeDownloadStatus.Resolving };
     }
 
-    const importError = active.importErrors.get(planned.fileIndex);
-    if (importError) {
-      return { status: EpisodeDownloadStatus.Failed, error: importError };
+    const importJob = series.imports.find(
+      (job) => job.dedupeKey === `import:${torrent.id}:${wants.fileIndex}`,
+    );
+    if (importJob?.error) {
+      return {
+        status: EpisodeDownloadStatus.Failed,
+        error: `Import failed: ${importJob.error}`,
+      };
     }
 
     return {
       status: EpisodeDownloadStatus.Downloading,
-      progress: active.handle.getFileProgress(planned.fileIndex),
+      progress: snapshot.progress(wants.fileIndex),
     };
   }
 
   private toTorrentDto(torrent?: Torrent): TorrentDto | undefined {
     if (!torrent) return undefined;
 
-    const active = this.active.get(torrent.id);
-    const stats = active?.handle?.getStats();
+    const snapshot = this.runtime.snapshot(torrent.id);
+    const error = snapshot?.error ?? torrent.error;
 
     return {
       id: torrent.id,
@@ -691,32 +732,36 @@ export class DownloadsService
       indexer: torrent.indexer,
       size: torrent.size,
       downloadedBytes:
-        torrent.downloadedBytes +
-        (stats ? stats.downloaded - active.stored.downloaded : 0),
+        torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0),
       uploadedBytes:
-        torrent.uploadedBytes +
-        (stats ? stats.uploaded - active.stored.uploaded : 0),
-      status: !active
-        ? TorrentStatus.Stopped
-        : active.error
-          ? TorrentStatus.Failed
-          : !active.ready
+        torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0),
+      status: error
+        ? TorrentStatus.Failed
+        : !snapshot
+          ? TorrentStatus.Stopped
+          : !snapshot.ready
             ? TorrentStatus.Starting
-            : active.wanted.length
+            : snapshot.wanted.length
               ? TorrentStatus.Downloading
               : TorrentStatus.Seeding,
-      error: active?.error,
-      peers: stats?.peers ?? 0,
-      downloadSpeed: stats?.downloadSpeed ?? 0,
-      uploadSpeed: stats?.uploadSpeed ?? 0,
+      error: error ?? undefined,
+      retryAt: (!snapshot && torrent.retryAt) || undefined,
+      peers: snapshot?.peers ?? 0,
+      downloadSpeed: snapshot?.downloadSpeed ?? 0,
+      uploadSpeed: snapshot?.uploadSpeed ?? 0,
     };
   }
 
-  private logFailure(error: Error) {
-    this.logger.error(`Reconciling failed: ${error.message}`, error.stack);
+  private async enqueueEveryTorrent(em: EntityManager) {
+    await em.transactional(async (tx) => {
+      const torrents = await tx.find(Torrent, {}, { ...READ, fields: ['id'] });
+      for (const { id } of torrents) {
+        await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId: id });
+      }
+    });
   }
 
-  private getDirectory(torrent: Pick<Torrent, 'id'>): string {
-    return path.join(DOWNLOADS_DIR, torrent.id);
+  private getDirectory(torrentId: string): string {
+    return path.join(DOWNLOADS_DIR, torrentId);
   }
 }

@@ -8,6 +8,7 @@ import { LocalMediaService } from '../local-media/local-media.service.js';
 import { MediaFile } from '../local-media/media-file.entity.js';
 import { evaluateActivity } from '../requests/request-activity.js';
 import { RequestRule } from '../requests/request-rule.entity.js';
+import { RequestsService } from '../requests/requests.service.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
@@ -30,6 +31,7 @@ export class RetentionService implements OnModuleInit {
     private readonly jobs: JobsService,
     private readonly localMediaService: LocalMediaService,
     private readonly downloadsService: DownloadsService,
+    private readonly requestsService: RequestsService,
   ) {}
 
   onModuleInit() {
@@ -93,6 +95,9 @@ export class RetentionService implements OnModuleInit {
             );
           });
 
+          // What the other requests of their series want changes too
+          await this.requestsService.enqueueTorrentsOfPairs(tx, toDelete);
+          await this.requestsService.enqueueTorrentsOfFiles(tx, [...goneIds]);
           if (toDelete.length) {
             await tx.nativeDelete(MediaRequest, {
               id: { $in: toDelete.map((request) => request.id) },
@@ -100,7 +105,6 @@ export class RetentionService implements OnModuleInit {
           }
         },
       );
-    await this.downloadsService.reconcile();
 
     return { deleted, failed };
   }
@@ -136,13 +140,17 @@ export class RetentionService implements OnModuleInit {
     let failed = 0;
     for (const file of unheld) {
       await this.localMediaService
-        .deleteManagedFile(file.id, 'no request holds it')
+        .deleteManagedFile(file.id, 'no request holds it', (tx, files) =>
+          this.requestsService.enqueueTorrentsOfFiles(
+            tx,
+            files.map((file) => file.id),
+          ),
+        )
         .catch((error) => {
           failed++;
           this.logger.warn(`Could not delete "${file.path}": ${error.message}`);
         });
     }
-    if (unheld.length) await this.downloadsService.reconcile();
 
     if (failed) {
       throw new Error(`${failed} of ${unheld.length} files were not deleted`);

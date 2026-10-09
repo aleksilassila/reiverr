@@ -4,8 +4,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
@@ -113,6 +115,17 @@ export class DownloadsController {
         episode,
       ),
     };
+  }
+
+  @Post('torrents/:torrentId/retry')
+  @HttpCode(200)
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async retryTorrent(
+    @Param('torrentId') torrentId: string,
+  ): Promise<SuccessResponseDto> {
+    await this.downloadsService.retryTorrent(torrentId);
+
+    return { success: true };
   }
 
   private async selectRelease(

@@ -5,7 +5,6 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   chmodSync,
   existsSync,
@@ -22,7 +21,9 @@ import {
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { MediaType } from '../common/common.dto.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
+import { RequestsService } from '../requests/requests.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
@@ -85,7 +86,8 @@ describe('LocalMediaService', () => {
       orm.em,
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
-      new EventEmitter2(),
+      { enqueueTorrentsOfFiles: async () => {} } as unknown as RequestsService,
+      { runNow: async () => {} } as unknown as JobsService,
       new ServerLogService(orm.em, new SettingsService(orm.em)),
     );
     await request(() =>

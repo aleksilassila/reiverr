@@ -58,6 +58,14 @@ export class TorrentDto extends PickType(Torrent, [
   @ApiProperty({ required: false })
   error?: string;
 
+  @ApiProperty({
+    required: false,
+    type: 'string',
+    format: 'date-time',
+    description: 'When a torrent that failed is started again',
+  })
+  retryAt?: Date;
+
   @ApiProperty()
   peers: number;
 

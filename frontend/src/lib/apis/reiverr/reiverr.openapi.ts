@@ -1446,6 +1446,11 @@ export interface TorrentDto {
   uploadedBytes: number;
   status: "stopped" | "starting" | "downloading" | "seeding" | "failed";
   error?: string;
+  /**
+   * When a torrent that failed is started again
+   * @format date-time
+   */
+  retryAt?: string;
   peers: number;
   /** Bytes per second */
   downloadSpeed: number;
@@ -2864,6 +2869,21 @@ export class Api<
       this.request<SuccessResponseDto, any>({
         path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
         method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags downloads
+     * @name RetryTorrent
+     * @request POST:/api/v2/downloads/torrents/{torrentId}/retry
+     */
+    retryTorrent: (torrentId: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/downloads/torrents/${torrentId}/retry`,
+        method: "POST",
         format: "json",
         ...params,
       }),

@@ -6,12 +6,13 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Dirent, promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
+import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -23,7 +24,6 @@ import {
   LocalMediaSettingsDto,
   LocalSubtitleFileDto,
 } from './local-media.dto.js';
-import { LOCAL_MEDIA_VERSION_GONE } from './local-media.events.js';
 import {
   episodeFileName,
   folderMatchesTarget,
@@ -78,6 +78,25 @@ export type ForgetHook = (
   files: MediaFile[],
 ) => Promise<void>;
 
+interface ImportOptions {
+  tmdbId: string;
+  season: number;
+  episodes: number[];
+  sourcePath: string;
+  infoHash: string;
+}
+
+/** A file that an import put into the library */
+export interface PlacedFile {
+  path: string;
+  tmdbId: string;
+  season: number;
+  episodes: number[];
+  infoHash: string;
+  size: number;
+  modifiedAt: Date;
+}
+
 /** What a file is, as far as its name tells */
 type FileTarget = Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>;
 
@@ -99,7 +118,8 @@ export class LocalMediaService {
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly requestsService: RequestsService,
+    private readonly jobs: JobsService,
     private readonly serverLog: ServerLogService,
   ) {}
 
@@ -118,7 +138,11 @@ export class LocalMediaService {
       seriesFolders: await this.resolveFolders(settings.seriesFolders),
     };
 
-    return this.settingsService.saveValue(SETTINGS_KEY, value);
+    const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
+    // Imports that wait for a folder that was missing or unreadable
+    await this.jobs.runNow(this.em, 'torrent.import');
+
+    return saved;
   }
 
   async getMovieFiles(tmdbId: string): Promise<LocalMediaFileDto[]> {
@@ -193,47 +217,43 @@ export class LocalMediaService {
 
   /**
    * Adds a video file to the library as the given episodes of a series, as
-   * the version of the torrent it comes from. The file is hard linked so it
-   * takes no extra space, or copied when the source is on another filesystem.
+   * the version of the torrent it comes from, and indexes it
    */
-  async importEpisodeFile(options: {
-    tmdbId: string;
-    season: number;
-    episodes: number[];
-    sourcePath: string;
-    infoHash: string;
-  }): Promise<string> {
+  async importEpisodeFile(options: ImportOptions): Promise<string> {
+    const placed = await this.placeEpisodeFile(options);
+    await this.em.transactional((tx) => this.indexImportedFile(tx, placed));
+
+    return placed.path;
+  }
+
+  /**
+   * Puts a video file into the library as the given episodes of a series,
+   * as the version of the torrent it comes from, at `destination` when it is
+   * given. The file is hard linked so it takes no extra space, or copied when
+   * the source is on another filesystem. A file that is there already counts
+   * only when it is the same file, which a rerun of an import finds.
+   */
+  async placeEpisodeFile(
+    options: ImportOptions & { destination?: string },
+  ): Promise<PlacedFile> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = options;
-    const { name, target } = await this.getSeriesTarget(tmdbId);
-    const { seriesFolders } = await this.getSettings();
-    if (!seriesFolders.length) {
-      throw new Error('No series folder is configured');
-    }
+    const destination =
+      options.destination ?? (await this.getImportPath(options));
 
-    const [titleFolder] = await this.findTitleFolders(seriesFolders, target);
-    const seasonFolder = path.join(
-      titleFolder ??
-        path.join(
-          seriesFolders[0],
-          seriesFolderName(name, target.year, tmdbId),
-        ),
-      seasonFolderName(season),
-    );
-    const destination = path.join(
-      seasonFolder,
-      episodeFileName(
-        name,
-        season,
-        episodes,
-        infoHash.slice(0, VERSION_LABEL_LENGTH),
-        path.extname(sourcePath),
-      ),
-    );
-
-    await fs.mkdir(seasonFolder, { recursive: true });
+    await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.link(sourcePath, destination).catch(async (error) => {
-      // This file of the torrent was imported before
-      if (error.code === 'EEXIST') return;
+      if (error.code === 'EEXIST') {
+        const [source, there] = await Promise.all([
+          fs.stat(sourcePath),
+          fs.stat(destination),
+        ]);
+        const isSame =
+          (source.dev === there.dev && source.ino === there.ino) ||
+          source.size === there.size;
+        if (isSame) return;
+
+        throw new Error(`Another file is at "${destination}"`);
+      }
 
       // A file that is still being copied must not look like an episode
       const partial = `${destination}.partial`;
@@ -242,17 +262,37 @@ export class LocalMediaService {
     });
 
     const stats = await fs.stat(destination);
-    await this.em
+
+    return {
+      path: destination,
+      tmdbId,
+      season,
+      episodes,
+      infoHash,
+      size: stats.size,
+      modifiedAt: stats.mtime,
+    };
+  }
+
+  /**
+   * Indexes a file that was put into the library as a managed version, with
+   * the entity manager of the caller's transaction, and returns its id
+   */
+  async indexImportedFile(
+    em: EntityManager,
+    file: PlacedFile,
+  ): Promise<string> {
+    await em
       .createQueryBuilder(MediaFile)
       .insert({
         id: randomUUID(),
-        path: destination,
+        path: file.path,
         mediaType: MediaType.Series,
-        tmdbId,
-        ...toFileTarget({ season, episodes }),
-        size: stats.size,
-        modifiedAt: stats.mtime,
-        infoHash,
+        tmdbId: file.tmdbId,
+        ...toFileTarget(file),
+        size: file.size,
+        modifiedAt: file.modifiedAt,
+        infoHash: file.infoHash,
         managed: true,
         createdAt: new Date(),
       })
@@ -261,7 +301,40 @@ export class LocalMediaService {
       .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
       .execute();
 
-    return destination;
+    const { id } = await em.findOneOrFail(
+      MediaFile,
+      { path: file.path },
+      { fields: ['id'], disableIdentityMap: true },
+    );
+
+    return id;
+  }
+
+  private async getImportPath(options: ImportOptions): Promise<string> {
+    const { tmdbId, season, episodes, sourcePath, infoHash } = options;
+    const { name, target } = await this.getSeriesTarget(tmdbId);
+    const { seriesFolders } = await this.getSettings();
+    if (!seriesFolders.length) {
+      throw new Error('No series folder is configured');
+    }
+
+    const [titleFolder] = await this.findTitleFolders(seriesFolders, target);
+
+    return path.join(
+      titleFolder ??
+        path.join(
+          seriesFolders[0],
+          seriesFolderName(name, target.year, tmdbId),
+        ),
+      seasonFolderName(season),
+      episodeFileName(
+        name,
+        season,
+        episodes,
+        infoHash.slice(0, VERSION_LABEL_LENGTH),
+        path.extname(sourcePath),
+      ),
+    );
   }
 
   /** The indexed files of a title, as they were at its last lookup */
@@ -701,12 +774,12 @@ export class LocalMediaService {
     });
 
     if (gone.length) {
-      await this.em.nativeDelete(MediaFile, {
-        id: { $in: gone.map((file) => file.id) },
+      await this.em.transactional(async (tx) => {
+        const ids = gone.map((file) => file.id);
+        // A request that had one of them downloads it again
+        await this.requestsService.enqueueTorrentsOfFiles(tx, ids);
+        await tx.nativeDelete(MediaFile, { id: { $in: ids } });
       });
-    }
-    if (gone.some((file) => file.infoHash)) {
-      await this.eventEmitter.emitAsync(LOCAL_MEDIA_VERSION_GONE);
     }
     if (!changed.length) {
       return new Map(indexed.map((file) => [file.path, file.id]));

@@ -1,7 +1,7 @@
 import { Migration } from '@mikro-orm/migrations';
 
-export class Migration20261009220000 extends Migration {
-  override name = 'Migration20261009220000';
+export class Migration20261009201800 extends Migration {
+  override name = 'Migration20261009201800';
 
   override up(): void | Promise<void> {
     // Requests are bound when they are made and when a preference changes
