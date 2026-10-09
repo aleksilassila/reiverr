@@ -33,6 +33,7 @@ const MINUTE = 60 * 1000;
 const RETRY_DELAY = MINUTE;
 const MAX_RETRY_DELAY = 60 * MINUTE;
 const FAILED_KEPT_FOR = 30 * 24 * 60 * MINUTE;
+const SHUTDOWN_GRACE = 5000;
 
 /** The delay before the next attempt of a job that failed its nth one */
 export const retryDelay = (attempts: number) =>
@@ -119,23 +120,52 @@ export class JobsService implements OnModuleDestroy {
   async start(): Promise<void> {
     if (this.loop) throw new Error('The jobs are running already');
 
-    await this.em.fork().nativeUpdate(
-      Job,
-      { status: JobStatus.Running },
-      {
-        status: JobStatus.Failed,
-        error: 'Interrupted by a restart',
-        finishedAt: new Date(),
-      },
-    );
+    await this.em.fork().transactional(async (tx) => {
+      // A key keeps only its newest failure
+      await tx.execute(
+        `delete from jobs where status = '${JobStatus.Failed}'
+         and dedupe_key in (select dedupe_key from jobs where status = '${JobStatus.Running}')`,
+        [],
+        'run',
+      );
+      await tx.nativeUpdate(
+        Job,
+        { status: JobStatus.Running },
+        {
+          status: JobStatus.Failed,
+          error: 'Interrupted by a restart',
+          finishedAt: new Date(),
+        },
+      );
+    });
     this.loop = this.runLoop();
   }
 
+  /**
+   * Stops claiming and waits a while for the running jobs. A job that does
+   * not end in time stays running in the table and is failed at the next
+   * start.
+   */
   async onModuleDestroy(): Promise<void> {
     this.stopping = true;
     this.notify();
-    await this.loop;
-    await Promise.allSettled(this.running.values());
+
+    const stopped = (async () => {
+      await this.loop;
+      await Promise.allSettled(this.running.values());
+    })();
+    let timer: NodeJS.Timeout;
+    const timeout = new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(true), SHUTDOWN_GRACE);
+    });
+    const timedOut = await Promise.race([stopped.then(() => false), timeout]);
+    clearTimeout(timer);
+
+    if (timedOut) {
+      this.logger.warn(
+        `Stopped without waiting for ${this.running.size} running jobs`,
+      );
+    }
   }
 
   /**
@@ -312,8 +342,10 @@ export class JobsService implements OnModuleDestroy {
     const settled = run
       .then(
         () => this.settle(job),
-        (error: Error) => {
-          this.logger.warn(`Job ${job.type} failed: ${error?.message}`);
+        (reason: unknown) => {
+          const error =
+            reason instanceof Error ? reason : new Error(String(reason));
+          this.logger.warn(`Job ${job.type} failed: ${error.message}`);
           return this.settle(job, error);
         },
       )
@@ -341,7 +373,7 @@ export class JobsService implements OnModuleDestroy {
         return;
       }
 
-      const message = error?.message ?? String(error);
+      const message = error.message;
       if (this.definitions.get(job.type as JobType).retry) {
         const runAt = new Date(Date.now() + retryDelay(job.attempts));
         // A copy of the job that was enqueued while it ran takes over

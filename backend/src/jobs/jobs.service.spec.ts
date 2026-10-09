@@ -253,6 +253,43 @@ describe('JobsService', () => {
     ]);
   });
 
+  it('keeps only the interrupted failure of a key at a restart', async () => {
+    jobs.define('title.cleanup', {
+      run: async () => {
+        throw new Error('unlink failed');
+      },
+    });
+    await jobs.enqueue(orm.em.fork(), 'title.cleanup', cleanup('1'));
+    await jobs.drain();
+    await orm.em.fork().insert(Job, {
+      ...new Job(),
+      type: 'title.cleanup',
+      dedupeKey: 'cleanup:series:1',
+      lockKey: 'media:series:1',
+      status: JobStatus.Running,
+    });
+
+    await jobs.start();
+
+    expect(await all()).toMatchObject([
+      { status: JobStatus.Failed, error: 'Interrupted by a restart' },
+    ]);
+  });
+
+  it('fails a job that rejects with something that is not an error', async () => {
+    jobs.define('torrent.reconcile', {
+      retry: true,
+      run: () => Promise.reject(undefined),
+    });
+    await jobs.enqueue(orm.em.fork(), 'torrent.reconcile', { torrentId: 'a' });
+
+    await jobs.drain();
+
+    expect(await all()).toMatchObject([
+      { status: JobStatus.Queued, error: 'undefined', attempts: 1 },
+    ]);
+  });
+
   it('runs jobs from the loop once started', async () => {
     const ran = new Promise<void>((resolve) =>
       jobs.define('library.cleanup', { run: async () => resolve() }),
