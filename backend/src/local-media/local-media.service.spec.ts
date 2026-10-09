@@ -540,6 +540,9 @@ describe('LocalMediaService', () => {
       await deleteFile(id);
 
       expect(await indexed()).toEqual([]);
+      expect(await logged()).toMatchObject([
+        { message: `Deleted "${imported}": a test, it was gone already` },
+      ]);
     });
   });
 

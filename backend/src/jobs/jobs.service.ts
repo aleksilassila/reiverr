@@ -25,6 +25,11 @@ export interface JobDefinition<T extends JobType> {
    * job is failed and waits for whatever enqueues it next.
    */
   retry?: boolean;
+  /**
+   * A job of the type that is still queued when the server stops is failed
+   * at the next start instead of running then
+   */
+  dropAtRestart?: boolean;
   run: (payload: JobPayloads[T], context: JobContext) => Promise<void>;
 }
 
@@ -131,23 +136,31 @@ export class JobsService implements OnModuleDestroy {
   async start(): Promise<void> {
     if (this.loop) throw new Error('The jobs are running already');
 
+    const dropped = [...this.definitions]
+      .filter(([, definition]) => definition.dropAtRestart)
+      .map(([type]) => type);
+    const isFailed = {
+      $or: [
+        { status: JobStatus.Running },
+        { status: JobStatus.Queued, type: { $in: dropped } },
+      ],
+    };
+
     await this.em.fork().transactional(async (tx) => {
       // A key keeps only its newest failure
-      await tx.execute(
-        `delete from jobs where status = '${JobStatus.Failed}'
-         and dedupe_key in (select dedupe_key from jobs where status = '${JobStatus.Running}')`,
-        [],
-        'run',
-      );
-      await tx.nativeUpdate(
-        Job,
-        { status: JobStatus.Running },
-        {
-          status: JobStatus.Failed,
-          error: 'Interrupted by a restart',
-          finishedAt: new Date(),
-        },
-      );
+      const keys = await tx.find(Job, isFailed, {
+        fields: ['dedupeKey'],
+        disableIdentityMap: true,
+      });
+      await tx.nativeDelete(Job, {
+        status: JobStatus.Failed,
+        dedupeKey: { $in: keys.map((job) => job.dedupeKey) },
+      });
+      await tx.nativeUpdate(Job, isFailed, {
+        status: JobStatus.Failed,
+        error: 'Interrupted by a restart',
+        finishedAt: new Date(),
+      });
     });
     this.loop = this.runLoop();
   }

@@ -1,5 +1,10 @@
 import { EntityManager } from '@mikro-orm/sqlite';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { JobsService } from '../jobs/jobs.service.js';
@@ -35,10 +40,13 @@ export class RetentionService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    // A cleanup that did not run at 04:00 waits for the next one
     this.jobs.define('library.cleanup', {
+      dropAtRestart: true,
       run: (payload, { em }) => this.enqueueTitleCleanups(em),
     });
     this.jobs.define('title.cleanup', {
+      dropAtRestart: true,
       run: ({ tmdbId }) => this.cleanUpSeries(tmdbId),
     });
   }
@@ -147,6 +155,9 @@ export class RetentionService implements OnModuleInit {
           ),
         )
         .catch((error) => {
+          // An admin deleted it meanwhile
+          if (error instanceof NotFoundException) return;
+
           failed++;
           this.logger.warn(`Could not delete "${file.path}": ${error.message}`);
         });

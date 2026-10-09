@@ -290,6 +290,25 @@ describe('JobsService', () => {
     ]);
   });
 
+  it('fails the queued jobs of a type that does not wait across a restart', async () => {
+    const cleaned = vi.fn(async () => {});
+    let reconciled: () => void;
+    const reconcile = new Promise<void>((resolve) => (reconciled = resolve));
+    jobs.define('title.cleanup', { dropAtRestart: true, run: cleaned });
+    jobs.define('torrent.reconcile', { run: async () => reconciled() });
+    const em = orm.em.fork();
+    await jobs.enqueue(em, 'title.cleanup', cleanup('1'));
+    await jobs.enqueue(em, 'torrent.reconcile', { torrentId: 'a' });
+
+    await jobs.start();
+    await reconcile;
+
+    expect(cleaned).not.toHaveBeenCalled();
+    expect(
+      (await all()).filter((job) => job.type === 'title.cleanup'),
+    ).toMatchObject([{ status: JobStatus.Failed }]);
+  });
+
   it('runs jobs from the loop once started', async () => {
     const ran = new Promise<void>((resolve) =>
       jobs.define('library.cleanup', { run: async () => resolve() }),

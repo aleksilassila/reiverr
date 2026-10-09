@@ -148,6 +148,7 @@ export class LocalMediaService implements OnModuleInit {
 
   onModuleInit() {
     this.jobs.define('title.sync', {
+      dropAtRestart: true,
       run: ({ mediaType, tmdbId }) => this.syncTitle(mediaType, tmdbId),
     });
   }
@@ -555,7 +556,15 @@ export class LocalMediaService implements OnModuleInit {
       if (libraryFolder) await this.readLibraryFolder(libraryFolder);
       await this.em.transactional(async (tx) => {
         await forget(tx, [file]);
-        await tx.nativeDelete(MediaFile, { id });
+        const deleted = await tx.nativeDelete(MediaFile, { id });
+        if (deleted) {
+          await this.logDeleted(
+            tx,
+            file.path,
+            `${reason}, it was gone already`,
+            file,
+          );
+        }
       });
       return;
     }
@@ -566,11 +575,14 @@ export class LocalMediaService implements OnModuleInit {
       return;
     }
 
-    await fs.unlink(file.path);
+    // An admin can have deleted it meanwhile
+    await fs.unlink(file.path).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
     await this.em.transactional(async (tx) => {
       await forget(tx, [file]);
-      await tx.nativeDelete(MediaFile, { id });
-      await this.logDeleted(tx, file.path, reason, file);
+      const deleted = await tx.nativeDelete(MediaFile, { id });
+      if (deleted) await this.logDeleted(tx, file.path, reason, file);
     });
 
     for (
@@ -681,10 +693,14 @@ export class LocalMediaService implements OnModuleInit {
 
     for (const entryPath of await this.resolveLibraryEntries(folder, paths)) {
       const files = await this.findFilesAt(entryPath);
-      const error = await fs.rm(entryPath, { recursive: true }).then(
-        () => undefined,
-        (error) => error,
-      );
+      // A cleanup can delete files of the entry meanwhile
+      const existed = await exists(entryPath);
+      const error = await fs
+        .rm(entryPath, { recursive: true, force: true })
+        .then(
+          () => undefined,
+          (error) => error,
+        );
 
       // What is gone is gone, whether the deletion got through or not
       const gone: MediaFile[] = [];
@@ -692,16 +708,28 @@ export class LocalMediaService implements OnModuleInit {
         if (!(await exists(file.path))) gone.push(file);
       }
       const isEntryGone =
+        existed &&
         !gone.some((file) => file.path === entryPath) &&
         !(await exists(entryPath));
       await this.em.transactional(async (tx) => {
-        if (gone.length) {
-          await forget(tx, gone);
+        // The rows that a cleanup did not forget meanwhile
+        const present = new Set(
+          (
+            await tx.find(
+              MediaFile,
+              { id: { $in: gone.map((file) => file.id) } },
+              { fields: ['id'], disableIdentityMap: true },
+            )
+          ).map((file) => file.id),
+        );
+        const forgotten = gone.filter((file) => present.has(file.id));
+        if (forgotten.length) {
+          await forget(tx, forgotten);
           await tx.nativeDelete(MediaFile, {
-            id: { $in: gone.map((file) => file.id) },
+            id: { $in: forgotten.map((file) => file.id) },
           });
         }
-        for (const file of gone) {
+        for (const file of forgotten) {
           await this.logDeleted(tx, file.path, reason, file);
         }
         if (isEntryGone) await this.logDeleted(tx, entryPath, reason);
