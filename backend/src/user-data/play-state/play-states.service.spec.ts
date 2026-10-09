@@ -1,12 +1,11 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType } from '../../common/common.dto.js';
 import mikroOrmConfig from '../../mikro-orm.config.js';
 import { User } from '../../users/user.entity.js';
 import { LibraryItem } from '../library/library.entity.js';
 import { PlayState } from './play-state.entity.js';
-import { WATCH_STATUS_CHANGED } from './play-state.events.js';
+import { RequestsService } from '../../requests/requests.service.js';
 import { PlayStatesService } from './play-states.service.js';
 
 // Movies and series have separate id ranges on TMDB that overlap
@@ -15,7 +14,7 @@ const TMDB_ID = '1';
 describe('PlayStatesService', () => {
   let orm: MikroORM;
   let playStates: PlayStatesService;
-  let events: EventEmitter2;
+  const requests = { applyRules: vi.fn(async () => {}) };
   let userId: string;
 
   // Every call gets its own entity manager, as every HTTP request does
@@ -32,12 +31,11 @@ describe('PlayStatesService', () => {
     await orm.em.fork().insert(user);
     userId = user.id;
 
-    events = new EventEmitter2();
+    requests.applyRules.mockClear();
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
-      orm.em.getRepository(LibraryItem),
       orm.em,
-      events,
+      requests as unknown as RequestsService,
     );
   });
 
@@ -108,7 +106,7 @@ describe('PlayStatesService', () => {
         ),
       );
 
-    expect((await update({ progress: 0.5 })).watchedAt).toBeUndefined();
+    expect((await update({ progress: 0.5 })).watchedAt).toBeNull();
 
     const { watchedAt } = await update({ progress: 0.95, watched: true });
     expect(watchedAt).toBeInstanceOf(Date);
@@ -123,9 +121,44 @@ describe('PlayStatesService', () => {
     });
   });
 
-  it('announces when something becomes watched or unwatched, not its progress', async () => {
-    const changes = vi.fn();
-    events.on(WATCH_STATUS_CHANGED, changes);
+  it('creates a play state once when the first reports arrive together', async () => {
+    const report = (progress: number) =>
+      request(() =>
+        playStates.updateOrCreateEpisodePlayState(userId, TMDB_ID, 1, 1, {
+          progress,
+        }),
+      );
+
+    await Promise.all([report(0.1), report(0.2)]);
+
+    expect(await orm.em.fork().count(PlayState)).toBe(1);
+  });
+
+  it('updates the play states of a series, an episode named twice included', async () => {
+    const states = await request(() =>
+      playStates.updateOrCreateSeriesPlayStates(userId, TMDB_ID, [
+        { season: 1, episode: 1, watched: true },
+        { season: 1, episode: 2, progress: 0.5 },
+        { season: 1, episode: 1, progress: 0.9 },
+      ]),
+    );
+
+    expect(states.map((s) => [s.episode, s.watched, s.progress])).toEqual([
+      [1, true, 0.9],
+      [2, false, 0.5],
+      [1, true, 0.9],
+    ]);
+    const stored = await orm.em
+      .fork()
+      .find(PlayState, {}, { orderBy: { episode: 'asc' } });
+    expect(stored.map((s) => [s.episode, s.watched, s.progress])).toEqual([
+      [1, true, 0.9],
+      [2, false, 0.5],
+    ]);
+  });
+
+  it('has the rules applied to the requests of the series when something becomes watched or unwatched, not on progress', async () => {
+    const changes = requests.applyRules;
     const update = (playState: { watched?: boolean; progress?: number }) =>
       request(() =>
         playStates.updateOrCreateEpisodePlayState(
@@ -144,11 +177,9 @@ describe('PlayStatesService', () => {
     await update({ progress: 0.95, watched: true });
     await update({ progress: 0.97, watched: true });
     expect(changes).toHaveBeenCalledTimes(1);
-    expect(changes).toHaveBeenCalledWith({
-      userId,
-      tmdbId: TMDB_ID,
-      mediaType: 'episode',
-    });
+    expect(changes).toHaveBeenCalledWith(expect.anything(), [
+      { userId, mediaType: MediaType.Series, tmdbId: TMDB_ID },
+    ]);
 
     await request(() =>
       playStates.updateOrCreateSeriesPlayStates(userId, TMDB_ID, [
@@ -168,45 +199,5 @@ describe('PlayStatesService', () => {
 
     await update({ watched: false });
     expect(changes).toHaveBeenCalledTimes(3);
-  });
-
-  it('finds the episode play states of each user for their series', async () => {
-    const other = new User();
-    other.name = 'other';
-    other.password = '';
-    await orm.em.fork().insert(other);
-
-    for (const [user, tmdbId] of [
-      [userId, '1'],
-      [userId, '2'],
-      [other.id, '1'],
-      [other.id, '2'],
-    ]) {
-      await request(() =>
-        playStates.updateOrCreateEpisodePlayState(user, tmdbId, 1, 1, {
-          watched: true,
-        }),
-      );
-    }
-    await request(() =>
-      playStates.updateOrCreateMoviePlayState(userId, '1', { watched: true }),
-    );
-
-    const found = await request(() =>
-      playStates.findEpisodePlayStates([
-        { userId, tmdbId: '1' },
-        { userId: other.id, tmdbId: '2' },
-      ]),
-    );
-
-    expect(found.map((s) => [s.userId, s.tmdbId, s.mediaType]).sort()).toEqual(
-      [
-        [userId, '1', 'episode'],
-        [other.id, '2', 'episode'],
-      ].sort(),
-    );
-    expect(await request(() => playStates.findEpisodePlayStates([]))).toEqual(
-      [],
-    );
   });
 });

@@ -30,6 +30,8 @@ export interface TorrentHandle {
   isFileComplete(index: number): boolean;
   /** Called when a wanted file becomes complete */
   onFileComplete(listener: (index: number) => void): void;
+  /** Called when the torrent fails while it runs */
+  onError(listener: (error: Error) => void): void;
   getFilePath(index: number): string;
   /** Whether any part of the torrent is on disk */
   hasData(): boolean;

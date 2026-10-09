@@ -38,3 +38,8 @@ export class UpdateSeriesRequestsDto {
   @ApiProperty({ description: 'Whether the episodes are requested' })
   requested: boolean;
 }
+
+export class SelectReleaseDto {
+  @ApiProperty({ description: 'Id of a release from an indexer search' })
+  releaseId: string;
+}

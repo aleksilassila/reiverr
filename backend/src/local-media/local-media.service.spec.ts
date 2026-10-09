@@ -5,7 +5,6 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   chmodSync,
   existsSync,
@@ -16,11 +15,16 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
+import { promises as fsPromises } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { MediaType } from '../common/common.dto.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
+import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
@@ -49,8 +53,36 @@ describe('LocalMediaService', () => {
     return filePath;
   };
 
-  const getSeriesFiles = () =>
-    request(() => localMedia.getSeriesFiles(TMDB_ID));
+  const jobs = {
+    runNow: async () => {},
+    enqueue: vi.fn(async () => {}),
+    define: vi.fn(),
+  };
+  /** The titles whose reconciliation was queued */
+  const reconciled = () =>
+    jobs.enqueue.mock.calls
+      .filter((call: unknown[]) => call[1] === 'downloads.reconcileTitle')
+      .map((call: unknown[]) => call[2]);
+  const tmdb = {
+    searchTitles: vi.fn(),
+    findByExternalId: vi.fn(),
+  };
+
+  /** Library folders that changed without the service, which forgets nothing */
+  const saveFoldersAround = (seriesFolders: string[]) =>
+    request(() =>
+      new SettingsService(orm.em).saveValue('local-media', {
+        movieFolders: [],
+        seriesFolders,
+      }),
+    );
+
+  /** A scan of the series, which the job does, and what is on disk then */
+  const getSeriesFiles = async (tmdbId = TMDB_ID) => {
+    await request(() => localMedia.scanTitle(MediaType.Series, tmdbId));
+
+    return request(() => localMedia.getSeriesFiles(tmdbId));
+  };
 
   const indexed = () =>
     orm.em.fork().find(MediaFile, {}, { orderBy: { path: 'asc' } });
@@ -79,11 +111,15 @@ describe('LocalMediaService', () => {
         tmdbSeries: { name: 'Test Show', first_air_date: '2020-01-01' },
       }),
     };
+    jobs.enqueue.mockClear();
+    tmdb.searchTitles.mockReset().mockResolvedValue([]);
+    tmdb.findByExternalId.mockReset().mockResolvedValue(undefined);
     localMedia = new LocalMediaService(
       orm.em,
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
-      new EventEmitter2(),
+      tmdb as unknown as TmdbService,
+      jobs as unknown as JobsService,
       new ServerLogService(orm.em, new SettingsService(orm.em)),
     );
     await request(() =>
@@ -132,6 +168,105 @@ describe('LocalMediaService', () => {
     expect(await indexed()).toMatchObject([{ id: files[0].id, size: 6 }]);
   });
 
+  it('forgets an indexed file only when it is gone or outside the title folders', async () => {
+    // A name that the walk passes over, like a file that is imported while it runs
+    const kept = write('tv/Test Show (2020)/Season 01/importing.mkv');
+    const otherFolder = write('tv/Other Folder/Test Show - S01E04.mkv');
+    const outside = write('elsewhere/Test Show - S01E06.mkv');
+    const gone = path.join(library, 'Test Show (2020)/Season 01/S01E07.mkv');
+    await orm.em.fork().insert(
+      MediaFile,
+      [kept, otherFolder, outside, gone].map((filePath, i) => ({
+        id: `file-${i}`,
+        path: filePath,
+        mediaType: MediaType.Series,
+        tmdbId: TMDB_ID,
+        season: 1,
+        episode: 5 + i,
+        lastEpisode: 5 + i,
+        size: 5,
+        modifiedAt: new Date(),
+        managed: false,
+        createdAt: new Date(),
+      })),
+    );
+    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+
+    await getSeriesFiles();
+
+    expect((await indexed()).map((file) => file.path)).toEqual([
+      path.join(library, 'Test Show (2020)/Season 01/Test Show - S01E01.mkv'),
+      path.join(library, 'Test Show (2020)/Season 01/importing.mkv'),
+    ]);
+  });
+
+  it('leaves a managed file as it was imported', async () => {
+    // A folder without an id tag, which a lookup of another title matches too
+    write('tv/Test Show (2020)/Season 01/notes.txt');
+    const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+    const [before] = await indexed();
+    writeFileSync(imported, 'changed in place');
+
+    await getSeriesFiles();
+    // A lookup of another title that matches the same folder
+    await getSeriesFiles('200');
+
+    expect(await indexed()).toMatchObject([
+      {
+        id: before.id,
+        tmdbId: TMDB_ID,
+        size: before.size,
+        modifiedAt: before.modifiedAt,
+        managed: true,
+      },
+    ]);
+  });
+
+  it('removes a library folder that has indexed files only with force, forgetting them', async () => {
+    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    await getSeriesFiles();
+    const other = path.join(root, 'other');
+    mkdirSync(other);
+    const move = (force?: boolean) =>
+      request(() =>
+        localMedia.updateSettings(
+          { movieFolders: [], seriesFolders: [other] },
+          force,
+        ),
+      );
+
+    await expect(move()).rejects.toThrow(BadRequestException);
+    expect(await indexed()).toHaveLength(1);
+
+    await move(true);
+    expect(await indexed()).toEqual([]);
+  });
+
+  it('reads what is indexed and asks for a sync, at once when a file is missing', async () => {
+    const file = write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    await getSeriesFiles();
+    jobs.enqueue.mockClear();
+
+    const soon = Date.now();
+    expect(
+      await request(() => localMedia.getSeriesFiles(TMDB_ID)),
+    ).toHaveLength(1);
+    const [, , , later] = jobs.enqueue.mock.calls[0] as unknown[];
+    expect((later as { runAt: Date }).runAt.getTime()).toBeGreaterThan(
+      soon + 20_000,
+    );
+
+    rmSync(file);
+    jobs.enqueue.mockClear();
+    expect(await request(() => localMedia.getSeriesFiles(TMDB_ID))).toEqual([]);
+    const [, , , now] = jobs.enqueue.mock.calls[0] as unknown[];
+    expect((now as { runAt: Date }).runAt.getTime()).toBeLessThan(
+      soon + 20_000,
+    );
+    // The row stays until the scan
+    expect(await indexed()).toHaveLength(1);
+  });
+
   it('imports a file as a managed version of the episode', async () => {
     write('tv/Test Show (2020)/Season 01/Test Show - S01E02.mkv');
     const source = write('downloads/Test.Show.S01E02.1080p.MKV', 'download');
@@ -144,6 +279,7 @@ describe('LocalMediaService', () => {
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
     // The file found next to it stays as it is, and both play as the episode
+    await request(() => localMedia.scanTitle(MediaType.Series, TMDB_ID));
     const files = await request(() =>
       localMedia.getEpisodeFiles(TMDB_ID, 1, 2),
     );
@@ -216,9 +352,7 @@ describe('LocalMediaService', () => {
     // A file outside the library folders is not served, whatever the index says
     const other = path.join(root, 'other');
     mkdirSync(other);
-    await request(() =>
-      localMedia.updateSettings({ movieFolders: [], seriesFolders: [other] }),
-    );
+    await saveFoldersAround([other]);
     await expect(
       request(() => localMedia.resolveFilePath(file.id)),
     ).rejects.toThrow(NotFoundException);
@@ -304,6 +438,225 @@ describe('LocalMediaService', () => {
     });
   });
 
+  describe('scanning a library folder', () => {
+    const scan = (options?: { force?: boolean }) =>
+      request(() => localMedia.scanFolder(library, options));
+    const preview = () => request(() => localMedia.previewScan(library));
+    const rows = async () =>
+      (await indexed()).map((file) => [
+        path.relative(library, file.path),
+        file.tmdbId,
+        file.season,
+        file.episode,
+      ]);
+
+    it('indexes the folders it can tell the title of and forgets what is gone', async () => {
+      write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+      );
+      const another = write(
+        'tv/Another Show (2021)/Season 01/Another Show - S01E02.mkv',
+      );
+      write('tv/Third {tvdb-456}/Season 02/Third - S02E03.mkv');
+      write('tv/Unknown (1999)/Season 01/Unknown - S01E01.mkv');
+      write('tv/Not an episode/clip.mkv');
+      write('tv/Extras/readme.txt');
+      tmdb.searchTitles.mockImplementation(async (_type, query: string) =>
+        query === 'Another Show'
+          ? [
+              { tmdbId: '199', titles: ['Another Show'], date: '1999-01-01' },
+              { tmdbId: '200', titles: ['Another Show'], date: '2021-05-01' },
+            ]
+          : [],
+      );
+      tmdb.findByExternalId.mockResolvedValue({
+        tmdbId: '300',
+        titles: ['Third'],
+        date: '2019-01-01',
+      });
+
+      expect(await scan()).toEqual({
+        added: 3,
+        updated: 0,
+        forgotten: 0,
+        unresolved: ['Unknown (1999)'],
+        failed: [],
+      });
+      expect(await rows()).toEqual([
+        [
+          'Another Show (2021)/Season 01/Another Show - S01E02.mkv',
+          '200',
+          1,
+          2,
+        ],
+        [
+          'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+          '100',
+          1,
+          1,
+        ],
+        ['Third {tvdb-456}/Season 02/Third - S02E03.mkv', '300', 2, 3],
+      ]);
+      expect((await indexed()).every((file) => !file.managed)).toBe(true);
+      expect(tmdb.searchTitles.mock.calls).toEqual([
+        [MediaType.Series, 'Another Show', 2021],
+        [MediaType.Series, 'Unknown', 1999],
+      ]);
+      expect(tmdb.findByExternalId.mock.calls).toEqual([
+        [MediaType.Series, 'tvdb_id', '456'],
+      ]);
+
+      // A folder with indexed files is known, only the unresolved one is asked about again
+      tmdb.searchTitles.mockClear();
+      tmdb.findByExternalId.mockClear();
+      expect(await scan()).toMatchObject({
+        added: 0,
+        updated: 0,
+        forgotten: 0,
+      });
+      expect(tmdb.searchTitles.mock.calls).toEqual([
+        [MediaType.Series, 'Unknown', 1999],
+      ]);
+      expect(tmdb.findByExternalId).not.toHaveBeenCalled();
+      expect(reconciled()).toEqual([]);
+
+      // A changed file is updated, a deleted one forgotten
+      write('tv/Third {tvdb-456}/Season 02/Third - S02E03.mkv', 'longer');
+      rmSync(another);
+      expect(await scan()).toMatchObject({
+        added: 0,
+        updated: 1,
+        forgotten: 1,
+      });
+      expect(reconciled()).toEqual([
+        { mediaType: MediaType.Series, tmdbId: '200' },
+      ]);
+      expect(await preview()).toMatchObject({ available: true, missing: [] });
+    });
+
+    it('leaves a managed file as it was imported', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const [before] = await indexed();
+      writeFileSync(imported, 'changed in place');
+
+      expect(await scan()).toMatchObject({
+        added: 0,
+        updated: 0,
+        forgotten: 0,
+      });
+      expect(await indexed()).toEqual([before]);
+    });
+
+    it('reports a directory it cannot read and keeps what is indexed in it', async () => {
+      const locked = write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+      );
+      write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01.mkv',
+      );
+      await scan();
+      chmodSync(path.dirname(locked), 0o000);
+
+      try {
+        expect(await scan()).toEqual({
+          added: 0,
+          updated: 0,
+          forgotten: 0,
+          unresolved: [],
+          failed: [
+            {
+              path: 'Test Show (2020) [tmdbid-100]/Season 01',
+              error: 'EACCES: permission denied',
+            },
+          ],
+        });
+        expect(await indexed()).toHaveLength(2);
+      } finally {
+        chmodSync(path.dirname(locked), 0o755);
+      }
+    });
+
+    it('refuses a folder that is not available unless forced, which forgets everything in it', async () => {
+      await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+      );
+      await scan();
+
+      // Only one file is missing while the folder is there
+      rmSync(
+        path.join(
+          library,
+          'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+        ),
+      );
+      expect(await preview()).toMatchObject({
+        available: true,
+        missing: [{ episode: 2 }],
+      });
+
+      renameSync(library, path.join(root, 'disk'));
+      mkdirSync(library);
+
+      await expect(scan()).rejects.toThrow(ServiceUnavailableException);
+      expect(await preview()).toMatchObject({
+        available: false,
+        reason: `Library folder "${library}" is not available: it is empty, but files are indexed in it`,
+        missing: [{ episode: 1 }, { episode: 2 }],
+      });
+      expect(await indexed()).toHaveLength(2);
+      expect(reconciled()).toEqual([]);
+
+      expect(await scan({ force: true })).toEqual({
+        added: 0,
+        updated: 0,
+        forgotten: 2,
+        unresolved: [],
+        failed: [],
+      });
+      expect(await indexed()).toEqual([]);
+      // Their requests download them again
+      expect(reconciled()).toEqual([
+        { mediaType: MediaType.Series, tmdbId: TMDB_ID },
+      ]);
+      expect(await preview()).toMatchObject({ available: true, missing: [] });
+    });
+
+    it('scans at night, and logs a folder that is not available instead', async () => {
+      write(
+        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+      );
+      jobs.define.mockClear();
+      localMedia.onModuleInit();
+      const [, job] = jobs.define.mock.calls.find(
+        ([type]) => type === 'localMedia.scanFolder',
+      );
+      const runJob = (folder = library) =>
+        request(() => job.run({ folder }, undefined));
+      const logged = () => orm.em.fork().find(LogEntry, {});
+
+      await runJob();
+      expect(await indexed()).toHaveLength(1);
+
+      renameSync(library, path.join(root, 'disk'));
+      mkdirSync(library);
+      await runJob();
+
+      expect(await indexed()).toHaveLength(1);
+      expect(await logged()).toMatchObject([
+        {
+          type: 'scan.failed',
+          message: `Did not scan "${library}": Library folder "${library}" is not available: it is empty, but files are indexed in it`,
+          data: { folder: library },
+        },
+      ]);
+
+      // A folder that left the library since the job was queued is not scanned
+      await runJob(path.join(root, 'elsewhere'));
+      expect(await logged()).toHaveLength(1);
+    });
+  });
+
   describe('deleting a managed file', () => {
     const deleteFile = (id: string) =>
       request(() => localMedia.deleteManagedFile(id, 'a test'));
@@ -367,20 +720,74 @@ describe('LocalMediaService', () => {
       expect(await logged()).toEqual([]);
     });
 
-    it('keeps a file that the library folders no longer contain', async () => {
+    it('keeps a file that was replaced by one of the same size and stops managing it', async () => {
       const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
       const id = await idOf(imported);
-      await request(() =>
-        localMedia.updateSettings({
-          movieFolders: [],
-          seriesFolders: [path.join(root, 'downloads')],
-        }),
-      );
+      rmSync(imported);
+      writeFileSync(imported, 'other');
+      const later = new Date(Date.now() + 60_000);
+      utimesSync(imported, later, later);
+      // A lookup in between does not make the new file look imported
+      await getSeriesFiles();
 
       await deleteFile(id);
 
       expect(existsSync(imported)).toBe(true);
       expect(await indexed()).toMatchObject([{ id, managed: false }]);
+    });
+
+    it('keeps a file that the library folders no longer contain', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      await saveFoldersAround([path.join(root, 'downloads')]);
+
+      await deleteFile(id);
+
+      expect(existsSync(imported)).toBe(true);
+      expect(await indexed()).toMatchObject([{ id, managed: false }]);
+    });
+
+    it('lets the caller act on the file in the transaction that forgets it', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      const forget = vi.fn(async (tx, files) => {
+        expect(tx.isInTransaction()).toBe(true);
+        // The row is still there
+        expect(await tx.count(MediaFile, { id: files[0].id })).toBe(1);
+      });
+
+      await request(() => localMedia.deleteManagedFile(id, 'a test', forget));
+
+      expect(forget).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ id, path: imported }),
+      ]);
+      expect(await indexed()).toEqual([]);
+    });
+
+    it('hands every deleted file to the caller, also one whose row was forgotten meanwhile', async () => {
+      write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+      await getSeriesFiles();
+      const [row] = await indexed();
+      const rm = fsPromises.rm;
+      // A scan of the title forgets the row while the entry is deleted
+      vi.spyOn(fsPromises, 'rm').mockImplementationOnce(async (...args) => {
+        await rm(...args);
+        await orm.em.fork().nativeDelete(MediaFile, { id: row.id });
+      });
+      const forget = vi.fn(async () => {});
+
+      await request(() =>
+        localMedia.deleteLibraryEntries(
+          library,
+          ['Test Show (2020)/Season 01'],
+          'a test',
+          forget,
+        ),
+      );
+
+      expect(forget).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ id: row.id }),
+      ]);
     });
 
     it('forgets a file that is already gone', async () => {
@@ -391,6 +798,9 @@ describe('LocalMediaService', () => {
       await deleteFile(id);
 
       expect(await indexed()).toEqual([]);
+      expect(await logged()).toMatchObject([
+        { message: `Deleted "${imported}": a test, it was gone already` },
+      ]);
     });
   });
 

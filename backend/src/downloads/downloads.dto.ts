@@ -1,7 +1,5 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { EpisodeRefDto } from '../common/common.dto.js';
-import { TorrentSelection } from './torrent-selection.entity.js';
-import { Torrent } from './torrent.entity.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -28,11 +26,6 @@ export class DownloadSettingsDto {
   cleanup: CleanupSchedule;
 }
 
-export class SelectReleaseDto {
-  @ApiProperty({ description: 'Id of a release from an indexer search' })
-  releaseId: string;
-}
-
 export enum TorrentStatus {
   /** Nothing of the torrent is wanted, its data is not kept */
   Stopped = 'stopped',
@@ -43,20 +36,49 @@ export enum TorrentStatus {
   Failed = 'failed',
 }
 
-export class TorrentDto extends PickType(Torrent, [
-  'id',
-  'infoHash',
-  'title',
-  'indexer',
-  'size',
-  'downloadedBytes',
-  'uploadedBytes',
-]) {
+export class TorrentDto {
+  @ApiProperty({
+    type: 'string',
+    required: false,
+    description: 'Missing while no request downloads from the torrent',
+  })
+  id?: string;
+
+  @ApiProperty({ type: 'string' })
+  infoHash: string;
+
+  @ApiProperty({ type: 'string' })
+  title: string;
+
+  @ApiProperty({ type: 'string' })
+  indexer: string;
+
+  @ApiProperty({ type: 'number', description: 'Bytes' })
+  size: number;
+
+  @ApiProperty({
+    type: 'number',
+    description:
+      'Bytes downloaded for the data currently in the downloads folder',
+  })
+  downloadedBytes: number;
+
+  @ApiProperty({ type: 'number', description: 'Bytes uploaded for that data' })
+  uploadedBytes: number;
+
   @ApiProperty({ enum: TorrentStatus })
   status: TorrentStatus;
 
   @ApiProperty({ required: false })
   error?: string;
+
+  @ApiProperty({
+    required: false,
+    type: 'string',
+    format: 'date-time',
+    description: 'When a torrent that failed is started again',
+  })
+  retryAt?: Date;
 
   @ApiProperty()
   peers: number;
@@ -68,12 +90,14 @@ export class TorrentDto extends PickType(Torrent, [
   uploadSpeed: number;
 }
 
-export class TorrentSelectionDto extends PickType(TorrentSelection, [
-  'id',
-  'season',
-  'episode',
-  'releaseId',
-]) {
+/** The torrent a user prefers for a season (episode 0) or an episode */
+export class TorrentSelectionDto extends EpisodeRefDto {
+  @ApiProperty({
+    type: 'string',
+    description: 'The search result the user picked',
+  })
+  releaseId: string;
+
   @ApiProperty({ type: TorrentDto })
   torrent: TorrentDto;
 }
@@ -82,10 +106,8 @@ export enum EpisodeDownloadStatus {
   WaitingForApproval = 'waiting-for-approval',
   /** The rule of the user holds the request back until they have watched up to it */
   InactiveAhead = 'inactive-ahead',
-  /** The rule of the user does not keep the request of the watched episode, or has no file of it to keep */
-  InactiveWatched = 'inactive-watched',
   NoSelection = 'no-selection',
-  /** The files of the torrent of the request are not known yet */
+  /** The torrent of the request is being resolved, or its files are not known yet */
   Resolving = 'resolving',
   NoFileInTorrent = 'no-file-in-torrent',
   Downloading = 'downloading',
@@ -138,8 +160,7 @@ export class EpisodeStatusDto extends EpisodeRefDto {
 export class SeriesDownloadsDto {
   @ApiProperty({
     type: [TorrentSelectionDto],
-    description:
-      'The torrents the user selected for the series, which their requests are bound to',
+    description: 'The torrents the user prefers for the seasons and episodes',
   })
   selections: TorrentSelectionDto[];
 
@@ -152,7 +173,7 @@ export class SeriesDownloadsDto {
   @ApiProperty({
     type: [String],
     description:
-      'Info hashes of the torrents that someone selected for the series, that a request for it is bound to or that files of it came from',
+      'Info hashes of the torrents that a request of anyone downloads from or that files of it came from',
   })
   onServer: string[];
 }

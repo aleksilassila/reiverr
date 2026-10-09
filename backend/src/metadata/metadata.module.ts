@@ -16,6 +16,6 @@ import { TmdbService } from './tmdb/tmdb.service.js';
   ],
   providers: [MetadataService, ...tmdbProviders, TmdbService],
   controllers: [TmdbController, MetadataController],
-  exports: [MetadataService],
+  exports: [MetadataService, TmdbService],
 })
 export class MetadataModule {}

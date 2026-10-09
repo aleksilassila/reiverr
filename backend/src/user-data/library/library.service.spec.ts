@@ -1,6 +1,5 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MediaType } from '../../common/common.dto.js';
 import {
   MovieMetadata,
@@ -11,6 +10,7 @@ import { TmdbMovieFull, TmdbSeriesFull } from '../../metadata/tmdb/tmdb.dto.js';
 import mikroOrmConfig from '../../mikro-orm.config.js';
 import { User } from '../../users/user.entity.js';
 import { PlayState } from '../play-state/play-state.entity.js';
+import { RequestsService } from '../../requests/requests.service.js';
 import { PlayStatesService } from '../play-state/play-states.service.js';
 import { MyListStatusFilter } from './library.dto.js';
 import { LibraryItem } from './library.entity.js';
@@ -70,10 +70,9 @@ describe('LibraryService', () => {
     const playStateRows = orm.em.getRepository(PlayState);
 
     playStates = new PlayStatesService(
-      playStateRows,
-      libraryItems,
+      orm.em.getRepository(PlayState),
       orm.em,
-      new EventEmitter2(),
+      { applyRules: async () => {} } as unknown as RequestsService,
     );
     library = new LibraryService(
       libraryItems,

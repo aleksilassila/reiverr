@@ -17,6 +17,7 @@ export enum JobStatus {
 
 @Entity({ tableName: 'jobs' })
 @Index({ properties: ['status', 'runAt'] })
+@Index({ properties: ['dedupeKey'] })
 @Unique({ properties: ['dedupeKey'], where: { status: JobStatus.Queued } })
 @Unique({ properties: ['lockKey'], where: { status: JobStatus.Running } })
 export class Job {
@@ -62,6 +63,10 @@ export class Job {
   @ApiProperty({ required: false, type: 'string' })
   @Property({ type: 'text', nullable: true })
   error?: string;
+
+  @ApiProperty({ type: 'number', description: 'How many times it was claimed' })
+  @Property({ default: 0 })
+  attempts: number = 0;
 
   @ApiProperty({ type: 'string' })
   @Property()

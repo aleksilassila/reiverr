@@ -1,6 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import { RequestsService } from '../requests/requests.service.js';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
 import { User } from './user.entity.js';
 
@@ -16,6 +17,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
+    private readonly requestsService: RequestsService,
   ) {}
 
   // Finds
@@ -102,8 +104,13 @@ export class UsersService {
     return this.findOne(user.id);
   }
 
+  /** The requests and rules of the user go with it */
   async remove(id: string) {
-    return await this.userRepository.nativeDelete({ id });
+    return this.em.transactional(async (tx) => {
+      await this.requestsService.userDeleting(tx, id);
+
+      return tx.nativeDelete(User, { id });
+    });
   }
 
   async noPreviousAdmins(): Promise<boolean> {

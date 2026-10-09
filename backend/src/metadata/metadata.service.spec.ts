@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { TMDB_CACHE_TTL } from '../consts.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { MovieMetadata, SeriesMetadata } from './metadata.entity.js';
-import { MetadataService } from './metadata.service.js';
+import { MetadataService, MetadataUpdateLock } from './metadata.service.js';
 import { TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto.js';
 import { TmdbService } from './tmdb/tmdb.service.js';
 
@@ -95,5 +95,32 @@ describe('MetadataService', () => {
     expect((await metadata.getSeriesByTmdbId('1')).name).toBe('New series');
     expect(tmdb.getFullMovie).toHaveBeenCalledTimes(1);
     expect(tmdb.getFullSeries).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('MetadataUpdateLock', () => {
+  it('lets one holder of a key in at a time, in the order they came', async () => {
+    const lock = new MetadataUpdateLock();
+    const order: string[] = [];
+    const hold = async (name: string, key = 'series:1') => {
+      const unlock = await lock.acquire(key);
+      order.push(`${name} in`);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      order.push(`${name} out`);
+      unlock();
+    };
+
+    await Promise.all([hold('a'), hold('b'), hold('c'), hold('d', 'movie:1')]);
+
+    expect(order.filter((step) => !step.startsWith('d'))).toEqual([
+      'a in',
+      'a out',
+      'b in',
+      'b out',
+      'c in',
+      'c out',
+    ]);
+    // Another key does not wait
+    expect(order.indexOf('d in')).toBeLessThan(order.indexOf('a out'));
   });
 });

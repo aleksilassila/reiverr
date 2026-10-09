@@ -37,7 +37,8 @@ export class MetadataService {
   ): Promise<MovieMetadata | undefined> {
     if (!tmdbId) return undefined;
 
-    const unlock = await this.updateLocks.acquire(tmdbId);
+    // Movies and series share TMDB ids
+    const unlock = await this.updateLocks.acquire(`movie:${tmdbId}`);
 
     try {
       // The cached documents are large, so they are kept out of the unit of work
@@ -117,7 +118,7 @@ export class MetadataService {
   ): Promise<SeriesMetadata | undefined> {
     if (!tmdbId) return undefined;
 
-    const unlock = await this.updateLocks.acquire(tmdbId);
+    const unlock = await this.updateLocks.acquire(`series:${tmdbId}`);
 
     try {
       let series = await this.seriesRepository.findOne(
@@ -239,24 +240,22 @@ export class MetadataService {
   }
 }
 
-class MetadataUpdateLock {
-  private locks = new Map<string, Promise<any>>();
+/** One holder per key at a time, the others wait in the order they came */
+export class MetadataUpdateLock {
+  private readonly tails = new Map<string, Promise<void>>();
 
-  async acquire(key: string) {
-    if (this.locks.has(key)) {
-      await this.locks.get(key);
-    }
+  async acquire(key: string): Promise<() => void> {
+    const previous = this.tails.get(key) ?? Promise.resolve();
+    let release: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const tail = previous.then(() => held);
+    this.tails.set(key, tail);
 
-    let resolveFn: (value: any) => void;
-    const promise = new Promise(async (resolve) => {
-      resolveFn = resolve;
-    });
-
-    this.locks.set(key, promise);
+    await previous;
 
     return () => {
-      resolveFn(null);
-      this.locks.delete(key);
+      release();
+      if (this.tails.get(key) === tail) this.tails.delete(key);
     };
   }
 }

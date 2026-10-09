@@ -7,14 +7,17 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
+import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
+import type { EpisodeTorrent, SeasonTorrent } from './torrent-preference.js';
 
 /**
- * Which of the requests of a user for a series are active, going by what the
- * user has watched. A limit that is null does not apply.
+ * What a user wants of the requests of a title: which of them are active,
+ * going by what the user has watched, and which torrents they download from.
+ * A limit that is null does not apply. Only series have rules so far.
  */
 @Entity()
-@Unique({ properties: ['userId', 'tmdbId'] })
+@Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })
 export class RequestRule {
   @PrimaryKey({ type: 'uuid' })
   id: string = randomUUID();
@@ -25,6 +28,9 @@ export class RequestRule {
     deleteRule: 'cascade',
   })
   userId: string;
+
+  @Property({ type: 'string', default: MediaType.Series })
+  mediaType: MediaType = MediaType.Series;
 
   @Property()
   tmdbId: string;
@@ -55,4 +61,12 @@ export class RequestRule {
   })
   @Property({ type: 'integer', nullable: true })
   keepWatchedHours: number | null = null;
+
+  /** The torrent the user prefers for the episodes of a season */
+  @Property({ type: 'json', nullable: true })
+  seasonTorrents: SeasonTorrent[] | null = null;
+
+  /** The torrent the user prefers for an episode, over the season's */
+  @Property({ type: 'json', nullable: true })
+  episodeTorrents: EpisodeTorrent[] | null = null;
 }

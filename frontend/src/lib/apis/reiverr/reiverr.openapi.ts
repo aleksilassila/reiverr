@@ -1288,7 +1288,13 @@ export interface MediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
-  movieMetadata?: MovieMetadata;
+  /** @format date-time */
+  activatedAt?: string;
+  /** @format date-time */
+  watchedAt?: string;
+  error?: string;
+  /** @format date-time */
+  retryAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1322,6 +1328,11 @@ export interface RequestRuleDto {
   keepWatchedHours: number | null;
 }
 
+export interface SelectReleaseDto {
+  /** Id of a release from an indexer search */
+  releaseId: string;
+}
+
 export interface RequesterDto {
   id: string;
   name: string;
@@ -1337,7 +1348,13 @@ export interface AdminMediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
-  movieMetadata?: MovieMetadata;
+  /** @format date-time */
+  activatedAt?: string;
+  /** @format date-time */
+  watchedAt?: string;
+  error?: string;
+  /** @format date-time */
+  retryAt?: string;
   createdAt: string;
   updatedAt: string;
   user: RequesterDto;
@@ -1378,6 +1395,25 @@ export interface LocalEpisodeFileDto {
   episodes: number[];
 }
 
+export interface Job {
+  id: string;
+  type: string;
+  payload?: object;
+  status: "queued" | "running" | "completed" | "failed";
+  /** Only one job per key can be running at a time */
+  lockKey?: string;
+  /** Only one job per key can be queued at a time */
+  dedupeKey?: string;
+  /** Earliest time the job can be claimed */
+  runAt: string;
+  error?: string;
+  /** How many times it was claimed */
+  attempts: number;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
 export interface IndexerDto {
   /** Generated when missing */
   id?: string;
@@ -1415,7 +1451,8 @@ export interface DownloadSettingsDto {
 }
 
 export interface TorrentDto {
-  id: string;
+  /** Missing while no request downloads from the torrent */
+  id?: string;
   infoHash: string;
   title: string;
   indexer: string;
@@ -1427,6 +1464,11 @@ export interface TorrentDto {
   uploadedBytes: number;
   status: "stopped" | "starting" | "downloading" | "seeding" | "failed";
   error?: string;
+  /**
+   * When a torrent that failed is started again
+   * @format date-time
+   */
+  retryAt?: string;
   peers: number;
   /** Bytes per second */
   downloadSpeed: number;
@@ -1435,9 +1477,7 @@ export interface TorrentDto {
 }
 
 export interface TorrentSelectionDto {
-  id: string;
   season: number;
-  /** 0 for a season pack */
   episode: number;
   /** The search result the user picked */
   releaseId: string;
@@ -1455,7 +1495,6 @@ export interface EpisodeStatusDto {
   status?:
     | "waiting-for-approval"
     | "inactive-ahead"
-    | "inactive-watched"
     | "no-selection"
     | "resolving"
     | "no-file-in-torrent"
@@ -1475,17 +1514,12 @@ export interface EpisodeStatusDto {
 }
 
 export interface SeriesDownloadsDto {
-  /** The torrents the user selected for the series, which their requests are bound to */
+  /** The torrents the user prefers for the seasons and episodes */
   selections: TorrentSelectionDto[];
   /** The episodes that the user requested or that are on disk */
   episodes: EpisodeStatusDto[];
-  /** Info hashes of the torrents that someone selected for the series, that a request for it is bound to or that files of it came from */
+  /** Info hashes of the torrents that a request of anyone downloads from or that files of it came from */
   onServer: string[];
-}
-
-export interface SelectReleaseDto {
-  /** Id of a release from an indexer search */
-  releaseId: string;
 }
 
 export interface ServerLogSettingsDto {
@@ -1511,16 +1545,47 @@ export interface ServerLibraryEntryDto {
   requests?: number;
 }
 
-export interface DeleteLibraryEntriesDto {
+export interface LibraryScanPreviewDto {
+  /** Whether the folder reads as mounted: it can be read, and it has something in it when files are indexed in it */
+  available: boolean;
+  /** Why it is not available */
+  reason?: string;
+  /** Indexed files that a scan would forget: all of them when the folder is not available */
+  missing: number;
+  /** Requests that those files fulfil, which download them again when the files are forgotten */
+  requests: number;
+}
+
+export interface ScanLibraryDto {
   /** One of the library folders */
   folder: string;
-  /** Where the files and directories to delete are in the folder, with / between the names */
-  paths: string[];
+  /** Scan a folder that is not available as it is, which forgets everything indexed in it */
+  force?: boolean;
 }
 
 export interface FailedLibraryEntryDto {
   path: string;
   error: string;
+}
+
+export interface LibraryScanDto {
+  /** Files that are new to the index */
+  added: number;
+  /** Indexed files that changed on disk */
+  updated: number;
+  /** Indexed files that are no longer on disk */
+  forgotten: number;
+  /** Title folders with videos that could not be matched to a title, whose files are not indexed */
+  unresolved: string[];
+  /** Directories that could not be read and why. Indexed files in them are kept */
+  failed: FailedLibraryEntryDto[];
+}
+
+export interface DeleteLibraryEntriesDto {
+  /** One of the library folders */
+  folder: string;
+  /** Where the files and directories to delete are in the folder, with / between the names */
+  paths: string[];
 }
 
 export interface DeletedLibraryEntriesDto {
@@ -2391,6 +2456,94 @@ export class Api<
      * No description
      *
      * @tags requests
+     * @name SelectSeasonRelease
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     */
+    selectSeasonRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      data: SelectReleaseDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name ClearSeasonRelease
+     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     */
+    clearSeasonRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name SelectEpisodeRelease
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     */
+    selectEpisodeRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      episode: number,
+      data: SelectReleaseDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name ClearEpisodeRelease
+     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     */
+    clearEpisodeRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      episode: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
      * @name GetAllRequests
      * @request GET:/api/v2/requests
      */
@@ -2476,11 +2629,16 @@ export class Api<
      */
     updateLocalMediaSettings: (
       data: LocalMediaSettingsDto,
+      query?: {
+        /** Removes library folders that have indexed files in them, forgetting the files */
+        force?: boolean;
+      },
       params: RequestParams = {},
     ) =>
       this.request<LocalMediaSettingsDto, any>({
         path: `/api/v2/local-media/settings`,
         method: "PUT",
+        query: query,
         body: data,
         type: ContentType.Json,
         format: "json",
@@ -2562,6 +2720,136 @@ export class Api<
       this.request<void, any>({
         path: `/api/v2/local-media/files/${id}/stream`,
         method: "GET",
+        ...params,
+      }),
+  };
+  server = {
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetJobs
+     * @request GET:/api/v2/server/jobs
+     */
+    getJobs: (
+      query?: {
+        status?: "queued" | "running" | "completed" | "failed";
+        type?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<Job[], any>({
+        path: `/api/v2/server/jobs`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name RetryJob
+     * @request POST:/api/v2/server/jobs/{id}/retry
+     */
+    retryJob: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/server/jobs/${id}/retry`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name DeleteJob
+     * @request DELETE:/api/v2/server/jobs/{id}
+     */
+    deleteJob: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/server/jobs/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetLibraryEntries
+     * @request GET:/api/v2/server/library
+     */
+    getLibraryEntries: (
+      query: {
+        folder: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ServerLibraryEntryDto[], any>({
+        path: `/api/v2/server/library`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name PreviewLibraryScan
+     * @request GET:/api/v2/server/library/scan
+     */
+    previewLibraryScan: (
+      query: {
+        folder: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<LibraryScanPreviewDto, any>({
+        path: `/api/v2/server/library/scan`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name ScanLibrary
+     * @request POST:/api/v2/server/library/scan
+     */
+    scanLibrary: (data: ScanLibraryDto, params: RequestParams = {}) =>
+      this.request<LibraryScanDto, any>({
+        path: `/api/v2/server/library/scan`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name DeleteLibraryEntries
+     * @request POST:/api/v2/server/library/delete
+     */
+    deleteLibraryEntries: (
+      data: DeleteLibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<DeletedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
         ...params,
       }),
   };
@@ -2677,82 +2965,13 @@ export class Api<
      * No description
      *
      * @tags downloads
-     * @name SelectSeasonRelease
-     * @request PUT:/api/v2/downloads/series/{tmdbId}/seasons/{season}/selection
+     * @name RetryTorrent
+     * @request POST:/api/v2/downloads/torrents/{torrentId}/retry
      */
-    selectSeasonRelease: (
-      tmdbId: string,
-      season: number,
-      data: SelectReleaseDto,
-      params: RequestParams = {},
-    ) =>
+    retryTorrent: (torrentId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/selection`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name ClearSeasonRelease
-     * @request DELETE:/api/v2/downloads/series/{tmdbId}/seasons/{season}/selection
-     */
-    clearSeasonRelease: (
-      tmdbId: string,
-      season: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/selection`,
-        method: "DELETE",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name SelectEpisodeRelease
-     * @request PUT:/api/v2/downloads/series/{tmdbId}/seasons/{season}/episodes/{episode}/selection
-     */
-    selectEpisodeRelease: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      data: SelectReleaseDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name ClearEpisodeRelease
-     * @request DELETE:/api/v2/downloads/series/{tmdbId}/seasons/{season}/episodes/{episode}/selection
-     */
-    clearEpisodeRelease: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
-        method: "DELETE",
+        path: `/api/v2/downloads/torrents/${torrentId}/retry`,
+        method: "POST",
         format: "json",
         ...params,
       }),
@@ -2787,48 +3006,6 @@ export class Api<
       this.request<ServerLogSettingsDto, any>({
         path: `/api/v2/server-log/settings`,
         method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-  };
-  server = {
-    /**
-     * No description
-     *
-     * @tags server
-     * @name GetLibraryEntries
-     * @request GET:/api/v2/server/library
-     */
-    getLibraryEntries: (
-      query: {
-        folder: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<ServerLibraryEntryDto[], any>({
-        path: `/api/v2/server/library`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags server
-     * @name DeleteLibraryEntries
-     * @request POST:/api/v2/server/library/delete
-     */
-    deleteLibraryEntries: (
-      data: DeleteLibraryEntriesDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<DeletedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/delete`,
-        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",

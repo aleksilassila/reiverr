@@ -10,6 +10,18 @@ export class ServerLibraryEntryDto extends LibraryEntryDto {
   requests?: number;
 }
 
+export class ScanLibraryDto {
+  @ApiProperty({ description: 'One of the library folders' })
+  folder: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Scan a folder that is not available as it is, which forgets everything indexed in it',
+  })
+  force?: boolean;
+}
+
 export class DeleteLibraryEntriesDto {
   @ApiProperty({ description: 'One of the library folders' })
   folder: string;

@@ -48,6 +48,18 @@ export class Torrent {
   @Property({ default: 0 })
   uploadedBytes: number = 0;
 
+  /** What made the torrent fail the last time it ran */
+  @Property({ type: 'text', nullable: true })
+  error?: string;
+
+  /** How many times in a row it failed */
+  @Property({ default: 0 })
+  attempts: number = 0;
+
+  /** When a torrent that failed is started again */
+  @Property({ nullable: true })
+  retryAt?: Date;
+
   @Property()
   createdAt: Date = new Date();
 }

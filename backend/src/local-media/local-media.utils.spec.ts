@@ -14,6 +14,7 @@ import {
 describe('parseMediaFolderName', () => {
   it('parses the title and year', () => {
     expect(parseMediaFolderName('The Movie: Part 2 (2010)')).toEqual({
+      name: 'The Movie: Part 2',
       title: 'themoviepart2',
       year: 2010,
     });
@@ -21,16 +22,19 @@ describe('parseMediaFolderName', () => {
 
   it('parses id tags in Jellyfin and Radarr/Sonarr styles', () => {
     expect(parseMediaFolderName('The Movie (2010) [tmdbid-123]')).toEqual({
+      name: 'The Movie',
       title: 'themovie',
       year: 2010,
       tmdbId: '123',
     });
     expect(parseMediaFolderName('The Movie (2010) {imdb-tt0123}')).toEqual({
+      name: 'The Movie',
       title: 'themovie',
       year: 2010,
       imdbId: 'tt0123',
     });
     expect(parseMediaFolderName('Show (2010) {tvdb-456}')).toEqual({
+      name: 'Show',
       title: 'show',
       year: 2010,
       tvdbId: '456',
@@ -39,13 +43,17 @@ describe('parseMediaFolderName', () => {
 
   it('keeps a year that is part of the title', () => {
     expect(parseMediaFolderName('1917 (2019)')).toEqual({
+      name: '1917',
       title: '1917',
       year: 2019,
     });
   });
 
   it('handles folders without a year', () => {
-    expect(parseMediaFolderName('Amélie')).toEqual({ title: 'amelie' });
+    expect(parseMediaFolderName('Amélie')).toEqual({
+      name: 'Amélie',
+      title: 'amelie',
+    });
   });
 });
 

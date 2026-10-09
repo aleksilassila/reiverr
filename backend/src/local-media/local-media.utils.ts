@@ -29,6 +29,9 @@ const SEASON_X_EPISODE_PATTERN =
   /(?<![a-z0-9])(\d{1,2})x(\d{1,3})(?![a-z0-9])/i;
 
 export interface ParsedMediaFolderName {
+  /** The name without its tags and year, as it is written */
+  name: string;
+  /** The name as a comparison key */
   title: string;
   year?: number;
   tmdbId?: string;
@@ -118,7 +121,7 @@ export function yearOf(date?: string): number | undefined {
 }
 
 export function parseMediaFolderName(name: string): ParsedMediaFolderName {
-  const parsed: ParsedMediaFolderName = { title: '' };
+  const parsed: ParsedMediaFolderName = { name: '', title: '' };
 
   let rest = name.replace(ID_TAG_PATTERN, (_, provider: string, id: string) => {
     if (provider.toLowerCase() === 'tmdb') parsed.tmdbId = id;
@@ -135,6 +138,7 @@ export function parseMediaFolderName(name: string): ParsedMediaFolderName {
     rest = rest.slice(0, year.index) + rest.slice(year.index + year[0].length);
   }
 
+  parsed.name = rest.replace(/\s+/g, ' ').trim();
   parsed.title = normalizeTitle(rest);
 
   return parsed;
@@ -145,7 +149,7 @@ export function parseMediaFolderName(name: string): ParsedMediaFolderName {
  * title has to match and the years, when both are known, have to agree.
  */
 export function folderMatchesTarget(
-  folder: ParsedMediaFolderName,
+  folder: Omit<ParsedMediaFolderName, 'name'>,
   target: MediaMatchTarget,
 ): boolean {
   if (folder.tmdbId) return folder.tmdbId === target.tmdbId;

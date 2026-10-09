@@ -6,6 +6,7 @@ import type {
 	TorrentDto,
 	TorrentSelectionDto
 } from '$lib/apis/reiverr/reiverr.openapi';
+import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
@@ -64,13 +65,8 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 			return status.error;
 	}
 
-	// The rule of the series keeps the request from downloading and from keeping its file
-	const inactive =
-		status?.status === 'inactive-ahead'
-			? 'Not needed yet'
-			: status?.status === 'inactive-watched'
-				? 'Watched, not kept'
-				: undefined;
+	// The rule of the series holds the request back until the user has watched up to it
+	const inactive = status?.status === 'inactive-ahead' ? 'Not needed yet' : undefined;
 
 	// No request of anyone keeps a file of the episode from the next cleanup
 	if (status?.onDisk && status.cleanupAt) {
@@ -100,7 +96,7 @@ export function getEpisodeRequestStatus(
 		requested: !!status?.requested,
 		onDisk: !!status?.onDisk,
 		torrent,
-		isSeasonPack: !own && !!torrent && torrent.id === seasonPack?.torrent.id,
+		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent.infoHash,
 		label: getStatusLabel(status),
 		isError: status?.status === 'failed' || status?.status === 'no-file-in-torrent'
 	};
@@ -197,8 +193,23 @@ function useSeriesData(tmdbId: string) {
 		return data;
 	});
 
+	// The page refreshes the requests periodically, so a failure is reported once
+	let requestsFailed = false;
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
-		const downloads = await reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data);
+		const downloads = await reiverrApi.downloads
+			.getSeriesDownloads(tmdbId)
+			.then((r) => r.data)
+			.catch((e) => {
+				if (!requestsFailed) {
+					createErrorNotification(
+						'Could not load requests',
+						e?.response?.data?.message ?? e?.message ?? String(e)
+					);
+				}
+				requestsFailed = true;
+				throw e;
+			});
+		requestsFailed = false;
 
 		return {
 			episodes: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),

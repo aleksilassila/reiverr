@@ -4,13 +4,16 @@
 	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
-	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
+	import {
+		createErrorNotification,
+		createInfoNotification
+	} from '$lib/components/Notifications/notification.store';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import type { Selectable } from '$lib/selectable';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
-	import { ChevronDown, Trash } from 'radix-icons-svelte';
+	import { ChevronDown, Reload, Trash } from 'radix-icons-svelte';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -33,6 +36,7 @@
 	let checked = new Set<string>();
 	let limit = ROWS;
 	let isLoading = true;
+	let isScanning = false;
 	let error = '';
 	let loads = 0;
 
@@ -124,6 +128,58 @@
 		});
 	}
 
+	/** Warns when the scan would forget indexed files, which happens to all of them in a folder that is not mounted */
+	async function confirmScan() {
+		const preview = await reiverrApi.server
+			.previewLibraryScan({ folder })
+			.then((r) => r.data)
+			.catch((e) => {
+				createErrorNotification('Could not scan', errorMessage(e));
+				return undefined;
+			});
+		if (!preview) return;
+		if (preview.available && !preview.missing) return scan(false);
+
+		const files = count(preview.missing, 'indexed file is', 'indexed files are');
+		createModal(ConfirmDialog, {
+			header: 'Scan the folder?',
+			body:
+				(preview.available ? `${files} not on disk.` : `${preview.reason}. ${files} not on disk.`) +
+				` ${preview.missing === 1 ? 'It' : 'They'} will be removed from the index` +
+				(preview.requests
+					? `, and the ${count(preview.requests, 'request', 'requests')} that ${preview.requests === 1 ? 'holds' : 'hold'} them will download them again.`
+					: '.'),
+			// A folder that reads as mounted is not forced, in case it is not anymore
+			confirm: () => scan(!preview.available)
+		});
+	}
+
+	async function scan(force: boolean) {
+		isScanning = true;
+		await reiverrApi.server
+			.scanLibrary({ folder, force })
+			.then(({ data }) => {
+				const what = [
+					`${data.added} added`,
+					`${data.updated} updated`,
+					`${data.forgotten} forgotten`,
+					data.unresolved.length
+						? `${count(data.unresolved.length, 'folder', 'folders')} not recognised`
+						: ''
+				].filter(Boolean);
+				createInfoNotification('Scanned', what.join(', '));
+				if (data.failed.length) {
+					createErrorNotification(
+						`Could not read ${count(data.failed.length, 'entry', 'entries')}`,
+						data.failed.map((f) => `${f.path}: ${f.error}`).join('\n')
+					);
+				}
+			})
+			.catch((e) => createErrorNotification('Could not scan', errorMessage(e)));
+		isScanning = false;
+		await load(folder);
+	}
+
 	reiverrApi.localMedia
 		.getLocalMediaSettings()
 		.then(({ data }) => {
@@ -151,7 +207,14 @@
 			<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 		</SelectField>
 		<Container direction="horizontal" class="flex items-center justify-between space-x-8">
-			<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>Delete</Button>
+			<Container direction="horizontal" class="flex items-center space-x-4">
+				<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
+					Delete
+				</Button>
+				<Button icon={Reload} disabled={!folder || isScanning} on:clickOrSelect={confirmScan}>
+					{isScanning ? 'Scanning...' : 'Scan'}
+				</Button>
+			</Container>
 			<div class="text-lg font-medium text-secondary-300">
 				{#if checked.size}
 					{count(selection.files, 'file', 'files')} · {formatSize(selection.size)}

@@ -19,6 +19,7 @@ export class TorrentStreamHandle implements TorrentHandle {
   private readonly wanted = new Set<number>();
   private readonly completed = new Set<number>();
   private readonly listeners: ((index: number) => void)[] = [];
+  private readonly errorListeners: ((error: Error) => void)[] = [];
   private readonly completionCheck: NodeJS.Timeout;
 
   constructor(
@@ -36,9 +37,10 @@ export class TorrentStreamHandle implements TorrentHandle {
       this.engine.on('ready', () => resolve(this.getFiles()));
       this.engine.on('error', reject);
     });
-    this.engine.on('error', (error: Error) =>
-      this.logger.error(`${this.engine.infoHash}: ${error.message}`),
-    );
+    this.engine.on('error', (error: Error) => {
+      this.logger.error(`${this.engine.infoHash}: ${error.message}`);
+      this.errorListeners.forEach((listener) => listener(error));
+    });
 
     this.completionCheck = setInterval(
       () => this.notifyCompleted(),
@@ -91,6 +93,10 @@ export class TorrentStreamHandle implements TorrentHandle {
 
   onFileComplete(listener: (index: number) => void): void {
     this.listeners.push(listener);
+  }
+
+  onError(listener: (error: Error) => void): void {
+    this.errorListeners.push(listener);
   }
 
   getFilePath(index: number): string {
