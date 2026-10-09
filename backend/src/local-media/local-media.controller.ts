@@ -5,10 +5,11 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AdminAccessControl, UserAccessControl } from '../auth/auth.guard.js';
 import {
@@ -33,11 +34,19 @@ export class LocalMediaController {
 
   @Put('settings')
   @UseGuards(AdminAccessControl)
+  @ApiQuery({
+    name: 'force',
+    type: Boolean,
+    required: false,
+    description:
+      'Removes library folders that have indexed files in them, forgetting the files',
+  })
   @ApiOkResponse({ type: LocalMediaSettingsDto })
   updateLocalMediaSettings(
     @Body() settings: LocalMediaSettingsDto,
+    @Query('force') force?: string,
   ): Promise<LocalMediaSettingsDto> {
-    return this.localMediaService.updateSettings(settings);
+    return this.localMediaService.updateSettings(settings, force === 'true');
   }
 
   @Get('movies/:tmdbId')

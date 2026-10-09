@@ -52,8 +52,27 @@ describe('LocalMediaService', () => {
     return filePath;
   };
 
-  const getSeriesFiles = () =>
-    request(() => localMedia.getSeriesFiles(TMDB_ID));
+  const jobs = {
+    runNow: async () => {},
+    enqueue: vi.fn(async () => {}),
+    define: () => {},
+  };
+
+  /** Library folders that changed without the service, which forgets nothing */
+  const saveFoldersAround = (seriesFolders: string[]) =>
+    request(() =>
+      new SettingsService(orm.em).saveValue('local-media', {
+        movieFolders: [],
+        seriesFolders,
+      }),
+    );
+
+  /** A sync of the series, which the job does, and what is on disk then */
+  const getSeriesFiles = async (tmdbId = TMDB_ID) => {
+    await request(() => localMedia.syncTitle(MediaType.Series, tmdbId));
+
+    return request(() => localMedia.getSeriesFiles(tmdbId));
+  };
 
   const indexed = () =>
     orm.em.fork().find(MediaFile, {}, { orderBy: { path: 'asc' } });
@@ -87,7 +106,7 @@ describe('LocalMediaService', () => {
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
       { enqueueTorrentsOfFiles: async () => {} } as unknown as RequestsService,
-      { runNow: async () => {} } as unknown as JobsService,
+      jobs as unknown as JobsService,
       new ServerLogService(orm.em, new SettingsService(orm.em)),
     );
     await request(() =>
@@ -177,7 +196,7 @@ describe('LocalMediaService', () => {
 
     await getSeriesFiles();
     // A lookup of another title that matches the same folder
-    await request(() => localMedia.getSeriesFiles('200'));
+    await getSeriesFiles('200');
 
     expect(await indexed()).toMatchObject([
       {
@@ -188,6 +207,51 @@ describe('LocalMediaService', () => {
         managed: true,
       },
     ]);
+  });
+
+  it('removes a library folder that has indexed files only with force, forgetting them', async () => {
+    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    await getSeriesFiles();
+    const other = path.join(root, 'other');
+    mkdirSync(other);
+    const move = (force?: boolean) =>
+      request(() =>
+        localMedia.updateSettings(
+          { movieFolders: [], seriesFolders: [other] },
+          force,
+        ),
+      );
+
+    await expect(move()).rejects.toThrow(BadRequestException);
+    expect(await indexed()).toHaveLength(1);
+
+    await move(true);
+    expect(await indexed()).toEqual([]);
+  });
+
+  it('reads what is indexed and asks for a sync, at once when a file is missing', async () => {
+    const file = write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    await getSeriesFiles();
+    jobs.enqueue.mockClear();
+
+    const soon = Date.now();
+    expect(
+      await request(() => localMedia.getSeriesFiles(TMDB_ID)),
+    ).toHaveLength(1);
+    const [, , , later] = jobs.enqueue.mock.calls[0] as unknown[];
+    expect((later as { runAt: Date }).runAt.getTime()).toBeGreaterThan(
+      soon + 20_000,
+    );
+
+    rmSync(file);
+    jobs.enqueue.mockClear();
+    expect(await request(() => localMedia.getSeriesFiles(TMDB_ID))).toEqual([]);
+    const [, , , now] = jobs.enqueue.mock.calls[0] as unknown[];
+    expect((now as { runAt: Date }).runAt.getTime()).toBeLessThan(
+      soon + 20_000,
+    );
+    // The row stays until the sync
+    expect(await indexed()).toHaveLength(1);
   });
 
   it('imports a file as a managed version of the episode', async () => {
@@ -202,6 +266,7 @@ describe('LocalMediaService', () => {
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
     // The file found next to it stays as it is, and both play as the episode
+    await request(() => localMedia.syncTitle(MediaType.Series, TMDB_ID));
     const files = await request(() =>
       localMedia.getEpisodeFiles(TMDB_ID, 1, 2),
     );
@@ -274,9 +339,7 @@ describe('LocalMediaService', () => {
     // A file outside the library folders is not served, whatever the index says
     const other = path.join(root, 'other');
     mkdirSync(other);
-    await request(() =>
-      localMedia.updateSettings({ movieFolders: [], seriesFolders: [other] }),
-    );
+    await saveFoldersAround([other]);
     await expect(
       request(() => localMedia.resolveFilePath(file.id)),
     ).rejects.toThrow(NotFoundException);
@@ -444,12 +507,7 @@ describe('LocalMediaService', () => {
     it('keeps a file that the library folders no longer contain', async () => {
       const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
       const id = await idOf(imported);
-      await request(() =>
-        localMedia.updateSettings({
-          movieFolders: [],
-          seriesFolders: [path.join(root, 'downloads')],
-        }),
-      );
+      await saveFoldersAround([path.join(root, 'downloads')]);
 
       await deleteFile(id);
 

@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Dirent, promises as fs } from 'fs';
@@ -100,6 +101,28 @@ export interface PlacedFile {
 /** What a file is, as far as its name tells */
 type FileTarget = Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>;
 
+/**
+ * A library folder that cannot be read, or that is empty while files are
+ * indexed in it: taken for a disk that is not mounted, so nothing is forgotten
+ * or written there. Routes answer it with 503.
+ */
+export class LibraryUnavailableError extends ServiceUnavailableException {}
+
+// How soon a title that is looked at is synced with the disk
+const SYNC_DELAY = 30_000;
+
+/** Whether a file is still the one that was imported, as its row has it */
+export const isStillImported = (
+  file: Pick<MediaFile, 'size' | 'modifiedAt'>,
+  stats: { isFile(): boolean; size: number; mtime: Date },
+) =>
+  stats.isFile() &&
+  stats.size === file.size &&
+  stats.mtime.getTime() === file.modifiedAt.getTime();
+
+const range = (from: number, to: number) =>
+  Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
 const INDEXED_FIELDS = [
   'mediaType',
   'tmdbId',
@@ -111,7 +134,7 @@ const INDEXED_FIELDS = [
 ] as const;
 
 @Injectable()
-export class LocalMediaService {
+export class LocalMediaService implements OnModuleInit {
   private readonly logger = new Logger(LocalMediaService.name);
 
   constructor(
@@ -123,6 +146,12 @@ export class LocalMediaService {
     private readonly serverLog: ServerLogService,
   ) {}
 
+  onModuleInit() {
+    this.jobs.define('title.sync', {
+      run: ({ mediaType, tmdbId }) => this.syncTitle(mediaType, tmdbId),
+    });
+  }
+
   getSettings(): Promise<LocalMediaSettingsDto> {
     return this.settingsService.getOrCreateValue(
       SETTINGS_KEY,
@@ -130,13 +159,40 @@ export class LocalMediaService {
     );
   }
 
+  /**
+   * Sets the library folders. Removing a folder that has indexed files in it
+   * forgets them, and their requests download them again, so it takes
+   * `force`.
+   */
   async updateSettings(
     settings: LocalMediaSettingsDto,
+    force = false,
   ): Promise<LocalMediaSettingsDto> {
     const value: LocalMediaSettingsDto = {
       movieFolders: await this.resolveFolders(settings.movieFolders),
       seriesFolders: await this.resolveFolders(settings.seriesFolders),
     };
+
+    const current = await this.getSettings();
+    const kept = new Set([...value.movieFolders, ...value.seriesFolders]);
+    const removed = [...current.movieFolders, ...current.seriesFolders].filter(
+      (folder) => !kept.has(folder),
+    );
+    const forgotten = (
+      await Promise.all(removed.map((folder) => this.findFilesInside(folder)))
+    ).flat();
+    if (forgotten.length && !force) {
+      throw new BadRequestException(
+        `${forgotten.length} indexed files are in the folders that are removed. Removing them forgets the files, and their requests download them again`,
+      );
+    }
+    if (forgotten.length) {
+      await this.em.transactional(async (tx) => {
+        const ids = forgotten.map((file) => file.id);
+        await this.requestsService.enqueueTorrentsOfFiles(tx, ids);
+        await tx.nativeDelete(MediaFile, { id: { $in: ids } });
+      });
+    }
 
     const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
     // Imports that wait for a folder that was missing or unreadable
@@ -145,62 +201,44 @@ export class LocalMediaService {
     return saved;
   }
 
+  /**
+   * The indexed files of a movie that are on disk, as of the last sync of the
+   * title. Asks for a sync, at once when a file is missing.
+   */
   async getMovieFiles(tmdbId: string): Promise<LocalMediaFileDto[]> {
-    const metadata = await this.metadataService.getMovieByTmdbId(tmdbId);
-    if (!metadata) throw new NotFoundException('Movie not found');
+    const files = await this.readIndexedFiles(MediaType.Movie, tmdbId);
 
-    const movie = metadata.tmdbMovie;
-    const target: MediaMatchTarget = {
-      tmdbId,
-      imdbId: movie.imdb_id ?? movie.external_ids?.imdb_id,
-      titles: [movie.title, movie.original_title]
-        .filter(Boolean)
-        .map(normalizeTitle),
-      year: yearOf(movie.release_date),
-    };
-
-    const { movieFolders } = await this.getSettings();
-    const found = (await this.findFiles(movieFolders, target)).map((file) => ({
-      ...file,
-      season: 0,
-      episode: 0,
-      lastEpisode: 0,
+    return files.map(({ file, size, subtitles }) => ({
+      id: file.id,
+      fileName: path.basename(file.path),
+      size,
+      subtitles,
     }));
-    const ids = await this.indexFiles(
-      MediaType.Movie,
-      tmdbId,
-      { folders: movieFolders, target },
-      found,
-    );
-
-    return found.map((file) => toFileDto(ids.get(file.path), file));
   }
 
+  /**
+   * The indexed episode files of a series that are on disk, as of the last
+   * sync of the title. Asks for a sync, at once when a file is missing.
+   */
   async getSeriesFiles(tmdbId: string): Promise<LocalEpisodeFileDto[]> {
-    const { target } = await this.getSeriesTarget(tmdbId);
-    const { seriesFolders } = await this.getSettings();
+    const files = await this.readIndexedFiles(MediaType.Series, tmdbId);
 
-    const found = (await this.findFiles(seriesFolders, target)).flatMap(
-      (file) => {
-        const numbers = parseEpisodeNumbers(file.name);
+    return files.map(({ file, size, subtitles }) => {
+      const fileName = path.basename(file.path);
+      const numbers = parseEpisodeNumbers(fileName);
 
-        return numbers
-          ? [{ ...file, ...numbers, ...toFileTarget(numbers) }]
-          : [];
-      },
-    );
-    const ids = await this.indexFiles(
-      MediaType.Series,
-      tmdbId,
-      { folders: seriesFolders, target },
-      found,
-    );
-
-    return found.map((file) => ({
-      ...toFileDto(ids.get(file.path), file),
-      season: file.season,
-      episodes: file.episodes,
-    }));
+      return {
+        id: file.id,
+        fileName,
+        size,
+        subtitles,
+        season: file.season,
+        episodes:
+          numbers?.season === file.season
+            ? numbers.episodes
+            : range(file.episode, file.lastEpisode),
+      };
+    });
   }
 
   async getEpisodeFiles(
@@ -208,10 +246,135 @@ export class LocalMediaService {
     season: number,
     episode: number,
   ): Promise<LocalEpisodeFileDto[]> {
-    const files = await this.getSeriesFiles(tmdbId);
-
-    return files.filter(
+    const files = (await this.getSeriesFiles(tmdbId)).filter(
       (file) => file.season === season && file.episodes.includes(episode),
+    );
+    // A file that was put into the library by hand is indexed by a sync
+    if (!files.length) await this.requestSync(MediaType.Series, tmdbId, 0);
+
+    return files;
+  }
+
+  /**
+   * Brings the index of a title in line with what is in its title folders:
+   * the job `title.sync`
+   */
+  async syncTitle(mediaType: MediaType, tmdbId: string): Promise<void> {
+    const { movieFolders, seriesFolders } = await this.getSettings();
+
+    if (mediaType === MediaType.Movie) {
+      const metadata = await this.metadataService.getMovieByTmdbId(tmdbId);
+      if (!metadata) throw new NotFoundException('Movie not found');
+
+      const movie = metadata.tmdbMovie;
+      const target: MediaMatchTarget = {
+        tmdbId,
+        imdbId: movie.imdb_id ?? movie.external_ids?.imdb_id,
+        titles: [movie.title, movie.original_title]
+          .filter(Boolean)
+          .map(normalizeTitle),
+        year: yearOf(movie.release_date),
+      };
+      const found = (await this.findFiles(movieFolders, target)).map(
+        (file) => ({ ...file, season: 0, episode: 0, lastEpisode: 0 }),
+      );
+      await this.indexFiles(
+        MediaType.Movie,
+        tmdbId,
+        { folders: movieFolders, target },
+        found,
+      );
+      return;
+    }
+
+    const { target } = await this.getSeriesTarget(tmdbId);
+    const found = (await this.findFiles(seriesFolders, target)).flatMap(
+      (file) => {
+        const numbers = parseEpisodeNumbers(file.name);
+
+        return numbers ? [{ ...file, ...toFileTarget(numbers) }] : [];
+      },
+    );
+    await this.indexFiles(
+      MediaType.Series,
+      tmdbId,
+      { folders: seriesFolders, target },
+      found,
+    );
+  }
+
+  /** The indexed files of a title that are files in a library folder */
+  private async readIndexedFiles(mediaType: MediaType, tmdbId: string) {
+    // In the order a walk of the folders finds them
+    const indexed = (await this.findIndexedFiles(mediaType, tmdbId)).sort(
+      (a, b) => a.path.localeCompare(b.path),
+    );
+    const settings = await this.getSettings();
+    const folders =
+      mediaType === MediaType.Movie
+        ? settings.movieFolders
+        : settings.seriesFolders;
+    // A folder that is not mounted does not read as missing files
+    for (const folder of folders) {
+      if (indexed.some((file) => isInsideFolder(file.path, folder))) {
+        await this.readLibraryFolder(folder);
+      }
+    }
+
+    const directories = new Map<string, Dirent[]>();
+    const files: {
+      file: MediaFile;
+      size: number;
+      subtitles: LocalSubtitleFileDto[];
+    }[] = [];
+    let isAnyMissing = false;
+    for (const file of indexed) {
+      const isInLibrary = folders.some((folder) =>
+        isInsideFolder(file.path, folder),
+      );
+      const stats = isInLibrary
+        ? await fs.stat(file.path).catch(() => undefined)
+        : undefined;
+      if (!stats?.isFile()) {
+        isAnyMissing = true;
+        continue;
+      }
+
+      const directory = path.dirname(file.path);
+      if (!directories.has(directory)) {
+        directories.set(
+          directory,
+          await this.readDirectory(directory).catch(() => []),
+        );
+      }
+      const videoName = path.basename(file.path);
+      files.push({
+        file,
+        size: stats.size,
+        subtitles: directories.get(directory).flatMap((entry) => {
+          if (!isSubtitleFile(entry.name)) return [];
+
+          const parsed = parseSubtitleName(entry.name, videoName);
+          return parsed ? [{ fileName: entry.name, ...parsed }] : [];
+        }),
+      });
+    }
+
+    await this.requestSync(mediaType, tmdbId, isAnyMissing ? 0 : SYNC_DELAY);
+
+    return files;
+  }
+
+  /**
+   * Queues a sync of a title. The queued one keeps the earlier time, so a
+   * title that is looked at all the time is synced once per delay.
+   */
+  private requestSync(mediaType: MediaType, tmdbId: string, delay: number) {
+    return this.jobs.enqueue(
+      this.em,
+      'title.sync',
+      { mediaType, tmdbId },
+      { runAt: new Date(Date.now() + delay) },
     );
   }
 
@@ -397,11 +560,7 @@ export class LocalMediaService {
       return;
     }
 
-    const isAsImported =
-      stats.isFile() &&
-      stats.size === file.size &&
-      stats.mtime.getTime() === file.modifiedAt.getTime();
-    if (!libraryFolder || !isAsImported) {
+    if (!libraryFolder || !isStillImported(file, stats)) {
       this.logger.warn(`"${file.path}" is not as imported, it is kept`);
       await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
       return;
@@ -946,7 +1105,7 @@ export class LocalMediaService {
    */
   private async readLibraryFolder(folder: string): Promise<Dirent[]> {
     const unavailable = (reason: string) =>
-      new ServiceUnavailableException(
+      new LibraryUnavailableError(
         `Library folder "${folder}" is not available: ${reason}`,
       );
 
@@ -1004,14 +1163,5 @@ function toFileTarget(numbers: {
     season: numbers.season,
     episode: Math.min(...numbers.episodes),
     lastEpisode: Math.max(...numbers.episodes),
-  };
-}
-
-function toFileDto(id: string, file: FoundFile): LocalMediaFileDto {
-  return {
-    id,
-    fileName: file.name,
-    size: file.size,
-    subtitles: file.subtitles,
   };
 }

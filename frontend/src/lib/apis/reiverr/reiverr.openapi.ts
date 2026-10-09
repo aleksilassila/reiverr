@@ -2500,11 +2500,16 @@ export class Api<
      */
     updateLocalMediaSettings: (
       data: LocalMediaSettingsDto,
+      query?: {
+        /** Removes library folders that have indexed files in them, forgetting the files */
+        force?: boolean;
+      },
       params: RequestParams = {},
     ) =>
       this.request<LocalMediaSettingsDto, any>({
         path: `/api/v2/local-media/settings`,
         method: "PUT",
+        query: query,
         body: data,
         type: ContentType.Json,
         format: "json",
