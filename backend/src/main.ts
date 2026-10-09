@@ -34,6 +34,8 @@ async function bootstrap() {
   const orm = app.get(MikroORM);
   await orm.migrator.up();
 
+  // So that a stop signal stores the transfer counters and stops the torrents
+  app.enableShutdownHooks();
   app.setGlobalPrefix('api');
   app.enableCors();
   app.use(json({ limit: '50mb' }));
