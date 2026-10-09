@@ -2,6 +2,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { randomUUID } from 'node:crypto';
 import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
 import { UpdatePlayStateDto } from './play-state.dto.js';
 import { PlayState } from './play-state.entity.js';
@@ -98,33 +99,32 @@ export class PlayStatesService {
       season?: number;
       episode?: number;
       mediaType: MediaTypeFull;
-      save?: boolean;
     },
-  ) {
-    let state =
-      options.mediaType === MediaTypeFull.Movie
-        ? await this.findMoviePlayState(userId, tmdbId)
-        : await this.findEpisodePlayState(
-            userId,
-            tmdbId,
-            options.season,
-            options.episode,
-          );
+  ): Promise<PlayState> {
+    const key = {
+      userId,
+      tmdbId,
+      mediaType: options.mediaType,
+      season: options.season ?? 0,
+      episode: options.episode ?? 0,
+    };
 
-    if (!state) {
-      state = new PlayState();
-      state.userId = userId;
-      state.tmdbId = tmdbId;
-      if (options.season) state.season = options.season;
-      if (options.episode) state.episode = options.episode;
-      state.mediaType = options.mediaType;
-    }
+    // Two first reports for the same media, from the player and another
+    // device, both create it
+    await this.em
+      .createQueryBuilder(PlayState)
+      .insert({
+        id: randomUUID(),
+        ...key,
+        watched: false,
+        progress: 0,
+        lastPlayedAt: new Date(),
+      })
+      .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+      .ignore()
+      .execute();
 
-    if (options.save) {
-      await this.em.persist(state).flush();
-    }
-
-    return state;
+    return this.playStateRepository.findOneOrFail(key);
   }
 
   async updateOrCreateMoviePlayState(
@@ -200,18 +200,17 @@ export class PlayStatesService {
     playStates: UpdatePlayStateDto[],
   ) {
     let changed = false;
-    const states = await Promise.all(
-      playStates.map(async (updatedState) => {
-        const state = await this.getOrCreatePlayState(userId, tmdbId, {
-          season: updatedState.season,
-          episode: updatedState.episode,
-          mediaType: MediaTypeFull.Episode,
-        });
-        if (applyUpdate(state, updatedState)) changed = true;
-
-        return state;
-      }),
-    );
+    // One at a time, because they share the entity manager
+    const states: PlayState[] = [];
+    for (const updatedState of playStates) {
+      const state = await this.getOrCreatePlayState(userId, tmdbId, {
+        season: updatedState.season,
+        episode: updatedState.episode,
+        mediaType: MediaTypeFull.Episode,
+      });
+      if (applyUpdate(state, updatedState)) changed = true;
+      states.push(state);
+    }
 
     await this.em.persist(states).flush();
     if (changed) this.emitChanged(userId, tmdbId, MediaTypeFull.Episode);

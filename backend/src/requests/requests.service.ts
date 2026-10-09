@@ -77,16 +77,25 @@ export class RequestsService {
     const movie = await this.metadataService.getMovieByTmdbId(tmdbId);
     if (!movie) throw new NotFoundException('Movie not found');
 
-    const existing = await this.findMovieRequest(userId, tmdbId);
-    if (existing) return existing;
-
-    const request = new MediaRequest();
-    request.userId = userId;
-    request.tmdbId = tmdbId;
-    request.mediaType = MediaTypeFull.Movie;
-    request.approved = approved;
-    await this.em.persist(request).flush();
-    await this.emitChanged(tmdbId, MediaTypeFull.Movie);
+    const now = new Date();
+    const { affectedRows } = await this.em
+      .createQueryBuilder(MediaRequest)
+      .insert({
+        id: randomUUID(),
+        userId,
+        tmdbId,
+        mediaType: MediaTypeFull.Movie,
+        season: 0,
+        episode: 0,
+        approved,
+        createdAt: now,
+        updatedAt: now,
+      })
+      // A movie is requested once, two requests at the same time included
+      .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+      .ignore()
+      .execute('run');
+    if (affectedRows) await this.emitChanged(tmdbId, MediaTypeFull.Movie);
 
     return this.findMovieRequest(userId, tmdbId);
   }

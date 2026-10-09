@@ -108,7 +108,7 @@ describe('PlayStatesService', () => {
         ),
       );
 
-    expect((await update({ progress: 0.5 })).watchedAt).toBeUndefined();
+    expect((await update({ progress: 0.5 })).watchedAt).toBeNull();
 
     const { watchedAt } = await update({ progress: 0.95, watched: true });
     expect(watchedAt).toBeInstanceOf(Date);
@@ -121,6 +121,42 @@ describe('PlayStatesService', () => {
       watched: false,
       watchedAt: null,
     });
+  });
+
+  it('creates a play state once when the first reports arrive together', async () => {
+    const report = (progress: number) =>
+      request(() =>
+        playStates.updateOrCreateEpisodePlayState(userId, TMDB_ID, 1, 1, {
+          progress,
+        }),
+      );
+
+    await Promise.all([report(0.1), report(0.2)]);
+
+    expect(await orm.em.fork().count(PlayState)).toBe(1);
+  });
+
+  it('updates the play states of a series, an episode named twice included', async () => {
+    const states = await request(() =>
+      playStates.updateOrCreateSeriesPlayStates(userId, TMDB_ID, [
+        { season: 1, episode: 1, watched: true },
+        { season: 1, episode: 2, progress: 0.5 },
+        { season: 1, episode: 1, progress: 0.9 },
+      ]),
+    );
+
+    expect(states.map((s) => [s.episode, s.watched, s.progress])).toEqual([
+      [1, true, 0.9],
+      [2, false, 0.5],
+      [1, true, 0.9],
+    ]);
+    const stored = await orm.em
+      .fork()
+      .find(PlayState, {}, { orderBy: { episode: 'asc' } });
+    expect(stored.map((s) => [s.episode, s.watched, s.progress])).toEqual([
+      [1, true, 0.9],
+      [2, false, 0.5],
+    ]);
   });
 
   it('announces when something becomes watched or unwatched, not its progress', async () => {
