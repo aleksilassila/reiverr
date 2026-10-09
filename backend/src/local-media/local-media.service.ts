@@ -186,13 +186,25 @@ export class LocalMediaService implements OnModuleInit {
     };
 
     const current = await this.getSettings();
-    const kept = new Set([...value.movieFolders, ...value.seriesFolders]);
+    const kept = [...value.movieFolders, ...value.seriesFolders];
     const removed = [...current.movieFolders, ...current.seriesFolders].filter(
-      (folder) => !kept.has(folder),
+      (folder) => !kept.includes(folder),
     );
-    const forgotten = (
-      await Promise.all(removed.map((folder) => this.findFilesInside(folder)))
-    ).flat();
+    // A folder inside a removed one can stay
+    const forgotten = [
+      ...new Map(
+        (
+          await Promise.all(
+            removed.map((folder) => this.findFilesInside(folder)),
+          )
+        )
+          .flat()
+          .filter(
+            (file) => !kept.some((folder) => isInsideFolder(file.path, folder)),
+          )
+          .map((file) => [file.id, file]),
+      ).values(),
+    ];
     if (forgotten.length && !force) {
       throw new BadRequestException(
         `${forgotten.length} indexed files are in the folders that are removed. Removing them forgets the files, and their requests download them again`,
@@ -307,15 +319,18 @@ export class LocalMediaService implements OnModuleInit {
 
   /** The indexed files of a title that are files in a library folder */
   private async readIndexedFiles(mediaType: MediaType, tmdbId: string) {
-    // In the order a walk of the folders finds them
-    const indexed = (await this.findIndexedFiles(mediaType, tmdbId)).sort(
-      (a, b) => a.path.localeCompare(b.path),
-    );
     const settings = await this.getSettings();
     const folders =
       mediaType === MediaType.Movie
         ? settings.movieFolders
         : settings.seriesFolders;
+    // In the order of the library folders, which decides the version that
+    // plays first, and by path within one
+    const folderOf = (file: MediaFile) =>
+      folders.findIndex((folder) => isInsideFolder(file.path, folder));
+    const indexed = (await this.findIndexedFiles(mediaType, tmdbId)).sort(
+      (a, b) => folderOf(a) - folderOf(b) || a.path.localeCompare(b.path),
+    );
     // A folder that is not mounted does not read as missing files
     for (const folder of folders) {
       if (indexed.some((file) => isInsideFolder(file.path, folder))) {
@@ -860,9 +875,11 @@ export class LocalMediaService implements OnModuleInit {
             )
           ).map((file) => file.id),
         );
+        // The caller acts on every file that is gone, also one whose row a
+        // sync or a scan forgot while the rm ran
+        if (gone.length) await forget(tx, gone);
         const forgotten = gone.filter((file) => present.has(file.id));
         if (forgotten.length) {
-          await forget(tx, forgotten);
           await tx.nativeDelete(MediaFile, {
             id: { $in: forgotten.map((file) => file.id) },
           });

@@ -149,7 +149,8 @@
 				(preview.requests
 					? `, and the ${count(preview.requests, 'request', 'requests')} that ${preview.requests === 1 ? 'holds' : 'hold'} them will download them again.`
 					: '.'),
-			confirm: () => scan(true)
+			// A folder that reads as mounted is not forced, in case it is not anymore
+			confirm: () => scan(!preview.available)
 		});
 	}
 

@@ -18,6 +18,7 @@ import {
   utimesSync,
   writeFileSync,
 } from 'node:fs';
+import { promises as fsPromises } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { MediaType } from '../common/common.dto.js';
@@ -774,6 +775,32 @@ describe('LocalMediaService', () => {
         expect.objectContaining({ id, path: imported }),
       ]);
       expect(await indexed()).toEqual([]);
+    });
+
+    it('hands every deleted file to the caller, also one whose row was forgotten meanwhile', async () => {
+      write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+      await getSeriesFiles();
+      const [row] = await indexed();
+      const rm = fsPromises.rm;
+      // A sync of the title forgets the row while the entry is deleted
+      vi.spyOn(fsPromises, 'rm').mockImplementationOnce(async (...args) => {
+        await rm(...args);
+        await orm.em.fork().nativeDelete(MediaFile, { id: row.id });
+      });
+      const forget = vi.fn(async () => {});
+
+      await request(() =>
+        localMedia.deleteLibraryEntries(
+          library,
+          ['Test Show (2020)/Season 01'],
+          'a test',
+          forget,
+        ),
+      );
+
+      expect(forget).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ id: row.id }),
+      ]);
     });
 
     it('forgets a file that is already gone', async () => {
