@@ -69,6 +69,15 @@ interface FoundFile {
   subtitles: LocalSubtitleFileDto[];
 }
 
+/**
+ * Runs in the transaction that forgets indexed files, before their rows go,
+ * for whatever refers to them
+ */
+export type ForgetHook = (
+  tx: EntityManager,
+  files: MediaFile[],
+) => Promise<void>;
+
 /** What a file is, as far as its name tells */
 type FileTarget = Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>;
 
@@ -264,6 +273,17 @@ export class LocalMediaService {
     );
   }
 
+  /** The titles that have imported files in the library */
+  async findTitlesWithManagedFiles(mediaType: MediaType): Promise<string[]> {
+    const rows: { tmdbId: string }[] = await this.em
+      .createQueryBuilder(MediaFile)
+      .select('tmdbId', true)
+      .where({ mediaType, managed: true })
+      .execute();
+
+    return rows.map((row) => row.tmdbId);
+  }
+
   /** The indexed files that were imported from a torrent */
   findVersions(mediaType: MediaType): Promise<MediaFile[]> {
     return this.em.find(
@@ -277,9 +297,14 @@ export class LocalMediaService {
    * Deletes an imported file from the library, with the folders that it
    * leaves empty, and logs it with the reason. A file that is not what was
    * imported, or that the library folders no longer contain, is kept and
-   * becomes an external file.
+   * becomes an external file. `forget` runs in the transaction that forgets
+   * the row.
    */
-  async deleteManagedFile(id: string, reason: string): Promise<void> {
+  async deleteManagedFile(
+    id: string,
+    reason: string,
+    forget: ForgetHook = async () => {},
+  ): Promise<void> {
     const file = await this.findFile(id);
     if (!file.managed) throw new Error(`"${file.path}" is not managed`);
 
@@ -292,7 +317,10 @@ export class LocalMediaService {
     if (!stats) {
       // The file is only known to be gone when its folder can be read
       if (libraryFolder) await this.readLibraryFolder(libraryFolder);
-      await this.em.nativeDelete(MediaFile, { id });
+      await this.em.transactional(async (tx) => {
+        await forget(tx, [file]);
+        await tx.nativeDelete(MediaFile, { id });
+      });
       return;
     }
 
@@ -307,8 +335,11 @@ export class LocalMediaService {
     }
 
     await fs.unlink(file.path);
-    await this.em.nativeDelete(MediaFile, { id });
-    await this.logDeleted(file.path, reason, file);
+    await this.em.transactional(async (tx) => {
+      await forget(tx, [file]);
+      await tx.nativeDelete(MediaFile, { id });
+      await this.logDeleted(tx, file.path, reason, file);
+    });
 
     for (
       let folder = path.dirname(file.path);
@@ -408,6 +439,7 @@ export class LocalMediaService {
     folder: string,
     paths: string[],
     reason: string,
+    forget: ForgetHook = async () => {},
   ): Promise<DeletedLibraryEntriesDto & { files: MediaFile[] }> {
     const result: DeletedLibraryEntriesDto & { files: MediaFile[] } = {
       deleted: 0,
@@ -427,20 +459,21 @@ export class LocalMediaService {
       for (const file of files) {
         if (!(await exists(file.path))) gone.push(file);
       }
-      if (gone.length) {
-        await this.em.nativeDelete(MediaFile, {
-          id: { $in: gone.map((file) => file.id) },
-        });
-      }
-      for (const file of gone) {
-        await this.logDeleted(file.path, reason, file);
-      }
-      if (
+      const isEntryGone =
         !gone.some((file) => file.path === entryPath) &&
-        !(await exists(entryPath))
-      ) {
-        await this.logDeleted(entryPath, reason);
-      }
+        !(await exists(entryPath));
+      await this.em.transactional(async (tx) => {
+        if (gone.length) {
+          await forget(tx, gone);
+          await tx.nativeDelete(MediaFile, {
+            id: { $in: gone.map((file) => file.id) },
+          });
+        }
+        for (const file of gone) {
+          await this.logDeleted(tx, file.path, reason, file);
+        }
+        if (isEntryGone) await this.logDeleted(tx, entryPath, reason);
+      });
 
       result.files.push(...gone);
       if (error) {
@@ -574,8 +607,14 @@ export class LocalMediaService {
     return this.em.find(MediaFile, isInside(dir), { disableIdentityMap: true });
   }
 
-  private logDeleted(filePath: string, reason: string, file?: MediaFile) {
-    return this.serverLog.write(
+  private logDeleted(
+    em: EntityManager,
+    filePath: string,
+    reason: string,
+    file?: MediaFile,
+  ) {
+    return this.serverLog.writeIn(
+      em,
       LogType.FileDeleted,
       `Deleted "${filePath}": ${reason}`,
       {

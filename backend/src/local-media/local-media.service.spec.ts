@@ -455,6 +455,23 @@ describe('LocalMediaService', () => {
       expect(await indexed()).toMatchObject([{ id, managed: false }]);
     });
 
+    it('lets the caller act on the file in the transaction that forgets it', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      const forget = vi.fn(async (tx, files) => {
+        expect(tx.isInTransaction()).toBe(true);
+        // The row is still there
+        expect(await tx.count(MediaFile, { id: files[0].id })).toBe(1);
+      });
+
+      await request(() => localMedia.deleteManagedFile(id, 'a test', forget));
+
+      expect(forget).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ id, path: imported }),
+      ]);
+      expect(await indexed()).toEqual([]);
+    });
+
     it('forgets a file that is already gone', async () => {
       const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
       const id = await idOf(imported);

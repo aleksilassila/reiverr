@@ -236,10 +236,19 @@ export class RequestsService {
 
     await this.em.transactional(async (em) => {
       for (const { id, torrentId, mediaFileId } of references) {
-        await em.nativeUpdate(
-          MediaRequest,
-          { id },
-          { torrentId: torrentId ?? null, mediaFileId: mediaFileId ?? null },
+        // A file that the cleanup or an admin deleted since it was planned
+        // is not referred to
+        await em.execute(
+          `update request set torrent_id = ?, media_file_id = ?
+           where id = ? and (? is null or exists (select 1 from media_file where id = ?))`,
+          [
+            torrentId ?? null,
+            mediaFileId ?? null,
+            id,
+            mediaFileId ?? null,
+            mediaFileId ?? null,
+          ],
+          'run',
         );
       }
     });

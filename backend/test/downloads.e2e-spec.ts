@@ -20,6 +20,8 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { SeriesDownloadsDto } from '../src/downloads/downloads.dto.js';
 import { DownloadsService } from '../src/downloads/downloads.service.js';
+import { RetentionService } from '../src/downloads/retention.service.js';
+import { JobsService } from '../src/jobs/jobs.service.js';
 import {
   TorrentHandle,
   TORRENT_ENGINE,
@@ -347,6 +349,12 @@ describe('Series downloads (e2e)', () => {
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
 
   /** Holds the next reconciliation back, in the middle of its run */
+  /** The 04:00 cron, with the cleanup jobs it queues */
+  async function cleanUp() {
+    await app.get(RetentionService).onCleanupHour();
+    await app.get(JobsService).drain();
+  }
+
   function holdReconciliation() {
     const requests = app.get(RequestsService);
     const find = requests.findEpisodeRequests.bind(requests);
@@ -894,7 +902,7 @@ describe('Series downloads (e2e)', () => {
     expect(body.message).toBe(
       `Library folder "${dirs.library}" is not available: it is empty, but files are indexed in it`,
     );
-    await app.get(DownloadsService).onCleanupHour();
+    await cleanUp();
     await settle();
 
     expect(await references(viewer)).toEqual([[1, 3, PACK, PACK]]);
@@ -1131,8 +1139,6 @@ describe('Series downloads (e2e)', () => {
         e.episode,
         !!e.cleanupAt,
       ]);
-    const downloads = app.get(DownloadsService);
-
     // The admin's request for episode 2 holds the version that the admin
     // selected. Nothing holds the other version and the other episodes
     const held = episodeFile(2, REDIRECT);
@@ -1150,7 +1156,7 @@ describe('Series downloads (e2e)', () => {
       [1, 2, false],
       [2, 1, false],
     ]);
-    await downloads.onCleanupHour();
+    await cleanUp();
     expect(libraryFiles()).toHaveLength(4);
 
     // An episode is cleaned up when none of its files is held, by anyone
@@ -1162,7 +1168,7 @@ describe('Series downloads (e2e)', () => {
         [2, 1, true],
       ]);
     }
-    await downloads.onCleanupHour();
+    await cleanUp();
 
     expect(libraryFiles()).toEqual([held]);
     expect(

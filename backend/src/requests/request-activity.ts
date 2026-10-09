@@ -128,3 +128,41 @@ export function evaluateActivity(state: ActivityState): Map<string, Activity> {
 
   return activity;
 }
+
+/** Whether a request keeps the file it has from the cleanup */
+export const holdsFile = (activity: Activity | undefined) =>
+  activity === 'active' || activity === 'kept';
+
+export interface VersionFile {
+  id: string;
+  /** The torrent the file was imported from */
+  infoHash?: string;
+  tmdbId: string;
+  season: number;
+  episode: number;
+  lastEpisode: number;
+}
+
+/**
+ * The file of a request: the one it refers to, or for a request that holds
+ * its file the one imported from its torrent that covers its episode, which
+ * is attached to it later
+ */
+export function fileOf<F extends VersionFile>(
+  request: Pick<MediaRequest, 'tmdbId' | 'season' | 'episode' | 'mediaFileId'>,
+  activity: Activity | undefined,
+  torrentInfoHash: string | undefined,
+  files: F[],
+): F | undefined {
+  const stored = files.find((file) => file.id === request.mediaFileId);
+  if (stored || !holdsFile(activity) || !torrentInfoHash) return stored;
+
+  return files.find(
+    (file) =>
+      file.infoHash === torrentInfoHash &&
+      file.tmdbId === request.tmdbId &&
+      file.season === request.season &&
+      file.episode <= request.episode &&
+      request.episode <= file.lastEpisode,
+  );
+}
