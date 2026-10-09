@@ -133,7 +133,12 @@ export class LocalMediaService {
       episode: 0,
       lastEpisode: 0,
     }));
-    const ids = await this.indexFiles(MediaType.Movie, tmdbId, found);
+    const ids = await this.indexFiles(
+      MediaType.Movie,
+      tmdbId,
+      movieFolders,
+      found,
+    );
 
     return found.map((file) => toFileDto(ids.get(file.path), file));
   }
@@ -151,7 +156,12 @@ export class LocalMediaService {
           : [];
       },
     );
-    const ids = await this.indexFiles(MediaType.Series, tmdbId, found);
+    const ids = await this.indexFiles(
+      MediaType.Series,
+      tmdbId,
+      seriesFolders,
+      found,
+    );
 
     return found.map((file) => ({
       ...toFileDto(ids.get(file.path), file),
@@ -286,7 +296,11 @@ export class LocalMediaService {
       return;
     }
 
-    if (!libraryFolder || !stats.isFile() || stats.size !== file.size) {
+    const isAsImported =
+      stats.isFile() &&
+      stats.size === file.size &&
+      stats.mtime.getTime() === file.modifiedAt.getTime();
+    if (!libraryFolder || !isAsImported) {
       this.logger.warn(`"${file.path}" is not as imported, it is kept`);
       await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
       return;
@@ -596,11 +610,14 @@ export class LocalMediaService {
   /**
    * Brings the indexed files of a title in line with what was found on disk
    * and returns their ids by path. Files that are new to the index are not
-   * managed, files that are gone are forgotten.
+   * managed. A file is forgotten when it is gone or no longer in one of the
+   * library folders. Managed files stay as they were imported, because that is
+   * what a cleanup checks before it deletes one.
    */
   private async indexFiles(
     mediaType: MediaType,
     tmdbId: string,
+    folders: string[],
     found: (FoundFile & FileTarget)[],
   ): Promise<Map<string, string>> {
     const indexed = await this.em.find(
@@ -611,9 +628,22 @@ export class LocalMediaService {
     const indexedByPath = new Map(indexed.map((file) => [file.path, file]));
     const foundPaths = new Set(found.map((file) => file.path));
 
-    const gone = indexed.filter((file) => !foundPaths.has(file.path));
+    // A file that the walk did not see can have been imported since it ran
+    const gone: MediaFile[] = [];
+    for (const file of indexed) {
+      if (foundPaths.has(file.path)) continue;
+
+      const inLibrary = folders.some((folder) =>
+        isInsideFolder(file.path, folder),
+      );
+      const stats = inLibrary
+        ? await fs.stat(file.path).catch(() => undefined)
+        : undefined;
+      if (!stats?.isFile()) gone.push(file);
+    }
     const changed = found.filter((file) => {
       const current = indexedByPath.get(file.path);
+      if (current?.managed) return false;
 
       return (
         !current ||
@@ -655,9 +685,11 @@ export class LocalMediaService {
             createdAt: new Date(),
           })),
         )
-        // Keeps the id and where the file came from
+        // Keeps the id and where the file came from, and a managed file of
+        // another title as it was imported
         .onConflict('path')
         .merge([...INDEXED_FIELDS])
+        .where({ managed: false })
         .execute();
     }
 

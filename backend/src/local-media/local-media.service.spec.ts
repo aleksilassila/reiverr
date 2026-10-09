@@ -16,10 +16,12 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { MediaType } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
@@ -130,6 +132,60 @@ describe('LocalMediaService', () => {
       { id: files[0].id, size: 6 },
     ]);
     expect(await indexed()).toMatchObject([{ id: files[0].id, size: 6 }]);
+  });
+
+  it('forgets an indexed file only when it is gone or outside the library folders', async () => {
+    const kept = write('tv/Other Folder/Test Show - S01E05.mkv');
+    const outside = write('elsewhere/Test Show - S01E06.mkv');
+    const gone = path.join(library, 'Test Show (2020)/Season 01/S01E07.mkv');
+    await orm.em.fork().insert(
+      MediaFile,
+      [kept, outside, gone].map((filePath, i) => ({
+        id: `file-${i}`,
+        path: filePath,
+        mediaType: MediaType.Series,
+        tmdbId: TMDB_ID,
+        season: 1,
+        episode: 5 + i,
+        lastEpisode: 5 + i,
+        size: 5,
+        modifiedAt: new Date(),
+        managed: false,
+        createdAt: new Date(),
+      })),
+    );
+    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+
+    await getSeriesFiles();
+
+    // The walk does not see the first one, which an import could have added
+    // while it ran
+    expect((await indexed()).map((file) => file.path)).toEqual([
+      path.join(library, 'Other Folder/Test Show - S01E05.mkv'),
+      path.join(library, 'Test Show (2020)/Season 01/Test Show - S01E01.mkv'),
+    ]);
+  });
+
+  it('leaves a managed file as it was imported', async () => {
+    // A folder without an id tag, which a lookup of another title matches too
+    write('tv/Test Show (2020)/Season 01/notes.txt');
+    const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+    const [before] = await indexed();
+    writeFileSync(imported, 'changed in place');
+
+    await getSeriesFiles();
+    // A lookup of another title that matches the same folder
+    await request(() => localMedia.getSeriesFiles('200'));
+
+    expect(await indexed()).toMatchObject([
+      {
+        id: before.id,
+        tmdbId: TMDB_ID,
+        size: before.size,
+        modifiedAt: before.modifiedAt,
+        managed: true,
+      },
+    ]);
   });
 
   it('imports a file as a managed version of the episode', async () => {
@@ -365,6 +421,22 @@ describe('LocalMediaService', () => {
       expect(await indexed()).toMatchObject([{ id, managed: false }]);
       await expect(deleteFile(id)).rejects.toThrow('is not managed');
       expect(await logged()).toEqual([]);
+    });
+
+    it('keeps a file that was replaced by one of the same size and stops managing it', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const id = await idOf(imported);
+      rmSync(imported);
+      writeFileSync(imported, 'other');
+      const later = new Date(Date.now() + 60_000);
+      utimesSync(imported, later, later);
+      // A lookup in between does not make the new file look imported
+      await getSeriesFiles();
+
+      await deleteFile(id);
+
+      expect(existsSync(imported)).toBe(true);
+      expect(await indexed()).toMatchObject([{ id, managed: false }]);
     });
 
     it('keeps a file that the library folders no longer contain', async () => {
