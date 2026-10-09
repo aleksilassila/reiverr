@@ -1,6 +1,6 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { EpisodeRefDto } from '../common/common.dto.js';
-import { TorrentSelection } from './torrent-selection.entity.js';
+import { TorrentSelection } from '../requests/torrent-selection.entity.js';
 import { Torrent } from './torrent.entity.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */

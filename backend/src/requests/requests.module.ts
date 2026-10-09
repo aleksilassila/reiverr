@@ -6,10 +6,11 @@ import { RequestsController } from './requests.controller.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import { RequestsService } from './requests.service.js';
+import { TorrentSelection } from './torrent-selection.entity.js';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([MediaRequest, RequestRule]),
+    MikroOrmModule.forFeature([MediaRequest, RequestRule, TorrentSelection]),
     MetadataModule,
   ],
   controllers: [RequestsController, AdminRequestsController],

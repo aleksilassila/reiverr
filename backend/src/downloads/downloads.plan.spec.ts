@@ -103,6 +103,33 @@ const watched = (userId: string, episode: number, hoursAgo = 0) => ({
   watchedAt: new Date(NOW - hoursAgo * HOUR),
 });
 
+/**
+ * What RequestsService.bind stores for a request when it is made or a
+ * preference changes: the selection for the episode, or else for the season
+ */
+function bindToPreference(
+  requests: DownloadsState['requests'],
+  selections: DownloadsState['selections'],
+): DownloadsState['requests'] {
+  return requests.map((request) => {
+    if (request.torrentId) return request;
+
+    const of = (episode: number) =>
+      selections.find(
+        (s) =>
+          s.userId === request.userId &&
+          s.tmdbId === request.tmdbId &&
+          s.season === request.season &&
+          s.episode === episode,
+      );
+
+    return {
+      ...request,
+      torrentId: (of(request.episode) ?? of(0))?.torrentId,
+    };
+  });
+}
+
 function plan(state: Partial<DownloadsState>) {
   const result = planDownloads({
     requests: [],
@@ -114,6 +141,9 @@ function plan(state: Partial<DownloadsState>) {
     now: NOW,
     seedRatio: 0,
     ...state,
+    ...(state.requests && {
+      requests: bindToPreference(state.requests, state.selections ?? []),
+    }),
   });
 
   return {
@@ -215,8 +245,8 @@ describe('planDownloads', () => {
     const { statuses } = plan({
       requests: [
         request('a', 1),
-        { ...request('a', 1), season: 2 },
-        { ...request('a', 1), tmdbId: '200' },
+        { ...request('a', 1), id: 'a-s2-1', season: 2 },
+        { ...request('a', 1), id: 'a-1-other', tmdbId: '200' },
       ],
       selections: [
         selection('a', 0, 'pack'),
@@ -302,7 +332,7 @@ describe('planDownloads', () => {
       expect(torrent('pack').wanted.map((w) => w.fileIndex)).toEqual([0]);
     });
 
-    it('binds no request that waits for approval or that a rule holds back', () => {
+    it('gives no file to a request that waits for approval or that a rule holds back', () => {
       const { statuses, references } = plan({
         requests: [request('a', 1, false), request('b', 1), request('b', 2)],
         selections: [selection('a', 0, 'pack'), selection('b', 0, 'pack')],
@@ -315,10 +345,11 @@ describe('planDownloads', () => {
         PlannedStatus.Available,
         PlannedStatus.InactiveAhead,
       ]);
+      // They are bound when they are made
       expect(references).toEqual([
-        [undefined, undefined],
+        ['pack', undefined],
         ['pack', packE1.id],
-        [undefined, undefined],
+        ['pack', undefined],
       ]);
     });
 
@@ -338,7 +369,7 @@ describe('planDownloads', () => {
       expect(unretained).toEqual([packE1]);
     });
 
-    it('binds a request that a rule keeps only together with its file', () => {
+    it('gives a request that a rule keeps only a file that is there', () => {
       const state = {
         requests: [request('a', 1), request('a', 2)],
         selections: [selection('a', 0, 'pack')],
@@ -346,7 +377,7 @@ describe('planDownloads', () => {
         playStates: [watched('a', 1)],
       };
 
-      expect(plan(state).references[0]).toEqual([undefined, undefined]);
+      expect(plan(state).references[0]).toEqual(['pack', undefined]);
       expect(plan({ ...state, files: [packE1] }).references[0]).toEqual([
         'pack',
         packE1.id,
@@ -359,7 +390,7 @@ describe('planDownloads', () => {
       request('a', 1),
       request('a', 2),
       request('a', 3),
-      { ...request('a', 1), season: 2 },
+      { ...request('a', 1), id: 'a-s2-1', season: 2 },
     ];
     const active = PlannedStatus.NoSelection;
     const ahead = PlannedStatus.InactiveAhead;
@@ -404,7 +435,7 @@ describe('planDownloads', () => {
           request('a', 2),
           request('a', 3),
           request('b', 3),
-          { ...request('a', 3), tmdbId: '200' },
+          { ...request('a', 3), id: 'a-3-other', tmdbId: '200' },
         ],
         rules: [rule('a', { keepNext: 1 })],
         playStates: [watched('b', 1), { ...watched('a', 3), tmdbId: '200' }],

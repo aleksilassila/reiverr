@@ -1,10 +1,12 @@
 import { MediaType } from '../common/common.dto.js';
 import type { MediaFile } from '../local-media/media-file.entity.js';
-import type { RequestRule } from '../requests/request-rule.entity.js';
+import {
+  ActivityState,
+  evaluateActivity,
+} from '../requests/request-activity.js';
 import type { MediaRequest } from '../requests/request.entity.js';
-import type { PlayState } from '../user-data/play-state/play-state.entity.js';
+import type { TorrentSelection } from '../requests/torrent-selection.entity.js';
 import { findEpisodeFile, findOnlyVideoFile } from './downloads.utils.js';
-import type { TorrentSelection } from './torrent-selection.entity.js';
 import type { Torrent } from './torrent.entity.js';
 
 export interface DownloadsState {
@@ -40,15 +42,8 @@ export interface DownloadsState {
     | 'infoHash'
     | 'managed'
   >[];
-  rules: Pick<
-    RequestRule,
-    'userId' | 'tmdbId' | 'keepNext' | 'keepWatched' | 'keepWatchedHours'
-  >[];
-  /** Episode play states of the users and series that have a rule */
-  playStates: Pick<
-    PlayState,
-    'userId' | 'tmdbId' | 'season' | 'episode' | 'watched' | 'watchedAt'
-  >[];
+  rules: ActivityState['rules'];
+  playStates: ActivityState['playStates'];
   /** Milliseconds since the epoch */
   now: number;
   seedRatio: number;
@@ -107,14 +102,7 @@ export interface DownloadsPlan {
   unretained: DownloadsState['files'];
 }
 
-const HOUR = 60 * 60 * 1000;
-
 const keyOf = (...parts: (string | number)[]) => parts.join('/');
-
-const byEpisode = (
-  a: { season: number; episode: number },
-  b: { season: number; episode: number },
-) => a.season - b.season || a.episode - b.episode;
 
 function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
   const groups = new Map<string, T[]>();
@@ -128,97 +116,17 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
 }
 
 /**
- * What the rules make of the approved requests of their users.
- *
- * A rule looks at the requests of its user for the series in episode order.
- * Of the requests after the last watched episode, only the next keepNext are
- * active, the others are inactive. An episode in progress is not watched, so
- * its request is one of the next ones.
- *
- * With keepWatched or keepWatchedHours, a request for a watched episode
- * downloads nothing. It is kept, which is to hold on to a file that is in the
- * library, while it is among the last keepWatched watched requests or was
- * watched within keepWatchedHours, and is inactive otherwise. The last ones
- * are kept only while there is more to watch: a request after the last
- * watched episode.
- *
- * The requests for unwatched episodes before the last watched one are active.
- */
-function evaluateRules(state: DownloadsState): {
-  inactive: Map<PlanRequest, PlannedStatus>;
-  kept: Set<PlanRequest>;
-} {
-  const inactive = new Map<PlanRequest, PlannedStatus>();
-  const kept = new Set<PlanRequest>();
-  const requests = groupBy(
-    state.requests.filter((request) => request.approved),
-    (request) => keyOf(request.userId, request.tmdbId),
-  );
-  const playStates = groupBy(state.playStates, (playState) =>
-    keyOf(playState.userId, playState.tmdbId),
-  );
-
-  for (const rule of state.rules) {
-    const key = keyOf(rule.userId, rule.tmdbId);
-    const ofSeries = (requests.get(key) ?? []).sort(byEpisode);
-    const watchedEpisodes = (playStates.get(key) ?? [])
-      .filter((playState) => playState.watched)
-      .sort(byEpisode);
-    const lastWatched = watchedEpisodes[watchedEpisodes.length - 1];
-    const ahead = ofSeries.filter(
-      (request) => !lastWatched || byEpisode(request, lastWatched) > 0,
-    );
-
-    if (rule.keepNext !== null) {
-      for (const request of ahead.slice(rule.keepNext)) {
-        inactive.set(request, PlannedStatus.InactiveAhead);
-      }
-    }
-
-    if (rule.keepWatched === null && rule.keepWatchedHours === null) continue;
-
-    // An episode that was marked watched before the time was stored has none
-    const watchedAt = new Map(
-      watchedEpisodes.map((playState) => [
-        keyOf(playState.season, playState.episode),
-        playState.watchedAt?.getTime(),
-      ]),
-    );
-    const watched = ofSeries.filter((request) =>
-      watchedAt.has(keyOf(request.season, request.episode)),
-    );
-
-    watched.forEach((request, index) => {
-      const at = watchedAt.get(keyOf(request.season, request.episode));
-      const isAmongLast =
-        rule.keepWatched !== null &&
-        ahead.length > 0 &&
-        index >= watched.length - rule.keepWatched;
-      const isRecent =
-        rule.keepWatchedHours !== null &&
-        at !== undefined &&
-        state.now - at < rule.keepWatchedHours * HOUR;
-
-      if (isAmongLast || isRecent) kept.add(request);
-      else inactive.set(request, PlannedStatus.InactiveWatched);
-    });
-  }
-
-  return { inactive, kept };
-}
-
-/**
  * What every request refers to and what every torrent has to do for it.
  *
- * An approved request that refers to no torrent yet is bound to the one its
- * user prefers: the selection for the episode, or else for the season. It then
- * downloads from that torrent, whatever the user selects later. It is
- * fulfilled by the file of that torrent and by no other file of the episode,
- * and refers to the file from then on. The caller stores both references.
+ * A request is bound to its torrent when it is made or its user's preference
+ * changes (RequestsService.bind). It downloads from that torrent, whatever the
+ * user selects later. It is fulfilled by the file of that torrent and by no
+ * other file of the episode, and refers to the file from then on. The caller
+ * stores the file.
  *
- * A request that a rule makes inactive is not bound and downloads nothing.
- * One that a rule keeps downloads nothing either (see evaluateRules): it is
- * bound only together with a file of the preferred torrent that is there.
+ * A request that a rule makes inactive downloads nothing and gets no file.
+ * One that a rule keeps downloads nothing either (see evaluateActivity): it
+ * only gets a file of its torrent that is there.
  *
  * A request holds the file that fulfils it. Nothing else retains a file: not
  * an inactive request, and not a request that is bound to another torrent.
@@ -251,7 +159,7 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
     state.files.filter((file) => file.infoHash),
     (file) => keyOf(file.infoHash, file.tmdbId, file.season),
   );
-  const { inactive, kept } = evaluateRules(state);
+  const activity = evaluateActivity(state);
   const retained = new Set<DownloadsState['files'][number]>();
 
   const planRequest = (request: PlanRequest): PlannedRequest => {
@@ -261,19 +169,20 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
       mediaFileId: request.mediaFileId ?? undefined,
     };
 
-    if (!request.approved) {
+    const status = activity.get(request.id);
+    if (status === 'waiting') {
       return { ...stored, status: PlannedStatus.WaitingForApproval };
     }
-    if (inactive.has(request)) {
-      return { ...stored, status: inactive.get(request) };
+    if (status === 'ahead') {
+      return { ...stored, status: PlannedStatus.InactiveAhead };
+    }
+    if (status === 'watched') {
+      return { ...stored, status: PlannedStatus.InactiveWatched };
     }
 
     const { userId, tmdbId, season, episode } = request;
     const ofEpisode = selections.get(keyOf(userId, tmdbId, season, episode));
-    const torrentId =
-      stored.torrentId ??
-      (ofEpisode ?? selections.get(keyOf(userId, tmdbId, season, 0)))
-        ?.torrentId;
+    const torrentId = stored.torrentId;
     const torrent = torrents.get(torrentId);
     const inLibrary =
       filesById.get(stored.mediaFileId) ??
@@ -285,7 +194,7 @@ export function planDownloads(state: DownloadsState): DownloadsPlan {
           ));
 
     // A kept request holds on to the file it has, it downloads none
-    if (kept.has(request) && !inLibrary) {
+    if (status === 'kept' && !inLibrary) {
       return { ...stored, status: PlannedStatus.InactiveWatched };
     }
     if (!torrent) return { ...stored, status: PlannedStatus.NoSelection };

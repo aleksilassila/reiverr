@@ -9,6 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
 import {
   EpisodeRefDto,
+  MediaType,
   MediaTypeFull,
   PaginatedResponseDto,
   PaginationDto,
@@ -24,6 +25,39 @@ import {
   UpdateMediaRequestDto,
 } from './requests.dto.js';
 import { REQUESTS_CHANGED, RequestsChangedEvent } from './requests.events.js';
+import { TorrentSelection } from './torrent-selection.entity.js';
+
+/** A selection: of an episode, or with episode 0 of a season */
+export interface SelectionTarget {
+  userId: string;
+  tmdbId: string;
+  season: number;
+  episode: number;
+}
+
+const scopeOf = ({ userId, tmdbId, season, episode }: SelectionTarget) => ({
+  userId,
+  tmdbId,
+  season,
+  ...(episode === 0 ? {} : { episode }),
+});
+
+/** Every request it sets gets its episode's selection, or else its season's */
+const BIND_TO_PREFERENCE = `
+  update request set torrent_id = coalesce(
+    (
+      select s.torrent_id from torrent_selection s
+      where s.user_id = request.user_id and s.media_type = '${MediaType.Series}'
+      and s.tmdb_id = request.tmdb_id and s.season = request.season
+      and s.episode = request.episode
+    ),
+    (
+      select s.torrent_id from torrent_selection s
+      where s.user_id = request.user_id and s.media_type = '${MediaType.Series}'
+      and s.tmdb_id = request.tmdb_id and s.season = request.season
+      and s.episode = 0
+    )
+  )`;
 
 @Injectable()
 export class RequestsService {
@@ -152,24 +186,27 @@ export class RequestsService {
 
     if (episodes.length && requested) {
       const now = new Date();
-      await this.em
-        .createQueryBuilder(MediaRequest)
-        .insert(
-          episodes.map(({ season, episode }) => ({
-            id: randomUUID(),
-            userId,
-            tmdbId,
-            mediaType: MediaTypeFull.Episode,
-            season,
-            episode,
-            approved,
-            createdAt: now,
-            updatedAt: now,
-          })),
-        )
-        .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-        .ignore()
-        .execute();
+      await this.em.transactional(async (tx) => {
+        await tx
+          .createQueryBuilder(MediaRequest)
+          .insert(
+            episodes.map(({ season, episode }) => ({
+              id: randomUUID(),
+              userId,
+              tmdbId,
+              mediaType: MediaTypeFull.Episode,
+              season,
+              episode,
+              approved,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          )
+          .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+          .ignore()
+          .execute();
+        await this.bind(tx, { userId, tmdbId });
+      });
     } else if (episodes.length) {
       await this.requestRepository.nativeDelete({
         userId,
@@ -214,24 +251,105 @@ export class RequestsService {
    * prefers now. A request that has its file keeps both, unless it is to let
    * go of the file as well.
    */
-  async unbind(
-    userId: string,
-    tmdbId: string,
-    season: number,
-    episode: number,
+  private async unbind(
+    em: EntityManager,
+    target: SelectionTarget,
     options: { withFile: boolean },
   ): Promise<void> {
-    await this.requestRepository.nativeUpdate(
+    await em.nativeUpdate(
+      MediaRequest,
       {
-        userId,
-        tmdbId,
+        userId: target.userId,
+        tmdbId: target.tmdbId,
         mediaType: MediaTypeFull.Episode,
-        season,
-        ...(episode === 0 ? {} : { episode }),
+        season: target.season,
+        ...(target.episode === 0 ? {} : { episode: target.episode }),
         ...(options.withFile ? {} : { mediaFileId: null }),
       },
       { torrentId: null, mediaFileId: null },
     );
+  }
+
+  /**
+   * Binds the episode requests of a user for a series, or for a season or an
+   * episode of it, that refer to no torrent to the torrent the user prefers:
+   * the selection for the episode, or else for the season. Whether a request
+   * is approved or active plays no part.
+   */
+  async bind(
+    em: EntityManager,
+    scope: {
+      userId: string;
+      tmdbId: string;
+      season?: number;
+      episode?: number;
+    },
+  ): Promise<void> {
+    const conditions = [
+      `media_type = '${MediaTypeFull.Episode}'`,
+      'torrent_id is null',
+      'user_id = ?',
+      'tmdb_id = ?',
+    ];
+    const params: unknown[] = [scope.userId, scope.tmdbId];
+    if (scope.season !== undefined) {
+      conditions.push('season = ?');
+      params.push(scope.season);
+    }
+    if (scope.episode !== undefined) {
+      conditions.push('episode = ?');
+      params.push(scope.episode);
+    }
+
+    await em.execute(
+      `${BIND_TO_PREFERENCE} where ${conditions.join(' and ')}`,
+      params,
+      'run',
+    );
+  }
+
+  /**
+   * Makes a torrent the one that the requests of a user for an episode, or
+   * with episode 0 for the rest of a season, are bound to. For an episode this
+   * replaces what its request has: it lets go of its file. For a season the
+   * requests that have no file are bound again and the ones that have their
+   * file keep it. Runs in the caller's transaction.
+   */
+  async select(
+    em: EntityManager,
+    target: SelectionTarget,
+    selected: { torrentId: string; releaseId: string },
+  ): Promise<void> {
+    await em
+      .createQueryBuilder(TorrentSelection)
+      .insert({
+        id: randomUUID(),
+        ...target,
+        mediaType: MediaType.Series,
+        ...selected,
+        createdAt: new Date(),
+      })
+      .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+      .merge(['torrentId', 'releaseId'])
+      .execute();
+    await this.unbind(em, target, { withFile: target.episode !== 0 });
+    await this.bind(em, scopeOf(target));
+  }
+
+  /**
+   * Removes a selection. The requests it was for that have no file are bound
+   * to what the user prefers now: an episode falls back to its season's
+   * selection. Runs in the caller's transaction.
+   */
+  async deselect(em: EntityManager, target: SelectionTarget): Promise<boolean> {
+    const deleted = await em.nativeDelete(TorrentSelection, {
+      ...target,
+      mediaType: MediaType.Series,
+    });
+    await this.unbind(em, target, { withFile: false });
+    await this.bind(em, scopeOf(target));
+
+    return deleted > 0;
   }
 
   async findSeriesRule(

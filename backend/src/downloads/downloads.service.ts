@@ -55,7 +55,7 @@ import {
   TORRENT_ENGINE,
   type TorrentEngine,
 } from './torrent-engine.js';
-import { TorrentSelection } from './torrent-selection.entity.js';
+import { TorrentSelection } from '../requests/torrent-selection.entity.js';
 import { Torrent } from './torrent.entity.js';
 
 const SETTINGS_KEY = 'downloads';
@@ -296,47 +296,38 @@ export class DownloadsService
     }
     const source = await this.indexersService.resolveTorrent(release);
 
+    // Behind the reconciliation that the changes before it queued, which
+    // gives a request that holds its file the file before the unbind
     await this.serialize(async () => {
-      let torrent = await this.em.findOne(
-        Torrent,
-        { infoHash: source.infoHash },
-        { disableIdentityMap: true },
-      );
-      if (!torrent) {
-        torrent = new Torrent();
-        torrent.infoHash = source.infoHash;
-        torrent.title = release.title;
-        torrent.indexer = release.indexer;
-        torrent.size = release.size;
-        torrent.magnetUrl = source.magnetUrl;
-        torrent.torrentFile = source.torrentFile;
-        torrent.files = source.files;
-        await this.em.insert(Torrent, { ...torrent });
-      }
+      const torrentId = await this.em.transactional(async (tx) => {
+        let torrent = await tx.findOne(
+          Torrent,
+          { infoHash: source.infoHash },
+          { disableIdentityMap: true },
+        );
+        if (!torrent) {
+          torrent = new Torrent();
+          torrent.infoHash = source.infoHash;
+          torrent.title = release.title;
+          torrent.indexer = release.indexer;
+          torrent.size = release.size;
+          torrent.magnetUrl = source.magnetUrl;
+          torrent.torrentFile = source.torrentFile;
+          torrent.files = source.files;
+          await tx.insert(Torrent, { ...torrent });
+        }
 
-      await this.em
-        .createQueryBuilder(TorrentSelection)
-        .insert({
-          id: randomUUID(),
-          userId,
-          mediaType: MediaType.Series,
-          tmdbId,
-          season,
-          episode,
-          torrentId: torrent.id,
-          releaseId: release.id,
-          createdAt: new Date(),
-        })
-        .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-        .merge(['torrentId', 'releaseId'])
-        .execute();
-      // A torrent that is selected for an episode replaces what the episode has
-      await this.requestsService.unbind(userId, tmdbId, season, episode, {
-        withFile: episode !== 0,
+        await this.requestsService.select(
+          tx,
+          { userId, tmdbId, season, episode },
+          { torrentId: torrent.id, releaseId: release.id },
+        );
+
+        return torrent.id;
       });
 
       // Selecting a failed torrent again is the way to retry it
-      const failed = this.active.get(torrent.id);
+      const failed = this.active.get(torrentId);
       if (failed?.error) await this.stop(failed);
     });
     this.reconcile();
@@ -348,23 +339,14 @@ export class DownloadsService
     season: number,
     episode: number,
   ): Promise<boolean> {
-    const deleted = await this.serialize(async () => {
-      const deleted = await this.em.nativeDelete(TorrentSelection, {
-        userId,
-        mediaType: MediaType.Series,
-        tmdbId,
-        season,
-        episode,
-      });
-      await this.requestsService.unbind(userId, tmdbId, season, episode, {
-        withFile: false,
-      });
-
-      return deleted;
-    });
+    const deleted = await this.serialize(() =>
+      this.em.transactional((tx) =>
+        this.requestsService.deselect(tx, { userId, tmdbId, season, episode }),
+      ),
+    );
     this.reconcile();
 
-    return deleted > 0;
+    return deleted;
   }
 
   /**

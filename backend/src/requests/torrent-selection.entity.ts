@@ -9,7 +9,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import { Torrent } from './torrent.entity.js';
+import { Torrent } from '../downloads/torrent.entity.js';
 
 /** The torrent that the requests of a user for a target download from */
 @Entity()
