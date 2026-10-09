@@ -450,6 +450,20 @@ describe('planDownloads', () => {
       expect(statuses(20)).toEqual([dropped, available, dropped, active]);
     });
 
+    it('takes an episode watched before the time was stored for watched long ago', () => {
+      const { statuses } = plan({
+        requests,
+        ...inLibrary,
+        rules: [rule('a', { keepWatchedHours: 24 })],
+        playStates: [
+          { ...watched('a', 1), watchedAt: undefined },
+          watched('a', 3, 1),
+        ],
+      });
+
+      expect(statuses).toEqual([dropped, available, available, active]);
+    });
+
     it('drops with both limits only what neither of them keeps', () => {
       const { statuses } = plan({
         requests,

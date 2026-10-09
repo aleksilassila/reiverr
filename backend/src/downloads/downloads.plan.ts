@@ -177,10 +177,11 @@ function evaluateRules(state: DownloadsState): {
 
     if (rule.keepWatched === null && rule.keepWatchedHours === null) continue;
 
+    // An episode that was marked watched before the time was stored has none
     const watchedAt = new Map(
       watchedEpisodes.map((playState) => [
         keyOf(playState.season, playState.episode),
-        playState.watchedAt.getTime(),
+        playState.watchedAt?.getTime(),
       ]),
     );
     const watched = ofSeries.filter((request) =>
@@ -188,14 +189,15 @@ function evaluateRules(state: DownloadsState): {
     );
 
     watched.forEach((request, index) => {
+      const at = watchedAt.get(keyOf(request.season, request.episode));
       const isAmongLast =
         rule.keepWatched !== null &&
         ahead.length > 0 &&
         index >= watched.length - rule.keepWatched;
       const isRecent =
         rule.keepWatchedHours !== null &&
-        state.now - watchedAt.get(keyOf(request.season, request.episode)) <
-          rule.keepWatchedHours * HOUR;
+        at !== undefined &&
+        state.now - at < rule.keepWatchedHours * HOUR;
 
       if (isAmongLast || isRecent) kept.add(request);
       else inactive.set(request, PlannedStatus.InactiveWatched);
