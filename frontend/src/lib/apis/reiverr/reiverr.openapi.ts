@@ -1535,16 +1535,47 @@ export interface ServerLibraryEntryDto {
   requests?: number;
 }
 
-export interface DeleteLibraryEntriesDto {
+export interface LibraryScanPreviewDto {
+  /** Whether the folder reads as mounted: it can be read, and it has something in it when files are indexed in it */
+  available: boolean;
+  /** Why it is not available */
+  reason?: string;
+  /** Indexed files that a scan would forget: all of them when the folder is not available */
+  missing: number;
+  /** Requests that those files fulfil, which download them again when the files are forgotten */
+  requests: number;
+}
+
+export interface ScanLibraryDto {
   /** One of the library folders */
   folder: string;
-  /** Where the files and directories to delete are in the folder, with / between the names */
-  paths: string[];
+  /** Scan a folder that is not available as it is, which forgets everything indexed in it */
+  force?: boolean;
 }
 
 export interface FailedLibraryEntryDto {
   path: string;
   error: string;
+}
+
+export interface LibraryScanDto {
+  /** Files that are new to the index */
+  added: number;
+  /** Indexed files that changed on disk */
+  updated: number;
+  /** Indexed files that are no longer on disk */
+  forgotten: number;
+  /** Title folders with videos that could not be matched to a title, whose files are not indexed */
+  unresolved: string[];
+  /** Directories that could not be read and why. Indexed files in them are kept */
+  failed: FailedLibraryEntryDto[];
+}
+
+export interface DeleteLibraryEntriesDto {
+  /** One of the library folders */
+  folder: string;
+  /** Where the files and directories to delete are in the folder, with / between the names */
+  paths: string[];
 }
 
 export interface DeletedLibraryEntriesDto {
@@ -2662,6 +2693,44 @@ export class Api<
         path: `/api/v2/server/library`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name PreviewLibraryScan
+     * @request GET:/api/v2/server/library/scan
+     */
+    previewLibraryScan: (
+      query: {
+        folder: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<LibraryScanPreviewDto, any>({
+        path: `/api/v2/server/library/scan`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name ScanLibrary
+     * @request POST:/api/v2/server/library/scan
+     */
+    scanLibrary: (data: ScanLibraryDto, params: RequestParams = {}) =>
+      this.request<LibraryScanDto, any>({
+        path: `/api/v2/server/library/scan`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

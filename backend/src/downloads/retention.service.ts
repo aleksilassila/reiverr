@@ -51,12 +51,23 @@ export class RetentionService implements OnModuleInit {
     });
   }
 
+  /**
+   * The nightly jobs: a scan of every library folder, and the cleanup on a
+   * cleanup day. Nothing makes the cleanup wait for the scans.
+   */
   @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async onCleanupHour(): Promise<void> {
+    const { movieFolders, seriesFolders } =
+      await this.localMediaService.getSettings();
     const { cleanup } = await this.downloadsService.getSettings();
-    if (!isCleanupDay(new Date(), cleanup)) return;
+    const isCleanup = isCleanupDay(new Date(), cleanup);
 
-    await this.jobs.enqueue(this.em.fork(), 'library.cleanup', {});
+    await this.em.fork().transactional(async (tx) => {
+      for (const folder of [...seriesFolders, ...movieFolders]) {
+        await this.jobs.enqueue(tx, 'library.scan', { folder });
+      }
+      if (isCleanup) await this.jobs.enqueue(tx, 'library.cleanup', {});
+    });
   }
 
   /**

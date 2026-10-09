@@ -11,6 +11,8 @@ export enum LogType {
   FileDeleted = 'file.deleted',
   /** The downloaded data of a torrent was deleted from the downloads folder */
   DownloadDeleted = 'download.deleted',
+  /** The nightly scan could not scan a library folder */
+  ScanFailed = 'scan.failed',
 }
 
 /** Something the server did on its own, kept so that it can be looked up later */

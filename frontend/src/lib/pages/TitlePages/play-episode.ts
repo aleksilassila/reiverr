@@ -1,4 +1,5 @@
 import type { PlayMediaOptions } from '$lib/components/GlobalBackground/background-stack.store';
+import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { sessions } from '$lib/stores/session.store';
 import { reiverrApi, user } from '$lib/stores/user.store';
 import { get } from 'svelte/store';
@@ -7,7 +8,8 @@ const WATCHED_PROGRESS = 0.9;
 
 /**
  * Plays an episode from the library, with one video track per file found.
- * Nothing happens when the episode is not on disk.
+ * Nothing happens when the episode is not on disk, and a failure to look it
+ * up is reported.
  *
  * @returns whether playback started
  */
@@ -26,7 +28,14 @@ export async function playEpisode(options: {
 
 	const files = await reiverrApi.localMedia
 		.getEpisodeFiles(tmdbId, season, episode)
-		.then((r) => r.data);
+		.then((r) => r.data)
+		.catch((e) => {
+			createErrorNotification(
+				'Could not play',
+				e?.response?.data?.message ?? e?.message ?? String(e)
+			);
+			return [];
+		});
 	if (!files.length) return false;
 
 	// Media elements cannot send headers, so the token travels in the URL

@@ -1263,6 +1263,126 @@ describe('Series downloads (e2e)', () => {
     expect(readdirSync(dirs.library)).toEqual([]);
   });
 
+  it('scans a library folder by hand and every night, unless it is not mounted', async () => {
+    const external = path.join(
+      dirs.library,
+      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+    );
+    const disk = path.join(dirs.root, 'disk');
+    const previewScan = (folder = dirs.library, user = admin) =>
+      api(
+        'get',
+        `/v2/server/library/scan?folder=${encodeURIComponent(folder)}`,
+        user,
+      );
+    const scan = (body: object, user = admin) =>
+      api('post', '/v2/server/library/scan', user).send(body);
+    const em = () => app.get(MikroORM).em.fork();
+    const countFiles = () => em().count(MediaFile);
+    const failedScans = () =>
+      em().count(LogEntry, { type: LogType.ScanFailed });
+
+    const failedBefore = await failedScans();
+
+    mkdirSync(path.dirname(external), { recursive: true });
+    writeFileSync(external, 'external');
+
+    await previewScan(dirs.library, viewer).expect(403);
+    await scan({ folder: dirs.library }, viewer).expect(403);
+    await previewScan(dirs.root).expect(400);
+
+    expect((await previewScan().expect(200)).body).toEqual({
+      available: true,
+      missing: 0,
+      requests: 0,
+    });
+    expect((await scan({ folder: dirs.library }).expect(200)).body).toEqual({
+      added: 1,
+      updated: 0,
+      forgotten: 0,
+      unresolved: [],
+      failed: [],
+    });
+    // The file is external: it plays, but fulfils no request
+    expect(
+      (await getDownloads()).episodes.map((e) => [
+        e.episode,
+        e.onDisk,
+        e.status,
+      ]),
+    ).toEqual([[1, true, 'no-selection']]);
+
+    // Not mounted: the nightly scan leaves the index alone and logs it, the
+    // admin is warned and can force it
+    renameSync(dirs.library, disk);
+    mkdirSync(dirs.library);
+    await cleanUp();
+    expect(await failedScans()).toBe(failedBefore + 1);
+    expect(await countFiles()).toBe(1);
+    expect((await previewScan().expect(200)).body).toEqual({
+      available: false,
+      reason: `Library folder "${dirs.library}" is not available: it is empty, but files are indexed in it`,
+      missing: 1,
+      requests: 0,
+    });
+    await scan({ folder: dirs.library }).expect(503);
+    expect(
+      (await scan({ folder: dirs.library, force: true }).expect(200)).body,
+    ).toMatchObject({ forgotten: 1 });
+    expect(await countFiles()).toBe(0);
+
+    // Mounted again, the nightly scan finds the file
+    rmSync(dirs.library, { recursive: true });
+    renameSync(disk, dirs.library);
+    await cleanUp();
+    expect(await failedScans()).toBe(failedBefore + 1);
+    expect(await countFiles()).toBe(1);
+  });
+
+  it('downloads a file again when a scan forgets it', async () => {
+    const em = () => app.get(MikroORM).em.fork();
+    const scan = (body: object) =>
+      api('post', '/v2/server/library/scan').send(body);
+    const previewScan = () =>
+      api(
+        'get',
+        `/v2/server/library/scan?folder=${encodeURIComponent(dirs.library)}`,
+      );
+
+    await select('Test.Show.S01.1080p.WEB-GRP');
+    await settle();
+    engine.running(PACK).download(0);
+    await settle();
+    expect(await references()).toEqual([[1, 1, PACK, PACK]]);
+    const imported = path.join(dirs.library, episodeFile(1, PACK));
+    expect(existsSync(imported)).toBe(true);
+
+    rmSync(imported);
+    expect((await previewScan().expect(200)).body).toEqual({
+      available: true,
+      missing: 1,
+      requests: 1,
+    });
+    expect((await scan({ folder: dirs.library }).expect(200)).body).toEqual({
+      added: 0,
+      updated: 0,
+      forgotten: 1,
+      unresolved: [],
+      failed: [],
+    });
+    expect(await em().count(MediaFile, { path: imported })).toBe(0);
+
+    // The torrent of the request was queued with the forget, and downloads
+    // the file again
+    await settle();
+    expect(await references()).toEqual([[1, 1, PACK, null]]);
+    expect(engine.running(PACK).wanted).toEqual([0]);
+    engine.running(PACK).download(0);
+    await settle();
+    expect(await references()).toEqual([[1, 1, PACK, PACK]]);
+    expect(existsSync(imported)).toBe(true);
+  });
+
   it('rejects requests for episodes that do not exist', async () => {
     await api('put', `/v2/users/${admin.id}/requests/series/tmdb/${TMDB_ID}`)
       .send({ episodes: [{ season: 1, episode: 9 }], requested: true })

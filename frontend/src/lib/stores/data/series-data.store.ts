@@ -6,6 +6,7 @@ import type {
 	TorrentDto,
 	TorrentSelectionDto
 } from '$lib/apis/reiverr/reiverr.openapi';
+import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
@@ -197,8 +198,23 @@ function useSeriesData(tmdbId: string) {
 		return data;
 	});
 
+	// The page refreshes the requests periodically, so a failure is reported once
+	let requestsFailed = false;
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
-		const downloads = await reiverrApi.downloads.getSeriesDownloads(tmdbId).then((r) => r.data);
+		const downloads = await reiverrApi.downloads
+			.getSeriesDownloads(tmdbId)
+			.then((r) => r.data)
+			.catch((e) => {
+				if (!requestsFailed) {
+					createErrorNotification(
+						'Could not load requests',
+						e?.response?.data?.message ?? e?.message ?? String(e)
+					);
+				}
+				requestsFailed = true;
+				throw e;
+			});
+		requestsFailed = false;
 
 		return {
 			episodes: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),

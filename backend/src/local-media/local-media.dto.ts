@@ -90,6 +90,54 @@ export class FailedLibraryEntryDto {
   error: string;
 }
 
+export class LibraryScanDto {
+  @ApiProperty({ description: 'Files that are new to the index' })
+  added: number;
+
+  @ApiProperty({ description: 'Indexed files that changed on disk' })
+  updated: number;
+
+  @ApiProperty({ description: 'Indexed files that are no longer on disk' })
+  forgotten: number;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Title folders with videos that could not be matched to a title, whose files are not indexed',
+  })
+  unresolved: string[];
+
+  @ApiProperty({
+    type: [FailedLibraryEntryDto],
+    description:
+      'Directories that could not be read and why. Indexed files in them are kept',
+  })
+  failed: FailedLibraryEntryDto[];
+}
+
+export class LibraryScanPreviewDto {
+  @ApiProperty({
+    description:
+      'Whether the folder reads as mounted: it can be read, and it has something in it when files are indexed in it',
+  })
+  available: boolean;
+
+  @ApiProperty({ required: false, description: 'Why it is not available' })
+  reason?: string;
+
+  @ApiProperty({
+    description:
+      'Indexed files that a scan would forget: all of them when the folder is not available',
+  })
+  missing: number;
+
+  @ApiProperty({
+    description:
+      'Requests that those files fulfil, which download them again when the files are forgotten',
+  })
+  requests: number;
+}
+
 export class DeletedLibraryEntriesDto {
   @ApiProperty({ description: 'How many of the entries were deleted' })
   deleted: number;

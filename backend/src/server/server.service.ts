@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { RetentionService } from '../downloads/retention.service.js';
-import { DeletedLibraryEntriesDto } from '../local-media/local-media.dto.js';
+import {
+  DeletedLibraryEntriesDto,
+  LibraryScanDto,
+  LibraryScanPreviewDto,
+} from '../local-media/local-media.dto.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
@@ -25,6 +29,26 @@ export class ServerService {
         ? (requests.get(entry.mediaFileId) ?? 0)
         : undefined,
     }));
+  }
+
+  async previewLibraryScan(folder: string): Promise<LibraryScanPreviewDto> {
+    const { available, reason, missing } =
+      await this.localMediaService.previewScan(folder);
+    const requests = await this.requestsService.countByMediaFile();
+
+    return {
+      available,
+      reason,
+      missing: missing.length,
+      requests: missing.reduce(
+        (sum, file) => sum + (requests.get(file.id) ?? 0),
+        0,
+      ),
+    };
+  }
+
+  scanLibrary(folder: string, force: boolean): Promise<LibraryScanDto> {
+    return this.localMediaService.scanFolder(folder, { force });
   }
 
   deleteLibraryEntries(
