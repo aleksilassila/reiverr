@@ -1378,6 +1378,25 @@ export interface LocalEpisodeFileDto {
   episodes: number[];
 }
 
+export interface Job {
+  id: string;
+  type: string;
+  payload?: object;
+  status: "queued" | "running" | "completed" | "failed";
+  /** Only one job per key can be running at a time */
+  lockKey?: string;
+  /** Only one job per key can be queued at a time */
+  dedupeKey?: string;
+  /** Earliest time the job can be claimed */
+  runAt: string;
+  error?: string;
+  /** How many times it was claimed */
+  attempts: number;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
 export interface IndexerDto {
   /** Generated when missing */
   id?: string;
@@ -2565,6 +2584,98 @@ export class Api<
         ...params,
       }),
   };
+  server = {
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetJobs
+     * @request GET:/api/v2/server/jobs
+     */
+    getJobs: (
+      query?: {
+        status?: "queued" | "running" | "completed" | "failed";
+        type?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<Job[], any>({
+        path: `/api/v2/server/jobs`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name RetryJob
+     * @request POST:/api/v2/server/jobs/{id}/retry
+     */
+    retryJob: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/server/jobs/${id}/retry`,
+        method: "POST",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name DeleteJob
+     * @request DELETE:/api/v2/server/jobs/{id}
+     */
+    deleteJob: (id: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/v2/server/jobs/${id}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetLibraryEntries
+     * @request GET:/api/v2/server/library
+     */
+    getLibraryEntries: (
+      query: {
+        folder: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ServerLibraryEntryDto[], any>({
+        path: `/api/v2/server/library`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name DeleteLibraryEntries
+     * @request POST:/api/v2/server/library/delete
+     */
+    deleteLibraryEntries: (
+      data: DeleteLibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<DeletedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/delete`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
   indexers = {
     /**
      * No description
@@ -2787,48 +2898,6 @@ export class Api<
       this.request<ServerLogSettingsDto, any>({
         path: `/api/v2/server-log/settings`,
         method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-  };
-  server = {
-    /**
-     * No description
-     *
-     * @tags server
-     * @name GetLibraryEntries
-     * @request GET:/api/v2/server/library
-     */
-    getLibraryEntries: (
-      query: {
-        folder: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<ServerLibraryEntryDto[], any>({
-        path: `/api/v2/server/library`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags server
-     * @name DeleteLibraryEntries
-     * @request POST:/api/v2/server/library/delete
-     */
-    deleteLibraryEntries: (
-      data: DeleteLibraryEntriesDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<DeletedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/delete`,
-        method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",

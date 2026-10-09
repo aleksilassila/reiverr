@@ -57,13 +57,23 @@ export class ServerLogService {
     message: string,
     data?: Record<string, unknown>,
   ): Promise<void> {
+    await this.writeIn(this.em, type, message, data);
+  }
+
+  /** Like write, with the entity manager of a transaction of the caller */
+  async writeIn(
+    em: EntityManager,
+    type: LogType,
+    message: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> {
     this.logger.log(message);
 
     const entry = new LogEntry();
     entry.type = type;
     entry.message = message;
     entry.data = data;
-    await this.em.insert(LogEntry, { ...entry });
+    await em.insert(LogEntry, { ...entry });
   }
 
   /** Deletes the entries that are older or more than the settings keep */

@@ -4,6 +4,23 @@
     {
       "name": "jobs",
       "columns": {
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "0",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "created_at": {
           "name": "created_at",
           "type": "datetime",
@@ -193,6 +210,16 @@
         }
       },
       "indexes": [
+        {
+          "columnNames": [
+            "dedupe_key"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "jobs_dedupe_key_index",
+          "primary": false,
+          "unique": false
+        },
         {
           "columnNames": [
             "dedupe_key"

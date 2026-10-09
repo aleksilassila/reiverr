@@ -4,6 +4,7 @@ import { AppModule } from './app.module.js';
 import 'reflect-metadata';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
+import { JobsService } from './jobs/jobs.service.js';
 import { UsersService } from './users/users.service.js';
 import { ADMIN_PASSWORD, ADMIN_USERNAME, ENV } from './consts.js';
 import { json, urlencoded } from 'express';
@@ -66,6 +67,9 @@ async function bootstrap() {
   );
 
   await app.listen(9494);
+  // A second process on the same port has failed by now, before it touched
+  // the jobs of this one
+  await app.get(JobsService).start();
   console.log(
     `Application is running on: ${await app.getUrl()} in ${ENV} mode`,
   );
