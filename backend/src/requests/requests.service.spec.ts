@@ -219,6 +219,25 @@ describe('RequestsService', () => {
     expect(await references()).toEqual([[1, 'pack', file]]);
   });
 
+  it('attaches a file only to a request that is still bound to its torrent', async () => {
+    await select(0, 'pack');
+    await requestEpisodes([1]);
+    const file = await addFile('pack'.padEnd(40, '0'));
+    const [request] = await orm.em.fork().find(MediaRequest, {});
+
+    // The user selected another torrent while the file was being placed
+    await select(1, 'episode');
+    await orm.em
+      .fork()
+      .transactional((tx) =>
+        requests.attach(tx, [
+          { requestId: request.id, torrentId: 'pack', mediaFileId: file },
+        ]),
+      );
+
+    expect(await references()).toEqual([[1, 'episode', null]]);
+  });
+
   async function addFile(infoHash?: string): Promise<string> {
     const file = {
       ...new MediaFile(),

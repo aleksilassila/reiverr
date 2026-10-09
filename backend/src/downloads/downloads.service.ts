@@ -350,7 +350,10 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         );
       }
       const demand = torrentDemand(await this.readDemand(tx, torrent));
-      await this.requestsService.attach(tx, demand.attach);
+      await this.requestsService.attach(
+        tx,
+        demand.attach.map((file) => ({ ...file, torrentId })),
+      );
 
       const { seedRatio } = await this.getSettings();
       const decision = decideTorrent({
@@ -484,7 +487,14 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       await tx.nativeUpdate(
         Torrent,
         { id: torrent.id },
-        { downloadedBytes: 0, uploadedBytes: 0 },
+        // Nothing retries a torrent that nothing wants
+        {
+          downloadedBytes: 0,
+          uploadedBytes: 0,
+          error: null,
+          attempts: 0,
+          retryAt: null,
+        },
       );
       await tx.execute(
         `delete from torrent where id = ?
@@ -545,14 +555,12 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       });
 
       await context.em.transactional(async (tx) => {
-        const mediaFileId = await this.localMediaService.indexImportedFile(
-          tx,
-          placed,
-        );
-        // Every request that wanted the file has it, also one whose episode
-        // the name of the file does not cover
-        const wantedBy = state.requests.filter((request) => {
-          const result = demand.requests.get(request.id);
+        // Read again: a request can have been bound elsewhere or held back
+        // while the file was placed
+        const now = await this.readDemand(tx, torrent);
+        const wants = torrentDemand(now);
+        const wantedBy = now.requests.filter((request) => {
+          const result = wants.requests.get(request.id);
           return (
             result?.kind === 'wanted' &&
             result.fileIndex === fileIndex &&
@@ -560,9 +568,20 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
             request.season === wanted.season
           );
         });
+
+        const mediaFileId = await this.localMediaService.indexImportedFile(
+          tx,
+          placed,
+        );
+        // Every request that wants the file has it, also one whose episode
+        // the name of the file does not cover
         await this.requestsService.attach(
           tx,
-          wantedBy.map((request) => ({ requestId: request.id, mediaFileId })),
+          wantedBy.map((request) => ({
+            requestId: request.id,
+            torrentId,
+            mediaFileId,
+          })),
         );
         await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId });
       });

@@ -393,22 +393,33 @@ export class RequestsService {
         )?.infoHash;
         const file = fileOf(request, activity.get(request.id), infoHash, files);
 
-        return file ? [{ requestId: request.id, mediaFileId: file.id }] : [];
+        return file
+          ? [
+              {
+                requestId: request.id,
+                torrentId: request.torrentId,
+                mediaFileId: file.id,
+              },
+            ]
+          : [];
       }),
     );
   }
 
-  /** Stores the file of requests that have none, while the file is there */
+  /**
+   * Stores the file of requests that have none, while the file is there and
+   * the request is still bound to the torrent the file came from
+   */
   async attach(
     em: EntityManager,
-    files: { requestId: string; mediaFileId: string }[],
+    files: { requestId: string; torrentId: string; mediaFileId: string }[],
   ): Promise<void> {
-    for (const { requestId, mediaFileId } of files) {
+    for (const { requestId, torrentId, mediaFileId } of files) {
       await em.execute(
         `update request set media_file_id = ?
-         where id = ? and media_file_id is null
+         where id = ? and torrent_id = ? and media_file_id is null
          and exists (select 1 from media_file where id = ?)`,
-        [mediaFileId, requestId, mediaFileId],
+        [mediaFileId, requestId, torrentId, mediaFileId],
         'run',
       );
     }
