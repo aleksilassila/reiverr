@@ -134,13 +134,15 @@ describe('LocalMediaService', () => {
     expect(await indexed()).toMatchObject([{ id: files[0].id, size: 6 }]);
   });
 
-  it('forgets an indexed file only when it is gone or outside the library folders', async () => {
-    const kept = write('tv/Other Folder/Test Show - S01E05.mkv');
+  it('forgets an indexed file only when it is gone or outside the title folders', async () => {
+    // A name that the walk passes over, like a file that is imported while it runs
+    const kept = write('tv/Test Show (2020)/Season 01/importing.mkv');
+    const otherFolder = write('tv/Other Folder/Test Show - S01E04.mkv');
     const outside = write('elsewhere/Test Show - S01E06.mkv');
     const gone = path.join(library, 'Test Show (2020)/Season 01/S01E07.mkv');
     await orm.em.fork().insert(
       MediaFile,
-      [kept, outside, gone].map((filePath, i) => ({
+      [kept, otherFolder, outside, gone].map((filePath, i) => ({
         id: `file-${i}`,
         path: filePath,
         mediaType: MediaType.Series,
@@ -158,11 +160,9 @@ describe('LocalMediaService', () => {
 
     await getSeriesFiles();
 
-    // The walk does not see the first one, which an import could have added
-    // while it ran
     expect((await indexed()).map((file) => file.path)).toEqual([
-      path.join(library, 'Other Folder/Test Show - S01E05.mkv'),
       path.join(library, 'Test Show (2020)/Season 01/Test Show - S01E01.mkv'),
+      path.join(library, 'Test Show (2020)/Season 01/importing.mkv'),
     ]);
   });
 

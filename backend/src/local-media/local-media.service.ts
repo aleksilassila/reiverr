@@ -136,7 +136,7 @@ export class LocalMediaService {
     const ids = await this.indexFiles(
       MediaType.Movie,
       tmdbId,
-      movieFolders,
+      { folders: movieFolders, target },
       found,
     );
 
@@ -159,7 +159,7 @@ export class LocalMediaService {
     const ids = await this.indexFiles(
       MediaType.Series,
       tmdbId,
-      seriesFolders,
+      { folders: seriesFolders, target },
       found,
     );
 
@@ -610,14 +610,14 @@ export class LocalMediaService {
   /**
    * Brings the indexed files of a title in line with what was found on disk
    * and returns their ids by path. Files that are new to the index are not
-   * managed. A file is forgotten when it is gone or no longer in one of the
-   * library folders. Managed files stay as they were imported, because that is
-   * what a cleanup checks before it deletes one.
+   * managed. A file is forgotten when it is gone or no longer in a title
+   * folder of the title. Managed files stay as they were imported, because
+   * that is what a cleanup checks before it deletes one.
    */
   private async indexFiles(
     mediaType: MediaType,
     tmdbId: string,
-    folders: string[],
+    library: { folders: string[]; target: MediaMatchTarget },
     found: (FoundFile & FileTarget)[],
   ): Promise<Map<string, string>> {
     const indexed = await this.em.find(
@@ -633,10 +633,16 @@ export class LocalMediaService {
     for (const file of indexed) {
       if (foundPaths.has(file.path)) continue;
 
-      const inLibrary = folders.some((folder) =>
+      const folder = library.folders.find((folder) =>
         isInsideFolder(file.path, folder),
       );
-      const stats = inLibrary
+      const [titleFolder] = folder
+        ? path.relative(folder, file.path).split(path.sep)
+        : [];
+      const isOfTitle =
+        !!titleFolder &&
+        folderMatchesTarget(parseMediaFolderName(titleFolder), library.target);
+      const stats = isOfTitle
         ? await fs.stat(file.path).catch(() => undefined)
         : undefined;
       if (!stats?.isFile()) gone.push(file);

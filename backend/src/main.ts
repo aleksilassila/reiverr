@@ -1,4 +1,5 @@
 import { MikroORM, RequestContext } from '@mikro-orm/core';
+import { ShutdownSignal } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import 'reflect-metadata';
@@ -25,6 +26,10 @@ async function createAdminUser(userService: UsersService) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    // A stop does not wait for the players to close their streams, and
+    // requests that arrive while it stops are refused
+    forceCloseConnections: true,
+    return503OnClosing: true,
     // logger: [
     //   'error',
     //   'warn',
@@ -36,7 +41,7 @@ async function bootstrap() {
   await orm.migrator.up();
 
   // So that a stop signal stores the transfer counters and stops the torrents
-  app.enableShutdownHooks();
+  app.enableShutdownHooks([ShutdownSignal.SIGTERM, ShutdownSignal.SIGINT]);
   app.setGlobalPrefix('api');
   app.enableCors();
   app.use(json({ limit: '50mb' }));

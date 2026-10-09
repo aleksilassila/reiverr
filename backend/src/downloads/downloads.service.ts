@@ -101,6 +101,8 @@ export class DownloadsService
   /** The reconciliation that waits in the queue */
   private pending?: Promise<void>;
   private timer?: NodeJS.Timeout;
+  /** Nothing starts once the server stops */
+  private stopping = false;
 
   constructor(
     private readonly em: EntityManager,
@@ -128,6 +130,7 @@ export class DownloadsService
   }
 
   async onModuleDestroy() {
+    this.stopping = true;
     clearInterval(this.timer);
 
     await this.serialize(() => this.shutDown());
@@ -355,6 +358,8 @@ export class DownloadsService
    * waits in the queue.
    */
   reconcile(): Promise<void> {
+    if (this.stopping) return Promise.resolve();
+
     this.pending ??= this.serialize(() => {
       this.pending = undefined;
 
@@ -538,6 +543,8 @@ export class DownloadsService
   }
 
   private start(torrent: Torrent) {
+    if (this.stopping) return;
+
     const active: ActiveTorrent = {
       torrentId: torrent.id,
       stopped: false,
