@@ -447,10 +447,21 @@ export class DownloadsService
   private async deleteUnretained(): Promise<void> {
     const { plan } = await this.planServer();
 
+    // A file that cannot be deleted is left for the next cleanup
+    let failed = 0;
     for (const file of plan.unretained) {
-      await this.localMediaService.deleteManagedFile(
-        file.id,
-        'no request holds it',
+      await this.localMediaService
+        .deleteManagedFile(file.id, 'no request holds it')
+        .catch((error) => {
+          failed++;
+          this.logger.warn(
+            `Could not delete file ${file.id}: ${error.message}`,
+          );
+        });
+    }
+    if (failed) {
+      throw new Error(
+        `${failed} of ${plan.unretained.length} files could not be deleted`,
       );
     }
   }
