@@ -168,7 +168,8 @@ describe('JobsService', () => {
       error: 'library not mounted',
     });
     expect(job.runAt.getTime()).toBeGreaterThanOrEqual(before + MINUTE);
-    expect([1, 2, 3, 7, 8].map(retryDelay)).toEqual([
+    expect(retryDelay(8, 5 * MINUTE)).toBe(5 * MINUTE);
+    expect([1, 2, 3, 7, 8].map((attempts) => retryDelay(attempts))).toEqual([
       MINUTE,
       2 * MINUTE,
       4 * MINUTE,

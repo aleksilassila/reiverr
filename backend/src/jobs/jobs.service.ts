@@ -25,6 +25,8 @@ export interface JobDefinition<T extends JobType> {
    * job is failed and waits for whatever enqueues it next.
    */
   retry?: boolean;
+  /** The longest delay between the attempts of a job that retries, 1 h by default */
+  maxRetryDelay?: number;
   /**
    * A job of the type that is still queued when the server stops is failed
    * at the next start instead of running then
@@ -41,8 +43,8 @@ const FAILED_KEPT_FOR = 30 * 24 * 60 * MINUTE;
 const SHUTDOWN_GRACE = 5000;
 
 /** The delay before the next attempt of a job that failed its nth one */
-export const retryDelay = (attempts: number) =>
-  Math.min(RETRY_DELAY * 2 ** Math.max(attempts - 1, 0), MAX_RETRY_DELAY);
+export const retryDelay = (attempts: number, max = MAX_RETRY_DELAY) =>
+  Math.min(RETRY_DELAY * 2 ** Math.max(attempts - 1, 0), max);
 
 /**
  * Runs jobs from the jobs table in this process. A module defines the types
@@ -398,8 +400,11 @@ export class JobsService implements OnModuleDestroy {
       }
 
       const message = error.message;
-      if (this.definitions.get(job.type as JobType).retry) {
-        const runAt = new Date(Date.now() + retryDelay(job.attempts));
+      const definition = this.definitions.get(job.type as JobType);
+      if (definition.retry) {
+        const runAt = new Date(
+          Date.now() + retryDelay(job.attempts, definition.maxRetryDelay),
+        );
         // A copy of the job that was enqueued while it ran takes over
         const twin = await tx.findOne(
           Job,

@@ -6,7 +6,6 @@ import { RequestsModule } from '../requests/requests.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
 import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
-import { PlayStatesModule } from '../user-data/play-state/play-states.module.js';
 import { DownloadsController } from './downloads.controller.js';
 import { DownloadsService } from './downloads.service.js';
 import { RetentionService } from './retention.service.js';
@@ -19,7 +18,6 @@ import { TorrentStreamEngine } from './torrent-stream.engine.js';
     SettingsModule,
     MetadataModule,
     RequestsModule,
-    PlayStatesModule,
     IndexersModule,
     LocalMediaModule,
     ServerLogModule,

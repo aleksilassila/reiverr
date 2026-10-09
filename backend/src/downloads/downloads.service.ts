@@ -16,7 +16,7 @@ import {
 } from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
 import { IndexersService } from '../indexers/indexers.service.js';
-import { Job } from '../jobs/job.entity.js';
+import { Job, JobStatus } from '../jobs/job.entity.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
@@ -97,6 +97,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     this.jobs.define('torrent.import', {
       concurrency: 2,
       retry: true,
+      // A library that was not mounted is noticed soon after it is again
+      maxRetryDelay: 5 * 60 * 1000,
       run: (payload, context) => this.import(payload, context),
     });
   }
@@ -141,7 +143,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     userId: string,
     tmdbId: string,
   ): Promise<SeriesDownloadsDto> {
-    // Brings the index in line with the disk
+    // As of the last sync of the series
     const onDisk = new Map<string, EpisodeRefDto>();
     for (const file of await this.localMediaService.getSeriesFiles(tmdbId)) {
       for (const episode of file.episodes) {
@@ -661,10 +663,13 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       { mediaType: MediaType.Series, tmdbId },
       READ,
     );
+    // A failed import row is one that a restart interrupted, and the boot
+    // queues the import again
     const imports = await tx.find(
       Job,
       {
         type: 'torrent.import',
+        status: { $in: [JobStatus.Queued, JobStatus.Running] },
         lockKey: { $in: torrents.map((torrent) => `torrent:${torrent.id}`) },
       },
       READ,
@@ -714,7 +719,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     }
 
     const snapshot = this.runtime.snapshot(torrent.id);
-    const failure = snapshot?.error ?? torrent.error;
+    // A torrent that runs again after its backoff is no longer failed
+    const failure = snapshot ? snapshot.error : torrent.error;
     if (failure) {
       return { status: EpisodeDownloadStatus.Failed, error: failure };
     }
@@ -742,7 +748,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     if (!torrent) return undefined;
 
     const snapshot = this.runtime.snapshot(torrent.id);
-    const error = snapshot?.error ?? torrent.error;
+    const error = snapshot ? snapshot.error : torrent.error;
 
     return {
       id: torrent.id,

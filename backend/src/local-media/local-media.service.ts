@@ -476,7 +476,7 @@ export class LocalMediaService implements OnModuleInit {
         managed: true,
         createdAt: new Date(),
       })
-      // A lookup of the series can have indexed the file already
+      // A sync or scan of the series can have indexed the file already
       .onConflict('path')
       .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
       .execute();
@@ -517,7 +517,7 @@ export class LocalMediaService implements OnModuleInit {
     );
   }
 
-  /** The indexed files of a title, as they were at its last lookup */
+  /** The indexed files of a title, as of its last sync or scan */
   findIndexedFiles(mediaType: MediaType, tmdbId: string): Promise<MediaFile[]> {
     return this.em.find(
       MediaFile,
@@ -535,15 +535,6 @@ export class LocalMediaService implements OnModuleInit {
       .execute();
 
     return rows.map((row) => row.tmdbId);
-  }
-
-  /** The indexed files that were imported from a torrent */
-  findVersions(mediaType: MediaType): Promise<MediaFile[]> {
-    return this.em.find(
-      MediaFile,
-      { mediaType, infoHash: { $ne: null } },
-      { disableIdentityMap: true },
-    );
   }
 
   /**

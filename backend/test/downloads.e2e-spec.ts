@@ -359,7 +359,6 @@ describe('Series downloads (e2e)', () => {
   // The jobs run where the loop would run them
   const settle = () => app.get(JobsService).drain();
 
-  /** Holds the next reconciliation back, in the middle of its run */
   /** The 04:00 cron, with the cleanup jobs it queues */
   async function cleanUp() {
     await app.get(RetentionService).onCleanupHour();

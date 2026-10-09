@@ -84,7 +84,9 @@ export class TorrentRuntime
   async beforeApplicationShutdown(): Promise<void> {
     this.stopping = true;
     clearInterval(this.timer);
-    await this.flush();
+    await this.flush().catch((error) =>
+      this.logger.error(`Storing the counters failed: ${error.message}`),
+    );
     await Promise.allSettled(
       [...this.entries.values()].map((entry) => this.remove(entry)),
     );
@@ -244,10 +246,14 @@ export class TorrentRuntime
     }
 
     const delta = this.takeDelta(entry);
-    if (delta.downloaded || delta.uploaded) {
-      await this.em.fork().transactional((tx) => this.add(tx, delta));
+    try {
+      if (delta.downloaded || delta.uploaded) {
+        await this.em.fork().transactional((tx) => this.add(tx, delta));
+      }
+    } finally {
+      // Nothing refers to the engine any more, so it has to stop now
+      await entry.handle.destroy();
     }
-    await entry.handle.destroy();
   }
 
   /** Takes what the counters of a torrent grew by, at once */

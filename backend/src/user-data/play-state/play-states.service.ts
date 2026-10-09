@@ -51,26 +51,6 @@ export class PlayStatesService {
     return playStates;
   }
 
-  /** The episode play states of each user for the series given with them */
-  async findEpisodePlayStates(
-    series: { userId: string; tmdbId: string }[],
-  ): Promise<PlayState[]> {
-    const keyOf = (s: { userId: string; tmdbId: string }) =>
-      `${s.userId}/${s.tmdbId}`;
-    const keys = new Set(series.map(keyOf));
-
-    const playStates = await this.playStateRepository.find(
-      {
-        mediaType: MediaTypeFull.Episode,
-        userId: { $in: [...new Set(series.map((s) => s.userId))] },
-        tmdbId: { $in: [...new Set(series.map((s) => s.tmdbId))] },
-      },
-      { disableIdentityMap: true },
-    );
-
-    return playStates.filter((playState) => keys.has(keyOf(playState)));
-  }
-
   async findEpisodePlayState(
     userId: string,
     tmdbId: string,

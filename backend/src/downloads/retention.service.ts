@@ -73,7 +73,7 @@ export class RetentionService implements OnModuleInit {
   /**
    * Deletes what an admin selected in a library folder, and with it the
    * requests that have the deleted files, which would download them again.
-   * The requests are found before anything is deleted, so that a lookup that
+   * The requests are found before anything is deleted, so that a sync that
    * forgets the rows meanwhile does not keep them.
    */
   async deleteLibraryEntries(

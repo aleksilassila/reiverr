@@ -200,44 +200,4 @@ describe('PlayStatesService', () => {
     await update({ watched: false });
     expect(changes).toHaveBeenCalledTimes(3);
   });
-
-  it('finds the episode play states of each user for their series', async () => {
-    const other = new User();
-    other.name = 'other';
-    other.password = '';
-    await orm.em.fork().insert(other);
-
-    for (const [user, tmdbId] of [
-      [userId, '1'],
-      [userId, '2'],
-      [other.id, '1'],
-      [other.id, '2'],
-    ]) {
-      await request(() =>
-        playStates.updateOrCreateEpisodePlayState(user, tmdbId, 1, 1, {
-          watched: true,
-        }),
-      );
-    }
-    await request(() =>
-      playStates.updateOrCreateMoviePlayState(userId, '1', { watched: true }),
-    );
-
-    const found = await request(() =>
-      playStates.findEpisodePlayStates([
-        { userId, tmdbId: '1' },
-        { userId: other.id, tmdbId: '2' },
-      ]),
-    );
-
-    expect(found.map((s) => [s.userId, s.tmdbId, s.mediaType]).sort()).toEqual(
-      [
-        [userId, '1', 'episode'],
-        [other.id, '2', 'episode'],
-      ].sort(),
-    );
-    expect(await request(() => playStates.findEpisodePlayStates([]))).toEqual(
-      [],
-    );
-  });
 });
