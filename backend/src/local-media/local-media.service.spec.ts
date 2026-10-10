@@ -1,5 +1,5 @@
 import { RequestContext } from '@mikro-orm/core';
-import { EntityManager, MikroORM } from '@mikro-orm/sqlite';
+import { MikroORM } from '@mikro-orm/sqlite';
 import {
   BadRequestException,
   NotFoundException,
@@ -25,7 +25,6 @@ import { MediaType } from '../common/common.dto.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
-import { RequestsService } from '../requests/requests.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
@@ -59,11 +58,11 @@ describe('LocalMediaService', () => {
     enqueue: vi.fn(async () => {}),
     define: vi.fn(),
   };
-  const requests = {
-    enqueueTorrentsOfFiles: vi.fn(
-      async (_tx: EntityManager, _ids: string[]) => {},
-    ),
-  };
+  /** The titles whose reconciliation was queued */
+  const reconciled = () =>
+    jobs.enqueue.mock.calls
+      .filter((call: unknown[]) => call[1] === 'title.reconcile')
+      .map((call: unknown[]) => call[2]);
   const tmdb = {
     searchTitles: vi.fn(),
     findByExternalId: vi.fn(),
@@ -112,7 +111,7 @@ describe('LocalMediaService', () => {
         tmdbSeries: { name: 'Test Show', first_air_date: '2020-01-01' },
       }),
     };
-    requests.enqueueTorrentsOfFiles.mockReset();
+    jobs.enqueue.mockClear();
     tmdb.searchTitles.mockReset().mockResolvedValue([]);
     tmdb.findByExternalId.mockReset().mockResolvedValue(undefined);
     localMedia = new LocalMediaService(
@@ -120,7 +119,6 @@ describe('LocalMediaService', () => {
       new SettingsService(orm.em),
       metadata as unknown as MetadataService,
       tmdb as unknown as TmdbService,
-      requests as unknown as RequestsService,
       jobs as unknown as JobsService,
       new ServerLogService(orm.em, new SettingsService(orm.em)),
     );
@@ -520,12 +518,9 @@ describe('LocalMediaService', () => {
         [MediaType.Series, 'Unknown', 1999],
       ]);
       expect(tmdb.findByExternalId).not.toHaveBeenCalled();
-      expect(requests.enqueueTorrentsOfFiles).not.toHaveBeenCalled();
+      expect(reconciled()).toEqual([]);
 
       // A changed file is updated, a deleted one forgotten
-      const anotherId = (await indexed()).find(
-        (file) => file.path === another,
-      ).id;
       write('tv/Third {tvdb-456}/Season 02/Third - S02E03.mkv', 'longer');
       rmSync(another);
       expect(await scan()).toMatchObject({
@@ -533,10 +528,9 @@ describe('LocalMediaService', () => {
         updated: 1,
         forgotten: 1,
       });
-      expect(requests.enqueueTorrentsOfFiles).toHaveBeenCalledWith(
-        expect.anything(),
-        [anotherId],
-      );
+      expect(reconciled()).toEqual([
+        { mediaType: MediaType.Series, tmdbId: '200' },
+      ]);
       expect(await preview()).toMatchObject({ available: true, missing: [] });
     });
 
@@ -588,7 +582,6 @@ describe('LocalMediaService', () => {
         'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
       );
       await scan();
-      const ids = (await indexed()).map((file) => file.id);
 
       // Only one file is missing while the folder is there
       rmSync(
@@ -612,13 +605,8 @@ describe('LocalMediaService', () => {
         missing: [{ episode: 1 }, { episode: 2 }],
       });
       expect(await indexed()).toHaveLength(2);
-      expect(requests.enqueueTorrentsOfFiles).not.toHaveBeenCalled();
+      expect(reconciled()).toEqual([]);
 
-      // The torrents of their requests are queued while the rows are there
-      const rowsThen: number[] = [];
-      requests.enqueueTorrentsOfFiles.mockImplementation(async (tx, ids) => {
-        rowsThen.push(await tx.count(MediaFile, { id: { $in: ids } }));
-      });
       expect(await scan({ force: true })).toEqual({
         added: 0,
         updated: 0,
@@ -627,11 +615,10 @@ describe('LocalMediaService', () => {
         failed: [],
       });
       expect(await indexed()).toEqual([]);
-      expect(requests.enqueueTorrentsOfFiles).toHaveBeenCalledTimes(1);
-      expect(requests.enqueueTorrentsOfFiles.mock.calls[0][1].sort()).toEqual(
-        ids.sort(),
-      );
-      expect(rowsThen).toEqual([2]);
+      // Their requests download them again
+      expect(reconciled()).toEqual([
+        { mediaType: MediaType.Series, tmdbId: TMDB_ID },
+      ]);
       expect(await preview()).toMatchObject({ available: true, missing: [] });
     });
 

@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Put,
   UseGuards,
 } from '@nestjs/common';
@@ -25,9 +26,10 @@ import {
   MediaRequestDto,
   MovieRequestDto,
   RequestRuleDto,
+  SelectReleaseDto,
   UpdateSeriesRequestsDto,
 } from './requests.dto.js';
-import { RequestsService } from './requests.service.js';
+import { RequestsService, SelectionTarget } from './requests.service.js';
 
 @ApiTags('requests')
 @Controller('v2/users/:userId/requests')
@@ -157,5 +159,79 @@ export class RequestsController {
     }
 
     return this.requestsService.setSeriesRule(userId, tmdbId, body);
+  }
+
+  @Put('series/tmdb/:tmdbId/rule/seasons/:season/torrent')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async selectSeasonRelease(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+    @Body() body: SelectReleaseDto,
+  ): Promise<SuccessResponseDto> {
+    return this.selectRelease({ userId, tmdbId, season, episode: 0 }, body);
+  }
+
+  @Delete('series/tmdb/:tmdbId/rule/seasons/:season/torrent')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async clearSeasonRelease(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+  ): Promise<SuccessResponseDto> {
+    const success = await this.requestsService.clearTorrent({
+      userId,
+      tmdbId,
+      season,
+      episode: 0,
+    });
+
+    return { success };
+  }
+
+  @Put('series/tmdb/:tmdbId/rule/seasons/:season/episodes/:episode/torrent')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async selectEpisodeRelease(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+    @Param('episode', ParseIntPipe) episode: number,
+    @Body() body: SelectReleaseDto,
+  ): Promise<SuccessResponseDto> {
+    if (episode < 1) throw new BadRequestException('Invalid episode');
+
+    return this.selectRelease({ userId, tmdbId, season, episode }, body);
+  }
+
+  @Delete('series/tmdb/:tmdbId/rule/seasons/:season/episodes/:episode/torrent')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async clearEpisodeRelease(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+    @Param('episode', ParseIntPipe) episode: number,
+  ): Promise<SuccessResponseDto> {
+    if (episode < 1) throw new BadRequestException('Invalid episode');
+    const success = await this.requestsService.clearTorrent({
+      userId,
+      tmdbId,
+      season,
+      episode,
+    });
+
+    return { success };
+  }
+
+  private async selectRelease(
+    target: SelectionTarget,
+    body: SelectReleaseDto,
+  ): Promise<SuccessResponseDto> {
+    if (typeof body?.releaseId !== 'string') {
+      throw new BadRequestException('Expected { releaseId }');
+    }
+
+    await this.requestsService.selectTorrent(target, body.releaseId);
+
+    return { success: true };
   }
 }

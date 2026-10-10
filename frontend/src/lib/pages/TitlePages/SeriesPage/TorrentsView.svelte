@@ -7,7 +7,7 @@
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
-	import { reiverrApi } from '$lib/stores/user.store';
+	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Check, Cross2 } from 'radix-icons-svelte';
@@ -35,11 +35,11 @@
 			e.season === season &&
 			(episode === undefined || e.episode === episode) &&
 			e.status === 'available' &&
-			e.torrent?.id !==
+			e.torrent?.infoHash !==
 				(
 					$requests?.selections.get(episodeKey(e.season, e.episode)) ??
 					$requests?.selections.get(episodeKey(e.season, 0))
-				)?.torrent.id
+				)?.torrent.infoHash
 	);
 	$: keptHint = !kept.length
 		? ''
@@ -59,8 +59,10 @@
 
 		await (
 			episode === undefined
-				? reiverrApi.downloads.selectSeasonRelease(tmdbId, season, { releaseId: release.id })
-				: reiverrApi.downloads.selectEpisodeRelease(tmdbId, season, episode, {
+				? reiverrApi.requests.selectSeasonRelease($user?.id as string, tmdbId, season, {
+						releaseId: release.id
+					})
+				: reiverrApi.requests.selectEpisodeRelease($user?.id as string, tmdbId, season, episode, {
 						releaseId: release.id
 					})
 		)
@@ -74,8 +76,8 @@
 
 		await (
 			episode === undefined
-				? reiverrApi.downloads.clearSeasonRelease(tmdbId, season)
-				: reiverrApi.downloads.clearEpisodeRelease(tmdbId, season, episode)
+				? reiverrApi.requests.clearSeasonRelease($user?.id as string, tmdbId, season)
+				: reiverrApi.requests.clearEpisodeRelease($user?.id as string, tmdbId, season, episode)
 		)
 			.then(() => seriesData.requestsData?.update())
 			.catch((e) => (error = errorMessage(e)));

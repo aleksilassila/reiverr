@@ -1288,6 +1288,10 @@ export interface MediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
+  activity: "waiting" | "ahead" | "watched" | "kept" | "active";
+  error?: string;
+  /** @format date-time */
+  retryAt?: string;
   movieMetadata?: MovieMetadata;
   createdAt: string;
   updatedAt: string;
@@ -1322,6 +1326,11 @@ export interface RequestRuleDto {
   keepWatchedHours: number | null;
 }
 
+export interface SelectReleaseDto {
+  /** Id of a release from an indexer search */
+  releaseId: string;
+}
+
 export interface RequesterDto {
   id: string;
   name: string;
@@ -1337,6 +1346,10 @@ export interface AdminMediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
+  activity: "waiting" | "ahead" | "watched" | "kept" | "active";
+  error?: string;
+  /** @format date-time */
+  retryAt?: string;
   movieMetadata?: MovieMetadata;
   createdAt: string;
   updatedAt: string;
@@ -1434,7 +1447,8 @@ export interface DownloadSettingsDto {
 }
 
 export interface TorrentDto {
-  id: string;
+  /** Missing while no request downloads from the torrent */
+  id?: string;
   infoHash: string;
   title: string;
   indexer: string;
@@ -1459,9 +1473,7 @@ export interface TorrentDto {
 }
 
 export interface TorrentSelectionDto {
-  id: string;
   season: number;
-  /** 0 for a season pack */
   episode: number;
   /** The search result the user picked */
   releaseId: string;
@@ -1499,17 +1511,12 @@ export interface EpisodeStatusDto {
 }
 
 export interface SeriesDownloadsDto {
-  /** The torrents the user selected for the series, which their requests are bound to */
+  /** The torrents the user prefers for the seasons and episodes */
   selections: TorrentSelectionDto[];
   /** The episodes that the user requested or that are on disk */
   episodes: EpisodeStatusDto[];
-  /** Info hashes of the torrents that someone selected for the series, that a request for it is bound to or that files of it came from */
+  /** Info hashes of the torrents that a request of anyone downloads from or that files of it came from */
   onServer: string[];
-}
-
-export interface SelectReleaseDto {
-  /** Id of a release from an indexer search */
-  releaseId: string;
 }
 
 export interface ServerLogSettingsDto {
@@ -2446,6 +2453,94 @@ export class Api<
      * No description
      *
      * @tags requests
+     * @name SelectSeasonRelease
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     */
+    selectSeasonRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      data: SelectReleaseDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name ClearSeasonRelease
+     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     */
+    clearSeasonRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name SelectEpisodeRelease
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     */
+    selectEpisodeRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      episode: number,
+      data: SelectReleaseDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name ClearEpisodeRelease
+     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     */
+    clearEpisodeRelease: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      episode: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
      * @name GetAllRequests
      * @request GET:/api/v2/requests
      */
@@ -2859,90 +2954,6 @@ export class Api<
       this.request<SeriesDownloadsDto, any>({
         path: `/api/v2/downloads/series/${tmdbId}`,
         method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name SelectSeasonRelease
-     * @request PUT:/api/v2/downloads/series/{tmdbId}/seasons/{season}/selection
-     */
-    selectSeasonRelease: (
-      tmdbId: string,
-      season: number,
-      data: SelectReleaseDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/selection`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name ClearSeasonRelease
-     * @request DELETE:/api/v2/downloads/series/{tmdbId}/seasons/{season}/selection
-     */
-    clearSeasonRelease: (
-      tmdbId: string,
-      season: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/selection`,
-        method: "DELETE",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name SelectEpisodeRelease
-     * @request PUT:/api/v2/downloads/series/{tmdbId}/seasons/{season}/episodes/{episode}/selection
-     */
-    selectEpisodeRelease: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      data: SelectReleaseDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name ClearEpisodeRelease
-     * @request DELETE:/api/v2/downloads/series/{tmdbId}/seasons/{season}/episodes/{episode}/selection
-     */
-    clearEpisodeRelease: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}/seasons/${season}/episodes/${episode}/selection`,
-        method: "DELETE",
         format: "json",
         ...params,
       }),

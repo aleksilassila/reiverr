@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { RetentionService } from '../downloads/retention.service.js';
 import {
   DeletedLibraryEntriesDto,
   LibraryScanDto,
   LibraryScanPreviewDto,
 } from '../local-media/local-media.dto.js';
+import { CleanupService } from '../local-media/cleanup.service.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
@@ -16,7 +16,7 @@ export class ServerService {
   constructor(
     private readonly localMediaService: LocalMediaService,
     private readonly requestsService: RequestsService,
-    private readonly retentionService: RetentionService,
+    private readonly cleanupService: CleanupService,
   ) {}
 
   async getLibraryEntries(folder: string): Promise<ServerLibraryEntryDto[]> {
@@ -56,7 +56,7 @@ export class ServerService {
     folder: string,
     paths: string[],
   ): Promise<DeletedLibraryEntriesDto> {
-    return this.retentionService.deleteLibraryEntries(
+    return this.cleanupService.deleteLibraryEntries(
       folder,
       paths,
       `deleted by ${admin.name}`,

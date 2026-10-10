@@ -1,5 +1,6 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
+import { IndexersModule } from '../indexers/indexers.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
 import { AdminRequestsController } from './admin-requests.controller.js';
@@ -7,12 +8,12 @@ import { RequestsController } from './requests.controller.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import { RequestsService } from './requests.service.js';
-import { TorrentSelection } from './torrent-selection.entity.js';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([MediaRequest, RequestRule, TorrentSelection]),
+    MikroOrmModule.forFeature([MediaRequest, RequestRule]),
     MetadataModule,
+    IndexersModule,
     JobsModule,
   ],
   controllers: [RequestsController, AdminRequestsController],

@@ -19,8 +19,6 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { SeriesDownloadsDto } from '../src/downloads/downloads.dto.js';
-import { DownloadsService } from '../src/downloads/downloads.service.js';
-import { RetentionService } from '../src/downloads/retention.service.js';
 import { TorrentRuntime } from '../src/downloads/torrent-runtime.js';
 import { Job, JobStatus } from '../src/jobs/job.entity.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
@@ -32,6 +30,7 @@ import {
 } from '../src/downloads/torrent-engine.js';
 import { Torrent } from '../src/downloads/torrent.entity.js';
 import { ReleaseDto } from '../src/indexers/indexers.dto.js';
+import { CleanupService } from '../src/local-media/cleanup.service.js';
 import { MediaFile } from '../src/local-media/media-file.entity.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
@@ -275,6 +274,9 @@ describe('Series downloads (e2e)', () => {
       [method](url)
       .set('Authorization', `Bearer ${user.token}`);
 
+  const ruleUrl = (user = admin) =>
+    `/v2/users/${user.id}/requests/series/tmdb/${TMDB_ID}/rule`;
+
   const signIn = (name: string): Promise<TestUser> =>
     request(app.getHttpServer())
       .post('/auth')
@@ -314,14 +316,18 @@ describe('Series downloads (e2e)', () => {
     );
     const target = episode ? `seasons/1/episodes/${episode}` : 'seasons/1';
 
-    return api(
-      'put',
-      `/v2/downloads/series/${TMDB_ID}/${target}/selection`,
-      user,
-    )
+    return api('put', `${ruleUrl(user)}/${target}/torrent`, user)
       .send({ releaseId: releases.find((r) => r.title === title).id })
       .expect(status);
   }
+
+  /** Forgets the release a user picked for a season, or for an episode of it */
+  const clearSelection = (season: number, episode = 0, user = admin) =>
+    api(
+      'delete',
+      `${ruleUrl(user)}/seasons/${season}${episode ? `/episodes/${episode}` : ''}/torrent`,
+      user,
+    );
 
   const statuses = (downloads: SeriesDownloadsDto) =>
     downloads.episodes.map((e) => [e.season, e.episode, e.status ?? null]);
@@ -361,7 +367,7 @@ describe('Series downloads (e2e)', () => {
 
   /** The 04:00 cron, with the cleanup jobs it queues */
   async function cleanUp() {
-    await app.get(RetentionService).onCleanupHour();
+    await app.get(CleanupService).onCleanupHour();
     await app.get(JobsService).drain();
   }
 
@@ -499,7 +505,8 @@ describe('Series downloads (e2e)', () => {
       },
     ]);
     expect(downloads.episodes).toEqual([]);
-    expect(downloads.onServer).toEqual([PACK]);
+    // A torrent that nothing downloads from is not on the server
+    expect(downloads.onServer).toEqual([]);
   });
 
   it('does not download a requested episode without a torrent', async () => {
@@ -713,7 +720,7 @@ describe('Series downloads (e2e)', () => {
 
   it('keeps the files of a season when another torrent is selected for the season', async () => {
     const selectForSeason = (releaseId: string) =>
-      api('put', `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`)
+      api('put', `${ruleUrl()}/seasons/1/torrent`)
         .send({ releaseId })
         .expect(200);
     const releases = await search('season=1&episode=2');
@@ -738,8 +745,8 @@ describe('Series downloads (e2e)', () => {
     expect(downloads.selections[0].torrent.infoHash).toBe(EPISODE);
     expect(downloads.episodes[0].torrent.infoHash).toBe(PACK);
 
-    // The request keeps the torrent of its file known
-    expect(await torrentHashes()).toEqual([PACK, EPISODE, REDIRECT].sort());
+    // A preferred torrent that no request downloads from is not kept
+    expect(await torrentHashes()).toEqual([PACK, REDIRECT].sort());
 
     await select('Test.Show.S01.1080p.WEB-GRP');
     await settle();
@@ -808,11 +815,7 @@ describe('Series downloads (e2e)', () => {
 
     // Without the viewer's selection the request, which has no file yet, is
     // bound to nothing. The admin's selection keeps the torrent known
-    await api(
-      'delete',
-      `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`,
-      viewer,
-    ).expect(200);
+    await clearSelection(1, 0, viewer).expect(200);
     await settle();
 
     expect(engine.running(PACK)).toBeUndefined();
@@ -886,9 +889,11 @@ describe('Series downloads (e2e)', () => {
     renameSync(dirs.library, disk);
     mkdirSync(dirs.library);
 
+    // The status is as of the last sync, playing fails
+    expect(statuses(await getDownloads(viewer))).toEqual(before);
     const { body } = await api(
       'get',
-      `/v2/downloads/series/${TMDB_ID}`,
+      `/v2/local-media/series/${TMDB_ID}`,
       viewer,
     ).expect(503);
     expect(body.message).toBe(
@@ -914,9 +919,9 @@ describe('Series downloads (e2e)', () => {
 
     expect(await references(viewer)).toEqual([[1, 3, PACK, PACK]]);
 
-    // Looking the series up notices the missing file. The request no longer
+    // Playing the series notices the missing file. The request no longer
     // refers to it, and downloads it again from its torrent
-    await getDownloads(viewer);
+    await api('get', `/v2/local-media/series/${TMDB_ID}`, viewer).expect(200);
     await settle();
 
     expect(await references(viewer)).toEqual([[1, 3, PACK, null]]);
@@ -933,11 +938,7 @@ describe('Series downloads (e2e)', () => {
 
   it('forgets a torrent that nobody selects and no request refers to', async () => {
     for (const user of [admin, viewer]) {
-      await api(
-        'delete',
-        `/v2/downloads/series/${TMDB_ID}/seasons/1/selection`,
-        user,
-      ).expect(200);
+      await clearSelection(1, 0, user).expect(200);
     }
     await settle();
 
@@ -982,21 +983,18 @@ describe('Series downloads (e2e)', () => {
     await settle();
   });
 
-  it('queues one reconciliation of a torrent for the changes that arrive before it runs', async () => {
-    const resume = app.get(JobsService).pause('torrent.reconcile');
+  it('queues one reconciliation of a title for the changes that arrive before it runs', async () => {
+    const resume = app.get(JobsService).pause('title.reconcile');
 
     for (const requested of [true, false, true]) {
       await setRequested([1], requested, { season: 2 });
     }
-    const queued = (
-      await app
-        .get(MikroORM)
-        .em.fork()
-        .find(Job, { type: 'torrent.reconcile', status: JobStatus.Queued })
-    ).map((job) => job.dedupeKey);
+    const queued = await app
+      .get(MikroORM)
+      .em.fork()
+      .find(Job, { type: 'title.reconcile', status: JobStatus.Queued });
 
-    expect(queued.length).toBeGreaterThan(0);
-    expect(new Set(queued).size).toBe(queued.length);
+    expect(queued).toHaveLength(1);
     resume();
     await setRequested([1], false, { season: 2 });
     await settle();
@@ -1064,7 +1062,7 @@ describe('Series downloads (e2e)', () => {
 
     // The torrent has a file for the first episode only
     const releases = await search('season=2');
-    await api('put', `/v2/downloads/series/${TMDB_ID}/seasons/2/selection`)
+    await api('put', `${ruleUrl()}/seasons/2/torrent`)
       .send({
         releaseId: releases.find((r) => r.title.includes('S02')).id,
       })
@@ -1103,10 +1101,7 @@ describe('Series downloads (e2e)', () => {
       keepWatchedHours: null,
     });
     await setRequested([1, 2, 3], false, { season: 2 });
-    await api(
-      'delete',
-      `/v2/downloads/series/${TMDB_ID}/seasons/2/selection`,
-    ).expect(200);
+    await clearSelection(2).expect(200);
     await settle();
     expect(engine.running(SEASON_2)).toBeUndefined();
   });

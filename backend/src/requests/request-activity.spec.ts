@@ -1,3 +1,4 @@
+import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { ActivityState, evaluateActivity } from './request-activity.js';
 
 const NOW = Date.UTC(2026, 0, 10);
@@ -5,6 +6,7 @@ const NOW = Date.UTC(2026, 0, 10);
 const request = (episode: number, approved = true, tmdbId = '1') => ({
   id: `${tmdbId}/${episode}`,
   userId: 'a',
+  mediaType: MediaTypeFull.Episode,
   tmdbId,
   season: 1,
   episode,
@@ -34,6 +36,7 @@ describe('evaluateActivity', () => {
     const rules = [
       {
         userId: 'a',
+        mediaType: MediaType.Series,
         tmdbId: '1',
         keepNext: 1,
         keepWatched: null,

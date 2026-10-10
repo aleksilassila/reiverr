@@ -14,7 +14,6 @@ import { MediaType } from '../common/common.dto.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
-import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -147,7 +146,6 @@ export class LocalMediaService implements OnModuleInit {
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
     private readonly tmdbService: TmdbService,
-    private readonly requestsService: RequestsService,
     private readonly jobs: JobsService,
     private readonly serverLog: ServerLogService,
   ) {}
@@ -214,7 +212,7 @@ export class LocalMediaService implements OnModuleInit {
 
     const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
     // Imports that wait for a folder that was missing or unreadable
-    await this.jobs.runNow(this.em, 'torrent.import');
+    await this.jobs.runNow(this.em, 'file.import');
 
     return saved;
   }
@@ -408,17 +406,17 @@ export class LocalMediaService implements OnModuleInit {
 
   /**
    * Puts a video file into the library as the given episodes of a series,
-   * as the version of the torrent it comes from, at `destination` when it is
-   * given. The file is hard linked so it takes no extra space, or copied when
-   * the source is on another filesystem. A file that is there already counts
-   * only when it is the same file, which a rerun of an import finds.
+   * as the version of the torrent it comes from. A rerun puts the file where
+   * that version is already. The file is hard linked so it takes no extra
+   * space, or copied when the source is on another filesystem. A file that
+   * is there already counts only when it is the same file, which a rerun of
+   * an import finds.
    */
-  async placeEpisodeFile(
-    options: ImportOptions & { destination?: string },
-  ): Promise<PlacedFile> {
+  async placeEpisodeFile(options: ImportOptions): Promise<PlacedFile> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = options;
     const destination =
-      options.destination ?? (await this.getImportPath(options));
+      (await this.findVersionPath(options)) ??
+      (await this.getImportPath(options));
 
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.link(sourcePath, destination).catch(async (error) => {
@@ -488,6 +486,28 @@ export class LocalMediaService implements OnModuleInit {
     );
 
     return id;
+  }
+
+  /** Where the version of the torrent for the episodes is, when it was imported before */
+  private async findVersionPath(
+    options: ImportOptions,
+  ): Promise<string | undefined> {
+    const { tmdbId, season, episodes, infoHash } = options;
+    const version = await this.em.findOne(
+      MediaFile,
+      {
+        mediaType: MediaType.Series,
+        tmdbId,
+        season,
+        episode: Math.min(...episodes),
+        lastEpisode: Math.max(...episodes),
+        infoHash,
+        managed: true,
+      },
+      { fields: ['path'], disableIdentityMap: true },
+    );
+
+    return version?.path;
   }
 
   private async getImportPath(options: ImportOptions): Promise<string> {
@@ -1135,17 +1155,31 @@ export class LocalMediaService implements OnModuleInit {
   }
 
   /**
-   * Forgets indexed files. The torrents of the requests that refer to them are
-   * queued in the same transaction, and download them again.
+   * Forgets indexed files. Their titles are reconciled in the same
+   * transaction: a request that referred to one downloads it again.
    */
   private async forgetFiles(files: MediaFile[]): Promise<void> {
     if (!files.length) return;
 
-    const ids = files.map((file) => file.id);
     await this.em.transactional(async (tx) => {
-      await this.requestsService.enqueueTorrentsOfFiles(tx, ids);
-      await tx.nativeDelete(MediaFile, { id: { $in: ids } });
+      await tx.nativeDelete(MediaFile, {
+        id: { $in: files.map((file) => file.id) },
+      });
+      await this.enqueueReconcile(tx, files);
     });
+  }
+
+  /** Has the titles of the files reconciled, once per title */
+  private async enqueueReconcile(em: EntityManager, files: MediaFile[]) {
+    const titles = new Map(
+      files.map((file) => [
+        `${file.mediaType}/${file.tmdbId}`,
+        { mediaType: file.mediaType, tmdbId: file.tmdbId },
+      ]),
+    );
+    for (const title of titles.values()) {
+      await this.jobs.enqueue(em, 'title.reconcile', title);
+    }
   }
 
   /**

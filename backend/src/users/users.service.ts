@@ -104,10 +104,10 @@ export class UsersService {
     return this.findOne(user.id);
   }
 
-  /** The requests, rules and selections of the user go with it */
+  /** The requests and rules of the user go with it */
   async remove(id: string) {
     return this.em.transactional(async (tx) => {
-      await this.requestsService.enqueueTorrentsOfUser(tx, id);
+      await this.requestsService.userDeleting(tx, id);
 
       return tx.nativeDelete(User, { id });
     });

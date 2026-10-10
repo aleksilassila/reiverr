@@ -1,12 +1,9 @@
 import {
-  BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   Param,
-  ParseIntPipe,
   Post,
   Put,
   UseGuards,
@@ -19,11 +16,7 @@ import {
 } from '../auth/auth.guard.js';
 import { SuccessResponseDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import {
-  DownloadSettingsDto,
-  SelectReleaseDto,
-  SeriesDownloadsDto,
-} from './downloads.dto.js';
+import { DownloadSettingsDto, SeriesDownloadsDto } from './downloads.dto.js';
 import { DownloadsService } from './downloads.service.js';
 
 @ApiTags('downloads')
@@ -57,66 +50,6 @@ export class DownloadsController {
     return this.downloadsService.getSeriesDownloads(user.id, tmdbId);
   }
 
-  @Put('series/:tmdbId/seasons/:season/selection')
-  @ApiOkResponse({ type: SuccessResponseDto })
-  selectSeasonRelease(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-    @Body() body: SelectReleaseDto,
-  ): Promise<SuccessResponseDto> {
-    return this.selectRelease(user, tmdbId, season, 0, body);
-  }
-
-  @Delete('series/:tmdbId/seasons/:season/selection')
-  @ApiOkResponse({ type: SuccessResponseDto })
-  async clearSeasonRelease(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-  ): Promise<SuccessResponseDto> {
-    return {
-      success: await this.downloadsService.clearSelection(
-        user.id,
-        tmdbId,
-        season,
-        0,
-      ),
-    };
-  }
-
-  @Put('series/:tmdbId/seasons/:season/episodes/:episode/selection')
-  @ApiOkResponse({ type: SuccessResponseDto })
-  selectEpisodeRelease(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-    @Param('episode', ParseIntPipe) episode: number,
-    @Body() body: SelectReleaseDto,
-  ): Promise<SuccessResponseDto> {
-    if (episode < 1) throw new BadRequestException('Invalid episode');
-
-    return this.selectRelease(user, tmdbId, season, episode, body);
-  }
-
-  @Delete('series/:tmdbId/seasons/:season/episodes/:episode/selection')
-  @ApiOkResponse({ type: SuccessResponseDto })
-  async clearEpisodeRelease(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-    @Param('season', ParseIntPipe) season: number,
-    @Param('episode', ParseIntPipe) episode: number,
-  ): Promise<SuccessResponseDto> {
-    return {
-      success: await this.downloadsService.clearSelection(
-        user.id,
-        tmdbId,
-        season,
-        episode,
-      ),
-    };
-  }
-
   @Post('torrents/:torrentId/retry')
   @HttpCode(200)
   @ApiOkResponse({ type: SuccessResponseDto })
@@ -124,28 +57,6 @@ export class DownloadsController {
     @Param('torrentId') torrentId: string,
   ): Promise<SuccessResponseDto> {
     await this.downloadsService.retryTorrent(torrentId);
-
-    return { success: true };
-  }
-
-  private async selectRelease(
-    user: User,
-    tmdbId: string,
-    season: number,
-    episode: number,
-    body: SelectReleaseDto,
-  ): Promise<SuccessResponseDto> {
-    if (typeof body?.releaseId !== 'string') {
-      throw new BadRequestException('Expected { releaseId }');
-    }
-
-    await this.downloadsService.selectRelease(
-      user.id,
-      tmdbId,
-      season,
-      episode,
-      body.releaseId,
-    );
 
     return { success: true };
   }

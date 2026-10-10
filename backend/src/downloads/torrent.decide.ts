@@ -1,11 +1,4 @@
-import {
-  Activity,
-  fileOf,
-  holdsFile,
-  VersionFile,
-} from '../requests/request-activity.js';
 import type { MediaRequest } from '../requests/request.entity.js';
-import type { TorrentSelection } from '../requests/torrent-selection.entity.js';
 import { findEpisodeFile, findOnlyVideoFile } from './downloads.utils.js';
 import type { Torrent } from './torrent.entity.js';
 
@@ -19,11 +12,11 @@ export interface WantedFile {
 
 /** What a request bound to a torrent has or waits for */
 export type RequestDemand =
-  | { kind: 'file'; mediaFileId: string }
+  | { kind: 'file' }
   | { kind: 'wanted'; fileIndex: number }
   | { kind: 'resolving' }
   | { kind: 'no-file-in-torrent' }
-  /** It waits, a rule holds it back, or it is kept without a file */
+  /** It is not active: it waits, a rule holds it back, or it only keeps a file */
   | { kind: 'none' };
 
 export interface DemandState {
@@ -31,22 +24,24 @@ export interface DemandState {
   /** The episode requests that are bound to the torrent */
   requests: Pick<
     MediaRequest,
-    'id' | 'userId' | 'tmdbId' | 'season' | 'episode' | 'mediaFileId'
+    | 'id'
+    | 'userId'
+    | 'tmdbId'
+    | 'season'
+    | 'episode'
+    | 'activity'
+    | 'mediaFileId'
   >[];
-  /** The activity of the requests, evaluated for their whole series */
-  activity: Map<string, Activity>;
-  /** Library files of the requested series */
-  files: VersionFile[];
-  /** Selections of the users of the requests, for the only-video rule */
-  selections: Pick<
-    TorrentSelection,
-    'userId' | 'tmdbId' | 'season' | 'episode' | 'torrentId'
-  >[];
+  /** The episodes whose user prefers this torrent for the episode itself, for the only-video rule */
+  episodePreferences: {
+    userId: string;
+    tmdbId: string;
+    season: number;
+    episode: number;
+  }[];
 }
 
 export interface Demand {
-  /** Files to store for holding requests that have them in the library */
-  attach: { requestId: string; mediaFileId: string }[];
   wanted: WantedFile[];
   /** A request waits for the file list of the torrent */
   needsFiles: boolean;
@@ -54,45 +49,26 @@ export interface Demand {
 }
 
 /**
- * What the requests that are bound to a torrent want from it. A request that
- * holds its file (active or kept) has the file of the torrent that covers its
- * episode once it is in the library. An active request without one wants the
- * file of its episode: the one named after it, or the only video of a torrent
- * that its user selected for the episode.
+ * What the requests that are bound to a torrent want from it. An active
+ * request without a file wants the file of its episode: the one named after
+ * it, or the only video of a torrent that its user picked for the episode.
  */
 export function torrentDemand(state: DemandState): Demand {
   const { torrent } = state;
-  const demand: Demand = {
-    attach: [],
-    wanted: [],
-    needsFiles: false,
-    requests: new Map(),
-  };
+  const demand: Demand = { wanted: [], needsFiles: false, requests: new Map() };
 
   for (const request of state.requests) {
-    const activity = state.activity.get(request.id);
     const set = (result: RequestDemand) =>
       demand.requests.set(request.id, result);
 
-    if (!holdsFile(activity)) {
+    if (request.mediaFileId) {
+      set({ kind: 'file' });
+      continue;
+    }
+    if (request.activity !== 'active') {
       set({ kind: 'none' });
       continue;
     }
-
-    const file = fileOf(request, activity, torrent.infoHash, state.files);
-    if (request.mediaFileId || file) {
-      if (!request.mediaFileId) {
-        demand.attach.push({ requestId: request.id, mediaFileId: file.id });
-      }
-      set({ kind: 'file', mediaFileId: request.mediaFileId ?? file.id });
-      continue;
-    }
-    // A kept request holds on to a file it has, it downloads none
-    if (activity === 'kept') {
-      set({ kind: 'none' });
-      continue;
-    }
-
     if (!torrent.files) {
       demand.needsFiles = true;
       set({ kind: 'resolving' });
@@ -100,17 +76,16 @@ export function torrentDemand(state: DemandState): Demand {
     }
 
     const { userId, tmdbId, season, episode } = request;
-    const isSelectedForEpisode = state.selections.some(
-      (s) =>
-        s.userId === userId &&
-        s.tmdbId === tmdbId &&
-        s.season === season &&
-        s.episode === episode &&
-        s.torrentId === torrent.id,
+    const isPreferredForEpisode = state.episodePreferences.some(
+      (p) =>
+        p.userId === userId &&
+        p.tmdbId === tmdbId &&
+        p.season === season &&
+        p.episode === episode,
     );
     const wanted =
       findEpisodeFile(torrent.files, season, episode) ??
-      (isSelectedForEpisode ? findOnlyVideoFile(torrent.files) : undefined);
+      (isPreferredForEpisode ? findOnlyVideoFile(torrent.files) : undefined);
     if (!wanted) {
       set({ kind: 'no-file-in-torrent' });
       continue;
@@ -166,8 +141,8 @@ export interface TorrentState {
 
 const MINUTE = 60 * 1000;
 
-/** The delay before a torrent that failed its nth time is started again */
-export const torrentRetryDelay = (attempts: number) =>
+/** The delay before something that failed its nth time is tried again */
+export const retryDelay = (attempts: number) =>
   Math.min(5 * MINUTE * 2 ** Math.max(attempts - 1, 0), 6 * 60 * MINUTE);
 
 /** What a torrent does next */
@@ -180,7 +155,7 @@ export function decideTorrent(state: TorrentState): TorrentDecision {
     return {
       kind: 'fail',
       error: runtime.error,
-      retryAt: new Date(now.getTime() + torrentRetryDelay(attempts)),
+      retryAt: new Date(now.getTime() + retryDelay(attempts)),
     };
   }
 

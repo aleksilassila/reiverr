@@ -14,7 +14,7 @@ const TMDB_ID = '1';
 describe('PlayStatesService', () => {
   let orm: MikroORM;
   let playStates: PlayStatesService;
-  const requests = { enqueueTorrentsOfPairs: vi.fn(async () => {}) };
+  const requests = { evaluate: vi.fn(async () => {}) };
   let userId: string;
 
   // Every call gets its own entity manager, as every HTTP request does
@@ -31,7 +31,7 @@ describe('PlayStatesService', () => {
     await orm.em.fork().insert(user);
     userId = user.id;
 
-    requests.enqueueTorrentsOfPairs.mockClear();
+    requests.evaluate.mockClear();
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
@@ -157,8 +157,8 @@ describe('PlayStatesService', () => {
     ]);
   });
 
-  it('has the torrents of the series reconciled when something becomes watched or unwatched, not on progress', async () => {
-    const changes = requests.enqueueTorrentsOfPairs;
+  it('has the requests of the series evaluated when something becomes watched or unwatched, not on progress', async () => {
+    const changes = requests.evaluate;
     const update = (playState: { watched?: boolean; progress?: number }) =>
       request(() =>
         playStates.updateOrCreateEpisodePlayState(
@@ -178,7 +178,7 @@ describe('PlayStatesService', () => {
     await update({ progress: 0.97, watched: true });
     expect(changes).toHaveBeenCalledTimes(1);
     expect(changes).toHaveBeenCalledWith(expect.anything(), [
-      { userId, tmdbId: TMDB_ID },
+      { userId, mediaType: MediaType.Series, tmdbId: TMDB_ID },
     ]);
 
     await request(() =>

@@ -220,8 +220,8 @@ export class PlayStatesService {
     userId: string,
     tmdbId: string,
   ) {
-    return this.requestsService.enqueueTorrentsOfPairs(em, [
-      { userId, tmdbId },
+    return this.requestsService.evaluate(em, [
+      { userId, mediaType: MediaType.Series, tmdbId },
     ]);
   }
 }

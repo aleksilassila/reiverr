@@ -131,7 +131,7 @@ describe('JobsService', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
       running--;
     };
-    jobs.define('torrent.import', { concurrency: 2, run });
+    jobs.define('file.import', { concurrency: 2, run });
 
     const em = orm.em.fork();
     // Two files of one torrent, then one of each of two others
@@ -141,7 +141,7 @@ describe('JobsService', () => {
       ['b', 0],
       ['c', 0],
     ] as const) {
-      await jobs.enqueue(em, 'torrent.import', { torrentId, fileIndex });
+      await jobs.enqueue(em, 'file.import', { torrentId, fileIndex });
     }
     await jobs.drain();
 

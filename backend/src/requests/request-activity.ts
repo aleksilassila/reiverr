@@ -1,22 +1,48 @@
+import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import type { PlayState } from '../user-data/play-state/play-state.entity.js';
 import type { RequestRule } from './request-rule.entity.js';
 import type { MediaRequest } from './request.entity.js';
 
 /**
  * What a request does, going by its approval and the rule of its user for the
- * series: `active` wants its file and holds it, `kept` only holds a file it
+ * title: `active` wants its file and holds it, `kept` only holds a file it
  * has, the others want and hold nothing.
  */
-export type Activity = 'waiting' | 'ahead' | 'watched' | 'kept' | 'active';
+export const ACTIVITIES = [
+  'waiting',
+  'ahead',
+  'watched',
+  'kept',
+  'active',
+] as const;
+
+export type Activity = (typeof ACTIVITIES)[number];
+
+/** The activities of a request that holds the file it has */
+export const HOLDING: Activity[] = ['active', 'kept'];
+
+/** Whether a request keeps its file: it is active or kept, and has one */
+export const isHolding = (
+  request: Pick<MediaRequest, 'activity' | 'mediaFileId'>,
+) => HOLDING.includes(request.activity) && !!request.mediaFileId;
+
+/** The title a request is for, as the rules and files know it */
+export const titleTypeOf = (mediaType: MediaTypeFull): MediaType =>
+  mediaType === MediaTypeFull.Movie ? MediaType.Movie : MediaType.Series;
 
 export interface ActivityState {
   requests: Pick<
     MediaRequest,
-    'id' | 'userId' | 'tmdbId' | 'season' | 'episode' | 'approved'
+    'id' | 'userId' | 'mediaType' | 'tmdbId' | 'season' | 'episode' | 'approved'
   >[];
   rules: Pick<
     RequestRule,
-    'userId' | 'tmdbId' | 'keepNext' | 'keepWatched' | 'keepWatchedHours'
+    | 'userId'
+    | 'mediaType'
+    | 'tmdbId'
+    | 'keepNext'
+    | 'keepWatched'
+    | 'keepWatchedHours'
   >[];
   /** Episode play states of the users and series that have a rule */
   playStates: Pick<
@@ -48,9 +74,9 @@ function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
 }
 
 /**
- * The activity of every episode request, by its id. A request that waits for
+ * The activity of every request, by its id. A request that waits for
  * approval is `waiting`. A rule looks at the approved requests of its user
- * for the series in episode order, whatever torrent each is bound to, so the
+ * for the title in episode order, whatever torrent each is bound to, so the
  * activity of one depends on all of them.
  *
  * Of the requests after the last watched episode, only the next keepNext are
@@ -76,14 +102,15 @@ export function evaluateActivity(state: ActivityState): Map<string, Activity> {
   );
   const requests = groupBy(
     state.requests.filter((request) => request.approved),
-    (request) => keyOf(request.userId, request.tmdbId),
+    (request) =>
+      keyOf(request.userId, titleTypeOf(request.mediaType), request.tmdbId),
   );
   const playStates = groupBy(state.playStates, (playState) =>
-    keyOf(playState.userId, playState.tmdbId),
+    keyOf(playState.userId, MediaType.Series, playState.tmdbId),
   );
 
   for (const rule of state.rules) {
-    const key = keyOf(rule.userId, rule.tmdbId);
+    const key = keyOf(rule.userId, rule.mediaType, rule.tmdbId);
     const ofSeries = (requests.get(key) ?? []).sort(byEpisode);
     const watchedEpisodes = (playStates.get(key) ?? [])
       .filter((playState) => playState.watched)
@@ -127,42 +154,4 @@ export function evaluateActivity(state: ActivityState): Map<string, Activity> {
   }
 
   return activity;
-}
-
-/** Whether a request keeps the file it has from the cleanup */
-export const holdsFile = (activity: Activity | undefined) =>
-  activity === 'active' || activity === 'kept';
-
-export interface VersionFile {
-  id: string;
-  /** The torrent the file was imported from */
-  infoHash?: string;
-  tmdbId: string;
-  season: number;
-  episode: number;
-  lastEpisode: number;
-}
-
-/**
- * The file of a request: the one it refers to, or for a request that holds
- * its file the one imported from its torrent that covers its episode, which
- * is attached to it later
- */
-export function fileOf<F extends VersionFile>(
-  request: Pick<MediaRequest, 'tmdbId' | 'season' | 'episode' | 'mediaFileId'>,
-  activity: Activity | undefined,
-  torrentInfoHash: string | undefined,
-  files: F[],
-): F | undefined {
-  const stored = files.find((file) => file.id === request.mediaFileId);
-  if (stored || !holdsFile(activity) || !torrentInfoHash) return stored;
-
-  return files.find(
-    (file) =>
-      file.infoHash === torrentInfoHash &&
-      file.tmdbId === request.tmdbId &&
-      file.season === request.season &&
-      file.episode <= request.episode &&
-      request.episode <= file.lastEpisode,
-  );
 }

@@ -178,7 +178,9 @@ export class IndexersService {
    * What a release is downloaded from: its magnet link, or the .torrent file
    * behind its download link. Fails when the link does not lead to a torrent.
    */
-  async resolveTorrent(release: Release): Promise<TorrentSource> {
+  async resolveTorrent(
+    release: Pick<Release, 'title' | 'magnetUrl' | 'downloadUrl' | 'infoHash'>,
+  ): Promise<TorrentSource> {
     try {
       if (release.magnetUrl) return parseTorrentSource(release.magnetUrl);
       if (release.downloadUrl) {

@@ -1,9 +1,14 @@
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import {
   ActivityState,
   evaluateActivity,
+  HOLDING,
 } from '../requests/request-activity.js';
-import { heldFiles } from './retention.js';
+import {
+  EpisodeTorrent,
+  preferenceOf,
+  SeasonTorrent,
+} from '../requests/torrent-preference.js';
 import { TorrentFile } from './torrent-engine.js';
 import { decideTorrent, torrentDemand } from './torrent.decide.js';
 
@@ -17,9 +22,9 @@ interface DownloadsState extends ActivityState {
     torrentId?: string;
     mediaFileId?: string;
   })[];
+  /** The torrent a user prefers for a season (episode 0) or an episode */
   selections: {
     userId: string;
-    mediaType: MediaType;
     tmdbId: string;
     season: number;
     episode: number;
@@ -91,13 +96,14 @@ const episodeTorrent = {
 const request = (userId: string, episode: number, approved = true) => ({
   id: `${userId}-${episode}`,
   userId,
+  mediaType: MediaTypeFull.Episode,
   tmdbId: SERIES,
   season: 1,
   episode,
   approved,
 });
 
-/** A request that was planned before, with what it refers to since */
+/** A request that was bound before, with what it refers to since */
 const bound = (
   userId: string,
   episode: number,
@@ -107,7 +113,6 @@ const bound = (
 
 const selection = (userId: string, episode: number, torrentId: string) => ({
   userId,
-  mediaType: MediaType.Series,
   tmdbId: SERIES,
   season: 1,
   episode,
@@ -130,6 +135,7 @@ const rule = (
   limits: Partial<DownloadsState['rules'][number]>,
 ) => ({
   userId,
+  mediaType: MediaType.Series,
   tmdbId: SERIES,
   keepNext: null,
   keepWatched: null,
@@ -153,30 +159,76 @@ const watched = (userId: string, episode: number, hoursAgo = 0) => ({
   watchedAt: new Date(NOW - hoursAgo * HOUR),
 });
 
-/**
- * What RequestsService.bind stores for a request when it is made or a
- * preference changes: the selection for the episode, or else for the season
- */
-function bindToPreference(
-  requests: DownloadsState['requests'],
+/** The selections as the rule rows of the users hold them */
+function preferencesOf(
   selections: DownloadsState['selections'],
-): DownloadsState['requests'] {
-  return requests.map((request) => {
-    if (request.torrentId) return request;
-
-    const of = (episode: number) =>
-      selections.find(
-        (s) =>
-          s.userId === request.userId &&
-          s.tmdbId === request.tmdbId &&
-          s.season === request.season &&
-          s.episode === episode,
-      );
-
-    return {
-      ...request,
-      torrentId: (of(request.episode) ?? of(0))?.torrentId,
+  torrents: DownloadsState['torrents'],
+) {
+  const byUser = new Map<
+    string,
+    { seasonTorrents: SeasonTorrent[]; episodeTorrents: EpisodeTorrent[] }
+  >();
+  for (const s of selections) {
+    const key = `${s.userId}/${s.tmdbId}`;
+    const rule = byUser.get(key) ?? { seasonTorrents: [], episodeTorrents: [] };
+    const torrent = torrents.find((t) => t.id === s.torrentId);
+    const release = {
+      releaseId: s.torrentId,
+      indexer: 'test',
+      title: s.torrentId,
+      size: 1,
+      infoHash: torrent.infoHash,
     };
+    if (s.episode === 0)
+      rule.seasonTorrents.push({ season: s.season, release });
+    else rule.episodeTorrents.push({ ...s, release });
+    byUser.set(key, rule);
+  }
+
+  return byUser;
+}
+
+/**
+ * What the reconciliation of the title stores: every approved request was
+ * bound to the preference of its user while it was active, and a holding
+ * request has the version of its torrent that covers its episode
+ */
+function bindAndAttach(
+  full: DownloadsState,
+  activity: Map<string, string>,
+): DownloadsState['requests'] {
+  const preferences = preferencesOf(full.selections, full.torrents);
+
+  return full.requests.map((request) => {
+    let { torrentId } = request;
+    if (!torrentId && request.approved) {
+      const release = preferenceOf(
+        preferences.get(`${request.userId}/${request.tmdbId}`),
+        request.season,
+        request.episode,
+      );
+      torrentId = full.torrents.find(
+        (t) => t.infoHash === release?.infoHash,
+      )?.id;
+    }
+    const torrent = full.torrents.find((t) => t.id === torrentId);
+    let { mediaFileId } = request;
+    if (
+      !mediaFileId &&
+      torrent &&
+      HOLDING.includes(activity.get(request.id) as never)
+    ) {
+      mediaFileId = full.files.find(
+        (f) =>
+          f.infoHash === torrent.infoHash &&
+          f.tmdbId === request.tmdbId &&
+          f.season === request.season &&
+          f.episode <= request.episode &&
+          request.episode <= f.lastEpisode,
+      )?.id;
+    }
+
+    return { ...request, torrentId, mediaFileId };
   });
 }
 
@@ -191,41 +243,43 @@ function plan(state: Partial<DownloadsState>) {
     now: NOW,
     seedRatio: 0,
     ...state,
-    ...(state.requests && {
-      requests: bindToPreference(state.requests, state.selections ?? []),
-    }),
   };
   const activity = evaluateActivity(full);
+  const requests = bindAndAttach(full, activity).map((request) => ({
+    ...request,
+    activity: activity.get(request.id),
+  }));
+  const preferences = preferencesOf(full.selections, full.torrents);
   const demands = new Map(
     full.torrents.map((torrent) => [
       torrent.id,
       torrentDemand({
         torrent,
-        requests: full.requests.filter((r) => r.torrentId === torrent.id),
-        activity,
-        files: full.files,
-        selections: full.selections,
+        requests: requests.filter((r) => r.torrentId === torrent.id),
+        episodePreferences: [...preferences.entries()].flatMap(([key, rule]) =>
+          rule.episodeTorrents
+            .filter((t) => t.release.infoHash === torrent.infoHash)
+            .map((t) => ({
+              userId: key.split('/')[0],
+              tmdbId: key.split('/')[1],
+              season: t.season,
+              episode: t.episode,
+            })),
+        ),
       }),
     ]),
   );
-  const attached = new Map(
-    [...demands.values()].flatMap((demand) =>
-      demand.attach.map((a) => [a.requestId, a.mediaFileId] as const),
-    ),
-  );
 
-  const statusOf = (request: DownloadsState['requests'][number]) => {
-    const of = activity.get(request.id);
+  const statusOf = (request: (typeof requests)[number]) => {
+    const of = request.activity;
     if (of === 'waiting') return PlannedStatus.WaitingForApproval;
     if (of === 'ahead') return PlannedStatus.InactiveAhead;
     if (of === 'watched') return PlannedStatus.InactiveWatched;
+    if (request.mediaFileId) return PlannedStatus.Available;
+    if (of === 'kept') return PlannedStatus.InactiveWatched;
 
     const demand = demands.get(request.torrentId)?.requests.get(request.id);
-    if (!demand) {
-      return of === 'kept'
-        ? PlannedStatus.InactiveWatched
-        : PlannedStatus.NoSelection;
-    }
+    if (!demand) return PlannedStatus.NoSelection;
 
     return {
       file: PlannedStatus.Available,
@@ -235,19 +289,15 @@ function plan(state: Partial<DownloadsState>) {
       wanted: PlannedStatus.Wanted,
     }[demand.kind];
   };
-  const held = heldFiles({
-    requests: full.requests,
-    activity,
-    infoHashes: new Map(full.torrents.map((t) => [t.id, t.infoHash])),
-    files: full.files,
-  });
+  const held = new Set(
+    requests
+      .filter((r) => HOLDING.includes(r.activity as never) && r.mediaFileId)
+      .map((r) => r.mediaFileId),
+  );
 
   return {
-    statuses: full.requests.map(statusOf),
-    references: full.requests.map((r) => [
-      r.torrentId,
-      r.mediaFileId ?? attached.get(r.id),
-    ]),
+    statuses: requests.map(statusOf),
+    references: requests.map((r) => [r.torrentId, r.mediaFileId]),
     torrent: (id: string) => {
       const torrent = full.torrents.find((t) => t.id === id);
       const demand = demands.get(id);
@@ -256,9 +306,7 @@ function plan(state: Partial<DownloadsState>) {
         torrentId: id,
         wanted: demand.wanted,
         needsFiles: demand.needsFiles,
-        referenced: [...full.requests, ...full.selections].some(
-          (r) => r.torrentId === id,
-        ),
+        referenced: requests.some((r) => r.torrentId === id),
         // A torrent that nothing wants and that has data keeps going to seed
         seeds:
           decideTorrent({
@@ -274,11 +322,12 @@ function plan(state: Partial<DownloadsState>) {
   };
 }
 
-describe('torrentDemand, evaluateActivity and heldFiles, as the planner of before', () => {
-  it('wants nothing from a torrent that is selected but not requested', () => {
+describe('torrentDemand and evaluateActivity, as the planner of before', () => {
+  it('wants nothing from a torrent that is preferred but not requested', () => {
     const { torrent } = plan({ selections: [selection('a', 0, 'pack')] });
 
-    expect(torrent('pack')).toMatchObject({ wanted: [], referenced: true });
+    // Only a request refers to a torrent
+    expect(torrent('pack')).toMatchObject({ wanted: [], referenced: false });
     expect(torrent('episode').referenced).toBe(false);
   });
 
@@ -465,9 +514,9 @@ describe('torrentDemand, evaluateActivity and heldFiles, as the planner of befor
         PlannedStatus.Available,
         PlannedStatus.InactiveAhead,
       ]);
-      // They are bound when they are made
+      // A request is bound once it is active
       expect(references).toEqual([
-        ['pack', undefined],
+        [undefined, undefined],
         ['pack', packE1.id],
         ['pack', undefined],
       ]);
@@ -491,7 +540,7 @@ describe('torrentDemand, evaluateActivity and heldFiles, as the planner of befor
 
     it('gives a request that a rule keeps only a file that is there', () => {
       const state = {
-        requests: [request('a', 1), request('a', 2)],
+        requests: [bound('a', 1, 'pack'), request('a', 2)],
         selections: [selection('a', 0, 'pack')],
         rules: [rule('a', { keepWatched: 1 })],
         playStates: [watched('a', 1)],

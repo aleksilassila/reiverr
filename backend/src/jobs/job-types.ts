@@ -6,8 +6,9 @@ import { MediaType } from '../common/common.dto.js';
  * dedupe key loses nothing.
  */
 export interface JobPayloads {
+  'title.reconcile': { mediaType: MediaType; tmdbId: string };
   'torrent.reconcile': { torrentId: string };
-  'torrent.import': { torrentId: string; fileIndex: number };
+  'file.import': { torrentId: string; fileIndex: number };
   'title.cleanup': { mediaType: MediaType; tmdbId: string };
   'library.cleanup': Record<string, never>;
   'title.sync': { mediaType: MediaType; tmdbId: string };
@@ -29,9 +30,12 @@ const same = (key: string): JobKeys => ({ dedupe: key, lock: key });
 export const JOB_KEYS: {
   [T in JobType]: (payload: JobPayloads[T]) => JobKeys;
 } = {
+  // The jobs of a title never overlap: binding, syncing and cleaning it up
+  'title.reconcile': ({ mediaType, tmdbId }) =>
+    same(`media:${mediaType}:${tmdbId}`),
   'torrent.reconcile': ({ torrentId }) => same(`torrent:${torrentId}`),
   // An import never overlaps a start, stop or discard of its torrent
-  'torrent.import': ({ torrentId, fileIndex }) => ({
+  'file.import': ({ torrentId, fileIndex }) => ({
     dedupe: `import:${torrentId}:${fileIndex}`,
     lock: `torrent:${torrentId}`,
   }),
