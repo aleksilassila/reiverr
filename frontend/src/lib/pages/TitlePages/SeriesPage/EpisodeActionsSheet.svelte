@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
+	import { createModal } from '$lib/components/Modal/modal.store';
 	import { Sheet } from '$lib/components/Sheet';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { getEpisodeRequestStatus, useSeriesContext } from '$lib/stores/data/series-data.store';
@@ -22,6 +24,9 @@
 	const episodesData = seriesData.episodesData ?? readable(undefined);
 
 	$: userData = $episodesData?.episodes.find((e) => e.season === season && e.episode === episode);
+	$: seasonEpisodes =
+		$episodesData?.episodes.filter((e) => e.season === season && !e.upcoming) ?? [];
+	$: seasonWatched = seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched);
 	$: status = getEpisodeRequestStatus($requests, season, episode);
 	$: onDisk = status.onDisk;
 
@@ -44,6 +49,23 @@
 		await seriesData.setEpisodeWatched?.(season, episode, watched);
 		componentStack.close();
 	}
+
+	/** The rules of the series act on what is watched, so the whole season asks first */
+	function confirmSeasonWatched(watched: boolean) {
+		const count = seasonEpisodes.length;
+		const episodes = `${count} ${count === 1 ? 'episode' : 'episodes'}`;
+
+		createModal(ConfirmDialog, {
+			header: `Mark season ${season} as ${watched ? 'watched' : 'unwatched'}?`,
+			body: watched
+				? `${episodes} will be marked as watched. The request rules of the series follow the watched state: the next episodes may start downloading, and watched episodes the rules do not keep are unrequested.`
+				: `${episodes} will be marked as unwatched. The request rules of the series follow the watched state: the episodes count as unwatched again for what is kept on disk and downloaded ahead.`,
+			confirm: async () => {
+				await seriesData.setSeasonWatched?.(season, watched);
+				componentStack.close();
+			}
+		});
+	}
 </script>
 
 <Sheet size="lg" on:close={() => componentStack.close()}>
@@ -62,6 +84,11 @@
 		{:else}
 			<Button icon={Check} action={() => setWatched(true)} focusOnMount={!onDisk}>
 				Mark as Watched
+			</Button>
+		{/if}
+		{#if seasonEpisodes.length}
+			<Button icon={Check} on:clickOrSelect={() => confirmSeasonWatched(!seasonWatched)}>
+				Mark Season as {seasonWatched ? 'Unwatched' : 'Watched'}
 			</Button>
 		{/if}
 	</Container>

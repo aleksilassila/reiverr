@@ -266,6 +266,19 @@ function useSeriesData(tmdbId: string) {
 		return invalidateData();
 	}
 
+	async function setSeasonWatched(season: number, watched: boolean) {
+		const userId = get(user)?.id;
+		if (!userId) return;
+
+		await reiverrApi.users.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
+			playStates: get(episodesData)
+				.episodes.filter((e) => e.season === season && !e.upcoming)
+				.map((e) => ({ season: e.season, episode: e.episode, watched }))
+		});
+
+		return invalidateData();
+	}
+
 	async function setInLibrary(state: boolean) {
 		const userId = get(user)?.id;
 
@@ -310,6 +323,7 @@ function useSeriesData(tmdbId: string) {
 		setInLibrary,
 		setRequested,
 		setEpisodeWatched,
+		setSeasonWatched,
 		setWatched,
 		episodesData,
 		setStale,
