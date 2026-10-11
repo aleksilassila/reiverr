@@ -46,13 +46,15 @@ export class LocalMediaController {
     @Body() settings: LocalMediaSettingsDto,
     @Query('force') force?: string,
   ): Promise<LocalMediaSettingsDto> {
-    return this.localMediaService.updateSettings(settings, force === 'true');
+    return this.localMediaService.updateSettings(settings, {
+      forgetFiles: force === 'true',
+    });
   }
 
   @Get('movies/:tmdbId')
   @ApiOkResponse({ type: [LocalMediaFileDto] })
   getMovieFiles(@Param('tmdbId') tmdbId: string): Promise<LocalMediaFileDto[]> {
-    return this.localMediaService.getMovieFiles(tmdbId);
+    return this.localMediaService.listMovieFiles(tmdbId);
   }
 
   @Get('series/:tmdbId')
@@ -60,7 +62,7 @@ export class LocalMediaController {
   getSeriesFiles(
     @Param('tmdbId') tmdbId: string,
   ): Promise<LocalEpisodeFileDto[]> {
-    return this.localMediaService.getSeriesFiles(tmdbId);
+    return this.localMediaService.listSeriesFiles(tmdbId);
   }
 
   @Get('series/:tmdbId/seasons/:season/episodes/:episode')
@@ -70,7 +72,7 @@ export class LocalMediaController {
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<LocalEpisodeFileDto[]> {
-    return this.localMediaService.getEpisodeFiles(tmdbId, season, episode);
+    return this.localMediaService.listEpisodeFiles(tmdbId, season, episode);
   }
 
   @Get('files/:id/subtitles/:fileName')
@@ -93,7 +95,7 @@ export class LocalMediaController {
       'The video file. Supports range requests; pass the token as the reiverr_token query parameter.',
   })
   async streamFile(@Param('id') id: string, @Res() res: Response) {
-    const filePath = await this.localMediaService.resolveFilePath(id);
+    const filePath = await this.localMediaService.getStreamPath(id);
     res.sendFile(filePath);
   }
 }

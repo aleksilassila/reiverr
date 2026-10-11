@@ -1,6 +1,6 @@
 import {
   episodeFileName,
-  folderMatchesTarget,
+  folderMatchesTitle,
   isInsideFolder,
   normalizeTitle,
   parseEpisodeNumbers,
@@ -57,7 +57,7 @@ describe('parseMediaFolderName', () => {
   });
 });
 
-describe('folderMatchesTarget', () => {
+describe('folderMatchesTitle', () => {
   const target = {
     tmdbId: '123',
     imdbId: 'tt0123',
@@ -66,34 +66,34 @@ describe('folderMatchesTarget', () => {
   };
 
   it('trusts id tags over the title', () => {
-    expect(folderMatchesTarget({ title: 'other', tmdbId: '123' }, target)).toBe(
+    expect(folderMatchesTitle({ title: 'other', tmdbId: '123' }, target)).toBe(
       true,
     );
     expect(
-      folderMatchesTarget({ title: 'themovie', tmdbId: '999' }, target),
+      folderMatchesTitle({ title: 'themovie', tmdbId: '999' }, target),
     ).toBe(false);
     expect(
-      folderMatchesTarget({ title: 'other', imdbId: 'tt0123' }, target),
+      folderMatchesTitle({ title: 'other', imdbId: 'tt0123' }, target),
     ).toBe(true);
   });
 
   it('matches any of the titles with an agreeing year', () => {
-    expect(folderMatchesTarget({ title: 'lefilm', year: 2010 }, target)).toBe(
+    expect(folderMatchesTitle({ title: 'lefilm', year: 2010 }, target)).toBe(
       true,
     );
-    expect(folderMatchesTarget({ title: 'themovie' }, target)).toBe(true);
-    expect(folderMatchesTarget({ title: 'themovie', year: 1982 }, target)).toBe(
+    expect(folderMatchesTitle({ title: 'themovie' }, target)).toBe(true);
+    expect(folderMatchesTitle({ title: 'themovie', year: 1982 }, target)).toBe(
       false,
     );
-    expect(folderMatchesTarget({ title: 'another', year: 2010 }, target)).toBe(
+    expect(folderMatchesTitle({ title: 'another', year: 2010 }, target)).toBe(
       false,
     );
   });
 
   it('never matches an empty title', () => {
-    expect(
-      folderMatchesTarget({ title: '' }, { ...target, titles: [''] }),
-    ).toBe(false);
+    expect(folderMatchesTitle({ title: '' }, { ...target, titles: [''] })).toBe(
+      false,
+    );
   });
 });
 
@@ -166,7 +166,7 @@ describe('import naming', () => {
 
     expect(name).toBe('Title Part 2 (2020) [tmdbid-123]');
     expect(
-      folderMatchesTarget(parseMediaFolderName(name), {
+      folderMatchesTitle(parseMediaFolderName(name), {
         tmdbId: '123',
         titles: [normalizeTitle('Something else')],
       }),

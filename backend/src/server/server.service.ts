@@ -48,7 +48,9 @@ export class ServerService {
   }
 
   scanLibrary(folder: string, force: boolean): Promise<LibraryScanDto> {
-    return this.localMediaService.scanFolder(folder, { force });
+    return this.localMediaService.scanFolder(folder, {
+      evenIfUnavailable: force,
+    });
   }
 
   deleteLibraryEntries(

@@ -39,7 +39,7 @@ export interface ParsedMediaFolderName {
   tvdbId?: string;
 }
 
-export interface MediaMatchTarget {
+export interface TitleMatch {
   titles: string[];
   year?: number;
   tmdbId: string;
@@ -148,21 +148,21 @@ export function parseMediaFolderName(name: string): ParsedMediaFolderName {
  * An id tag in the folder name is authoritative; without one the normalized
  * title has to match and the years, when both are known, have to agree.
  */
-export function folderMatchesTarget(
+export function folderMatchesTitle(
   folder: Omit<ParsedMediaFolderName, 'name'>,
-  target: MediaMatchTarget,
+  match: TitleMatch,
 ): boolean {
-  if (folder.tmdbId) return folder.tmdbId === target.tmdbId;
-  if (folder.imdbId && target.imdbId)
-    return folder.imdbId === target.imdbId.toLowerCase();
-  if (folder.tvdbId && target.tvdbId) return folder.tvdbId === target.tvdbId;
+  if (folder.tmdbId) return folder.tmdbId === match.tmdbId;
+  if (folder.imdbId && match.imdbId)
+    return folder.imdbId === match.imdbId.toLowerCase();
+  if (folder.tvdbId && match.tvdbId) return folder.tvdbId === match.tvdbId;
 
-  if (!folder.title || !target.titles.includes(folder.title)) return false;
+  if (!folder.title || !match.titles.includes(folder.title)) return false;
 
   return (
     folder.year === undefined ||
-    target.year === undefined ||
-    folder.year === target.year
+    match.year === undefined ||
+    folder.year === match.year
   );
 }
 
@@ -238,3 +238,10 @@ export function isInsideFolder(filePath: string, folder: string): boolean {
     relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)
   );
 }
+
+/** "EACCES: permission denied", without the system call and the path */
+export const describeError = (error: Error) => error.message.split(',')[0];
+
+/** A path in a library folder as the API gives it, with / between the names */
+export const relativePath = (folder: string, entryPath: string) =>
+  path.relative(folder, entryPath).split(path.sep).join('/');
