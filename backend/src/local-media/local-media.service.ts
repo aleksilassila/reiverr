@@ -112,8 +112,8 @@ type IndexableFile = FoundFile & FileTarget & { tmdbId: string };
  */
 export class LibraryUnavailableError extends ServiceUnavailableException {}
 
-// How soon a title that is looked at is synced with the disk
-const SYNC_DELAY = 30_000;
+// How soon a title that is looked at is scanned
+const SCAN_DELAY = 30_000;
 
 /** Whether a file is still the one that was imported, as its row has it */
 export const isStillImported = (
@@ -151,12 +151,12 @@ export class LocalMediaService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.jobs.define('title.sync', {
+    this.jobs.define('localMedia.scanTitle', {
       dropAtRestart: true,
-      run: ({ mediaType, tmdbId }) => this.syncTitle(mediaType, tmdbId),
+      run: ({ mediaType, tmdbId }) => this.scanTitle(mediaType, tmdbId),
     });
     // A scan that did not run at 04:00 waits for the next one
-    this.jobs.define('library.scan', {
+    this.jobs.define('localMedia.scanFolder', {
       dropAtRestart: true,
       run: ({ folder }) => this.scanAtNight(folder),
     });
@@ -212,14 +212,14 @@ export class LocalMediaService implements OnModuleInit {
 
     const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
     // Imports that wait for a folder that was missing or unreadable
-    await this.jobs.runNow(this.em, 'file.import');
+    await this.jobs.runNow(this.em, 'localMedia.importTorrentFile');
 
     return saved;
   }
 
   /**
-   * The indexed files of a movie that are on disk, as of the last sync of the
-   * title. Asks for a sync, at once when a file is missing.
+   * The indexed files of a movie that are on disk, as of the last scan of the
+   * title. Asks for a scan, at once when a file is missing.
    */
   async getMovieFiles(tmdbId: string): Promise<LocalMediaFileDto[]> {
     const files = await this.readIndexedFiles(MediaType.Movie, tmdbId);
@@ -234,7 +234,7 @@ export class LocalMediaService implements OnModuleInit {
 
   /**
    * The indexed episode files of a series that are on disk, as of the last
-   * sync of the title. Asks for a sync, at once when a file is missing.
+   * scan of the title. Asks for a scan, at once when a file is missing.
    */
   async getSeriesFiles(tmdbId: string): Promise<LocalEpisodeFileDto[]> {
     const files = await this.readIndexedFiles(MediaType.Series, tmdbId);
@@ -265,17 +265,17 @@ export class LocalMediaService implements OnModuleInit {
     const files = (await this.getSeriesFiles(tmdbId)).filter(
       (file) => file.season === season && file.episodes.includes(episode),
     );
-    // A file that was put into the library by hand is indexed by a sync
-    if (!files.length) await this.requestSync(MediaType.Series, tmdbId, 0);
+    // A file that was put into the library by hand is indexed by a scan
+    if (!files.length) await this.requestScan(MediaType.Series, tmdbId, 0);
 
     return files;
   }
 
   /**
    * Brings the index of a title in line with what is in its title folders:
-   * the job `title.sync`
+   * the job `localMedia.scanTitle`
    */
-  async syncTitle(mediaType: MediaType, tmdbId: string): Promise<void> {
+  async scanTitle(mediaType: MediaType, tmdbId: string): Promise<void> {
     const { movieFolders, seriesFolders } = await this.getSettings();
 
     if (mediaType === MediaType.Movie) {
@@ -375,19 +375,19 @@ export class LocalMediaService implements OnModuleInit {
       });
     }
 
-    await this.requestSync(mediaType, tmdbId, isAnyMissing ? 0 : SYNC_DELAY);
+    await this.requestScan(mediaType, tmdbId, isAnyMissing ? 0 : SCAN_DELAY);
 
     return files;
   }
 
   /**
-   * Queues a sync of a title. The queued one keeps the earlier time, so a
-   * title that is looked at all the time is synced once per delay.
+   * Queues a scan of a title. The queued one keeps the earlier time, so a
+   * title that is looked at all the time is scanned once per delay.
    */
-  private requestSync(mediaType: MediaType, tmdbId: string, delay: number) {
+  private requestScan(mediaType: MediaType, tmdbId: string, delay: number) {
     return this.jobs.enqueue(
       this.em,
-      'title.sync',
+      'localMedia.scanTitle',
       { mediaType, tmdbId },
       { runAt: new Date(Date.now() + delay) },
     );
@@ -474,7 +474,7 @@ export class LocalMediaService implements OnModuleInit {
         managed: true,
         createdAt: new Date(),
       })
-      // A sync or scan of the series can have indexed the file already
+      // A scan of the series or of its folder can have indexed the file already
       .onConflict('path')
       .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
       .execute();
@@ -537,7 +537,7 @@ export class LocalMediaService implements OnModuleInit {
     );
   }
 
-  /** The indexed files of a title, as of its last sync or scan */
+  /** The indexed files of a title, as of its last scan */
   findIndexedFiles(mediaType: MediaType, tmdbId: string): Promise<MediaFile[]> {
     return this.em.find(
       MediaFile,
@@ -789,9 +789,9 @@ export class LocalMediaService implements OnModuleInit {
   }
 
   /**
-   * The nightly scan of a library folder: the job `library.scan`. A folder
-   * that is not available is left as it is and the failure is logged: it is
-   * only scanned by hand.
+   * The nightly scan of a library folder: the job `localMedia.scanFolder`. A
+   * folder that is not available is left as it is and the failure is logged:
+   * it is only scanned by hand.
    */
   private async scanAtNight(folder: string): Promise<void> {
     const { movieFolders, seriesFolders } = await this.getSettings();
@@ -887,7 +887,7 @@ export class LocalMediaService implements OnModuleInit {
           ).map((file) => file.id),
         );
         // The caller acts on every file that is gone, also one whose row a
-        // sync or a scan forgot while the rm ran
+        // scan forgot while the rm ran
         if (gone.length) await forget(tx, gone);
         const forgotten = gone.filter((file) => present.has(file.id));
         if (forgotten.length) {
@@ -1178,7 +1178,7 @@ export class LocalMediaService implements OnModuleInit {
       ]),
     );
     for (const title of titles.values()) {
-      await this.jobs.enqueue(em, 'title.reconcile', title);
+      await this.jobs.enqueue(em, 'downloads.reconcileTitle', title);
     }
   }
 

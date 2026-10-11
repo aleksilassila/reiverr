@@ -169,7 +169,10 @@ export class TorrentRuntime
     });
     handle.onFileComplete((fileIndex) => {
       if (!isCurrent()) return;
-      this.enqueue('file.import', { torrentId: torrent.id, fileIndex });
+      this.enqueue('localMedia.importTorrentFile', {
+        torrentId: torrent.id,
+        fileIndex,
+      });
     });
   }
 
@@ -284,11 +287,11 @@ export class TorrentRuntime
   }
 
   private reconcileLater(torrentId: string) {
-    this.enqueue('torrent.reconcile', { torrentId });
+    this.enqueue('downloads.reconcileTorrent', { torrentId });
   }
 
   private enqueue(
-    type: 'torrent.reconcile' | 'file.import',
+    type: 'downloads.reconcileTorrent' | 'localMedia.importTorrentFile',
     payload: { torrentId: string; fileIndex?: number },
   ) {
     if (this.stopping) return;

@@ -889,7 +889,7 @@ describe('Series downloads (e2e)', () => {
     renameSync(dirs.library, disk);
     mkdirSync(dirs.library);
 
-    // The status is as of the last sync, playing fails
+    // The status is as of the last scan, playing fails
     expect(statuses(await getDownloads(viewer))).toEqual(before);
     const { body } = await api(
       'get',
@@ -969,7 +969,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('answers a request before the torrents are brought in line', async () => {
-    const resume = app.get(JobsService).pause('torrent.reconcile');
+    const resume = app.get(JobsService).pause('downloads.reconcileTorrent');
 
     await setRequested([1], true, { season: 2 });
     expect(statuses(await getDownloads())).toContainEqual([
@@ -984,15 +984,15 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('queues one reconciliation of a title for the changes that arrive before it runs', async () => {
-    const resume = app.get(JobsService).pause('title.reconcile');
+    const resume = app.get(JobsService).pause('downloads.reconcileTitle');
 
     for (const requested of [true, false, true]) {
       await setRequested([1], requested, { season: 2 });
     }
-    const queued = await app
-      .get(MikroORM)
-      .em.fork()
-      .find(Job, { type: 'title.reconcile', status: JobStatus.Queued });
+    const queued = await app.get(MikroORM).em.fork().find(Job, {
+      type: 'downloads.reconcileTitle',
+      status: JobStatus.Queued,
+    });
 
     expect(queued).toHaveLength(1);
     resume();

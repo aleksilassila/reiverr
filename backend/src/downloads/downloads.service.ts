@@ -60,8 +60,8 @@ import { Torrent } from './torrent.entity.js';
 
 const READ = { disableIdentityMap: true };
 
-// How soon the index of a series that is looked at is brought in line with the disk
-const SYNC_DELAY = 30_000;
+// How soon a series that is looked at is scanned
+const SCAN_DELAY = 30_000;
 
 const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
 
@@ -109,11 +109,11 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   ) {}
 
   onModuleInit() {
-    this.jobs.define('title.reconcile', {
+    this.jobs.define('downloads.reconcileTitle', {
       retry: true,
       run: (payload, context) => this.reconcileTitle(payload, context),
     });
-    this.jobs.define('torrent.reconcile', {
+    this.jobs.define('downloads.reconcileTorrent', {
       concurrency: 2,
       retry: true,
       run: ({ torrentId }, context) =>
@@ -167,9 +167,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     // The index of the series is brought in line with the disk soon
     await this.jobs.enqueue(
       this.em,
-      'title.sync',
+      'localMedia.scanTitle',
       { mediaType: MediaType.Series, tmdbId },
-      { runAt: new Date(Date.now() + SYNC_DELAY) },
+      { runAt: new Date(Date.now() + SCAN_DELAY) },
     );
     const { cleanup } = await this.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
@@ -265,7 +265,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       );
       if (!affected) throw new NotFoundException('Torrent not found');
 
-      await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId });
+      await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', { torrentId });
     });
   }
 
@@ -315,7 +315,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     if (file.mediaType === MediaType.Series) {
       await this.attachVersions(tx, file.tmdbId);
     }
-    await this.jobs.enqueue(tx, 'torrent.reconcile', {
+    await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', {
       torrentId: file.torrentId,
     });
   }
@@ -355,7 +355,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
    * title decide again, with the ones that no request refers to any more
    */
   private async reconcileTitle(
-    { mediaType, tmdbId }: JobPayloads['title.reconcile'],
+    { mediaType, tmdbId }: JobPayloads['downloads.reconcileTitle'],
     context: JobContext,
   ): Promise<void> {
     if (mediaType !== MediaType.Series) return;
@@ -401,7 +401,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         [tmdbId],
       );
       for (const { id } of torrents) {
-        await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId: id });
+        await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', {
+          torrentId: id,
+        });
       }
 
       // A request whose torrent could not be resolved is tried again
@@ -418,7 +420,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       if (next) {
         await this.jobs.enqueue(
           tx,
-          'title.reconcile',
+          'downloads.reconcileTitle',
           { mediaType, tmdbId },
           { runAt: next.retryAt },
         );
@@ -622,7 +624,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         );
         await this.jobs.enqueue(
           tx,
-          'torrent.reconcile',
+          'downloads.reconcileTorrent',
           { torrentId },
           { runAt: decision.retryAt },
         );
@@ -630,7 +632,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       case 'backoff':
         await this.jobs.enqueue(
           tx,
-          'torrent.reconcile',
+          'downloads.reconcileTorrent',
           { torrentId },
           { runAt: decision.retryAt },
         );
@@ -644,7 +646,10 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
           );
         }
         for (const fileIndex of decision.imports) {
-          await this.jobs.enqueue(tx, 'file.import', { torrentId, fileIndex });
+          await this.jobs.enqueue(tx, 'localMedia.importTorrentFile', {
+            torrentId,
+            fileIndex,
+          });
         }
         break;
     }
@@ -926,7 +931,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     await em.transactional(async (tx) => {
       const torrents = await tx.find(Torrent, {}, { ...READ, fields: ['id'] });
       for (const { id } of torrents) {
-        await this.jobs.enqueue(tx, 'torrent.reconcile', { torrentId: id });
+        await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', {
+          torrentId: id,
+        });
       }
     });
   }

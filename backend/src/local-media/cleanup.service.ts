@@ -9,6 +9,7 @@ import { Cron } from '@nestjs/schedule';
 import { MediaType } from '../common/common.dto.js';
 import { CLEANUP_HOUR, isCleanupDay } from '../downloads/cleanup.utils.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
+import { JobPayloads } from '../jobs/job-types.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
@@ -37,13 +38,13 @@ export class CleanupService implements OnModuleInit {
 
   onModuleInit() {
     // A cleanup that did not run at 04:00 waits for the next one
-    this.jobs.define('library.cleanup', {
+    this.jobs.define('localMedia.cleanUpLibrary', {
       dropAtRestart: true,
-      run: (payload, { em }) => this.enqueueTitleCleanups(em),
+      run: (payload, { em }) => this.cleanUpLibrary(em),
     });
-    this.jobs.define('title.cleanup', {
+    this.jobs.define('localMedia.cleanUpTitle', {
       dropAtRestart: true,
-      run: ({ tmdbId }) => this.cleanUpSeries(tmdbId),
+      run: (payload) => this.cleanUpTitle(payload),
     });
   }
 
@@ -60,16 +61,18 @@ export class CleanupService implements OnModuleInit {
 
     await this.em.fork().transactional(async (tx) => {
       for (const folder of [...seriesFolders, ...movieFolders]) {
-        await this.jobs.enqueue(tx, 'library.scan', { folder });
+        await this.jobs.enqueue(tx, 'localMedia.scanFolder', { folder });
       }
-      if (isCleanup) await this.jobs.enqueue(tx, 'library.cleanup', {});
+      if (isCleanup) {
+        await this.jobs.enqueue(tx, 'localMedia.cleanUpLibrary', {});
+      }
     });
   }
 
   /**
    * Deletes what an admin selected in a library folder, and with it the
    * requests that have the deleted files, which would download them again.
-   * The requests are read before anything is deleted, so that a sync that
+   * The requests are read before anything is deleted, so that a scan that
    * forgets the rows meanwhile does not keep them.
    */
   async deleteLibraryEntries(
@@ -101,14 +104,14 @@ export class CleanupService implements OnModuleInit {
     return { deleted, failed };
   }
 
-  private async enqueueTitleCleanups(em: EntityManager): Promise<void> {
+  private async cleanUpLibrary(em: EntityManager): Promise<void> {
     const titles = await this.localMediaService.findTitlesWithManagedFiles(
       MediaType.Series,
     );
 
     await em.transactional(async (tx) => {
       for (const tmdbId of titles) {
-        await this.jobs.enqueue(tx, 'title.cleanup', {
+        await this.jobs.enqueue(tx, 'localMedia.cleanUpTitle', {
           mediaType: MediaType.Series,
           tmdbId,
         });
@@ -117,13 +120,16 @@ export class CleanupService implements OnModuleInit {
   }
 
   /**
-   * Deletes the imported files of a series that no request refers to. A file
+   * Deletes the imported files of a title that no request refers to. A file
    * that cannot be deleted is left for the next cleanup.
    */
-  private async cleanUpSeries(tmdbId: string): Promise<void> {
+  private async cleanUpTitle({
+    mediaType,
+    tmdbId,
+  }: JobPayloads['localMedia.cleanUpTitle']): Promise<void> {
     const files = await this.em.find(
       MediaFile,
-      { mediaType: MediaType.Series, tmdbId, managed: true },
+      { mediaType, tmdbId, managed: true },
       READ,
     );
     const held = new Set(
@@ -144,8 +150,8 @@ export class CleanupService implements OnModuleInit {
       await this.localMediaService
         .deleteManagedFile(file.id, 'no request holds it', (tx) =>
           // A request that referred to it downloads it again
-          this.jobs.enqueue(tx, 'title.reconcile', {
-            mediaType: MediaType.Series,
+          this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
+            mediaType,
             tmdbId,
           }),
         )

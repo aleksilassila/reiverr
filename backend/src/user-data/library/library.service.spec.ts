@@ -72,7 +72,7 @@ describe('LibraryService', () => {
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
-      { evaluate: async () => {} } as unknown as RequestsService,
+      { applyRules: async () => {} } as unknown as RequestsService,
     );
     library = new LibraryService(
       libraryItems,

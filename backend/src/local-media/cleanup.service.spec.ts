@@ -47,9 +47,9 @@ describe('CleanupService', () => {
     await cleanupService.onCleanupHour();
 
     expect(await queued()).toEqual([
-      ['library.scan', { folder: '/anime' }],
-      ['library.scan', { folder: '/movies' }],
-      ['library.scan', { folder: '/tv' }],
+      ['localMedia.scanFolder', { folder: '/anime' }],
+      ['localMedia.scanFolder', { folder: '/movies' }],
+      ['localMedia.scanFolder', { folder: '/tv' }],
     ]);
 
     // The scans that have not run yet are not queued twice
@@ -57,10 +57,10 @@ describe('CleanupService', () => {
     await cleanupService.onCleanupHour();
 
     expect(await queued()).toEqual([
-      ['library.cleanup', {}],
-      ['library.scan', { folder: '/anime' }],
-      ['library.scan', { folder: '/movies' }],
-      ['library.scan', { folder: '/tv' }],
+      ['localMedia.cleanUpLibrary', {}],
+      ['localMedia.scanFolder', { folder: '/anime' }],
+      ['localMedia.scanFolder', { folder: '/movies' }],
+      ['localMedia.scanFolder', { folder: '/tv' }],
     ]);
   });
 });

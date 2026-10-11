@@ -220,7 +220,7 @@ export class PlayStatesService {
     userId: string,
     tmdbId: string,
   ) {
-    return this.requestsService.evaluate(em, [
+    return this.requestsService.applyRules(em, [
       { userId, mediaType: MediaType.Series, tmdbId },
     ]);
   }

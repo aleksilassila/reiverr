@@ -61,7 +61,7 @@ describe('LocalMediaService', () => {
   /** The titles whose reconciliation was queued */
   const reconciled = () =>
     jobs.enqueue.mock.calls
-      .filter((call: unknown[]) => call[1] === 'title.reconcile')
+      .filter((call: unknown[]) => call[1] === 'downloads.reconcileTitle')
       .map((call: unknown[]) => call[2]);
   const tmdb = {
     searchTitles: vi.fn(),
@@ -77,9 +77,9 @@ describe('LocalMediaService', () => {
       }),
     );
 
-  /** A sync of the series, which the job does, and what is on disk then */
+  /** A scan of the series, which the job does, and what is on disk then */
   const getSeriesFiles = async (tmdbId = TMDB_ID) => {
-    await request(() => localMedia.syncTitle(MediaType.Series, tmdbId));
+    await request(() => localMedia.scanTitle(MediaType.Series, tmdbId));
 
     return request(() => localMedia.getSeriesFiles(tmdbId));
   };
@@ -263,7 +263,7 @@ describe('LocalMediaService', () => {
     expect((now as { runAt: Date }).runAt.getTime()).toBeLessThan(
       soon + 20_000,
     );
-    // The row stays until the sync
+    // The row stays until the scan
     expect(await indexed()).toHaveLength(1);
   });
 
@@ -279,7 +279,7 @@ describe('LocalMediaService', () => {
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
     // The file found next to it stays as it is, and both play as the episode
-    await request(() => localMedia.syncTitle(MediaType.Series, TMDB_ID));
+    await request(() => localMedia.scanTitle(MediaType.Series, TMDB_ID));
     const files = await request(() =>
       localMedia.getEpisodeFiles(TMDB_ID, 1, 2),
     );
@@ -629,7 +629,7 @@ describe('LocalMediaService', () => {
       jobs.define.mockClear();
       localMedia.onModuleInit();
       const [, job] = jobs.define.mock.calls.find(
-        ([type]) => type === 'library.scan',
+        ([type]) => type === 'localMedia.scanFolder',
       );
       const runJob = (folder = library) =>
         request(() => job.run({ folder }, undefined));
@@ -769,7 +769,7 @@ describe('LocalMediaService', () => {
       await getSeriesFiles();
       const [row] = await indexed();
       const rm = fsPromises.rm;
-      // A sync of the title forgets the row while the entry is deleted
+      // A scan of the title forgets the row while the entry is deleted
       vi.spyOn(fsPromises, 'rm').mockImplementationOnce(async (...args) => {
         await rm(...args);
         await orm.em.fork().nativeDelete(MediaFile, { id: row.id });

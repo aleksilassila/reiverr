@@ -106,7 +106,7 @@ describe('RequestsService', () => {
       });
     }
     await em.transactional((tx) =>
-      requests.evaluate(tx, [
+      requests.applyRules(tx, [
         { userId, mediaType: MediaType.Series, tmdbId: SERIES },
       ]),
     );
@@ -180,7 +180,7 @@ describe('RequestsService', () => {
 
   const queuedTitles = () =>
     orm.em.fork().count(Job, {
-      type: 'title.reconcile',
+      type: 'downloads.reconcileTitle',
       status: JobStatus.Queued,
     });
 
@@ -409,7 +409,7 @@ describe('RequestsService', () => {
     expect(await rule()).toBeNull();
   });
 
-  it('deletes the requests of files and evaluates the rest of their pairs', async () => {
+  it('deletes the requests of files and applies the rules to the rest of their pairs', async () => {
     await setRule({ keepNext: 1 });
     await requestEpisodes([1, 2, 3]);
     await addTorrent('pack', PACK);

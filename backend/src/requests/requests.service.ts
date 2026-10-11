@@ -92,16 +92,16 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /** The rules can be behind after a restart or a migration */
   onApplicationBootstrap(): Promise<void> {
-    return this.evaluateAll();
+    return this.applyRulesToAll();
   }
 
   /**
    * Applies the rules to the requests of (user, title) pairs after a change
    * of what they go by, and has the titles reconciled. Runs in the caller's
    * transaction. A rule looks at all the requests of its user for the title,
-   * so a pair is evaluated whole.
+   * so the rules are applied to a pair whole.
    */
-  async evaluate(em: EntityManager, pairs: Pair[]): Promise<void> {
+  async applyRules(em: EntityManager, pairs: Pair[]): Promise<void> {
     const unique = uniquePairs(pairs);
     if (!unique.length) return;
 
@@ -169,7 +169,7 @@ export class RequestsService implements OnApplicationBootstrap {
         .map(({ mediaType, tmdbId }) => [tmdbId, { mediaType, tmdbId }]),
     );
     for (const title of titles.values()) {
-      await this.jobs.enqueue(em, 'title.reconcile', title);
+      await this.jobs.enqueue(em, 'downloads.reconcileTitle', title);
     }
   }
 
@@ -178,7 +178,7 @@ export class RequestsService implements OnApplicationBootstrap {
    * by the morning: before the cleanup hour
    */
   @Cron('50 3 * * *')
-  async evaluateAll(): Promise<void> {
+  async applyRulesToAll(): Promise<void> {
     await this.em.fork().transactional(async (tx) => {
       const rows: {
         user_id: string;
@@ -187,7 +187,7 @@ export class RequestsService implements OnApplicationBootstrap {
       }[] = await tx.execute(
         'select distinct user_id, media_type, tmdb_id from request',
       );
-      await this.evaluate(
+      await this.applyRules(
         tx,
         rows.map((row) => ({
           userId: row.user_id,
@@ -257,7 +257,9 @@ export class RequestsService implements OnApplicationBootstrap {
         .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
         .ignore()
         .execute('run');
-      await this.evaluate(tx, [{ userId, mediaType: MediaType.Movie, tmdbId }]);
+      await this.applyRules(tx, [
+        { userId, mediaType: MediaType.Movie, tmdbId },
+      ]);
     });
 
     return this.findMovieRequest(userId, tmdbId);
@@ -332,7 +334,7 @@ export class RequestsService implements OnApplicationBootstrap {
             $or: episodes.map(({ season, episode }) => ({ season, episode })),
           });
         }
-        await this.evaluate(tx, [
+        await this.applyRules(tx, [
           { userId, mediaType: MediaType.Series, tmdbId },
         ]);
       });
@@ -369,7 +371,7 @@ export class RequestsService implements OnApplicationBootstrap {
         keepWatched,
         keepWatchedHours,
       });
-      await this.evaluate(tx, [
+      await this.applyRules(tx, [
         { userId, mediaType: MediaType.Series, tmdbId },
       ]);
     });
@@ -430,7 +432,7 @@ export class RequestsService implements OnApplicationBootstrap {
         replaceHeld: episode !== 0,
         infoHash: source.infoHash,
       });
-      await this.jobs.enqueue(tx, 'title.reconcile', {
+      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
         mediaType: MediaType.Series,
         tmdbId,
       });
@@ -460,7 +462,7 @@ export class RequestsService implements OnApplicationBootstrap {
 
       await this.writeRule(tx, { ...rule, seasonTorrents, episodeTorrents });
       await this.rebind(tx, target, { episodeTorrents, replaceHeld: false });
-      await this.jobs.enqueue(tx, 'title.reconcile', {
+      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
         mediaType: MediaType.Series,
         tmdbId,
       });
@@ -484,7 +486,7 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /**
    * Deletes requests by id or by the file they refer to, in the caller's
-   * transaction, and evaluates the rest of their pairs
+   * transaction, and applies the rules to the rest of their pairs
    */
   async deleteRequests(
     em: EntityManager,
@@ -503,7 +505,7 @@ export class RequestsService implements OnApplicationBootstrap {
     await em.nativeDelete(MediaRequest, {
       id: { $in: requests.map((request) => request.id) },
     });
-    await this.evaluate(em, requests.map(pairOf));
+    await this.applyRules(em, requests.map(pairOf));
 
     return requests.length;
   }
@@ -519,7 +521,7 @@ export class RequestsService implements OnApplicationBootstrap {
       { ...READ, fields: ['tmdbId'] },
     );
     for (const tmdbId of new Set(requests.map((request) => request.tmdbId))) {
-      await this.jobs.enqueue(em, 'title.reconcile', {
+      await this.jobs.enqueue(em, 'downloads.reconcileTitle', {
         mediaType: MediaType.Series,
         tmdbId,
       });
@@ -574,7 +576,7 @@ export class RequestsService implements OnApplicationBootstrap {
         { id },
         { approved: update.approved, updatedAt: new Date() },
       );
-      await this.evaluate(tx, [pairOf(request)]);
+      await this.applyRules(tx, [pairOf(request)]);
     });
 
     return this.findById(id);
