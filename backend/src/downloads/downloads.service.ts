@@ -21,7 +21,6 @@ import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { parseEpisodeNumbers } from '../local-media/local-media.utils.js';
 import { MediaFile } from '../local-media/media-file.entity.js';
-import { HOLDING } from '../requests/request-activity.js';
 import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import {
@@ -90,9 +89,9 @@ export interface ImportTarget {
 }
 
 /**
- * Downloads what the active requests want. The job of a title binds its
- * active requests that have no file to the torrent their user prefers and
- * hands out the files that are in the library already; the job of a torrent
+ * Downloads what the requests want. The job of a title binds its activated
+ * requests that have no file to the torrent their user prefers and hands
+ * out the files that are in the library already; the job of a torrent
  * decides what the torrent does from the requests bound to it. A finished
  * file is imported by local media, which asks for it here.
  */
@@ -179,11 +178,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     const byHash = new Map(
       [...torrents.values()].map((torrent) => [torrent.infoHash, torrent]),
     );
-    const held = new Set(
-      requests
-        .filter((request) => HOLDING.includes(request.activity))
-        .flatMap((request) => request.mediaFileId ?? []),
-    );
+    const held = new Set(requests.flatMap((r) => r.mediaFileId ?? []));
     const filesOf = (e: EpisodeRefDto) =>
       files.filter(
         (file) =>
@@ -310,7 +305,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Gives an imported file to the holding requests of its torrent, in the
+   * Gives an imported file to the requests of its torrent, in the
    * transaction that indexed it, and has the torrent decide again
    */
   async fileImported(
@@ -354,8 +349,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Binds the active requests of a title that have no file and no torrent to
-   * the torrent their user prefers, gives the holding requests the files of
+   * Binds the activated requests of a title that have no file and no torrent
+   * to the torrent their user prefers, gives the bound requests the files of
    * their torrents that are in the library, and has every torrent of the
    * title decide again, with the ones that no request refers to any more
    */
@@ -366,16 +361,17 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     if (mediaType !== MediaType.Series) return;
 
     const now = new Date();
-    const { unbound, known } = await context.em.transactional((tx) =>
-      this.readUnbound(tx, tmdbId, now),
+    const { unbound, known: knownHashes } = await context.em.transactional(
+      (tx) => this.readUnbound(tx, tmdbId, now),
     );
     // Resolving fetches .torrent files, outside any transaction
-    const resolved = new Map<string, TorrentSource | Error>();
+    const resolvedTorrentSources = new Map<string, TorrentSource | Error>();
     for (const { release } of unbound) {
       const key = releaseKey(release);
-      if (resolved.has(key) || known.has(release.infoHash)) continue;
+      if (resolvedTorrentSources.has(key) || knownHashes.has(release.infoHash))
+        continue;
 
-      resolved.set(
+      resolvedTorrentSources.set(
         key,
         await this.indexersService
           .resolveTorrent(release)
@@ -389,7 +385,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
           tx,
           request,
           release,
-          resolved.get(releaseKey(release)),
+          resolvedTorrentSources.get(releaseKey(release)),
           now,
         );
       }
@@ -430,14 +426,15 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     });
   }
 
-  /** The active requests of a series without a file or a torrent, with what their user prefers */
+  /** The activated requests of a series without a file or a torrent, with what their user prefers */
   private async readUnbound(tx: EntityManager, tmdbId: string, now: Date) {
     const requests = await tx.find(
       MediaRequest,
       {
         mediaType: MediaTypeFull.Episode,
         tmdbId,
-        activity: 'active',
+        approved: true,
+        activatedAt: { $ne: null },
         torrentId: null,
         mediaFileId: null,
         $or: [{ retryAt: null }, { retryAt: { $lte: now } }],
@@ -536,7 +533,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Gives every holding request of a series that has no file the version
+   * Gives every bound request of a series that has no file the version
    * imported from its torrent that covers its episode
    */
   private async attachVersions(tx: EntityManager, tmdbId: string) {
@@ -552,7 +549,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       `update request set media_file_id = (${version}), error = null
        where media_type = '${MediaTypeFull.Episode}' and tmdb_id = ?
        and media_file_id is null and torrent_id is not null
-       and activity in (${HOLDING.map((a) => `'${a}'`).join(', ')})
        and exists (${version})`,
       [tmdbId],
       'run',
@@ -812,20 +808,14 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     rule: RequestRule | undefined,
     files: MediaFile[],
   ): Pick<EpisodeStatusDto, 'status' | 'progress' | 'error'> {
-    switch (request.activity) {
-      case 'waiting':
-        return { status: EpisodeDownloadStatus.WaitingForApproval };
-      case 'ahead':
-        return { status: EpisodeDownloadStatus.InactiveAhead };
-      case 'watched':
-        return { status: EpisodeDownloadStatus.InactiveWatched };
+    if (!request.approved) {
+      return { status: EpisodeDownloadStatus.WaitingForApproval };
     }
-
+    if (!request.activatedAt) {
+      return { status: EpisodeDownloadStatus.InactiveAhead };
+    }
     if (files.some((file) => file.id === request.mediaFileId)) {
       return { status: EpisodeDownloadStatus.Available };
-    }
-    if (request.activity === 'kept') {
-      return { status: EpisodeDownloadStatus.InactiveWatched };
     }
     if (request.error) {
       return { status: EpisodeDownloadStatus.Failed, error: request.error };

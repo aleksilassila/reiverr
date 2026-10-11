@@ -13,7 +13,6 @@ import { Torrent } from '../downloads/torrent.entity.js';
 import { MediaFile } from '../local-media/media-file.entity.js';
 import { MovieMetadata } from '../metadata/metadata.entity.js';
 import { User } from '../users/user.entity.js';
-import { ACTIVITIES, type Activity } from './request-activity.js';
 
 @Entity({ tableName: 'request' })
 @Unique({
@@ -53,13 +52,21 @@ export class MediaRequest {
   approved: boolean = false;
 
   /**
-   * Whether the request wants and holds its file, going by its approval and
-   * the rule of its user for the title. Stored by the requests service
-   * whenever one of those changes.
+   * When the request passed the download-ahead gate of the rule of its user,
+   * from which on it is bound and downloads. Set once by the requests service,
+   * never cleared.
    */
-  @ApiProperty({ enum: ACTIVITIES })
-  @Property({ type: 'string', default: 'waiting' })
-  activity: Activity = 'waiting';
+  @ApiProperty({ required: false, type: 'string', format: 'date-time' })
+  @Property({ nullable: true })
+  activatedAt?: Date;
+
+  /**
+   * When the episode was watched, as the play state of the user has it. What
+   * the keep settings of the rule go by.
+   */
+  @ApiProperty({ required: false, type: 'string', format: 'date-time' })
+  @Property({ nullable: true })
+  watchedAt?: Date;
 
   /** The torrent the request downloads from, once it is bound to one */
   @ManyToOne(() => Torrent, {

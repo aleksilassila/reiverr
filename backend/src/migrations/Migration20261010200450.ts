@@ -1,26 +1,37 @@
 import { Migration } from '@mikro-orm/migrations';
 
 /**
- * Requests store their activity and why they have no file. The torrents a
- * user prefers move from the torrent_selection table into the rule row of
- * the user and series, as the release they picked.
+ * Requests store when they passed the download-ahead gate, when their
+ * episode was watched, and why they have no file. The torrents a user
+ * prefers move from the torrent_selection table into the rule row of the
+ * user and series, as the release they picked.
  */
 export class Migration20261010200450 extends Migration {
   override name = 'Migration20261010200450';
 
   override up(): void | Promise<void> {
-    this.addSql(`
-      alter table request
-      add column activity text not null default 'waiting';
-    `);
+    this.addSql(`alter table request add column activated_at datetime null;`);
+    this.addSql(`alter table request add column watched_at datetime null;`);
     this.addSql(`alter table request add column error text null;`);
     this.addSql(`
       alter table request
       add column attempts integer not null default 0;
     `);
     this.addSql(`alter table request add column retry_at datetime null;`);
-    // The rules are applied when the server starts
-    this.addSql(`update request set activity = 'active' where approved = 1;`);
+    // A request that downloads or has its file is through the gate; the
+    // rules are applied to the others when the server starts
+    this.addSql(`
+      update request set activated_at = cast(strftime('%s', 'now') as integer) * 1000
+      where approved = 1 and (torrent_id is not null or media_file_id is not null);
+    `);
+    this.addSql(`
+      update request set watched_at = (
+        select coalesce(p.watched_at, 0) from play_state p
+        where p.user_id = request.user_id and p.media_type = request.media_type
+        and p.tmdb_id = request.tmdb_id and p.season = request.season
+        and p.episode = request.episode and p.watched = 1
+      );
+    `);
 
     this.addSql(`drop index request_rule_user_id_tmdb_id_unique;`);
     this.addSql(`
@@ -124,7 +135,8 @@ export class Migration20261010200450 extends Migration {
       on torrent_selection (user_id, media_type, tmdb_id, season, episode);
     `);
 
-    this.addSql(`alter table request drop column activity;`);
+    this.addSql(`alter table request drop column activated_at;`);
+    this.addSql(`alter table request drop column watched_at;`);
     this.addSql(`alter table request drop column error;`);
     this.addSql(`alter table request drop column attempts;`);
     this.addSql(`alter table request drop column retry_at;`);

@@ -21,7 +21,7 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { User } from '../users/user.entity.js';
-import { evaluateActivity, titleTypeOf } from './request-activity.js';
+import { evaluateRules, fullTypeOf, titleTypeOf } from './request-rules.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import {
@@ -90,14 +90,14 @@ export class RequestsService implements OnApplicationBootstrap {
     private readonly jobs: JobsService,
   ) {}
 
-  /** The stored activity can be behind after a restart or a migration */
+  /** The rules can be behind after a restart or a migration */
   onApplicationBootstrap(): Promise<void> {
     return this.evaluateAll();
   }
 
   /**
-   * Stores the activity of the requests of (user, title) pairs after a change
-   * of what decides it, and has the titles reconciled. Runs in the caller's
+   * Applies the rules to the requests of (user, title) pairs after a change
+   * of what they go by, and has the titles reconciled. Runs in the caller's
    * transaction. A rule looks at all the requests of its user for the title,
    * so a pair is evaluated whole.
    */
@@ -105,18 +105,14 @@ export class RequestsService implements OnApplicationBootstrap {
     const unique = uniquePairs(pairs);
     if (!unique.length) return;
 
+    const ofPairs = unique.map(({ userId, mediaType, tmdbId }) => ({
+      userId,
+      tmdbId,
+      mediaType: fullTypeOf(mediaType),
+    }));
     const requests = await em.find(
       MediaRequest,
-      {
-        $or: unique.map(({ userId, mediaType, tmdbId }) => ({
-          userId,
-          tmdbId,
-          mediaType:
-            mediaType === MediaType.Movie
-              ? MediaTypeFull.Movie
-              : MediaTypeFull.Episode,
-        })),
-      },
+      { $or: ofPairs },
       {
         ...READ,
         fields: [
@@ -127,37 +123,44 @@ export class RequestsService implements OnApplicationBootstrap {
           'season',
           'episode',
           'approved',
-          'activity',
+          'activatedAt',
+          'watchedAt',
         ],
       },
     );
     const rules = await em.find(RequestRule, { $or: unique }, READ);
-    const playStates = rules.length
-      ? await em.find(
-          PlayState,
-          {
-            $or: rules.map(({ userId, tmdbId }) => ({ userId, tmdbId })),
-            mediaType: MediaTypeFull.Episode,
-          },
-          READ,
-        )
+    const playStates = requests.length
+      ? await em.find(PlayState, { $or: ofPairs }, READ)
       : [];
 
-    const activity = evaluateActivity({
+    const now = new Date();
+    const outcome = evaluateRules({
       requests,
       rules,
       playStates,
-      now: Date.now(),
+      now: now.getTime(),
     });
-    for (const request of requests) {
-      const next = activity.get(request.id);
-      if (next !== request.activity) {
-        await em.nativeUpdate(
-          MediaRequest,
-          { id: request.id },
-          { activity: next },
-        );
-      }
+    const stamps = new Map<number | null, string[]>();
+    for (const [id, watchedAt] of outcome.watched) {
+      const key = watchedAt?.getTime() ?? null;
+      stamps.set(key, [...(stamps.get(key) ?? []), id]);
+    }
+    for (const [time, ids] of stamps) {
+      await em.nativeUpdate(
+        MediaRequest,
+        { id: { $in: ids } },
+        { watchedAt: time === null ? null : new Date(time) },
+      );
+    }
+    if (outcome.deleted.length) {
+      await em.nativeDelete(MediaRequest, { id: { $in: outcome.deleted } });
+    }
+    if (outcome.activated.length) {
+      await em.nativeUpdate(
+        MediaRequest,
+        { id: { $in: outcome.activated } },
+        { activatedAt: now },
+      );
     }
 
     const titles = new Map(
@@ -170,7 +173,10 @@ export class RequestsService implements OnApplicationBootstrap {
     }
   }
 
-  /** Whatever a writer missed is right by the morning */
+  /**
+   * An hours limit expires with time, and whatever a writer missed is right
+   * by the morning: before the cleanup hour
+   */
   @Cron('50 3 * * *')
   async evaluateAll(): Promise<void> {
     await this.em.fork().transactional(async (tx) => {
@@ -189,19 +195,6 @@ export class RequestsService implements OnApplicationBootstrap {
           tmdbId: row.tmdb_id,
         })),
       );
-    });
-  }
-
-  /** What an hours limit keeps changes with time */
-  @Cron('*/15 * * * *')
-  async evaluateTimed(): Promise<void> {
-    await this.em.fork().transactional(async (tx) => {
-      const rules = await tx.find(
-        RequestRule,
-        { keepWatchedHours: { $ne: null } },
-        { ...READ, fields: ['userId', 'mediaType', 'tmdbId'] },
-      );
-      await this.evaluate(tx, rules);
     });
   }
 
@@ -446,8 +439,8 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /**
    * Forgets the torrent a user prefers for an episode or a season. The
-   * requests it was for that are not holding a file are bound again: an
-   * episode falls back to its season's torrent.
+   * requests it was for that have no file are bound again: an episode falls
+   * back to its season's torrent.
    */
   async clearTorrent(target: SelectionTarget): Promise<boolean> {
     const { userId, tmdbId, season, episode } = target;
@@ -611,8 +604,8 @@ export class RequestsService implements OnApplicationBootstrap {
   /**
    * Makes the requests of the user in the scope of a preference forget their
    * torrent, so that the reconciliation of the title binds them to the
-   * torrent preferred now: the ones that are not holding a file, or every one
-   * when the preference is for the episode itself. Requests that download
+   * torrent preferred now: the ones that have no file, or every one when
+   * the preference is for the episode itself. Requests that download
    * from the preferred torrent already stay as they are. Picking a torrent
    * again is how a user retries it, so its failure is forgotten.
    */
@@ -657,9 +650,7 @@ export class RequestsService implements OnApplicationBootstrap {
     const conditions = [...scope];
     const unbindParams = [...params];
     if (!options.replaceHeld) {
-      conditions.push(
-        `not (activity in ('active', 'kept') and media_file_id is not null)`,
-      );
+      conditions.push('media_file_id is null');
     }
     if (options.infoHash) {
       conditions.push(

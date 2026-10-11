@@ -1170,22 +1170,39 @@
     {
       "name": "request",
       "columns": {
-        "activity": {
-          "name": "activity",
-          "type": "text",
+        "activated_at": {
+          "name": "activated_at",
+          "type": "datetime",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": "'waiting'",
+          "default": null,
           "comment": null,
           "collation": null,
           "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "datetime"
+        },
+        "watched_at": {
+          "name": "watched_at",
+          "type": "datetime",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "approved": {
           "name": "approved",

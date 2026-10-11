@@ -10,7 +10,6 @@ import { MediaType } from '../common/common.dto.js';
 import { CLEANUP_HOUR, isCleanupDay } from '../downloads/cleanup.utils.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
-import { HOLDING } from '../requests/request-activity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { DeletedLibraryEntriesDto } from './local-media.dto.js';
@@ -118,7 +117,7 @@ export class CleanupService implements OnModuleInit {
   }
 
   /**
-   * Deletes the imported files of a series that no request holds. A file
+   * Deletes the imported files of a series that no request refers to. A file
    * that cannot be deleted is left for the next cleanup.
    */
   private async cleanUpSeries(tmdbId: string): Promise<void> {
@@ -132,10 +131,7 @@ export class CleanupService implements OnModuleInit {
         ? (
             await this.em.find(
               MediaRequest,
-              {
-                mediaFileId: { $in: files.map((file) => file.id) },
-                activity: { $in: HOLDING },
-              },
+              { mediaFileId: { $in: files.map((file) => file.id) } },
               { ...READ, fields: ['mediaFileId'] },
             )
           ).map((request) => request.mediaFileId)
@@ -147,7 +143,7 @@ export class CleanupService implements OnModuleInit {
     for (const file of unheld) {
       await this.localMediaService
         .deleteManagedFile(file.id, 'no request holds it', (tx) =>
-          // A request that referred to it downloads it again when it is active
+          // A request that referred to it downloads it again
           this.jobs.enqueue(tx, 'title.reconcile', {
             mediaType: MediaType.Series,
             tmdbId,

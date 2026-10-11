@@ -1288,7 +1288,10 @@ export interface MediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
-  activity: "waiting" | "ahead" | "watched" | "kept" | "active";
+  /** @format date-time */
+  activatedAt?: string;
+  /** @format date-time */
+  watchedAt?: string;
   error?: string;
   /** @format date-time */
   retryAt?: string;
@@ -1346,7 +1349,10 @@ export interface AdminMediaRequestDto {
   /** 0 for movies */
   episode: number;
   approved: boolean;
-  activity: "waiting" | "ahead" | "watched" | "kept" | "active";
+  /** @format date-time */
+  activatedAt?: string;
+  /** @format date-time */
+  watchedAt?: string;
   error?: string;
   /** @format date-time */
   retryAt?: string;
@@ -1491,7 +1497,6 @@ export interface EpisodeStatusDto {
   status?:
     | "waiting-for-approval"
     | "inactive-ahead"
-    | "inactive-watched"
     | "no-selection"
     | "resolving"
     | "no-file-in-torrent"

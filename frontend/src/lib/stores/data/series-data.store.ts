@@ -65,13 +65,8 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 			return status.error;
 	}
 
-	// The rule of the series keeps the request from downloading and from keeping its file
-	const inactive =
-		status?.status === 'inactive-ahead'
-			? 'Not needed yet'
-			: status?.status === 'inactive-watched'
-				? 'Watched, not kept'
-				: undefined;
+	// The rule of the series holds the request back until the user has watched up to it
+	const inactive = status?.status === 'inactive-ahead' ? 'Not needed yet' : undefined;
 
 	// No request of anyone keeps a file of the episode from the next cleanup
 	if (status?.onDisk && status.cleanupAt) {

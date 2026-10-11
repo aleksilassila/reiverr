@@ -1000,7 +1000,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
   });
 
-  it('downloads only the requests that the rule of the user keeps active', async () => {
+  it('lets through what the rule of the user allows, and deletes the watched requests it does not keep', async () => {
     const rulePath = `/v2/users/${admin.id}/requests/series/tmdb/${TMDB_ID}/rule`;
     const setRule = (rule: Partial<RequestRuleDto>) =>
       api('put', rulePath)
@@ -1021,7 +1021,7 @@ describe('Series downloads (e2e)', () => {
     const season2 = async () =>
       (await getDownloads()).episodes
         .filter((e) => e.season === 2)
-        .map((e) => e.status);
+        .map((e) => [e.episode, e.requested, e.status ?? null]);
 
     await setRule({ keepNext: 1 });
     expect((await api('get', rulePath).expect(200)).body).toEqual({
@@ -1033,31 +1033,25 @@ describe('Series downloads (e2e)', () => {
     // The next request is counted from the last watched episode on, over
     // the seasons
     await setRequested([1, 2, 3], true, { season: 2 });
-    expect(await season2()).toEqual(Array(3).fill('inactive-ahead'));
+    expect(await season2()).toEqual([
+      [1, true, 'inactive-ahead'],
+      [2, true, 'inactive-ahead'],
+      [3, true, 'inactive-ahead'],
+    ]);
 
     await setPlayState(1, 3, { watched: true });
     expect(await season2()).toEqual([
-      'no-selection',
-      'inactive-ahead',
-      'inactive-ahead',
+      [1, true, 'no-selection'],
+      [2, true, 'inactive-ahead'],
+      [3, true, 'inactive-ahead'],
     ]);
 
     // An episode in progress is not watched yet
     await setPlayState(2, 1, { progress: 0.3 });
     expect(await season2()).toEqual([
-      'no-selection',
-      'inactive-ahead',
-      'inactive-ahead',
-    ]);
-
-    await setPlayState(2, 1, { watched: true });
-    await setPlayState(2, 2, { watched: true });
-    // The second episode is the last watched one, but has no file to keep
-    await setRule({ keepNext: 1, keepWatched: 1 });
-    expect(await season2()).toEqual([
-      'inactive-watched',
-      'inactive-watched',
-      'no-selection',
+      [1, true, 'no-selection'],
+      [2, true, 'inactive-ahead'],
+      [3, true, 'inactive-ahead'],
     ]);
 
     // The torrent has a file for the first episode only
@@ -1068,31 +1062,58 @@ describe('Series downloads (e2e)', () => {
       })
       .expect(200);
     await settle();
-    expect(engine.running(SEASON_2)).toBeUndefined();
+    expect(engine.running(SEASON_2).wanted).toEqual([0]);
+    engine.running(SEASON_2).download(0);
+    await settle();
+    expect(await season2()).toEqual([
+      [1, true, 'available'],
+      [2, true, 'inactive-ahead'],
+      [3, true, 'inactive-ahead'],
+    ]);
 
+    // Watching an episode lets the next one through. Without a keep setting
+    // the request of the watched episode stays as it is
+    await setPlayState(2, 1, { watched: true });
+    await settle();
+    expect(await season2()).toEqual([
+      [1, true, 'available'],
+      [2, true, 'no-file-in-torrent'],
+      [3, true, 'inactive-ahead'],
+    ]);
+
+    // Marking it unwatched holds nothing back again
     await setPlayState(2, 1, { watched: false });
     await settle();
-    expect(engine.running(SEASON_2).wanted).toEqual([0]);
     expect(await season2()).toEqual([
-      'downloading',
-      'inactive-watched',
-      'no-file-in-torrent',
+      [1, true, 'available'],
+      [2, true, 'no-file-in-torrent'],
+      [3, true, 'inactive-ahead'],
     ]);
 
     // A watched request that the rule keeps holds on to its file
-    engine.running(SEASON_2).download(0);
-    await settle();
     await setPlayState(2, 1, { watched: true });
-    await setRule({ keepNext: 1, keepWatched: 2 });
+    await setRule({ keepNext: 1, keepWatched: 1 });
     expect(await season2()).toEqual([
-      'available',
-      'inactive-watched',
-      'no-file-in-torrent',
+      [1, true, 'available'],
+      [2, true, 'no-file-in-torrent'],
+      [3, true, 'inactive-ahead'],
+    ]);
+
+    // The one watched before the last is deleted, and nothing holds its
+    // file any more
+    await setPlayState(2, 2, { watched: true });
+    await settle();
+    expect(await season2()).toEqual([
+      [1, false, null],
+      [2, true, 'no-file-in-torrent'],
+      [3, true, 'no-file-in-torrent'],
     ]);
 
     // The last watched ones are not kept once nothing is left to watch
     await setPlayState(2, 3, { watched: true });
-    expect(await season2()).toEqual(Array(3).fill('inactive-watched'));
+    await settle();
+    expect(await season2()).toEqual([[1, false, null]]);
+    expect(engine.running(SEASON_2)).toBeUndefined();
 
     await setRule({});
     expect((await api('get', rulePath).expect(200)).body).toEqual({
@@ -1100,10 +1121,8 @@ describe('Series downloads (e2e)', () => {
       keepWatched: null,
       keepWatchedHours: null,
     });
-    await setRequested([1, 2, 3], false, { season: 2 });
     await clearSelection(2).expect(200);
     await settle();
-    expect(engine.running(SEASON_2)).toBeUndefined();
   });
 
   it('accepts a rule only from its user and with positive limits', async () => {

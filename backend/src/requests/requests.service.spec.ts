@@ -73,14 +73,44 @@ describe('RequestsService', () => {
       }),
     );
 
-  const setRule = (keepNext: number | null) =>
+  const setRule = (limits: Partial<RequestRule>) =>
     request(() =>
       requests.setSeriesRule(userId, SERIES, {
-        keepNext,
+        keepNext: null,
         keepWatched: null,
         keepWatchedHours: null,
+        ...limits,
       }),
     );
+
+  /** Marks an episode watched or unwatched, as the play states service does */
+  const watch = async (episode: number, watched = true) => {
+    const em = orm.em.fork();
+    const where = {
+      userId,
+      mediaType: MediaTypeFull.Episode,
+      tmdbId: SERIES,
+      season: 1,
+      episode,
+    };
+    const watchedAt = watched ? new Date() : null;
+    const playState = await em.findOne(PlayState, where);
+    if (playState) {
+      await em.nativeUpdate(PlayState, where, { watched, watchedAt });
+    } else {
+      await em.insert(PlayState, {
+        ...new PlayState(),
+        ...where,
+        watched,
+        watchedAt,
+      });
+    }
+    await em.transactional((tx) =>
+      requests.evaluate(tx, [
+        { userId, mediaType: MediaType.Series, tmdbId: SERIES },
+      ]),
+    );
+  };
 
   const target = (episode: number): SelectionTarget => ({
     userId,
@@ -122,7 +152,7 @@ describe('RequestsService', () => {
     return file.id;
   };
 
-  /** The activity, torrent and file of each episode request */
+  /** Where each episode request stands, with its torrent and file */
   const references = async () =>
     (
       await orm.em
@@ -134,7 +164,13 @@ describe('RequestsService', () => {
         )
     ).map((r) => [
       r.episode,
-      r.activity,
+      !r.approved
+        ? 'waiting'
+        : !r.activatedAt
+          ? 'ahead'
+          : r.watchedAt
+            ? 'watched'
+            : 'active',
       r.torrentId ?? null,
       r.mediaFileId ? 'file' : null,
     ]);
@@ -184,7 +220,7 @@ describe('RequestsService', () => {
 
   afterEach(() => orm.close());
 
-  it('stores the activity of new requests and has the series reconciled', async () => {
+  it('activates new requests and has the series reconciled', async () => {
     await requestEpisodes([1, 2]);
     await requestEpisodes([3], false);
 
@@ -196,9 +232,9 @@ describe('RequestsService', () => {
     expect(await queuedTitles()).toBe(1);
   });
 
-  it('applies the rule of the user when it changes and when an episode is watched', async () => {
+  it('applies the rule of the user when a request is made and when an episode is watched', async () => {
+    await setRule({ keepNext: 1 });
     await requestEpisodes([1, 2, 3]);
-    await setRule(1);
 
     expect(await references()).toEqual([
       [1, 'active', null, null],
@@ -206,28 +242,40 @@ describe('RequestsService', () => {
       [3, 'ahead', null, null],
     ]);
 
-    const playState = new PlayState();
-    playState.userId = userId;
-    playState.mediaType = MediaTypeFull.Episode;
-    playState.tmdbId = SERIES;
-    playState.season = 1;
-    playState.episode = 1;
-    playState.watched = true;
-    playState.watchedAt = new Date();
-    await orm.em.fork().insert(PlayState, { ...playState });
-    await orm.em
-      .fork()
-      .transactional((tx) =>
-        requests.evaluate(tx, [
-          { userId, mediaType: MediaType.Series, tmdbId: SERIES },
-        ]),
-      );
+    await watch(1);
+    expect(await references()).toEqual([
+      [1, 'watched', null, null],
+      [2, 'active', null, null],
+      [3, 'ahead', null, null],
+    ]);
 
+    // Marking the episode unwatched takes nothing back
+    await watch(1, false);
     expect(await references()).toEqual([
       [1, 'active', null, null],
       [2, 'active', null, null],
       [3, 'ahead', null, null],
     ]);
+  });
+
+  it('deletes the requests of watched episodes that no keep setting retains', async () => {
+    await requestEpisodes([1, 2, 3]);
+    await setRule({ keepWatched: 1 });
+    await addTorrent('pack', PACK);
+    await bind([1, 2, 3], 'pack');
+    await attach(1, PACK);
+
+    await watch(1);
+    await watch(2);
+    expect(await references()).toEqual([
+      [2, 'watched', 'pack', null],
+      [3, 'active', 'pack', null],
+    ]);
+
+    // Nothing is kept once nothing is left to watch
+    await watch(3);
+    expect(await references()).toEqual([]);
+    expect(await queuedTitles()).toBe(1);
   });
 
   it('keeps the release a user picks on the rule, resolved, and binds nothing itself', async () => {
@@ -254,17 +302,16 @@ describe('RequestsService', () => {
     await expect(select(0, 'gone')).rejects.toThrow('Release not found');
   });
 
-  it('rebinds the requests of a season that are not holding a file', async () => {
+  it('rebinds the requests of a season that have no file', async () => {
+    await setRule({ keepNext: 2 });
     await requestEpisodes([1, 2, 3]);
-    await setRule(2);
     await addTorrent('pack', PACK);
-    await bind([1, 2, 3], 'pack');
+    await bind([1, 2], 'pack');
     await attach(1, PACK);
-    await attach(3, PACK);
 
     await select(0, 'episode');
 
-    // The first holds its file, the third is held back by the rule
+    // The first keeps its file, the third was never bound
     expect(await references()).toEqual([
       [1, 'active', 'pack', 'file'],
       [2, 'active', null, null],
@@ -363,8 +410,8 @@ describe('RequestsService', () => {
   });
 
   it('deletes the requests of files and evaluates the rest of their pairs', async () => {
+    await setRule({ keepNext: 1 });
     await requestEpisodes([1, 2, 3]);
-    await setRule(1);
     await addTorrent('pack', PACK);
     await bind([1], 'pack');
     const fileId = await attach(1, PACK);
@@ -384,7 +431,7 @@ describe('RequestsService', () => {
 });
 
 describe('Migration20261010200450', () => {
-  it('moves the selections into the rules and stores the activity', async () => {
+  it('moves the selections into the rules and stamps the requests', async () => {
     const orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
     try {
       await orm.migrator.up({ to: 'Migration20261009203715' });
@@ -434,6 +481,10 @@ describe('Migration20261010200450', () => {
       await insert(1, 1);
       await insert(2, 0);
       await em.execute(
+        `insert into play_state (id, user_id, media_type, tmdb_id, season, episode, progress, watched, watched_at, last_played_at)
+         values ('played', 'user', 'episode', '100', 1, 1, 1, 1, 5000, 5000)`,
+      );
+      await em.execute(
         `insert into jobs (id, type, payload, status, run_at, attempts, created_at)
          values ('job', 'torrent.import', '{}', 'queued', 0, 0, 0)`,
       );
@@ -477,12 +528,19 @@ describe('Migration20261010200450', () => {
       const requests = await orm.em
         .fork()
         .find(MediaRequest, {}, { orderBy: { episode: 'asc' } });
-      expect(requests.map((r) => [r.episode, r.activity, r.torrentId])).toEqual(
-        [
-          [1, 'active', 'pack'],
-          [2, 'waiting', 'pack'],
-        ],
-      );
+      // A request that downloads is through the gate; the others go through
+      // the rules when the server starts
+      expect(
+        requests.map((r) => [
+          r.episode,
+          !!r.activatedAt,
+          r.watchedAt?.getTime() ?? null,
+          r.torrentId,
+        ]),
+      ).toEqual([
+        [1, true, 5000, 'pack'],
+        [2, false, null, 'pack'],
+      ]);
       expect(await orm.em.fork().count(Job)).toBe(0);
     } finally {
       await orm.close();

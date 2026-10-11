@@ -15,22 +15,14 @@ export type RequestDemand =
   | { kind: 'file' }
   | { kind: 'wanted'; fileIndex: number }
   | { kind: 'resolving' }
-  | { kind: 'no-file-in-torrent' }
-  /** It is not active: it waits, a rule holds it back, or it only keeps a file */
-  | { kind: 'none' };
+  | { kind: 'no-file-in-torrent' };
 
 export interface DemandState {
   torrent: Pick<Torrent, 'id' | 'infoHash' | 'files'>;
   /** The episode requests that are bound to the torrent */
   requests: Pick<
     MediaRequest,
-    | 'id'
-    | 'userId'
-    | 'tmdbId'
-    | 'season'
-    | 'episode'
-    | 'activity'
-    | 'mediaFileId'
+    'id' | 'userId' | 'tmdbId' | 'season' | 'episode' | 'mediaFileId'
   >[];
   /** The episodes whose user prefers this torrent for the episode itself, for the only-video rule */
   episodePreferences: {
@@ -49,9 +41,9 @@ export interface Demand {
 }
 
 /**
- * What the requests that are bound to a torrent want from it. An active
- * request without a file wants the file of its episode: the one named after
- * it, or the only video of a torrent that its user picked for the episode.
+ * What the requests that are bound to a torrent want from it. A request
+ * without a file wants the file of its episode: the one named after it, or
+ * the only video of a torrent that its user picked for the episode.
  */
 export function torrentDemand(state: DemandState): Demand {
   const { torrent } = state;
@@ -63,10 +55,6 @@ export function torrentDemand(state: DemandState): Demand {
 
     if (request.mediaFileId) {
       set({ kind: 'file' });
-      continue;
-    }
-    if (request.activity !== 'active') {
-      set({ kind: 'none' });
       continue;
     }
     if (!torrent.files) {

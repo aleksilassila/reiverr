@@ -1,5 +1,6 @@
 import parseTorrent from 'parse-torrent';
 
+/** Torrent source that can be loaded by a torrent client */
 export interface TorrentSource {
   infoHash: string;
   magnetUrl?: string;
