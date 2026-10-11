@@ -1,11 +1,13 @@
 import type { ServerLibraryEntryDto } from '$lib/apis/reiverr/reiverr.openapi';
 
+export type LibraryOrder = 'size' | 'name';
+
 export type LibraryNode = {
 	entry: ServerLibraryEntryDto;
 	name: string;
 	depth: number;
 	parent?: LibraryNode;
-	/** Directories first, then by name */
+	/** As the server lists them; the rows are sorted */
 	children: LibraryNode[];
 	/** The totals of a directory are those of everything in it */
 	size: number;
@@ -53,34 +55,38 @@ export function buildTree(entries: ServerLibraryEntryDto[]): LibraryTree {
 	const all = Array.from(nodes.values());
 	for (let i = all.length - 1; i >= 0; i--) {
 		const node = all[i];
-		if (!node) continue;
+		if (!node?.parent) continue;
 
-		node.children.sort(byKindAndName);
-		if (node.parent) {
-			node.parent.size += node.size;
-			node.parent.files += node.files;
-			node.parent.directories += node.directories;
-			node.parent.heldFiles += node.heldFiles;
-			node.parent.requests += node.requests;
-		}
+		node.parent.size += node.size;
+		node.parent.files += node.files;
+		node.parent.directories += node.directories;
+		node.parent.heldFiles += node.heldFiles;
+		node.parent.requests += node.requests;
 	}
-	roots.sort(byKindAndName);
 
 	return { roots, nodes };
 }
 
-function byKindAndName(a: LibraryNode, b: LibraryNode) {
-	return (
-		Number(b.entry.isDirectory) - Number(a.entry.isDirectory) ||
-		a.name.localeCompare(b.name, undefined, { numeric: true })
-	);
-}
+const byKind = (a: LibraryNode, b: LibraryNode) =>
+	Number(b.entry.isDirectory) - Number(a.entry.isDirectory);
+const byName = (a: LibraryNode, b: LibraryNode) =>
+	a.name.localeCompare(b.name, undefined, { numeric: true });
+
+/** Directories first in every order */
+const compare: Record<LibraryOrder, (a: LibraryNode, b: LibraryNode) => number> = {
+	size: (a, b) => byKind(a, b) || b.size - a.size || byName(a, b),
+	name: (a, b) => byKind(a, b) || byName(a, b)
+};
 
 /** The rows of the tree: what is in a directory follows it when the directory is expanded */
-export function getRows(roots: LibraryNode[], expanded: Set<string>): LibraryNode[] {
+export function getRows(
+	roots: LibraryNode[],
+	expanded: Set<string>,
+	order: LibraryOrder
+): LibraryNode[] {
 	const rows: LibraryNode[] = [];
 	const add = (nodes: LibraryNode[]) => {
-		for (const node of nodes) {
+		for (const node of [...nodes].sort(compare[order])) {
 			rows.push(node);
 			if (expanded.has(node.entry.path)) add(node.children);
 		}

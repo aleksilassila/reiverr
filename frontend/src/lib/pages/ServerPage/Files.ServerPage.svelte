@@ -23,24 +23,31 @@
 		isChecked,
 		toggleChecked,
 		type LibraryNode,
+		type LibraryOrder,
 		type LibraryTree
 	} from './library-tree';
 
 	// How many rows are added when the end of the rendered ones comes close
 	const ROWS = 100;
+	const ORDERS: { value: LibraryOrder; label: string }[] = [
+		{ value: 'size', label: 'Size' },
+		{ value: 'name', label: 'Name' }
+	];
 
 	let folders: string[] = [];
 	let folder = '';
 	let tree: LibraryTree = { roots: [], nodes: new Map() };
 	let expanded = new Set<string>();
 	let checked = new Set<string>();
+	let order: LibraryOrder = 'size';
 	let limit = ROWS;
 	let isLoading = true;
 	let isScanning = false;
 	let error = '';
 	let loads = 0;
 
-	$: rows = getRows(tree.roots, expanded);
+	$: rows = getRows(tree.roots, expanded, order);
+	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
 	$: partiallyChecked = getPartiallyChecked(checked);
 	$: selection = getSelection(checked, tree.nodes);
 
@@ -84,8 +91,22 @@
 		});
 	}
 
+	function selectOrder() {
+		createModal(SelectDialog, {
+			title: 'Sort by',
+			options: ORDERS.map((o) => o.label),
+			selectedOption: orderLabel,
+			handleSelectOption: (label) => (order = ORDERS.find((o) => o.label === label)?.value ?? order)
+		});
+	}
+
+	/** Collapsing a directory collapses everything in it */
 	function toggleExpanded(path: string) {
-		if (!expanded.delete(path)) expanded.add(path);
+		if (expanded.delete(path)) {
+			expanded.forEach((p) => {
+				if (p.startsWith(`${path}/`)) expanded.delete(p);
+			});
+		} else expanded.add(path);
 		expanded = expanded;
 	}
 
@@ -208,50 +229,50 @@
 		</SelectField>
 		<Container direction="horizontal" class="flex items-center justify-between space-x-8">
 			<Container direction="horizontal" class="flex items-center space-x-4">
-				<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
-					Delete
+				<Button iconAfter={ChevronDown} disabled={!folder} on:clickOrSelect={selectOrder}>
+					Sort by {orderLabel}
 				</Button>
 				<Button icon={Reload} disabled={!folder || isScanning} on:clickOrSelect={confirmScan}>
-					{isScanning ? 'Scanning...' : 'Scan'}
+					{isScanning ? 'Scanning...' : 'Scan library'}
 				</Button>
 			</Container>
-			<div class="text-lg font-medium text-secondary-300">
-				{#if checked.size}
-					{count(selection.files, 'file', 'files')} · {formatSize(selection.size)}
-				{:else}
-					Select to mark · Right opens a folder, left closes it
-				{/if}
-			</div>
+			<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
+				Delete {count(selection.files, 'file', 'files')}
+				{#if checked.size}({formatSize(selection.size)}){/if}
+			</Button>
 		</Container>
 	</Container>
 
 	<!-- The list is mounted together with its first rows: rows that are added one by one to an
-		empty list make it move the focus when rows are removed later -->
+		empty list make it move the focus when rows are removed later. Sorting mounts it again, since
+		the focus tree keeps the order the rows were mounted in -->
 	{#if rows.length}
-		<Container
-			class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide mt-6 pb-16"
-			style="backface-visibility: hidden;"
-		>
-			{#each rows.slice(0, limit) as node (node.entry.path)}
-				<FileRow
-					{node}
-					checked={isChecked(node, checked)}
-					partiallyChecked={partiallyChecked.has(node.entry.path)}
-					expanded={expanded.has(node.entry.path)}
-					on:toggle={() => (checked = toggleChecked(node, checked))}
-					on:expand={() => toggleExpanded(node.entry.path)}
-					on:collapse={({ detail }) => collapse(node, detail)}
-				/>
-			{/each}
-			{#if rows.length > limit}
-				<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
-				{#key limit}
-					<div class="relative">
-						<div use:observer class="absolute bottom-0 w-px h-[50rem] pointer-events-none" />
-					</div>
-				{/key}
-			{/if}
-		</Container>
+		{#key order}
+			<Container
+				class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide mt-6 pb-16"
+				style="backface-visibility: hidden;"
+			>
+				{#each rows.slice(0, limit) as node (node.entry.path)}
+					<FileRow
+						{node}
+						checked={isChecked(node, checked)}
+						partiallyChecked={partiallyChecked.has(node.entry.path)}
+						expanded={expanded.has(node.entry.path)}
+						on:toggle={() => (checked = toggleChecked(node, checked))}
+						on:expand={() => toggleExpanded(node.entry.path)}
+						on:collapse={({ detail }) => collapse(node, detail)}
+					/>
+				{/each}
+				{#if rows.length > limit}
+					<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
+					{#key limit}
+						<div class="relative">
+							<div use:observer class="absolute bottom-0 w-px h-[50rem] pointer-events-none" />
+						</div>
+					{/key}
+				{/if}
+			</Container>
+		{/key}
 	{:else}
 		<div class={classNames('h-ghost mt-14', { error: !!error })}>
 			{#if error}
