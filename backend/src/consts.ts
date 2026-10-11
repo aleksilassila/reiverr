@@ -20,3 +20,14 @@ export const DOWNLOADS_DIR = resolve(
     process.env.TORRENT_STREAM_DOWNLOADS ||
     './downloads',
 );
+// The port that peers connect to, forwarded to the server. Without it the
+// torrent client only connects to peers.
+export const TORRENT_PORT = process.env.TORRENT_PORT
+  ? Number(process.env.TORRENT_PORT)
+  : undefined;
+if (
+  TORRENT_PORT !== undefined &&
+  !(Number.isInteger(TORRENT_PORT) && TORRENT_PORT > 0 && TORRENT_PORT < 65536)
+) {
+  throw new Error(`TORRENT_PORT is not a port: ${process.env.TORRENT_PORT}`);
+}

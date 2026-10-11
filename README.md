@@ -58,6 +58,7 @@ services:
       - SECRET=your_secret_here # optional, used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
       - ADMIN_USERNAME=admin # optional
       - ADMIN_PASSWORD=admin # optional
+      - TORRENT_PORT=51413 # optional, the port that peers connect to. Forward it to the container (or through your VPN). If not set, the torrent client only connects to peers.
     volumes:
       - /path/to/appdata/config:/config
       - /path/to/data:/data

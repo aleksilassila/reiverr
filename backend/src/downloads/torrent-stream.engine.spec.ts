@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import * as net from 'node:net';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { createTorrent, PIECE_LENGTH } from '../../test/torrent-fixture.js';
@@ -101,6 +102,29 @@ describe('TorrentStreamHandle', () => {
     expect(await completed).toBe(1);
   });
 
+  it('accepts peers on the given port, which every torrent shares', async () => {
+    const port = await findFreePort();
+    const options = { dht: false, tracker: false };
+    torrent = new TorrentStreamHandle(
+      createTorrent('Show.S01', files),
+      directory,
+      options,
+      port,
+    );
+    const other = new TorrentStreamHandle(
+      createTorrent('Show.S02', files),
+      directory,
+      options,
+      port,
+    );
+
+    try {
+      await vi.waitFor(() => connect(port));
+    } finally {
+      await other.destroy();
+    }
+  });
+
   it('rejects a source that is not a torrent', () => {
     expect(
       () => new TorrentStreamHandle('not a magnet link', directory),
@@ -108,3 +132,23 @@ describe('TorrentStreamHandle', () => {
     torrent = add();
   });
 });
+
+function findFreePort(): Promise<number> {
+  return new Promise((resolve) => {
+    const server = net.createServer().listen(0, () => {
+      const { port } = server.address() as net.AddressInfo;
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+function connect(port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect(port, '127.0.0.1');
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve();
+    });
+    socket.once('error', reject);
+  });
+}

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'node:path';
 import torrentStream from 'torrent-stream';
+import { TORRENT_PORT } from '../consts.js';
 import {
   TorrentHandle,
   TorrentEngine,
@@ -26,12 +27,16 @@ export class TorrentStreamHandle implements TorrentHandle {
     source: string | Buffer,
     private readonly directory: string,
     options: TorrentStream.TorrentEngineOptions = {},
+    port?: number,
   ) {
     this.engine = torrentStream(source, {
       ...options,
       path: directory,
       tmp: directory,
     });
+    // On the same tick, so that peer discovery announces the port. Every
+    // torrent listens on the one port, which tells them apart by info hash.
+    if (port) this.engine.listen(port);
 
     this.ready = new Promise((resolve, reject) => {
       this.engine.on('ready', () => resolve(this.getFiles()));
@@ -163,6 +168,6 @@ export class TorrentStreamHandle implements TorrentHandle {
 @Injectable()
 export class TorrentStreamEngine implements TorrentEngine {
   add(source: string | Buffer, directory: string): TorrentHandle {
-    return new TorrentStreamHandle(source, directory);
+    return new TorrentStreamHandle(source, directory, {}, TORRENT_PORT);
   }
 }
