@@ -22,14 +22,37 @@ export class ScanLibraryDto {
   force?: boolean;
 }
 
-export class DeleteLibraryEntriesDto {
+export class LibraryEntriesDto {
   @ApiProperty({ description: 'One of the library folders' })
   folder: string;
 
   @ApiProperty({
     type: [String],
     description:
-      'Where the files and directories to delete are in the folder, with / between the names',
+      'Where the files and directories are in the folder, with / between the names',
   })
   paths: string[];
+}
+
+export class DeleteLibraryEntriesDto extends LibraryEntriesDto {}
+
+export class ManagedLibraryEntriesDto {
+  @ApiProperty({ description: 'Indexed files whose managed flag changed' })
+  files: number;
+}
+
+export class RequestedLibraryEntriesDto {
+  @ApiProperty({ description: 'Requests that were bound to the files' })
+  requests: number;
+
+  @ApiProperty({
+    description: 'Episodes whose request kept another file it has',
+  })
+  kept: number;
+
+  @ApiProperty({
+    description:
+      'Files of movies and of episodes the series does not have, which were not requested',
+  })
+  skipped: number;
 }

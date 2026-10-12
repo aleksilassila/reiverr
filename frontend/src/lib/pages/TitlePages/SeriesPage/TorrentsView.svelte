@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { LocalEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
@@ -39,18 +39,30 @@
 				(
 					$requests?.selections.get(episodeKey(e.season, e.episode)) ??
 					$requests?.selections.get(episodeKey(e.season, 0))
-				)?.torrent.infoHash
+				)?.torrent?.infoHash
 	);
 	$: keptHint = !kept.length
 		? ''
 		: episode === undefined
 			? `${kept.length} ${kept.length === 1 ? 'episode keeps its file' : 'episodes keep their files'}. Select a torrent for an episode to replace it.`
-			: `On disk from: ${kept[0]?.torrent?.title}. Select a torrent to replace it.`;
+			: kept[0]?.torrent
+				? `On disk from: ${kept[0].torrent.title}. Select a torrent or a file to replace it.`
+				: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
 	const releases: Promise<ReleaseDto[]> = reiverrApi.indexers
 		.searchSeriesReleases(tmdbId, { season, episode })
 		.then((r) => r.data);
+	// The files of the episode in the library, external or imported, which a request can have instead
+	const files: Promise<LocalEpisodeFileDto[]> =
+		episode === undefined
+			? Promise.resolve([])
+			: reiverrApi.localMedia
+					.getEpisodeFiles(tmdbId, season, episode)
+					.then((r) => r.data)
+					.catch(() => []);
+	let hasFiles = false;
+	files.then((f) => (hasFiles = f.length > 0));
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -66,6 +78,18 @@
 						releaseId: release.id
 					})
 		)
+			.then(() => seriesData.requestsData?.update())
+			.then(() => componentStack.close())
+			.catch((e) => (error = errorMessage(e)));
+	}
+
+	async function selectFile(file: LocalEpisodeFileDto) {
+		error = '';
+
+		await reiverrApi.requests
+			.selectEpisodeFile($user?.id as string, tmdbId, season, episode as number, {
+				mediaFileId: file.id
+			})
 			.then(() => seriesData.requestsData?.update())
 			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
@@ -106,7 +130,7 @@
 				<HeroTitleInfo
 					title={name}
 					overview=""
-					properties={[{ label: episode === undefined ? 'Season packs' : 'Episode torrents' }]}
+					properties={[{ label: episode === undefined ? 'Season packs' : 'Files and torrents' }]}
 				/>
 			</div>
 			{#if selection}
@@ -117,11 +141,12 @@
 		</div>
 		{#if selection}
 			<div class="text-lg font-medium text-secondary-300 mt-4 line-clamp-1">
-				Selected: {selection.torrent.title}
+				Selected: {selection.torrent?.title ?? selection.file?.fileName}
+				{#if selection.file && !selection.file.inLibrary}(not in the library){/if}
 			</div>
 		{:else if seasonPack}
 			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
-				From the season pack: {seasonPack.torrent.title}
+				From the season pack: {seasonPack.torrent?.title}
 			</div>
 		{/if}
 		{#if keptHint}
@@ -139,13 +164,62 @@
 		class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
 		style="backface-visibility: hidden"
 	>
+		{#await files then files}
+			{#if files.length}
+				<div class="text-lg font-semibold text-secondary-400 mt-6">On disk</div>
+				{#each files as file, index (file.id)}
+					{@const selected = file.id === selection?.file?.id}
+					<Container
+						on:enter={({ detail }) => {
+							const el =
+								detail.selectable.getSibling(-1)?.getHtmlElement() ??
+								detail.selectable?.getHtmlElement();
+
+							if (el) scrollElementIntoView(el, { top: 32 });
+						}}
+						on:clickOrSelect={() => selectFile(file)}
+						focusOnMount={index === 0}
+						focusOnClick
+						let:hasFocus
+					>
+						<div class="cursor-pointer my-6 flex items-center">
+							<div class="flex-1 min-w-0">
+								<div
+									class={classNames('text-2xl font-semibold line-clamp-1', {
+										'text-secondary-500': !hasFocus && !selected,
+										'text-secondary-200': !hasFocus && selected,
+										'text-primary-500': hasFocus
+									})}
+								>
+									{file.fileName}
+								</div>
+								<div class="text-lg font-medium text-secondary-400 mt-1">
+									{formatSize(file.size)} · {file.infoHash ? 'Imported' : 'External'}{file.managed
+										? ' · Managed'
+										: ''}
+								</div>
+							</div>
+							{#if selected}
+								<div
+									class="flex-shrink-0 ml-4 flex items-center text-lg font-medium text-primary-500"
+								>
+									<Check size={24} class="mr-2" />
+									Selected
+								</div>
+							{/if}
+						</div>
+					</Container>
+				{/each}
+				<div class="text-lg font-semibold text-secondary-400 mt-6">Torrents</div>
+			{/if}
+		{/await}
 		{#await releases}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
 		{:then releases}
 			{#each releases as release, index (release.id)}
 				{@const selected =
 					release.id === selection?.releaseId ||
-					(!!release.infoHash && release.infoHash === selection?.torrent.infoHash)}
+					(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)}
 				{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
 				<Container
 					on:enter={({ detail }) => {
@@ -156,7 +230,7 @@
 						if (el) scrollElementIntoView(el, { top: 32 });
 					}}
 					on:clickOrSelect={() => select(release)}
-					focusOnMount={index === 0}
+					focusOnMount={index === 0 && !hasFiles}
 					focusOnClick
 					let:hasFocus
 				>

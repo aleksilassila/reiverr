@@ -195,6 +195,8 @@ export class LocalMediaService implements OnModuleInit {
       fileName: path.basename(file.path),
       size,
       subtitles,
+      managed: file.managed,
+      infoHash: file.infoHash,
     }));
   }
 
@@ -222,6 +224,8 @@ export class LocalMediaService implements OnModuleInit {
         fileName,
         size,
         subtitles,
+        managed: file.managed,
+        infoHash: file.infoHash,
         season: file.season,
         episodes:
           numbers?.season === file.season
@@ -443,6 +447,100 @@ export class LocalMediaService implements OnModuleInit {
     }
 
     return entries;
+  }
+
+  /**
+   * The absolute paths of entries of a library folder that exist, without the
+   * ones that are inside another one of them. An entry is something inside
+   * the folder that no symbolic link leads to.
+   */
+  async validateLibraryEntries(
+    folder: string,
+    paths: string[],
+  ): Promise<string[]> {
+    await this.getLibraryFolderType(folder);
+    if (
+      !Array.isArray(paths) ||
+      paths.some((entry) => typeof entry !== 'string' || !entry)
+    ) {
+      throw new BadRequestException('Paths must be a list of paths');
+    }
+
+    const realFolder = await fs.realpath(folder);
+    const resolved = new Set<string>();
+    for (const entry of paths) {
+      const entryPath = path.resolve(folder, ...entry.split('/'));
+      if (!isInsideFolder(entryPath, folder)) {
+        throw new BadRequestException(`Not in the library folder: ${entry}`);
+      }
+
+      if (!(await entryExists(entryPath))) continue;
+
+      const parent = await fs.realpath(path.dirname(entryPath));
+      if (parent !== realFolder && !isInsideFolder(parent, realFolder)) {
+        throw new BadRequestException(`Not in the library folder: ${entry}`);
+      }
+
+      resolved.add(entryPath);
+    }
+
+    const isInsideAnother = (entryPath: string) => {
+      for (
+        let dir = path.dirname(entryPath);
+        isInsideFolder(dir, folder);
+        dir = path.dirname(dir)
+      ) {
+        if (resolved.has(dir)) return true;
+      }
+
+      return false;
+    };
+
+    return [...resolved].filter((entryPath) => !isInsideAnother(entryPath));
+  }
+
+  /** The indexed file at a path, or the indexed files inside the directory there */
+  async findFilesAt(entryPath: string): Promise<MediaFile[]> {
+    const file = await this.em.findOne(
+      MediaFile,
+      { path: entryPath },
+      { disableIdentityMap: true },
+    );
+
+    return file ? [file] : this.findFilesInside(entryPath);
+  }
+
+  /** The indexed files among entries of a library folder */
+  async findLibraryEntryFiles(
+    folder: string,
+    paths: string[],
+  ): Promise<MediaFile[]> {
+    const files: MediaFile[] = [];
+    for (const entryPath of await this.validateLibraryEntries(folder, paths)) {
+      files.push(...(await this.findFilesAt(entryPath)));
+    }
+
+    return files;
+  }
+
+  /**
+   * Marks the indexed files among entries of a library folder managed, so
+   * that the cleanup may delete them when no request holds them, or
+   * external, so that it never does
+   */
+  async setLibraryEntriesManaged(
+    folder: string,
+    paths: string[],
+    managed: boolean,
+  ): Promise<{ changed: number }> {
+    const ids = (await this.findLibraryEntryFiles(folder, paths))
+      .filter((file) => file.managed !== managed)
+      .map((file) => file.id);
+    const changed = ids.length
+      ? await this.em.nativeUpdate(MediaFile, { id: { $in: ids } }, { managed })
+      : 0;
+
+    return { changed };
   }
 
   /**
@@ -999,6 +1097,13 @@ const isInside = (dir: string) => ({
 });
 
 /** Whether an indexed file is no longer a file at its path */
+/** Whether something is at a path, a dangling link included */
+export const entryExists = (filePath: string) =>
+  fs.lstat(filePath).then(
+    () => true,
+    () => false,
+  );
+
 const isNoLongerFile = (filePath: string) =>
   fs.stat(filePath).then(
     (stats) => !stats.isFile(),

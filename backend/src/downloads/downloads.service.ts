@@ -24,8 +24,10 @@ import { MediaFile } from '../local-media/media-file.entity.js';
 import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import {
+  FileSnapshot,
   hasEpisodePreference,
   preferenceOf,
+  preferredRelease,
   ReleaseSnapshot,
 } from '../requests/torrent-preference.js';
 import { LogType } from '../server-log/log-entry.entity.js';
@@ -39,6 +41,7 @@ import {
   EpisodeStatusDto,
   SeriesDownloadsDto,
   TorrentDto,
+  SelectedFileDto,
   TorrentSelectionDto,
   TorrentStatus,
 } from './downloads.dto.js';
@@ -175,7 +178,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     const nextCleanup = getNextCleanup(new Date(), cleanup);
 
     const rule = rules.find((rule) => rule.userId === userId);
-    const byHash = new Map(
+    const torrentsByHash = new Map(
       [...torrents.values()].map((torrent) => [torrent.infoHash, torrent]),
     );
     const held = new Set(requests.flatMap((r) => r.mediaFileId ?? []));
@@ -212,19 +215,33 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       ...[...onDisk.values()].filter((e) => !requested.has(episodeKey(e))),
     ];
 
+    const filesById = new Map(files.map((file) => [file.id, file]));
+    const ofRelease = (release: ReleaseSnapshot) => ({
+      releaseId: release.releaseId,
+      torrent: this.describeRelease(
+        release,
+        torrentsByHash.get(release.infoHash),
+      ),
+    });
     const selections: TorrentSelectionDto[] = [
       ...(rule?.seasonTorrents ?? []).map((t) => ({
         season: t.season,
         episode: 0,
-        release: t.release,
+        ...ofRelease(t.release),
       })),
-      ...(rule?.episodeTorrents ?? []),
-    ].map(({ season, episode, release }) => ({
-      season,
-      episode,
-      releaseId: release.releaseId,
-      torrent: this.describeRelease(release, byHash.get(release.infoHash)),
-    }));
+      ...(rule?.episodeSources ?? []).map(({ season, episode, ...source }) => ({
+        season,
+        episode,
+        ...(source.kind === 'torrent'
+          ? ofRelease(source.release)
+          : {
+              file: this.describeFile(
+                source.file,
+                filesById.get(source.file.mediaFileId),
+              ),
+            }),
+      })),
+    ];
 
     return {
       selections: selections.sort(
@@ -350,7 +367,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
 
   /**
    * Binds the activated requests of a title that have no file and no torrent
-   * to the torrent their user prefers, gives the bound requests the files of
+   * to the torrent or the file their user prefers, gives the bound requests the files of
    * their torrents that are in the library, and has every torrent of the
    * title decide again, with the ones that no request refers to any more
    */
@@ -366,7 +383,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     );
     // Resolving fetches .torrent files, outside any transaction
     const resolvedTorrentSources = new Map<string, TorrentSource | Error>();
-    for (const { release } of unbound) {
+    for (const { source } of unbound) {
+      if (source.kind !== 'torrent') continue;
+      const { release } = source;
       const key = releaseKey(release);
       if (resolvedTorrentSources.has(key) || knownHashes.has(release.infoHash))
         continue;
@@ -380,12 +399,16 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     }
 
     await context.em.transactional(async (tx) => {
-      for (const { request, release } of unbound) {
+      for (const { request, source } of unbound) {
+        if (source.kind === 'file') {
+          await this.bindFile(tx, request, source.file, now);
+          continue;
+        }
         await this.bind(
           tx,
           request,
-          release,
-          resolvedTorrentSources.get(releaseKey(release)),
+          source.release,
+          resolvedTorrentSources.get(releaseKey(source.release)),
           now,
         );
       }
@@ -456,11 +479,13 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       : [];
     const unbound = requests.flatMap((request) => {
       const rule = rules.find((rule) => rule.userId === request.userId);
-      const release = preferenceOf(rule, request.season, request.episode);
+      const source = preferenceOf(rule, request.season, request.episode);
 
-      return release ? [{ request, release }] : [];
+      return source ? [{ request, source }] : [];
     });
-    const hashes = unbound.flatMap(({ release }) => release.infoHash ?? []);
+    const hashes = unbound.flatMap(({ source }) =>
+      source.kind === 'torrent' ? (source.release.infoHash ?? []) : [],
+    );
     const known = new Set(
       hashes.length
         ? (
@@ -474,6 +499,46 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     );
 
     return { unbound, known };
+  }
+
+  /** Gives a request the file of its preference, or records that the file is not in the library */
+  private async bindFile(
+    tx: EntityManager,
+    request: MediaRequest,
+    file: FileSnapshot,
+    now: Date,
+  ): Promise<void> {
+    const row = await tx.findOne(
+      MediaFile,
+      {
+        id: file.mediaFileId,
+        mediaType: MediaType.Series,
+        tmdbId: request.tmdbId,
+        season: request.season,
+        episode: { $lte: request.episode },
+        lastEpisode: { $gte: request.episode },
+      },
+      { ...READ, fields: ['id'] },
+    );
+    if (!row) {
+      const attempts = request.attempts + 1;
+      await tx.nativeUpdate(
+        MediaRequest,
+        { id: request.id, torrentId: null, mediaFileId: null },
+        {
+          error: `"${file.fileName}" is not in the library`,
+          attempts,
+          retryAt: new Date(now.getTime() + retryDelay(attempts)),
+        },
+      );
+      return;
+    }
+
+    await tx.nativeUpdate(
+      MediaRequest,
+      { id: request.id, torrentId: null, mediaFileId: null },
+      { mediaFileId: row.id, error: null, attempts: 0, retryAt: null },
+    );
   }
 
   /** Binds a request to the torrent of its preference, or records why it could not be */
@@ -752,8 +817,11 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         )
       : [];
     const episodePreferences = rules.flatMap((rule) =>
-      (rule.episodeTorrents ?? [])
-        .filter((t) => t.release.infoHash === torrent.infoHash)
+      (rule.episodeSources ?? [])
+        .filter(
+          (s) =>
+            s.kind === 'torrent' && s.release.infoHash === torrent.infoHash,
+        )
         .map((t) => ({
           userId: rule.userId,
           tmdbId: rule.tmdbId,
@@ -782,11 +850,12 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       { mediaType: MediaType.Series, tmdbId },
       READ,
     );
-    const preferred = rules.flatMap((rule) =>
-      [...(rule.seasonTorrents ?? []), ...(rule.episodeTorrents ?? [])].flatMap(
-        (t) => t.release.infoHash ?? [],
+    const preferred = rules.flatMap((rule) => [
+      ...(rule.seasonTorrents ?? []).flatMap((t) => t.release.infoHash ?? []),
+      ...(rule.episodeSources ?? []).flatMap((s) =>
+        s.kind === 'torrent' ? (s.release.infoHash ?? []) : [],
       ),
-    );
+    ]);
     const torrents = await tx.find(
       Torrent,
       {
@@ -867,7 +936,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     const { season, episode } = request;
     const isPreferredForEpisode =
       hasEpisodePreference(rule, season, episode) &&
-      preferenceOf(rule, season, episode)?.infoHash === torrent.infoHash;
+      preferredRelease(rule, season, episode)?.infoHash === torrent.infoHash;
 
     return (
       findEpisodeFile(files, season, episode) ??
@@ -893,6 +962,20 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       peers: 0,
       downloadSpeed: 0,
       uploadSpeed: 0,
+    };
+  }
+
+  /** A preferred file: as it is in the library, or as it was picked when it is gone */
+  private describeFile(
+    file: FileSnapshot,
+    row: MediaFile | undefined,
+  ): SelectedFileDto {
+    return {
+      id: file.mediaFileId,
+      fileName: file.fileName,
+      size: row?.size ?? file.size,
+      inLibrary: !!row,
+      managed: row?.managed,
     };
   }
 

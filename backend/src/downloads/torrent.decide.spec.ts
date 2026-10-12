@@ -5,8 +5,8 @@ import {
   RuleState,
 } from '../requests/request-rules.js';
 import {
-  EpisodeTorrent,
-  preferenceOf,
+  EpisodeSource,
+  preferredRelease,
   SeasonTorrent,
 } from '../requests/torrent-preference.js';
 import { TorrentFile } from './torrent-engine.js';
@@ -175,11 +175,11 @@ function preferencesOf(
 ) {
   const byUser = new Map<
     string,
-    { seasonTorrents: SeasonTorrent[]; episodeTorrents: EpisodeTorrent[] }
+    { seasonTorrents: SeasonTorrent[]; episodeSources: EpisodeSource[] }
   >();
   for (const s of selections) {
     const key = `${s.userId}/${s.tmdbId}`;
-    const rule = byUser.get(key) ?? { seasonTorrents: [], episodeTorrents: [] };
+    const rule = byUser.get(key) ?? { seasonTorrents: [], episodeSources: [] };
     const torrent = torrents.find((t) => t.id === s.torrentId);
     const release = {
       releaseId: s.torrentId,
@@ -190,7 +190,7 @@ function preferencesOf(
     };
     if (s.episode === 0)
       rule.seasonTorrents.push({ season: s.season, release });
-    else rule.episodeTorrents.push({ ...s, release });
+    else rule.episodeSources.push({ ...s, kind: 'torrent', release });
     byUser.set(key, rule);
   }
 
@@ -219,7 +219,7 @@ function bindAndAttach(
         (activated.has(request.id) ? new Date(NOW) : undefined);
       let { torrentId } = request;
       if (!torrentId && request.approved && activatedAt) {
-        const release = preferenceOf(
+        const release = preferredRelease(
           preferences.get(`${request.userId}/${request.tmdbId}`),
           request.season,
           request.episode,
@@ -266,8 +266,11 @@ function plan(state: Partial<DownloadsState>) {
         torrent,
         requests: requests.filter((r) => r.torrentId === torrent.id),
         episodePreferences: [...preferences.entries()].flatMap(([key, rule]) =>
-          rule.episodeTorrents
-            .filter((t) => t.release.infoHash === torrent.infoHash)
+          rule.episodeSources
+            .filter(
+              (t) =>
+                t.kind === 'torrent' && t.release.infoHash === torrent.infoHash,
+            )
             .map((t) => ({
               userId: key.split('/')[0],
               tmdbId: key.split('/')[1],

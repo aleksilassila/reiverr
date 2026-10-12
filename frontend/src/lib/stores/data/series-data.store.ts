@@ -1,6 +1,7 @@
 import type {
 	EpisodeRefDto,
 	EpisodeStatusDto,
+	SelectedFileDto,
 	SeriesUserDataDto,
 	TmdbSeriesFull,
 	TorrentDto,
@@ -40,6 +41,8 @@ export type EpisodeRequestStatus = {
 	onDisk: boolean;
 	/** The torrent of the request, or else the selected one: the episode's own, or the season pack */
 	torrent?: TorrentDto;
+	/** The file in the library selected for the episode */
+	file?: SelectedFileDto;
 	/** The torrent is the season pack, which was not selected for this episode */
 	isSeasonPack: boolean;
 	label?: string;
@@ -75,7 +78,7 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 	// A file of another torrent, or one that was found on disk, plays as well
 	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';
 	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';
-	if (status?.status === 'no-selection') return 'No torrent selected';
+	if (status?.status === 'no-selection') return 'No source selected';
 
 	return inactive;
 }
@@ -96,7 +99,8 @@ export function getEpisodeRequestStatus(
 		requested: !!status?.requested,
 		onDisk: !!status?.onDisk,
 		torrent,
-		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent.infoHash,
+		file: own?.file,
+		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent?.infoHash,
 		label: getStatusLabel(status),
 		isError: status?.status === 'failed' || status?.status === 'no-file-in-torrent'
 	};

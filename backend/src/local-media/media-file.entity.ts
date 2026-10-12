@@ -44,8 +44,9 @@ export class MediaFile {
   infoHash?: string;
 
   /**
-   * Imported files are managed. Files that were found on disk are not: they
-   * count towards no quota and are never cleaned up.
+   * A managed file is the server's to delete when no request holds it:
+   * imported files are, and files an admin marked so. External files, found
+   * on disk, count towards no quota and are never cleaned up.
    */
   @Property({ default: false })
   managed: boolean = false;

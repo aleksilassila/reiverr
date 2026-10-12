@@ -1,6 +1,5 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import {
-  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -19,7 +18,7 @@ import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { DeletedLibraryEntriesDto } from './local-media.dto.js';
-import { LocalMediaService } from './local-media.service.js';
+import { entryExists, LocalMediaService } from './local-media.service.js';
 import {
   describeError,
   isInsideFolder,
@@ -37,12 +36,6 @@ const isStillImported = (
   stats.isFile() &&
   stats.size === file.size &&
   stats.mtime.getTime() === file.modifiedAt.getTime();
-
-const entryExists = (filePath: string) =>
-  fs.lstat(filePath).then(
-    () => true,
-    () => false,
-  );
 
 /**
  * What the library keeps: the cleanup of the imported files that no request
@@ -108,12 +101,15 @@ export class CleanupService implements OnModuleInit {
     paths: string[],
     reason: string,
   ): Promise<DeletedLibraryEntriesDto> {
-    const entries = await this.validateLibraryEntries(folder, paths);
+    const entries = await this.localMediaService.validateLibraryEntries(
+      folder,
+      paths,
+    );
     // Read before anything is deleted, so that a scan that forgets the rows
     // meanwhile does not keep the requests
     const selected: MediaFile[] = [];
     for (const entryPath of entries) {
-      selected.push(...(await this.findFilesAt(entryPath)));
+      selected.push(...(await this.localMediaService.findFilesAt(entryPath)));
     }
     const before = await this.requestsService.findReferringRequests(
       selected.map((file) => file.id),
@@ -121,7 +117,7 @@ export class CleanupService implements OnModuleInit {
 
     const result: DeletedLibraryEntriesDto = { deleted: 0, failed: [] };
     for (const entryPath of entries) {
-      const files = await this.findFilesAt(entryPath);
+      const files = await this.localMediaService.findFilesAt(entryPath);
       // A cleanup can delete files of the entry meanwhile
       const existed = await entryExists(entryPath);
       const error = await fs
@@ -312,63 +308,6 @@ export class CleanupService implements OnModuleInit {
       const deleted = await tx.nativeDelete(MediaFile, { id: file.id });
       if (deleted) await this.logDeleted(tx, file.path, reason, file);
     });
-  }
-
-  /**
-   * The absolute paths of entries of a library folder that exist, without the
-   * ones that are inside another one of them. An entry is something inside
-   * the folder that no symbolic link leads to.
-   */
-  private async validateLibraryEntries(
-    folder: string,
-    paths: string[],
-  ): Promise<string[]> {
-    await this.localMediaService.getLibraryFolderType(folder);
-    if (
-      !Array.isArray(paths) ||
-      paths.some((entry) => typeof entry !== 'string' || !entry)
-    ) {
-      throw new BadRequestException('Paths must be a list of paths');
-    }
-
-    const realFolder = await fs.realpath(folder);
-    const resolved = new Set<string>();
-    for (const entry of paths) {
-      const entryPath = path.resolve(folder, ...entry.split('/'));
-      if (!isInsideFolder(entryPath, folder)) {
-        throw new BadRequestException(`Not in the library folder: ${entry}`);
-      }
-
-      if (!(await entryExists(entryPath))) continue;
-
-      const parent = await fs.realpath(path.dirname(entryPath));
-      if (parent !== realFolder && !isInsideFolder(parent, realFolder)) {
-        throw new BadRequestException(`Not in the library folder: ${entry}`);
-      }
-
-      resolved.add(entryPath);
-    }
-
-    const isInsideAnother = (entryPath: string) => {
-      for (
-        let dir = path.dirname(entryPath);
-        isInsideFolder(dir, folder);
-        dir = path.dirname(dir)
-      ) {
-        if (resolved.has(dir)) return true;
-      }
-
-      return false;
-    };
-
-    return [...resolved].filter((entryPath) => !isInsideAnother(entryPath));
-  }
-
-  /** The indexed file at a path, or the indexed files inside the directory there */
-  private async findFilesAt(entryPath: string): Promise<MediaFile[]> {
-    const file = await this.em.findOne(MediaFile, { path: entryPath }, READ);
-
-    return file ? [file] : this.localMediaService.findFilesInside(entryPath);
   }
 
   private logDeleted(

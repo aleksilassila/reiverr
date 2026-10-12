@@ -43,3 +43,8 @@ export class SelectReleaseDto {
   @ApiProperty({ description: 'Id of a release from an indexer search' })
   releaseId: string;
 }
+
+export class SelectFileDto {
+  @ApiProperty({ description: 'Id of a file of the episode in the library' })
+  mediaFileId: string;
+}

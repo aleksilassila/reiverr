@@ -17,6 +17,7 @@ import {
 import * as path from 'node:path';
 import {
   createLibraryFixture,
+  INFO_HASH,
   LibraryFixture,
   TMDB_ID,
 } from '../../test/local-media-fixture.js';
@@ -535,6 +536,61 @@ describe('LocalMediaService', () => {
       // A folder that left the library since the job was queued is not scanned
       await runJob(path.join(root, 'elsewhere'));
       expect(await logged()).toHaveLength(1);
+    });
+  });
+
+  describe('managing the files of library entries', () => {
+    const SHOW = 'Test Show (2020) [tmdbid-100]';
+
+    it('finds the indexed files among entries, and marks them managed or external', async () => {
+      const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+      const found = write(`tv/${SHOW}/Season 01/Test Show - S01E02.mkv`);
+      write(`tv/${SHOW}/Season 01/notes.txt`);
+      await scanSeries();
+
+      expect(
+        (
+          await request(() =>
+            localMedia.findLibraryEntryFiles(library, [`${SHOW}/Season 01`]),
+          )
+        ).map((file) => [file.path, file.managed]),
+      ).toEqual([
+        [imported, true],
+        [found, false],
+      ]);
+      expect(
+        await request(() =>
+          localMedia.setLibraryEntriesManaged(
+            library,
+            [`${SHOW}/Season 01`],
+            true,
+          ),
+        ),
+      ).toEqual({ changed: 1 });
+      expect((await indexed()).map((file) => file.managed)).toEqual([
+        true,
+        true,
+      ]);
+
+      // Only the one file, and its origin is kept
+      const external = await request(() =>
+        localMedia.setLibraryEntriesManaged(
+          library,
+          [`${SHOW}/Season 01/${path.basename(imported)}`],
+          false,
+        ),
+      );
+      expect(external).toMatchObject({ changed: 1 });
+      expect(await indexed()).toMatchObject([
+        { path: imported, managed: false, infoHash: INFO_HASH },
+        { path: found, managed: true },
+      ]);
+    });
+
+    it('answers only for a library folder', async () => {
+      await expect(
+        request(() => localMedia.setLibraryEntriesManaged(root, ['tv'], true)),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

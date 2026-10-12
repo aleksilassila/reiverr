@@ -39,6 +39,18 @@ export class LocalMediaFileDto {
     description: 'Subtitle files next to the video',
   })
   subtitles: LocalSubtitleFileDto[];
+
+  @ApiProperty({
+    description:
+      'Whether the cleanup may delete the file when no request holds it',
+  })
+  managed: boolean;
+
+  @ApiProperty({
+    required: false,
+    description: 'The torrent the file was imported from',
+  })
+  infoHash?: string;
 }
 
 export class LocalEpisodeFileDto extends LocalMediaFileDto {

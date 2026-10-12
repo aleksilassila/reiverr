@@ -90,16 +90,50 @@ export class TorrentDto {
   uploadSpeed: number;
 }
 
-/** The torrent a user prefers for a season (episode 0) or an episode */
+/** A file in the library a user prefers for an episode */
+export class SelectedFileDto {
+  @ApiProperty({
+    description: 'The id of the file, which the API serves it by',
+  })
+  id: string;
+
+  @ApiProperty()
+  fileName: string;
+
+  @ApiProperty({ description: 'Bytes' })
+  size: number;
+
+  @ApiProperty({
+    description:
+      'Whether the file is still in the library. The requests of a file that is not fail until another source is picked',
+  })
+  inLibrary: boolean;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Whether the cleanup may delete the file when no request holds it',
+  })
+  managed?: boolean;
+}
+
+/**
+ * What a user prefers for a season (episode 0) or an episode: a torrent, or
+ * for an episode a file in the library
+ */
 export class TorrentSelectionDto extends EpisodeRefDto {
   @ApiProperty({
     type: 'string',
+    required: false,
     description: 'The search result the user picked',
   })
-  releaseId: string;
+  releaseId?: string;
 
-  @ApiProperty({ type: TorrentDto })
-  torrent: TorrentDto;
+  @ApiProperty({ type: TorrentDto, required: false })
+  torrent?: TorrentDto;
+
+  @ApiProperty({ type: SelectedFileDto, required: false })
+  file?: SelectedFileDto;
 }
 
 export enum EpisodeDownloadStatus {

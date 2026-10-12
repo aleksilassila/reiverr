@@ -8,7 +8,11 @@ import { CleanupService } from '../local-media/cleanup.service.js';
 import { LocalMediaService } from '../local-media/local-media.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
-import { ServerLibraryEntryDto } from './server.dto.js';
+import {
+  ManagedLibraryEntriesDto,
+  RequestedLibraryEntriesDto,
+  ServerLibraryEntryDto,
+} from './server.dto.js';
 
 /** What the server page shows admins of the server and lets them do to it */
 @Injectable()
@@ -51,6 +55,45 @@ export class ServerService {
     return this.localMediaService.scanFolder(folder, {
       evenIfUnavailable: force,
     });
+  }
+
+  async requestLibraryEntries(
+    admin: User,
+    folder: string,
+    paths: string[],
+  ): Promise<RequestedLibraryEntriesDto> {
+    const files = await this.localMediaService.findLibraryEntryFiles(
+      folder,
+      paths,
+    );
+
+    return this.requestsService.requestFiles(admin.id, files);
+  }
+
+  async manageLibraryEntries(
+    folder: string,
+    paths: string[],
+  ): Promise<ManagedLibraryEntriesDto> {
+    const { changed } = await this.localMediaService.setLibraryEntriesManaged(
+      folder,
+      paths,
+      true,
+    );
+
+    return { files: changed };
+  }
+
+  async unmanageLibraryEntries(
+    folder: string,
+    paths: string[],
+  ): Promise<ManagedLibraryEntriesDto> {
+    const { changed } = await this.localMediaService.setLibraryEntriesManaged(
+      folder,
+      paths,
+      false,
+    );
+
+    return { files: changed };
   }
 
   deleteLibraryEntries(

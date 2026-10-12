@@ -9,7 +9,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import type { EpisodeTorrent, SeasonTorrent } from './torrent-preference.js';
+import type { EpisodeSource, SeasonTorrent } from './torrent-preference.js';
 
 /**
  * What a user wants of the requests of a title: which of them are active,
@@ -66,7 +66,7 @@ export class RequestRule {
   @Property({ type: 'json', nullable: true })
   seasonTorrents: SeasonTorrent[] | null = null;
 
-  /** The torrent the user prefers for an episode, over the season's */
+  /** The torrent or the file the user prefers for an episode, over the season's torrent */
   @Property({ type: 'json', nullable: true })
-  episodeTorrents: EpisodeTorrent[] | null = null;
+  episodeSources: EpisodeSource[] | null = null;
 }

@@ -13,7 +13,7 @@
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
-	import { ChevronDown, Reload, Trash } from 'radix-icons-svelte';
+	import { Archive, Bookmark, ChevronDown, Cross2, Reload, Trash } from 'radix-icons-svelte';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -35,6 +35,7 @@
 	];
 
 	let folders: string[] = [];
+	let seriesFolders: string[] = [];
 	let folder = '';
 	let tree: LibraryTree = { roots: [], nodes: new Map() };
 	let expanded = new Set<string>();
@@ -50,6 +51,8 @@
 	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
 	$: partiallyChecked = getPartiallyChecked(checked);
 	$: selection = getSelection(checked, tree.nodes);
+	// Managing files and requesting them is built for series
+	$: isSeriesFolder = seriesFolders.includes(folder);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 	const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -149,6 +152,63 @@
 		});
 	}
 
+	/** The requests keep the files as long as the admin's rules keep the requests, so it asks first */
+	function confirmRequest() {
+		const files = count(selection.indexedFiles, 'file', 'files');
+
+		createModal(ConfirmDialog, {
+			header: 'Request the files?',
+			body: `The episodes of ${files} will be requested for you, bound to the files, so that they are kept as long as your requests keep them under your request rules. Of several files of one episode, one gets the request. Automatic request rules apply.`,
+			confirm: () =>
+				reiverrApi.server
+					.requestLibraryEntries({ folder, paths: Array.from(checked) })
+					.then(({ data }) => {
+						const what = [
+							`${count(data.requests, 'request', 'requests')} bound`,
+							data.kept ? `${count(data.kept, 'episode keeps', 'episodes keep')} another file` : '',
+							data.skipped ? `${count(data.skipped, 'file', 'files')} skipped` : ''
+						].filter(Boolean);
+						createInfoNotification('Requested', what.join(', '));
+					})
+					.catch((e) => createErrorNotification('Could not request', errorMessage(e)))
+					.then(() => load(folder))
+		});
+	}
+
+	/** A managed file that nothing holds goes at the next cleanup, so it asks first */
+	function confirmManage() {
+		const files = count(selection.indexedFiles - selection.managedFiles, 'file', 'files');
+
+		createModal(ConfirmDialog, {
+			header: 'Manage the files?',
+			body: `${files} will be managed. A managed file that no request holds is deleted at the next cleanup. Until then a request can be bound to it from the sources of its episode, or with Request here.`,
+			confirm: () => setManaged(true)
+		});
+	}
+
+	function setManaged(managed: boolean) {
+		const paths = Array.from(checked);
+
+		return (
+			managed
+				? reiverrApi.server.manageLibraryEntries({ folder, paths })
+				: reiverrApi.server.unmanageLibraryEntries({ folder, paths })
+		)
+			.then(({ data }) =>
+				createInfoNotification(
+					managed ? 'Managed' : 'Unmanaged',
+					`${count(data.files, 'file', 'files')} changed`
+				)
+			)
+			.catch((e) =>
+				createErrorNotification(
+					managed ? 'Could not manage' : 'Could not unmanage',
+					errorMessage(e)
+				)
+			)
+			.then(() => load(folder));
+	}
+
 	/** Warns when the scan would forget indexed files, which happens to all of them in a folder that is not mounted */
 	async function confirmScan() {
 		const preview = await reiverrApi.server
@@ -205,6 +265,7 @@
 		.getLocalMediaSettings()
 		.then(({ data }) => {
 			folders = [...data.seriesFolders, ...data.movieFolders];
+			seriesFolders = data.seriesFolders;
 
 			const first = folders[0];
 			if (first) return load(first);
@@ -236,10 +297,29 @@
 					{isScanning ? 'Scanning...' : 'Scan library'}
 				</Button>
 			</Container>
-			<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
-				Delete {count(selection.files, 'file', 'files')}
-				{#if checked.size}({formatSize(selection.size)}){/if}
-			</Button>
+			<Container direction="horizontal" class="flex items-center space-x-4">
+				<Button
+					icon={Bookmark}
+					disabled={!isSeriesFolder || !selection.indexedFiles}
+					on:clickOrSelect={confirmRequest}
+				>
+					Request
+				</Button>
+				<Button
+					icon={Archive}
+					disabled={!isSeriesFolder || selection.indexedFiles === selection.managedFiles}
+					on:clickOrSelect={confirmManage}
+				>
+					Set managed
+				</Button>
+				<Button icon={Cross2} disabled={!selection.managedFiles} action={() => setManaged(false)}>
+					Set external
+				</Button>
+				<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
+					Delete {count(selection.files, 'file', 'files')}
+					{#if checked.size}({formatSize(selection.size)}){/if}
+				</Button>
+			</Container>
 		</Container>
 	</Container>
 

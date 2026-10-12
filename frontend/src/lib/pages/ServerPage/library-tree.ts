@@ -17,6 +17,9 @@ export type LibraryNode = {
 	/** Files that requests hold, and how many requests that is */
 	heldFiles: number;
 	requests: number;
+	/** Files the server knows, and among them the ones it may delete */
+	indexedFiles: number;
+	managedFiles: number;
 };
 
 export type LibraryTree = {
@@ -44,7 +47,9 @@ export function buildTree(entries: ServerLibraryEntryDto[]): LibraryTree {
 			files: entry.isDirectory ? 0 : 1,
 			directories: entry.isDirectory ? 1 : 0,
 			heldFiles: requests > 0 ? 1 : 0,
-			requests
+			requests,
+			indexedFiles: entry.mediaFileId ? 1 : 0,
+			managedFiles: entry.managed ? 1 : 0
 		};
 
 		nodes.set(entry.path, node);
@@ -62,6 +67,8 @@ export function buildTree(entries: ServerLibraryEntryDto[]): LibraryTree {
 		node.parent.directories += node.directories;
 		node.parent.heldFiles += node.heldFiles;
 		node.parent.requests += node.requests;
+		node.parent.indexedFiles += node.indexedFiles;
+		node.parent.managedFiles += node.managedFiles;
 	}
 
 	return { roots, nodes };
@@ -146,7 +153,15 @@ export function getPartiallyChecked(checked: Set<string>): Set<string> {
 }
 
 export function getSelection(checked: Set<string>, nodes: Map<string, LibraryNode>) {
-	const selection = { files: 0, directories: 0, size: 0, heldFiles: 0, requests: 0 };
+	const selection = {
+		files: 0,
+		directories: 0,
+		size: 0,
+		heldFiles: 0,
+		requests: 0,
+		indexedFiles: 0,
+		managedFiles: 0
+	};
 	checked.forEach((path) => {
 		const node = nodes.get(path);
 		if (!node) return;
@@ -156,6 +171,8 @@ export function getSelection(checked: Set<string>, nodes: Map<string, LibraryNod
 		selection.size += node.size;
 		selection.heldFiles += node.heldFiles;
 		selection.requests += node.requests;
+		selection.indexedFiles += node.indexedFiles;
+		selection.managedFiles += node.managedFiles;
 	});
 
 	return selection;

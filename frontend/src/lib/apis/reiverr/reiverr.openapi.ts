@@ -1333,6 +1333,11 @@ export interface SelectReleaseDto {
   releaseId: string;
 }
 
+export interface SelectFileDto {
+  /** Id of a file of the episode in the library */
+  mediaFileId: string;
+}
+
 export interface RequesterDto {
   id: string;
   name: string;
@@ -1383,6 +1388,10 @@ export interface LocalMediaFileDto {
   size: number;
   /** Subtitle files next to the video */
   subtitles: LocalSubtitleFileDto[];
+  /** Whether the cleanup may delete the file when no request holds it */
+  managed: boolean;
+  /** The torrent the file was imported from */
+  infoHash?: string;
 }
 
 export interface LocalEpisodeFileDto {
@@ -1391,6 +1400,10 @@ export interface LocalEpisodeFileDto {
   size: number;
   /** Subtitle files next to the video */
   subtitles: LocalSubtitleFileDto[];
+  /** Whether the cleanup may delete the file when no request holds it */
+  managed: boolean;
+  /** The torrent the file was imported from */
+  infoHash?: string;
   season: number;
   episodes: number[];
 }
@@ -1476,12 +1489,25 @@ export interface TorrentDto {
   uploadSpeed: number;
 }
 
+export interface SelectedFileDto {
+  /** The id of the file, which the API serves it by */
+  id: string;
+  fileName: string;
+  /** Bytes */
+  size: number;
+  /** Whether the file is still in the library. The requests of a file that is not fail until another source is picked */
+  inLibrary: boolean;
+  /** Whether the cleanup may delete the file when no request holds it */
+  managed?: boolean;
+}
+
 export interface TorrentSelectionDto {
   season: number;
   episode: number;
   /** The search result the user picked */
-  releaseId: string;
-  torrent: TorrentDto;
+  releaseId?: string;
+  torrent?: TorrentDto;
+  file?: SelectedFileDto;
 }
 
 export interface EpisodeStatusDto {
@@ -1581,10 +1607,31 @@ export interface LibraryScanDto {
   failed: FailedLibraryEntryDto[];
 }
 
+export interface LibraryEntriesDto {
+  /** One of the library folders */
+  folder: string;
+  /** Where the files and directories are in the folder, with / between the names */
+  paths: string[];
+}
+
+export interface RequestedLibraryEntriesDto {
+  /** Requests that were bound to the files */
+  requests: number;
+  /** Episodes whose request kept another file it has */
+  kept: number;
+  /** Files of movies and of episodes the series does not have, which were not requested */
+  skipped: number;
+}
+
+export interface ManagedLibraryEntriesDto {
+  /** Indexed files whose managed flag changed */
+  files: number;
+}
+
 export interface DeleteLibraryEntriesDto {
   /** One of the library folders */
   folder: string;
-  /** Where the files and directories to delete are in the folder, with / between the names */
+  /** Where the files and directories are in the folder, with / between the names */
   paths: string[];
 }
 
@@ -2544,6 +2591,30 @@ export class Api<
      * No description
      *
      * @tags requests
+     * @name SelectEpisodeFile
+     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/file
+     */
+    selectEpisodeFile: (
+      userId: string,
+      tmdbId: string,
+      season: number,
+      episode: number,
+      data: SelectFileDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/file`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
      * @name GetAllRequests
      * @request GET:/api/v2/requests
      */
@@ -2826,6 +2897,66 @@ export class Api<
     scanLibrary: (data: ScanLibraryDto, params: RequestParams = {}) =>
       this.request<LibraryScanDto, any>({
         path: `/api/v2/server/library/scan`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name RequestLibraryEntries
+     * @request POST:/api/v2/server/library/request
+     */
+    requestLibraryEntries: (
+      data: LibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<RequestedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/request`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name ManageLibraryEntries
+     * @request POST:/api/v2/server/library/manage
+     */
+    manageLibraryEntries: (
+      data: LibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<ManagedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/manage`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name UnmanageLibraryEntries
+     * @request POST:/api/v2/server/library/unmanage
+     */
+    unmanageLibraryEntries: (
+      data: LibraryEntriesDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<ManagedLibraryEntriesDto, any>({
+        path: `/api/v2/server/library/unmanage`,
         method: "POST",
         body: data,
         type: ContentType.Json,

@@ -26,6 +26,7 @@ import {
   MediaRequestDto,
   MovieRequestDto,
   RequestRuleDto,
+  SelectFileDto,
   SelectReleaseDto,
   UpdateSeriesRequestsDto,
 } from './requests.dto.js';
@@ -179,7 +180,7 @@ export class RequestsController {
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
   ): Promise<SuccessResponseDto> {
-    const success = await this.requestsService.clearTorrent({
+    const success = await this.requestsService.clearPreference({
       userId,
       tmdbId,
       season,
@@ -204,7 +205,11 @@ export class RequestsController {
   }
 
   @Delete('series/tmdb/:tmdbId/rule/seasons/:season/episodes/:episode/torrent')
-  @ApiOkResponse({ type: SuccessResponseDto })
+  @ApiOkResponse({
+    type: SuccessResponseDto,
+    description:
+      'Forgets the torrent or the file the user prefers for the episode',
+  })
   async clearEpisodeRelease(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
@@ -212,7 +217,7 @@ export class RequestsController {
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<SuccessResponseDto> {
     if (episode < 1) throw new BadRequestException('Invalid episode');
-    const success = await this.requestsService.clearTorrent({
+    const success = await this.requestsService.clearPreference({
       userId,
       tmdbId,
       season,
@@ -220,6 +225,32 @@ export class RequestsController {
     });
 
     return { success };
+  }
+
+  @Put('series/tmdb/:tmdbId/rule/seasons/:season/episodes/:episode/file')
+  @ApiOkResponse({
+    type: SuccessResponseDto,
+    description:
+      'Makes a file in the library what the requests of the user for the episode have',
+  })
+  async selectEpisodeFile(
+    @Param('userId') userId: string,
+    @Param('tmdbId') tmdbId: string,
+    @Param('season', ParseIntPipe) season: number,
+    @Param('episode', ParseIntPipe) episode: number,
+    @Body() body: SelectFileDto,
+  ): Promise<SuccessResponseDto> {
+    if (episode < 1) throw new BadRequestException('Invalid episode');
+    if (typeof body?.mediaFileId !== 'string' || !body.mediaFileId) {
+      throw new BadRequestException('Expected { mediaFileId }');
+    }
+
+    await this.requestsService.selectFile(
+      { userId, tmdbId, season, episode },
+      body.mediaFileId,
+    );
+
+    return { success: true };
   }
 
   private async selectRelease(
