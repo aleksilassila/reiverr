@@ -275,7 +275,7 @@ describe('CleanupService', () => {
         request(() => cleanup.deleteLibraryEntries(folder, paths, 'a test'));
 
       it('deletes what it can and reports what it cannot', async () => {
-        const kept = write(`tv/${SHOW}/Season 01/Test Show - S01E01.mkv`);
+        const kept = write(`tv/${SHOW}/Season 1/Test Show - S01E01.mkv`);
         write('tv/Unknown/notes.txt');
         await scanSeries();
         const locked = path.dirname(kept);
@@ -283,11 +283,11 @@ describe('CleanupService', () => {
 
         try {
           expect(
-            await deleteEntries([`${SHOW}/Season 01`, 'Unknown/notes.txt']),
+            await deleteEntries([`${SHOW}/Season 1`, 'Unknown/notes.txt']),
           ).toEqual({
             deleted: 1,
             failed: [
-              { path: `${SHOW}/Season 01`, error: 'EACCES: permission denied' },
+              { path: `${SHOW}/Season 1`, error: 'EACCES: permission denied' },
             ],
           });
         } finally {
@@ -309,18 +309,20 @@ describe('CleanupService', () => {
 
       it('deletes files and directories, and forgets the indexed files among them with their requests', async () => {
         const first = await importEpisode(write('downloads/S01E01.mkv'), [1]);
-        const second = write(`tv/${SHOW}/Season 02/Test Show - S02E01.mkv`);
-        write(`tv/${SHOW}/Season 02/poster.jpg`);
-        write(`tv/${SHOW}/Season 03/Test Show - S03E01.mkv`);
+        const second = write(`tv/${SHOW}/Season 2/Test Show - S02E01.mkv`);
+        write(`tv/${SHOW}/Season 2/poster.jpg`);
+        write(`tv/${SHOW}/Season 3/Test Show - S03E01.mkv`);
         write('tv/Unknown/notes.txt');
         await scanSeries();
-        const [firstRow, secondRow] = await indexed();
+        const rows = await indexed();
+        const firstRow = rows.find((row) => row.path === first);
+        const secondRow = rows.find((row) => row.path === second);
         requests.findReferringRequests.mockResolvedValueOnce([
           { id: 'request-1', mediaFileId: firstRow.id },
         ]);
         const selected = {
-          mediaFile: `${SHOW}/Season 01/${path.basename(first)}`,
-          directory: `${SHOW}/Season 02`,
+          mediaFile: path.relative(library, first),
+          directory: `${SHOW}/Season 2`,
           file: 'Unknown/notes.txt',
         };
 
@@ -328,7 +330,7 @@ describe('CleanupService', () => {
         expect(
           await deleteEntries([
             ...Object.values(selected),
-            `${SHOW}/Season 02/poster.jpg`,
+            `${SHOW}/Season 2/poster.jpg`,
             'Unknown/gone.txt',
           ]),
         ).toEqual({ deleted: 3, failed: [] });
@@ -349,9 +351,9 @@ describe('CleanupService', () => {
           readdirSync(library, { recursive: true }).map(String).sort(),
         ).toEqual([
           SHOW,
-          `${SHOW}/Season 01`,
-          `${SHOW}/Season 03`,
-          `${SHOW}/Season 03/Test Show - S03E01.mkv`,
+          `${SHOW}/Season 1`,
+          `${SHOW}/Season 3`,
+          `${SHOW}/Season 3/Test Show - S03E01.mkv`,
           'Unknown',
         ]);
         expect((await indexed()).map((file) => file.season)).toEqual([3]);
@@ -366,7 +368,7 @@ describe('CleanupService', () => {
       });
 
       it('deletes the requests of a file whose row a scan forgot while the entry was deleted', async () => {
-        write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+        write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
         await scanSeries();
         const [row] = await indexed();
         requests.findReferringRequests.mockResolvedValueOnce([
@@ -379,7 +381,7 @@ describe('CleanupService', () => {
           await orm.em.fork().nativeDelete(MediaFile, { id: row.id });
         });
 
-        await deleteEntries(['Test Show (2020)/Season 01']);
+        await deleteEntries(['Test Show (2020)/Season 1']);
 
         expect(requests.deleteRequests).toHaveBeenCalledWith(
           expect.anything(),

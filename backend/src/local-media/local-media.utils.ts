@@ -208,9 +208,8 @@ export function seriesFolderName(
 }
 
 export function seasonFolderName(season: number): string {
-  return `Season ${String(season).padStart(2, '0')}`;
+  return `Season ${season}`;
 }
-
 /**
  * "Name - S01E02 - label.mkv", or "Name - S01E02-E03 - label.mkv" for a file
  * with several episodes. The label tells the versions of an episode apart,

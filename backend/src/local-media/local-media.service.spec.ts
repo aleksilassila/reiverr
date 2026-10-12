@@ -67,10 +67,10 @@ describe('LocalMediaService', () => {
   afterEach(() => fixture.close());
 
   it('indexes the files it finds as unmanaged files and keeps their ids', async () => {
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E02-E03.mkv');
-    write('tv/Test Show (2020)/Season 01/notes.txt');
-    write('tv/Another Show (2020)/Season 01/Another Show - S01E01.mkv');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E02-E03.mkv');
+    write('tv/Test Show (2020)/Season 1/notes.txt');
+    write('tv/Another Show (2020)/Season 1/Another Show - S01E01.mkv');
 
     const files = await scanSeries();
 
@@ -88,11 +88,11 @@ describe('LocalMediaService', () => {
     ]);
 
     // A changed file is the same file, a deleted file is forgotten
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv', 'longer');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv', 'longer');
     rmSync(
       path.join(
         library,
-        'Test Show (2020)/Season 01/Test Show - S01E02-E03.mkv',
+        'Test Show (2020)/Season 1/Test Show - S01E02-E03.mkv',
       ),
     );
 
@@ -102,10 +102,10 @@ describe('LocalMediaService', () => {
 
   it('forgets an indexed file only when it is gone or outside the title folders', async () => {
     // A name that the walk passes over, like a file that is imported while it runs
-    const kept = write('tv/Test Show (2020)/Season 01/importing.mkv');
+    const kept = write('tv/Test Show (2020)/Season 1/importing.mkv');
     const otherFolder = write('tv/Other Folder/Test Show - S01E04.mkv');
     const outside = write('elsewhere/Test Show - S01E06.mkv');
-    const gone = path.join(library, 'Test Show (2020)/Season 01/S01E07.mkv');
+    const gone = path.join(library, 'Test Show (2020)/Season 1/S01E07.mkv');
     await orm.em.fork().insert(
       MediaFile,
       [kept, otherFolder, outside, gone].map((filePath, i) => ({
@@ -122,19 +122,19 @@ describe('LocalMediaService', () => {
         createdAt: new Date(),
       })),
     );
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
 
     await scanSeries();
 
     expect((await indexed()).map((file) => file.path)).toEqual([
-      path.join(library, 'Test Show (2020)/Season 01/Test Show - S01E01.mkv'),
-      path.join(library, 'Test Show (2020)/Season 01/importing.mkv'),
+      path.join(library, 'Test Show (2020)/Season 1/Test Show - S01E01.mkv'),
+      path.join(library, 'Test Show (2020)/Season 1/importing.mkv'),
     ]);
   });
 
   it('leaves a managed file as it was imported', async () => {
     // A folder without an id tag, which a lookup of another title matches too
-    write('tv/Test Show (2020)/Season 01/notes.txt');
+    write('tv/Test Show (2020)/Season 1/notes.txt');
     const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
     const [before] = await indexed();
     writeFileSync(imported, 'changed in place');
@@ -155,7 +155,7 @@ describe('LocalMediaService', () => {
   });
 
   it('removes a library folder that has indexed files only when it may forget them', async () => {
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
     await scanSeries();
     const other = path.join(root, 'other');
     mkdirSync(other);
@@ -175,7 +175,7 @@ describe('LocalMediaService', () => {
   });
 
   it('reads what is indexed and asks for a sync, at once when a file is missing', async () => {
-    const file = write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    const file = write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
     await scanSeries();
     jobs.enqueue.mockClear();
 
@@ -202,12 +202,12 @@ describe('LocalMediaService', () => {
   });
 
   it('serves a file and its subtitles by the id of the file', async () => {
-    const video = write('tv/Test Show (2020)/Season 01/Test Show - S01E01.mkv');
+    const video = write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
     write(
-      'tv/Test Show (2020)/Season 01/Test Show - S01E01.en.srt',
+      'tv/Test Show (2020)/Season 1/Test Show - S01E01.en.srt',
       '1\n00:00:01,000 --> 00:00:02,000\nHello\n',
     );
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E02.srt', 'other');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E02.srt', 'other');
     write('tv/secret.srt', 'secret');
 
     const [file] = await scanSeries();
@@ -249,10 +249,8 @@ describe('LocalMediaService', () => {
     ];
 
     const fillLibrary = async () => {
+      write('tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02.mkv');
       await importEpisode(write('downloads/S01E01.mkv'), [1]);
-      write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
-      );
       write('downloads/S01E03.mkv');
       await scanSeries();
 
@@ -310,7 +308,7 @@ describe('LocalMediaService', () => {
 
     it('forgets the files of a series whose folder is gone from a folder that has others', async () => {
       await fillLibrary();
-      write('tv/Another Show (2020)/Season 01/Another Show - S01E01.mkv');
+      write('tv/Another Show (2020)/Season 1/Another Show - S01E01.mkv');
       rmSync(path.join(library, 'Test Show (2020) [tmdbid-100]'), {
         recursive: true,
       });
@@ -333,14 +331,12 @@ describe('LocalMediaService', () => {
       ]);
 
     it('indexes the folders it can tell the title of and forgets what is gone', async () => {
-      write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
-      );
+      write('tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv');
       const another = write(
-        'tv/Another Show (2021)/Season 01/Another Show - S01E02.mkv',
+        'tv/Another Show (2021)/Season 1/Another Show - S01E02.mkv',
       );
-      write('tv/Third {tvdb-456}/Season 02/Third - S02E03.mkv');
-      write('tv/Unknown (1999)/Season 01/Unknown - S01E01.mkv');
+      write('tv/Third {tvdb-456}/Season 2/Third - S02E03.mkv');
+      write('tv/Unknown (1999)/Season 1/Unknown - S01E01.mkv');
       write('tv/Not an episode/clip.mkv');
       write('tv/Extras/readme.txt');
       tmdb.searchTitles.mockImplementation(async (_type, query: string) =>
@@ -365,19 +361,14 @@ describe('LocalMediaService', () => {
         failed: [],
       });
       expect(await rows()).toEqual([
+        ['Another Show (2021)/Season 1/Another Show - S01E02.mkv', '200', 1, 2],
         [
-          'Another Show (2021)/Season 01/Another Show - S01E02.mkv',
-          '200',
-          1,
-          2,
-        ],
-        [
-          'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+          'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv',
           '100',
           1,
           1,
         ],
-        ['Third {tvdb-456}/Season 02/Third - S02E03.mkv', '300', 2, 3],
+        ['Third {tvdb-456}/Season 2/Third - S02E03.mkv', '300', 2, 3],
       ]);
       expect((await indexed()).every((file) => !file.managed)).toBe(true);
       expect(tmdb.searchTitles.mock.calls).toEqual([
@@ -403,7 +394,7 @@ describe('LocalMediaService', () => {
       expect(reconciled()).toEqual([]);
 
       // A changed file is updated, a deleted one forgotten
-      write('tv/Third {tvdb-456}/Season 02/Third - S02E03.mkv', 'longer');
+      write('tv/Third {tvdb-456}/Season 2/Third - S02E03.mkv', 'longer');
       rmSync(another);
       expect(await scan()).toMatchObject({
         added: 0,
@@ -431,11 +422,9 @@ describe('LocalMediaService', () => {
 
     it('reports a directory it cannot read and keeps what is indexed in it', async () => {
       const locked = write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+        'tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv',
       );
-      write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01.mkv',
-      );
+      write('tv/Test Show (2020) [tmdbid-100]/Season 2/Test Show - S02E01.mkv');
       await scan();
       chmodSync(path.dirname(locked), 0o000);
 
@@ -447,7 +436,7 @@ describe('LocalMediaService', () => {
           unresolved: [],
           failed: [
             {
-              path: 'Test Show (2020) [tmdbid-100]/Season 01',
+              path: 'Test Show (2020) [tmdbid-100]/Season 1',
               error: 'EACCES: permission denied',
             },
           ],
@@ -459,17 +448,15 @@ describe('LocalMediaService', () => {
     });
 
     it('refuses a folder that is not available unless forced, which forgets everything in it', async () => {
+      write('tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02.mkv');
       await importEpisode(write('downloads/S01E01.mkv'), [1]);
-      write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
-      );
       await scan();
 
       // Only one file is missing while the folder is there
       rmSync(
         path.join(
           library,
-          'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02.mkv',
+          'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02.mkv',
         ),
       );
       expect(await preview()).toMatchObject({
@@ -505,9 +492,7 @@ describe('LocalMediaService', () => {
     });
 
     it('scans at night, and logs a folder that is not available instead', async () => {
-      write(
-        'tv/Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
-      );
+      write('tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv');
       jobs.define.mockClear();
       localMedia.onModuleInit();
       const [, job] = jobs.define.mock.calls.find(
@@ -543,15 +528,15 @@ describe('LocalMediaService', () => {
     const SHOW = 'Test Show (2020) [tmdbid-100]';
 
     it('finds the indexed files among entries, and marks them managed or external', async () => {
+      const found = write(`tv/${SHOW}/Season 1/Test Show - S01E02.mkv`);
+      write(`tv/${SHOW}/Season 1/notes.txt`);
       const imported = await importEpisode(write('downloads/S01E01.mkv'), [1]);
-      const found = write(`tv/${SHOW}/Season 01/Test Show - S01E02.mkv`);
-      write(`tv/${SHOW}/Season 01/notes.txt`);
       await scanSeries();
 
       expect(
         (
           await request(() =>
-            localMedia.findLibraryEntryFiles(library, [`${SHOW}/Season 01`]),
+            localMedia.findLibraryEntryFiles(library, [`${SHOW}/Season 1`]),
           )
         ).map((file) => [file.path, file.managed]),
       ).toEqual([
@@ -562,7 +547,7 @@ describe('LocalMediaService', () => {
         await request(() =>
           localMedia.setLibraryEntriesManaged(
             library,
-            [`${SHOW}/Season 01`],
+            [`${SHOW}/Season 1`],
             true,
           ),
         ),
@@ -576,7 +561,7 @@ describe('LocalMediaService', () => {
       const external = await request(() =>
         localMedia.setLibraryEntriesManaged(
           library,
-          [`${SHOW}/Season 01/${path.basename(imported)}`],
+          [`${SHOW}/Season 1/${path.basename(imported)}`],
           false,
         ),
       );
@@ -599,12 +584,12 @@ describe('LocalMediaService', () => {
     const entries = () => request(() => localMedia.getLibraryEntries(library));
 
     it('lists everything in the folder, a directory before what is in it', async () => {
+      write(`tv/${SHOW}/Season 1/Test Show - S01E02.mkv`);
       const imported = await importEpisode(
         write('downloads/S01E01.mkv', 'episode one'),
         [1],
       );
-      write(`tv/${SHOW}/Season 01/Test Show - S01E02.mkv`);
-      write(`tv/${SHOW}/Season 01/Test Show - S01E02.en.srt`, 'subtitles');
+      write(`tv/${SHOW}/Season 1/Test Show - S01E02.en.srt`, 'subtitles');
       write(`tv/${SHOW}/.hidden`, '');
       write('tv/Unknown/notes.txt', 'notes');
       await scanSeries();
@@ -613,21 +598,21 @@ describe('LocalMediaService', () => {
       expect(await entries()).toEqual([
         { path: SHOW, isDirectory: true, size: 0 },
         { path: `${SHOW}/.hidden`, isDirectory: false, size: 0 },
-        { path: `${SHOW}/Season 01`, isDirectory: true, size: 0 },
+        { path: `${SHOW}/Season 1`, isDirectory: true, size: 0 },
         {
-          path: `${SHOW}/Season 01/${path.basename(imported)}`,
+          path: `${SHOW}/Season 1/${path.basename(imported)}`,
           isDirectory: false,
           size: 11,
           mediaFileId: managed.id,
           managed: true,
         },
         {
-          path: `${SHOW}/Season 01/Test Show - S01E02.en.srt`,
+          path: `${SHOW}/Season 1/Test Show - S01E02.en.srt`,
           isDirectory: false,
           size: 9,
         },
         {
-          path: `${SHOW}/Season 01/Test Show - S01E02.mkv`,
+          path: `${SHOW}/Season 1/Test Show - S01E02.mkv`,
           isDirectory: false,
           size: 5,
           mediaFileId: found.id,

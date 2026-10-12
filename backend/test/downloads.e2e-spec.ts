@@ -381,7 +381,7 @@ describe('Series downloads (e2e)', () => {
       : [];
 
   const episodeFile = (episode: number, hash: string) =>
-    `Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E0${episode} - ${version(hash)}.mkv`;
+    `Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E0${episode} - ${version(hash)}.mkv`;
 
   async function startApp() {
     engine = new FakeEngine();
@@ -1156,7 +1156,7 @@ describe('Series downloads (e2e)', () => {
       episodeFile(1, PACK),
       held,
       episodeFile(2, EPISODE),
-      `Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
+      `Test Show (2020) [tmdbid-100]/Season 2/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
     ]);
 
     await setCleanup('hourly', 400);
@@ -1183,7 +1183,7 @@ describe('Series downloads (e2e)', () => {
     expect(libraryFiles()).toEqual([held]);
     expect(
       readdirSync(path.join(dirs.library, 'Test Show (2020) [tmdbid-100]')),
-    ).toEqual(['Season 01']);
+    ).toEqual(['Season 1']);
     expect(statuses(await getDownloads())).toEqual([
       [1, 1, 'no-preference'],
       [1, 2, 'available'],
@@ -1201,7 +1201,7 @@ describe('Series downloads (e2e)', () => {
       [
         episodeFile(1, PACK),
         episodeFile(2, EPISODE),
-        `Test Show (2020) [tmdbid-100]/Season 02/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
+        `Test Show (2020) [tmdbid-100]/Season 2/Test Show - S02E01 - ${version(SEASON_2)}.mkv`,
       ].map((file) => path.join(dirs.library, file)),
     );
     expect(deleted[0].message).toBe(
@@ -1237,7 +1237,7 @@ describe('Series downloads (e2e)', () => {
 
     expect((await getLibrary(dirs.library).expect(200)).body).toEqual([
       { path: SHOW, isDirectory: true, size: 0 },
-      { path: `${SHOW}/Season 01`, isDirectory: true, size: 0 },
+      { path: `${SHOW}/Season 1`, isDirectory: true, size: 0 },
       {
         path: held,
         isDirectory: false,
@@ -1277,7 +1277,7 @@ describe('Series downloads (e2e)', () => {
   it('scans a library folder by hand and every night, unless it is not mounted', async () => {
     const external = path.join(
       dirs.library,
-      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E01.mkv',
+      'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv',
     );
     const disk = path.join(dirs.root, 'disk');
     const previewScan = (folder = dirs.library, user = admin) =>

@@ -35,13 +35,13 @@ describe('ImportService', () => {
   afterEach(() => fixture.close());
 
   it('imports a file as a managed version of the episode', async () => {
-    write('tv/Test Show (2020)/Season 01/Test Show - S01E02.mkv');
+    write('tv/Test Show (2020)/Season 1/Test Show - S01E02.mkv');
     const source = write('downloads/Test.Show.S01E02.1080p.MKV', 'download');
 
     const destination = await importEpisode(source, [2]);
 
     expect(path.relative(library, destination)).toBe(
-      'Test Show (2020)/Season 01/Test Show - S01E02 - a1b2c3d4.mkv',
+      'Test Show (2020)/Season 1/Test Show - S01E02 - a1b2c3d4.mkv',
     );
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
@@ -74,7 +74,7 @@ describe('ImportService', () => {
     const destination = await importEpisode(source, [2, 3]);
 
     expect(path.relative(library, destination)).toBe(
-      'Test Show (2020) [tmdbid-100]/Season 01/Test Show - S01E02-E03 - a1b2c3d4.mkv',
+      'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02-E03 - a1b2c3d4.mkv',
     );
     expect(await scanSeries()).toMatchObject([{ season: 1, episodes: [2, 3] }]);
     expect(await indexed()).toMatchObject([
