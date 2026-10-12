@@ -10,11 +10,12 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AdminAccessControl } from '../auth/auth.guard.js';
-import { Job, JobStatus } from './job.entity.js';
+import { JobStatus } from './job.entity.js';
+import { JobDto } from './jobs.dto.js';
 import { JobsService } from './jobs.service.js';
 
 @ApiTags('server')
-@Controller('v2/server/jobs')
+@Controller('server/jobs')
 @UseGuards(AdminAccessControl)
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
@@ -22,11 +23,11 @@ export class JobsController {
   @Get()
   @ApiQuery({ name: 'status', enum: JobStatus, required: false })
   @ApiQuery({ name: 'type', type: 'string', required: false })
-  @ApiOkResponse({ type: [Job], description: 'The newest jobs first' })
+  @ApiOkResponse({ type: [JobDto], description: 'The newest jobs first' })
   getJobs(
     @Query('status') status?: JobStatus,
     @Query('type') type?: string,
-  ): Promise<Job[]> {
+  ): Promise<JobDto[]> {
     return this.jobsService.list({ status, type });
   }
 

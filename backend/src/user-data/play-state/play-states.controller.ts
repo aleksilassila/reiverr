@@ -17,14 +17,14 @@ import {
 import { PlayStatesService } from './play-states.service.js';
 
 @ApiTags('users')
-@Controller('users/:userId/play-state')
+@Controller('users/:userId/play-states')
 @UseGuards(UserAccessControl)
 export class PlayStatesController {
   constructor(private playStateService: PlayStatesService) {}
 
-  @Put('movie/tmdb/:tmdbId')
+  @Put('movies/:tmdbId')
   // @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
-  async updateMoviePlayStateByTmdbId(
+  async updateMoviePlayState(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Body() playState: UpdatePlayStateDto,
@@ -38,16 +38,16 @@ export class PlayStatesController {
     );
   }
 
-  @Delete('movie/tmdb/:tmdbId')
-  async deleteMoviePlayStateByTmdbId(
+  @Delete('movies/:tmdbId')
+  async deleteMoviePlayState(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ) {
     return this.playStateService.deleteMoviePlayState(userId, tmdbId);
   }
 
-  @Put('series/tmdb/:tmdbId/season/:season/episode/:episode')
-  async updateEpisodePlayStateByTmdbId(
+  @Put('series/:tmdbId/seasons/:season/episodes/:episode')
+  async updateEpisodePlayState(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
@@ -63,8 +63,8 @@ export class PlayStatesController {
     );
   }
 
-  @Delete('series/tmdb/:tmdbId/season/:season/episode/:episode')
-  async deleteEpisodePlayStateByTmdbId(
+  @Delete('series/:tmdbId/seasons/:season/episodes/:episode')
+  async deleteEpisodePlayState(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
@@ -78,8 +78,8 @@ export class PlayStatesController {
     );
   }
 
-  @Put('series/tmdb/:tmdbId')
-  async updateSeriesPlayStatesByTmdbId(
+  @Put('series/:tmdbId')
+  async updateSeriesPlayStates(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Body() body: BulkUpdatePlayStateDto,

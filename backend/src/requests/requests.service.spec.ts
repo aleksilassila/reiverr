@@ -119,7 +119,7 @@ describe('RequestsService', () => {
     episode,
   });
   const select = (episode: number, releaseId: string) =>
-    request(() => requests.selectTorrent(target(episode), releaseId));
+    request(() => requests.preferRelease(target(episode), releaseId));
   const clear = (episode: number) =>
     request(() => requests.clearPreference(target(episode)));
 
@@ -436,7 +436,7 @@ describe('RequestsService', () => {
     await bind([1, 2], 'pack');
     const file = await addFile('found', 1);
 
-    await request(() => requests.selectFile(target(1), file.id));
+    await request(() => requests.preferFile(target(1), file.id));
 
     expect(await rule()).toMatchObject({
       episodeSources: [
@@ -459,7 +459,7 @@ describe('RequestsService', () => {
     await orm.em
       .fork()
       .nativeUpdate(MediaRequest, { episode: 1 }, { mediaFileId: file.id });
-    await request(() => requests.selectFile(target(1), file.id));
+    await request(() => requests.preferFile(target(1), file.id));
     expect(await references()).toEqual([
       [1, 'active', null, 'file'],
       [2, 'active', 'pack', null],
@@ -478,10 +478,10 @@ describe('RequestsService', () => {
     const file = await addFile('found', 2);
 
     await expect(
-      request(() => requests.selectFile(target(1), file.id)),
+      request(() => requests.preferFile(target(1), file.id)),
     ).rejects.toThrow('not of this episode');
     await expect(
-      request(() => requests.selectFile(target(1), 'unknown')),
+      request(() => requests.preferFile(target(1), 'unknown')),
     ).rejects.toThrow('File not found');
   });
 

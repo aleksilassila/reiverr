@@ -19,7 +19,7 @@ import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
   LibraryEntryDto,
-  LibraryScanDto,
+  ScanLibraryResultDto,
   LocalEpisodeFileDto,
   LocalMediaFileDto,
   LocalMediaSettingsDto,
@@ -574,7 +574,7 @@ export class LocalMediaService implements OnModuleInit {
   async scanFolder(
     folder: string,
     options: { evenIfUnavailable?: boolean } = {},
-  ): Promise<LibraryScanDto> {
+  ): Promise<ScanLibraryResultDto> {
     const mediaType = await this.getLibraryFolderType(folder);
     // Read before the walk, so that a file indexed meanwhile is not taken for gone
     const indexed = await this.findFilesInside(folder);
@@ -582,7 +582,7 @@ export class LocalMediaService implements OnModuleInit {
       ? await this.readDirectory(folder).catch((): Dirent[] => [])
       : await this.readAvailableLibraryFolder(folder);
 
-    const result: LibraryScanDto = {
+    const result: ScanLibraryResultDto = {
       added: 0,
       updated: 0,
       forgotten: 0,
@@ -655,7 +655,7 @@ export class LocalMediaService implements OnModuleInit {
     // Removed from the library since the job was queued
     if (![...movieFolders, ...seriesFolders].includes(folder)) return;
 
-    let result: LibraryScanDto;
+    let result: ScanLibraryResultDto;
     try {
       result = await this.scanFolder(folder);
     } catch (error) {

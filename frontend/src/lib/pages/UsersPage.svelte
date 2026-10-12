@@ -18,7 +18,7 @@
 		return Promise.all(
 			sessions.map(async (session) =>
 				getReiverrApi(session)
-					.users.findUserById(session.id)
+					.users.getUser(session.id)
 					.then((r) => ({ session, user: r.data }))
 					.catch((e) => ({ session, user: undefined, error: e }))
 			)

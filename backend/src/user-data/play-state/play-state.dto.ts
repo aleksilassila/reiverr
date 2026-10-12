@@ -35,7 +35,7 @@ export class MovieUserDataDto {
   tmdbId: string;
 
   @ApiProperty()
-  inLibrary: boolean;
+  inMyList: boolean;
 
   @ApiProperty({ type: PlayStateDto, required: false })
   playState?: PlayStateDto;
@@ -46,7 +46,7 @@ export class SeriesUserDataDto {
   tmdbId: string;
 
   @ApiProperty()
-  inLibrary: boolean;
+  inMyList: boolean;
 
   @ApiProperty({ type: [PlayStateDto] })
   playStates: PlayStateDto[];

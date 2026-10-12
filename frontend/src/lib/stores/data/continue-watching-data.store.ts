@@ -5,7 +5,7 @@ import { reiverrApi, user } from '../user.store';
 
 export const continueWatchingSeriesContext = createStoreContext(`continue-watching-series`, () => {
 	const data = useData(() =>
-		reiverrApi.library
+		reiverrApi.myList
 			.getMyList(String(get(user)?.id), {
 				type: 'series',
 				order: 'last-played',
@@ -28,7 +28,7 @@ export const continueWatchingSeriesContext = createStoreContext(`continue-watchi
 
 export const continueWatchingMoviesContext = createStoreContext(`continue-watching-movies`, () => {
 	const data = useData(() =>
-		reiverrApi.library
+		reiverrApi.myList
 			.getMyList(String(get(user)?.id), {
 				type: 'movies',
 				order: 'last-played',

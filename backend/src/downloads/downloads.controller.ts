@@ -16,11 +16,11 @@ import {
 } from '../auth/auth.guard.js';
 import { SuccessResponseDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import { DownloadSettingsDto, SeriesDownloadsDto } from './downloads.dto.js';
+import { DownloadSettingsDto, SeriesStatusDto } from './downloads.dto.js';
 import { DownloadsService } from './downloads.service.js';
 
 @ApiTags('downloads')
-@Controller('v2/downloads')
+@Controller('downloads')
 @UseGuards(UserAccessControl)
 export class DownloadsController {
   constructor(private readonly downloadsService: DownloadsService) {}
@@ -42,12 +42,12 @@ export class DownloadsController {
   }
 
   @Get('series/:tmdbId')
-  @ApiOkResponse({ type: SeriesDownloadsDto })
-  getSeriesDownloads(
+  @ApiOkResponse({ type: SeriesStatusDto })
+  getSeriesStatus(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<SeriesDownloadsDto> {
-    return this.downloadsService.getSeriesDownloads(user.id, tmdbId);
+  ): Promise<SeriesStatusDto> {
+    return this.downloadsService.getSeriesStatus(user.id, tmdbId);
   }
 
   @Post('torrents/:torrentId/retry')

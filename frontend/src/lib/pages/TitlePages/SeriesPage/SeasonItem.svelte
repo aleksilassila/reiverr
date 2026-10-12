@@ -27,7 +27,7 @@
 	).length;
 	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
 
-	$: seasonPack = requests?.selections.get(episodeKey(seasonNumber, 0));
+	$: seasonPack = requests?.preferences.get(episodeKey(seasonNumber, 0));
 	$: seasonPackTorrent = seasonPack?.torrent;
 	$: seasonPackStatus =
 		seasonPackTorrent?.status === 'seeding'

@@ -13,7 +13,7 @@ export class AdminMediaRequestDto extends MediaRequestDto {
   user: RequesterDto;
 }
 
-export class MovieRequestDto {
+export class MovieRequestStatusDto {
   @ApiProperty()
   tmdbId: string;
 
@@ -39,12 +39,17 @@ export class UpdateSeriesRequestsDto {
   requested: boolean;
 }
 
-export class SelectReleaseDto {
-  @ApiProperty({ description: 'Id of a release from an indexer search' })
-  releaseId: string;
-}
+/** A release from an indexer search, or for an episode a file of it in the library */
+export class SetPreferenceDto {
+  @ApiProperty({
+    required: false,
+    description: 'Id of a release from an indexer search',
+  })
+  releaseId?: string;
 
-export class SelectFileDto {
-  @ApiProperty({ description: 'Id of a file of the episode in the library' })
-  mediaFileId: string;
+  @ApiProperty({
+    required: false,
+    description: 'Id of a file of the episode in the library',
+  })
+  mediaFileId?: string;
 }

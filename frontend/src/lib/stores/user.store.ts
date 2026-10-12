@@ -40,7 +40,7 @@ function useUser() {
 		userStore.set(undefined);
 		lastActiveSession = activeSession;
 		const user = await getReiverrApi(activeSession)
-			.users.findUserById(activeSession.id)
+			.users.getUser(activeSession.id)
 			.then((r) => r.data)
 			.catch(() => null);
 

@@ -11,7 +11,7 @@ import {
 import { MetadataService } from '../../metadata/metadata.service.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 import {
-  LibraryItemDto,
+  MyListItemDto,
   MyListOrder,
   MyListStatusFilter,
   MyListTypeFilter,
@@ -59,7 +59,7 @@ export class LibraryService implements OnApplicationBootstrap {
     status?: MyListStatusFilter;
     order?: MyListOrder;
     direction?: OrderDirection;
-  }): Promise<PaginatedResponseDto<LibraryItemDto>> {
+  }): Promise<PaginatedResponseDto<MyListItemDto>> {
     const {
       userId,
       pagination,
@@ -220,7 +220,7 @@ export class LibraryService implements OnApplicationBootstrap {
     tmdbId: string;
     mediaType: 'series' | 'movie';
     playStates?: PlayState[];
-  }): Promise<LibraryItemDto> {
+  }): Promise<MyListItemDto> {
     const { tmdbId, mediaType, playStates } = options;
 
     const seriesMetadata =
@@ -257,7 +257,7 @@ export class LibraryService implements OnApplicationBootstrap {
         ) ?? false;
     }
 
-    const libraryItem: LibraryItemDto = {
+    const libraryItem: MyListItemDto = {
       tmdbId,
       mediaType: mediaType === 'movie' ? MediaType.Movie : MediaType.Series,
       watched,

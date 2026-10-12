@@ -23,11 +23,8 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  it('starts, and answers an unknown route with 404', () => {
+    return request(app.getHttpServer()).get('/').expect(404);
   });
 
   afterEach(async () => {

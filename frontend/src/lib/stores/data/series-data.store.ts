@@ -1,11 +1,11 @@
 import type {
 	EpisodeRefDto,
 	EpisodeStatusDto,
-	SelectedFileDto,
+	PreferredFileDto,
 	SeriesUserDataDto,
 	TmdbSeriesFull,
 	TorrentDto,
-	TorrentSelectionDto
+	PreferenceDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
@@ -31,7 +31,7 @@ export type SeriesRequests = {
 	/** The episodes the current user requested or that are on disk */
 	episodes: Map<string, EpisodeStatusDto>;
 	/** The torrents the current user selected */
-	selections: Map<string, TorrentSelectionDto>;
+	preferences: Map<string, PreferenceDto>;
 	/** Info hashes of the torrents the server has for the series */
 	onServer: Set<string>;
 };
@@ -42,7 +42,7 @@ export type EpisodeRequestStatus = {
 	/** The torrent of the request, or else the selected one: the episode's own, or the season pack */
 	torrent?: TorrentDto;
 	/** The file in the library selected for the episode */
-	file?: SelectedFileDto;
+	file?: PreferredFileDto;
 	/** The torrent is the season pack, which was not selected for this episode */
 	isSeasonPack: boolean;
 	label?: string;
@@ -78,7 +78,7 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 	// A file of another torrent, or one that was found on disk, plays as well
 	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';
 	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';
-	if (status?.status === 'no-selection') return 'No source selected';
+	if (status?.status === 'no-preference') return 'No source selected';
 
 	return inactive;
 }
@@ -90,8 +90,8 @@ export function getEpisodeRequestStatus(
 ): EpisodeRequestStatus {
 	const key = episodeKey(season, episode);
 	const status = data?.episodes.get(key);
-	const own = data?.selections.get(key);
-	const seasonPack = data?.selections.get(episodeKey(season, 0));
+	const own = data?.preferences.get(key);
+	const seasonPack = data?.preferences.get(episodeKey(season, 0));
 	// A request that has its file keeps its torrent when another one is selected
 	const torrent = status?.torrent ?? (own ?? seasonPack)?.torrent;
 
@@ -191,7 +191,7 @@ function useSeriesData(tmdbId: string) {
 			.getSeriesUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);
 
-		inLibrary.set(data.inLibrary);
+		inLibrary.set(data.inMyList);
 		isWatched.set(data.playStates.every((ps) => ps.watched));
 
 		return data;
@@ -201,7 +201,7 @@ function useSeriesData(tmdbId: string) {
 	let requestsFailed = false;
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
 		const downloads = await reiverrApi.downloads
-			.getSeriesDownloads(tmdbId)
+			.getSeriesStatus(tmdbId)
 			.then((r) => r.data)
 			.catch((e) => {
 				if (!requestsFailed) {
@@ -217,7 +217,7 @@ function useSeriesData(tmdbId: string) {
 
 		return {
 			episodes: new Map(downloads.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
-			selections: new Map(downloads.selections.map((s) => [episodeKey(s.season, s.episode), s])),
+			preferences: new Map(downloads.preferences.map((s) => [episodeKey(s.season, s.episode), s])),
 			onServer: new Set(downloads.onServer)
 		};
 	});
@@ -237,7 +237,7 @@ function useSeriesData(tmdbId: string) {
 			return;
 		}
 
-		const success = await reiverrApi.users.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
+		const success = await reiverrApi.users.updateSeriesPlayStates(userId, tmdbId, {
 			playStates: get(episodesData)
 				?.episodes.filter((e) => !e.upcoming)
 				.map((e) => ({
@@ -251,7 +251,7 @@ function useSeriesData(tmdbId: string) {
 	}
 
 	async function setRequested(episodes: EpisodeRefDto[], requested: boolean) {
-		await reiverrApi.requests.updateSeriesRequests(get(user)?.id as string, tmdbId, {
+		await reiverrApi.requests.setSeriesRequests(get(user)?.id as string, tmdbId, {
 			episodes,
 			requested
 		});
@@ -263,7 +263,7 @@ function useSeriesData(tmdbId: string) {
 		const userId = get(user)?.id;
 		if (!userId) return;
 
-		await reiverrApi.users.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+		await reiverrApi.users.updateEpisodePlayState(userId, tmdbId, season, episode, {
 			watched
 		});
 
@@ -274,7 +274,7 @@ function useSeriesData(tmdbId: string) {
 		const userId = get(user)?.id;
 		if (!userId) return;
 
-		await reiverrApi.users.updateSeriesPlayStatesByTmdbId(userId, tmdbId, {
+		await reiverrApi.users.updateSeriesPlayStates(userId, tmdbId, {
 			playStates: get(episodesData)
 				.episodes.filter((e) => e.season === season && !e.upcoming)
 				.map((e) => ({ season: e.season, episode: e.episode, watched }))
@@ -291,8 +291,8 @@ function useSeriesData(tmdbId: string) {
 			return;
 		}
 
-		const success = await reiverrApi.library
-			.updateLibraryItem(userId, tmdbId, { mediaType: 'series', inLibrary: state })
+		const success = await reiverrApi.myList
+			.setMyListItem(userId, tmdbId, { mediaType: 'series', inMyList: state })
 			.then((r) => r.data.success);
 
 		if (success) {

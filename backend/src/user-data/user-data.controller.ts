@@ -24,7 +24,7 @@ export class UserDataController {
   ) {}
 
   @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/movie/tmdb/:tmdbId')
+  @Get(':userId/user-data/movies/:tmdbId')
   @ApiOkResponse({
     description: 'User movie data found',
     type: MovieUserDataDto,
@@ -45,13 +45,13 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inLibrary: !!libraryItem,
+      inMyList: !!libraryItem,
       playState: playState,
     };
   }
 
   @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/tmdb/:tmdbId')
+  @Get(':userId/user-data/series/:tmdbId')
   @ApiOkResponse({
     description: 'User series data found',
     type: SeriesUserDataDto,
@@ -72,13 +72,13 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inLibrary: !!libraryItem,
+      inMyList: !!libraryItem,
       playStates: playState,
     };
   }
 
   @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/tmdb/:tmdbId/season/:season/episode/:episode')
+  @Get(':userId/user-data/series/:tmdbId/seasons/:season/episodes/:episode')
   @ApiOkResponse({
     description: 'User series data found',
     type: MovieUserDataDto,
@@ -103,7 +103,7 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inLibrary: !!libraryItem,
+      inMyList: !!libraryItem,
       playState: playState,
     };
   }

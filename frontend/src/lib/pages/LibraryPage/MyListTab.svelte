@@ -38,7 +38,7 @@
 	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
 	// 		}
 
-	// 		return reiverrApi.library
+	// 		return reiverrApi.myList
 	// 			.getMyList($user.id, {
 	// 				status: 'upcoming',
 	// 				type: category,
@@ -65,7 +65,7 @@
 	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
 	// 		}
 
-	// 		return reiverrApi.library
+	// 		return reiverrApi.myList
 	// 			.getMyList($user.id, {
 	// 				status: 'watched',
 	// 				type: category,
@@ -84,7 +84,7 @@
 	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
 	// 		}
 
-	// 		return reiverrApi.library
+	// 		return reiverrApi.myList
 	// 			.getMyList($user.id, {
 	// 				type: category,
 	// 				order: $libraryViewSettings.order,

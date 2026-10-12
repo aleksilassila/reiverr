@@ -10,23 +10,23 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AdminAccessControl, GetAuthUser } from '../auth/auth.guard.js';
 import {
-  DeletedLibraryEntriesDto,
-  LibraryScanDto,
+  DeleteLibraryEntriesResultDto,
+  ScanLibraryResultDto,
   LibraryScanPreviewDto,
 } from '../local-media/local-media.dto.js';
 import { User } from '../users/user.entity.js';
 import {
   DeleteLibraryEntriesDto,
   LibraryEntriesDto,
-  ManagedLibraryEntriesDto,
-  RequestedLibraryEntriesDto,
+  ManageLibraryEntriesResultDto,
+  RequestLibraryEntriesResultDto,
   ScanLibraryDto,
   ServerLibraryEntryDto,
 } from './server.dto.js';
 import { ServerService } from './server.service.js';
 
 @ApiTags('server')
-@Controller('v2/server')
+@Controller('server')
 @UseGuards(AdminAccessControl)
 export class ServerController {
   constructor(private readonly serverService: ServerService) {}
@@ -56,22 +56,22 @@ export class ServerController {
 
   @Post('library/scan')
   @HttpCode(200)
-  @ApiOkResponse({ type: LibraryScanDto })
-  scanLibrary(@Body() body: ScanLibraryDto): Promise<LibraryScanDto> {
+  @ApiOkResponse({ type: ScanLibraryResultDto })
+  scanLibrary(@Body() body: ScanLibraryDto): Promise<ScanLibraryResultDto> {
     return this.serverService.scanLibrary(body?.folder, body?.force === true);
   }
 
   @Post('library/request')
   @HttpCode(200)
   @ApiOkResponse({
-    type: RequestedLibraryEntriesDto,
+    type: RequestLibraryEntriesResultDto,
     description:
       'Requests the episodes of the indexed files among the entries for the admin, bound to the files, which keeps them',
   })
   requestLibraryEntries(
     @GetAuthUser() user: User,
     @Body() body: LibraryEntriesDto,
-  ): Promise<RequestedLibraryEntriesDto> {
+  ): Promise<RequestLibraryEntriesResultDto> {
     return this.serverService.requestLibraryEntries(
       user,
       body?.folder,
@@ -82,36 +82,36 @@ export class ServerController {
   @Post('library/manage')
   @HttpCode(200)
   @ApiOkResponse({
-    type: ManagedLibraryEntriesDto,
+    type: ManageLibraryEntriesResultDto,
     description:
       'Marks the indexed files among the entries managed, which the cleanup deletes when no request holds them',
   })
   manageLibraryEntries(
     @Body() body: LibraryEntriesDto,
-  ): Promise<ManagedLibraryEntriesDto> {
+  ): Promise<ManageLibraryEntriesResultDto> {
     return this.serverService.manageLibraryEntries(body?.folder, body?.paths);
   }
 
   @Post('library/unmanage')
   @HttpCode(200)
   @ApiOkResponse({
-    type: ManagedLibraryEntriesDto,
+    type: ManageLibraryEntriesResultDto,
     description:
       'Marks the indexed files among the entries external, which the cleanup never deletes',
   })
   unmanageLibraryEntries(
     @Body() body: LibraryEntriesDto,
-  ): Promise<ManagedLibraryEntriesDto> {
+  ): Promise<ManageLibraryEntriesResultDto> {
     return this.serverService.unmanageLibraryEntries(body?.folder, body?.paths);
   }
 
   @Post('library/delete')
   @HttpCode(200)
-  @ApiOkResponse({ type: DeletedLibraryEntriesDto })
+  @ApiOkResponse({ type: DeleteLibraryEntriesResultDto })
   deleteLibraryEntries(
     @GetAuthUser() user: User,
     @Body() body: DeleteLibraryEntriesDto,
-  ): Promise<DeletedLibraryEntriesDto> {
+  ): Promise<DeleteLibraryEntriesResultDto> {
     return this.serverService.deleteLibraryEntries(
       user,
       body?.folder,

@@ -30,7 +30,7 @@ function useMovieData(tmdbId: string) {
 			.getMovieUserData(get(user)?.id as string, tmdbId)
 			.then((r) => r.data);
 
-		inLibrary.set(data.inLibrary);
+		inLibrary.set(data.inMyList);
 		isWatched.set(data.playState?.watched ?? false);
 		progress.set(data.playState?.progress ?? 0);
 
@@ -45,7 +45,7 @@ function useMovieData(tmdbId: string) {
 			return;
 		}
 
-		await reiverrApi.users.updateMoviePlayStateByTmdbId(userId, tmdbId, {
+		await reiverrApi.users.updateMoviePlayState(userId, tmdbId, {
 			watched
 		});
 
@@ -60,8 +60,8 @@ function useMovieData(tmdbId: string) {
 			return;
 		}
 
-		const success = await reiverrApi.library
-			.updateLibraryItem(userId, tmdbId, { mediaType: 'movie', inLibrary: state })
+		const success = await reiverrApi.myList
+			.setMyListItem(userId, tmdbId, { mediaType: 'movie', inMyList: state })
 			.then((r) => r.data.success);
 
 		if (success) {

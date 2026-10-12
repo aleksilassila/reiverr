@@ -17,7 +17,7 @@ export class MetadataController {
   constructor(private metadataService: MetadataService) {}
 
   @UseGuards(UserAccessControl)
-  @Get('movie/:tmdbId')
+  @Get('movies/:tmdbId')
   @ApiOkResponse({ type: MovieMetadata })
   async getMovie(@Param('tmdbId') tmdbId: string): Promise<MovieMetadata> {
     const movie = await this.metadataService.getMovieByTmdbId(tmdbId, true);

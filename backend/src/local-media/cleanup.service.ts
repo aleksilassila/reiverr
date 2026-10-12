@@ -17,7 +17,7 @@ import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
-import { DeletedLibraryEntriesDto } from './local-media.dto.js';
+import { DeleteLibraryEntriesResultDto } from './local-media.dto.js';
 import { entryExists, LocalMediaService } from './local-media.service.js';
 import {
   describeError,
@@ -100,7 +100,7 @@ export class CleanupService implements OnModuleInit {
     folder: string,
     paths: string[],
     reason: string,
-  ): Promise<DeletedLibraryEntriesDto> {
+  ): Promise<DeleteLibraryEntriesResultDto> {
     const entries = await this.localMediaService.validateLibraryEntries(
       folder,
       paths,
@@ -115,7 +115,7 @@ export class CleanupService implements OnModuleInit {
       selected.map((file) => file.id),
     );
 
-    const result: DeletedLibraryEntriesDto = { deleted: 0, failed: [] };
+    const result: DeleteLibraryEntriesResultDto = { deleted: 0, failed: [] };
     for (const entryPath of entries) {
       const files = await this.localMediaService.findFilesAt(entryPath);
       // A cleanup can delete files of the entry meanwhile

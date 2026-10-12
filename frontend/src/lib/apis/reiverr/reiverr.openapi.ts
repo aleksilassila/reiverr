@@ -36,7 +36,7 @@ export interface TmdbSettings {
   userId: string;
 }
 
-export interface Settings {
+export interface UserSettingsDto {
   autoplayTrailers: boolean;
   language: string;
   animationDuration: number;
@@ -51,7 +51,7 @@ export interface UserDto {
   name: string;
   isAdmin: boolean;
   onboardingDone?: boolean;
-  settings: Settings;
+  settings: UserSettingsDto;
   profilePicture: string;
 }
 
@@ -73,7 +73,7 @@ export interface UpdateUserDto {
   password?: string;
   isAdmin?: boolean;
   onboardingDone?: boolean;
-  settings?: Settings;
+  settings?: UserSettingsDto;
   profilePicture?: string;
   oldPassword?: string;
 }
@@ -83,7 +83,7 @@ export interface SignInDto {
   password: string;
 }
 
-export interface SignInResponse {
+export interface SignInResponseDto {
   accessToken: string;
   user: UserDto;
 }
@@ -550,7 +550,7 @@ export interface TmdbMovieFull {
   images?: MovieImagesDto;
 }
 
-export interface MovieMetadata {
+export interface MovieMetadataDto {
   id?: string;
   tmdbId: string;
   tmdbMovie?: TmdbMovieFull;
@@ -1223,7 +1223,7 @@ export interface TmdbSeriesFull {
   images?: TvSeriesImagesDto;
 }
 
-export interface SeriesMetadata {
+export interface SeriesMetadataDto {
   id?: string;
   tmdbId: string;
   tmdbSeries?: TmdbSeriesFull;
@@ -1262,13 +1262,13 @@ export interface PlayStateDto {
 
 export interface MovieUserDataDto {
   tmdbId: string;
-  inLibrary: boolean;
+  inMyList: boolean;
   playState?: PlayStateDto;
 }
 
 export interface SeriesUserDataDto {
   tmdbId: string;
-  inLibrary: boolean;
+  inMyList: boolean;
   playStates: PlayStateDto[];
 }
 
@@ -1299,7 +1299,7 @@ export interface MediaRequestDto {
   updatedAt: string;
 }
 
-export interface MovieRequestDto {
+export interface MovieRequestStatusDto {
   tmdbId: string;
   request?: MediaRequestDto;
 }
@@ -1328,14 +1328,11 @@ export interface RequestRuleDto {
   keepWatchedHours: number | null;
 }
 
-export interface SelectReleaseDto {
+export interface SetPreferenceDto {
   /** Id of a release from an indexer search */
-  releaseId: string;
-}
-
-export interface SelectFileDto {
+  releaseId?: string;
   /** Id of a file of the episode in the library */
-  mediaFileId: string;
+  mediaFileId?: string;
 }
 
 export interface RequesterDto {
@@ -1408,7 +1405,7 @@ export interface LocalEpisodeFileDto {
   episodes: number[];
 }
 
-export interface Job {
+export interface JobDto {
   id: string;
   type: string;
   payload?: object;
@@ -1489,7 +1486,7 @@ export interface TorrentDto {
   uploadSpeed: number;
 }
 
-export interface SelectedFileDto {
+export interface PreferredFileDto {
   /** The id of the file, which the API serves it by */
   id: string;
   fileName: string;
@@ -1501,13 +1498,13 @@ export interface SelectedFileDto {
   managed?: boolean;
 }
 
-export interface TorrentSelectionDto {
+export interface PreferenceDto {
   season: number;
   episode: number;
   /** The search result the user picked */
   releaseId?: string;
   torrent?: TorrentDto;
-  file?: SelectedFileDto;
+  file?: PreferredFileDto;
 }
 
 export interface EpisodeStatusDto {
@@ -1521,7 +1518,7 @@ export interface EpisodeStatusDto {
   status?:
     | "waiting-for-approval"
     | "inactive-ahead"
-    | "no-selection"
+    | "no-preference"
     | "resolving"
     | "no-file-in-torrent"
     | "downloading"
@@ -1539,9 +1536,9 @@ export interface EpisodeStatusDto {
   cleanupAt?: string;
 }
 
-export interface SeriesDownloadsDto {
-  /** The torrents the user prefers for the seasons and episodes */
-  selections: TorrentSelectionDto[];
+export interface SeriesStatusDto {
+  /** What the user prefers for the seasons and episodes: torrents, and files for episodes */
+  preferences: PreferenceDto[];
   /** The episodes that the user requested or that are on disk */
   episodes: EpisodeStatusDto[];
   /** Info hashes of the torrents that a request of anyone downloads from or that files of it came from */
@@ -1594,7 +1591,7 @@ export interface FailedLibraryEntryDto {
   error: string;
 }
 
-export interface LibraryScanDto {
+export interface ScanLibraryResultDto {
   /** Files that are new to the index */
   added: number;
   /** Indexed files that changed on disk */
@@ -1614,7 +1611,7 @@ export interface LibraryEntriesDto {
   paths: string[];
 }
 
-export interface RequestedLibraryEntriesDto {
+export interface RequestLibraryEntriesResultDto {
   /** Requests that were bound to the files */
   requests: number;
   /** Episodes whose request kept another file it has */
@@ -1623,7 +1620,7 @@ export interface RequestedLibraryEntriesDto {
   skipped: number;
 }
 
-export interface ManagedLibraryEntriesDto {
+export interface ManageLibraryEntriesResultDto {
   /** Indexed files whose managed flag changed */
   files: number;
 }
@@ -1635,7 +1632,7 @@ export interface DeleteLibraryEntriesDto {
   paths: string[];
 }
 
-export interface DeletedLibraryEntriesDto {
+export interface DeleteLibraryEntriesResultDto {
   /** How many of the entries were deleted */
   deleted: number;
   /** The entries that could not be deleted, or not completely, and why */
@@ -1719,7 +1716,7 @@ export interface TmdbItemDto {
   seasons?: SeasonDto[];
 }
 
-export interface LibraryItemDto {
+export interface MyListItemDto {
   tmdbId: string;
   mediaType: "movie" | "series";
   playStates?: PlayStateDto[];
@@ -1916,10 +1913,10 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name FindAllUsers
+     * @name GetUsers
      * @request GET:/api/users
      */
-    findAllUsers: (params: RequestParams = {}) =>
+    getUsers: (params: RequestParams = {}) =>
       this.request<UserDto[], any>({
         path: `/api/users`,
         method: "GET",
@@ -1948,10 +1945,10 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name FindUserById
+     * @name GetUser
      * @request GET:/api/users/{id}
      */
-    findUserById: (id: string, params: RequestParams = {}) =>
+    getUser: (id: string, params: RequestParams = {}) =>
       this.request<UserDto, ErrorResponseDto>({
         path: `/api/users/${id}`,
         method: "GET",
@@ -1995,7 +1992,7 @@ export class Api<
      *
      * @tags users
      * @name GetMovieUserData
-     * @request GET:/api/users/{userId}/user-data/movie/tmdb/{tmdbId}
+     * @request GET:/api/users/{userId}/user-data/movies/{tmdbId}
      */
     getMovieUserData: (
       userId: string,
@@ -2003,7 +2000,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MovieUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/movie/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/user-data/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2014,7 +2011,7 @@ export class Api<
      *
      * @tags users
      * @name GetSeriesUserData
-     * @request GET:/api/users/{userId}/user-data/series/tmdb/{tmdbId}
+     * @request GET:/api/users/{userId}/user-data/series/{tmdbId}
      */
     getSeriesUserData: (
       userId: string,
@@ -2022,7 +2019,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SeriesUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/series/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/user-data/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2033,7 +2030,7 @@ export class Api<
      *
      * @tags users
      * @name GetEpisodeUserData
-     * @request GET:/api/users/{userId}/user-data/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
+     * @request GET:/api/users/{userId}/user-data/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     getEpisodeUserData: (
       userId: string,
@@ -2043,7 +2040,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MovieUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+        path: `/api/users/${userId}/user-data/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2053,17 +2050,17 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name UpdateMoviePlayStateByTmdbId
-     * @request PUT:/api/users/{userId}/play-state/movie/tmdb/{tmdbId}
+     * @name UpdateMoviePlayState
+     * @request PUT:/api/users/{userId}/play-states/movies/{tmdbId}
      */
-    updateMoviePlayStateByTmdbId: (
+    updateMoviePlayState: (
       userId: string,
       tmdbId: string,
       data: UpdatePlayStateDto,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/play-states/movies/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2074,16 +2071,16 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name DeleteMoviePlayStateByTmdbId
-     * @request DELETE:/api/users/{userId}/play-state/movie/tmdb/{tmdbId}
+     * @name DeleteMoviePlayState
+     * @request DELETE:/api/users/{userId}/play-states/movies/{tmdbId}
      */
-    deleteMoviePlayStateByTmdbId: (
+    deleteMoviePlayState: (
       userId: string,
       tmdbId: string,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-state/movie/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/play-states/movies/${tmdbId}`,
         method: "DELETE",
         ...params,
       }),
@@ -2092,10 +2089,10 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name UpdateEpisodePlayStateByTmdbId
-     * @request PUT:/api/users/{userId}/play-state/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
+     * @name UpdateEpisodePlayState
+     * @request PUT:/api/users/{userId}/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
-    updateEpisodePlayStateByTmdbId: (
+    updateEpisodePlayState: (
       userId: string,
       tmdbId: string,
       season: number,
@@ -2104,7 +2101,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+        path: `/api/users/${userId}/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2115,10 +2112,10 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name DeleteEpisodePlayStateByTmdbId
-     * @request DELETE:/api/users/{userId}/play-state/series/tmdb/{tmdbId}/season/{season}/episode/{episode}
+     * @name DeleteEpisodePlayState
+     * @request DELETE:/api/users/{userId}/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
-    deleteEpisodePlayStateByTmdbId: (
+    deleteEpisodePlayState: (
       userId: string,
       tmdbId: string,
       season: number,
@@ -2126,7 +2123,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}/season/${season}/episode/${episode}`,
+        path: `/api/users/${userId}/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "DELETE",
         ...params,
       }),
@@ -2135,154 +2132,38 @@ export class Api<
      * No description
      *
      * @tags users
-     * @name UpdateSeriesPlayStatesByTmdbId
-     * @request PUT:/api/users/{userId}/play-state/series/tmdb/{tmdbId}
+     * @name UpdateSeriesPlayStates
+     * @request PUT:/api/users/{userId}/play-states/series/{tmdbId}
      */
-    updateSeriesPlayStatesByTmdbId: (
+    updateSeriesPlayStates: (
       userId: string,
       tmdbId: string,
       data: BulkUpdatePlayStateDto,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-state/series/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/play-states/series/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
         ...params,
       }),
   };
-  api = {
+  auth = {
     /**
      * No description
      *
+     * @tags auth
      * @name SignIn
      * @request POST:/api/auth
      */
     signIn: (data: SignInDto, params: RequestParams = {}) =>
-      this.request<SignInResponse, ErrorResponseDto>({
+      this.request<SignInResponseDto, ErrorResponseDto>({
         path: `/api/auth`,
         method: "POST",
         body: data,
         type: ContentType.Json,
         format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyGet
-     * @request GET:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyGet: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "GET",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyPost
-     * @request POST:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyPost: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "POST",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyPut
-     * @request PUT:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyPut: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "PUT",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyDelete
-     * @request DELETE:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyDelete: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyPatch
-     * @request PATCH:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyPatch: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "PATCH",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyOptions
-     * @request OPTIONS:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyOptions: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "OPTIONS",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxyHead
-     * @request HEAD:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxyHead: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "HEAD",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name TmdbProxySearch
-     * @request SEARCH:/api/tmdb/v3/proxy/{path}
-     */
-    tmdbProxySearch: (path: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/tmdb/v3/proxy/${path}`,
-        method: "SEARCH",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name GetHello
-     * @request GET:/api
-     */
-    getHello: (params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api`,
-        method: "GET",
         ...params,
       }),
   };
@@ -2292,11 +2173,11 @@ export class Api<
      *
      * @tags metadata
      * @name GetMovie
-     * @request GET:/api/metadata/movie/{tmdbId}
+     * @request GET:/api/metadata/movies/{tmdbId}
      */
     getMovie: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<MovieMetadata, any>({
-        path: `/api/metadata/movie/${tmdbId}`,
+      this.request<MovieMetadataDto, any>({
+        path: `/api/metadata/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2310,7 +2191,7 @@ export class Api<
      * @request GET:/api/metadata/series/{tmdbId}
      */
     getSeries: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<SeriesMetadata, any>({
+      this.request<SeriesMetadataDto, any>({
         path: `/api/metadata/series/${tmdbId}`,
         method: "GET",
         format: "json",
@@ -2337,7 +2218,7 @@ export class Api<
      *
      * @tags requests
      * @name GetUserRequests
-     * @request GET:/api/v2/users/{userId}/requests
+     * @request GET:/api/users/{userId}/requests
      */
     getUserRequests: (
       userId: string,
@@ -2353,7 +2234,7 @@ export class Api<
         },
         any
       >({
-        path: `/api/v2/users/${userId}/requests`,
+        path: `/api/users/${userId}/requests`,
         method: "GET",
         query: query,
         format: "json",
@@ -2365,15 +2246,15 @@ export class Api<
      *
      * @tags requests
      * @name GetMovieRequest
-     * @request GET:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
+     * @request GET:/api/users/{userId}/requests/movies/{tmdbId}
      */
     getMovieRequest: (
       userId: string,
       tmdbId: string,
       params: RequestParams = {},
     ) =>
-      this.request<MovieRequestDto, any>({
-        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
+      this.request<MovieRequestStatusDto, any>({
+        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2384,7 +2265,7 @@ export class Api<
      *
      * @tags requests
      * @name CreateMovieRequest
-     * @request PUT:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
+     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}
      */
     createMovieRequest: (
       userId: string,
@@ -2392,7 +2273,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto, any>({
-        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
         method: "PUT",
         format: "json",
         ...params,
@@ -2403,7 +2284,7 @@ export class Api<
      *
      * @tags requests
      * @name DeleteMovieRequest
-     * @request DELETE:/api/v2/users/{userId}/requests/movie/tmdb/{tmdbId}
+     * @request DELETE:/api/users/{userId}/requests/movies/{tmdbId}
      */
     deleteMovieRequest: (
       userId: string,
@@ -2411,7 +2292,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/movie/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2422,7 +2303,7 @@ export class Api<
      *
      * @tags requests
      * @name GetSeriesRequests
-     * @request GET:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}
+     * @request GET:/api/users/{userId}/requests/series/{tmdbId}
      */
     getSeriesRequests: (
       userId: string,
@@ -2430,7 +2311,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2440,17 +2321,17 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name UpdateSeriesRequests
-     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}
+     * @name SetSeriesRequests
+     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}
      */
-    updateSeriesRequests: (
+    setSeriesRequests: (
       userId: string,
       tmdbId: string,
       data: UpdateSeriesRequestsDto,
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2463,7 +2344,7 @@ export class Api<
      *
      * @tags requests
      * @name GetSeriesRequestRule
-     * @request GET:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule
+     * @request GET:/api/users/{userId}/requests/series/{tmdbId}/rule
      */
     getSeriesRequestRule: (
       userId: string,
@@ -2471,7 +2352,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<RequestRuleDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/rule`,
         method: "GET",
         format: "json",
         ...params,
@@ -2482,7 +2363,7 @@ export class Api<
      *
      * @tags requests
      * @name UpdateSeriesRequestRule
-     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule
+     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/rule
      */
     updateSeriesRequestRule: (
       userId: string,
@@ -2491,7 +2372,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<RequestRuleDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/rule`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2503,18 +2384,18 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SelectSeasonRelease
-     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     * @name SetSeasonPreference
+     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}
      */
-    selectSeasonRelease: (
+    setSeasonPreference: (
       userId: string,
       tmdbId: string,
       season: number,
-      data: SelectReleaseDto,
+      data: SetPreferenceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2526,17 +2407,17 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name ClearSeasonRelease
-     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/torrent
+     * @name ClearSeasonPreference
+     * @request DELETE:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}
      */
-    clearSeasonRelease: (
+    clearSeasonPreference: (
       userId: string,
       tmdbId: string,
       season: number,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/torrent`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2546,19 +2427,19 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SelectEpisodeRelease
-     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     * @name SetEpisodePreference
+     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
      */
-    selectEpisodeRelease: (
+    setEpisodePreference: (
       userId: string,
       tmdbId: string,
       season: number,
       episode: number,
-      data: SelectReleaseDto,
+      data: SetPreferenceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2570,10 +2451,10 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name ClearEpisodeRelease
-     * @request DELETE:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/torrent
+     * @name ClearEpisodePreference
+     * @request DELETE:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
      */
-    clearEpisodeRelease: (
+    clearEpisodePreference: (
       userId: string,
       tmdbId: string,
       season: number,
@@ -2581,7 +2462,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/torrent`,
+        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2591,34 +2472,10 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SelectEpisodeFile
-     * @request PUT:/api/v2/users/{userId}/requests/series/tmdb/{tmdbId}/rule/seasons/{season}/episodes/{episode}/file
+     * @name GetRequests
+     * @request GET:/api/requests
      */
-    selectEpisodeFile: (
-      userId: string,
-      tmdbId: string,
-      season: number,
-      episode: number,
-      data: SelectFileDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/v2/users/${userId}/requests/series/tmdb/${tmdbId}/rule/seasons/${season}/episodes/${episode}/file`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
-     * @name GetAllRequests
-     * @request GET:/api/v2/requests
-     */
-    getAllRequests: (
+    getRequests: (
       query?: {
         approved?: boolean;
         page?: number;
@@ -2632,7 +2489,7 @@ export class Api<
         },
         any
       >({
-        path: `/api/v2/requests`,
+        path: `/api/requests`,
         method: "GET",
         query: query,
         format: "json",
@@ -2644,7 +2501,7 @@ export class Api<
      *
      * @tags requests
      * @name UpdateRequest
-     * @request PUT:/api/v2/requests/{id}
+     * @request PUT:/api/requests/{id}
      */
     updateRequest: (
       id: string,
@@ -2652,7 +2509,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<AdminMediaRequestDto, any>({
-        path: `/api/v2/requests/${id}`,
+        path: `/api/requests/${id}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2665,11 +2522,11 @@ export class Api<
      *
      * @tags requests
      * @name DeleteRequest
-     * @request DELETE:/api/v2/requests/{id}
+     * @request DELETE:/api/requests/{id}
      */
     deleteRequest: (id: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/requests/${id}`,
+        path: `/api/requests/${id}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2681,11 +2538,11 @@ export class Api<
      *
      * @tags local-media
      * @name GetLocalMediaSettings
-     * @request GET:/api/v2/local-media/settings
+     * @request GET:/api/local-media/settings
      */
     getLocalMediaSettings: (params: RequestParams = {}) =>
       this.request<LocalMediaSettingsDto, any>({
-        path: `/api/v2/local-media/settings`,
+        path: `/api/local-media/settings`,
         method: "GET",
         format: "json",
         ...params,
@@ -2696,7 +2553,7 @@ export class Api<
      *
      * @tags local-media
      * @name UpdateLocalMediaSettings
-     * @request PUT:/api/v2/local-media/settings
+     * @request PUT:/api/local-media/settings
      */
     updateLocalMediaSettings: (
       data: LocalMediaSettingsDto,
@@ -2707,7 +2564,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<LocalMediaSettingsDto, any>({
-        path: `/api/v2/local-media/settings`,
+        path: `/api/local-media/settings`,
         method: "PUT",
         query: query,
         body: data,
@@ -2721,11 +2578,11 @@ export class Api<
      *
      * @tags local-media
      * @name GetMovieFiles
-     * @request GET:/api/v2/local-media/movies/{tmdbId}
+     * @request GET:/api/local-media/movies/{tmdbId}
      */
     getMovieFiles: (tmdbId: string, params: RequestParams = {}) =>
       this.request<LocalMediaFileDto[], any>({
-        path: `/api/v2/local-media/movies/${tmdbId}`,
+        path: `/api/local-media/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2736,11 +2593,11 @@ export class Api<
      *
      * @tags local-media
      * @name GetSeriesFiles
-     * @request GET:/api/v2/local-media/series/{tmdbId}
+     * @request GET:/api/local-media/series/{tmdbId}
      */
     getSeriesFiles: (tmdbId: string, params: RequestParams = {}) =>
       this.request<LocalEpisodeFileDto[], any>({
-        path: `/api/v2/local-media/series/${tmdbId}`,
+        path: `/api/local-media/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2751,7 +2608,7 @@ export class Api<
      *
      * @tags local-media
      * @name GetEpisodeFiles
-     * @request GET:/api/v2/local-media/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     * @request GET:/api/local-media/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     getEpisodeFiles: (
       tmdbId: string,
@@ -2760,7 +2617,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<LocalEpisodeFileDto[], any>({
-        path: `/api/v2/local-media/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+        path: `/api/local-media/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2771,11 +2628,11 @@ export class Api<
      *
      * @tags local-media
      * @name GetSubtitles
-     * @request GET:/api/v2/local-media/files/{id}/subtitles/{fileName}
+     * @request GET:/api/local-media/files/{id}/subtitles/{fileName}
      */
     getSubtitles: (id: string, fileName: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/v2/local-media/files/${id}/subtitles/${fileName}`,
+        path: `/api/local-media/files/${id}/subtitles/${fileName}`,
         method: "GET",
         ...params,
       }),
@@ -2785,11 +2642,11 @@ export class Api<
      *
      * @tags local-media
      * @name StreamFile
-     * @request GET:/api/v2/local-media/files/{id}/stream
+     * @request GET:/api/local-media/files/{id}/stream
      */
     streamFile: (id: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/v2/local-media/files/${id}/stream`,
+        path: `/api/local-media/files/${id}/stream`,
         method: "GET",
         ...params,
       }),
@@ -2800,7 +2657,7 @@ export class Api<
      *
      * @tags server
      * @name GetJobs
-     * @request GET:/api/v2/server/jobs
+     * @request GET:/api/server/jobs
      */
     getJobs: (
       query?: {
@@ -2809,8 +2666,8 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<Job[], any>({
-        path: `/api/v2/server/jobs`,
+      this.request<JobDto[], any>({
+        path: `/api/server/jobs`,
         method: "GET",
         query: query,
         format: "json",
@@ -2822,11 +2679,11 @@ export class Api<
      *
      * @tags server
      * @name RetryJob
-     * @request POST:/api/v2/server/jobs/{id}/retry
+     * @request POST:/api/server/jobs/{id}/retry
      */
     retryJob: (id: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/v2/server/jobs/${id}/retry`,
+        path: `/api/server/jobs/${id}/retry`,
         method: "POST",
         ...params,
       }),
@@ -2836,11 +2693,11 @@ export class Api<
      *
      * @tags server
      * @name DeleteJob
-     * @request DELETE:/api/v2/server/jobs/{id}
+     * @request DELETE:/api/server/jobs/{id}
      */
     deleteJob: (id: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/v2/server/jobs/${id}`,
+        path: `/api/server/jobs/${id}`,
         method: "DELETE",
         ...params,
       }),
@@ -2850,7 +2707,7 @@ export class Api<
      *
      * @tags server
      * @name GetLibraryEntries
-     * @request GET:/api/v2/server/library
+     * @request GET:/api/server/library
      */
     getLibraryEntries: (
       query: {
@@ -2859,7 +2716,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<ServerLibraryEntryDto[], any>({
-        path: `/api/v2/server/library`,
+        path: `/api/server/library`,
         method: "GET",
         query: query,
         format: "json",
@@ -2871,7 +2728,7 @@ export class Api<
      *
      * @tags server
      * @name PreviewLibraryScan
-     * @request GET:/api/v2/server/library/scan
+     * @request GET:/api/server/library/scan
      */
     previewLibraryScan: (
       query: {
@@ -2880,7 +2737,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<LibraryScanPreviewDto, any>({
-        path: `/api/v2/server/library/scan`,
+        path: `/api/server/library/scan`,
         method: "GET",
         query: query,
         format: "json",
@@ -2892,11 +2749,11 @@ export class Api<
      *
      * @tags server
      * @name ScanLibrary
-     * @request POST:/api/v2/server/library/scan
+     * @request POST:/api/server/library/scan
      */
     scanLibrary: (data: ScanLibraryDto, params: RequestParams = {}) =>
-      this.request<LibraryScanDto, any>({
-        path: `/api/v2/server/library/scan`,
+      this.request<ScanLibraryResultDto, any>({
+        path: `/api/server/library/scan`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2909,14 +2766,14 @@ export class Api<
      *
      * @tags server
      * @name RequestLibraryEntries
-     * @request POST:/api/v2/server/library/request
+     * @request POST:/api/server/library/request
      */
     requestLibraryEntries: (
       data: LibraryEntriesDto,
       params: RequestParams = {},
     ) =>
-      this.request<RequestedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/request`,
+      this.request<RequestLibraryEntriesResultDto, any>({
+        path: `/api/server/library/request`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2929,14 +2786,14 @@ export class Api<
      *
      * @tags server
      * @name ManageLibraryEntries
-     * @request POST:/api/v2/server/library/manage
+     * @request POST:/api/server/library/manage
      */
     manageLibraryEntries: (
       data: LibraryEntriesDto,
       params: RequestParams = {},
     ) =>
-      this.request<ManagedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/manage`,
+      this.request<ManageLibraryEntriesResultDto, any>({
+        path: `/api/server/library/manage`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2949,14 +2806,14 @@ export class Api<
      *
      * @tags server
      * @name UnmanageLibraryEntries
-     * @request POST:/api/v2/server/library/unmanage
+     * @request POST:/api/server/library/unmanage
      */
     unmanageLibraryEntries: (
       data: LibraryEntriesDto,
       params: RequestParams = {},
     ) =>
-      this.request<ManagedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/unmanage`,
+      this.request<ManageLibraryEntriesResultDto, any>({
+        path: `/api/server/library/unmanage`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2969,14 +2826,14 @@ export class Api<
      *
      * @tags server
      * @name DeleteLibraryEntries
-     * @request POST:/api/v2/server/library/delete
+     * @request POST:/api/server/library/delete
      */
     deleteLibraryEntries: (
       data: DeleteLibraryEntriesDto,
       params: RequestParams = {},
     ) =>
-      this.request<DeletedLibraryEntriesDto, any>({
-        path: `/api/v2/server/library/delete`,
+      this.request<DeleteLibraryEntriesResultDto, any>({
+        path: `/api/server/library/delete`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2990,11 +2847,11 @@ export class Api<
      *
      * @tags indexers
      * @name GetIndexers
-     * @request GET:/api/v2/indexers
+     * @request GET:/api/indexers
      */
     getIndexers: (params: RequestParams = {}) =>
       this.request<IndexerSettingsDto, any>({
-        path: `/api/v2/indexers`,
+        path: `/api/indexers`,
         method: "GET",
         format: "json",
         ...params,
@@ -3005,11 +2862,11 @@ export class Api<
      *
      * @tags indexers
      * @name UpdateIndexers
-     * @request PUT:/api/v2/indexers
+     * @request PUT:/api/indexers
      */
     updateIndexers: (data: IndexerSettingsDto, params: RequestParams = {}) =>
       this.request<IndexerSettingsDto, any>({
-        path: `/api/v2/indexers`,
+        path: `/api/indexers`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -3022,7 +2879,7 @@ export class Api<
      *
      * @tags indexers
      * @name SearchSeriesReleases
-     * @request GET:/api/v2/indexers/search/series/{tmdbId}
+     * @request GET:/api/indexers/search/series/{tmdbId}
      */
     searchSeriesReleases: (
       tmdbId: string,
@@ -3034,7 +2891,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<ReleaseDto[], any>({
-        path: `/api/v2/indexers/search/series/${tmdbId}`,
+        path: `/api/indexers/search/series/${tmdbId}`,
         method: "GET",
         query: query,
         format: "json",
@@ -3047,11 +2904,11 @@ export class Api<
      *
      * @tags downloads
      * @name GetDownloadSettings
-     * @request GET:/api/v2/downloads/settings
+     * @request GET:/api/downloads/settings
      */
     getDownloadSettings: (params: RequestParams = {}) =>
       this.request<DownloadSettingsDto, any>({
-        path: `/api/v2/downloads/settings`,
+        path: `/api/downloads/settings`,
         method: "GET",
         format: "json",
         ...params,
@@ -3062,14 +2919,14 @@ export class Api<
      *
      * @tags downloads
      * @name UpdateDownloadSettings
-     * @request PUT:/api/v2/downloads/settings
+     * @request PUT:/api/downloads/settings
      */
     updateDownloadSettings: (
       data: DownloadSettingsDto,
       params: RequestParams = {},
     ) =>
       this.request<DownloadSettingsDto, any>({
-        path: `/api/v2/downloads/settings`,
+        path: `/api/downloads/settings`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -3081,12 +2938,12 @@ export class Api<
      * No description
      *
      * @tags downloads
-     * @name GetSeriesDownloads
-     * @request GET:/api/v2/downloads/series/{tmdbId}
+     * @name GetSeriesStatus
+     * @request GET:/api/downloads/series/{tmdbId}
      */
-    getSeriesDownloads: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<SeriesDownloadsDto, any>({
-        path: `/api/v2/downloads/series/${tmdbId}`,
+    getSeriesStatus: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SeriesStatusDto, any>({
+        path: `/api/downloads/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -3097,11 +2954,11 @@ export class Api<
      *
      * @tags downloads
      * @name RetryTorrent
-     * @request POST:/api/v2/downloads/torrents/{torrentId}/retry
+     * @request POST:/api/downloads/torrents/{torrentId}/retry
      */
     retryTorrent: (torrentId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/v2/downloads/torrents/${torrentId}/retry`,
+        path: `/api/downloads/torrents/${torrentId}/retry`,
         method: "POST",
         format: "json",
         ...params,
@@ -3113,11 +2970,11 @@ export class Api<
      *
      * @tags server-log
      * @name GetServerLogSettings
-     * @request GET:/api/v2/server-log/settings
+     * @request GET:/api/server-log/settings
      */
     getServerLogSettings: (params: RequestParams = {}) =>
       this.request<ServerLogSettingsDto, any>({
-        path: `/api/v2/server-log/settings`,
+        path: `/api/server-log/settings`,
         method: "GET",
         format: "json",
         ...params,
@@ -3128,14 +2985,14 @@ export class Api<
      *
      * @tags server-log
      * @name UpdateServerLogSettings
-     * @request PUT:/api/v2/server-log/settings
+     * @request PUT:/api/server-log/settings
      */
     updateServerLogSettings: (
       data: ServerLogSettingsDto,
       params: RequestParams = {},
     ) =>
       this.request<ServerLogSettingsDto, any>({
-        path: `/api/v2/server-log/settings`,
+        path: `/api/server-log/settings`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -3143,13 +3000,13 @@ export class Api<
         ...params,
       }),
   };
-  library = {
+  myList = {
     /**
      * No description
      *
-     * @tags library
+     * @tags myList
      * @name GetMyList
-     * @request GET:/api/users/{userId}/library/my-list
+     * @request GET:/api/users/{userId}/my-list
      */
     getMyList: (
       userId: string,
@@ -3175,11 +3032,11 @@ export class Api<
     ) =>
       this.request<
         PaginatedResponseDto & {
-          items: LibraryItemDto[];
+          items: MyListItemDto[];
         },
         any
       >({
-        path: `/api/users/${userId}/library/my-list`,
+        path: `/api/users/${userId}/my-list`,
         method: "GET",
         query: query,
         format: "json",
@@ -3189,21 +3046,21 @@ export class Api<
     /**
      * No description
      *
-     * @tags library
-     * @name UpdateLibraryItem
-     * @request PUT:/api/users/{userId}/library/tmdb/{tmdbId}
+     * @tags myList
+     * @name SetMyListItem
+     * @request PUT:/api/users/{userId}/my-list/{tmdbId}
      */
-    updateLibraryItem: (
+    setMyListItem: (
       userId: string,
       tmdbId: string,
       query: {
-        inLibrary: boolean;
+        inMyList: boolean;
         mediaType: "movie" | "series";
       },
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/library/tmdb/${tmdbId}`,
+        path: `/api/users/${userId}/my-list/${tmdbId}`,
         method: "PUT",
         query: query,
         format: "json",

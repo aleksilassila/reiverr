@@ -5,7 +5,7 @@ import { ServerLogSettingsDto } from './server-log.dto.js';
 import { ServerLogService } from './server-log.service.js';
 
 @ApiTags('server-log')
-@Controller('v2/server-log')
+@Controller('server-log')
 @UseGuards(AdminAccessControl)
 export class ServerLogController {
   constructor(private readonly serverLogService: ServerLogService) {}

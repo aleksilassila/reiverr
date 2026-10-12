@@ -4,18 +4,20 @@ import { SignInDto, UserDto } from '../users/user.dto.js';
 import {
   ApiOkResponse,
   ApiProperty,
+  ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ErrorResponseDto } from '../common/common.dto.js';
 import { UsersService } from '../users/users.service.js';
 
-export class SignInResponse {
+export class SignInResponseDto {
   @ApiProperty()
   accessToken: string;
   @ApiProperty()
   user: UserDto;
 }
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -25,7 +27,7 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post()
-  @ApiOkResponse({ description: 'User found', type: SignInResponse })
+  @ApiOkResponse({ description: 'User found', type: SignInResponseDto })
   @ApiUnauthorizedResponse({ type: ErrorResponseDto })
   async signIn(@Body() signInDto: SignInDto) {
     const { token, user } = await this.authService.signIn(

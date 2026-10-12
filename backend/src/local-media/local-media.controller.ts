@@ -20,7 +20,7 @@ import {
 import { LocalMediaService } from './local-media.service.js';
 
 @ApiTags('local-media')
-@Controller('v2/local-media')
+@Controller('local-media')
 @UseGuards(UserAccessControl)
 export class LocalMediaController {
   constructor(private readonly localMediaService: LocalMediaService) {}

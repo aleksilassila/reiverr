@@ -48,7 +48,7 @@ export class TmdbSettings {
 }
 
 /** @deprecated Use UserSettings from user-settings.service.ts instead */
-export class Settings {
+export class UserSettingsDto {
   @ApiProperty({ required: true })
   autoplayTrailers: boolean;
   @ApiProperty({ required: true })
@@ -71,7 +71,7 @@ export class Settings {
 }
 
 /** @deprecated Use DEFAULT_USER_SETTINGS from user-settings.service.ts instead */
-const DEFAULT_SETTINGS: Settings = {
+const DEFAULT_SETTINGS: UserSettingsDto = {
   autoplayTrailers: true,
   language: 'en',
   animationDuration: 300,
@@ -131,7 +131,7 @@ export class User {
   onboardingDone: boolean = false;
 
   /** @deprecated Use UserSettingsService to manage user settings instead */
-  @ApiProperty({ required: true, type: Settings })
+  @ApiProperty({ required: true, type: UserSettingsDto })
   @Property({ type: 'json' })
-  settings: Settings = structuredClone(DEFAULT_SETTINGS);
+  settings: UserSettingsDto = structuredClone(DEFAULT_SETTINGS);
 }

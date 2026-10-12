@@ -395,7 +395,7 @@ export class RequestsService implements OnApplicationBootstrap {
    * needs it, and is kept so that it can be resolved again long after the
    * search result has expired.
    */
-  async selectTorrent(
+  async preferRelease(
     target: SelectionTarget,
     releaseId: string,
   ): Promise<void> {
@@ -460,7 +460,7 @@ export class RequestsService implements OnApplicationBootstrap {
    * have. A request of the episode that downloads from a torrent lets it go
    * for the file.
    */
-  async selectFile(
+  async preferFile(
     target: SelectionTarget,
     mediaFileId: string,
   ): Promise<void> {

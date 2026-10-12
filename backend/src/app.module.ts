@@ -2,8 +2,6 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { AuthMiddleware as AuthMiddleware } from './auth/auth.middleware.js';
 import { AuthModule } from './auth/auth.module.js';
 import { MetadataModule } from './metadata/metadata.module.js';
@@ -41,8 +39,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     ServerLogModule,
     ServerModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

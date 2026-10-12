@@ -91,7 +91,7 @@ export class TorrentDto {
 }
 
 /** A file in the library a user prefers for an episode */
-export class SelectedFileDto {
+export class PreferredFileDto {
   @ApiProperty({
     description: 'The id of the file, which the API serves it by',
   })
@@ -121,7 +121,7 @@ export class SelectedFileDto {
  * What a user prefers for a season (episode 0) or an episode: a torrent, or
  * for an episode a file in the library
  */
-export class TorrentSelectionDto extends EpisodeRefDto {
+export class PreferenceDto extends EpisodeRefDto {
   @ApiProperty({
     type: 'string',
     required: false,
@@ -132,15 +132,15 @@ export class TorrentSelectionDto extends EpisodeRefDto {
   @ApiProperty({ type: TorrentDto, required: false })
   torrent?: TorrentDto;
 
-  @ApiProperty({ type: SelectedFileDto, required: false })
-  file?: SelectedFileDto;
+  @ApiProperty({ type: PreferredFileDto, required: false })
+  file?: PreferredFileDto;
 }
 
 export enum EpisodeDownloadStatus {
   WaitingForApproval = 'waiting-for-approval',
   /** The rule of the user holds the request back until they have watched up to it */
   InactiveAhead = 'inactive-ahead',
-  NoSelection = 'no-selection',
+  NoPreference = 'no-preference',
   /** The torrent of the request is being resolved, or its files are not known yet */
   Resolving = 'resolving',
   NoFileInTorrent = 'no-file-in-torrent',
@@ -191,12 +191,13 @@ export class EpisodeStatusDto extends EpisodeRefDto {
   cleanupAt?: Date;
 }
 
-export class SeriesDownloadsDto {
+export class SeriesStatusDto {
   @ApiProperty({
-    type: [TorrentSelectionDto],
-    description: 'The torrents the user prefers for the seasons and episodes',
+    type: [PreferenceDto],
+    description:
+      'What the user prefers for the seasons and episodes: torrents, and files for episodes',
   })
-  selections: TorrentSelectionDto[];
+  preferences: PreferenceDto[];
 
   @ApiProperty({
     type: [EpisodeStatusDto],

@@ -22,7 +22,7 @@ function useSessions() {
 
 	async function addSession(baseUrl: string, name: string, password: string, activate = true) {
 		const res = await getPublicReiverrApi(baseUrl)
-			.api.signIn({ name, password })
+			.auth.signIn({ name, password })
 			.catch((e: AxiosError) => {
 				if (e.response?.status && e.response?.status >= 500) throw new Error('Server error');
 				else if (e.response?.status && e.response?.status >= 400)

@@ -14,7 +14,7 @@ import { IndexerSettingsDto, ReleaseDto } from './indexers.dto.js';
 import { IndexersService, Release } from './indexers.service.js';
 
 @ApiTags('indexers')
-@Controller('v2/indexers')
+@Controller('indexers')
 @UseGuards(UserAccessControl)
 export class IndexersController {
   constructor(private readonly indexersService: IndexersService) {}

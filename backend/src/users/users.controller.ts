@@ -52,7 +52,7 @@ export class UsersController {
     type: UserDto,
     isArray: true,
   })
-  async findAllUsers(@GetAuthUser() callerUser: User): Promise<UserDto[]> {
+  async getUsers(@GetAuthUser() callerUser: User): Promise<UserDto[]> {
     if (!callerUser.isAdmin) {
       throw new UnauthorizedException();
     }
@@ -69,7 +69,7 @@ export class UsersController {
     description: 'User not found',
     type: ErrorResponseDto,
   })
-  async findUserById(
+  async getUser(
     @Param('id') id: string,
     @GetAuthUser() callerUser: User,
   ): Promise<UserDto> {

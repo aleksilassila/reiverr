@@ -36,12 +36,12 @@ export class LibraryEntriesDto {
 
 export class DeleteLibraryEntriesDto extends LibraryEntriesDto {}
 
-export class ManagedLibraryEntriesDto {
+export class ManageLibraryEntriesResultDto {
   @ApiProperty({ description: 'Indexed files whose managed flag changed' })
   files: number;
 }
 
-export class RequestedLibraryEntriesDto {
+export class RequestLibraryEntriesResultDto {
   @ApiProperty({ description: 'Requests that were bound to the files' })
   requests: number;
 

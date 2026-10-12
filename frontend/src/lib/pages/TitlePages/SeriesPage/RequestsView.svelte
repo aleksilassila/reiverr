@@ -35,8 +35,7 @@
 		{
 			key: 'keepNext',
 			name: 'Download ahead',
-			description:
-				'Choose how many unwatched episodes ahead are downloaded.',
+			description: 'Choose how many unwatched episodes ahead are downloaded.',
 			options: [
 				{ label: 'All requested', value: null },
 				{ label: 'Next episode', value: 1 },

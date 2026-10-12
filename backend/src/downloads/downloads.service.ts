@@ -39,10 +39,10 @@ import {
   DownloadSettingsDto,
   EpisodeDownloadStatus,
   EpisodeStatusDto,
-  SeriesDownloadsDto,
+  SeriesStatusDto,
   TorrentDto,
-  SelectedFileDto,
-  TorrentSelectionDto,
+  PreferredFileDto,
+  PreferenceDto,
   TorrentStatus,
 } from './downloads.dto.js';
 import {
@@ -160,10 +160,10 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /** Where the requests and the preferred torrents of a user stand for a series */
-  async getSeriesDownloads(
+  async getSeriesStatus(
     userId: string,
     tmdbId: string,
-  ): Promise<SeriesDownloadsDto> {
+  ): Promise<SeriesStatusDto> {
     const { requests, rules, files, torrents } = await this.em.transactional(
       (tx) => this.readSeries(tx, tmdbId),
     );
@@ -223,7 +223,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         torrentsByHash.get(release.infoHash),
       ),
     });
-    const selections: TorrentSelectionDto[] = [
+    const preferences: PreferenceDto[] = [
       ...(rule?.seasonTorrents ?? []).map((t) => ({
         season: t.season,
         episode: 0,
@@ -244,7 +244,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     ];
 
     return {
-      selections: selections.sort(
+      preferences: preferences.sort(
         (a, b) => a.season - b.season || a.episode - b.episode,
       ),
       episodes: episodes
@@ -898,7 +898,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       return {
         status: preferenceOf(rule, request.season, request.episode)
           ? EpisodeDownloadStatus.Resolving
-          : EpisodeDownloadStatus.NoSelection,
+          : EpisodeDownloadStatus.NoPreference,
       };
     }
 
@@ -969,7 +969,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   private describeFile(
     file: FileSnapshot,
     row: MediaFile | undefined,
-  ): SelectedFileDto {
+  ): PreferredFileDto {
     return {
       id: file.mediaFileId,
       fileName: file.fileName,

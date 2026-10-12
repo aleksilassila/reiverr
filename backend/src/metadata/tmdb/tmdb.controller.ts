@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { GetAuthUser, UserAccessControl } from '../../auth/auth.guard.js';
 import { TMDB_API_KEY, TMDB_CACHE_TTL } from '../../consts.js';
@@ -27,6 +28,8 @@ export class TmdbController {
 
   // @UseInterceptors(CacheInterceptor)
   // @CacheTTL(METADATA_CACHE_TTL)
+  // The frontend has its own clients for the proxy, so it is not an operation of the API
+  @ApiExcludeEndpoint()
   @All('v3/proxy/*path')
   async tmdbProxy(
     @Param() params: any,

@@ -40,7 +40,7 @@ export async function playEpisode(options: {
 
 	// Media elements cannot send headers, so the token travels in the URL
 	const { baseUrl, token } = get(sessions).activeSession ?? { baseUrl: '', token: '' };
-	const url = (path: string) => `${baseUrl}/api/v2/local-media/${path}?reiverr_token=${token}`;
+	const url = (path: string) => `${baseUrl}/api/local-media/${path}?reiverr_token=${token}`;
 
 	options.playMedia({
 		title: options.title,
@@ -65,7 +65,7 @@ export async function playEpisode(options: {
 			if (!userId) return;
 
 			reiverrApi.users
-				.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+				.updateEpisodePlayState(userId, tmdbId, season, episode, {
 					progress,
 					...(progress > WATCHED_PROGRESS && { watched: true })
 				})

@@ -1,5 +1,5 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { TMDB_CACHE_TTL } from '../consts.js';
 import {
@@ -9,6 +9,7 @@ import {
 } from './tmdb/tmdb.dto.js';
 
 @Entity()
+@ApiSchema({ name: 'MovieMetadataDto' })
 export class MovieMetadata {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryKey({ type: 'uuid' })
@@ -77,6 +78,7 @@ export class MovieMetadata {
 }
 
 @Entity()
+@ApiSchema({ name: 'SeriesMetadataDto' })
 export class SeriesMetadata {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryKey({ type: 'uuid' })

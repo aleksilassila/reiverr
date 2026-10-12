@@ -21,7 +21,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	const upcoming = usePaginatedData(
 		(page) =>
-			reiverrApi.library
+			reiverrApi.myList
 				.getMyList(String(get(user)?.id), {
 					type: 'series',
 					order: 'last-played',
@@ -34,7 +34,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	const watched = usePaginatedData(
 		(page) =>
-			reiverrApi.library
+			reiverrApi.myList
 				.getMyList(String(get(user)?.id), {
 					status: 'watched',
 					type: get(category),
@@ -50,7 +50,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	const unwatched = usePaginatedData(
 		(page) =>
-			reiverrApi.library
+			reiverrApi.myList
 				.getMyList(String(get(user)?.id), {
 					type: get(category),
 					order: get(libraryViewSettings).order,

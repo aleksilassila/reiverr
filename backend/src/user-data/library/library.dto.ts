@@ -31,7 +31,7 @@ export enum MyListTypeFilter {
   All = 'all',
 }
 
-export class LibraryItemDto extends PickType(LibraryItem, [
+export class MyListItemDto extends PickType(LibraryItem, [
   'tmdbId',
   'mediaType',
   'playStates',

@@ -23,7 +23,7 @@ import {
   SuccessResponseDto,
 } from '../../common/common.dto.js';
 import {
-  LibraryItemDto,
+  MyListItemDto,
   MyListOrder,
   MyListStatusFilter,
   MyListTypeFilter,
@@ -31,19 +31,19 @@ import {
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 
-@ApiTags('library')
-@Controller('users/:userId/library')
+@ApiTags('myList')
+@Controller('users/:userId/my-list')
 @UseGuards(UserAccessControl)
 export class LibraryController {
   constructor(private libraryService: LibraryService) {}
 
-  @Get('my-list')
+  @Get()
   @ApiQuery({ name: 'status', enum: MyListStatusFilter, required: false })
   @ApiQuery({ name: 'type', enum: MyListTypeFilter, required: false })
   @ApiQuery({ name: 'order', enum: MyListOrder, required: false })
   @ApiQuery({ name: 'direction', enum: OrderDirection, required: false })
   @PaginationApiQuery()
-  @PaginatedApiOkResponse(LibraryItemDto)
+  @PaginatedApiOkResponse(MyListItemDto)
   async getMyList(
     @GetPaginationParams() pagination: PaginationDto,
     @Param('userId') userId: string,
@@ -55,7 +55,7 @@ export class LibraryController {
     order?: MyListOrder,
     @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
     direction?: OrderDirection,
-  ): Promise<PaginatedResponseDto<LibraryItemDto>> {
+  ): Promise<PaginatedResponseDto<MyListItemDto>> {
     // const user = await this.userService.findOne(userId);
 
     const response = await this.libraryService.getMyList({
@@ -70,21 +70,21 @@ export class LibraryController {
     return response;
   }
 
-  @Put('tmdb/:tmdbId')
+  @Put(':tmdbId')
   @ApiQuery({ name: 'mediaType', enum: MediaType })
-  @ApiQuery({ name: 'inLibrary', type: Boolean })
+  @ApiQuery({ name: 'inMyList', type: Boolean })
   @ApiOkResponse({
-    description: 'Library item added',
+    description: 'Whether the item is in the list now',
     type: SuccessResponseDto,
   })
-  async updateLibraryItem(
+  async setMyListItem(
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
-    @Query('inLibrary', new ParseBoolPipe()) inLibrary: boolean,
+    @Query('inMyList', new ParseBoolPipe()) inMyList: boolean,
     @Query('mediaType', new ParseEnumPipe(MediaType))
     mediaType: MediaType,
   ): Promise<SuccessResponseDto> {
-    if (inLibrary) {
+    if (inMyList) {
       const item = await this.libraryService.findOrCreateByTmdbId(
         userId,
         tmdbId,

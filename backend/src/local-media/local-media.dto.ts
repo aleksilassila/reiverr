@@ -102,7 +102,7 @@ export class FailedLibraryEntryDto {
   error: string;
 }
 
-export class LibraryScanDto {
+export class ScanLibraryResultDto {
   @ApiProperty({ description: 'Files that are new to the index' })
   added: number;
 
@@ -150,7 +150,7 @@ export class LibraryScanPreviewDto {
   requests: number;
 }
 
-export class DeletedLibraryEntriesDto {
+export class DeleteLibraryEntriesResultDto {
   @ApiProperty({ description: 'How many of the entries were deleted' })
   deleted: number;
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
-  DeletedLibraryEntriesDto,
-  LibraryScanDto,
+  DeleteLibraryEntriesResultDto,
+  ScanLibraryResultDto,
   LibraryScanPreviewDto,
 } from '../local-media/local-media.dto.js';
 import { CleanupService } from '../local-media/cleanup.service.js';
@@ -9,8 +9,8 @@ import { LocalMediaService } from '../local-media/local-media.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
 import {
-  ManagedLibraryEntriesDto,
-  RequestedLibraryEntriesDto,
+  ManageLibraryEntriesResultDto,
+  RequestLibraryEntriesResultDto,
   ServerLibraryEntryDto,
 } from './server.dto.js';
 
@@ -51,7 +51,7 @@ export class ServerService {
     };
   }
 
-  scanLibrary(folder: string, force: boolean): Promise<LibraryScanDto> {
+  scanLibrary(folder: string, force: boolean): Promise<ScanLibraryResultDto> {
     return this.localMediaService.scanFolder(folder, {
       evenIfUnavailable: force,
     });
@@ -61,7 +61,7 @@ export class ServerService {
     admin: User,
     folder: string,
     paths: string[],
-  ): Promise<RequestedLibraryEntriesDto> {
+  ): Promise<RequestLibraryEntriesResultDto> {
     const files = await this.localMediaService.findLibraryEntryFiles(
       folder,
       paths,
@@ -73,7 +73,7 @@ export class ServerService {
   async manageLibraryEntries(
     folder: string,
     paths: string[],
-  ): Promise<ManagedLibraryEntriesDto> {
+  ): Promise<ManageLibraryEntriesResultDto> {
     const { changed } = await this.localMediaService.setLibraryEntriesManaged(
       folder,
       paths,
@@ -86,7 +86,7 @@ export class ServerService {
   async unmanageLibraryEntries(
     folder: string,
     paths: string[],
-  ): Promise<ManagedLibraryEntriesDto> {
+  ): Promise<ManageLibraryEntriesResultDto> {
     const { changed } = await this.localMediaService.setLibraryEntriesManaged(
       folder,
       paths,
@@ -100,7 +100,7 @@ export class ServerService {
     admin: User,
     folder: string,
     paths: string[],
-  ): Promise<DeletedLibraryEntriesDto> {
+  ): Promise<DeleteLibraryEntriesResultDto> {
     return this.cleanupService.deleteLibraryEntries(
       folder,
       paths,

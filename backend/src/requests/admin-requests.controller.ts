@@ -25,7 +25,7 @@ import { AdminMediaRequestDto, UpdateMediaRequestDto } from './requests.dto.js';
 import { RequestsService } from './requests.service.js';
 
 @ApiTags('requests')
-@Controller('v2/requests')
+@Controller('requests')
 @UseGuards(AdminAccessControl)
 export class AdminRequestsController {
   constructor(private readonly requestsService: RequestsService) {}
@@ -34,7 +34,7 @@ export class AdminRequestsController {
   @ApiQuery({ name: 'approved', type: Boolean, required: false })
   @PaginationApiQuery()
   @PaginatedApiOkResponse(AdminMediaRequestDto)
-  async getAllRequests(
+  async getRequests(
     @GetPaginationParams() pagination: PaginationDto,
     @Query('approved', new ParseBoolPipe({ optional: true }))
     approved?: boolean,

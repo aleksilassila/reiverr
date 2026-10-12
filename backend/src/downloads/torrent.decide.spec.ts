@@ -54,7 +54,7 @@ enum PlannedStatus {
   InactiveAhead = 'inactive-ahead',
   /** The rule of the user deleted the request */
   Deleted = 'deleted',
-  NoSelection = 'no-selection',
+  NoPreference = 'no-preference',
   Available = 'available',
   Resolving = 'resolving',
   NoFileInTorrent = 'no-file-in-torrent',
@@ -290,7 +290,7 @@ function plan(state: Partial<DownloadsState>) {
     if (request.mediaFileId) return PlannedStatus.Available;
 
     const demand = demands.get(request.torrentId)?.requests.get(request.id);
-    if (!demand) return PlannedStatus.NoSelection;
+    if (!demand) return PlannedStatus.NoPreference;
 
     return {
       file: PlannedStatus.Available,
@@ -346,7 +346,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
     });
 
     expect(statuses).toEqual([
-      PlannedStatus.NoSelection,
+      PlannedStatus.NoPreference,
       PlannedStatus.WaitingForApproval,
     ]);
     expect(torrent('pack').wanted).toEqual([]);
@@ -396,7 +396,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
     expect(statuses).toEqual([
       PlannedStatus.Wanted,
       PlannedStatus.Wanted,
-      PlannedStatus.NoSelection,
+      PlannedStatus.NoPreference,
     ]);
     expect(torrent('pack').wanted.map((w) => w.fileIndex)).toEqual([1]);
     expect(torrent('episode').wanted.map((w) => w.fileIndex)).toEqual([0]);
@@ -540,7 +540,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
 
       expect(statuses).toEqual([
         PlannedStatus.Deleted,
-        PlannedStatus.NoSelection,
+        PlannedStatus.NoPreference,
       ]);
       expect(references).toEqual([[undefined, undefined]]);
       expect(unretained).toEqual([packE1]);
@@ -570,7 +570,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
       request('a', 3),
       { ...request('a', 1), id: 'a-s2-1', season: 2 },
     ];
-    const active = PlannedStatus.NoSelection;
+    const active = PlannedStatus.NoPreference;
     const ahead = PlannedStatus.InactiveAhead;
     const dropped = PlannedStatus.Deleted;
 

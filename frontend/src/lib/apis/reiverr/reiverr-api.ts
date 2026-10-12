@@ -3,7 +3,7 @@ import { sessions } from '../../stores/session.store';
 import {
 	Api as ReiverrApi,
 	type CreateUserDto,
-	type Settings,
+	type UserSettingsDto,
 	type UpdateUserDto,
 	type UserDto
 } from './reiverr.openapi';
@@ -11,7 +11,7 @@ import {
 export type ReiverrUser = UserDto;
 export type CreateReiverrUser = CreateUserDto;
 export type UpdateReiverrUser = UpdateUserDto;
-export type ReiverrSettings = Settings;
+export type ReiverrSettings = UserSettingsDto;
 
 export const getReiverrApi = (session = get(sessions).activeSession) => {
 	const token = session?.token;

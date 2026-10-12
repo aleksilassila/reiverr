@@ -25,10 +25,10 @@
 	const seriesData = useSeriesContext(tmdbId).getContext();
 	const requests = seriesData.requestsData?.data ?? readable(undefined);
 
-	$: selection = $requests?.selections.get(episodeKey(season, episode ?? 0));
+	$: selection = $requests?.preferences.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
 	$: seasonPack =
-		episode === undefined ? undefined : $requests?.selections.get(episodeKey(season, 0));
+		episode === undefined ? undefined : $requests?.preferences.get(episodeKey(season, 0));
 	// A request that has its file keeps it when another torrent is selected for the season
 	$: kept = [...($requests?.episodes.values() ?? [])].filter(
 		(e) =>
@@ -37,8 +37,8 @@
 			e.status === 'available' &&
 			e.torrent?.infoHash !==
 				(
-					$requests?.selections.get(episodeKey(e.season, e.episode)) ??
-					$requests?.selections.get(episodeKey(e.season, 0))
+					$requests?.preferences.get(episodeKey(e.season, e.episode)) ??
+					$requests?.preferences.get(episodeKey(e.season, 0))
 				)?.torrent?.infoHash
 	);
 	$: keptHint = !kept.length
@@ -71,10 +71,10 @@
 
 		await (
 			episode === undefined
-				? reiverrApi.requests.selectSeasonRelease($user?.id as string, tmdbId, season, {
+				? reiverrApi.requests.setSeasonPreference($user?.id as string, tmdbId, season, {
 						releaseId: release.id
 					})
-				: reiverrApi.requests.selectEpisodeRelease($user?.id as string, tmdbId, season, episode, {
+				: reiverrApi.requests.setEpisodePreference($user?.id as string, tmdbId, season, episode, {
 						releaseId: release.id
 					})
 		)
@@ -87,7 +87,7 @@
 		error = '';
 
 		await reiverrApi.requests
-			.selectEpisodeFile($user?.id as string, tmdbId, season, episode as number, {
+			.setEpisodePreference($user?.id as string, tmdbId, season, episode as number, {
 				mediaFileId: file.id
 			})
 			.then(() => seriesData.requestsData?.update())
@@ -100,8 +100,8 @@
 
 		await (
 			episode === undefined
-				? reiverrApi.requests.clearSeasonRelease($user?.id as string, tmdbId, season)
-				: reiverrApi.requests.clearEpisodeRelease($user?.id as string, tmdbId, season, episode)
+				? reiverrApi.requests.clearSeasonPreference($user?.id as string, tmdbId, season)
+				: reiverrApi.requests.clearEpisodePreference($user?.id as string, tmdbId, season, episode)
 		)
 			.then(() => seriesData.requestsData?.update())
 			.catch((e) => (error = errorMessage(e)));

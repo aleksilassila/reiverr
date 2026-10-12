@@ -44,7 +44,7 @@ function useEpisodeData(tmdbId: string, season: number, episode: number) {
 		}
 
 		const success = await reiverrApi.users
-			.updateEpisodePlayStateByTmdbId(userId, tmdbId, season, episode, {
+			.updateEpisodePlayState(userId, tmdbId, season, episode, {
 				watched
 			})
 			.then((r) => r.status >= 200 && r.status < 300);

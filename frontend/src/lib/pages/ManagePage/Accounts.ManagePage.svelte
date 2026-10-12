@@ -11,7 +11,7 @@
 	let accounts = getAccounts();
 
 	function getAccounts() {
-		return reiverrApi.users.findAllUsers().then((r) => r.data);
+		return reiverrApi.users.getUsers().then((r) => r.data);
 	}
 
 	const refresh = () => (accounts = getAccounts());
