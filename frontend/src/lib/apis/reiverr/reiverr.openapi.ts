@@ -1545,6 +1545,15 @@ export interface SeriesStatusDto {
   onServer: string[];
 }
 
+export interface LogEntryDto {
+  id: string;
+  type: "file.deleted" | "download.deleted" | "scan.failed";
+  message: string;
+  data?: object;
+  /** @format date-time */
+  createdAt: string;
+}
+
 export interface ServerLogSettingsDto {
   /** How many of the newest entries are kept, older ones are deleted. 0 keeps any number of them. */
   maxEntries: number;
@@ -2965,6 +2974,34 @@ export class Api<
       }),
   };
   serverLog = {
+    /**
+     * No description
+     *
+     * @tags server-log
+     * @name GetServerLogEntries
+     * @request GET:/api/server-log/entries
+     */
+    getServerLogEntries: (
+      query?: {
+        type?: "file.deleted" | "download.deleted" | "scan.failed";
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: LogEntryDto[];
+        },
+        any
+      >({
+        path: `/api/server-log/entries`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
     /**
      * No description
      *

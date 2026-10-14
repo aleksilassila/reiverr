@@ -1,4 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
+import { LogEntry } from './log-entry.entity.js';
+
+export class LogEntryDto extends PickType(LogEntry, [
+  'id',
+  'type',
+  'message',
+  'data',
+  'createdAt',
+] as const) {}
 
 export class ServerLogSettingsDto {
   @ApiProperty({

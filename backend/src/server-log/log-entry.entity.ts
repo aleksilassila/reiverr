@@ -4,6 +4,7 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/decorators/legacy';
+import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 
 export enum LogType {
@@ -19,19 +20,24 @@ export enum LogType {
 @Entity()
 @Index({ properties: ['createdAt'] })
 export class LogEntry {
+  @ApiProperty({ type: 'string' })
   @PrimaryKey({ type: 'uuid' })
   id: string = randomUUID();
 
+  @ApiProperty({ enum: LogType })
   @Property({ type: 'string' })
   type: LogType;
 
+  @ApiProperty({ type: 'string' })
   @Property({ type: 'text' })
   message: string;
 
   /** What the entry is about, by type */
+  @ApiProperty({ required: false, type: Object })
   @Property({ type: 'json', nullable: true })
   data?: Record<string, unknown>;
 
+  @ApiProperty({ type: 'string', format: 'date-time' })
   @Property()
   createdAt: Date = new Date();
 }

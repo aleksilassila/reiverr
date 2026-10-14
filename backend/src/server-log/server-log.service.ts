@@ -5,6 +5,7 @@ import {
 import { EntityManager } from '@mikro-orm/sqlite';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { PaginatedResponseDto, PaginationDto } from '../common/common.dto.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { LogEntry, LogType } from './log-entry.entity.js';
 import { ServerLogSettingsDto } from './server-log.dto.js';
@@ -24,6 +25,30 @@ export class ServerLogService {
     private readonly em: EntityManager,
     private readonly settingsService: SettingsService,
   ) {}
+
+  /** The entries, newest first, of one type or of all */
+  async list(
+    pagination: PaginationDto,
+    type?: LogType,
+  ): Promise<PaginatedResponseDto<LogEntry>> {
+    const [items, total] = await this.em.findAndCount(
+      LogEntry,
+      type ? { type } : {},
+      {
+        orderBy: { createdAt: 'desc' },
+        offset: (pagination.page - 1) * pagination.itemsPerPage,
+        limit: pagination.itemsPerPage,
+        disableIdentityMap: true,
+      },
+    );
+
+    return {
+      items,
+      total,
+      page: pagination.page,
+      itemsPerPage: pagination.itemsPerPage,
+    };
+  }
 
   getSettings(): Promise<ServerLogSettingsDto> {
     return this.settingsService.getOrCreateValue(

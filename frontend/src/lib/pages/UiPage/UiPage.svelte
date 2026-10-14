@@ -16,6 +16,7 @@
 		createErrorNotification,
 		createInfoNotification
 	} from '$lib/components/Notifications/notification.store';
+	import Pill from '$lib/components/Pill.svelte';
 	import PlayButton from '$lib/components/PlayButton.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
@@ -111,6 +112,7 @@
 
 	const tab = useTabs(0);
 	let quickNav = 0;
+	let pill = 'first';
 	let selected = 'first';
 	let selectedItem: string | undefined = undefined;
 	let toggled = true;
@@ -367,6 +369,13 @@
 			/>
 			<p class="body">Quick navigation: the focus moves between the items, selecting one jumps.</p>
 		</div>
+		<Container direction="horizontal" class="flex space-x-4">
+			{#each SELECT_OPTIONS as option (option.value)}
+				<Pill selected={pill === option.value} on:clickOrSelect={() => (pill = option.value)}>
+					{option.label}
+				</Pill>
+			{/each}
+		</Container>
 	</section>
 
 	<section class="space-y-8">
