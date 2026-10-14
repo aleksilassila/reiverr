@@ -20,4 +20,5 @@
 	checked={status.requested}
 	on:toggle
 	on:open
+	on:enter
 />

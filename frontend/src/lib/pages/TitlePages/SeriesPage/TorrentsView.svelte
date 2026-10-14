@@ -7,6 +7,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { scrollIntoView } from '$lib/selectable';
 	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
@@ -184,7 +185,11 @@
 				<div class="space-y-4">
 					{#each files as file, index (file.id)}
 						{@const selected = file.id === selection?.file?.id}
-						<ListRow on:clickOrSelect={() => selectFile(file)} focusOnMount={index === 0}>
+						<ListRow
+							on:enter={scrollIntoView({ vertical: 96 })}
+							on:clickOrSelect={() => selectFile(file)}
+							focusOnMount={index === 0}
+						>
 							<div class="flex-1 min-w-0">
 								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
 								<div class="text-lg font-medium text-secondary-400 mt-1">
@@ -216,7 +221,11 @@
 						release.id === selection?.releaseId ||
 						(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)}
 					{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
-					<ListRow on:clickOrSelect={() => select(release)} focusOnMount={index === 0 && !hasFiles}>
+					<ListRow
+						on:enter={scrollIntoView({ vertical: 96 })}
+						on:clickOrSelect={() => select(release)}
+						focusOnMount={index === 0 && !hasFiles}
+					>
 						<div class="flex-1 min-w-0">
 							<div class="text-2xl font-semibold line-clamp-1">{release.title}</div>
 							<div class="text-lg font-medium text-secondary-400 mt-1">

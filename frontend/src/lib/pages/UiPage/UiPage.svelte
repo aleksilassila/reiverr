@@ -361,6 +361,7 @@
 				partiallyChecked={rows.some((row) => row.checked)}
 				on:toggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
 				on:open={() => createInfoNotification('Open', 'Season 1')}
+				on:enter={scroll}
 			/>
 			{#each rows as row (row.title)}
 				<RequestRow
@@ -368,6 +369,7 @@
 					on:toggle={() =>
 						(rows = rows.map((r) => (r === row ? { ...r, checked: !r.checked } : r)))}
 					on:open={() => createInfoNotification('Open', row.title)}
+					on:enter={scroll}
 				/>
 			{/each}
 		</Container>
@@ -546,6 +548,7 @@
 					partiallyChecked={rows.some((row) => row.checked)}
 					on:toggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
 					on:open={() => createInfoNotification('Open', 'Season 1')}
+					on:enter={scroll}
 				/>
 				{#each rows as row (row.title)}
 					<RequestRow
@@ -553,6 +556,7 @@
 						on:toggle={() =>
 							(rows = rows.map((r) => (r === row ? { ...r, checked: !r.checked } : r)))}
 						on:open={() => createInfoNotification('Open', row.title)}
+						on:enter={scroll}
 					/>
 				{/each}
 			</Container>

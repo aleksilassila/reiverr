@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import classNames from 'classnames';
 	import Container from './Container.svelte';
 
@@ -7,14 +6,8 @@
 	export let focusOnMount = false;
 </script>
 
-<!-- The row above the focused one is kept in view, so that the list does not sit flush at the top -->
 <Container
-	on:enter={({ detail }) => {
-		const el =
-			detail.selectable.getSibling(-1)?.getHtmlElement() ?? detail.selectable.getHtmlElement();
-
-		if (el) scrollElementIntoView(el, { top: 32 });
-	}}
+	on:enter
 	on:select
 	on:click
 	on:clickOrSelect
