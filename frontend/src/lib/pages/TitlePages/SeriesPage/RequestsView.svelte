@@ -1,17 +1,18 @@
 <script lang="ts">
 	import type { RequestRuleDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
+	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { useData } from '$lib/stores/data/data.store';
 	import { useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import classNames from 'classnames';
-	import { ChevronDown } from 'radix-icons-svelte';
+	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
@@ -125,12 +126,19 @@
 </div>
 
 <Container
-	class={classNames('flex flex-col min-h-screen bg-primary-900/50 h-screen')}
+	class={classNames('relative flex flex-col min-h-screen bg-primary-900/50 h-screen')}
 	on:back={({ detail }) => {
 		componentStack.close();
 		detail.stopPropagation();
 	}}
 >
+	{#if !PLATFORM_TV}
+		<div class="absolute top-8 right-8">
+			<FloatingIconButton on:click={() => componentStack.close()}>
+				<Cross1 size={24} />
+			</FloatingIconButton>
+		</div>
+	{/if}
 	<div class="mx-32 mt-16">
 		<HeroTitleInfo
 			title="Requests"

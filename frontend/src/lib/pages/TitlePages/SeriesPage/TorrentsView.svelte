@@ -2,15 +2,16 @@
 	import type { LocalEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Check, Cross2 } from 'radix-icons-svelte';
+	import { Check, Cross1, Cross2 } from 'radix-icons-svelte';
 	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
@@ -78,8 +79,10 @@
 						releaseId: release.id
 					})
 		)
-			.then(() => seriesData.requestsData?.update())
-			.then(() => componentStack.close())
+			.then(() => {
+				componentStack.close();
+				seriesData.requestsData?.update();
+			})
 			.catch((e) => (error = errorMessage(e)));
 	}
 
@@ -90,8 +93,10 @@
 			.setEpisodePreference($user?.id as string, tmdbId, season, episode as number, {
 				mediaFileId: file.id
 			})
-			.then(() => seriesData.requestsData?.update())
-			.then(() => componentStack.close())
+			.then(() => {
+				componentStack.close();
+				seriesData.requestsData?.update();
+			})
 			.catch((e) => (error = errorMessage(e)));
 	}
 
@@ -103,7 +108,9 @@
 				? reiverrApi.requests.clearSeasonPreference($user?.id as string, tmdbId, season)
 				: reiverrApi.requests.clearEpisodePreference($user?.id as string, tmdbId, season, episode)
 		)
-			.then(() => seriesData.requestsData?.update())
+			.then(() => {
+				seriesData.requestsData?.update();
+			})
 			.catch((e) => (error = errorMessage(e)));
 	}
 </script>
@@ -118,12 +125,19 @@
 </div>
 
 <Container
-	class={classNames('flex flex-col min-h-screen bg-primary-900/50 h-screen')}
+	class={classNames('relative flex flex-col min-h-screen bg-primary-900/50 h-screen')}
 	on:back={({ detail }) => {
 		componentStack.close();
 		detail.stopPropagation();
 	}}
 >
+	{#if !PLATFORM_TV}
+		<div class="absolute top-8 right-8">
+			<FloatingIconButton on:click={() => componentStack.close()}>
+				<Cross1 size={24} />
+			</FloatingIconButton>
+		</div>
+	{/if}
 	<Container class="mx-32 mt-16">
 		<div class="flex items-end justify-between">
 			<div class="min-w-0">
