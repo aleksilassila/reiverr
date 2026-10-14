@@ -527,7 +527,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         MediaRequest,
         { id: request.id, torrentId: null, mediaFileId: null },
         {
-          error: `"${file.fileName}" is not in the library`,
+          error: `File not found`,
           attempts,
           retryAt: new Date(now.getTime() + retryDelay(attempts)),
         },
