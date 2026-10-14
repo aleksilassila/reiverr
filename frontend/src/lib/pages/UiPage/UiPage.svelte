@@ -170,7 +170,7 @@
 	class="h-screen overflow-y-auto overflow-x-hidden scrollbar-hide pt-16 pb-32 px-32 space-y-16"
 	style="backface-visibility: hidden"
 >
-	<div class="border-b-2 border-secondary-700 pb-4 space-y-2" use:registerScroll>
+	<div class="divider-lg pb-4 space-y-2" use:registerScroll>
 		<h1 class="h1">UI</h1>
 		<p class="body">The colors of tailwind.config.js and the components of the app.</p>
 	</div>
@@ -199,6 +199,16 @@
 		<div class="body">body The quick brown fox jumps over the lazy dog.</div>
 		<div class="h-ghost">h-ghost Nothing here yet</div>
 		<div class="error">error Could not load the thing</div>
+	</section>
+
+	<section class="space-y-8">
+		<h2 class="h2">Dividers</h2>
+		<div class="divider" />
+		<div class="divider-lg" />
+		<div class="flex h-16 space-x-8">
+			<div class="divider-vertical" />
+			<div class="body">divider, divider-lg and divider-vertical</div>
+		</div>
 	</section>
 
 	<section class="space-y-8">
@@ -494,7 +504,7 @@
 					Text field
 				</TextField>
 			</Container>
-			<div class="h-px w-full bg-secondary-700" />
+			<div class="divider" />
 			<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
 				<Button>Primary</Button>
 				<Button type="secondary">Secondary</Button>

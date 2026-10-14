@@ -184,8 +184,7 @@
 			<div class="text-lg font-medium text-red-400 mt-4">{error}</div>
 		{/if}
 
-		<!-- Divider -->
-		<div class="h-px w-full bg-secondary-700 mt-4"></div>
+		<div class="divider mt-4" />
 	</Container>
 
 	<div

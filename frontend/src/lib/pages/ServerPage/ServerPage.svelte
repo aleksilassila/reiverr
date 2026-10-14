@@ -17,7 +17,7 @@
 
 {#if $user?.isAdmin}
 	<Container class="flex flex-col pt-16 h-screen space-y-8 px-32">
-		<div class="border-b-2 border-secondary-700 pb-4 space-y-2">
+		<div class="divider-lg pb-4 space-y-2">
 			<h1 class="h1">Server</h1>
 			<p class="body">Manage the server and its files.</p>
 		</div>

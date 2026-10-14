@@ -161,8 +161,7 @@
 			{/each}
 		</Container>
 
-		<!-- Divider -->
-		<div class="h-px w-full bg-secondary-700 mt-4"></div>
+		<div class="divider mt-4" />
 	</div>
 
 	<Container
@@ -170,7 +169,10 @@
 		class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
 		style="backface-visibility: hidden"
 	>
-		{#each $tmdbSeries?.seasons ?? [] as season (season.season_number)}
+		{#each $tmdbSeries?.seasons ?? [] as season, index (season.season_number)}
+			{#if index > 0}
+				<div class="divider mt-8" />
+			{/if}
 			<SeasonItem
 				{season}
 				requests={$requests}

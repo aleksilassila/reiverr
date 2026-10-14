@@ -111,6 +111,19 @@ html[data-useragent*='Tizen'] .selectable-secondary {
 	@apply text-2xl font-semibold text-secondary-500;
 }
 
+/* Borders, so that a block can carry its own underline */
+.divider {
+	@apply border-b border-secondary-700;
+}
+
+.divider-lg {
+	@apply border-b-2 border-secondary-700;
+}
+
+.divider-vertical {
+	@apply border-l border-secondary-700;
+}
+
 .error {
 	@apply text-red-500;
 }

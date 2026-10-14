@@ -39,8 +39,7 @@
 <div class="px-32 py-16 h-screen flex flex-col">
 	<Container
 		direction="horizontal"
-		class={classNames('h3 pb-3 border-b-2 w-full mb-4', {
-			'border-secondary-700': true
+		class={classNames('h3 pb-3 divider-lg w-full mb-4', {
 			// 'border-secondary-700': !$inputFocused,
 			// 'border-secondary-400': $inputFocused
 		})}

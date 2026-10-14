@@ -64,7 +64,7 @@
 		<!-- A line for every directory the row is in, under its chevron -->
 		{#each { length: node.depth } as _}
 			<div class="flex-shrink-0 w-10 relative">
-				<div class="absolute inset-y-0 left-3 w-px bg-secondary-700" />
+				<div class="absolute inset-y-0 left-3 divider-vertical" />
 			</div>
 		{/each}
 		<div class="flex-shrink-0 w-6 flex items-center">

@@ -39,7 +39,7 @@
 			{@const first = index === 0}
 			{@const last = index === options.length - 1}
 			{#if !first}
-				<div class="h-[1px] w-full bg-secondary-700" />
+				<div class="divider" />
 			{/if}
 			<Container
 				on:clickOrSelect={() => dispatch('select', option.value ?? option.label)}
