@@ -2,7 +2,8 @@
 	import type { EpisodeRefDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbSeason } from '$lib/apis/tmdb/tmdb-api';
 	import { episodeKey, type SeriesRequests } from '$lib/stores/data/series-data.store';
-	import { scrollIntoView } from '$lib/selectable';
+	import { scrollElementIntoView } from '$lib/scroll-into-view';
+	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
 	import { createEventDispatcher } from 'svelte';
 	import EpisodeItem from './EpisodeItem.svelte';
@@ -15,6 +16,15 @@
 		request: { episodes: EpisodeRefDto[]; requested: boolean };
 		torrents: { season: number; episode?: number; name: string };
 	}>();
+
+	let heading: Selectable;
+
+	/** Focuses the season's heading at the top of the list */
+	export function focus() {
+		heading.focus();
+		const el = heading.getHtmlElement();
+		if (el) scrollElementIntoView(el, { top: 32 });
+	}
 
 	$: seasonNumber = season.season_number ?? 0;
 	$: seasonName = season.name ?? `Season ${seasonNumber}`;
@@ -42,6 +52,7 @@
 
 <div class="mt-8 space-y-4">
 	<RequestRow
+		on:mount={({ detail }) => (heading = detail)}
 		subtitle={seasonPackTorrent ? `${seasonPackTorrent.title}` : 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}
@@ -54,6 +65,7 @@
 			})}
 		on:open={() => dispatch('torrents', { season: seasonNumber, name: seasonName })}
 		on:enter={scrollIntoView({ vertical: 96 })}
+		on:enter
 	>
 		{seasonName}
 	</RequestRow>
@@ -78,6 +90,7 @@
 					name: `S${episode.season}E${episode.episode} - ${episode.name}`
 				})}
 			on:enter={scrollIntoView({ vertical: 96 })}
+			on:enter
 		/>
 	{/each}
 </div>

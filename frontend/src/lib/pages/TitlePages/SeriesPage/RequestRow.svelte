@@ -17,6 +17,7 @@
 
 <!-- Enter toggles the checkbox; right, or a click outside the checkbox, opens the row -->
 <ListRow
+	on:mount
 	on:enter
 	on:select={() => dispatch('toggle')}
 	on:click={() => dispatch('open')}

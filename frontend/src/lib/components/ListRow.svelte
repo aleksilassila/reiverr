@@ -7,6 +7,7 @@
 </script>
 
 <Container
+	on:mount
 	on:enter
 	on:select
 	on:click

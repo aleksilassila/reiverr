@@ -18,6 +18,7 @@
 	} from '$lib/components/Notifications/notification.store';
 	import PlayButton from '$lib/components/PlayButton.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
+	import QuickNav from '$lib/components/QuickNav.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import SelectItem from '$lib/components/SelectItem.svelte';
@@ -109,6 +110,7 @@
 	const wait = () => new Promise((resolve) => setTimeout(resolve, 1500));
 
 	const tab = useTabs(0);
+	let quickNav = 0;
 	let selected = 'first';
 	let selectedItem: string | undefined = undefined;
 	let toggled = true;
@@ -357,6 +359,14 @@
 				</Container>
 			</Tab>
 		</TabContainer>
+		<div class="flex items-center space-x-16">
+			<QuickNav
+				items={['S1', 'S2', 'S3']}
+				selected={quickNav}
+				on:select={({ detail }) => (quickNav = detail)}
+			/>
+			<p class="body">Quick navigation: the focus moves between the items, selecting one jumps.</p>
+		</div>
 	</section>
 
 	<section class="space-y-8">
