@@ -1025,38 +1025,26 @@ describe('Series downloads (e2e)', () => {
         .filter((e) => e.season === 2)
         .map((e) => [e.episode, e.requested, e.status ?? null]);
 
+    // A rule set after the requests applies to them: without a source none
+    // of them has passed the gate
+    await setRequested([1, 2, 3], true, { season: 2 });
     await setRule({ keepNext: 1 });
     expect((await api('get', rulePath).expect(200)).body).toEqual({
       keepNext: 1,
       keepWatched: null,
       keepWatchedHours: null,
     });
-
-    // The next request is counted from the last watched episode on, over
-    // the seasons
-    await setRequested([1, 2, 3], true, { season: 2 });
     expect(await season2()).toEqual([
-      [1, true, 'inactive-ahead'],
-      [2, true, 'inactive-ahead'],
-      [3, true, 'inactive-ahead'],
+      [1, true, 'no-preference'],
+      [2, true, 'no-preference'],
+      [3, true, 'no-preference'],
     ]);
 
+    // Picking a source lets the next request through, counted from the last
+    // watched episode on, over the seasons; an episode in progress is not
+    // watched yet. The torrent has a file for the first episode only
     await setPlayState(1, 3, { watched: true });
-    expect(await season2()).toEqual([
-      [1, true, 'no-preference'],
-      [2, true, 'inactive-ahead'],
-      [3, true, 'inactive-ahead'],
-    ]);
-
-    // An episode in progress is not watched yet
     await setPlayState(2, 1, { progress: 0.3 });
-    expect(await season2()).toEqual([
-      [1, true, 'no-preference'],
-      [2, true, 'inactive-ahead'],
-      [3, true, 'inactive-ahead'],
-    ]);
-
-    // The torrent has a file for the first episode only
     const releases = await search('season=2');
     await api('put', `${preferencesUrl()}/seasons/2`)
       .send({

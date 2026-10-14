@@ -140,6 +140,7 @@ export enum EpisodeDownloadStatus {
   WaitingForApproval = 'waiting-for-approval',
   /** The rule of the user holds the request back until they have watched up to it */
   InactiveAhead = 'inactive-ahead',
+  /** The user has picked no source for the episode; a request passes the gate with one */
   NoPreference = 'no-preference',
   /** The torrent of the request is being resolved, or its files are not known yet */
   Resolving = 'resolving',

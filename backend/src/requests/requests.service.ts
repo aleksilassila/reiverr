@@ -393,7 +393,8 @@ export class RequestsService implements OnApplicationBootstrap {
    * or with episode 0 for a season, download from. The release is resolved
    * now, so that a link that leads nowhere fails here and not when a request
    * needs it, and is kept so that it can be resolved again long after the
-   * search result has expired.
+   * search result has expired. A source is what lets a request through the
+   * download-ahead gate, so the rules are applied.
    */
   async preferRelease(
     target: SelectionTarget,
@@ -448,10 +449,9 @@ export class RequestsService implements OnApplicationBootstrap {
         replaceHeld: episode !== 0,
         infoHash: source.infoHash,
       });
-      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
-        mediaType: MediaType.Series,
-        tmdbId,
-      });
+      await this.applyRules(tx, [
+        { userId, mediaType: MediaType.Series, tmdbId },
+      ]);
     });
   }
 
@@ -493,10 +493,9 @@ export class RequestsService implements OnApplicationBootstrap {
         replaceHeld: true,
         mediaFileId: file.id,
       });
-      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
-        mediaType: MediaType.Series,
-        tmdbId,
-      });
+      await this.applyRules(tx, [
+        { userId, mediaType: MediaType.Series, tmdbId },
+      ]);
     });
   }
 
@@ -649,10 +648,9 @@ export class RequestsService implements OnApplicationBootstrap {
 
       await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
       await this.rebind(tx, target, { episodeSources, replaceHeld: false });
-      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
-        mediaType: MediaType.Series,
-        tmdbId,
-      });
+      await this.applyRules(tx, [
+        { userId, mediaType: MediaType.Series, tmdbId },
+      ]);
 
       return true;
     });

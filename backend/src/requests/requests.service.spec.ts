@@ -188,7 +188,7 @@ describe('RequestsService', () => {
       !r.approved
         ? 'waiting'
         : !r.activatedAt
-          ? 'ahead'
+          ? 'inactive'
           : r.watchedAt
             ? 'watched'
             : 'active',
@@ -241,8 +241,12 @@ describe('RequestsService', () => {
 
   afterEach(() => orm.close());
 
-  it('activates new requests and has the series reconciled', async () => {
-    await requestEpisodes([1, 2]);
+  it('activates new requests that have a source and has the series reconciled', async () => {
+    await requestEpisodes([1]);
+    expect(await references()).toEqual([[1, 'inactive', null, null]]);
+
+    await select(0, 'pack');
+    await requestEpisodes([2]);
     await requestEpisodes([3], false);
 
     expect(await references()).toEqual([
@@ -253,21 +257,30 @@ describe('RequestsService', () => {
     expect(await queuedTitles()).toBe(1);
   });
 
-  it('applies the rule of the user when a request is made and when an episode is watched', async () => {
-    await setRule({ keepNext: 1 });
+  it('applies the rule of the user when a source is picked, a request is made and an episode is watched', async () => {
     await requestEpisodes([1, 2, 3]);
+    await setRule({ keepNext: 1 });
 
+    // Without a source none of them has passed the gate, so the rule set
+    // after them applies
+    expect(await references()).toEqual([
+      [1, 'inactive', null, null],
+      [2, 'inactive', null, null],
+      [3, 'inactive', null, null],
+    ]);
+
+    await select(0, 'pack');
     expect(await references()).toEqual([
       [1, 'active', null, null],
-      [2, 'ahead', null, null],
-      [3, 'ahead', null, null],
+      [2, 'inactive', null, null],
+      [3, 'inactive', null, null],
     ]);
 
     await watch(1);
     expect(await references()).toEqual([
       [1, 'watched', null, null],
       [2, 'active', null, null],
-      [3, 'ahead', null, null],
+      [3, 'inactive', null, null],
     ]);
 
     // Marking the episode unwatched takes nothing back
@@ -275,12 +288,13 @@ describe('RequestsService', () => {
     expect(await references()).toEqual([
       [1, 'active', null, null],
       [2, 'active', null, null],
-      [3, 'ahead', null, null],
+      [3, 'inactive', null, null],
     ]);
   });
 
   it('deletes the requests of watched episodes that no keep setting retains', async () => {
     await requestEpisodes([1, 2, 3]);
+    await select(0, 'pack');
     await setRule({ keepWatched: 1 });
     await addTorrent('pack', PACK);
     await bind([1, 2, 3], 'pack');
@@ -336,12 +350,13 @@ describe('RequestsService', () => {
     expect(await references()).toEqual([
       [1, 'active', 'pack', 'file'],
       [2, 'active', null, null],
-      [3, 'ahead', null, null],
+      [3, 'inactive', null, null],
     ]);
   });
 
   it('replaces even a held file for an episode', async () => {
     await requestEpisodes([1, 2]);
+    await select(0, 'pack');
     await addTorrent('pack', PACK);
     await bind([1, 2], 'pack');
     await attach(1, PACK);
@@ -432,6 +447,7 @@ describe('RequestsService', () => {
 
   it('makes a file the preference of an episode and unbinds its request for it', async () => {
     await requestEpisodes([1, 2]);
+    await select(0, 'pack');
     await addTorrent('pack', PACK);
     await bind([1, 2], 'pack');
     const file = await addFile('found', 1);
@@ -467,7 +483,10 @@ describe('RequestsService', () => {
 
     // Clearing the preference takes nothing from a request that has its file
     expect(await request(() => requests.clearPreference(target(1)))).toBe(true);
-    expect(await rule()).toBeNull();
+    expect(await rule()).toMatchObject({
+      seasonTorrents: [{ season: 1 }],
+      episodeSources: null,
+    });
     expect(await references()).toEqual([
       [1, 'active', null, 'file'],
       [2, 'active', 'pack', null],
@@ -487,6 +506,7 @@ describe('RequestsService', () => {
 
   it('requests the episodes of files for a user, bound to the files', async () => {
     await requestEpisodes([1]);
+    await select(0, 'pack');
     await addTorrent('pack', PACK);
     await bind([1], 'pack');
     await attach(1, PACK);
@@ -548,6 +568,7 @@ describe('RequestsService', () => {
 
   it('deletes the requests of files and applies the rules to the rest of their pairs', async () => {
     await setRule({ keepNext: 1 });
+    await select(0, 'pack');
     await requestEpisodes([1, 2, 3]);
     await addTorrent('pack', PACK);
     await bind([1], 'pack');
@@ -562,7 +583,7 @@ describe('RequestsService', () => {
     expect(deleted).toBe(1);
     expect(await references()).toEqual([
       [2, 'active', null, null],
-      [3, 'ahead', null, null],
+      [3, 'inactive', null, null],
     ]);
   });
 });

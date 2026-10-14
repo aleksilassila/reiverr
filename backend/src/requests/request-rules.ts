@@ -2,6 +2,7 @@ import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import type { PlayState } from '../user-data/play-state/play-state.entity.js';
 import type { RequestRule } from './request-rule.entity.js';
 import type { MediaRequest } from './request.entity.js';
+import { preferenceOf } from './torrent-preference.js';
 
 /** The title a request is for, as the rules and files know it */
 export const titleTypeOf = (mediaType: MediaTypeFull): MediaType =>
@@ -32,6 +33,8 @@ export interface RuleState {
     | 'keepNext'
     | 'keepWatched'
     | 'keepWatchedHours'
+    | 'seasonTorrents'
+    | 'episodeSources'
   >[];
   /** The play states of the users and titles of the requests */
   playStates: Pick<
@@ -110,7 +113,11 @@ const watchedAtOf = (
  * activated, and an activated request stays so. An episode in progress is not
  * watched, so its request is one of the next ones. The requests for episodes
  * up to the last watched one, skipped or watched, are activated. Without a
- * rule, or without keepNext, every approved request is.
+ * rule, or without keepNext, every approved request is. A request is only
+ * activated with a source, the preference of its user for the episode:
+ * without one it has not passed the gate, and a rule set later applies to
+ * it. It takes its place in the window all the same, so that nothing
+ * downloads past it.
  */
 export function evaluateRules(state: RuleState): RuleOutcome {
   const outcome: RuleOutcome = {
@@ -180,7 +187,13 @@ export function evaluateRules(state: RuleState): RuleOutcome {
       rule && rule.keepNext !== null ? ahead.slice(0, rule.keepNext) : ahead;
     for (const request of ofTitle) {
       const passes = !ahead.includes(request) || next.includes(request);
-      if (passes && !request.activatedAt && !deleted.has(request.id)) {
+      const hasSource = !!preferenceOf(rule, request.season, request.episode);
+      if (
+        passes &&
+        hasSource &&
+        !request.activatedAt &&
+        !deleted.has(request.id)
+      ) {
         outcome.activated.push(request.id);
       }
     }

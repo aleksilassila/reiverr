@@ -1,5 +1,6 @@
 import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { evaluateRules, RuleState } from './request-rules.js';
+import type { EpisodeSource, SeasonTorrent } from './torrent-preference.js';
 
 const NOW = Date.UTC(2026, 0, 10);
 const HOUR = 60 * 60 * 1000;
@@ -25,6 +26,16 @@ const request = (
   watchedAt: options.watchedAt,
 });
 
+const release = { releaseId: 'pack', indexer: 'test', title: 'pack', size: 1 };
+const pack: SeasonTorrent = { season: 1, release };
+const own = (episode: number): EpisodeSource => ({
+  season: 1,
+  episode,
+  kind: 'torrent',
+  release,
+});
+
+/** A rule row, with the season's torrent as the source unless given */
 const rule = (limits: Partial<RuleState['rules'][number]>) => ({
   userId: 'a',
   mediaType: MediaType.Series,
@@ -32,6 +43,8 @@ const rule = (limits: Partial<RuleState['rules'][number]>) => ({
   keepNext: null,
   keepWatched: null,
   keepWatchedHours: null,
+  seasonTorrents: [pack],
+  episodeSources: null,
   ...limits,
 });
 
@@ -72,7 +85,10 @@ const evaluate = (state: Partial<RuleState>) => {
 describe('evaluateRules', () => {
   it('activates an approved request, not one that waits for approval', () => {
     expect(
-      evaluate({ requests: [request(1), request(2, { approved: false })] }),
+      evaluate({
+        requests: [request(1), request(2, { approved: false })],
+        rules: [rule({})],
+      }),
     ).toEqual({ watched: {}, deleted: [], activated: ['a/1/1'] });
   });
 
@@ -113,7 +129,7 @@ describe('evaluateRules', () => {
           request(2, { tmdbId: '2' }),
           request(2, { userId: 'b' }),
         ],
-        rules,
+        rules: [...rules, rule({ tmdbId: '2' }), rule({ userId: 'b' })],
       }).activated,
     ).toEqual(['a/1/1', 'a/2/2', 'b/1/2']);
   });
@@ -132,6 +148,35 @@ describe('evaluateRules', () => {
         rules,
       }).activated,
     ).toEqual([]);
+  });
+
+  it('activates a request only with a source, so that a rule set later applies to it', () => {
+    const requests = [request(1), request(2), request(3)];
+
+    expect(evaluate({ requests }).activated).toEqual([]);
+    expect(
+      evaluate({ requests, rules: [rule({ seasonTorrents: null })] }).activated,
+    ).toEqual([]);
+    // The source of an episode is its own, or else its season's
+    expect(
+      evaluate({
+        requests,
+        rules: [rule({ seasonTorrents: null, episodeSources: [own(2)] })],
+      }).activated,
+    ).toEqual(['a/1/2']);
+    // A request without a source takes its place in the window
+    expect(
+      evaluate({
+        requests,
+        rules: [
+          rule({
+            keepNext: 2,
+            seasonTorrents: null,
+            episodeSources: [own(2), own(3)],
+          }),
+        ],
+      }).activated,
+    ).toEqual(['a/1/2']);
   });
 
   it('stamps a request with the time its episode was watched, as the play state has it', () => {

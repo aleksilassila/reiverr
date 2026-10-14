@@ -257,7 +257,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
             episode: episode.episode,
             requested: !!request,
             onDisk: onDisk.has(episodeKey(episode)),
-            ...(request && this.describe(request, torrent, rule, files)),
+            ...(request &&
+              this.deriveEpisodeDownloadStatus(request, torrent, rule, files)),
             torrent: torrent && this.toTorrentDto(torrent),
             cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
           };
@@ -876,7 +877,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /** Where the request of a user stands */
-  private describe(
+  private deriveEpisodeDownloadStatus(
     request: MediaRequest,
     torrent: Torrent | undefined,
     rule: RequestRule | undefined,
@@ -886,7 +887,11 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       return { status: EpisodeDownloadStatus.WaitingForApproval };
     }
     if (!request.activatedAt) {
-      return { status: EpisodeDownloadStatus.InactiveAhead };
+      return {
+        status: preferenceOf(rule, request.season, request.episode)
+          ? EpisodeDownloadStatus.InactiveAhead
+          : EpisodeDownloadStatus.NoPreference,
+      };
     }
     if (files.some((file) => file.id === request.mediaFileId)) {
       return { status: EpisodeDownloadStatus.Available };

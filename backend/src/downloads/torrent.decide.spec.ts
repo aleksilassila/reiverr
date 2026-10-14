@@ -148,6 +148,8 @@ const rule = (
   keepNext: null,
   keepWatched: null,
   keepWatchedHours: null,
+  seasonTorrents: null,
+  episodeSources: null,
   ...limits,
 });
 
@@ -195,6 +197,25 @@ function preferencesOf(
   }
 
   return byUser;
+}
+
+/** The rule rows as the service keeps them: a row exists while it has a limit or a preference */
+function rulesOf(
+  rules: DownloadsState['rules'],
+  preferences: ReturnType<typeof preferencesOf>,
+): RuleState['rules'] {
+  const rows = rules.map((row) => ({
+    ...row,
+    ...preferences.get(`${row.userId}/${row.tmdbId}`),
+  }));
+  for (const [key, preference] of preferences) {
+    const [userId, tmdbId] = key.split('/');
+    if (!rows.some((row) => row.userId === userId && row.tmdbId === tmdbId)) {
+      rows.push({ ...rule(userId, { tmdbId }), ...preference });
+    }
+  }
+
+  return rows;
 }
 
 /**
@@ -257,8 +278,11 @@ function plan(state: Partial<DownloadsState>) {
     seedRatio: 0,
     ...state,
   };
-  const requests = bindAndAttach(full, evaluateRules(full));
   const preferences = preferencesOf(full.selections, full.torrents);
+  const requests = bindAndAttach(
+    full,
+    evaluateRules({ ...full, rules: rulesOf(full.rules, preferences) }),
+  );
   const demands = new Map(
     full.torrents.map((torrent) => [
       torrent.id,
@@ -286,7 +310,15 @@ function plan(state: Partial<DownloadsState>) {
     const request = requests.find((r) => r.id === id);
     if (!request) return PlannedStatus.Deleted;
     if (!request.approved) return PlannedStatus.WaitingForApproval;
-    if (!request.activatedAt) return PlannedStatus.InactiveAhead;
+    if (!request.activatedAt) {
+      const release = preferredRelease(
+        preferences.get(`${request.userId}/${request.tmdbId}`),
+        request.season,
+        request.episode,
+      );
+
+      return release ? PlannedStatus.InactiveAhead : PlannedStatus.NoPreference;
+    }
     if (request.mediaFileId) return PlannedStatus.Available;
 
     const demand = demands.get(request.torrentId)?.requests.get(request.id);
@@ -570,14 +602,25 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
       request('a', 3),
       { ...request('a', 1), id: 'a-s2-1', season: 2 },
     ];
-    const active = PlannedStatus.NoPreference;
+    // Both seasons download from the pack, which has the files of season 1
+    const selections = [
+      selection('a', 0, 'pack'),
+      { ...selection('a', 0, 'pack'), season: 2 },
+    ];
+    const active = PlannedStatus.Wanted;
+    const activeS2 = PlannedStatus.NoFileInTorrent;
+    const noSource = PlannedStatus.NoPreference;
     const ahead = PlannedStatus.InactiveAhead;
     const dropped = PlannedStatus.Deleted;
 
     it('holds back the requests beyond the next ones after the last watched episode', () => {
       const statuses = (playStates: DownloadsState['playStates']) =>
-        plan({ requests, rules: [rule('a', { keepNext: 2 })], playStates })
-          .statuses;
+        plan({
+          requests,
+          selections,
+          rules: [rule('a', { keepNext: 2 })],
+          playStates,
+        }).statuses;
 
       expect(statuses([])).toEqual([active, active, ahead, ahead]);
       // An episode in progress is not watched yet: it is one of the next
@@ -593,12 +636,27 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
         active,
         ahead,
       ]);
-      expect(statuses([watched('a', 2)])).toEqual(Array(4).fill(active));
+      expect(statuses([watched('a', 2)])).toEqual([
+        active,
+        active,
+        active,
+        activeS2,
+      ]);
+    });
+
+    it('activates nothing without a source, so that a rule set later applies', () => {
+      const { statuses } = plan({
+        requests,
+        rules: [rule('a', { keepNext: 2 })],
+      });
+
+      expect(statuses).toEqual(Array(4).fill(noSource));
     });
 
     it('keeps the requests for skipped episodes', () => {
       const { statuses } = plan({
         requests,
+        selections,
         rules: [rule('a', { keepNext: 1 })],
         playStates: [watched('a', 2)],
       });
@@ -615,6 +673,11 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
           request('b', 3),
           { ...request('a', 3), id: 'a-3-other', tmdbId: '200' },
         ],
+        selections: [
+          selection('a', 0, 'pack'),
+          selection('b', 0, 'pack'),
+          { ...selection('a', 0, 'pack'), tmdbId: '200' },
+        ],
         rules: [rule('a', { keepNext: 1 })],
         playStates: [watched('b', 1), { ...watched('a', 3), tmdbId: '200' }],
       });
@@ -630,7 +693,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
 
     // Season 1 downloads from the pack and all of it is in the library
     const inLibrary = {
-      selections: [selection('a', 0, 'pack')],
+      selections,
       files: [version(PACK_HASH, 1), version(PACK_HASH, 2, 3)],
     };
     const available = PlannedStatus.Available;
@@ -643,7 +706,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
         playStates: [watched('a', 1), watched('a', 2), watched('a', 3)],
       });
 
-      expect(statuses).toEqual([dropped, dropped, available, active]);
+      expect(statuses).toEqual([dropped, dropped, available, activeS2]);
     });
 
     it('drops the watched requests that were not watched lately', () => {
@@ -655,8 +718,8 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
           playStates: [watched('a', 1, 30), watched('a', 3, 20)],
         }).statuses;
 
-      expect(statuses(24)).toEqual([dropped, available, available, active]);
-      expect(statuses(20)).toEqual([dropped, available, dropped, active]);
+      expect(statuses(24)).toEqual([dropped, available, available, activeS2]);
+      expect(statuses(20)).toEqual([dropped, available, dropped, activeS2]);
     });
 
     it('takes an episode watched before the time was stored for watched long ago', () => {
@@ -670,7 +733,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
         ],
       });
 
-      expect(statuses).toEqual([dropped, available, available, active]);
+      expect(statuses).toEqual([dropped, available, available, activeS2]);
     });
 
     it('drops with both limits only what neither of them keeps', () => {
@@ -685,7 +748,7 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
         ],
       });
 
-      expect(statuses).toEqual([dropped, available, available, active]);
+      expect(statuses).toEqual([dropped, available, available, activeS2]);
     });
 
     it('keeps none of the last watched requests when nothing is left to watch', () => {
@@ -734,43 +797,36 @@ describe('torrentDemand and evaluateRules, as the planner of before', () => {
         files: [version(PACK_HASH, 1)],
       });
 
-      expect(statuses).toEqual([
-        available,
-        PlannedStatus.Wanted,
-        PlannedStatus.Wanted,
-        active,
-      ]);
+      expect(statuses).toEqual([available, active, active, noSource]);
       // Episodes 2 and 3 are one file, wanted for both
       expect(torrent('pack').wanted).toEqual([
         { fileIndex: 1, tmdbId: SERIES, season: 1, episodes: [2, 3] },
       ]);
 
-      expect(plan(state).statuses).toEqual(Array(4).fill(active));
+      // Without a source nothing downloads, and nothing is deleted either
+      expect(plan(state).statuses).toEqual(Array(4).fill(noSource));
     });
 
     it('downloads for a watched request while no limit on watched requests is set', () => {
       const { statuses } = plan({
         requests,
-        selections: [selection('a', 0, 'pack')],
+        selections,
         rules: [rule('a', { keepNext: 3 })],
         playStates: [watched('a', 1)],
       });
 
-      expect(statuses).toEqual([
-        ...Array(3).fill(PlannedStatus.Wanted),
-        active,
-      ]);
+      expect(statuses).toEqual([active, active, active, activeS2]);
     });
 
     it('wants nothing for a request that a rule deleted or holds back', () => {
       const { statuses, torrent } = plan({
         requests,
-        selections: [selection('a', 0, 'pack')],
+        selections,
         rules: [rule('a', { keepNext: 1, keepWatchedHours: 1 })],
         playStates: [watched('a', 1, 2)],
       });
 
-      expect(statuses).toEqual([dropped, PlannedStatus.Wanted, ahead, ahead]);
+      expect(statuses).toEqual([dropped, active, ahead, ahead]);
       // Episodes 2 and 3 are one file, wanted for the active episode 2 alone
       expect(torrent('pack').wanted).toEqual([
         { fileIndex: 1, tmdbId: SERIES, season: 1, episodes: [2] },
