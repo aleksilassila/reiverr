@@ -47,6 +47,8 @@
 	let isScanning = false;
 	let error = '';
 	let loads = 0;
+	// What the cleanup would delete now, library-wide as the button runs it
+	let unretained = 0;
 	let header: Selectable | undefined;
 
 	$: rows = getRows(tree.roots, expanded, order);
@@ -85,6 +87,11 @@
 		if (typeof result === 'string') error = result;
 		else tree = result;
 		isLoading = false;
+
+		reiverrApi.server
+			.previewCleanup()
+			.then((r) => (unretained = r.data.files))
+			.catch(() => (unretained = 0));
 	}
 
 	function selectFolder() {
@@ -184,6 +191,36 @@
 					})
 					.catch((e) => createErrorNotification('Could not request', errorMessage(e)))
 					.then(() => load(folder))
+		});
+	}
+
+	/** The nightly cleanup, now: it asks with what a dry run of it would delete */
+	async function confirmCleanup() {
+		const preview = await reiverrApi.server
+			.previewCleanup()
+			.then((r) => r.data)
+			.catch((e) => {
+				createErrorNotification('Could not preview the cleanup', errorMessage(e));
+				return undefined;
+			});
+		if (!preview) return;
+		if (!preview.files) {
+			return createInfoNotification('Nothing to delete', 'A request holds every managed file.');
+		}
+
+		createModal(ConfirmDialog, {
+			header: 'Delete unretained files now?',
+			body: `${count(preview.files, 'managed file', 'managed files')} (${formatSize(preview.size)}) that no request holds will be deleted immediately.`,
+			confirm: () =>
+				reiverrApi.server
+					.runCleanup()
+					.then(({ data }) =>
+						createInfoNotification(
+							'Cleanup queued',
+							`${count(data.files, 'file', 'files')} (${formatSize(data.size)}) to delete`
+						)
+					)
+					.catch((e) => createErrorNotification('Could not start the cleanup', errorMessage(e)))
 		});
 	}
 
@@ -309,6 +346,9 @@
 				<Button icon={Reload} disabled={!folder || isScanning} on:clickOrSelect={confirmScan}>
 					{isScanning ? 'Scanning...' : 'Scan library'}
 				</Button>
+				<Button icon={Trash} disabled={!folders.length} on:clickOrSelect={confirmCleanup}>
+					Delete unretained{unretained ? ` (${unretained})` : ''}
+				</Button>
 			</Container>
 			<Container direction="horizontal" class="flex items-center space-x-4">
 				<Button
@@ -356,6 +396,7 @@
 						checked={isChecked(node, checked)}
 						partiallyChecked={partiallyChecked.has(node.entry.path)}
 						expanded={expanded.has(node.entry.path)}
+						cleanup={isSeriesFolder}
 						on:toggle={() => (checked = toggleChecked(node, checked))}
 						on:expand={({ detail }) => expand(node, detail)}
 						on:collapse={({ detail }) => collapse(node, detail)}

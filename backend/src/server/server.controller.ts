@@ -10,6 +10,7 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AdminAccessControl, GetAuthUser } from '../auth/auth.guard.js';
 import {
+  CleanupPreviewDto,
   DeleteLibraryEntriesResultDto,
   ScanLibraryResultDto,
   LibraryScanPreviewDto,
@@ -59,6 +60,26 @@ export class ServerController {
   @ApiOkResponse({ type: ScanLibraryResultDto })
   scanLibrary(@Body() body: ScanLibraryDto): Promise<ScanLibraryResultDto> {
     return this.serverService.scanLibrary(body?.folder, body?.force === true);
+  }
+
+  @Get('library/cleanup')
+  @ApiOkResponse({
+    type: CleanupPreviewDto,
+    description: 'What the cleanup of unretained files would delete now',
+  })
+  previewCleanup(): Promise<CleanupPreviewDto> {
+    return this.serverService.previewCleanup();
+  }
+
+  @Post('library/cleanup')
+  @HttpCode(200)
+  @ApiOkResponse({
+    type: CleanupPreviewDto,
+    description:
+      'Queues the cleanup of unretained files, whatever its schedule. The deletions are logged',
+  })
+  runCleanup(): Promise<CleanupPreviewDto> {
+    return this.serverService.runCleanup();
   }
 
   @Post('library/request')

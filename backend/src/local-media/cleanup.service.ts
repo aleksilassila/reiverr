@@ -59,11 +59,15 @@ export class CleanupService implements OnModuleInit {
     // A cleanup that did not run at 04:00 waits for the next one
     this.jobs.define('localMedia.cleanUpLibrary', {
       dropAtRestart: true,
-      run: (payload, { em }) => this.cleanUpLibrary(em),
+      run: async (payload, { em }) => {
+        await this.cleanUpLibrary(false, em);
+      },
     });
     this.jobs.define('localMedia.cleanUpTitle', {
       dropAtRestart: true,
-      run: (payload) => this.cleanUpTitle(payload),
+      run: async (payload) => {
+        await this.cleanUpTitle(payload);
+      },
     });
   }
 
@@ -235,29 +239,43 @@ export class CleanupService implements OnModuleInit {
     }
   }
 
-  private async cleanUpLibrary(em: EntityManager): Promise<void> {
-    const titles = await this.localMediaService.findTitlesWithManagedFiles(
-      MediaType.Series,
-    );
+  /**
+   * The cleanup of every title that has managed files, a job per title, or
+   * with dryRun the files those jobs would delete, looked at now
+   */
+  async cleanUpLibrary(
+    dryRun = false,
+    em: EntityManager = this.em,
+  ): Promise<MediaFile[]> {
+    const titles = (
+      await this.localMediaService.findTitlesWithManagedFiles(MediaType.Series)
+    ).map((tmdbId) => ({ mediaType: MediaType.Series, tmdbId }));
+
+    if (dryRun) {
+      const unheld: MediaFile[] = [];
+      for (const title of titles) {
+        unheld.push(...(await this.cleanUpTitle(title, true)));
+      }
+      return unheld;
+    }
 
     await em.transactional(async (tx) => {
-      for (const tmdbId of titles) {
-        await this.jobs.enqueue(tx, 'localMedia.cleanUpTitle', {
-          mediaType: MediaType.Series,
-          tmdbId,
-        });
+      for (const title of titles) {
+        await this.jobs.enqueue(tx, 'localMedia.cleanUpTitle', title);
       }
     });
+    return [];
   }
 
   /**
-   * Deletes the imported files of a title that no request refers to. A file
-   * that cannot be deleted is left for the next cleanup.
+   * Deletes the imported files of a title that no request refers to, or with
+   * dryRun only tells which they are. A file that cannot be deleted is left
+   * for the next cleanup.
    */
-  private async cleanUpTitle({
-    mediaType,
-    tmdbId,
-  }: JobPayloads['localMedia.cleanUpTitle']): Promise<void> {
+  private async cleanUpTitle(
+    { mediaType, tmdbId }: JobPayloads['localMedia.cleanUpTitle'],
+    dryRun = false,
+  ): Promise<MediaFile[]> {
     const files = await this.em.find(
       MediaFile,
       { mediaType, tmdbId, managed: true },
@@ -275,6 +293,7 @@ export class CleanupService implements OnModuleInit {
         : [],
     );
     const unheld = files.filter((file) => !held.has(file.id));
+    if (dryRun) return unheld;
 
     let failed = 0;
     for (const file of unheld) {
@@ -292,6 +311,7 @@ export class CleanupService implements OnModuleInit {
     if (failed) {
       throw new Error(`${failed} of ${unheld.length} files were not deleted`);
     }
+    return unheld;
   }
 
   /**

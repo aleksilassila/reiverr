@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CleanupPreviewDto,
   DeleteLibraryEntriesResultDto,
   ScanLibraryResultDto,
   LibraryScanPreviewDto,
@@ -55,6 +56,23 @@ export class ServerService {
     return this.localMediaService.scanFolder(folder, {
       evenIfUnavailable: force,
     });
+  }
+
+  /** A dry run of the cleanup of unretained files */
+  async previewCleanup(): Promise<CleanupPreviewDto> {
+    const files = await this.cleanupService.cleanUpLibrary(true);
+
+    return {
+      files: files.length,
+      size: files.reduce((sum, file) => sum + file.size, 0),
+    };
+  }
+
+  /** Queues the nightly cleanup, and tells what it was queued for */
+  async runCleanup(): Promise<CleanupPreviewDto> {
+    const preview = await this.previewCleanup();
+    await this.cleanupService.cleanUpLibrary();
+    return preview;
   }
 
   async requestLibraryEntries(

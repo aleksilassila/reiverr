@@ -11,6 +11,8 @@
 	export let checked = false;
 	export let partiallyChecked = false;
 	export let expanded = false;
+	/** Whether the cleanup deletes the managed files of the folder that no request holds */
+	export let cleanup = false;
 
 	const dispatch = createEventDispatcher<{
 		toggle: null;
@@ -28,7 +30,9 @@
 	$: tag = node.entry.error
 		? node.entry.error
 		: node.entry.managed
-			? `${requests}Managed`
+			? cleanup && !node.requests
+				? 'Unretained'
+				: `${requests}Managed`
 			: node.entry.managed === false
 				? `${requests}External`
 				: '';

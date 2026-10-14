@@ -1613,6 +1613,13 @@ export interface ScanLibraryResultDto {
   failed: FailedLibraryEntryDto[];
 }
 
+export interface CleanupPreviewDto {
+  /** Managed files that no request holds, which the cleanup deletes. One that is not as it was imported is kept as external instead */
+  files: number;
+  /** Bytes, of those files */
+  size: number;
+}
+
 export interface LibraryEntriesDto {
   /** One of the library folders */
   folder: string;
@@ -2766,6 +2773,36 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name PreviewCleanup
+     * @request GET:/api/server/library/cleanup
+     */
+    previewCleanup: (params: RequestParams = {}) =>
+      this.request<CleanupPreviewDto, any>({
+        path: `/api/server/library/cleanup`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name RunCleanup
+     * @request POST:/api/server/library/cleanup
+     */
+    runCleanup: (params: RequestParams = {}) =>
+      this.request<CleanupPreviewDto, any>({
+        path: `/api/server/library/cleanup`,
+        method: "POST",
         format: "json",
         ...params,
       }),

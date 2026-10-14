@@ -150,6 +150,17 @@ export class LibraryScanPreviewDto {
   requests: number;
 }
 
+export class CleanupPreviewDto {
+  @ApiProperty({
+    description:
+      'Managed files that no request holds, which the cleanup deletes. One that is not as it was imported is kept as external instead',
+  })
+  files: number;
+
+  @ApiProperty({ description: 'Bytes, of those files' })
+  size: number;
+}
+
 export class DeleteLibraryEntriesResultDto {
   @ApiProperty({ description: 'How many of the entries were deleted' })
   deleted: number;
