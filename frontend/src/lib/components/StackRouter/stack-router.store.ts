@@ -21,7 +21,7 @@ import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
 import EpisodePage from '../../pages/TitlePages/EpisodePage.svelte';
 import MoviePage from '../../pages/TitlePages/MoviePage/MoviePage.svelte';
 import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
-import UiComponents from '../../pages/UIComponents.svelte';
+import UiPage from '../../pages/UiPage/UiPage.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
 
 export type CreateCompStackPage<TProps extends Record<string, unknown> = Record<string, unknown>> =
@@ -456,9 +456,9 @@ const serverRoute: Route = {
 	root: true
 };
 
-const uiComponentsRoute: Route = {
-	path: '/ui-components',
-	component: UiComponents,
+const uiRoute: Route = {
+	path: '/ui',
+	component: UiPage,
 	root: true
 };
 
@@ -484,7 +484,7 @@ export const stackRouter = useStackRouter({
 		searchRoute,
 		manageRoute,
 		serverRoute,
-		uiComponentsRoute
+		uiRoute
 	],
 	notFound: notFoundRoute
 	// maxDepth: 3
