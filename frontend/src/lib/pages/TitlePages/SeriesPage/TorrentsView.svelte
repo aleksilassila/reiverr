@@ -2,10 +2,10 @@
 	import type { LocalEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { TMDB_BACKDROP_SMALLEST } from '$lib/constants';
-	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
@@ -161,38 +161,18 @@
 	</Container>
 
 	<div
-		class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
+		class="overflow-y-auto overflow-x-hidden scrollbar-hide pt-6 pb-16 mx-32"
 		style="backface-visibility: hidden"
 	>
 		{#await files then files}
 			{#if files.length}
-				<div class="text-lg font-semibold text-secondary-400 mt-6">On disk</div>
-				{#each files as file, index (file.id)}
-					{@const selected = file.id === selection?.file?.id}
-					<Container
-						on:enter={({ detail }) => {
-							const el =
-								detail.selectable.getSibling(-1)?.getHtmlElement() ??
-								detail.selectable?.getHtmlElement();
-
-							if (el) scrollElementIntoView(el, { top: 32 });
-						}}
-						on:clickOrSelect={() => selectFile(file)}
-						focusOnMount={index === 0}
-						focusOnClick
-						let:hasFocus
-					>
-						<div class="cursor-pointer my-6 flex items-center">
+				<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
+				<div class="space-y-4">
+					{#each files as file, index (file.id)}
+						{@const selected = file.id === selection?.file?.id}
+						<ListRow on:clickOrSelect={() => selectFile(file)} focusOnMount={index === 0}>
 							<div class="flex-1 min-w-0">
-								<div
-									class={classNames('text-2xl font-semibold line-clamp-1', {
-										'text-secondary-500': !hasFocus && !selected,
-										'text-secondary-200': !hasFocus && selected,
-										'text-primary-500': hasFocus
-									})}
-								>
-									{file.fileName}
-								</div>
+								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
 								<div class="text-lg font-medium text-secondary-400 mt-1">
 									{formatSize(file.size)} · {file.infoHash ? 'Imported' : 'External'}{file.managed
 										? ' · Managed'
@@ -207,44 +187,24 @@
 									Selected
 								</div>
 							{/if}
-						</div>
-					</Container>
-				{/each}
-				<div class="text-lg font-semibold text-secondary-400 mt-6">Torrents</div>
+						</ListRow>
+					{/each}
+				</div>
+				<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 			{/if}
 		{/await}
 		{#await releases}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
 		{:then releases}
-			{#each releases as release, index (release.id)}
-				{@const selected =
-					release.id === selection?.releaseId ||
-					(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)}
-				{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
-				<Container
-					on:enter={({ detail }) => {
-						const el =
-							detail.selectable.getSibling(-1)?.getHtmlElement() ??
-							detail.selectable?.getHtmlElement();
-
-						if (el) scrollElementIntoView(el, { top: 32 });
-					}}
-					on:clickOrSelect={() => select(release)}
-					focusOnMount={index === 0 && !hasFiles}
-					focusOnClick
-					let:hasFocus
-				>
-					<div class="cursor-pointer my-6 flex items-center">
+			<div class="space-y-4">
+				{#each releases as release, index (release.id)}
+					{@const selected =
+						release.id === selection?.releaseId ||
+						(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)}
+					{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
+					<ListRow on:clickOrSelect={() => select(release)} focusOnMount={index === 0 && !hasFiles}>
 						<div class="flex-1 min-w-0">
-							<div
-								class={classNames('text-2xl font-semibold line-clamp-1', {
-									'text-secondary-500': !hasFocus && !selected,
-									'text-secondary-200': !hasFocus && selected,
-									'text-primary-500': hasFocus
-								})}
-							>
-								{release.title}
-							</div>
+							<div class="text-2xl font-semibold line-clamp-1">{release.title}</div>
 							<div class="text-lg font-medium text-secondary-400 mt-1">
 								{release.seeders} seeders · {release.peers} peers · {formatSize(release.size)} · {release.indexer}
 							</div>
@@ -259,15 +219,15 @@
 						{:else if onServer}
 							<div class="flex-shrink-0 ml-4 text-lg font-medium text-secondary-300">On server</div>
 						{/if}
+					</ListRow>
+				{:else}
+					<div class="text-2xl font-medium text-secondary-400 my-8">
+						{episode === undefined
+							? 'No season packs found for this season.'
+							: 'No torrents found for this episode.'}
 					</div>
-				</Container>
-			{:else}
-				<div class="text-2xl font-medium text-secondary-400 my-8">
-					{episode === undefined
-						? 'No season packs found for this season.'
-						: 'No torrents found for this episode.'}
-				</div>
-			{/each}
+				{/each}
+			</div>
 		{:catch e}
 			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(e)}</div>
 		{/await}

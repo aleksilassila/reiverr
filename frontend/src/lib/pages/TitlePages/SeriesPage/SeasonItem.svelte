@@ -39,7 +39,7 @@
 					: '';
 </script>
 
-<div class="mt-8">
+<div class="mt-8 space-y-4">
 	<RequestRow
 		heading
 		title={`${seasonName} (${episodes.length} episodes)`}
