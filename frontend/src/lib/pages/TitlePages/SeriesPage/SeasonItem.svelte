@@ -42,11 +42,7 @@
 
 <div class="mt-8 space-y-4">
 	<RequestRow
-		heading
-		title={`${seasonName} (${episodes.length} episodes)`}
-		subtitle={seasonPackTorrent
-			? `${seasonPackTorrent.title}`
-			: 'No season pack selected'}
+		subtitle={seasonPackTorrent ? `${seasonPackTorrent.title}` : 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}
 		checked={allRequested}
@@ -58,7 +54,9 @@
 			})}
 		on:open={() => dispatch('torrents', { season: seasonNumber, name: seasonName })}
 		on:enter={scrollIntoView({ vertical: 96 })}
-	/>
+	>
+		{seasonName}
+	</RequestRow>
 
 	{#each episodes as episode (episode.episode)}
 		{@const requested = !!requests?.episodes.get(episodeKey(episode.season, episode.episode))

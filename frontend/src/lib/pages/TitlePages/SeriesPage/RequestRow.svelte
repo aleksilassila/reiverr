@@ -4,14 +4,13 @@
 	import { Check, ChevronRight, Minus } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
 
-	export let title: string;
+	export let title = '';
 	export let subtitle = '';
 	export let subtitleDimmed = false;
 	export let status = '';
 	export let isError = false;
 	export let checked = false;
 	export let partiallyChecked = false;
-	export let heading = false;
 
 	const dispatch = createEventDispatcher<{ toggle: null; open: null }>();
 </script>
@@ -50,14 +49,21 @@
 			<Minus size={20} />
 		{/if}
 	</div>
-	<div class={classNames('flex-1 min-w-0 ml-4', { 'text-secondary-100': heading })}>
-		<div class={classNames('font-semibold line-clamp-1', heading ? 'text-2xl' : 'text-3xl')}>
-			{title}
+	<div class="flex-1 min-w-0 ml-4">
+		<div class="text-2xl font-semibold line-clamp-1">
+			{#if title}
+				{title}
+			{:else}
+				<slot />
+			{/if}
 		</div>
 		{#if subtitle}
-			<div class={classNames('text-base font-medium line-clamp-1 mt-1', {
-				'text-secondary-400': subtitleDimmed
-			})}>
+			<div
+				class={classNames('text-lg font-medium line-clamp-1 mt-1', {
+					'text-secondary-400': subtitleDimmed,
+					'text-secondary-200': !subtitleDimmed
+				})}
+			>
 				{subtitle}
 			</div>
 		{/if}

@@ -73,7 +73,7 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 
 	// No request of anyone keeps a file of the episode from the next cleanup
 	if (status?.onDisk && status.cleanupAt) {
-		return `On disk · Deleted ${formatTimeUntil(status.cleanupAt)}`;
+		return `Deleted ${formatTimeUntil(status.cleanupAt)}`;
 	}
 	// A file of another torrent, or one that was found on disk, plays as well
 	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';

@@ -12,7 +12,6 @@
 
 <!-- The season pack is dimmed: it was not selected for this episode -->
 <RequestRow
-	title={`S${seasonNumber}E${episodeNumber} - ${episodeName}`}
 	subtitle={status.torrent?.title ?? status.file?.fileName}
 	subtitleDimmed={status.isSeasonPack}
 	status={status.label}
@@ -21,4 +20,7 @@
 	on:toggle
 	on:open
 	on:enter
-/>
+>
+	<span class="text-secondary-400">S{seasonNumber}E{episodeNumber}</span>
+	{episodeName}
+</RequestRow>

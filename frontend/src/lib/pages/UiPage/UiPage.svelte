@@ -363,7 +363,6 @@
 		<h2 class="h2">Request rows</h2>
 		<Container class="space-y-2">
 			<RequestRow
-				heading
 				title="Season 1 (4 episodes)"
 				subtitle="Season pack: Some.Show.S01.1080p.WEB-DL.x264-GROUP"
 				status="12 peers, 3.4 MB/s"
@@ -550,7 +549,6 @@
 			</Container>
 			<Container class="space-y-4">
 				<RequestRow
-					heading
 					title="Season 1 (4 episodes)"
 					subtitle="Season pack: Some.Show.S01.1080p.WEB-DL.x264-GROUP"
 					status="12 peers, 3.4 MB/s"
