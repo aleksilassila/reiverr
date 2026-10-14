@@ -145,6 +145,7 @@
 					value={getLabel(field, $ruleData)}
 					disabled={!$ruleData}
 					on:clickOrSelect={() => selectRuleOption(field)}
+					type="transparent"
 				>
 					{field.name}
 					<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />

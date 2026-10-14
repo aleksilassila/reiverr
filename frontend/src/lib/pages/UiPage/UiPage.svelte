@@ -244,11 +244,20 @@
 			</SelectField>
 			<SelectField
 				class="flex-1"
-				color="primary"
+				type="primary"
 				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
 				on:clickOrSelect={openSelectDialog}
 			>
 				Select field, primary
+			</SelectField>
+			<SelectField
+				class="flex-1"
+				type="transparent"
+				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
+				on:clickOrSelect={openSelectDialog}
+			>
+				Select field, transparent
+				<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
 			</SelectField>
 			<SelectField class="flex-1" value="Disabled" disabled>Select field, disabled</SelectField>
 		</Container>
@@ -458,11 +467,20 @@
 				</SelectField>
 				<SelectField
 					class="flex-1"
-					color="primary"
+					type="primary"
 					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
 					on:clickOrSelect={openSelectDialog}
 				>
 					Select field, primary
+					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+				</SelectField>
+				<SelectField
+					class="flex-1"
+					type="transparent"
+					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
+					on:clickOrSelect={openSelectDialog}
+				>
+					Select field, transparent
 					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
 				</SelectField>
 				<TextField
