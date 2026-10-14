@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { LocalEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -63,8 +62,35 @@
 					.getEpisodeFiles(tmdbId, season, episode)
 					.then((r) => r.data)
 					.catch(() => []);
-	let hasFiles = false;
-	files.then((f) => (hasFiles = f.length > 0));
+	let fileList: LocalEpisodeFileDto[] = [];
+	let releaseList: ReleaseDto[] = [];
+	files.then((f) => (fileList = f));
+	releases.then((r) => (releaseList = r)).catch(() => {});
+
+	$: hasFiles = fileList.length > 0;
+	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
+	$: selectedRelease = releaseList.find(
+		(release) =>
+			release.id === selection?.releaseId ||
+			(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)
+	);
+	$: otherFiles = fileList.filter((file) => file !== selectedFile);
+	$: otherReleases = releaseList.filter((release) => release !== selectedRelease);
+
+	const releaseDetails = (release: ReleaseDto) =>
+		`${release.seeders} seeders · ${release.peers} peers · ${formatSize(release.size)} · ${release.indexer}`;
+	const fileDetails = (file: LocalEpisodeFileDto) =>
+		`${formatSize(file.size)} · ${file.infoHash ? 'On disk' : 'External'}`;
+	// The preference's own snapshot, until the list that has the selected item loads
+	$: selectedDetails = selectedRelease
+		? releaseDetails(selectedRelease)
+		: selectedFile
+			? fileDetails(selectedFile)
+			: selection?.torrent
+				? `${formatSize(selection.torrent.size)} · ${selection.torrent.indexer}`
+				: selection?.file
+					? `${formatSize(selection.file.size)}${selection.file.managed ? ' · Managed' : ''}${selection.file.inLibrary ? '' : ' · Not in the library'}`
+					: '';
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -140,26 +166,12 @@
 		</div>
 	{/if}
 	<Container class="mx-32 mt-16">
-		<div class="flex items-end justify-between">
-			<div class="min-w-0">
-				<HeroTitleInfo
-					title={name}
-					overview=""
-					properties={[{ label: episode === undefined ? 'Season packs' : 'Files and torrents' }]}
-				/>
-			</div>
-			{#if selection}
-				<Button class="flex-shrink-0 ml-8" type="secondary" icon={Cross2} action={clear}>
-					Remove Selection
-				</Button>
-			{/if}
-		</div>
-		{#if selection}
-			<div class="text-lg font-medium text-secondary-300 mt-4 line-clamp-1">
-				Selected: {selection.torrent?.title ?? selection.file?.fileName}
-				{#if selection.file && !selection.file.inLibrary}(not in the library){/if}
-			</div>
-		{:else if seasonPack}
+		<HeroTitleInfo
+			title={name}
+			overview=""
+			properties={[{ label: episode === undefined ? 'Season packs' : 'Files and torrents' }]}
+		/>
+		{#if seasonPack && !selection}
 			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
 				From the season pack: {seasonPack.torrent?.title}
 			</div>
@@ -179,78 +191,91 @@
 		class="overflow-y-auto overflow-x-hidden scrollbar-hide pt-6 pb-16 mx-32"
 		style="backface-visibility: hidden"
 	>
-		{#await files then files}
-			{#if files.length}
+		{#if selection}
+			<div class="text-lg font-semibold text-secondary-400 mb-4">Selected</div>
+			<div class="mb-8">
+				<ListRow
+					on:enter={scrollIntoView({ vertical: 96 })}
+					on:clickOrSelect={clear}
+					focusOnMount
+					let:hasFocus
+				>
+					<div class="flex-1 min-w-0">
+						<div class="text-2xl font-semibold line-clamp-1">
+							{selection.torrent?.title ?? selection.file?.fileName}
+						</div>
+						<div class="text-lg font-medium text-secondary-400 mt-1">{selectedDetails}</div>
+					</div>
+					<!-- Focus and hover turn the marker into the action -->
+					<div class="flex-shrink-0 ml-4 text-lg font-medium">
+						<span
+							class={classNames('items-center text-primary-500 group-hover:hidden', {
+								flex: !hasFocus,
+								hidden: hasFocus
+							})}
+						>
+							<Check size={24} class="mr-2" />
+						</span>
+						<span class={classNames('items-center text-primary-500 group-hover:flex', hasFocus ? 'flex' : 'hidden')}>
+							Unselect
+							<Cross2 size={24} class="ml-2" />
+						</span>
+					</div>
+				</ListRow>
+			</div>
+		{/if}
+		{#await files then}
+			{#if otherFiles.length}
 				<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
 				<div class="space-y-4">
-					{#each files as file, index (file.id)}
-						{@const selected = file.id === selection?.file?.id}
+					{#each otherFiles as file, index (file.id)}
 						<ListRow
 							on:enter={scrollIntoView({ vertical: 96 })}
 							on:clickOrSelect={() => selectFile(file)}
-							focusOnMount={index === 0}
+							focusOnMount={index === 0 && !selection}
 						>
 							<div class="flex-1 min-w-0">
 								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
-								<div class="text-lg font-medium text-secondary-400 mt-1">
-									{formatSize(file.size)} · {file.infoHash ? 'Imported' : 'External'}{file.managed
-										? ' · Managed'
-										: ''}
-								</div>
+								<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
 							</div>
-							{#if selected}
-								<div
-									class="flex-shrink-0 ml-4 flex items-center text-lg font-medium text-primary-500"
-								>
-									<Check size={24} class="mr-2" />
-									Selected
-								</div>
-							{/if}
 						</ListRow>
 					{/each}
 				</div>
-				<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 			{/if}
 		{/await}
+		{#if selection || otherFiles.length}
+			<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
+		{/if}
 		{#await releases}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
-		{:then releases}
+		{:then}
 			<div class="space-y-4">
-				{#each releases as release, index (release.id)}
-					{@const selected =
-						release.id === selection?.releaseId ||
-						(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)}
+				{#each otherReleases as release, index (release.id)}
 					{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
 					<ListRow
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
-						focusOnMount={index === 0 && !hasFiles}
+						focusOnMount={index === 0 && !hasFiles && !selection}
 					>
 						<div class="flex-1 min-w-0">
 							<div class="text-2xl font-semibold line-clamp-1">{release.title}</div>
 							<div class="text-lg font-medium text-secondary-400 mt-1">
-								{release.seeders} seeders · {release.peers} peers · {formatSize(release.size)} · {release.indexer}
+								{releaseDetails(release)}
 							</div>
 						</div>
-						{#if selected}
-							<div
-								class="flex-shrink-0 ml-4 flex items-center text-lg font-medium text-primary-500"
-							>
-								<Check size={24} class="mr-2" />
-								Selected
-							</div>
-						{:else if onServer}
+						{#if onServer}
 							<div class="flex-shrink-0 ml-4 text-lg font-medium text-secondary-300">On server</div>
 						{/if}
 					</ListRow>
-				{:else}
-					<div class="text-2xl font-medium text-secondary-400 my-8">
-						{episode === undefined
-							? 'No season packs found for this season.'
-							: 'No torrents found for this episode.'}
-					</div>
 				{/each}
 			</div>
+			{#if !releaseList.length}
+				<div class="text-2xl font-medium text-secondary-400 my-8">
+					{episode === undefined
+						? 'No season packs found for this season.'
+						: 'No torrents found for this episode.'}
+				</div>
+			{/if}
 		{:catch e}
 			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(e)}</div>
 		{/await}
