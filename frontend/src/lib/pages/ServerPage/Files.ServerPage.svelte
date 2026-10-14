@@ -14,6 +14,7 @@
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, Bookmark, ChevronDown, Cross2, Reload, Trash } from 'radix-icons-svelte';
+	import { tick } from 'svelte';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -46,6 +47,7 @@
 	let isScanning = false;
 	let error = '';
 	let loads = 0;
+	let header: Selectable | undefined;
 
 	$: rows = getRows(tree.roots, expanded, order);
 	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
@@ -111,6 +113,16 @@
 			});
 		} else expanded.add(path);
 		expanded = expanded;
+	}
+
+	/** Opens a directory and moves on to its first entry; opening it again closes it */
+	async function expand(node: LibraryNode, row: Selectable) {
+		const opens = !expanded.has(node.entry.path);
+		toggleExpanded(node.entry.path);
+		if (!opens || !node.children.length) return;
+
+		await tick();
+		row.getSibling(1)?.focus();
 	}
 
 	/** Closes the directory of the row, or the one the row is in, which then takes the focus */
@@ -278,7 +290,7 @@
 </script>
 
 <Container class="h-full flex flex-col">
-	<Container class="space-y-4">
+	<Container class="space-y-4" bind:selectable={header}>
 		<SelectField
 			value={folder || 'None'}
 			disabled={!folders.length}
@@ -329,9 +341,14 @@
 		the focus tree keeps the order the rows were mounted in -->
 	{#if rows.length}
 		{#key order}
+			<!-- Back goes up to the buttons instead of leaving the page, a long way on a remote -->
 			<Container
 				class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide mt-6 pb-16"
 				style="backface-visibility: hidden;"
+				on:back={({ detail }) => {
+					header?.focus();
+					detail.stopPropagation();
+				}}
 			>
 				{#each rows.slice(0, limit) as node (node.entry.path)}
 					<FileRow
@@ -340,7 +357,7 @@
 						partiallyChecked={partiallyChecked.has(node.entry.path)}
 						expanded={expanded.has(node.entry.path)}
 						on:toggle={() => (checked = toggleChecked(node, checked))}
-						on:expand={() => toggleExpanded(node.entry.path)}
+						on:expand={({ detail }) => expand(node, detail)}
 						on:collapse={({ detail }) => collapse(node, detail)}
 					/>
 				{/each}

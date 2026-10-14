@@ -7,6 +7,7 @@
 </script>
 
 <Container
+	class={$$restProps.class}
 	on:mount
 	on:enter
 	on:select
