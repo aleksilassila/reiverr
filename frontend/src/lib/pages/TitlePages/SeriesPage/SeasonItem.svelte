@@ -45,7 +45,7 @@
 		heading
 		title={`${seasonName} (${episodes.length} episodes)`}
 		subtitle={seasonPackTorrent
-			? `Season pack: ${seasonPackTorrent.title}`
+			? `${seasonPackTorrent.title}`
 			: 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}

@@ -136,6 +136,7 @@
 				: reiverrApi.requests.clearEpisodePreference($user?.id as string, tmdbId, season, episode)
 		)
 			.then(() => {
+				componentStack.close();
 				seriesData.requestsData?.update();
 			})
 			.catch((e) => (error = errorMessage(e)));
@@ -216,7 +217,12 @@
 						>
 							<Check size={24} class="mr-2" />
 						</span>
-						<span class={classNames('items-center text-primary-500 group-hover:flex', hasFocus ? 'flex' : 'hidden')}>
+						<span
+							class={classNames(
+								'items-center text-primary-500 group-hover:flex',
+								hasFocus ? 'flex' : 'hidden'
+							)}
+						>
 							Unselect
 							<Cross2 size={24} class="ml-2" />
 						</span>

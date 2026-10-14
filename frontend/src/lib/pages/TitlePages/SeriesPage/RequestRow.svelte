@@ -55,7 +55,9 @@
 			{title}
 		</div>
 		{#if subtitle}
-			<div class="text-base font-medium line-clamp-1 mt-1">
+			<div class={classNames('text-base font-medium line-clamp-1 mt-1', {
+				'text-secondary-400': subtitleDimmed
+			})}>
 				{subtitle}
 			</div>
 		{/if}
