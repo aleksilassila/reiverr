@@ -16,16 +16,16 @@ import {
   MyListStatusFilter,
   MyListTypeFilter,
   OrderDirection,
-} from './library.dto.js';
-import { LibraryItem } from './library.entity.js';
+} from './my-list.dto.js';
+import { MyListItem } from './my-list-item.entity.js';
 
 @Injectable()
-export class LibraryService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(LibraryService.name);
+export class MyListService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(MyListService.name);
 
   constructor(
-    @InjectRepository(LibraryItem)
-    private readonly libraryRepository: EntityRepository<LibraryItem>,
+    @InjectRepository(MyListItem)
+    private readonly myListRepository: EntityRepository<MyListItem>,
     @InjectRepository(PlayState)
     private readonly playStateRepository: EntityRepository<PlayState>,
     private readonly em: EntityManager,
@@ -35,7 +35,7 @@ export class LibraryService implements OnApplicationBootstrap {
   @CreateRequestContext()
   async onApplicationBootstrap() {
     // Make sure library items are cached
-    const items = await this.libraryRepository.findAll();
+    const items = await this.myListRepository.findAll();
 
     items.forEach((i) => {
       const metadata =
@@ -79,7 +79,7 @@ export class LibraryService implements OnApplicationBootstrap {
     // filter selects both the items and the play states returned with them
     const statusFilter = getStatusFilter(status);
 
-    const builder = this.libraryRepository
+    const builder = this.myListRepository
       .createQueryBuilder('li')
       .leftJoin(sql.ref('play_state'), 'ps', {
         'ps.tmdb_id': sql.ref('li.tmdb_id'),
@@ -117,7 +117,7 @@ export class LibraryService implements OnApplicationBootstrap {
     }
     orderBy['li.id'] = 'asc';
 
-    const items: Pick<LibraryItem, 'tmdbId' | 'mediaType'>[] = await builder
+    const items: Pick<MyListItem, 'tmdbId' | 'mediaType'>[] = await builder
       .select(['li.tmdbId', 'li.mediaType'])
       .groupBy('li.id')
       .orderBy(orderBy)
@@ -153,7 +153,7 @@ export class LibraryService implements OnApplicationBootstrap {
     return {
       items: await Promise.all(
         items.map((item) =>
-          this.getLibraryItemDto({
+          this.getMyListItemDto({
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,
             playStates: playStates.filter(
@@ -174,22 +174,22 @@ export class LibraryService implements OnApplicationBootstrap {
     userId: string,
     tmdbId: string,
     mediaType: MediaType,
-  ): Promise<LibraryItem | null> {
-    return this.libraryRepository.findOne({ userId, tmdbId, mediaType });
+  ): Promise<MyListItem | null> {
+    return this.myListRepository.findOne({ userId, tmdbId, mediaType });
   }
 
   async findOrCreateByTmdbId(
     userId: string,
     tmdbId: string,
     mediaType: MediaType,
-  ): Promise<LibraryItem> {
-    let libraryItem = await this.findByTmdbId(userId, tmdbId, mediaType);
+  ): Promise<MyListItem> {
+    let myListItem = await this.findByTmdbId(userId, tmdbId, mediaType);
 
-    if (!libraryItem) {
-      libraryItem = new LibraryItem();
-      libraryItem.userId = userId;
-      libraryItem.tmdbId = tmdbId;
-      libraryItem.mediaType = mediaType;
+    if (!myListItem) {
+      myListItem = new MyListItem();
+      myListItem.userId = userId;
+      myListItem.tmdbId = tmdbId;
+      myListItem.mediaType = mediaType;
 
       const lastPlayedAt = await this.playStateRepository
         .find({ userId, tmdbId, mediaType: playStateMediaType(mediaType) })
@@ -199,24 +199,24 @@ export class LibraryService implements OnApplicationBootstrap {
         .then((dates) => Math.max(0, ...dates));
 
       if (lastPlayedAt) {
-        libraryItem.lastPlayedAt = new Date(lastPlayedAt);
+        myListItem.lastPlayedAt = new Date(lastPlayedAt);
       }
 
-      await this.em.persist(libraryItem).flush();
+      await this.em.persist(myListItem).flush();
     }
 
-    return libraryItem;
+    return myListItem;
   }
 
   async deleteByTmdbId(userId: string, tmdbId: string, mediaType: MediaType) {
-    return await this.libraryRepository.nativeDelete({
+    return await this.myListRepository.nativeDelete({
       userId,
       tmdbId,
       mediaType,
     });
   }
 
-  async getLibraryItemDto(options: {
+  async getMyListItemDto(options: {
     tmdbId: string;
     mediaType: 'series' | 'movie';
     playStates?: PlayState[];
@@ -257,7 +257,7 @@ export class LibraryService implements OnApplicationBootstrap {
         ) ?? false;
     }
 
-    const libraryItem: MyListItemDto = {
+    const myListItem: MyListItemDto = {
       tmdbId,
       mediaType: mediaType === 'movie' ? MediaType.Movie : MediaType.Series,
       watched,
@@ -282,7 +282,7 @@ export class LibraryService implements OnApplicationBootstrap {
       },
     };
 
-    return libraryItem;
+    return myListItem;
   }
 }
 

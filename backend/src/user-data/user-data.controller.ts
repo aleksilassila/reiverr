@@ -8,7 +8,7 @@ import {
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from '../auth/auth.guard.js';
 import { MediaType } from '../common/common.dto.js';
-import { LibraryService } from './library/library.service.js';
+import { MyListService } from './my-list/my-list.service.js';
 import {
   MovieUserDataDto,
   SeriesUserDataDto,
@@ -19,7 +19,7 @@ import { PlayStatesService } from './play-state/play-states.service.js';
 @Controller('users')
 export class UserDataController {
   constructor(
-    private libraryService: LibraryService,
+    private myListService: MyListService,
     private playStateService: PlayStatesService,
   ) {}
 
@@ -33,7 +33,7 @@ export class UserDataController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(
+    const myListItem = await this.myListService.findByTmdbId(
       userId,
       tmdbId,
       MediaType.Movie,
@@ -45,7 +45,7 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inMyList: !!libraryItem,
+      inMyList: !!myListItem,
       playState: playState,
     };
   }
@@ -60,7 +60,7 @@ export class UserDataController {
     @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SeriesUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(
+    const myListItem = await this.myListService.findByTmdbId(
       userId,
       tmdbId,
       MediaType.Series,
@@ -72,7 +72,7 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inMyList: !!libraryItem,
+      inMyList: !!myListItem,
       playStates: playState,
     };
   }
@@ -89,7 +89,7 @@ export class UserDataController {
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<MovieUserDataDto> {
-    const libraryItem = await this.libraryService.findByTmdbId(
+    const myListItem = await this.myListService.findByTmdbId(
       userId,
       tmdbId,
       MediaType.Series,
@@ -103,7 +103,7 @@ export class UserDataController {
 
     return {
       tmdbId,
-      inMyList: !!libraryItem,
+      inMyList: !!myListItem,
       playState: playState,
     };
   }

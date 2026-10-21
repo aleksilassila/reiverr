@@ -1289,12 +1289,9 @@ export interface MediaRequestDto {
   episode: number;
   approved: boolean;
   /** @format date-time */
-  activatedAt?: string;
+  neededSince?: string;
   /** @format date-time */
   watchedAt?: string;
-  error?: string;
-  /** @format date-time */
-  retryAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1320,7 +1317,7 @@ export interface UpdateSeriesRequestsDto {
 }
 
 export interface RequestRuleDto {
-  /** How many requests after the last episode the user watched are active */
+  /** How many requests after the last episode the user watched are needed */
   keepNext: number | null;
   /** How many of the last watched requests keep their file, while there is more to watch */
   keepWatched: number | null;
@@ -1351,12 +1348,9 @@ export interface AdminMediaRequestDto {
   episode: number;
   approved: boolean;
   /** @format date-time */
-  activatedAt?: string;
+  neededSince?: string;
   /** @format date-time */
   watchedAt?: string;
-  error?: string;
-  /** @format date-time */
-  retryAt?: string;
   createdAt: string;
   updatedAt: string;
   user: RequesterDto;
@@ -1366,12 +1360,12 @@ export interface UpdateMediaRequestDto {
   approved: boolean;
 }
 
-export interface LocalMediaSettingsDto {
+export interface LibrarySettingsDto {
   movieFolders: string[];
   seriesFolders: string[];
 }
 
-export interface LocalSubtitleFileDto {
+export interface SubtitleFileDto {
   fileName: string;
   /** Language code from the file name */
   lang?: string;
@@ -1379,30 +1373,113 @@ export interface LocalSubtitleFileDto {
   label: string;
 }
 
-export interface LocalMediaFileDto {
+export interface LibraryFileDto {
   id: string;
   fileName: string;
   size: number;
   /** Subtitle files next to the video */
-  subtitles: LocalSubtitleFileDto[];
+  subtitles: SubtitleFileDto[];
   /** Whether the cleanup may delete the file when no request holds it */
   managed: boolean;
   /** The torrent the file was imported from */
   infoHash?: string;
 }
 
-export interface LocalEpisodeFileDto {
+export interface LibraryEpisodeFileDto {
   id: string;
   fileName: string;
   size: number;
   /** Subtitle files next to the video */
-  subtitles: LocalSubtitleFileDto[];
+  subtitles: SubtitleFileDto[];
   /** Whether the cleanup may delete the file when no request holds it */
   managed: boolean;
   /** The torrent the file was imported from */
   infoHash?: string;
   season: number;
   episodes: number[];
+}
+
+export interface TorrentDto {
+  infoHash: string;
+  title: string;
+  indexer: string;
+  /** Bytes */
+  size: number;
+  /** Bytes downloaded for the data currently in the downloads folder */
+  downloadedBytes: number;
+  /** Bytes uploaded for that data */
+  uploadedBytes: number;
+  status:
+    | "idle"
+    | "starting"
+    | "downloading"
+    | "seeding"
+    | "stopped"
+    | "failed";
+  error?: string;
+  peers: number;
+  /** Bytes per second */
+  downloadSpeed: number;
+  /** Bytes per second */
+  uploadSpeed: number;
+}
+
+export interface PreferredFileDto {
+  /** The id of the file, which the API serves it by */
+  id: string;
+  /** Whether the file is still in the library. The requests of a file that is not wait until another source is picked */
+  inLibrary: boolean;
+  /** Unknown when the file is gone */
+  fileName?: string;
+  /** Bytes, unknown when the file is gone */
+  size?: number;
+  /** Whether the cleanup may delete the file when no request holds it */
+  managed?: boolean;
+}
+
+export interface PreferenceDto {
+  season: number;
+  episode: number;
+  torrent?: TorrentDto;
+  file?: PreferredFileDto;
+}
+
+export interface EpisodeStatusDto {
+  season: number;
+  episode: number;
+  /** Whether the user has requested the episode */
+  requested: boolean;
+  /** Whether a file of the episode is in the library, from any torrent or found on disk */
+  onDisk: boolean;
+  /** Where the request of the user stands */
+  status?:
+    | "waiting-for-approval"
+    | "inactive-ahead"
+    | "no-preference"
+    | "resolving"
+    | "no-file-in-torrent"
+    | "downloading"
+    | "failed"
+    | "available";
+  /** From 0 to 1 */
+  progress?: number;
+  error?: string;
+  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
+  torrent?: TorrentDto;
+  /**
+   * When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them
+   * @format date-time
+   */
+  cleanupAt?: string;
+}
+
+export interface SeriesStatusDto {
+  /** What the user prefers for the seasons and episodes: torrents, and files for episodes */
+  preferences: PreferenceDto[];
+  /** The episodes that the user requested or that are on disk */
+  episodes: EpisodeStatusDto[];
+  /** Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from */
+  onServer: string[];
 }
 
 export interface JobDto {
@@ -1460,9 +1537,30 @@ export interface DownloadSettingsDto {
   cleanup: "off" | "daily" | "weekly" | "monthly";
 }
 
-export interface TorrentDto {
-  /** Missing while no request downloads from the torrent */
-  id?: string;
+export interface TorrentItemDto {
+  id: string;
+  infoHash: string;
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  /** 0 for a movie */
+  season: number;
+  /** 0 for a movie */
+  episode: number;
+  status:
+    | "resolving"
+    | "no-match"
+    | "downloading"
+    | "complete"
+    | "failed"
+    | "released";
+  /** From 0 to 1 */
+  progress?: number;
+  error?: string;
+  /** The name of the file of the torrent that is the item */
+  fileName?: string;
+}
+
+export interface TorrentWithItemsDto {
   infoHash: string;
   title: string;
   indexer: string;
@@ -1472,77 +1570,20 @@ export interface TorrentDto {
   downloadedBytes: number;
   /** Bytes uploaded for that data */
   uploadedBytes: number;
-  status: "stopped" | "starting" | "downloading" | "seeding" | "failed";
+  status:
+    | "idle"
+    | "starting"
+    | "downloading"
+    | "seeding"
+    | "stopped"
+    | "failed";
   error?: string;
-  /**
-   * When a torrent that failed is started again
-   * @format date-time
-   */
-  retryAt?: string;
   peers: number;
   /** Bytes per second */
   downloadSpeed: number;
   /** Bytes per second */
   uploadSpeed: number;
-}
-
-export interface PreferredFileDto {
-  /** The id of the file, which the API serves it by */
-  id: string;
-  fileName: string;
-  /** Bytes */
-  size: number;
-  /** Whether the file is still in the library. The requests of a file that is not fail until another source is picked */
-  inLibrary: boolean;
-  /** Whether the cleanup may delete the file when no request holds it */
-  managed?: boolean;
-}
-
-export interface PreferenceDto {
-  season: number;
-  episode: number;
-  /** The search result the user picked */
-  releaseId?: string;
-  torrent?: TorrentDto;
-  file?: PreferredFileDto;
-}
-
-export interface EpisodeStatusDto {
-  season: number;
-  episode: number;
-  /** Whether the user has requested the episode */
-  requested: boolean;
-  /** Whether a file of the episode is in the library, from any torrent or found on disk */
-  onDisk: boolean;
-  /** Where the request of the user stands */
-  status?:
-    | "waiting-for-approval"
-    | "inactive-ahead"
-    | "no-preference"
-    | "resolving"
-    | "no-file-in-torrent"
-    | "downloading"
-    | "failed"
-    | "available";
-  /** From 0 to 1 */
-  progress?: number;
-  error?: string;
-  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
-  torrent?: TorrentDto;
-  /**
-   * When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them
-   * @format date-time
-   */
-  cleanupAt?: string;
-}
-
-export interface SeriesStatusDto {
-  /** What the user prefers for the seasons and episodes: torrents, and files for episodes */
-  preferences: PreferenceDto[];
-  /** The episodes that the user requested or that are on disk */
-  episodes: EpisodeStatusDto[];
-  /** Info hashes of the torrents that a request of anyone downloads from or that files of it came from */
-  onServer: string[];
+  items: TorrentItemDto[];
 }
 
 export interface LogEntryDto {
@@ -1628,10 +1669,8 @@ export interface LibraryEntriesDto {
 }
 
 export interface RequestLibraryEntriesResultDto {
-  /** Requests that were bound to the files */
+  /** Requests that were made or pointed at the files */
   requests: number;
-  /** Episodes whose request kept another file it has */
-  kept: number;
   /** Files of movies and of episodes the series does not have, which were not requested */
   skipped: number;
 }
@@ -2548,17 +2587,17 @@ export class Api<
         ...params,
       }),
   };
-  localMedia = {
+  library = {
     /**
      * No description
      *
-     * @tags local-media
-     * @name GetLocalMediaSettings
-     * @request GET:/api/local-media/settings
+     * @tags library
+     * @name GetLibrarySettings
+     * @request GET:/api/library/settings
      */
-    getLocalMediaSettings: (params: RequestParams = {}) =>
-      this.request<LocalMediaSettingsDto, any>({
-        path: `/api/local-media/settings`,
+    getLibrarySettings: (params: RequestParams = {}) =>
+      this.request<LibrarySettingsDto, any>({
+        path: `/api/library/settings`,
         method: "GET",
         format: "json",
         ...params,
@@ -2567,20 +2606,20 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
-     * @name UpdateLocalMediaSettings
-     * @request PUT:/api/local-media/settings
+     * @tags library
+     * @name UpdateLibrarySettings
+     * @request PUT:/api/library/settings
      */
-    updateLocalMediaSettings: (
-      data: LocalMediaSettingsDto,
+    updateLibrarySettings: (
+      data: LibrarySettingsDto,
       query?: {
         /** Removes library folders that have indexed files in them, forgetting the files */
         force?: boolean;
       },
       params: RequestParams = {},
     ) =>
-      this.request<LocalMediaSettingsDto, any>({
-        path: `/api/local-media/settings`,
+      this.request<LibrarySettingsDto, any>({
+        path: `/api/library/settings`,
         method: "PUT",
         query: query,
         body: data,
@@ -2592,13 +2631,13 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
+     * @tags library
      * @name GetMovieFiles
-     * @request GET:/api/local-media/movies/{tmdbId}
+     * @request GET:/api/library/movies/{tmdbId}
      */
     getMovieFiles: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<LocalMediaFileDto[], any>({
-        path: `/api/local-media/movies/${tmdbId}`,
+      this.request<LibraryFileDto[], any>({
+        path: `/api/library/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2607,13 +2646,13 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
+     * @tags library
      * @name GetSeriesFiles
-     * @request GET:/api/local-media/series/{tmdbId}
+     * @request GET:/api/library/series/{tmdbId}
      */
     getSeriesFiles: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<LocalEpisodeFileDto[], any>({
-        path: `/api/local-media/series/${tmdbId}`,
+      this.request<LibraryEpisodeFileDto[], any>({
+        path: `/api/library/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2622,9 +2661,24 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
+     * @tags library
+     * @name GetSeriesStatus
+     * @request GET:/api/library/series/{tmdbId}/status
+     */
+    getSeriesStatus: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SeriesStatusDto, any>({
+        path: `/api/library/series/${tmdbId}/status`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
      * @name GetEpisodeFiles
-     * @request GET:/api/local-media/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     * @request GET:/api/library/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     getEpisodeFiles: (
       tmdbId: string,
@@ -2632,8 +2686,8 @@ export class Api<
       episode: number,
       params: RequestParams = {},
     ) =>
-      this.request<LocalEpisodeFileDto[], any>({
-        path: `/api/local-media/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+      this.request<LibraryEpisodeFileDto[], any>({
+        path: `/api/library/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2642,13 +2696,13 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
+     * @tags library
      * @name GetSubtitles
-     * @request GET:/api/local-media/files/{id}/subtitles/{fileName}
+     * @request GET:/api/library/files/{id}/subtitles/{fileName}
      */
     getSubtitles: (id: string, fileName: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/local-media/files/${id}/subtitles/${fileName}`,
+        path: `/api/library/files/${id}/subtitles/${fileName}`,
         method: "GET",
         ...params,
       }),
@@ -2656,13 +2710,13 @@ export class Api<
     /**
      * No description
      *
-     * @tags local-media
+     * @tags library
      * @name StreamFile
-     * @request GET:/api/local-media/files/{id}/stream
+     * @request GET:/api/library/files/{id}/stream
      */
     streamFile: (id: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/local-media/files/${id}/stream`,
+        path: `/api/library/files/${id}/stream`,
         method: "GET",
         ...params,
       }),
@@ -2984,28 +3038,13 @@ export class Api<
      * No description
      *
      * @tags downloads
-     * @name GetSeriesStatus
-     * @request GET:/api/downloads/series/{tmdbId}
+     * @name GetTorrents
+     * @request GET:/api/downloads/torrents
      */
-    getSeriesStatus: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<SeriesStatusDto, any>({
-        path: `/api/downloads/series/${tmdbId}`,
+    getTorrents: (params: RequestParams = {}) =>
+      this.request<TorrentWithItemsDto[], any>({
+        path: `/api/downloads/torrents`,
         method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags downloads
-     * @name RetryTorrent
-     * @request POST:/api/downloads/torrents/{torrentId}/retry
-     */
-    retryTorrent: (torrentId: string, params: RequestParams = {}) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/downloads/torrents/${torrentId}/retry`,
-        method: "POST",
         format: "json",
         ...params,
       }),

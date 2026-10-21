@@ -6,15 +6,18 @@ import { MetadataModule } from '../metadata/metadata.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
 import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
-import { CleanupService } from './cleanup.service.js';
+import { DeletionService } from './deletion.service.js';
+import { FulfilmentService } from './fulfilment.service.js';
 import { ImportService } from './import.service.js';
-import { LocalMediaController } from './local-media.controller.js';
-import { LocalMediaService } from './local-media.service.js';
+import { LibraryController } from './library.controller.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
+import { RequestBinding } from './request-binding.entity.js';
+import { StatusService } from './status.service.js';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([MediaFile]),
+    MikroOrmModule.forFeature([MediaFile, RequestBinding]),
     SettingsModule,
     MetadataModule,
     ServerLogModule,
@@ -22,8 +25,14 @@ import { MediaFile } from './media-file.entity.js';
     DownloadsModule,
     JobsModule,
   ],
-  controllers: [LocalMediaController],
-  providers: [LocalMediaService, ImportService, CleanupService],
-  exports: [LocalMediaService, CleanupService],
+  controllers: [LibraryController],
+  providers: [
+    LibraryService,
+    ImportService,
+    DeletionService,
+    FulfilmentService,
+    StatusService,
+  ],
+  exports: [LibraryService, DeletionService, FulfilmentService],
 })
-export class LocalMediaModule {}
+export class LibraryModule {}

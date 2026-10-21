@@ -1,11 +1,10 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MediaType, MediaTypeFull } from '../common/common.dto.js';
-import { Torrent } from '../downloads/torrent.entity.js';
 import { IndexersService, Release } from '../indexers/indexers.service.js';
 import { Job, JobStatus } from '../jobs/job.entity.js';
 import { JobsService } from '../jobs/jobs.service.js';
-import { MediaFile } from '../local-media/media-file.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { PlayState } from '../user-data/play-state/play-state.entity.js';
@@ -13,6 +12,7 @@ import { User } from '../users/user.entity.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import { RequestsService, SelectionTarget } from './requests.service.js';
+import { SelectedRelease } from './selected-release.entity.js';
 
 const SERIES = '100';
 const PACK = '1'.repeat(40);
@@ -51,17 +51,6 @@ describe('RequestsService', () => {
     })),
   };
 
-  const addTorrent = async (id: string, infoHash: string) => {
-    await orm.em.fork().insert(Torrent, {
-      ...new Torrent(),
-      id,
-      infoHash,
-      title: id,
-      indexer: 'test',
-      size: 1,
-    });
-  };
-
   const requestEpisodes = (episodes: number[], approved = true) =>
     request(() =>
       requests.setEpisodeRequests({
@@ -70,6 +59,17 @@ describe('RequestsService', () => {
         episodes: episodes.map((episode) => ({ season: 1, episode })),
         requested: true,
         approved,
+      }),
+    );
+
+  const unrequestEpisodes = (episodes: number[]) =>
+    request(() =>
+      requests.setEpisodeRequests({
+        userId,
+        tmdbId: SERIES,
+        episodes: episodes.map((episode) => ({ season: 1, episode })),
+        requested: false,
+        approved: true,
       }),
     );
 
@@ -123,87 +123,52 @@ describe('RequestsService', () => {
   const clear = (episode: number) =>
     request(() => requests.clearPreference(target(episode)));
 
-  /** Binds requests the way the reconciliation of the title does */
-  const bind = (episodes: number[], torrentId: string) =>
+  const rows = () =>
     orm.em
       .fork()
-      .nativeUpdate(
+      .find(
         MediaRequest,
-        { episode: { $in: episodes } },
-        { torrentId },
+        { mediaType: MediaTypeFull.Episode },
+        { orderBy: { episode: 'asc' } },
       );
 
-  const attach = async (episode: number, infoHash: string) => {
-    const em = orm.em.fork();
-    const file = new MediaFile();
-    file.path = `/tv/${episode}-${infoHash}.mkv`;
-    file.mediaType = MediaType.Series;
-    file.tmdbId = SERIES;
-    file.season = 1;
-    file.episode = episode;
-    file.lastEpisode = episode;
-    file.size = 1;
-    file.modifiedAt = new Date();
-    file.infoHash = infoHash;
-    file.managed = true;
-    await em.insert(MediaFile, { ...file });
-    await em.nativeUpdate(MediaRequest, { episode }, { mediaFileId: file.id });
-
-    return file.id;
-  };
-
-  /** A file of episodes in the library, found on disk */
-  const addFile = async (
-    name: string,
-    episode: number,
-    lastEpisode = episode,
-  ) => {
-    const em = orm.em.fork();
-    const file = new MediaFile();
-    file.path = `/tv/${name}.mkv`;
-    file.mediaType = MediaType.Series;
-    file.tmdbId = SERIES;
-    file.season = 1;
-    file.episode = episode;
-    file.lastEpisode = lastEpisode;
-    file.size = 1;
-    file.modifiedAt = new Date();
-    await em.insert(MediaFile, { ...file });
-
-    return file;
-  };
-
-  /** Where each episode request stands, with its torrent and file */
-  const references = async () =>
-    (
-      await orm.em
-        .fork()
-        .find(
-          MediaRequest,
-          { mediaType: MediaTypeFull.Episode },
-          { orderBy: { episode: 'asc' } },
-        )
-    ).map((r) => [
+  /** Where each episode request stands */
+  const standings = async () =>
+    (await rows()).map((r) => [
       r.episode,
-      !r.approved
-        ? 'waiting'
-        : !r.activatedAt
-          ? 'inactive'
-          : r.watchedAt
-            ? 'watched'
-            : 'active',
-      r.torrentId ?? null,
-      r.mediaFileId ? 'file' : null,
+      !r.approved ? 'waiting' : !r.neededSince ? 'ahead' : 'needed',
+      !!r.watchedAt,
     ]);
+
+  const sourceOf = async (episode: number) => {
+    const row = (await rows()).find((r) => r.episode === episode);
+    const { source } = await request(() =>
+      requests.readRequest(orm.em, row.id),
+    );
+
+    return source;
+  };
 
   const rule = () =>
     orm.em.fork().findOne(RequestRule, { userId, tmdbId: SERIES });
 
-  const queuedTitles = () =>
-    orm.em.fork().count(Job, {
-      type: 'downloads.reconcileTitle',
+  /** The episodes of the requests the library is to look at, and the ids of requests that are gone */
+  const reconciled = async () => {
+    const jobs = await orm.em.fork().find(Job, {
+      type: 'library.reconcileRequest',
       status: JobStatus.Queued,
     });
+    const requests = await rows();
+
+    return jobs
+      .map(
+        (job) =>
+          requests.find((r) => r.id === job.payload.requestId)?.episode ??
+          `gone:${job.payload.requestId}`,
+      )
+      .sort();
+  };
+  const forgetJobs = () => orm.em.fork().nativeDelete(Job, {});
 
   beforeEach(async () => {
     orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
@@ -230,8 +195,6 @@ describe('RequestsService', () => {
     };
     indexers.resolveTorrent.mockClear();
     requests = new RequestsService(
-      orm.em.getRepository(MediaRequest),
-      orm.em.getRepository(RequestRule),
       orm.em,
       metadata as unknown as MetadataService,
       indexers as unknown as IndexersService,
@@ -241,468 +204,244 @@ describe('RequestsService', () => {
 
   afterEach(() => orm.close());
 
-  it('activates new requests that have a source and has the series reconciled', async () => {
-    await requestEpisodes([1]);
-    expect(await references()).toEqual([[1, 'inactive', null, null]]);
+  it('lets new requests through once they have a source, and has the library look at them', async () => {
+    await requestEpisodes([1, 2]);
+    expect(await standings()).toEqual([
+      [1, 'ahead', false],
+      [2, 'ahead', false],
+    ]);
+    expect(await reconciled()).toEqual([]);
 
     await select(0, 'pack');
-    await requestEpisodes([2]);
-    await requestEpisodes([3], false);
-
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'active', null, null],
-      [3, 'waiting', null, null],
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'needed', false],
     ]);
-    expect(await queuedTitles()).toBe(1);
+    expect(await reconciled()).toEqual([1, 2]);
+
+    // A request made with a source is let through at once
+    await forgetJobs();
+    await requestEpisodes([3]);
+    expect(await standings()).toContainEqual([3, 'needed', false]);
+    expect(await reconciled()).toEqual([3]);
   });
 
-  it('applies the rule of the user when a source is picked, a request is made and an episode is watched', async () => {
-    await requestEpisodes([1, 2, 3]);
-    await setRule({ keepNext: 1 });
-
-    // Without a source none of them has passed the gate, so the rule set
-    // after them applies
-    expect(await references()).toEqual([
-      [1, 'inactive', null, null],
-      [2, 'inactive', null, null],
-      [3, 'inactive', null, null],
-    ]);
-
+  it('keeps the release a user picks, resolved, and refers to it by its info hash', async () => {
+    await requestEpisodes([1, 2]);
     await select(0, 'pack');
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'inactive', null, null],
-      [3, 'inactive', null, null],
-    ]);
-
-    await watch(1);
-    expect(await references()).toEqual([
-      [1, 'watched', null, null],
-      [2, 'active', null, null],
-      [3, 'inactive', null, null],
-    ]);
-
-    // Marking the episode unwatched takes nothing back
-    await watch(1, false);
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'active', null, null],
-      [3, 'inactive', null, null],
-    ]);
-  });
-
-  it('deletes the requests of watched episodes that no keep setting retains', async () => {
-    await requestEpisodes([1, 2, 3]);
-    await select(0, 'pack');
-    await setRule({ keepWatched: 1 });
-    await addTorrent('pack', PACK);
-    await bind([1, 2, 3], 'pack');
-    await attach(1, PACK);
-
-    await watch(1);
-    await watch(2);
-    expect(await references()).toEqual([
-      [2, 'watched', 'pack', null],
-      [3, 'active', 'pack', null],
-    ]);
-
-    // Nothing is kept once nothing is left to watch
-    await watch(3);
-    expect(await references()).toEqual([]);
-    expect(await queuedTitles()).toBe(1);
-  });
-
-  it('keeps the release a user picks on the rule, resolved, and binds nothing itself', async () => {
-    await requestEpisodes([1]);
-    await select(0, 'pack');
-
     expect(indexers.resolveTorrent).toHaveBeenCalledTimes(1);
-    expect(await rule()).toMatchObject({
-      keepNext: null,
-      seasonTorrents: [
-        {
-          season: 1,
-          release: { releaseId: 'pack', title: 'pack', infoHash: PACK },
-        },
-      ],
-      episodeSources: null,
+
+    expect(await orm.em.fork().find(SelectedRelease, {})).toMatchObject([
+      {
+        infoHash: PACK,
+        title: 'pack',
+        indexer: 'test',
+        size: 1,
+        magnetUrl: `magnet:?xt=urn:btih:${PACK}`,
+      },
+    ]);
+    expect((await rule()).seasonTorrents).toEqual([
+      { season: 1, infoHash: PACK },
+    ]);
+    expect(await sourceOf(1)).toEqual({
+      kind: 'torrent',
+      infoHash: PACK,
+      forEpisode: false,
     });
-    expect(await references()).toEqual([[1, 'active', null, null]]);
-    expect(await orm.em.fork().count(Torrent)).toBe(0);
-    expect(await queuedTitles()).toBe(1);
-  });
 
-  it('refuses a release that is not in the search cache any more', async () => {
-    await expect(select(0, 'gone')).rejects.toThrow('Release not found');
-  });
-
-  it('rebinds the requests of a season that have no file', async () => {
-    await setRule({ keepNext: 2 });
-    await requestEpisodes([1, 2, 3]);
-    await addTorrent('pack', PACK);
-    await bind([1, 2], 'pack');
-    await attach(1, PACK);
-
-    await select(0, 'episode');
-
-    // The first keeps its file, the third was never bound
-    expect(await references()).toEqual([
-      [1, 'active', 'pack', 'file'],
-      [2, 'active', null, null],
-      [3, 'inactive', null, null],
-    ]);
-  });
-
-  it('replaces even a held file for an episode', async () => {
-    await requestEpisodes([1, 2]);
-    await select(0, 'pack');
-    await addTorrent('pack', PACK);
-    await bind([1, 2], 'pack');
-    await attach(1, PACK);
-    await attach(2, PACK);
-
+    // An episode's own torrent wins over the season's, as its only video
+    await forgetJobs();
     await select(2, 'episode');
-
-    expect(await references()).toEqual([
-      [1, 'active', 'pack', 'file'],
-      [2, 'active', null, null],
+    expect((await rule()).episodeSources).toEqual([
+      { season: 1, episode: 2, kind: 'torrent', infoHash: EPISODE },
     ]);
-    expect(await rule()).toMatchObject({
-      episodeSources: [{ season: 1, episode: 2, kind: 'torrent' }],
+    expect(await sourceOf(2)).toEqual({
+      kind: 'torrent',
+      infoHash: EPISODE,
+      forEpisode: true,
     });
-  });
+    expect(await sourceOf(1)).toMatchObject({ infoHash: PACK });
+    // Only the requests in scope are looked at
+    expect(await reconciled()).toEqual([2]);
 
-  it('leaves the requests of the picked torrent alone and forgets its failure', async () => {
-    await requestEpisodes([1, 2]);
-    await addTorrent('pack', PACK);
-    await bind([1, 2], 'pack');
-    await orm.em
-      .fork()
-      .nativeUpdate(
-        Torrent,
-        { id: 'pack' },
-        { error: 'no peers', attempts: 3, retryAt: new Date() },
-      );
-    await orm.em
-      .fork()
-      .nativeUpdate(
-        MediaRequest,
-        { episode: 1 },
-        { error: 'Import failed', attempts: 1, retryAt: new Date() },
-      );
-
-    await select(0, 'pack');
-
-    expect(await references()).toEqual([
-      [1, 'active', 'pack', null],
-      [2, 'active', 'pack', null],
-    ]);
-    expect(await orm.em.fork().findOne(Torrent, { id: 'pack' })).toMatchObject({
-      error: null,
-      attempts: 0,
-      retryAt: null,
-    });
-    expect(
-      await orm.em.fork().findOne(MediaRequest, { episode: 1 }),
-    ).toMatchObject({ error: null, attempts: 0, retryAt: null });
-  });
-
-  it('leaves an episode with a torrent of its own out of a season change', async () => {
-    await requestEpisodes([1, 2]);
-    await addTorrent('episode', EPISODE);
-    await select(2, 'episode');
-    await bind([2], 'episode');
-
-    await select(0, 'pack');
-
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'active', 'episode', null],
-    ]);
-  });
-
-  it('falls back to the season torrent when the torrent of an episode is cleared', async () => {
-    await requestEpisodes([1, 2]);
-    await addTorrent('episode', EPISODE);
-    await select(0, 'pack');
-    await select(2, 'episode');
-    await bind([2], 'episode');
-
+    // Clearing the episode's torrent falls back to the season's; the rule
+    // row goes with its last preference
+    await forgetJobs();
     expect(await clear(2)).toBe(true);
+    expect(await sourceOf(2)).toMatchObject({ infoHash: PACK });
+    expect(await reconciled()).toEqual([2]);
     expect(await clear(2)).toBe(false);
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'active', null, null],
-    ]);
-    expect(await rule()).toMatchObject({
-      seasonTorrents: [{ season: 1 }],
-      episodeSources: null,
-    });
-
-    // A rule without a limit or a torrent is no rule
     expect(await clear(0)).toBe(true);
+    expect(await sourceOf(2)).toBeUndefined();
     expect(await rule()).toBeNull();
+    // Picked again, the release is known already
+    await select(0, 'pack');
+    expect(await orm.em.fork().count(SelectedRelease, {})).toBe(2);
   });
 
-  it('makes a file the preference of an episode and unbinds its request for it', async () => {
+  it('refuses a release that is not in the search cache any more, and an episode the series does not have', async () => {
+    await expect(select(0, 'expired')).rejects.toThrow(NotFoundException);
+    await expect(select(9, 'pack')).rejects.toThrow(NotFoundException);
+    await expect(requestEpisodes([9])).rejects.toThrow(BadRequestException);
+  });
+
+  it('applies the rule of the user: the next requests are let through, the watched ones it does not keep are deleted', async () => {
+    await requestEpisodes([1, 2, 3]);
+    await select(0, 'pack');
+    await setRule({ keepNext: 1 });
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'needed', false],
+      [3, 'needed', false],
+    ]);
+
+    // The rule set after the requests holds nothing back that passed already
+    await unrequestEpisodes([2, 3]);
+    await requestEpisodes([2, 3]);
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'ahead', false],
+      [3, 'ahead', false],
+    ]);
+
+    await forgetJobs();
+    await watch(1);
+    expect(await standings()).toEqual([
+      [1, 'needed', true],
+      [2, 'needed', false],
+      [3, 'ahead', false],
+    ]);
+    expect(await reconciled()).toEqual([2]);
+
+    // Unwatching takes nothing back
+    await watch(1, false);
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'needed', false],
+      [3, 'ahead', false],
+    ]);
+
+    // A watched request the keep setting does not retain is deleted, and
+    // the library lets go of what it had
+    await setRule({ keepNext: 1, keepWatched: 1 });
+    await watch(1);
+    await forgetJobs();
+    await watch(2);
+    expect(await standings()).toEqual([
+      [2, 'needed', true],
+      [3, 'needed', false],
+    ]);
+    expect(await reconciled()).toEqual([3, expect.stringMatching(/^gone:/)]);
+  });
+
+  it('makes a file the preference of an episode', async () => {
+    await requestEpisodes([2]);
+    await request(() => requests.preferFile(target(2), 'file-1'));
+
+    expect((await rule()).episodeSources).toEqual([
+      { season: 1, episode: 2, kind: 'file', mediaFileId: 'file-1' },
+    ]);
+    expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'file-1' });
+    expect(await standings()).toEqual([[2, 'needed', false]]);
+    expect(await reconciled()).toEqual([2]);
+  });
+
+  it('requests the episodes of files for a user, needed and pointed at the files', async () => {
+    await requestEpisodes([2], false);
+    const file = (id: string, mediaType: MediaType, episode = 1) => ({
+      id,
+      mediaType,
+      tmdbId: SERIES,
+      season: 1,
+      episode,
+      lastEpisode: episode,
+    });
+
+    expect(
+      await request(() =>
+        requests.requestFiles(userId, [
+          { ...file('f1', MediaType.Series, 2), lastEpisode: 3 },
+          file('f2', MediaType.Series, 3),
+          file('f3', MediaType.Movie),
+          file('f4', MediaType.Series, 9),
+        ]),
+      ),
+    ).toEqual({ requests: 2, skipped: 2 });
+
+    // The request that waited for approval is let through too
+    expect(await standings()).toEqual([
+      [2, 'needed', false],
+      [3, 'needed', false],
+    ]);
+    // The first file of an episode gets it
+    expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'f1' });
+    expect(await sourceOf(3)).toEqual({ kind: 'file', mediaFileId: 'f1' });
+    expect(await reconciled()).toEqual([2, 3]);
+  });
+
+  it('approves a request and takes no approval back', async () => {
+    await requestEpisodes([1], false);
+    await select(0, 'pack');
+    const [row] = await rows();
+    expect(await standings()).toEqual([[1, 'waiting', false]]);
+
+    await expect(
+      request(() => requests.update(row.id, { approved: false })),
+    ).rejects.toThrow(BadRequestException);
+    await request(() => requests.update(row.id, { approved: true }));
+    expect(await standings()).toEqual([[1, 'needed', false]]);
+    expect(await reconciled()).toEqual([1]);
+  });
+
+  it('deletes requests and has the library let go of what they had', async () => {
     await requestEpisodes([1, 2]);
     await select(0, 'pack');
-    await addTorrent('pack', PACK);
-    await bind([1, 2], 'pack');
-    const file = await addFile('found', 1);
+    await forgetJobs();
+    const [first] = await rows();
 
-    await request(() => requests.preferFile(target(1), file.id));
-
-    expect(await rule()).toMatchObject({
-      episodeSources: [
-        {
-          season: 1,
-          episode: 1,
-          kind: 'file',
-          file: { mediaFileId: file.id, fileName: 'found.mkv', size: 1 },
-        },
-      ],
-    });
-    // The reconciliation gives the request the file; the other keeps its torrent
-    expect(await references()).toEqual([
-      [1, 'active', null, null],
-      [2, 'active', 'pack', null],
-    ]);
-    expect(await queuedTitles()).toBe(1);
-
-    // Picking the file again leaves a request that has it alone
-    await orm.em
-      .fork()
-      .nativeUpdate(MediaRequest, { episode: 1 }, { mediaFileId: file.id });
-    await request(() => requests.preferFile(target(1), file.id));
-    expect(await references()).toEqual([
-      [1, 'active', null, 'file'],
-      [2, 'active', 'pack', null],
-    ]);
-
-    // Clearing the preference takes nothing from a request that has its file
-    expect(await request(() => requests.clearPreference(target(1)))).toBe(true);
-    expect(await rule()).toMatchObject({
-      seasonTorrents: [{ season: 1 }],
-      episodeSources: null,
-    });
-    expect(await references()).toEqual([
-      [1, 'active', null, 'file'],
-      [2, 'active', 'pack', null],
-    ]);
-  });
-
-  it('refuses a file that is not of the episode', async () => {
-    const file = await addFile('found', 2);
-
-    await expect(
-      request(() => requests.preferFile(target(1), file.id)),
-    ).rejects.toThrow('not of this episode');
-    await expect(
-      request(() => requests.preferFile(target(1), 'unknown')),
-    ).rejects.toThrow('File not found');
-  });
-
-  it('requests the episodes of files for a user, bound to the files', async () => {
-    await requestEpisodes([1]);
-    await select(0, 'pack');
-    await addTorrent('pack', PACK);
-    await bind([1], 'pack');
-    await attach(1, PACK);
-    const first = await addFile('first', 1);
-    const second = await addFile('second', 2, 3);
-    const other = await addFile('other', 2);
-
-    const result = await request(() =>
-      requests.requestFiles(userId, [first, second, other]),
-    );
-
-    // The request of episode 1 keeps its version, episodes 2 and 3 get the first file of theirs
-    expect(result).toEqual({ requests: 2, kept: 1, skipped: 0 });
-    expect(await references()).toEqual([
-      [1, 'active', 'pack', 'file'],
-      [2, 'active', null, 'file'],
-      [3, 'active', null, 'file'],
-    ]);
-    const rows = await orm.em
-      .fork()
-      .find(MediaRequest, {}, { orderBy: { episode: 'asc' } });
-    expect(rows.slice(1).map((r) => r.mediaFileId)).toEqual([
-      second.id,
-      second.id,
-    ]);
-    expect(await rule()).toMatchObject({
-      episodeSources: [
-        {
-          season: 1,
-          episode: 2,
-          kind: 'file',
-          file: { mediaFileId: second.id },
-        },
-        {
-          season: 1,
-          episode: 3,
-          kind: 'file',
-          file: { mediaFileId: second.id },
-        },
-      ],
-    });
-    expect(await queuedTitles()).toBe(1);
-
-    // An episode the series does not have, and a movie, are skipped
-    const fourth = await addFile('fourth', 4);
-    const movie = await addFile('movie', 0);
-    await orm.em
-      .fork()
-      .nativeUpdate(
-        MediaFile,
-        { id: movie.id },
-        { mediaType: MediaType.Movie },
-      );
-    movie.mediaType = MediaType.Movie;
     expect(
-      await request(() => requests.requestFiles(userId, [fourth, movie])),
-    ).toEqual({ requests: 0, kept: 0, skipped: 2 });
+      await orm.em
+        .fork()
+        .transactional((tx) => requests.deleteRequests(tx, [first.id])),
+    ).toBe(1);
+    expect(await standings()).toEqual([[2, 'needed', false]]);
+    expect(await reconciled()).toEqual([`gone:${first.id}`]);
+
+    await forgetJobs();
+    await unrequestEpisodes([2]);
+    expect(await rows()).toEqual([]);
+    expect(await reconciled()).toHaveLength(1);
   });
 
-  it('deletes the requests of files and applies the rules to the rest of their pairs', async () => {
-    await setRule({ keepNext: 1 });
-    await select(0, 'pack');
-    await requestEpisodes([1, 2, 3]);
-    await addTorrent('pack', PACK);
-    await bind([1], 'pack');
-    const fileId = await attach(1, PACK);
+  it('tells the library about the requests of a user that is deleted', async () => {
+    await requestEpisodes([1, 2]);
+    await forgetJobs();
 
-    const deleted = await orm.em
+    await orm.em
       .fork()
-      .transactional((tx) =>
-        requests.deleteRequests(tx, { mediaFileIds: [fileId] }),
-      );
+      .transactional((tx) => requests.userDeleting(tx, userId));
 
-    expect(deleted).toBe(1);
-    expect(await references()).toEqual([
-      [2, 'active', null, null],
-      [3, 'inactive', null, null],
-    ]);
+    expect(await reconciled()).toEqual([1, 2]);
   });
-});
 
-describe('Migration20261010200450', () => {
-  it('moves the selections into the rules and stamps the requests', async () => {
-    const orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
-    try {
-      await orm.migrator.up({ to: 'Migration20261009203715' });
-      const em = orm.em.fork();
-      // The rows are written as the schema of the step before has them
-      await em.execute(
-        `insert into user (id, name, password, is_admin, onboarding_done, settings, profile_picture)
-         values ('user', 'user', '', 0, 0, '{}', null)`,
-      );
-      for (const id of ['pack', 'episode']) {
-        await em.execute(
-          `insert into torrent (id, info_hash, title, indexer, size, magnet_url, downloaded_bytes, uploaded_bytes, created_at)
-           values (?, ?, ?, 'test', 1, ?, 0, 0, 0)`,
-          [id, id.padEnd(40, '0'), id, id === 'pack' ? 'magnet:?pack' : null],
-        );
-      }
-      const selection = (
-        tmdbId: string,
-        season: number,
-        episode: number,
-        torrentId: string,
-      ) =>
-        em.execute(
-          `insert into torrent_selection (id, user_id, media_type, tmdb_id, season, episode, torrent_id, release_id, created_at)
-           values (?, 'user', 'series', ?, ?, ?, ?, 'r', 0)`,
-          [
-            `${tmdbId}/${season}/${episode}`,
-            tmdbId,
-            season,
-            episode,
-            torrentId,
-          ],
-        );
-      await selection('100', 1, 0, 'pack');
-      await selection('100', 1, 2, 'episode');
-      await selection('200', 2, 0, 'pack');
-      await em.execute(
-        `insert into request_rule (id, user_id, tmdb_id, keep_next, keep_watched, keep_watched_hours)
-         values ('rule', 'user', '100', 2, null, null)`,
-      );
-      const insert = (episode: number, approved: number) =>
-        em.execute(
-          `insert into request (id, user_id, tmdb_id, media_type, season, episode, approved, torrent_id, created_at, updated_at)
-           values (?, 'user', '100', 'episode', 1, ?, ?, 'pack', 0, 0)`,
-          [`1/${episode}`, episode, approved],
-        );
-      await insert(1, 1);
-      await insert(2, 0);
-      await em.execute(
-        `insert into play_state (id, user_id, media_type, tmdb_id, season, episode, progress, watched, watched_at, last_played_at)
-         values ('played', 'user', 'episode', '100', 1, 1, 1, 1, 5000, 5000)`,
-      );
-      await em.execute(
-        `insert into jobs (id, type, payload, status, run_at, attempts, created_at)
-         values ('job', 'torrent.import', '{}', 'queued', 0, 0, 0)`,
-      );
+  it('requests a movie, which waits for a source it cannot have yet', async () => {
+    const created = await request(() =>
+      requests.createMovieRequest(userId, '7', true),
+    );
+    expect(created).toMatchObject({
+      mediaType: MediaTypeFull.Movie,
+      approved: true,
+    });
+    expect(created.neededSince).toBeFalsy();
+    const read = await request(() => requests.readRequest(orm.em, created.id));
+    expect(read).toMatchObject({ id: created.id });
+    expect(read.source).toBeUndefined();
 
-      await orm.migrator.up();
-
-      const rules = await orm.em
-        .fork()
-        .find(RequestRule, {}, { orderBy: { tmdbId: 'asc' } });
-      expect(rules).toMatchObject([
-        {
-          tmdbId: '100',
-          mediaType: 'series',
-          keepNext: 2,
-          seasonTorrents: [
-            {
-              season: 1,
-              release: {
-                releaseId: 'r',
-                title: 'pack',
-                infoHash: 'pack'.padEnd(40, '0'),
-                magnetUrl: 'magnet:?pack',
-              },
-            },
-          ],
-          episodeSources: [
-            {
-              season: 1,
-              episode: 2,
-              kind: 'torrent',
-              release: { title: 'episode', magnetUrl: null },
-            },
-          ],
-        },
-        {
-          tmdbId: '200',
-          keepNext: null,
-          seasonTorrents: [{ season: 2, release: { title: 'pack' } }],
-          episodeSources: null,
-        },
-      ]);
-      const requests = await orm.em
-        .fork()
-        .find(MediaRequest, {}, { orderBy: { episode: 'asc' } });
-      // A request that downloads is through the gate; the others go through
-      // the rules when the server starts
-      expect(
-        requests.map((r) => [
-          r.episode,
-          !!r.activatedAt,
-          r.watchedAt?.getTime() ?? null,
-          r.torrentId,
-        ]),
-      ).toEqual([
-        [1, true, 5000, 'pack'],
-        [2, false, null, 'pack'],
-      ]);
-      expect(await orm.em.fork().count(Job)).toBe(0);
-    } finally {
-      await orm.close();
-    }
+    expect(await request(() => requests.deleteMovieRequest(userId, '7'))).toBe(
+      1,
+    );
+    expect(
+      await request(() => requests.findMovieRequest(userId, '7')),
+    ).toBeUndefined();
   });
 });

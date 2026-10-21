@@ -16,7 +16,7 @@ import {
   INFO_HASH,
   LibraryFixture,
   TMDB_ID,
-} from '../../test/local-media-fixture.js';
+} from '../../test/library-fixture.js';
 import { CleanupSchedule } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { Job } from '../jobs/job.entity.js';
@@ -25,14 +25,14 @@ import mikroOrmConfig from '../mikro-orm.config.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
-import { CleanupService } from './cleanup.service.js';
-import { LocalMediaService } from './local-media.service.js';
+import { DeletionService } from './deletion.service.js';
+import { LibraryService } from './folder.service.js';
 import { MediaFile } from './media-file.entity.js';
 
-describe('CleanupService', () => {
+describe('DeletionService', () => {
   describe('the cleanup hour', () => {
     let orm: MikroORM;
-    let cleanupService: CleanupService;
+    let deletionService: DeletionService;
     let cleanup: CleanupSchedule;
 
     const queued = async () =>
@@ -53,10 +53,10 @@ describe('CleanupService', () => {
       const downloads = {
         getSettings: async () => ({ seedRatio: 0, cleanup }),
       };
-      cleanupService = new CleanupService(
+      deletionService = new DeletionService(
         orm.em,
         new JobsService(orm.em),
-        localMedia as unknown as LocalMediaService,
+        localMedia as unknown as LibraryService,
         downloads as unknown as DownloadsService,
         {} as RequestsService,
         {} as ServerLogService,
@@ -67,23 +67,23 @@ describe('CleanupService', () => {
 
     it('queues a scan of every library folder every night, and the cleanup on cleanup days', async () => {
       cleanup = CleanupSchedule.Off;
-      await cleanupService.onCleanupHour();
+      await deletionService.onCleanupHour();
 
       expect(await queued()).toEqual([
-        ['localMedia.scanFolder', { folder: '/anime' }],
-        ['localMedia.scanFolder', { folder: '/movies' }],
-        ['localMedia.scanFolder', { folder: '/tv' }],
+        ['library.scanFolder', { folder: '/anime' }],
+        ['library.scanFolder', { folder: '/movies' }],
+        ['library.scanFolder', { folder: '/tv' }],
       ]);
 
       // The scans that have not run yet are not queued twice
       cleanup = CleanupSchedule.Daily;
-      await cleanupService.onCleanupHour();
+      await deletionService.onCleanupHour();
 
       expect(await queued()).toEqual([
-        ['localMedia.cleanUpLibrary', {}],
-        ['localMedia.scanFolder', { folder: '/anime' }],
-        ['localMedia.scanFolder', { folder: '/movies' }],
-        ['localMedia.scanFolder', { folder: '/tv' }],
+        ['library.cleanUpLibrary', {}],
+        ['library.scanFolder', { folder: '/anime' }],
+        ['library.scanFolder', { folder: '/movies' }],
+        ['library.scanFolder', { folder: '/tv' }],
       ]);
     });
   });
@@ -91,9 +91,9 @@ describe('CleanupService', () => {
   describe('with a library', () => {
     let fixture: LibraryFixture;
     let orm: MikroORM;
-    let cleanup: CleanupService;
+    let deletion: DeletionService;
     let root: string;
-    let library: string;
+    let folder: string;
     let jobs: LibraryFixture['jobs'];
     let requests: LibraryFixture['requests'];
     let request: LibraryFixture['request'];
@@ -102,7 +102,7 @@ describe('CleanupService', () => {
     let importEpisode: LibraryFixture['importEpisode'];
     let scanSeries: LibraryFixture['scanSeries'];
     let saveFoldersAround: LibraryFixture['saveFoldersAround'];
-    let reconciled: LibraryFixture['reconciled'];
+    let bind: LibraryFixture['bind'];
 
     const logged = async () =>
       (await orm.em.fork().find(LogEntry, {})).map((entry) => entry.message);
@@ -113,9 +113,9 @@ describe('CleanupService', () => {
       fixture = await createLibraryFixture();
       ({
         orm,
-        cleanup,
+        deletion,
         root,
-        library,
+        library: folder,
         jobs,
         requests,
         request,
@@ -124,7 +124,7 @@ describe('CleanupService', () => {
         importEpisode,
         scanSeries,
         saveFoldersAround,
-        reconciled,
+        bind,
       } = fixture);
     });
 
@@ -132,7 +132,7 @@ describe('CleanupService', () => {
 
     describe('deleting a managed file', () => {
       const deleteFile = (id: string) =>
-        request(() => cleanup.deleteManagedFile(id, 'a test'));
+        request(() => deletion.deleteManagedFile(id, 'a test'));
 
       it('deletes the file with the folders it leaves empty', async () => {
         const first = await importEpisode(write('downloads/S01E01.mkv'), [1]);
@@ -161,7 +161,7 @@ describe('CleanupService', () => {
 
         await deleteFile(await idOf(second));
         expect(await indexed()).toEqual([]);
-        expect(readdirSync(library)).toEqual([]);
+        expect(readdirSync(folder)).toEqual([]);
         // The download is another link to the data and stays
         expect(existsSync(path.join(root, 'downloads/S01E02.mkv'))).toBe(true);
       });
@@ -229,24 +229,19 @@ describe('CleanupService', () => {
         expect(await indexed()).toMatchObject([{ id, managed: false }]);
       });
 
-      it('reconciles the title in the transaction that forgets the row', async () => {
+      it('keeps a file that a request holds', async () => {
         const imported = await importEpisode(
           write('downloads/S01E01.mkv'),
           [1],
         );
         const id = await idOf(imported);
-        jobs.enqueue.mockImplementationOnce(async (tx) => {
-          expect(tx.isInTransaction()).toBe(true);
-          // The row is still there
-          expect(await tx.count(MediaFile, { id })).toBe(1);
-        });
+        await bind('request-1', id);
 
-        await deleteFile(id);
+        expect(await deleteFile(id)).toBe('kept');
 
-        expect(reconciled()).toEqual([
-          { mediaType: 'series', tmdbId: TMDB_ID },
-        ]);
-        expect(await indexed()).toEqual([]);
+        expect(existsSync(imported)).toBe(true);
+        expect(await indexed()).toMatchObject([{ id, managed: true }]);
+        expect(await logged()).toEqual([]);
       });
 
       it('forgets a file that is already gone', async () => {
@@ -257,22 +252,19 @@ describe('CleanupService', () => {
         const id = await idOf(imported);
         rmSync(imported);
 
-        await deleteFile(id);
+        expect(await deleteFile(id)).toBe('deleted');
 
         expect(await indexed()).toEqual([]);
         expect(await logged()).toEqual([
           `Deleted "${imported}": a test, it was gone already`,
-        ]);
-        expect(reconciled()).toEqual([
-          { mediaType: 'series', tmdbId: TMDB_ID },
         ]);
       });
     });
 
     describe('deleting the entries of a library folder', () => {
       const SHOW = 'Test Show (2020) [tmdbid-100]';
-      const deleteEntries = (paths: string[], folder = library) =>
-        request(() => cleanup.deleteLibraryEntries(folder, paths, 'a test'));
+      const deleteEntries = (paths: string[], target = folder) =>
+        request(() => deletion.deleteLibraryEntries(target, paths, 'a test'));
 
       it('deletes what it can and reports what it cannot', async () => {
         const kept = write(`tv/${SHOW}/Season 1/Test Show - S01E01.mkv`);
@@ -294,10 +286,10 @@ describe('CleanupService', () => {
           chmodSync(locked, 0o755);
         }
         expect(existsSync(kept)).toBe(true);
-        expect(existsSync(path.join(library, 'Unknown/notes.txt'))).toBe(false);
+        expect(existsSync(path.join(folder, 'Unknown/notes.txt'))).toBe(false);
         expect((await indexed()).map((file) => file.path)).toEqual([kept]);
         expect(await logged()).toEqual([
-          `Deleted "${path.join(library, 'Unknown/notes.txt')}": a test`,
+          `Deleted "${path.join(folder, 'Unknown/notes.txt')}": a test`,
         ]);
       });
 
@@ -317,11 +309,9 @@ describe('CleanupService', () => {
         const rows = await indexed();
         const firstRow = rows.find((row) => row.path === first);
         const secondRow = rows.find((row) => row.path === second);
-        requests.findReferringRequests.mockResolvedValueOnce([
-          { id: 'request-1', mediaFileId: firstRow.id },
-        ]);
+        await bind('request-1', firstRow.id);
         const selected = {
-          mediaFile: path.relative(library, first),
+          mediaFile: path.relative(folder, first),
           directory: `${SHOW}/Season 2`,
           file: 'Unknown/notes.txt',
         };
@@ -335,20 +325,14 @@ describe('CleanupService', () => {
           ]),
         ).toEqual({ deleted: 3, failed: [] });
 
-        // The requests were read for the files of every entry before the deletion
-        expect(requests.findReferringRequests).toHaveBeenCalledWith([
-          firstRow.id,
-          secondRow.id,
-        ]);
+        // The requests that held the files of an entry go with them
+        expect(secondRow).toBeDefined();
         expect(
-          requests.deleteRequests.mock.calls.map(([, where]) => where),
-        ).toEqual([
-          { ids: ['request-1'], mediaFileIds: [firstRow.id] },
-          { ids: [], mediaFileIds: [secondRow.id] },
-        ]);
+          requests.deleteRequests.mock.calls.map(([, ids]) => ids),
+        ).toEqual([['request-1'], []]);
         // A directory that is left empty stays: it was not selected
         expect(
-          readdirSync(library, { recursive: true }).map(String).sort(),
+          readdirSync(folder, { recursive: true }).map(String).sort(),
         ).toEqual([
           SHOW,
           `${SHOW}/Season 1`,
@@ -358,8 +342,8 @@ describe('CleanupService', () => {
         ]);
         expect((await indexed()).map((file) => file.season)).toEqual([3]);
         expect((await logged()).sort()).toEqual(
-          [first, second, path.join(library, selected.directory)]
-            .concat(path.join(library, selected.file))
+          [first, second, path.join(folder, selected.directory)]
+            .concat(path.join(folder, selected.file))
             .map((deleted) => `Deleted "${deleted}": a test`)
             .sort(),
         );
@@ -371,9 +355,7 @@ describe('CleanupService', () => {
         write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv');
         await scanSeries();
         const [row] = await indexed();
-        requests.findReferringRequests.mockResolvedValueOnce([
-          { id: 'request-1', mediaFileId: row.id },
-        ]);
+        await bind('request-1', row.id);
         const rm = fsPromises.rm;
         // A scan of the title forgets the row while the entry is deleted
         vi.spyOn(fsPromises, 'rm').mockImplementationOnce(async (...args) => {
@@ -385,14 +367,14 @@ describe('CleanupService', () => {
 
         expect(requests.deleteRequests).toHaveBeenCalledWith(
           expect.anything(),
-          { ids: ['request-1'], mediaFileIds: [row.id] },
+          ['request-1'],
         );
       });
 
       it('deletes nothing outside the folder', async () => {
         write('elsewhere/secret.txt');
         write('tv/Unknown/notes.txt');
-        symlinkSync(path.join(root, 'elsewhere'), path.join(library, 'link'));
+        symlinkSync(path.join(root, 'elsewhere'), path.join(folder, 'link'));
 
         for (const paths of [
           ['../elsewhere/secret.txt'],
@@ -409,11 +391,11 @@ describe('CleanupService', () => {
           );
         }
         expect(existsSync(path.join(root, 'elsewhere/secret.txt'))).toBe(true);
-        expect(existsSync(path.join(library, 'Unknown/notes.txt'))).toBe(true);
+        expect(existsSync(path.join(folder, 'Unknown/notes.txt'))).toBe(true);
 
         // A link is deleted, what it leads to is not
         await deleteEntries(['link']);
-        expect(readdirSync(library)).toEqual(['Unknown']);
+        expect(readdirSync(folder)).toEqual(['Unknown']);
         expect(existsSync(path.join(root, 'elsewhere/secret.txt'))).toBe(true);
       });
     });

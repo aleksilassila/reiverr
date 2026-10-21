@@ -7,15 +7,20 @@ type Title = { mediaType: MediaType; tmdbId: string };
  * what it does, like a method of that module. The payload names the resource
  * a job acts on and nothing else, and the dedupe key is the type and the
  * whole payload, so a job that is merged into a queued one loses nothing.
+ *
+ * The jobs table is also how a module tells another one what happened, in
+ * the transaction of the change: requests enqueues `library.reconcileRequest`
+ * for every request whose inputs changed, and downloads enqueues
+ * `library.importItem` for every item of a torrent that is complete.
  */
 export interface JobPayloads {
-  'downloads.reconcileTitle': Title;
-  'downloads.reconcileTorrent': { torrentId: string };
-  'localMedia.importTorrentFile': { torrentId: string; fileIndex: number };
-  'localMedia.scanTitle': Title;
-  'localMedia.scanFolder': { folder: string };
-  'localMedia.cleanUpTitle': Title;
-  'localMedia.cleanUpLibrary': Record<string, never>;
+  'downloads.reconcileTorrent': { infoHash: string };
+  'library.reconcileRequest': { requestId: string };
+  'library.importItem': { infoHash: string; itemId: string };
+  'library.scanTitle': Title;
+  'library.scanFolder': { folder: string };
+  'library.cleanUpLibrary': Record<string, never>;
+  'library.cleanUpTitle': Title;
 }
 
 export type JobType = keyof JobPayloads;
@@ -31,34 +36,33 @@ export interface JobKeys {
 export const JOB_KEYS: {
   [T in JobType]: (payload: JobPayloads[T]) => JobKeys;
 } = {
-  // The jobs of a title never overlap: binding, scanning and cleaning it up
-  'downloads.reconcileTitle': ({ mediaType, tmdbId }) => ({
-    dedupe: `downloads.reconcileTitle:${mediaType}:${tmdbId}`,
-    lock: `title:${mediaType}:${tmdbId}`,
+  'downloads.reconcileTorrent': ({ infoHash }) => ({
+    dedupe: `downloads.reconcileTorrent:${infoHash}`,
+    lock: `torrent:${infoHash}`,
   }),
-  'downloads.reconcileTorrent': ({ torrentId }) => ({
-    dedupe: `downloads.reconcileTorrent:${torrentId}`,
-    lock: `torrent:${torrentId}`,
+  'library.reconcileRequest': ({ requestId }) => ({
+    dedupe: `library.reconcileRequest:${requestId}`,
+    lock: `request:${requestId}`,
   }),
   // An import never overlaps a start, stop or release of its torrent
-  'localMedia.importTorrentFile': ({ torrentId, fileIndex }) => ({
-    dedupe: `localMedia.importTorrentFile:${torrentId}:${fileIndex}`,
-    lock: `torrent:${torrentId}`,
+  'library.importItem': ({ infoHash, itemId }) => ({
+    dedupe: `library.importItem:${itemId}`,
+    lock: `torrent:${infoHash}`,
   }),
-  'localMedia.scanTitle': ({ mediaType, tmdbId }) => ({
-    dedupe: `localMedia.scanTitle:${mediaType}:${tmdbId}`,
+  'library.scanTitle': ({ mediaType, tmdbId }) => ({
+    dedupe: `library.scanTitle:${mediaType}:${tmdbId}`,
     lock: `title:${mediaType}:${tmdbId}`,
   }),
-  'localMedia.scanFolder': ({ folder }) => ({
-    dedupe: `localMedia.scanFolder:${folder}`,
+  'library.scanFolder': ({ folder }) => ({
+    dedupe: `library.scanFolder:${folder}`,
     lock: `folder:${folder}`,
   }),
-  'localMedia.cleanUpTitle': ({ mediaType, tmdbId }) => ({
-    dedupe: `localMedia.cleanUpTitle:${mediaType}:${tmdbId}`,
-    lock: `title:${mediaType}:${tmdbId}`,
-  }),
-  'localMedia.cleanUpLibrary': () => ({
-    dedupe: 'localMedia.cleanUpLibrary',
+  'library.cleanUpLibrary': () => ({
+    dedupe: 'library.cleanUpLibrary',
     lock: 'library',
+  }),
+  'library.cleanUpTitle': ({ mediaType, tmdbId }) => ({
+    dedupe: `library.cleanUpTitle:${mediaType}:${tmdbId}`,
+    lock: `title:${mediaType}:${tmdbId}`,
   }),
 };

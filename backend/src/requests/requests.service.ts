@@ -1,6 +1,4 @@
-import * as path from 'path';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
+import { EntityManager } from '@mikro-orm/sqlite';
 import {
   BadRequestException,
   Injectable,
@@ -22,8 +20,13 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { User } from '../users/user.entity.js';
-import { MediaFile } from '../local-media/media-file.entity.js';
-import { evaluateRules, fullTypeOf, titleTypeOf } from './request-rules.js';
+import { evaluateRules as evaluateRule } from './request-rules.js';
+import {
+  EpisodeSource,
+  RequestSource,
+  SeasonTorrent,
+  sourceOf,
+} from './request-source.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import {
@@ -32,18 +35,17 @@ import {
   UpdateMediaRequestDto,
 } from './requests.dto.js';
 import {
-  EpisodeSource,
-  FileSnapshot,
-  ReleaseSnapshot,
-  SeasonTorrent,
-} from './torrent-preference.js';
-
-/** A user and a title, whose requests a rule looks at together */
-export interface Pair {
-  userId: string;
-  mediaType: MediaType;
-  tmdbId: string;
-}
+  fullTypeOf,
+  groupBy,
+  isNeeded,
+  Pair,
+  pairKey,
+  pairOf,
+  seriesPair,
+  titleTypeOf,
+  uniquePairs,
+} from './requests.utils.js';
+import { SelectedRelease } from './selected-release.entity.js';
 
 /** A season (episode 0) or an episode of a series, for a user */
 export interface SelectionTarget {
@@ -51,6 +53,19 @@ export interface SelectionTarget {
   tmdbId: string;
   season: number;
   episode: number;
+}
+
+/** A request and where its user wants its file from, when they picked one */
+export type RequestWithSource = MediaRequest & { source?: RequestSource };
+
+/** A file of an episode in the library that an admin requests for a user */
+export interface FileToRequest {
+  id: string;
+  mediaType: MediaType;
+  tmdbId: string;
+  season: number;
+  episode: number;
+  lastEpisode: number;
 }
 
 /** The rule of a user for a series, with nothing set when there is no row */
@@ -63,36 +78,16 @@ interface RuleRow extends RequestRuleDto {
 
 const READ = { disableIdentityMap: true };
 
-const toFileSnapshot = (file: MediaFile): FileSnapshot => ({
-  mediaFileId: file.id,
-  fileName: path.basename(file.path),
-  size: file.size,
-});
-
-const uniquePairs = (pairs: Pair[]): Pair[] => [
-  ...new Map(
-    pairs.map(({ userId, mediaType, tmdbId }) => [
-      `${userId}/${mediaType}/${tmdbId}`,
-      { userId, mediaType, tmdbId },
-    ]),
-  ).values(),
-];
-
-const pairOf = (
-  request: Pick<MediaRequest, 'userId' | 'mediaType' | 'tmdbId'>,
-): Pair => ({
-  userId: request.userId,
-  mediaType: titleTypeOf(request.mediaType),
-  tmdbId: request.tmdbId,
-});
-
+/**
+ * What users want on disk, and the gates a request passes before the
+ * library acts on it: the admin's approval, a source picked by the user,
+ * and the download-ahead window of the user's rule. Every change of a
+ * request, or of what its source is, has the library look at the request
+ * again, through the job `library.reconcileRequest`.
+ */
 @Injectable()
 export class RequestsService implements OnApplicationBootstrap {
   constructor(
-    @InjectRepository(MediaRequest)
-    private readonly requestRepository: EntityRepository<MediaRequest>,
-    @InjectRepository(RequestRule)
-    private readonly ruleRepository: EntityRepository<RequestRule>,
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
     private readonly indexersService: IndexersService,
@@ -106,9 +101,10 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /**
    * Applies the rules to the requests of (user, title) pairs after a change
-   * of what they go by, and has the titles reconciled. Runs in the caller's
-   * transaction. A rule looks at all the requests of its user for the title,
-   * so the rules are applied to a pair whole.
+   * of what they go by, in the caller's transaction. A rule looks at all the
+   * requests of its user for the title, so the rules are applied to a pair
+   * whole. The requests that become needed or are deleted are looked at by
+   * the library.
    */
   async applyRules(em: EntityManager, pairs: Pair[]): Promise<void> {
     const unique = uniquePairs(pairs);
@@ -119,38 +115,33 @@ export class RequestsService implements OnApplicationBootstrap {
       tmdbId,
       mediaType: fullTypeOf(mediaType),
     }));
-    const requests = await em.find(
-      MediaRequest,
-      { $or: ofPairs },
-      {
-        ...READ,
-        fields: [
-          'id',
-          'userId',
-          'mediaType',
-          'tmdbId',
-          'season',
-          'episode',
-          'approved',
-          'activatedAt',
-          'watchedAt',
-        ],
-      },
-    );
+    const requests = await em.find(MediaRequest, { $or: ofPairs }, READ);
     const rules = await em.find(RequestRule, { $or: unique }, READ);
     const playStates = requests.length
       ? await em.find(PlayState, { $or: ofPairs }, READ)
       : [];
 
+    const requestsOf = groupBy(requests, (request) => pairKey(pairOf(request)));
+    const playStatesOf = groupBy(playStates, (playState) =>
+      pairKey(pairOf(playState)),
+    );
+    const rulesOf = new Map(rules.map((rule) => [pairKey(rule), rule]));
+
     const now = new Date();
-    const outcome = evaluateRules({
-      requests,
-      rules,
-      playStates,
-      now: now.getTime(),
-    });
+    const outcomes = unique.map((pair) =>
+      evaluateRule({
+        rule: rulesOf.get(pairKey(pair)),
+        requests: requestsOf.get(pairKey(pair)) ?? [],
+        playStates: playStatesOf.get(pairKey(pair)) ?? [],
+        now: now.getTime(),
+      }),
+    );
+    const watched = outcomes.flatMap((outcome) => [...outcome.watched]);
+    const deleted = outcomes.flatMap((outcome) => outcome.deleted);
+    const needed = outcomes.flatMap((outcome) => outcome.needed);
+
     const stamps = new Map<number | null, string[]>();
-    for (const [id, watchedAt] of outcome.watched) {
+    for (const [id, watchedAt] of watched) {
       const key = watchedAt?.getTime() ?? null;
       stamps.set(key, [...(stamps.get(key) ?? []), id]);
     }
@@ -161,25 +152,17 @@ export class RequestsService implements OnApplicationBootstrap {
         { watchedAt: time === null ? null : new Date(time) },
       );
     }
-    if (outcome.deleted.length) {
-      await em.nativeDelete(MediaRequest, { id: { $in: outcome.deleted } });
+    if (deleted.length) {
+      await em.nativeDelete(MediaRequest, { id: { $in: deleted } });
     }
-    if (outcome.activated.length) {
+    if (needed.length) {
       await em.nativeUpdate(
         MediaRequest,
-        { id: { $in: outcome.activated } },
-        { activatedAt: now },
+        { id: { $in: needed } },
+        { neededSince: now },
       );
     }
-
-    const titles = new Map(
-      unique
-        .filter((pair) => pair.mediaType === MediaType.Series)
-        .map(({ mediaType, tmdbId }) => [tmdbId, { mediaType, tmdbId }]),
-    );
-    for (const title of titles.values()) {
-      await this.jobs.enqueue(em, 'downloads.reconcileTitle', title);
-    }
+    await this.reconcileLater(em, [...needed, ...deleted]);
   }
 
   /**
@@ -207,13 +190,74 @@ export class RequestsService implements OnApplicationBootstrap {
     });
   }
 
+  /** A request with the source its user prefers for it, for the library */
+  async readRequest(
+    em: EntityManager,
+    id: string,
+  ): Promise<RequestWithSource | undefined> {
+    const request = await em.findOne(MediaRequest, { id }, READ);
+    if (!request) return undefined;
+    if (request.mediaType !== MediaTypeFull.Episode) return request;
+
+    const rule = await em.findOne(
+      RequestRule,
+      {
+        userId: request.userId,
+        mediaType: MediaType.Series,
+        tmdbId: request.tmdbId,
+      },
+      READ,
+    );
+
+    return {
+      ...request,
+      source: sourceOf(rule, request.season, request.episode),
+    };
+  }
+
+  /** The ids of every request, and the ones among them that are needed */
+  async findRequestIds(
+    em: EntityManager,
+  ): Promise<{ all: Set<string>; needed: Set<string> }> {
+    const requests = await em.find(
+      MediaRequest,
+      {},
+      {
+        ...READ,
+        fields: ['id', 'approved', 'neededSince'],
+      },
+    );
+    const needed = requests.filter(isNeeded);
+
+    return {
+      all: new Set(requests.map((request) => request.id)),
+      needed: new Set(needed.map((request) => request.id)),
+    };
+  }
+
+  /** The releases users picked, with their .torrent files, for the library to hand to downloads */
+  findSelectedReleases(
+    em: EntityManager,
+    infoHashes: string[],
+  ): Promise<SelectedRelease[]> {
+    if (!infoHashes.length) return Promise.resolve([]);
+
+    return em.find(
+      SelectedRelease,
+      { infoHash: { $in: infoHashes } },
+      { ...READ, populate: ['torrentFile'] },
+    );
+  }
+
   async findByUser(
     userId: string,
     pagination: PaginationDto,
   ): Promise<PaginatedResponseDto<MediaRequest>> {
-    const [items, total] = await this.requestRepository.findAndCount(
+    const [items, total] = await this.em.findAndCount(
+      MediaRequest,
       { userId },
       {
+        ...READ,
         orderBy: { createdAt: 'desc' },
         offset: (pagination.page - 1) * pagination.itemsPerPage,
         limit: pagination.itemsPerPage,
@@ -228,15 +272,17 @@ export class RequestsService implements OnApplicationBootstrap {
     };
   }
 
-  async findMovieRequest(
+  findMovieRequest(
     userId: string,
     tmdbId: string,
   ): Promise<MediaRequest | undefined> {
-    return this.requestRepository.findOne({
-      userId,
-      tmdbId,
-      mediaType: MediaTypeFull.Movie,
-    });
+    return this.em
+      .findOne(
+        MediaRequest,
+        { userId, tmdbId, mediaType: MediaTypeFull.Movie },
+        READ,
+      )
+      .then((request) => request ?? undefined);
   }
 
   async createMovieRequest(
@@ -247,25 +293,17 @@ export class RequestsService implements OnApplicationBootstrap {
     const movie = await this.metadataService.getMovieByTmdbId(tmdbId);
     if (!movie) throw new NotFoundException('Movie not found');
 
-    const now = new Date();
     await this.em.transactional(async (tx) => {
-      await tx
-        .createQueryBuilder(MediaRequest)
-        .insert({
-          id: randomUUID(),
+      await this.insertRequests(tx, [
+        {
           userId,
           tmdbId,
           mediaType: MediaTypeFull.Movie,
           season: 0,
           episode: 0,
           approved,
-          createdAt: now,
-          updatedAt: now,
-        })
-        // A movie is requested once, two requests at the same time included
-        .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-        .ignore()
-        .execute('run');
+        },
+      ]);
       await this.applyRules(tx, [
         { userId, mediaType: MediaType.Movie, tmdbId },
       ]);
@@ -274,21 +312,17 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.findMovieRequest(userId, tmdbId);
   }
 
-  async deleteMovieRequest(userId: string, tmdbId: string): Promise<number> {
-    return this.requestRepository.nativeDelete({
-      userId,
-      tmdbId,
-      mediaType: MediaTypeFull.Movie,
-    });
+  deleteMovieRequest(userId: string, tmdbId: string): Promise<number> {
+    return this.em.transactional((tx) =>
+      this.deleteWhere(tx, { userId, tmdbId, mediaType: MediaTypeFull.Movie }),
+    );
   }
 
-  async findSeriesRequests(
-    userId: string,
-    tmdbId: string,
-  ): Promise<MediaRequest[]> {
-    return this.requestRepository.find(
+  findSeriesRequests(userId: string, tmdbId: string): Promise<MediaRequest[]> {
+    return this.em.find(
+      MediaRequest,
       { userId, tmdbId, mediaType: MediaTypeFull.Episode },
-      { orderBy: { season: 'asc', episode: 'asc' } },
+      { ...READ, orderBy: { season: 'asc', episode: 'asc' } },
     );
   }
 
@@ -313,56 +347,49 @@ export class RequestsService implements OnApplicationBootstrap {
       );
     }
 
-    const now = new Date();
     if (episodes.length) {
       await this.em.transactional(async (tx) => {
         if (requested) {
-          await tx
-            .createQueryBuilder(MediaRequest)
-            .insert(
-              episodes.map(({ season, episode }) => ({
-                id: randomUUID(),
-                userId,
-                tmdbId,
-                mediaType: MediaTypeFull.Episode,
-                season,
-                episode,
-                approved,
-                createdAt: now,
-                updatedAt: now,
-              })),
-            )
-            .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-            .ignore()
-            .execute();
+          await this.insertRequests(
+            tx,
+            episodes.map(({ season, episode }) => ({
+              userId,
+              tmdbId,
+              mediaType: MediaTypeFull.Episode,
+              season,
+              episode,
+              approved,
+            })),
+          );
         } else {
-          await tx.nativeDelete(MediaRequest, {
+          await this.deleteWhere(tx, {
             userId,
             tmdbId,
             mediaType: MediaTypeFull.Episode,
             $or: episodes.map(({ season, episode }) => ({ season, episode })),
           });
         }
-        await this.applyRules(tx, [
-          { userId, mediaType: MediaType.Series, tmdbId },
-        ]);
+        await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
       });
     }
 
     return this.findSeriesRequests(userId, tmdbId);
   }
 
-  async findSeriesRule(
+  findSeriesRule(
     userId: string,
     tmdbId: string,
   ): Promise<RequestRule | undefined> {
-    return this.ruleRepository.findOne(
-      { userId, mediaType: MediaType.Series, tmdbId },
-      READ,
-    );
+    return this.em
+      .findOne(
+        RequestRule,
+        { userId, mediaType: MediaType.Series, tmdbId },
+        READ,
+      )
+      .then((rule) => rule ?? undefined);
   }
 
-  /** Sets the limits of the rule of a user for a series. The torrents it prefers stay. */
+  /** Sets the limits of the rule of a user for a series. The sources it prefers stay. */
   async setSeriesRule(
     userId: string,
     tmdbId: string,
@@ -380,9 +407,7 @@ export class RequestsService implements OnApplicationBootstrap {
         keepWatched,
         keepWatchedHours,
       });
-      await this.applyRules(tx, [
-        { userId, mediaType: MediaType.Series, tmdbId },
-      ]);
+      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
     });
 
     return { keepNext, keepWatched, keepWatchedHours };
@@ -390,130 +415,133 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /**
    * Makes a release the torrent that the requests of a user for an episode,
-   * or with episode 0 for a season, download from. The release is resolved
-   * now, so that a link that leads nowhere fails here and not when a request
-   * needs it, and is kept so that it can be resolved again long after the
-   * search result has expired. A source is what lets a request through the
-   * download-ahead gate, so the rules are applied.
+   * or with episode 0 for a season, get their files from. The release is
+   * resolved now, so that a link that leads nowhere fails here, and kept
+   * with its magnet link or .torrent file so that it can be downloaded long
+   * after the search result has expired. A source is what lets a request
+   * through the download-ahead gate, so the rules are applied, and the
+   * library looks at the requests in scope.
    */
   async preferRelease(
     target: SelectionTarget,
     releaseId: string,
   ): Promise<void> {
     const { userId, tmdbId, season, episode } = target;
-    const series = await this.metadataService.getSeriesByTmdbId(tmdbId);
-    if (!series) throw new NotFoundException('Series not found');
-
-    const exists =
-      episode === 0
-        ? hasSeason(series.tmdbSeries, season)
-        : hasEpisode(series.tmdbSeries, season, episode);
-    if (!exists) throw new NotFoundException('Season or episode not found');
+    await this.assertSeasonOrEpisode(target);
 
     const release = this.indexersService.getRelease(releaseId);
     if (!release) {
       throw new NotFoundException('Release not found, search again');
     }
+    // Fetches the .torrent file, outside any transaction
     const source = await this.indexersService.resolveTorrent(release);
-    const snapshot: ReleaseSnapshot = {
-      releaseId: release.id,
-      indexer: release.indexer,
-      title: release.title,
-      size: release.size,
-      infoHash: source.infoHash,
-      magnetUrl: release.magnetUrl ?? source.magnetUrl,
-      downloadUrl: release.downloadUrl,
-    };
+    const { infoHash } = source;
 
     await this.em.transactional(async (tx) => {
+      const magnetUrl = release.magnetUrl ?? source.magnetUrl;
+      await tx
+        .createQueryBuilder(SelectedRelease)
+        .insert({
+          infoHash,
+          title: release.title,
+          indexer: release.indexer,
+          size: release.size,
+          magnetUrl,
+          torrentFile: source.torrentFile,
+          createdAt: new Date(),
+        })
+        .onConflict('infoHash')
+        .merge([
+          'title',
+          'indexer',
+          'size',
+          ...(magnetUrl ? (['magnetUrl'] as const) : []),
+          ...(source.torrentFile ? (['torrentFile'] as const) : []),
+        ])
+        .execute();
+
       const rule = await this.readRule(tx, userId, tmdbId);
       const seasonTorrents = rule.seasonTorrents.filter(
         (t) => episode !== 0 || t.season !== season,
       );
       const episodeSources = rule.episodeSources.filter(
-        (t) => t.season !== season || t.episode !== episode,
+        (s) => s.season !== season || s.episode !== episode,
       );
-      if (episode === 0) seasonTorrents.push({ season, release: snapshot });
-      else {
-        episodeSources.push({
-          season,
-          episode,
-          kind: 'torrent',
-          release: snapshot,
-        });
-      }
-
+      if (episode === 0) seasonTorrents.push({ season, infoHash });
+      else episodeSources.push({ season, episode, kind: 'torrent', infoHash });
       await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
-      await this.rebind(tx, target, {
-        episodeSources,
-        replaceHeld: episode !== 0,
-        infoHash: source.infoHash,
-      });
-      await this.applyRules(tx, [
-        { userId, mediaType: MediaType.Series, tmdbId },
-      ]);
+
+      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.reconcileSelectionScope(tx, target);
     });
   }
 
   /**
    * Makes a file in the library what the requests of a user for an episode
-   * have. A request of the episode that downloads from a torrent lets it go
-   * for the file.
+   * have. Whether the file is of the episode and in the library is the
+   * library's to tell, when it looks at the request.
    */
   async preferFile(
     target: SelectionTarget,
     mediaFileId: string,
   ): Promise<void> {
     const { userId, tmdbId, season, episode } = target;
-    const file = await this.em.findOne(
-      MediaFile,
-      { id: mediaFileId, mediaType: MediaType.Series, tmdbId },
-      READ,
-    );
-    if (!file) throw new NotFoundException('File not found');
-    if (
-      file.season !== season ||
-      episode < file.episode ||
-      file.lastEpisode < episode
-    ) {
-      throw new BadRequestException('The file is not of this episode');
-    }
-    const snapshot = toFileSnapshot(file);
+    await this.assertSeasonOrEpisode(target);
 
     await this.em.transactional(async (tx) => {
       const rule = await this.readRule(tx, userId, tmdbId);
       const episodeSources = rule.episodeSources.filter(
         (s) => s.season !== season || s.episode !== episode,
       );
-      episodeSources.push({ season, episode, kind: 'file', file: snapshot });
-
+      episodeSources.push({ season, episode, kind: 'file', mediaFileId });
       await this.writeRule(tx, { ...rule, episodeSources });
-      await this.rebind(tx, target, {
-        episodeSources,
-        replaceHeld: true,
-        mediaFileId: file.id,
-      });
-      await this.applyRules(tx, [
-        { userId, mediaType: MediaType.Series, tmdbId },
-      ]);
+
+      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.reconcileSelectionScope(tx, target);
     });
   }
 
   /**
-   * Requests the episodes of files in the library for a user and binds the
-   * requests to the files, which is how an admin keeps files. The requests
-   * are approved and activated: the files are there, nothing downloads. A
-   * request that has another file keeps it, one that downloads from a
-   * torrent lets the torrent go, and the file becomes the user's preference
-   * for the episode. Files of movies and episodes the series does not have
-   * are skipped.
+   * Forgets the torrent a user prefers for a season, or the torrent or the
+   * file for an episode. An episode falls back to its season's torrent.
+   */
+  async clearPreference(target: SelectionTarget): Promise<boolean> {
+    const { userId, tmdbId, season, episode } = target;
+
+    return this.em.transactional(async (tx) => {
+      const rule = await this.readRule(tx, userId, tmdbId);
+      const seasonTorrents = rule.seasonTorrents.filter(
+        (t) => episode !== 0 || t.season !== season,
+      );
+      const episodeSources = rule.episodeSources.filter(
+        (s) => s.season !== season || s.episode !== episode,
+      );
+      const had =
+        seasonTorrents.length < rule.seasonTorrents.length ||
+        episodeSources.length < rule.episodeSources.length;
+      if (!had) return false;
+
+      await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
+      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.reconcileSelectionScope(tx, target);
+
+      return true;
+    });
+  }
+
+  /**
+   * Requests the episodes of files in the library for a user and makes the
+   * files what the requests have, which is how an admin keeps files. The
+   * requests are approved and needed: the files are there, nothing
+   * downloads. Of several files of an episode, the first gets the request.
+   * Files of movies and of episodes the series does not have are skipped.
    */
   async requestFiles(
     userId: string,
-    files: MediaFile[],
-  ): Promise<{ requests: number; kept: number; skipped: number }> {
-    const result = { requests: 0, kept: 0, skipped: 0 };
-    const byTitle = new Map<string, MediaFile[]>();
+    files: FileToRequest[],
+  ): Promise<{ requests: number; skipped: number }> {
+    const result = { requests: 0, skipped: 0 };
+    const byTitle = new Map<string, FileToRequest[]>();
     for (const file of files) {
       if (file.mediaType !== MediaType.Series) {
         result.skipped++;
@@ -524,8 +552,10 @@ export class RequestsService implements OnApplicationBootstrap {
 
     for (const [tmdbId, titleFiles] of byTitle) {
       const series = await this.metadataService.getSeriesByTmdbId(tmdbId);
-      // The first file of an episode gets its request
-      const episodes = new Map<string, EpisodeRefDto & { file: MediaFile }>();
+      const episodes = new Map<
+        string,
+        EpisodeRefDto & { file: FileToRequest }
+      >();
       for (const file of titleFiles) {
         for (
           let episode = file.episode;
@@ -543,82 +573,63 @@ export class RequestsService implements OnApplicationBootstrap {
       }
       if (!episodes.size) continue;
 
-      const now = new Date();
       await this.em.transactional(async (tx) => {
-        await tx
-          .createQueryBuilder(MediaRequest)
-          .insert(
-            [...episodes.values()].map(({ season, episode }) => ({
-              id: randomUUID(),
-              userId,
-              tmdbId,
-              mediaType: MediaTypeFull.Episode,
-              season,
-              episode,
-              approved: true,
-              activatedAt: now,
-              createdAt: now,
-              updatedAt: now,
-            })),
-          )
-          .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
-          .ignore()
-          .execute();
-        const requests = await tx.find(
-          MediaRequest,
-          {
+        const now = new Date();
+        await this.insertRequests(
+          tx,
+          [...episodes.values()].map(({ season, episode }) => ({
             userId,
             tmdbId,
             mediaType: MediaTypeFull.Episode,
-            $or: [...episodes.values()].map(({ season, episode }) => ({
-              season,
-              episode,
-            })),
-          },
-          READ,
+            season,
+            episode,
+            approved: true,
+            neededSince: now,
+          })),
         );
+        const where = {
+          userId,
+          tmdbId,
+          mediaType: MediaTypeFull.Episode,
+          $or: [...episodes.values()].map(({ season, episode }) => ({
+            season,
+            episode,
+          })),
+        };
+        // The ones that were requested before are let through as well
+        await tx.nativeUpdate(
+          MediaRequest,
+          {
+            ...where,
+            $and: [{ $or: [{ approved: false }, { neededSince: null }] }],
+          },
+          { approved: true, neededSince: now, updatedAt: now },
+        );
+        const requests = await tx.find(MediaRequest, where, {
+          ...READ,
+          fields: ['id'],
+        });
 
         const rule = await this.readRule(tx, userId, tmdbId);
-        const episodeSources = [...rule.episodeSources];
-        for (const request of requests) {
-          const { file } = episodes.get(`${request.season}/${request.episode}`);
-          if (request.mediaFileId && request.mediaFileId !== file.id) {
-            result.kept++;
-            continue;
-          }
-
-          await tx.nativeUpdate(
-            MediaRequest,
-            { id: request.id },
-            {
-              mediaFileId: file.id,
-              torrentId: null,
-              approved: true,
-              activatedAt: request.activatedAt ?? now,
-              error: null,
-              attempts: 0,
-              retryAt: null,
-              updatedAt: now,
-            },
-          );
-          const index = episodeSources.findIndex(
-            (s) => s.season === request.season && s.episode === request.episode,
-          );
-          const source: EpisodeSource = {
-            season: request.season,
-            episode: request.episode,
+        const episodeSources = rule.episodeSources.filter(
+          (s) => !episodes.has(`${s.season}/${s.episode}`),
+        );
+        for (const { season, episode, file } of episodes.values()) {
+          episodeSources.push({
+            season,
+            episode,
             kind: 'file',
-            file: toFileSnapshot(file),
-          };
-          if (index === -1) episodeSources.push(source);
-          else episodeSources[index] = source;
-          result.requests++;
+            mediaFileId: file.id,
+          });
         }
-
         await this.writeRule(tx, { ...rule, episodeSources });
-        await this.applyRules(tx, [
-          { userId, mediaType: MediaType.Series, tmdbId },
-        ]);
+
+        await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+        await this.reconcileLater(
+          tx,
+          requests.map((request) => request.id),
+        );
+        result.requests += requests.length;
       });
     }
 
@@ -626,100 +637,50 @@ export class RequestsService implements OnApplicationBootstrap {
   }
 
   /**
-   * Forgets the torrent a user prefers for a season, or the torrent or the
-   * file for an episode. The requests it was for that have no file are
-   * bound again: an episode falls back to its season's torrent.
+   * Deletes requests by id in the caller's transaction, applies the rules
+   * to the rest of their pairs, and has the library let go of what the
+   * requests had
    */
-  async clearPreference(target: SelectionTarget): Promise<boolean> {
-    const { userId, tmdbId, season, episode } = target;
+  async deleteRequests(em: EntityManager, ids: string[]): Promise<number> {
+    if (!ids.length) return 0;
 
-    return this.em.transactional(async (tx) => {
-      const rule = await this.readRule(tx, userId, tmdbId);
-      const seasonTorrents = rule.seasonTorrents.filter(
-        (t) => episode !== 0 || t.season !== season,
-      );
-      const episodeSources = rule.episodeSources.filter(
-        (t) => t.season !== season || t.episode !== episode,
-      );
-      const had =
-        seasonTorrents.length < rule.seasonTorrents.length ||
-        episodeSources.length < rule.episodeSources.length;
-      if (!had) return false;
-
-      await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
-      await this.rebind(tx, target, { episodeSources, replaceHeld: false });
-      await this.applyRules(tx, [
-        { userId, mediaType: MediaType.Series, tmdbId },
-      ]);
-
-      return true;
-    });
-  }
-
-  /** The requests that refer to the files, for whoever deletes the files */
-  findReferringRequests(
-    mediaFileIds: string[],
-  ): Promise<Pick<MediaRequest, 'id' | 'mediaFileId'>[]> {
-    if (!mediaFileIds.length) return Promise.resolve([]);
-
-    return this.em.find(
-      MediaRequest,
-      { mediaFileId: { $in: mediaFileIds } },
-      { ...READ, fields: ['id', 'mediaFileId'] },
-    );
-  }
-
-  /**
-   * Deletes requests by id or by the file they refer to, in the caller's
-   * transaction, and applies the rules to the rest of their pairs
-   */
-  async deleteRequests(
-    em: EntityManager,
-    where: { ids?: string[]; mediaFileIds?: string[] },
-  ): Promise<number> {
-    const conditions = [];
-    if (where.ids?.length) conditions.push({ id: { $in: where.ids } });
-    if (where.mediaFileIds?.length) {
-      conditions.push({ mediaFileId: { $in: where.mediaFileIds } });
-    }
-    if (!conditions.length) return 0;
-
-    const requests = await em.find(MediaRequest, { $or: conditions }, READ);
+    const requests = await em.find(MediaRequest, { id: { $in: ids } }, READ);
     if (!requests.length) return 0;
 
     await em.nativeDelete(MediaRequest, {
-      id: { $in: requests.map((request) => request.id) },
+      id: { $in: requests.map((r) => r.id) },
     });
+    await this.reconcileLater(
+      em,
+      requests.map((request) => request.id),
+    );
     await this.applyRules(em, requests.map(pairOf));
 
     return requests.length;
   }
 
-  /**
-   * For a user that is deleted, before the rows go: the torrents that only
-   * their requests refer to are to stop
-   */
+  /** For a user that is deleted, before the rows go: the library lets go of what their requests had */
   async userDeleting(em: EntityManager, userId: string): Promise<void> {
     const requests = await em.find(
       MediaRequest,
-      { userId, mediaType: MediaTypeFull.Episode },
-      { ...READ, fields: ['tmdbId'] },
+      { userId },
+      { ...READ, fields: ['id'] },
     );
-    for (const tmdbId of new Set(requests.map((request) => request.tmdbId))) {
-      await this.jobs.enqueue(em, 'downloads.reconcileTitle', {
-        mediaType: MediaType.Series,
-        tmdbId,
-      });
-    }
+    await this.reconcileLater(
+      em,
+      requests.map((request) => request.id),
+    );
   }
 
   async findAll(
     pagination: PaginationDto,
     approved?: boolean,
   ): Promise<PaginatedResponseDto<AdminMediaRequestDto>> {
-    const [items, total] = await this.requestRepository.findAndCount(
+    const [items, total] = await this.em.findAndCount(
+      MediaRequest,
       approved === undefined ? {} : { approved },
       {
+        ...READ,
         orderBy: { createdAt: 'desc' },
         offset: (pagination.page - 1) * pagination.itemsPerPage,
         limit: pagination.itemsPerPage,
@@ -735,17 +696,20 @@ export class RequestsService implements OnApplicationBootstrap {
   }
 
   async findById(id: string): Promise<AdminMediaRequestDto | undefined> {
-    const request = await this.requestRepository.findOne({ id });
+    const request = await this.em.findOne(MediaRequest, { id }, READ);
 
-    return request
-      ? this.withRequesters([request]).then((requests) => requests[0])
-      : undefined;
+    return request ? (await this.withRequesters([request]))[0] : undefined;
   }
 
+  /** Approves a request. Approval is not taken back. */
   async update(
     id: string,
     update: UpdateMediaRequestDto,
   ): Promise<AdminMediaRequestDto> {
+    if (update?.approved !== true) {
+      throw new BadRequestException('A request can only be approved');
+    }
+
     await this.em.transactional(async (tx) => {
       const request = await tx.findOne(MediaRequest, { id }, READ);
       if (!request) throw new NotFoundException('Request not found');
@@ -753,7 +717,7 @@ export class RequestsService implements OnApplicationBootstrap {
       await tx.nativeUpdate(
         MediaRequest,
         { id },
-        { approved: update.approved, updatedAt: new Date() },
+        { approved: true, updatedAt: new Date() },
       );
       await this.applyRules(tx, [pairOf(request)]);
     });
@@ -761,103 +725,96 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.findById(id);
   }
 
-  async deleteById(id: string): Promise<number> {
-    return this.em.transactional((tx) =>
-      this.deleteRequests(tx, { ids: [id] }),
-    );
+  deleteById(id: string): Promise<number> {
+    return this.em.transactional((tx) => this.deleteRequests(tx, [id]));
   }
 
-  /** How many requests a file fulfils, for every file that fulfils one */
-  async countByMediaFile(): Promise<Map<string, number>> {
-    const requests = await this.requestRepository.find(
-      { mediaFileId: { $ne: null } },
-      { fields: ['mediaFileId'], disableIdentityMap: true },
-    );
+  private async assertSeasonOrEpisode(target: SelectionTarget): Promise<void> {
+    const { tmdbId, season, episode } = target;
+    const series = await this.metadataService.getSeriesByTmdbId(tmdbId);
+    if (!series) throw new NotFoundException('Series not found');
 
-    const counts = new Map<string, number>();
-    for (const { mediaFileId } of requests) {
-      counts.set(mediaFileId, (counts.get(mediaFileId) ?? 0) + 1);
-    }
-
-    return counts;
+    const exists =
+      episode === 0
+        ? hasSeason(series.tmdbSeries, season)
+        : hasEpisode(series.tmdbSeries, season, episode);
+    if (!exists) throw new NotFoundException('Season or episode not found');
   }
 
-  /**
-   * Makes the requests of the user in the scope of a preference forget their
-   * torrent, so that the reconciliation of the title binds them to the
-   * torrent preferred now: the ones that have no file, or every one when
-   * the preference is for the episode itself. Requests that download
-   * from the preferred torrent already, or have the preferred file, stay as
-   * they are. Picking a torrent again is how a user retries it, so its
-   * failure is forgotten.
-   */
-  private async rebind(
+  /** Inserts requests that do not exist yet; one made at the same time wins */
+  private insertRequests(
+    tx: EntityManager,
+    requests: Pick<
+      MediaRequest,
+      'userId' | 'tmdbId' | 'mediaType' | 'season' | 'episode' | 'approved'
+    >[] &
+      Partial<Pick<MediaRequest, 'neededSince'>>[],
+  ) {
+    const now = new Date();
+
+    return tx
+      .createQueryBuilder(MediaRequest)
+      .insert(
+        requests.map((request) => ({
+          id: randomUUID(),
+          ...request,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .onConflict(['userId', 'mediaType', 'tmdbId', 'season', 'episode'])
+      .ignore()
+      .execute();
+  }
+
+  /** Deletes the requests that match and has the library let go of what they had */
+  private async deleteWhere(
+    tx: EntityManager,
+    where: Record<string, unknown>,
+  ): Promise<number> {
+    const requests = await tx.find(MediaRequest, where, {
+      ...READ,
+      fields: ['id'],
+    });
+    if (!requests.length) return 0;
+
+    const ids = requests.map((request) => request.id);
+    await tx.nativeDelete(MediaRequest, { id: { $in: ids } });
+    await this.reconcileLater(tx, ids);
+
+    return ids.length;
+  }
+
+  /** Has the library look at the requests of the user in the scope of a preference */
+  private async reconcileSelectionScope(
     tx: EntityManager,
     target: SelectionTarget,
-    options: {
-      episodeSources: EpisodeSource[];
-      replaceHeld: boolean;
-      infoHash?: string;
-      mediaFileId?: string;
-    },
-  ): Promise<void> {
+  ) {
     const { userId, tmdbId, season, episode } = target;
-    const scope = [
-      'user_id = ?',
-      'tmdb_id = ?',
-      `media_type = '${MediaTypeFull.Episode}'`,
-      'season = ?',
-    ];
-    const params: unknown[] = [userId, tmdbId, season];
-    if (episode !== 0) {
-      scope.push('episode = ?');
-      params.push(episode);
-    } else {
-      // An episode with a torrent of its own is not the season's business
-      const own = options.episodeSources
-        .filter((t) => t.season === season)
-        .map((t) => t.episode);
-      if (own.length) {
-        scope.push(`episode not in (${own.map(() => '?').join(', ')})`);
-        params.push(...own);
-      }
-    }
-
-    await tx.execute(
-      `update request set error = null, attempts = 0, retry_at = null
-       where ${scope.join(' and ')}`,
-      params,
-      'run',
+    const requests = await tx.find(
+      MediaRequest,
+      {
+        userId,
+        tmdbId,
+        mediaType: MediaTypeFull.Episode,
+        season,
+        ...(episode !== 0 && { episode }),
+      },
+      { ...READ, fields: ['id'] },
     );
-
-    const conditions = [...scope];
-    const unbindParams = [...params];
-    if (!options.replaceHeld) {
-      conditions.push('media_file_id is null');
-    }
-    if (options.infoHash) {
-      conditions.push(
-        'not exists (select 1 from torrent t where t.id = request.torrent_id and t.info_hash = ?)',
-      );
-      unbindParams.push(options.infoHash);
-    }
-    if (options.mediaFileId) {
-      conditions.push('(media_file_id is null or media_file_id <> ?)');
-      unbindParams.push(options.mediaFileId);
-    }
-    await tx.execute(
-      `update request set torrent_id = null, media_file_id = null
-       where ${conditions.join(' and ')}`,
-      unbindParams,
-      'run',
+    await this.reconcileLater(
+      tx,
+      requests.map((request) => request.id),
     );
+  }
 
-    if (options.infoHash) {
-      await tx.execute(
-        'update torrent set error = null, attempts = 0, retry_at = null where info_hash = ?',
-        [options.infoHash],
-        'run',
-      );
+  /** Tells the library that requests changed, in the caller's transaction */
+  private async reconcileLater(
+    em: EntityManager,
+    ids: string[],
+  ): Promise<void> {
+    for (const requestId of new Set(ids)) {
+      await this.jobs.enqueue(em, 'library.reconcileRequest', { requestId });
     }
   }
 
@@ -931,7 +888,7 @@ export class RequestsService implements OnApplicationBootstrap {
     const users = await this.em.find(
       User,
       { id: { $in: requests.map((request) => request.userId) } },
-      { fields: ['id', 'name'], disableIdentityMap: true },
+      { ...READ, fields: ['id', 'name'] },
     );
 
     return requests.map((request) => {

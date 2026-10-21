@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { LibraryEntryDto } from '../local-media/local-media.dto.js';
+import { LibraryEntryDto } from '../library/library.dto.js';
 
 export class ServerLibraryEntryDto extends LibraryEntryDto {
   @ApiProperty({
@@ -42,13 +42,10 @@ export class ManageLibraryEntriesResultDto {
 }
 
 export class RequestLibraryEntriesResultDto {
-  @ApiProperty({ description: 'Requests that were bound to the files' })
-  requests: number;
-
   @ApiProperty({
-    description: 'Episodes whose request kept another file it has',
+    description: 'Requests that were made or pointed at the files',
   })
-  kept: number;
+  requests: number;
 
   @ApiProperty({
     description:

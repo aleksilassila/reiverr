@@ -3,7 +3,7 @@ import { MikroORM } from '@mikro-orm/sqlite';
 import { MediaType } from '../../common/common.dto.js';
 import mikroOrmConfig from '../../mikro-orm.config.js';
 import { User } from '../../users/user.entity.js';
-import { LibraryItem } from '../library/library.entity.js';
+import { MyListItem } from '../my-list/my-list-item.entity.js';
 import { PlayState } from './play-state.entity.js';
 import { RequestsService } from '../../requests/requests.service.js';
 import { PlayStatesService } from './play-states.service.js';
@@ -74,7 +74,7 @@ describe('PlayStatesService', () => {
 
   it('marks only the library item of the played title as played', async () => {
     for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-      const item = new LibraryItem();
+      const item = new MyListItem();
       item.userId = userId;
       item.tmdbId = TMDB_ID;
       item.mediaType = mediaType;
@@ -87,7 +87,7 @@ describe('PlayStatesService', () => {
       }),
     );
 
-    const items = await orm.em.fork().find(LibraryItem, { userId });
+    const items = await orm.em.fork().find(MyListItem, { userId });
     const played = items
       .filter((item) => item.lastPlayedAt)
       .map((item) => item.mediaType);

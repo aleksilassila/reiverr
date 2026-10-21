@@ -17,9 +17,9 @@ import { User } from '../../users/user.entity.js';
 import { PlayStateDto } from '../play-state/play-state.dto.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 
-@Entity()
+@Entity({ tableName: 'library_item' })
 @Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })
-export class LibraryItem {
+export class MyListItem {
   @ApiProperty({ required: false, type: 'string' })
   @PrimaryKey({ type: 'uuid' })
   id: string = randomUUID();

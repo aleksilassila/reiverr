@@ -26,7 +26,7 @@ export async function playEpisode(options: {
 }): Promise<boolean> {
 	const { tmdbId, season, episode } = options;
 
-	const files = await reiverrApi.localMedia
+	const files = await reiverrApi.library
 		.getEpisodeFiles(tmdbId, season, episode)
 		.then((r) => r.data)
 		.catch((e) => {
@@ -40,7 +40,7 @@ export async function playEpisode(options: {
 
 	// Media elements cannot send headers, so the token travels in the URL
 	const { baseUrl, token } = get(sessions).activeSession ?? { baseUrl: '', token: '' };
-	const url = (path: string) => `${baseUrl}/api/local-media/${path}?reiverr_token=${token}`;
+	const url = (path: string) => `${baseUrl}/api/library/${path}?reiverr_token=${token}`;
 
 	options.playMedia({
 		title: options.title,

@@ -14,7 +14,7 @@ import {
   DeleteLibraryEntriesResultDto,
   ScanLibraryResultDto,
   LibraryScanPreviewDto,
-} from '../local-media/local-media.dto.js';
+} from '../library/library.dto.js';
 import { User } from '../users/user.entity.js';
 import {
   DeleteLibraryEntriesDto,

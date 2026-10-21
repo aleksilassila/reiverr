@@ -20,20 +20,20 @@ import {
   INFO_HASH,
   LibraryFixture,
   TMDB_ID,
-} from '../../test/local-media-fixture.js';
+} from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
-import { CleanupService } from './cleanup.service.js';
-import { LocalMediaService } from './local-media.service.js';
+import { DeletionService } from './deletion.service.js';
+import { LibraryService } from './folder.service.js';
 import { MediaFile } from './media-file.entity.js';
 
-describe('LocalMediaService', () => {
+describe('LibraryService', () => {
   let fixture: LibraryFixture;
   let orm: MikroORM;
-  let localMedia: LocalMediaService;
-  let cleanup: CleanupService;
+  let library: LibraryService;
+  let deletion: DeletionService;
   let root: string;
-  let library: string;
+  let folder: string;
   let jobs: LibraryFixture['jobs'];
   let tmdb: LibraryFixture['tmdb'];
   let request: LibraryFixture['request'];
@@ -42,16 +42,17 @@ describe('LocalMediaService', () => {
   let importEpisode: LibraryFixture['importEpisode'];
   let scanSeries: LibraryFixture['scanSeries'];
   let saveFoldersAround: LibraryFixture['saveFoldersAround'];
+  let bind: LibraryFixture['bind'];
   let reconciled: LibraryFixture['reconciled'];
 
   beforeEach(async () => {
     fixture = await createLibraryFixture();
     ({
       orm,
-      localMedia,
-      cleanup,
+      libraryService: library,
+      deletion,
       root,
-      library,
+      library: folder,
       jobs,
       tmdb,
       request,
@@ -60,6 +61,7 @@ describe('LocalMediaService', () => {
       importEpisode,
       scanSeries,
       saveFoldersAround,
+      bind,
       reconciled,
     } = fixture);
   });
@@ -90,10 +92,7 @@ describe('LocalMediaService', () => {
     // A changed file is the same file, a deleted file is forgotten
     write('tv/Test Show (2020)/Season 1/Test Show - S01E01.mkv', 'longer');
     rmSync(
-      path.join(
-        library,
-        'Test Show (2020)/Season 1/Test Show - S01E02-E03.mkv',
-      ),
+      path.join(folder, 'Test Show (2020)/Season 1/Test Show - S01E02-E03.mkv'),
     );
 
     expect(await scanSeries()).toMatchObject([{ id: files[0].id, size: 6 }]);
@@ -105,7 +104,7 @@ describe('LocalMediaService', () => {
     const kept = write('tv/Test Show (2020)/Season 1/importing.mkv');
     const otherFolder = write('tv/Other Folder/Test Show - S01E04.mkv');
     const outside = write('elsewhere/Test Show - S01E06.mkv');
-    const gone = path.join(library, 'Test Show (2020)/Season 1/S01E07.mkv');
+    const gone = path.join(folder, 'Test Show (2020)/Season 1/S01E07.mkv');
     await orm.em.fork().insert(
       MediaFile,
       [kept, otherFolder, outside, gone].map((filePath, i) => ({
@@ -127,8 +126,8 @@ describe('LocalMediaService', () => {
     await scanSeries();
 
     expect((await indexed()).map((file) => file.path)).toEqual([
-      path.join(library, 'Test Show (2020)/Season 1/Test Show - S01E01.mkv'),
-      path.join(library, 'Test Show (2020)/Season 1/importing.mkv'),
+      path.join(folder, 'Test Show (2020)/Season 1/Test Show - S01E01.mkv'),
+      path.join(folder, 'Test Show (2020)/Season 1/importing.mkv'),
     ]);
   });
 
@@ -161,7 +160,7 @@ describe('LocalMediaService', () => {
     mkdirSync(other);
     const move = (forgetFiles?: boolean) =>
       request(() =>
-        localMedia.updateSettings(
+        library.updateSettings(
           { movieFolders: [], seriesFolders: [other] },
           { forgetFiles },
         ),
@@ -180,9 +179,9 @@ describe('LocalMediaService', () => {
     jobs.enqueue.mockClear();
 
     const soon = Date.now();
-    expect(
-      await request(() => localMedia.listSeriesFiles(TMDB_ID)),
-    ).toHaveLength(1);
+    expect(await request(() => library.listSeriesFiles(TMDB_ID))).toHaveLength(
+      1,
+    );
     const [, , , later] = jobs.enqueue.mock.calls[0] as unknown[];
     expect((later as { runAt: Date }).runAt.getTime()).toBeGreaterThan(
       soon + 20_000,
@@ -190,9 +189,7 @@ describe('LocalMediaService', () => {
 
     rmSync(file);
     jobs.enqueue.mockClear();
-    expect(await request(() => localMedia.listSeriesFiles(TMDB_ID))).toEqual(
-      [],
-    );
+    expect(await request(() => library.listSeriesFiles(TMDB_ID))).toEqual([]);
     const [, , , now] = jobs.enqueue.mock.calls[0] as unknown[];
     expect((now as { runAt: Date }).runAt.getTime()).toBeLessThan(
       soon + 20_000,
@@ -215,29 +212,29 @@ describe('LocalMediaService', () => {
       { fileName: 'Test Show - S01E01.en.srt', lang: 'en', label: 'en' },
     ]);
 
-    expect(await request(() => localMedia.getStreamPath(file.id))).toBe(video);
+    expect(await request(() => library.getStreamPath(file.id))).toBe(video);
     expect(
       await request(() =>
-        localMedia.readSubtitles(file.id, 'Test Show - S01E01.en.srt'),
+        library.readSubtitles(file.id, 'Test Show - S01E01.en.srt'),
       ),
     ).toBe('WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nHello\n');
 
     for (const name of ['Test Show - S01E02.srt', '../../secret.srt']) {
       await expect(
-        request(() => localMedia.readSubtitles(file.id, name)),
+        request(() => library.readSubtitles(file.id, name)),
       ).rejects.toThrow(NotFoundException);
     }
     await expect(
-      request(() => localMedia.getStreamPath('unknown')),
+      request(() => library.getStreamPath('unknown')),
     ).rejects.toThrow(NotFoundException);
 
     // A file outside the library folders is not served, whatever the index says
     const other = path.join(root, 'other');
     mkdirSync(other);
     await saveFoldersAround([other]);
-    await expect(
-      request(() => localMedia.getStreamPath(file.id)),
-    ).rejects.toThrow(NotFoundException);
+    await expect(request(() => library.getStreamPath(file.id))).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   describe('a library folder that is not available', () => {
@@ -245,7 +242,7 @@ describe('LocalMediaService', () => {
     const attempts = [
       () => scanSeries(),
       () => importEpisode(path.join(root, 'downloads/S01E03.mkv'), [3]),
-      () => request(() => localMedia.getLibraryEntries(library)),
+      () => request(() => library.getLibraryEntries(folder)),
     ];
 
     const fillLibrary = async () => {
@@ -262,22 +259,22 @@ describe('LocalMediaService', () => {
       expect(before.map((file) => file.managed)).toEqual([true, false]);
 
       // The disk is not mounted: its folder is there with nothing in it
-      renameSync(library, disk());
-      mkdirSync(library);
-      writeFileSync(path.join(library, '.DS_Store'), '');
+      renameSync(folder, disk());
+      mkdirSync(folder);
+      writeFileSync(path.join(folder, '.DS_Store'), '');
 
       for (const attempt of attempts) {
         await expect(attempt()).rejects.toThrow(ServiceUnavailableException);
       }
       await expect(
-        request(() => cleanup.deleteManagedFile(before[0].id, 'a test')),
+        request(() => deletion.deleteManagedFile(before[0].id, 'a test')),
       ).rejects.toThrow('it is empty, but files are indexed in it');
-      expect(readdirSync(library)).toEqual(['.DS_Store']);
+      expect(readdirSync(folder)).toEqual(['.DS_Store']);
       expect(await indexed()).toEqual(before);
 
       // Mounted again, the files are what they were
-      rmSync(library, { recursive: true });
-      renameSync(disk(), library);
+      rmSync(folder, { recursive: true });
+      renameSync(disk(), folder);
 
       expect((await scanSeries()).map((file) => file.id)).toEqual(
         before.map((file) => file.id),
@@ -287,29 +284,29 @@ describe('LocalMediaService', () => {
 
     it('keeps the index of a folder that is missing', async () => {
       const before = await fillLibrary();
-      renameSync(library, disk());
+      renameSync(folder, disk());
 
       for (const attempt of attempts) {
         await expect(attempt()).rejects.toThrow(ServiceUnavailableException);
       }
       await expect(
-        request(() => cleanup.deleteManagedFile(before[0].id, 'a test')),
+        request(() => deletion.deleteManagedFile(before[0].id, 'a test')),
       ).rejects.toThrow('ENOENT: no such file or directory');
-      expect(existsSync(library)).toBe(false);
+      expect(existsSync(folder)).toBe(false);
       expect(await indexed()).toEqual(before);
     });
 
     it('reads an empty folder that nothing is indexed in', async () => {
       expect(await scanSeries()).toEqual([]);
-      expect(
-        await request(() => localMedia.getLibraryEntries(library)),
-      ).toEqual([]);
+      expect(await request(() => library.getLibraryEntries(folder))).toEqual(
+        [],
+      );
     });
 
     it('forgets the files of a series whose folder is gone from a folder that has others', async () => {
       await fillLibrary();
       write('tv/Another Show (2020)/Season 1/Another Show - S01E01.mkv');
-      rmSync(path.join(library, 'Test Show (2020) [tmdbid-100]'), {
+      rmSync(path.join(folder, 'Test Show (2020) [tmdbid-100]'), {
         recursive: true,
       });
 
@@ -320,11 +317,11 @@ describe('LocalMediaService', () => {
 
   describe('scanning a library folder', () => {
     const scan = (options?: { evenIfUnavailable?: boolean }) =>
-      request(() => localMedia.scanFolder(library, options));
-    const preview = () => request(() => localMedia.previewScan(library));
+      request(() => library.scanFolder(folder, options));
+    const preview = () => request(() => library.previewScan(folder));
     const rows = async () =>
       (await indexed()).map((file) => [
-        path.relative(library, file.path),
+        path.relative(folder, file.path),
         file.tmdbId,
         file.season,
         file.episode,
@@ -393,17 +390,20 @@ describe('LocalMediaService', () => {
       expect(tmdb.findByExternalId).not.toHaveBeenCalled();
       expect(reconciled()).toEqual([]);
 
-      // A changed file is updated, a deleted one forgotten
+      // A changed file is updated, a deleted one forgotten, and the
+      // request that had it is looked at again
       write('tv/Third {tvdb-456}/Season 2/Third - S02E03.mkv', 'longer');
+      await bind(
+        'request-a',
+        (await indexed()).find((file) => file.path === another).id,
+      );
       rmSync(another);
       expect(await scan()).toMatchObject({
         added: 0,
         updated: 1,
         forgotten: 1,
       });
-      expect(reconciled()).toEqual([
-        { mediaType: MediaType.Series, tmdbId: '200' },
-      ]);
+      expect(reconciled()).toEqual(['request-a']);
       expect(await preview()).toMatchObject({ available: true, missing: [] });
     });
 
@@ -455,7 +455,7 @@ describe('LocalMediaService', () => {
       // Only one file is missing while the folder is there
       rmSync(
         path.join(
-          library,
+          folder,
           'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02.mkv',
         ),
       );
@@ -464,17 +464,18 @@ describe('LocalMediaService', () => {
         missing: [{ episode: 2 }],
       });
 
-      renameSync(library, path.join(root, 'disk'));
-      mkdirSync(library);
+      renameSync(folder, path.join(root, 'disk'));
+      mkdirSync(folder);
 
       await expect(scan()).rejects.toThrow(ServiceUnavailableException);
       expect(await preview()).toMatchObject({
         available: false,
-        reason: `Library folder "${library}" is not available: it is empty, but files are indexed in it`,
+        reason: `Library folder "${folder}" is not available: it is empty, but files are indexed in it`,
         missing: [{ episode: 1 }, { episode: 2 }],
       });
       expect(await indexed()).toHaveLength(2);
       expect(reconciled()).toEqual([]);
+      await bind('request-b', (await indexed())[0].id);
 
       expect(await scan({ evenIfUnavailable: true })).toEqual({
         added: 0,
@@ -485,36 +486,34 @@ describe('LocalMediaService', () => {
       });
       expect(await indexed()).toEqual([]);
       // Their requests download them again
-      expect(reconciled()).toEqual([
-        { mediaType: MediaType.Series, tmdbId: TMDB_ID },
-      ]);
+      expect(reconciled()).toEqual(['request-b']);
       expect(await preview()).toMatchObject({ available: true, missing: [] });
     });
 
     it('scans at night, and logs a folder that is not available instead', async () => {
       write('tv/Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01.mkv');
       jobs.define.mockClear();
-      localMedia.onModuleInit();
+      library.onModuleInit();
       const [, job] = jobs.define.mock.calls.find(
-        ([type]) => type === 'localMedia.scanFolder',
+        ([type]) => type === 'library.scanFolder',
       );
-      const runJob = (folder = library) =>
-        request(() => job.run({ folder }, undefined));
+      const runJob = (target = folder) =>
+        request(() => job.run({ folder: target }, undefined));
       const logged = () => orm.em.fork().find(LogEntry, {});
 
       await runJob();
       expect(await indexed()).toHaveLength(1);
 
-      renameSync(library, path.join(root, 'disk'));
-      mkdirSync(library);
+      renameSync(folder, path.join(root, 'disk'));
+      mkdirSync(folder);
       await runJob();
 
       expect(await indexed()).toHaveLength(1);
       expect(await logged()).toMatchObject([
         {
           type: 'scan.failed',
-          message: `Did not scan "${library}": Library folder "${library}" is not available: it is empty, but files are indexed in it`,
-          data: { folder: library },
+          message: `Did not scan "${folder}": Library folder "${folder}" is not available: it is empty, but files are indexed in it`,
+          data: { folder: folder },
         },
       ]);
 
@@ -536,7 +535,7 @@ describe('LocalMediaService', () => {
       expect(
         (
           await request(() =>
-            localMedia.findLibraryEntryFiles(library, [`${SHOW}/Season 1`]),
+            library.findLibraryEntryFiles(folder, [`${SHOW}/Season 1`]),
           )
         ).map((file) => [file.path, file.managed]),
       ).toEqual([
@@ -545,11 +544,7 @@ describe('LocalMediaService', () => {
       ]);
       expect(
         await request(() =>
-          localMedia.setLibraryEntriesManaged(
-            library,
-            [`${SHOW}/Season 1`],
-            true,
-          ),
+          library.setLibraryEntriesManaged(folder, [`${SHOW}/Season 1`], true),
         ),
       ).toEqual({ changed: 1 });
       expect((await indexed()).map((file) => file.managed)).toEqual([
@@ -559,8 +554,8 @@ describe('LocalMediaService', () => {
 
       // Only the one file, and its origin is kept
       const external = await request(() =>
-        localMedia.setLibraryEntriesManaged(
-          library,
+        library.setLibraryEntriesManaged(
+          folder,
           [`${SHOW}/Season 1/${path.basename(imported)}`],
           false,
         ),
@@ -574,14 +569,14 @@ describe('LocalMediaService', () => {
 
     it('answers only for a library folder', async () => {
       await expect(
-        request(() => localMedia.setLibraryEntriesManaged(root, ['tv'], true)),
+        request(() => library.setLibraryEntriesManaged(root, ['tv'], true)),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('the entries of a library folder', () => {
     const SHOW = 'Test Show (2020) [tmdbid-100]';
-    const entries = () => request(() => localMedia.getLibraryEntries(library));
+    const entries = () => request(() => library.getLibraryEntries(folder));
 
     it('lists everything in the folder, a directory before what is in it', async () => {
       write(`tv/${SHOW}/Season 1/Test Show - S01E02.mkv`);
@@ -625,8 +620,8 @@ describe('LocalMediaService', () => {
 
     it('lists a link without following it', async () => {
       write('elsewhere/secret.txt', 'secret');
-      symlinkSync(path.join(root, 'elsewhere'), path.join(library, 'link'));
-      symlinkSync(path.join(root, 'nowhere'), path.join(library, 'broken'));
+      symlinkSync(path.join(root, 'elsewhere'), path.join(folder, 'link'));
+      symlinkSync(path.join(root, 'nowhere'), path.join(folder, 'broken'));
 
       expect(await entries()).toEqual([
         {
@@ -642,7 +637,7 @@ describe('LocalMediaService', () => {
     it('lists a directory that it cannot read and goes on', async () => {
       write('tv/Locked/secret.mkv');
       write('tv/Open/notes.txt');
-      const locked = path.join(library, 'Locked');
+      const locked = path.join(folder, 'Locked');
       chmodSync(locked, 0o000);
 
       try {
@@ -663,7 +658,7 @@ describe('LocalMediaService', () => {
 
     it('answers only for a library folder', async () => {
       await expect(
-        request(() => localMedia.getLibraryEntries(root)),
+        request(() => library.getLibraryEntries(root)),
       ).rejects.toThrow(BadRequestException);
     });
   });

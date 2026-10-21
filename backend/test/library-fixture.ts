@@ -5,16 +5,17 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { vi } from 'vitest';
 import { MediaType } from '../src/common/common.dto.js';
+import { CleanupSchedule } from '../src/downloads/downloads.dto.js';
 import { DownloadsService } from '../src/downloads/downloads.service.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
-import { CleanupService } from '../src/local-media/cleanup.service.js';
-import { ImportService } from '../src/local-media/import.service.js';
-import { LocalMediaService } from '../src/local-media/local-media.service.js';
-import { MediaFile } from '../src/local-media/media-file.entity.js';
+import { DeletionService } from '../src/library/deletion.service.js';
+import { ImportService } from '../src/library/import.service.js';
+import { LibraryService } from '../src/library/library.service.js';
+import { MediaFile } from '../src/library/media-file.entity.js';
+import { RequestBinding } from '../src/library/request-binding.entity.js';
 import { MetadataService } from '../src/metadata/metadata.service.js';
 import { TmdbService } from '../src/metadata/tmdb/tmdb.service.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
-import { MediaRequest } from '../src/requests/request.entity.js';
 import { RequestsService } from '../src/requests/requests.service.js';
 import { ServerLogService } from '../src/server-log/server-log.service.js';
 import { SettingsService } from '../src/settings/settings.service.js';
@@ -25,11 +26,11 @@ export const INFO_HASH = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 export type LibraryFixture = Awaited<ReturnType<typeof createLibraryFixture>>;
 
 /**
- * The local media services on an in-memory database with a temporary
- * library folder, and their neighbours as mocks
+ * The library services on an in-memory database with a temporary library
+ * folder, and their neighbours as mocks
  */
 export async function createLibraryFixture() {
-  const root = mkdtempSync(path.join(tmpdir(), 'reiverr-local-media-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'reiverr-library-'));
   const library = path.join(root, 'tv');
   mkdirSync(library);
 
@@ -57,23 +58,16 @@ export async function createLibraryFixture() {
       tmdbSeries: { name: 'Test Show', first_air_date: '2020-01-01' },
     }),
   };
+  const downloads = {
+    getSettings: async () => ({ seedRatio: 0, cleanup: CleanupSchedule.Daily }),
+  };
   const requests = {
-    findReferringRequests: vi.fn(
-      async (
-        _ids: string[],
-      ): Promise<Pick<MediaRequest, 'id' | 'mediaFileId'>[]> => [],
-    ),
-    deleteRequests: vi.fn(
-      async (
-        _em: EntityManager,
-        _where: { ids?: string[]; mediaFileIds?: string[] },
-      ) => 0,
-    ),
+    deleteRequests: vi.fn(async (_em: EntityManager, _ids: string[]) => 0),
   };
 
   const settings = new SettingsService(orm.em);
   const serverLog = new ServerLogService(orm.em, settings);
-  const localMedia = new LocalMediaService(
+  const libraryService = new LibraryService(
     orm.em,
     settings,
     metadata as unknown as MetadataService,
@@ -81,17 +75,12 @@ export async function createLibraryFixture() {
     jobs as unknown as JobsService,
     serverLog,
   );
-  const importService = new ImportService(
+  const importService = new ImportService(orm.em, libraryService);
+  const deletion = new DeletionService(
     orm.em,
     jobs as unknown as JobsService,
-    localMedia,
-    {} as DownloadsService,
-  );
-  const cleanup = new CleanupService(
-    orm.em,
-    jobs as unknown as JobsService,
-    localMedia,
-    {} as DownloadsService,
+    libraryService,
+    downloads as unknown as DownloadsService,
     requests as unknown as RequestsService,
     serverLog,
   );
@@ -101,7 +90,10 @@ export async function createLibraryFixture() {
     RequestContext.create(orm.em, run);
 
   await request(() =>
-    localMedia.updateSettings({ movieFolders: [], seriesFolders: [library] }),
+    libraryService.updateSettings({
+      movieFolders: [],
+      seriesFolders: [library],
+    }),
   );
 
   const write = (file: string, content = 'video') => {
@@ -117,40 +109,46 @@ export async function createLibraryFixture() {
 
   /** Imports a file as a version of the test torrent, as the import job does */
   const importEpisode = async (sourcePath: string, episodes: number[]) => {
-    const placed = await request(() =>
-      importService.placeEpisodeFile({
+    const file = await request(() =>
+      importService.importFile({
+        sourcePath,
+        infoHash: INFO_HASH,
+        mediaType: MediaType.Series,
         tmdbId: TMDB_ID,
         season: 1,
         episodes,
-        sourcePath,
-        infoHash: INFO_HASH,
       }),
     );
-    await request(() =>
-      orm.em.transactional((tx) => importService.indexImportedFile(tx, placed)),
-    );
 
-    return placed.path;
+    return file.path;
   };
 
   /** A scan of the series, which the job does, and what is on disk then */
   const scanSeries = async (tmdbId = TMDB_ID) => {
-    await request(() => localMedia.scanTitle(MediaType.Series, tmdbId));
+    await request(() => libraryService.scanTitle(MediaType.Series, tmdbId));
 
-    return request(() => localMedia.listSeriesFiles(tmdbId));
+    return request(() => libraryService.listSeriesFiles(tmdbId));
   };
 
   /** Library folders that changed without the service, which forgets nothing */
   const saveFoldersAround = (seriesFolders: string[]) =>
     request(() =>
-      settings.saveValue('local-media', { movieFolders: [], seriesFolders }),
+      settings.saveValue('library', { movieFolders: [], seriesFolders }),
     );
 
-  /** The titles whose reconciliation was queued */
+  /** A request that has a file, as the fulfilment binds it */
+  const bind = (requestId: string, mediaFileId: string) =>
+    orm.em.fork().insert(RequestBinding, {
+      requestId,
+      mediaFileId,
+      updatedAt: new Date(),
+    });
+
+  /** The requests whose reconcile was queued */
   const reconciled = () =>
     jobs.enqueue.mock.calls
-      .filter((call) => call[1] === 'downloads.reconcileTitle')
-      .map((call) => call[2]);
+      .filter((call) => call[1] === 'library.reconcileRequest')
+      .map((call) => (call[2] as { requestId: string }).requestId);
 
   const close = async () => {
     await orm.close();
@@ -161,9 +159,9 @@ export async function createLibraryFixture() {
     orm,
     root,
     library,
-    localMedia,
+    libraryService,
     importService,
-    cleanup,
+    deletion,
     jobs,
     tmdb,
     requests,
@@ -173,6 +171,7 @@ export async function createLibraryFixture() {
     importEpisode,
     scanSeries,
     saveFoldersAround,
+    bind,
     reconciled,
     close,
   };

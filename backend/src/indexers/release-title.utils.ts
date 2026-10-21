@@ -1,4 +1,4 @@
-import { parseEpisodeNumbers } from '../local-media/local-media.utils.js';
+import { parseEpisodeNumbers } from '../library/library.utils.js';
 
 export type ReleaseKind = 'episode' | 'season-pack' | 'other';
 

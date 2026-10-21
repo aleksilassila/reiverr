@@ -15,7 +15,7 @@ import {
 import {
   TORRENT_ENGINE,
   type TorrentEngine,
-  type TorrentFile,
+  type TorrentFileInfo,
   type TorrentHandle,
 } from './torrent-engine.js';
 import { Torrent } from './torrent.entity.js';
@@ -24,9 +24,9 @@ const FLUSH_INTERVAL = 30_000;
 
 /** A torrent in the engine */
 interface Entry {
-  torrentId: string;
+  infoHash: string;
   handle: TorrentHandle;
-  files?: TorrentFile[];
+  files?: TorrentFileInfo[];
   ready: boolean;
   error?: string;
   wanted: number[];
@@ -37,7 +37,7 @@ interface Entry {
 export interface TorrentSnapshot {
   /** The engine knows the files and has verified the data of an earlier run */
   ready: boolean;
-  files?: TorrentFile[];
+  files?: TorrentFileInfo[];
   error?: string;
   wanted: number[];
   complete: Set<number>;
@@ -52,9 +52,9 @@ export interface TorrentSnapshot {
 }
 
 /**
- * The torrents that run in the engine. It decides nothing: only the jobs of a
- * torrent start, change or stop it, and what the engine reports is turned
- * into jobs. It is the only one that adds to the transfer counters.
+ * The torrents that run in the engine. It decides nothing: only the job of a
+ * torrent starts, changes or stops it, and what the engine reports is turned
+ * into that job. It is the only one that adds to the transfer counters.
  */
 @Injectable()
 export class TorrentRuntime
@@ -92,8 +92,8 @@ export class TorrentRuntime
     );
   }
 
-  snapshot(torrentId: string): TorrentSnapshot | undefined {
-    const entry = this.entries.get(torrentId);
+  snapshot(infoHash: string): TorrentSnapshot | undefined {
+    const entry = this.entries.get(infoHash);
     if (!entry) return undefined;
 
     const { handle } = entry;
@@ -123,15 +123,17 @@ export class TorrentRuntime
     };
   }
 
+  /** Starts a torrent in the engine. Throws when the engine refuses the source. */
   start(
     context: JobContext,
-    torrent: Pick<Torrent, 'id' | 'magnetUrl' | 'torrentFile'>,
+    torrent: Pick<Torrent, 'infoHash' | 'magnetUrl' | 'torrentFile'>,
     directory: string,
   ): void {
-    this.assertHolds(context, torrent.id);
+    const { infoHash } = torrent;
+    this.assertHolds(context, infoHash);
     if (this.stopping) return;
-    if (this.entries.has(torrent.id)) {
-      throw new Error(`Torrent ${torrent.id} runs already`);
+    if (this.entries.has(infoHash)) {
+      throw new Error(`Torrent ${infoHash} runs already`);
     }
 
     const handle = this.engine.add(
@@ -139,59 +141,56 @@ export class TorrentRuntime
       directory,
     );
     const entry: Entry = {
-      torrentId: torrent.id,
+      infoHash,
       handle,
       ready: false,
       wanted: [],
       flushed: { downloaded: 0, uploaded: 0 },
     };
     // A callback of a handle that was stopped since is about another run
-    const isCurrent = () => this.entries.get(torrent.id) === entry;
-    this.entries.set(torrent.id, entry);
+    const isCurrent = () => this.entries.get(infoHash) === entry;
+    this.entries.set(infoHash, entry);
 
     handle.ready.then(
       (files) => {
         if (!isCurrent()) return;
         entry.files = files;
         entry.ready = true;
-        this.reconcileLater(torrent.id);
+        this.reconcileLater(infoHash);
       },
       (error: Error) => {
         if (!isCurrent()) return;
         entry.error = error.message;
-        this.reconcileLater(torrent.id);
+        this.reconcileLater(infoHash);
       },
     );
     handle.onError((error) => {
       if (!isCurrent()) return;
       entry.error = error.message;
-      this.reconcileLater(torrent.id);
+      this.reconcileLater(infoHash);
     });
-    handle.onFileComplete((fileIndex) => {
-      if (!isCurrent()) return;
-      this.enqueue('localMedia.importTorrentFile', {
-        torrentId: torrent.id,
-        fileIndex,
-      });
+    handle.onFileComplete(() => {
+      if (isCurrent()) this.reconcileLater(infoHash);
     });
   }
 
   setWantedFiles(
     context: JobContext,
-    torrentId: string,
+    infoHash: string,
     indexes: number[],
   ): void {
-    this.assertHolds(context, torrentId);
-    const entry = this.entries.get(torrentId);
+    this.assertHolds(context, infoHash);
+    const entry = this.entries.get(infoHash);
+    if (!entry) return;
 
     entry.wanted = indexes;
     entry.handle.setWantedFiles(indexes);
   }
 
   /** Stops a torrent and stores what it transferred since the last flush */
-  async stop(context: JobContext, torrentId: string): Promise<void> {
-    this.assertHolds(context, torrentId);
-    const entry = this.entries.get(torrentId);
+  async stop(context: JobContext, infoHash: string): Promise<void> {
+    this.assertHolds(context, infoHash);
+    const entry = this.entries.get(infoHash);
     if (!entry) return;
 
     await this.remove(entry);
@@ -199,7 +198,7 @@ export class TorrentRuntime
 
   /**
    * Adds what every torrent transferred to its row, and has a torrent that
-   * only seeds stop once it reaches the seed ratio
+   * only seeds decide again once it reaches the seed ratio
    */
   async flush(): Promise<void> {
     const { seedRatio } = await this.settingsService.getOrCreateValue(
@@ -209,7 +208,7 @@ export class TorrentRuntime
     const seeding = new Set(
       [...this.entries.values()]
         .filter((entry) => entry.ready && !entry.wanted.length)
-        .map((entry) => entry.torrentId),
+        .map((entry) => entry.infoHash),
     );
     const deltas = [...this.entries.values()].map((entry) =>
       this.takeDelta(entry),
@@ -223,14 +222,14 @@ export class TorrentRuntime
       return tx.find(
         Torrent,
         {
-          id: {
+          infoHash: {
             $in: changed
-              .map((d) => d.torrentId)
-              .filter((id) => seeding.has(id)),
+              .map((d) => d.infoHash)
+              .filter((hash) => seeding.has(hash)),
           },
         },
         {
-          fields: ['id', 'downloadedBytes', 'uploadedBytes'],
+          fields: ['infoHash', 'downloadedBytes', 'uploadedBytes'],
           disableIdentityMap: true,
         },
       );
@@ -238,14 +237,14 @@ export class TorrentRuntime
 
     for (const torrent of seeded) {
       if (torrent.uploadedBytes >= seedRatio * torrent.downloadedBytes) {
-        this.reconcileLater(torrent.id);
+        this.reconcileLater(torrent.infoHash);
       }
     }
   }
 
   private async remove(entry: Entry): Promise<void> {
-    if (this.entries.get(entry.torrentId) === entry) {
-      this.entries.delete(entry.torrentId);
+    if (this.entries.get(entry.infoHash) === entry) {
+      this.entries.delete(entry.infoHash);
     }
 
     const delta = this.takeDelta(entry);
@@ -263,7 +262,7 @@ export class TorrentRuntime
   private takeDelta(entry: Entry) {
     const stats = entry.handle.getStats();
     const delta = {
-      torrentId: entry.torrentId,
+      infoHash: entry.infoHash,
       downloaded: stats.downloaded - entry.flushed.downloaded,
       uploaded: stats.uploaded - entry.flushed.uploaded,
     };
@@ -272,13 +271,13 @@ export class TorrentRuntime
     return delta;
   }
 
-  private async add(
+  private add(
     tx: EntityManager,
-    delta: { torrentId: string; downloaded: number; uploaded: number },
+    delta: { infoHash: string; downloaded: number; uploaded: number },
   ) {
-    await tx.nativeUpdate(
+    return tx.nativeUpdate(
       Torrent,
-      { id: delta.torrentId },
+      { infoHash: delta.infoHash },
       {
         downloadedBytes: raw(`downloaded_bytes + ${delta.downloaded}`),
         uploadedBytes: raw(`uploaded_bytes + ${delta.uploaded}`),
@@ -286,27 +285,22 @@ export class TorrentRuntime
     );
   }
 
-  private reconcileLater(torrentId: string) {
-    this.enqueue('downloads.reconcileTorrent', { torrentId });
-  }
-
-  private enqueue(
-    type: 'downloads.reconcileTorrent' | 'localMedia.importTorrentFile',
-    payload: { torrentId: string; fileIndex?: number },
-  ) {
+  private reconcileLater(infoHash: string) {
     if (this.stopping) return;
 
     this.jobs
-      .enqueue(this.em.fork(), type, payload as never)
+      .enqueue(this.em.fork(), 'downloads.reconcileTorrent', { infoHash })
       .catch((error) =>
-        this.logger.error(`Enqueueing ${type} failed: ${error.message}`),
+        this.logger.error(
+          `Enqueueing the reconcile of ${infoHash} failed: ${error.message}`,
+        ),
       );
   }
 
-  /** Only the jobs of a torrent change what it does */
-  private assertHolds(context: JobContext, torrentId: string) {
-    if (context.job.lockKey !== `torrent:${torrentId}`) {
-      throw new Error(`Job ${context.job.type} does not hold ${torrentId}`);
+  /** Only the job of a torrent changes what it does */
+  private assertHolds(context: JobContext, infoHash: string) {
+    if (context.job.lockKey !== `torrent:${infoHash}`) {
+      throw new Error(`Job ${context.job.type} does not hold ${infoHash}`);
     }
   }
 }

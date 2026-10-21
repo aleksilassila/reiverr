@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { EpisodeRefDto } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -27,23 +27,18 @@ export class DownloadSettingsDto {
 }
 
 export enum TorrentStatus {
-  /** Nothing of the torrent is wanted, its data is not kept */
-  Stopped = 'stopped',
+  /** Nothing of the torrent is wanted, and it has no data */
+  Idle = 'idle',
   /** Connecting and fetching the file list */
   Starting = 'starting',
   Downloading = 'downloading',
   Seeding = 'seeding',
+  /** Stopped with its data, which an item that waits for its import keeps */
+  Stopped = 'stopped',
   Failed = 'failed',
 }
 
 export class TorrentDto {
-  @ApiProperty({
-    type: 'string',
-    required: false,
-    description: 'Missing while no request downloads from the torrent',
-  })
-  id?: string;
-
   @ApiProperty({ type: 'string' })
   infoHash: string;
 
@@ -72,14 +67,6 @@ export class TorrentDto {
   @ApiProperty({ required: false })
   error?: string;
 
-  @ApiProperty({
-    required: false,
-    type: 'string',
-    format: 'date-time',
-    description: 'When a torrent that failed is started again',
-  })
-  retryAt?: Date;
-
   @ApiProperty()
   peers: number;
 
@@ -90,83 +77,42 @@ export class TorrentDto {
   uploadSpeed: number;
 }
 
-/** A file in the library a user prefers for an episode */
-export class PreferredFileDto {
-  @ApiProperty({
-    description: 'The id of the file, which the API serves it by',
-  })
+export enum TorrentItemStatus {
+  /** The file list of the torrent is not known yet */
+  Resolving = 'resolving',
+  /** The torrent has no file for the item */
+  NoMatch = 'no-match',
+  Downloading = 'downloading',
+  /** The file is downloaded and waits for its import */
+  Complete = 'complete',
+  /** The torrent failed */
+  Failed = 'failed',
+  /** The library let the item go */
+  Released = 'released',
+}
+
+/** An item that is wanted from a torrent, and where it stands */
+export class TorrentItemDto {
+  @ApiProperty({ type: 'string' })
   id: string;
 
-  @ApiProperty()
-  fileName: string;
+  @ApiProperty({ type: 'string' })
+  infoHash: string;
 
-  @ApiProperty({ description: 'Bytes' })
-  size: number;
+  @ApiProperty({ enum: MediaType })
+  mediaType: MediaType;
 
-  @ApiProperty({
-    description:
-      'Whether the file is still in the library. The requests of a file that is not fail until another source is picked',
-  })
-  inLibrary: boolean;
+  @ApiProperty({ type: 'string' })
+  tmdbId: string;
 
-  @ApiProperty({
-    required: false,
-    description:
-      'Whether the cleanup may delete the file when no request holds it',
-  })
-  managed?: boolean;
-}
+  @ApiProperty({ description: '0 for a movie' })
+  season: number;
 
-/**
- * What a user prefers for a season (episode 0) or an episode: a torrent, or
- * for an episode a file in the library
- */
-export class PreferenceDto extends EpisodeRefDto {
-  @ApiProperty({
-    type: 'string',
-    required: false,
-    description: 'The search result the user picked',
-  })
-  releaseId?: string;
+  @ApiProperty({ description: '0 for a movie' })
+  episode: number;
 
-  @ApiProperty({ type: TorrentDto, required: false })
-  torrent?: TorrentDto;
-
-  @ApiProperty({ type: PreferredFileDto, required: false })
-  file?: PreferredFileDto;
-}
-
-export enum EpisodeDownloadStatus {
-  WaitingForApproval = 'waiting-for-approval',
-  /** The rule of the user holds the request back until they have watched up to it */
-  InactiveAhead = 'inactive-ahead',
-  /** The user has picked no source for the episode; a request passes the gate with one */
-  NoPreference = 'no-preference',
-  /** The torrent of the request is being resolved, or its files are not known yet */
-  Resolving = 'resolving',
-  NoFileInTorrent = 'no-file-in-torrent',
-  Downloading = 'downloading',
-  Failed = 'failed',
-  /** The file of the torrent of the request is in the library */
-  Available = 'available',
-}
-
-export class EpisodeStatusDto extends EpisodeRefDto {
-  @ApiProperty({ description: 'Whether the user has requested the episode' })
-  requested: boolean;
-
-  @ApiProperty({
-    description:
-      'Whether a file of the episode is in the library, from any torrent or found on disk',
-  })
-  onDisk: boolean;
-
-  @ApiProperty({
-    enum: EpisodeDownloadStatus,
-    required: false,
-    description: 'Where the request of the user stands',
-  })
-  status?: EpisodeDownloadStatus;
+  @ApiProperty({ enum: TorrentItemStatus })
+  status: TorrentItemStatus;
 
   @ApiProperty({ required: false, description: 'From 0 to 1' })
   progress?: number;
@@ -175,41 +121,13 @@ export class EpisodeStatusDto extends EpisodeRefDto {
   error?: string;
 
   @ApiProperty({
-    type: TorrentDto,
     required: false,
-    description:
-      'The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season',
+    description: 'The name of the file of the torrent that is the item',
   })
-  torrent?: TorrentDto;
-
-  @ApiProperty({
-    type: 'string',
-    format: 'date-time',
-    required: false,
-    description:
-      'When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them',
-  })
-  cleanupAt?: Date;
+  fileName?: string;
 }
 
-export class SeriesStatusDto {
-  @ApiProperty({
-    type: [PreferenceDto],
-    description:
-      'What the user prefers for the seasons and episodes: torrents, and files for episodes',
-  })
-  preferences: PreferenceDto[];
-
-  @ApiProperty({
-    type: [EpisodeStatusDto],
-    description: 'The episodes that the user requested or that are on disk',
-  })
-  episodes: EpisodeStatusDto[];
-
-  @ApiProperty({
-    type: [String],
-    description:
-      'Info hashes of the torrents that a request of anyone downloads from or that files of it came from',
-  })
-  onServer: string[];
+export class TorrentWithItemsDto extends TorrentDto {
+  @ApiProperty({ type: [TorrentItemDto] })
+  items: TorrentItemDto[];
 }

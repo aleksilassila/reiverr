@@ -200,7 +200,7 @@ function useSeriesData(tmdbId: string) {
 	// The page refreshes the requests periodically, so a failure is reported once
 	let requestsFailed = false;
 	const requestsData = useData(async (): Promise<SeriesRequests> => {
-		const downloads = await reiverrApi.downloads
+		const downloads = await reiverrApi.library
 			.getSeriesStatus(tmdbId)
 			.then((r) => r.data)
 			.catch((e) => {

@@ -5,14 +5,14 @@ import {
   INFO_HASH,
   LibraryFixture,
   TMDB_ID,
-} from '../../test/local-media-fixture.js';
+} from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
-import { LocalMediaService } from './local-media.service.js';
+import { LibraryService } from './library.service.js';
 
 describe('ImportService', () => {
   let fixture: LibraryFixture;
-  let localMedia: LocalMediaService;
-  let library: string;
+  let library: LibraryService;
+  let folder: string;
   let request: LibraryFixture['request'];
   let write: LibraryFixture['write'];
   let indexed: LibraryFixture['indexed'];
@@ -22,8 +22,8 @@ describe('ImportService', () => {
   beforeEach(async () => {
     fixture = await createLibraryFixture();
     ({
-      localMedia,
-      library,
+      libraryService: library,
+      library: folder,
       request,
       write,
       indexed,
@@ -40,16 +40,14 @@ describe('ImportService', () => {
 
     const destination = await importEpisode(source, [2]);
 
-    expect(path.relative(library, destination)).toBe(
+    expect(path.relative(folder, destination)).toBe(
       'Test Show (2020)/Season 1/Test Show - S01E02 - a1b2c3d4.mkv',
     );
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
     // The file found next to it stays as it is, and both play as the episode
-    await request(() => localMedia.scanTitle(MediaType.Series, TMDB_ID));
-    const files = await request(() =>
-      localMedia.listEpisodeFiles(TMDB_ID, 1, 2),
-    );
+    await request(() => library.scanTitle(MediaType.Series, TMDB_ID));
+    const files = await request(() => library.listEpisodeFiles(TMDB_ID, 1, 2));
     expect(files.map((file) => file.fileName)).toEqual([
       'Test Show - S01E02 - a1b2c3d4.mkv',
       'Test Show - S01E02.mkv',
@@ -73,7 +71,7 @@ describe('ImportService', () => {
 
     const destination = await importEpisode(source, [2, 3]);
 
-    expect(path.relative(library, destination)).toBe(
+    expect(path.relative(folder, destination)).toBe(
       'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02-E03 - a1b2c3d4.mkv',
     );
     expect(await scanSeries()).toMatchObject([{ season: 1, episodes: [2, 3] }]);

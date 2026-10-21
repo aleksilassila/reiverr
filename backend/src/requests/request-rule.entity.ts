@@ -9,12 +9,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import type { EpisodeSource, SeasonTorrent } from './torrent-preference.js';
+import type { EpisodeSource, SeasonTorrent } from './request-source.js';
 
 /**
- * What a user wants of the requests of a title: which of them are active,
- * going by what the user has watched, and which torrents they download from.
- * A limit that is null does not apply. Only series have rules so far.
+ * What a user wants of the requests of a title: which of them are needed,
+ * going by what the user has watched, and which torrents or files they get
+ * their files from. A limit that is null does not apply. Only series have
+ * rules so far.
  */
 @Entity()
 @Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })
@@ -39,7 +40,7 @@ export class RequestRule {
     type: 'number',
     nullable: true,
     description:
-      'How many requests after the last episode the user watched are active',
+      'How many requests after the last episode the user watched are needed',
   })
   @Property({ type: 'integer', nullable: true })
   keepNext: number | null = null;

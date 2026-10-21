@@ -1,170 +1,67 @@
-import type { MediaRequest } from '../requests/request.entity.js';
-import { findEpisodeFile, findOnlyVideoFile } from './downloads.utils.js';
+import type { TorrentItem } from './torrent-item.entity.js';
 import type { Torrent } from './torrent.entity.js';
 
-export interface WantedFile {
-  fileIndex: number;
-  tmdbId: string;
-  season: number;
-  /** The requested episodes that this file is downloaded for */
-  episodes: number[];
-}
-
-/** What a request bound to a torrent has or waits for */
-export type RequestDemand =
-  | { kind: 'file' }
-  | { kind: 'wanted'; fileIndex: number }
-  | { kind: 'resolving' }
-  | { kind: 'no-file-in-torrent' };
-
-export interface DemandState {
-  torrent: Pick<Torrent, 'id' | 'infoHash' | 'files'>;
-  /** The episode requests that are bound to the torrent */
-  requests: Pick<
-    MediaRequest,
-    'id' | 'userId' | 'tmdbId' | 'season' | 'episode' | 'mediaFileId'
-  >[];
-  /** The episodes whose user prefers this torrent for the episode itself, for the only-video rule */
-  episodePreferences: {
-    userId: string;
-    tmdbId: string;
-    season: number;
-    episode: number;
-  }[];
-}
-
-export interface Demand {
-  wanted: WantedFile[];
-  /** A request waits for the file list of the torrent */
-  needsFiles: boolean;
-  requests: Map<string, RequestDemand>;
-}
-
-/**
- * What the requests that are bound to a torrent want from it. A request
- * without a file wants the file of its episode: the one named after it, or
- * the only video of a torrent that its user picked for the episode.
- */
-export function torrentDemand(state: DemandState): Demand {
-  const { torrent } = state;
-  const demand: Demand = { wanted: [], needsFiles: false, requests: new Map() };
-
-  for (const request of state.requests) {
-    const set = (result: RequestDemand) =>
-      demand.requests.set(request.id, result);
-
-    if (request.mediaFileId) {
-      set({ kind: 'file' });
-      continue;
-    }
-    if (!torrent.files) {
-      demand.needsFiles = true;
-      set({ kind: 'resolving' });
-      continue;
-    }
-
-    const { userId, tmdbId, season, episode } = request;
-    const isPreferredForEpisode = state.episodePreferences.some(
-      (p) =>
-        p.userId === userId &&
-        p.tmdbId === tmdbId &&
-        p.season === season &&
-        p.episode === episode,
-    );
-    const wanted =
-      findEpisodeFile(torrent.files, season, episode) ??
-      (isPreferredForEpisode ? findOnlyVideoFile(torrent.files) : undefined);
-    if (!wanted) {
-      set({ kind: 'no-file-in-torrent' });
-      continue;
-    }
-
-    const same = demand.wanted.find(
-      (w) =>
-        w.fileIndex === wanted.index &&
-        w.tmdbId === tmdbId &&
-        w.season === season,
-    );
-    if (!same) {
-      demand.wanted.push({
-        fileIndex: wanted.index,
-        tmdbId,
-        season,
-        episodes: [episode],
-      });
-    } else if (!same.episodes.includes(episode)) {
-      same.episodes.push(episode);
-    }
-    set({ kind: 'wanted', fileIndex: wanted.index });
-  }
-
-  return demand;
-}
-
-export type TorrentDecision =
-  /** Stop, delete the data, and forget the row if nothing refers to it */
-  | { kind: 'release' }
-  /** Stop, and run again at retryAt */
-  | { kind: 'fail'; error: string; retryAt: Date }
-  /** Stays stopped until retryAt */
-  | { kind: 'backoff'; retryAt: Date }
-  | { kind: 'start' }
-  /** Started, the engine says when it is ready */
-  | { kind: 'wait' }
-  | { kind: 'run'; wanted: number[]; imports: number[] };
-
 export interface TorrentState {
-  demand: Pick<Demand, 'wanted' | 'needsFiles'>;
-  torrent: Pick<
-    Torrent,
-    'downloadedBytes' | 'uploadedBytes' | 'attempts' | 'retryAt'
-  >;
+  /** The items that are not released */
+  wanted: Pick<TorrentItem, 'fileIndex' | 'completedAt'>[];
+  /** Whether the file list of the torrent is known */
+  hasFiles: boolean;
+  torrent: Pick<Torrent, 'downloadedBytes' | 'uploadedBytes' | 'error'>;
   /** The torrent in the engine, when it runs */
   runtime?: { ready: boolean; error?: string; complete: Set<number> };
   /** Whether the torrent has data in the downloads folder */
   hasData: boolean;
   seedRatio: number;
-  now: Date;
 }
 
-const MINUTE = 60 * 1000;
-
-/** The delay before something that failed its nth time is tried again */
-export const retryDelay = (attempts: number) =>
-  Math.min(5 * MINUTE * 2 ** Math.max(attempts - 1, 0), 6 * 60 * MINUTE);
+export type TorrentDecision =
+  /** Stop and delete the data: nothing is wanted and seeding is done */
+  | { kind: 'release' }
+  /** Stop and keep the data: nothing downloads, but an item waits for its import */
+  | { kind: 'stop' }
+  /** Stop, and keep the error until the torrent is picked or needed again */
+  | { kind: 'fail'; error: string }
+  /** Failed before: stays stopped */
+  | { kind: 'failed' }
+  | { kind: 'start' }
+  /** Started, the engine says when it is ready */
+  | { kind: 'wait' }
+  /** Runs: downloads the files of the wanted items, of which some are complete */
+  | { kind: 'run'; wanted: number[]; complete: number[] };
 
 /** What a torrent does next */
 export function decideTorrent(state: TorrentState): TorrentDecision {
-  const { demand, torrent, runtime, now } = state;
+  const { wanted, torrent, runtime } = state;
 
-  if (runtime?.error) {
-    const attempts = torrent.attempts + 1;
+  if (runtime?.error) return { kind: 'fail', error: runtime.error };
 
-    return {
-      kind: 'fail',
-      error: runtime.error,
-      retryAt: new Date(now.getTime() + retryDelay(attempts)),
-    };
-  }
-
-  const isNeeded = demand.wanted.length > 0 || demand.needsFiles;
+  const files = [...new Set(wanted.flatMap((item) => item.fileIndex ?? []))];
+  const downloads = wanted.some(
+    (item) =>
+      item.fileIndex !== null &&
+      item.fileIndex !== undefined &&
+      !item.completedAt,
+  );
+  const needsFiles =
+    !state.hasFiles && wanted.some((item) => item.fileIndex == null);
+  const isNeeded = downloads || needsFiles;
+  // A failed torrent does not seed: its data goes once nothing wants it
   const seeds =
+    !torrent.error &&
     state.hasData &&
     torrent.downloadedBytes > 0 &&
     torrent.uploadedBytes < state.seedRatio * torrent.downloadedBytes;
-  if (!isNeeded && !seeds) return { kind: 'release' };
 
-  if (!runtime && torrent.retryAt && torrent.retryAt > now) {
-    return { kind: 'backoff', retryAt: torrent.retryAt };
+  if (!isNeeded && !seeds) {
+    return wanted.length ? { kind: 'stop' } : { kind: 'release' };
   }
+  if (!runtime && torrent.error) return { kind: 'failed' };
   if (!runtime) return { kind: 'start' };
   if (!runtime.ready) return { kind: 'wait' };
 
-  const wanted = [...new Set(demand.wanted.map((w) => w.fileIndex))];
-
   return {
     kind: 'run',
-    wanted,
-    imports: wanted.filter((index) => runtime.complete.has(index)),
+    wanted: files,
+    complete: files.filter((index) => runtime.complete.has(index)),
   };
 }

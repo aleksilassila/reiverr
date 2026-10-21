@@ -1,6 +1,7 @@
 export const TORRENT_ENGINE = 'TORRENT_ENGINE';
 
-export interface TorrentFile {
+/** A file of a torrent, as the torrent lists it */
+export interface TorrentFileInfo {
   index: number;
   name: string;
   /** Path inside the torrent */
@@ -21,7 +22,7 @@ export interface TorrentStats {
 export interface TorrentHandle {
   readonly infoHash: string;
   /** Resolves once the file list is known and data from an earlier run is verified */
-  readonly ready: Promise<TorrentFile[]>;
+  readonly ready: Promise<TorrentFileInfo[]>;
   /** Downloads these files and nothing else */
   setWantedFiles(indexes: number[]): void;
   /** Share of the file that is downloaded, from 0 to 1 */

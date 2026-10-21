@@ -9,7 +9,7 @@ import {
   seasonFolderName,
   seriesFolderName,
   srtToWebVtt,
-} from './local-media.utils.js';
+} from './library.utils.js';
 
 describe('parseMediaFolderName', () => {
   it('parses the title and year', () => {

@@ -28,14 +28,14 @@ import {
   MyListStatusFilter,
   MyListTypeFilter,
   OrderDirection,
-} from './library.dto.js';
-import { LibraryService } from './library.service.js';
+} from './my-list.dto.js';
+import { MyListService } from './my-list.service.js';
 
 @ApiTags('myList')
 @Controller('users/:userId/my-list')
 @UseGuards(UserAccessControl)
-export class LibraryController {
-  constructor(private libraryService: LibraryService) {}
+export class MyListController {
+  constructor(private myListService: MyListService) {}
 
   @Get()
   @ApiQuery({ name: 'status', enum: MyListStatusFilter, required: false })
@@ -58,7 +58,7 @@ export class LibraryController {
   ): Promise<PaginatedResponseDto<MyListItemDto>> {
     // const user = await this.userService.findOne(userId);
 
-    const response = await this.libraryService.getMyList({
+    const response = await this.myListService.getMyList({
       userId,
       pagination,
       type,
@@ -85,7 +85,7 @@ export class LibraryController {
     mediaType: MediaType,
   ): Promise<SuccessResponseDto> {
     if (inMyList) {
-      const item = await this.libraryService.findOrCreateByTmdbId(
+      const item = await this.myListService.findOrCreateByTmdbId(
         userId,
         tmdbId,
         mediaType,
@@ -95,7 +95,7 @@ export class LibraryController {
         success: !!item,
       };
     } else {
-      const deleteAction = await this.libraryService.deleteByTmdbId(
+      const deleteAction = await this.myListService.deleteByTmdbId(
         userId,
         tmdbId,
         mediaType,

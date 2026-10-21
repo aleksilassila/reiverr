@@ -12,9 +12,9 @@ import { User } from '../../users/user.entity.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 import { RequestsService } from '../../requests/requests.service.js';
 import { PlayStatesService } from '../play-state/play-states.service.js';
-import { MyListStatusFilter } from './library.dto.js';
-import { LibraryItem } from './library.entity.js';
-import { LibraryService } from './library.service.js';
+import { MyListStatusFilter } from './my-list.dto.js';
+import { MyListItem } from './my-list-item.entity.js';
+import { MyListService } from './my-list.service.js';
 
 // Movies and series have separate id ranges on TMDB that overlap
 const TMDB_ID = '1';
@@ -34,9 +34,9 @@ const SERIES = {
   seasons: [],
 } as TmdbSeriesFull;
 
-describe('LibraryService', () => {
+describe('MyListService', () => {
   let orm: MikroORM;
-  let library: LibraryService;
+  let library: MyListService;
   let playStates: PlayStatesService;
   let userId: string;
 
@@ -66,7 +66,7 @@ describe('LibraryService', () => {
     await orm.em.fork().insert(MovieMetadata.from(MOVIE));
     await orm.em.fork().insert(SeriesMetadata.from(SERIES));
 
-    const libraryItems = orm.em.getRepository(LibraryItem);
+    const myListItems = orm.em.getRepository(MyListItem);
     const playStateRows = orm.em.getRepository(PlayState);
 
     playStates = new PlayStatesService(
@@ -74,8 +74,8 @@ describe('LibraryService', () => {
       orm.em,
       { applyRules: async () => {} } as unknown as RequestsService,
     );
-    library = new LibraryService(
-      libraryItems,
+    library = new MyListService(
+      myListItems,
       playStateRows,
       orm.em,
       new MetadataService(

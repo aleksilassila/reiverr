@@ -5,14 +5,14 @@ import { TORRENT_PORT } from '../consts.js';
 import {
   TorrentHandle,
   TorrentEngine,
-  TorrentFile,
+  TorrentFileInfo,
   TorrentStats,
 } from './torrent-engine.js';
 
 const COMPLETION_CHECK_INTERVAL = 1000;
 
 export class TorrentStreamHandle implements TorrentHandle {
-  readonly ready: Promise<TorrentFile[]>;
+  readonly ready: Promise<TorrentFileInfo[]>;
 
   private readonly logger = new Logger(TorrentStreamHandle.name);
   // The typings cover a fraction of the engine (no torrent, bitfield, store or swarm speeds)
@@ -134,9 +134,9 @@ export class TorrentStreamHandle implements TorrentHandle {
     return new Promise((resolve) => this.engine.destroy(() => resolve()));
   }
 
-  private getFiles(): TorrentFile[] {
+  private getFiles(): TorrentFileInfo[] {
     return this.engine.files.map(
-      (file: TorrentStream.TorrentFile, index: number): TorrentFile => ({
+      (file: TorrentStream.TorrentFile, index: number): TorrentFileInfo => ({
         index,
         name: file.name,
         path: file.path,

@@ -6,7 +6,7 @@ import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
 import { UpdatePlayStateDto } from './play-state.dto.js';
 import { PlayState } from './play-state.entity.js';
 import { RequestsService } from '../../requests/requests.service.js';
-import { LibraryItem } from '../library/library.entity.js';
+import { MyListItem } from '../my-list/my-list-item.entity.js';
 
 @Injectable()
 export class PlayStatesService {
@@ -114,7 +114,7 @@ export class PlayStatesService {
       applyUpdate(state, playState);
 
       await tx.flush();
-      await this.touchLibraryItem(tx, userId, tmdbId, MediaType.Movie);
+      await this.touchMyListItem(tx, userId, tmdbId, MediaType.Movie);
 
       return state;
     });
@@ -136,7 +136,7 @@ export class PlayStatesService {
       const changed = applyUpdate(state, playState);
 
       await tx.flush();
-      await this.touchLibraryItem(tx, userId, tmdbId, MediaType.Series);
+      await this.touchMyListItem(tx, userId, tmdbId, MediaType.Series);
       if (changed) await this.watchStatusChanged(tx, userId, tmdbId);
 
       return state;
@@ -199,7 +199,7 @@ export class PlayStatesService {
     });
   }
 
-  private async touchLibraryItem(
+  private async touchMyListItem(
     em: EntityManager,
     userId: string,
     tmdbId: string,
@@ -208,7 +208,7 @@ export class PlayStatesService {
     const now = new Date();
 
     await em.nativeUpdate(
-      LibraryItem,
+      MyListItem,
       { userId, tmdbId, mediaType },
       { lastPlayedAt: now, updatedAt: now },
     );

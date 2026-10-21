@@ -20,11 +20,11 @@ import { SettingsService } from '../settings/settings.service.js';
 import {
   LibraryEntryDto,
   ScanLibraryResultDto,
-  LocalEpisodeFileDto,
-  LocalMediaFileDto,
-  LocalMediaSettingsDto,
-  LocalSubtitleFileDto,
-} from './local-media.dto.js';
+  LibraryEpisodeFileDto,
+  LibraryFileDto,
+  LibrarySettingsDto,
+  SubtitleFileDto,
+} from './library.dto.js';
 import {
   describeError,
   folderMatchesTitle,
@@ -39,12 +39,13 @@ import {
   relativePath,
   srtToWebVtt,
   yearOf,
-} from './local-media.utils.js';
+} from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
+import { RequestBinding } from './request-binding.entity.js';
 
-const SETTINGS_KEY = 'local-media';
+const SETTINGS_KEY = 'library';
 
-const DEFAULT_SETTINGS: LocalMediaSettingsDto = {
+const DEFAULT_SETTINGS: LibrarySettingsDto = {
   movieFolders: [],
   seriesFolders: [],
 };
@@ -63,7 +64,7 @@ interface FoundFile {
   name: string;
   size: number;
   modifiedAt: Date;
-  subtitles: LocalSubtitleFileDto[];
+  subtitles: SubtitleFileDto[];
 }
 
 /** What a file is, as far as its name tells */
@@ -96,8 +97,8 @@ export const INDEXED_FIELDS = [
 ] as const;
 
 @Injectable()
-export class LocalMediaService implements OnModuleInit {
-  private readonly logger = new Logger(LocalMediaService.name);
+export class LibraryService implements OnModuleInit {
+  private readonly logger = new Logger(LibraryService.name);
 
   constructor(
     private readonly em: EntityManager,
@@ -109,18 +110,18 @@ export class LocalMediaService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.jobs.define('localMedia.scanTitle', {
+    this.jobs.define('library.scanTitle', {
       dropAtRestart: true,
       run: ({ mediaType, tmdbId }) => this.scanTitle(mediaType, tmdbId),
     });
     // A scan that did not run at 04:00 waits for the next one
-    this.jobs.define('localMedia.scanFolder', {
+    this.jobs.define('library.scanFolder', {
       dropAtRestart: true,
       run: ({ folder }) => this.runFolderScan(folder),
     });
   }
 
-  getSettings(): Promise<LocalMediaSettingsDto> {
+  getSettings(): Promise<LibrarySettingsDto> {
     return this.settingsService.getOrCreateValue(
       SETTINGS_KEY,
       DEFAULT_SETTINGS,
@@ -133,10 +134,10 @@ export class LocalMediaService implements OnModuleInit {
    * `forgetFiles`.
    */
   async updateSettings(
-    settings: LocalMediaSettingsDto,
+    settings: LibrarySettingsDto,
     { forgetFiles = false }: { forgetFiles?: boolean } = {},
-  ): Promise<LocalMediaSettingsDto> {
-    const value: LocalMediaSettingsDto = {
+  ): Promise<LibrarySettingsDto> {
+    const value: LibrarySettingsDto = {
       movieFolders: await this.validateFolders(settings.movieFolders),
       seriesFolders: await this.validateFolders(settings.seriesFolders),
     };
@@ -170,7 +171,7 @@ export class LocalMediaService implements OnModuleInit {
 
     const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
     // Imports that wait for a folder that was missing or unreadable
-    await this.jobs.runNow(this.em, 'localMedia.importTorrentFile');
+    await this.jobs.runNow(this.em, 'library.importItem');
 
     return saved;
   }
@@ -179,7 +180,7 @@ export class LocalMediaService implements OnModuleInit {
    * The indexed files of a movie that are on disk, as of the last scan of the
    * title. Asks for a scan, at once when a file is missing.
    */
-  async listMovieFiles(tmdbId: string): Promise<LocalMediaFileDto[]> {
+  async listMovieFiles(tmdbId: string): Promise<LibraryFileDto[]> {
     const { files, isAnyMissing } = await this.statIndexedFiles(
       MediaType.Movie,
       tmdbId,
@@ -204,7 +205,7 @@ export class LocalMediaService implements OnModuleInit {
    * The indexed episode files of a series that are on disk, as of the last
    * scan of the title. Asks for a scan, at once when a file is missing.
    */
-  async listSeriesFiles(tmdbId: string): Promise<LocalEpisodeFileDto[]> {
+  async listSeriesFiles(tmdbId: string): Promise<LibraryEpisodeFileDto[]> {
     const { files, isAnyMissing } = await this.statIndexedFiles(
       MediaType.Series,
       tmdbId,
@@ -239,7 +240,7 @@ export class LocalMediaService implements OnModuleInit {
     tmdbId: string,
     season: number,
     episode: number,
-  ): Promise<LocalEpisodeFileDto[]> {
+  ): Promise<LibraryEpisodeFileDto[]> {
     const files = (await this.listSeriesFiles(tmdbId)).filter(
       (file) => file.season === season && file.episodes.includes(episode),
     );
@@ -251,7 +252,7 @@ export class LocalMediaService implements OnModuleInit {
 
   /**
    * Brings the index of a title in line with what is in its title folders:
-   * the job `localMedia.scanTitle`
+   * the job `library.scanTitle`
    */
   async scanTitle(mediaType: MediaType, tmdbId: string): Promise<void> {
     const { movieFolders, seriesFolders } = await this.getSettings();
@@ -318,7 +319,7 @@ export class LocalMediaService implements OnModuleInit {
     const files: {
       file: MediaFile;
       size: number;
-      subtitles: LocalSubtitleFileDto[];
+      subtitles: SubtitleFileDto[];
     }[] = [];
     let isAnyMissing = false;
     for (const file of indexed) {
@@ -363,7 +364,7 @@ export class LocalMediaService implements OnModuleInit {
   private requestScan(mediaType: MediaType, tmdbId: string, delay: number) {
     return this.jobs.enqueue(
       this.em,
-      'localMedia.scanTitle',
+      'library.scanTitle',
       { mediaType, tmdbId },
       { runAt: new Date(Date.now() + delay) },
     );
@@ -646,7 +647,7 @@ export class LocalMediaService implements OnModuleInit {
   }
 
   /**
-   * The nightly scan of a library folder: the job `localMedia.scanFolder`. A
+   * The nightly scan of a library folder: the job `library.scanFolder`. A
    * folder that is not available is left as it is and the failure is logged:
    * it is only scanned by hand.
    */
@@ -830,8 +831,9 @@ export class LocalMediaService implements OnModuleInit {
   }
 
   /**
-   * Forgets indexed files. Their titles are reconciled in the same
-   * transaction: a request that referred to one downloads it again.
+   * Forgets indexed files. The requests that had them let go of them in the
+   * same transaction, and the library looks at them again, so that they
+   * download the files again.
    */
   private async forgetFiles(files: MediaFile[]): Promise<void> {
     if (!files.length) return;
@@ -840,20 +842,35 @@ export class LocalMediaService implements OnModuleInit {
       await tx.nativeDelete(MediaFile, {
         id: { $in: files.map((file) => file.id) },
       });
-      await this.enqueueReconcile(tx, files);
+      await this.filesForgotten(tx, files);
     });
   }
 
-  /** Has the titles of the files reconciled, once per title */
-  private async enqueueReconcile(em: EntityManager, files: MediaFile[]) {
-    const titles = new Map(
-      files.map((file) => [
-        `${file.mediaType}/${file.tmdbId}`,
-        { mediaType: file.mediaType, tmdbId: file.tmdbId },
-      ]),
+  /**
+   * Unbinds the requests that had files whose rows are deleted, in the
+   * caller's transaction, and has the library look at the requests again
+   */
+  async filesForgotten(
+    em: EntityManager,
+    files: Pick<MediaFile, 'id'>[],
+  ): Promise<void> {
+    const ids = files.map((file) => file.id);
+    if (!ids.length) return;
+
+    const bindings = await em.find(
+      RequestBinding,
+      { mediaFileId: { $in: ids } },
+      { disableIdentityMap: true, fields: ['requestId'] },
     );
-    for (const title of titles.values()) {
-      await this.jobs.enqueue(em, 'downloads.reconcileTitle', title);
+    if (!bindings.length) return;
+
+    await em.nativeUpdate(
+      RequestBinding,
+      { mediaFileId: { $in: ids } },
+      { mediaFileId: null, updatedAt: new Date() },
+    );
+    for (const { requestId } of bindings) {
+      await this.jobs.enqueue(em, 'library.reconcileRequest', { requestId });
     }
   }
 

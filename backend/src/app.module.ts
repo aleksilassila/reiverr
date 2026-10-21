@@ -8,7 +8,7 @@ import { MetadataModule } from './metadata/metadata.module.js';
 import { UserDataModule } from './user-data/user-data.module.js';
 import { UsersModule } from './users/users.module.js';
 import { RequestsModule } from './requests/requests.module.js';
-import { LocalMediaModule } from './local-media/local-media.module.js';
+import { LibraryModule } from './library/library.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { IndexersModule } from './indexers/indexers.module.js';
 import { DownloadsModule } from './downloads/downloads.module.js';
@@ -32,7 +32,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     MetadataModule,
     UserDataModule,
     RequestsModule,
-    LocalMediaModule,
+    LibraryModule,
     JobsModule,
     IndexersModule,
     DownloadsModule,

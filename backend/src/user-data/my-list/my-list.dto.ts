@@ -1,6 +1,6 @@
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { TmdbItemDto } from '../../metadata/tmdb/tmdb.dto.js';
-import { LibraryItem } from './library.entity.js';
+import { MyListItem } from './my-list-item.entity.js';
 import { PlayStateDto } from '../play-state/play-state.dto.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 
@@ -31,7 +31,7 @@ export enum MyListTypeFilter {
   All = 'all',
 }
 
-export class MyListItemDto extends PickType(LibraryItem, [
+export class MyListItemDto extends PickType(MyListItem, [
   'tmdbId',
   'mediaType',
   'playStates',

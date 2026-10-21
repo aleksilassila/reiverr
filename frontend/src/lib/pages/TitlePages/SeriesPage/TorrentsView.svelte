@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LocalEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { LibraryEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -55,14 +55,14 @@
 		.searchSeriesReleases(tmdbId, { season, episode })
 		.then((r) => r.data);
 	// The files of the episode in the library, external or imported, which a request can have instead
-	const files: Promise<LocalEpisodeFileDto[]> =
+	const files: Promise<LibraryEpisodeFileDto[]> =
 		episode === undefined
 			? Promise.resolve([])
-			: reiverrApi.localMedia
+			: reiverrApi.library
 					.getEpisodeFiles(tmdbId, season, episode)
 					.then((r) => r.data)
 					.catch(() => []);
-	let fileList: LocalEpisodeFileDto[] = [];
+	let fileList: LibraryEpisodeFileDto[] = [];
 	let releaseList: ReleaseDto[] = [];
 	files.then((f) => (fileList = f));
 	releases.then((r) => (releaseList = r)).catch(() => {});
@@ -70,16 +70,14 @@
 	$: hasFiles = fileList.length > 0;
 	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
 	$: selectedRelease = releaseList.find(
-		(release) =>
-			release.id === selection?.releaseId ||
-			(!!release.infoHash && release.infoHash === selection?.torrent?.infoHash)
+		(release) => !!release.infoHash && release.infoHash === selection?.torrent?.infoHash
 	);
 	$: otherFiles = fileList.filter((file) => file !== selectedFile);
 	$: otherReleases = releaseList.filter((release) => release !== selectedRelease);
 
 	const releaseDetails = (release: ReleaseDto) =>
 		`${release.seeders} seeders · ${release.peers} peers · ${formatSize(release.size)} · ${release.indexer}`;
-	const fileDetails = (file: LocalEpisodeFileDto) =>
+	const fileDetails = (file: LibraryEpisodeFileDto) =>
 		`${formatSize(file.size)} · ${file.infoHash ? 'On disk' : 'External'}`;
 	// The preference's own snapshot, until the list that has the selected item loads
 	$: selectedDetails = selectedRelease
@@ -89,7 +87,7 @@
 			: selection?.torrent
 				? `${formatSize(selection.torrent.size)} · ${selection.torrent.indexer}`
 				: selection?.file
-					? `${formatSize(selection.file.size)}${selection.file.managed ? ' · Managed' : ''}${selection.file.inLibrary ? '' : ' · Not in the library'}`
+					? `${selection.file.size === undefined ? 'File' : formatSize(selection.file.size)}${selection.file.managed ? ' · Managed' : ''}${selection.file.inLibrary ? '' : ' · Not in the library'}`
 					: '';
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
@@ -113,7 +111,7 @@
 			.catch((e) => (error = errorMessage(e)));
 	}
 
-	async function selectFile(file: LocalEpisodeFileDto) {
+	async function selectFile(file: LibraryEpisodeFileDto) {
 		error = '';
 
 		await reiverrApi.requests

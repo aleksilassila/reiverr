@@ -184,7 +184,6 @@
 					.then(({ data }) => {
 						const what = [
 							`${count(data.requests, 'request', 'requests')} bound`,
-							data.kept ? `${count(data.kept, 'episode keeps', 'episodes keep')} another file` : '',
 							data.skipped ? `${count(data.skipped, 'file', 'files')} skipped` : ''
 						].filter(Boolean);
 						createInfoNotification('Requested', what.join(', '));
@@ -310,8 +309,8 @@
 		await load(folder);
 	}
 
-	reiverrApi.localMedia
-		.getLocalMediaSettings()
+	reiverrApi.library
+		.getLibrarySettings()
 		.then(({ data }) => {
 			folders = [...data.seriesFolders, ...data.movieFolders];
 			seriesFolders = data.seriesFolders;

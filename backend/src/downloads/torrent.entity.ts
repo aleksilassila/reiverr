@@ -1,17 +1,16 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
-import { randomUUID } from 'node:crypto';
-import type { TorrentFile } from './torrent-engine.js';
+import type { TorrentFileInfo } from './torrent-engine.js';
 
-/** A torrent the server knows, shared by everyone who selects it */
+/**
+ * A torrent the server knows, by its info hash. The library creates it from
+ * a release a user picked, and asks for items of it; downloads does the
+ * rest.
+ */
 @Entity()
 export class Torrent {
   @ApiProperty({ type: 'string' })
-  @PrimaryKey({ type: 'uuid' })
-  id: string = randomUUID();
-
-  @ApiProperty({ type: 'string' })
-  @Property({ unique: true })
+  @PrimaryKey()
   infoHash: string;
 
   @ApiProperty({ type: 'string' })
@@ -34,7 +33,7 @@ export class Torrent {
 
   /** Known at once for a .torrent file, after the first peers for a magnet link */
   @Property({ type: 'json', nullable: true })
-  files?: TorrentFile[];
+  files?: TorrentFileInfo[];
 
   @ApiProperty({
     type: 'number',
@@ -48,17 +47,9 @@ export class Torrent {
   @Property({ default: 0 })
   uploadedBytes: number = 0;
 
-  /** What made the torrent fail the last time it ran */
+  /** Why the torrent stopped, until its release is picked or needed again */
   @Property({ type: 'text', nullable: true })
   error?: string;
-
-  /** How many times in a row it failed */
-  @Property({ default: 0 })
-  attempts: number = 0;
-
-  /** When a torrent that failed is started again */
-  @Property({ nullable: true })
-  retryAt?: Date;
 
   @Property()
   createdAt: Date = new Date();

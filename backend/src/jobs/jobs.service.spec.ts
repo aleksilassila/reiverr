@@ -33,9 +33,9 @@ describe('JobsService', () => {
 
   it('runs a job with its payload in an entity manager of its own', async () => {
     const run = vi.fn(async () => {});
-    jobs.define('localMedia.cleanUpTitle', { run });
+    jobs.define('library.cleanUpTitle', { run });
 
-    await jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1'));
     await jobs.drain();
 
     expect(run).toHaveBeenCalledWith(
@@ -49,10 +49,10 @@ describe('JobsService', () => {
   });
 
   it('refuses a type that is defined twice', () => {
-    jobs.define('localMedia.cleanUpLibrary', { run: async () => {} });
+    jobs.define('library.cleanUpLibrary', { run: async () => {} });
 
     expect(() =>
-      jobs.define('localMedia.cleanUpLibrary', { run: async () => {} }),
+      jobs.define('library.cleanUpLibrary', { run: async () => {} }),
     ).toThrow('defined already');
   });
 
@@ -61,71 +61,71 @@ describe('JobsService', () => {
     const later = new Date(Date.now() + 10 * MINUTE);
     const sooner = new Date(Date.now() + 5 * MINUTE);
 
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'), {
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'), {
       runAt: later,
     });
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'), {
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'), {
       runAt: sooner,
     });
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'), {
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'), {
       runAt: later,
     });
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('2'));
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('2'));
 
     expect((await all()).map((job) => [job.dedupeKey, job.runAt])).toEqual([
-      ['localMedia.cleanUpTitle:series:1', sooner],
-      ['localMedia.cleanUpTitle:series:2', expect.any(Date)],
+      ['library.cleanUpTitle:series:1', sooner],
+      ['library.cleanUpTitle:series:2', expect.any(Date)],
     ]);
   });
 
   it('commits and rolls back a job with the transaction of the caller', async () => {
     await orm.em.fork().transactional(async (tx) => {
-      await jobs.enqueue(tx, 'localMedia.cleanUpTitle', cleanup('1'));
+      await jobs.enqueue(tx, 'library.cleanUpTitle', cleanup('1'));
     });
     await orm.em
       .fork()
       .transactional(async (tx) => {
-        await jobs.enqueue(tx, 'localMedia.cleanUpTitle', cleanup('2'));
+        await jobs.enqueue(tx, 'library.cleanUpTitle', cleanup('2'));
         throw new Error('rolled back');
       })
       .catch(() => {});
 
     expect((await all()).map((job) => job.dedupeKey)).toEqual([
-      'localMedia.cleanUpTitle:series:1',
+      'library.cleanUpTitle:series:1',
     ]);
   });
 
   it('refuses an entity manager outside the transaction that is running', async () => {
     await orm.em.fork().transactional(async () => {
       expect(() =>
-        jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpTitle', cleanup('1')),
+        jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1')),
       ).toThrow('outside the transaction');
     });
   });
 
   it('runs what the jobs enqueue, and leaves the jobs that are not due', async () => {
     const ran: string[] = [];
-    jobs.define('localMedia.cleanUpLibrary', {
+    jobs.define('library.cleanUpLibrary', {
       run: async (payload, { em }) => {
         ran.push('library');
-        await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'));
-        await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('2'), {
+        await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
+        await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('2'), {
           runAt: new Date(Date.now() + MINUTE),
         });
       },
     });
-    jobs.define('localMedia.cleanUpTitle', {
+    jobs.define('library.cleanUpTitle', {
       run: async ({ tmdbId }) => {
         ran.push(tmdbId);
       },
     });
 
-    await jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpLibrary', {});
+    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
     await jobs.drain();
 
     expect(ran).toEqual(['library', '1']);
     expect((await all()).map((job) => job.dedupeKey)).toEqual([
-      'localMedia.cleanUpTitle:series:2',
+      'library.cleanUpTitle:series:2',
     ]);
   });
 
@@ -137,7 +137,7 @@ describe('JobsService', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
       running--;
     };
-    jobs.define('localMedia.importTorrentFile', { concurrency: 2, run });
+    jobs.define('library.importItem', { concurrency: 2, run });
 
     const em = orm.em.fork();
     // Two files of one torrent, then one of each of two others
@@ -147,9 +147,9 @@ describe('JobsService', () => {
       ['b', 0],
       ['c', 0],
     ] as const) {
-      await jobs.enqueue(em, 'localMedia.importTorrentFile', {
-        torrentId,
-        fileIndex,
+      await jobs.enqueue(em, 'library.importItem', {
+        infoHash: torrentId,
+        itemId: `${torrentId}-${fileIndex}`,
       });
     }
     await jobs.drain();
@@ -166,7 +166,7 @@ describe('JobsService', () => {
       },
     });
     await jobs.enqueue(orm.em.fork(), 'downloads.reconcileTorrent', {
-      torrentId: 'a',
+      infoHash: 'a',
     });
 
     const before = Date.now();
@@ -202,7 +202,7 @@ describe('JobsService', () => {
       },
     });
     await jobs.enqueue(orm.em.fork(), 'downloads.reconcileTorrent', {
-      torrentId: 'a',
+      infoHash: 'a',
     });
 
     await jobs.drain();
@@ -214,16 +214,16 @@ describe('JobsService', () => {
 
   it('fails a job that may not retry, and keeps the newest failure of a key', async () => {
     let fail = true;
-    jobs.define('localMedia.cleanUpTitle', {
+    jobs.define('library.cleanUpTitle', {
       run: async () => {
         if (fail) throw new Error('unlink failed');
       },
     });
     const em = orm.em.fork();
 
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
     await jobs.drain();
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
     await jobs.drain();
 
     expect(await all()).toMatchObject([
@@ -232,17 +232,17 @@ describe('JobsService', () => {
 
     // A success clears the failure of its key
     fail = false;
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
     await jobs.drain();
     expect(await all()).toEqual([]);
   });
 
   it('claims nothing of a paused type until it is resumed', async () => {
     const run = vi.fn(async () => {});
-    jobs.define('localMedia.cleanUpLibrary', { run });
-    await jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpLibrary', {});
+    jobs.define('library.cleanUpLibrary', { run });
+    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
 
-    const resume = jobs.pause('localMedia.cleanUpLibrary');
+    const resume = jobs.pause('library.cleanUpLibrary');
     await jobs.drain();
     expect(run).not.toHaveBeenCalled();
 
@@ -254,8 +254,8 @@ describe('JobsService', () => {
   it('fails the jobs that a restart interrupted', async () => {
     await orm.em.fork().insert(Job, {
       ...new Job(),
-      type: 'localMedia.cleanUpLibrary',
-      dedupeKey: 'localMedia.cleanUpLibrary',
+      type: 'library.cleanUpLibrary',
+      dedupeKey: 'library.cleanUpLibrary',
       lockKey: 'library',
       status: JobStatus.Running,
     });
@@ -268,17 +268,17 @@ describe('JobsService', () => {
   });
 
   it('keeps only the interrupted failure of a key at a restart', async () => {
-    jobs.define('localMedia.cleanUpTitle', {
+    jobs.define('library.cleanUpTitle', {
       run: async () => {
         throw new Error('unlink failed');
       },
     });
-    await jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1'));
     await jobs.drain();
     await orm.em.fork().insert(Job, {
       ...new Job(),
-      type: 'localMedia.cleanUpTitle',
-      dedupeKey: 'localMedia.cleanUpTitle:series:1',
+      type: 'library.cleanUpTitle',
+      dedupeKey: 'library.cleanUpTitle:series:1',
       lockKey: 'title:series:1',
       status: JobStatus.Running,
     });
@@ -296,7 +296,7 @@ describe('JobsService', () => {
       run: () => Promise.reject(undefined),
     });
     await jobs.enqueue(orm.em.fork(), 'downloads.reconcileTorrent', {
-      torrentId: 'a',
+      infoHash: 'a',
     });
 
     await jobs.drain();
@@ -310,7 +310,7 @@ describe('JobsService', () => {
     const cleaned = vi.fn(async () => {});
     let reconciled: () => void;
     const reconcile = new Promise<void>((resolve) => (reconciled = resolve));
-    jobs.define('localMedia.cleanUpTitle', {
+    jobs.define('library.cleanUpTitle', {
       dropAtRestart: true,
       run: cleaned,
     });
@@ -318,41 +318,37 @@ describe('JobsService', () => {
       run: async () => reconciled(),
     });
     const em = orm.em.fork();
-    await jobs.enqueue(em, 'localMedia.cleanUpTitle', cleanup('1'));
-    await jobs.enqueue(em, 'downloads.reconcileTorrent', { torrentId: 'a' });
+    await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
+    await jobs.enqueue(em, 'downloads.reconcileTorrent', { infoHash: 'a' });
 
     await jobs.start();
     await reconcile;
 
     expect(cleaned).not.toHaveBeenCalled();
     expect(
-      (await all()).filter((job) => job.type === 'localMedia.cleanUpTitle'),
+      (await all()).filter((job) => job.type === 'library.cleanUpTitle'),
     ).toMatchObject([{ status: JobStatus.Failed }]);
   });
 
   it('runs jobs from the loop once started', async () => {
     const ran = new Promise<void>((resolve) =>
-      jobs.define('localMedia.cleanUpLibrary', { run: async () => resolve() }),
+      jobs.define('library.cleanUpLibrary', { run: async () => resolve() }),
     );
 
     await jobs.start();
-    await jobs.enqueue(orm.em.fork(), 'localMedia.cleanUpLibrary', {});
+    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
 
     await ran;
   });
 
   describe('for an admin', () => {
     const failed = async () => {
-      jobs.define('localMedia.cleanUpTitle', {
+      jobs.define('library.cleanUpTitle', {
         run: async () => {
           throw new Error('unlink failed');
         },
       });
-      await jobs.enqueue(
-        orm.em.fork(),
-        'localMedia.cleanUpTitle',
-        cleanup('1'),
-      );
+      await jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1'));
       await jobs.drain();
 
       return (await all())[0];
@@ -370,11 +366,7 @@ describe('JobsService', () => {
 
     it('drops a failed job when its key is queued already', async () => {
       const job = await failed();
-      await jobs.enqueue(
-        orm.em.fork(),
-        'localMedia.cleanUpTitle',
-        cleanup('1'),
-      );
+      await jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1'));
 
       await orm.em.fork().transactional(() => jobs.retry(job.id));
 
@@ -387,11 +379,7 @@ describe('JobsService', () => {
       await orm.em.fork().transactional(() => jobs.delete(job.id));
       expect(await all()).toEqual([]);
 
-      await jobs.enqueue(
-        orm.em.fork(),
-        'localMedia.cleanUpTitle',
-        cleanup('1'),
-      );
+      await jobs.enqueue(orm.em.fork(), 'library.cleanUpTitle', cleanup('1'));
       const [queued] = await all();
       await expect(
         orm.em.fork().transactional(() => jobs.delete(queued.id)),

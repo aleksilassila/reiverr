@@ -1,28 +1,34 @@
 import { EntityManager } from '@mikro-orm/sqlite';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
-import {
-  DownloadsService,
-  ImportTarget,
-} from '../downloads/downloads.service.js';
-import { JobPayloads } from '../jobs/job-types.js';
-import { JobContext, JobsService } from '../jobs/jobs.service.js';
-import { INDEXED_FIELDS, LocalMediaService } from './local-media.service.js';
+import { INDEXED_FIELDS, LibraryService } from './library.service.js';
 import {
   episodeFileName,
   seasonFolderName,
   seriesFolderName,
-} from './local-media.utils.js';
+} from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 
 // The length of the version label in the names of imported files
 const VERSION_LABEL_LENGTH = 8;
 
+/** A complete file of a torrent, to put into the library */
+export interface ImportTarget {
+  sourcePath: string;
+  /** The torrent the file comes from, which makes the file a version */
+  infoHash: string;
+  mediaType: MediaType;
+  tmdbId: string;
+  season: number;
+  /** The episodes the file is, by its name or by what was wanted of it */
+  episodes: number[];
+}
+
 /** A file that an import put into the library */
-export interface PlacedFile {
+interface PlacedFile {
   path: string;
   tmdbId: string;
   season: number;
@@ -32,65 +38,26 @@ export interface PlacedFile {
   modifiedAt: Date;
 }
 
-/**
- * Puts the files that downloads finish into the library, as versions of
- * their episodes: the job `localMedia.importTorrentFile`
- */
+/** Puts the files that downloads finish into the library, as versions of their episodes */
 @Injectable()
-export class ImportService implements OnModuleInit {
-  private readonly logger = new Logger(ImportService.name);
-
+export class ImportService {
   constructor(
     private readonly em: EntityManager,
-    private readonly jobs: JobsService,
-    private readonly localMediaService: LocalMediaService,
-    private readonly downloadsService: DownloadsService,
+    private readonly libraryService: LibraryService,
   ) {}
 
-  onModuleInit() {
-    this.jobs.define('localMedia.importTorrentFile', {
-      concurrency: 2,
-      retry: true,
-      // A library that was not mounted is noticed soon after it is again
-      maxRetryDelay: 5 * 60 * 1000,
-      run: (payload, context) => this.importTorrentFile(payload, context),
-    });
-  }
-
   /**
-   * Places a finished file in the library for the requests that want it, and
-   * gives it to them. A file that is not whole any more, or that nothing
-   * wants, is left where it is: the torrent decides again when it is.
+   * Places a complete file in the library and indexes it as a managed
+   * version. Importing the same file again changes nothing.
    */
-  private async importTorrentFile(
-    { torrentId, fileIndex }: JobPayloads['localMedia.importTorrentFile'],
-    context: JobContext,
-  ): Promise<void> {
-    const target = await this.downloadsService.getImportTarget(
-      torrentId,
-      fileIndex,
-    );
-    if (!target) return;
-
-    try {
-      const placed = await this.placeEpisodeFile(target);
-      await context.em.transactional(async (tx) => {
-        await this.indexImportedFile(tx, placed);
-        await this.downloadsService.fileImported(tx, {
-          torrentId,
-          mediaType: MediaType.Series,
-          tmdbId: target.tmdbId,
-        });
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.downloadsService
-        .importFailed(torrentId, fileIndex, message)
-        .catch((reason: Error) =>
-          this.logger.error(`Recording the failure failed: ${reason.message}`),
-        );
-      throw error;
+  async importFile(target: ImportTarget): Promise<MediaFile> {
+    if (target.mediaType !== MediaType.Series) {
+      throw new Error('Movies cannot be imported yet');
     }
+
+    const placed = await this.placeEpisodeFile(target);
+
+    return this.em.transactional((tx) => this.indexImportedFile(tx, placed));
   }
 
   /**
@@ -101,7 +68,7 @@ export class ImportService implements OnModuleInit {
    * is there already counts only when it is the same file, which a rerun of
    * an import finds.
    */
-  async placeEpisodeFile(target: ImportTarget): Promise<PlacedFile> {
+  private async placeEpisodeFile(target: ImportTarget): Promise<PlacedFile> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = target;
     const destination =
       (await this.findVersionPath(target)) ??
@@ -141,14 +108,11 @@ export class ImportService implements OnModuleInit {
     };
   }
 
-  /**
-   * Indexes a file that was put into the library as a managed version, with
-   * the entity manager of the caller's transaction, and returns its id
-   */
-  async indexImportedFile(
+  /** Indexes a file that was put into the library as a managed version */
+  private async indexImportedFile(
     em: EntityManager,
     file: PlacedFile,
-  ): Promise<string> {
+  ): Promise<MediaFile> {
     await em
       .createQueryBuilder(MediaFile)
       .insert({
@@ -170,13 +134,11 @@ export class ImportService implements OnModuleInit {
       .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
       .execute();
 
-    const { id } = await em.findOneOrFail(
+    return em.findOneOrFail(
       MediaFile,
       { path: file.path },
-      { fields: ['id'], disableIdentityMap: true },
+      { disableIdentityMap: true },
     );
-
-    return id;
   }
 
   /** Where the version of the torrent for the episodes is, when it was imported before */
@@ -204,13 +166,13 @@ export class ImportService implements OnModuleInit {
   /** The Jellyfin naming, under the title folder of the series or a new one */
   private async getImportPath(target: ImportTarget): Promise<string> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = target;
-    const { name, match } = await this.localMediaService.getSeriesMatch(tmdbId);
-    const { seriesFolders } = await this.localMediaService.getSettings();
+    const { name, match } = await this.libraryService.getSeriesMatch(tmdbId);
+    const { seriesFolders } = await this.libraryService.getSettings();
     if (!seriesFolders.length) {
       throw new Error('No series folder is configured');
     }
 
-    const [titleFolder] = await this.localMediaService.findTitleFolders(
+    const [titleFolder] = await this.libraryService.findTitleFolders(
       seriesFolders,
       match,
     );

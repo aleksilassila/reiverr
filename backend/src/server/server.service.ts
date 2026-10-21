@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { DeletionService } from '../library/deletion.service.js';
+import { FulfilmentService } from '../library/fulfilment.service.js';
 import {
   CleanupPreviewDto,
   DeleteLibraryEntriesResultDto,
-  ScanLibraryResultDto,
   LibraryScanPreviewDto,
-} from '../local-media/local-media.dto.js';
-import { CleanupService } from '../local-media/cleanup.service.js';
-import { LocalMediaService } from '../local-media/local-media.service.js';
+  ScanLibraryResultDto,
+} from '../library/library.dto.js';
+import { LibraryService } from '../library/library.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
 import {
@@ -19,14 +20,15 @@ import {
 @Injectable()
 export class ServerService {
   constructor(
-    private readonly localMediaService: LocalMediaService,
+    private readonly libraryService: LibraryService,
+    private readonly deletionService: DeletionService,
+    private readonly fulfilmentService: FulfilmentService,
     private readonly requestsService: RequestsService,
-    private readonly cleanupService: CleanupService,
   ) {}
 
   async getLibraryEntries(folder: string): Promise<ServerLibraryEntryDto[]> {
-    const entries = await this.localMediaService.getLibraryEntries(folder);
-    const requests = await this.requestsService.countByMediaFile();
+    const entries = await this.libraryService.getLibraryEntries(folder);
+    const requests = await this.fulfilmentService.countByMediaFile();
 
     return entries.map((entry) => ({
       ...entry,
@@ -38,8 +40,8 @@ export class ServerService {
 
   async previewLibraryScan(folder: string): Promise<LibraryScanPreviewDto> {
     const { available, reason, missing } =
-      await this.localMediaService.previewScan(folder);
-    const requests = await this.requestsService.countByMediaFile();
+      await this.libraryService.previewScan(folder);
+    const requests = await this.fulfilmentService.countByMediaFile();
 
     return {
       available,
@@ -53,14 +55,14 @@ export class ServerService {
   }
 
   scanLibrary(folder: string, force: boolean): Promise<ScanLibraryResultDto> {
-    return this.localMediaService.scanFolder(folder, {
+    return this.libraryService.scanFolder(folder, {
       evenIfUnavailable: force,
     });
   }
 
   /** A dry run of the cleanup of unretained files */
   async previewCleanup(): Promise<CleanupPreviewDto> {
-    const files = await this.cleanupService.cleanUpLibrary(true);
+    const files = await this.deletionService.cleanUpLibrary(true);
 
     return {
       files: files.length,
@@ -71,7 +73,7 @@ export class ServerService {
   /** Queues the nightly cleanup, and tells what it was queued for */
   async runCleanup(): Promise<CleanupPreviewDto> {
     const preview = await this.previewCleanup();
-    await this.cleanupService.cleanUpLibrary();
+    await this.deletionService.cleanUpLibrary();
     return preview;
   }
 
@@ -80,7 +82,7 @@ export class ServerService {
     folder: string,
     paths: string[],
   ): Promise<RequestLibraryEntriesResultDto> {
-    const files = await this.localMediaService.findLibraryEntryFiles(
+    const files = await this.libraryService.findLibraryEntryFiles(
       folder,
       paths,
     );
@@ -92,7 +94,7 @@ export class ServerService {
     folder: string,
     paths: string[],
   ): Promise<ManageLibraryEntriesResultDto> {
-    const { changed } = await this.localMediaService.setLibraryEntriesManaged(
+    const { changed } = await this.libraryService.setLibraryEntriesManaged(
       folder,
       paths,
       true,
@@ -105,7 +107,7 @@ export class ServerService {
     folder: string,
     paths: string[],
   ): Promise<ManageLibraryEntriesResultDto> {
-    const { changed } = await this.localMediaService.setLibraryEntriesManaged(
+    const { changed } = await this.libraryService.setLibraryEntriesManaged(
       folder,
       paths,
       false,
@@ -119,7 +121,7 @@ export class ServerService {
     folder: string,
     paths: string[],
   ): Promise<DeleteLibraryEntriesResultDto> {
-    return this.cleanupService.deleteLibraryEntries(
+    return this.deletionService.deleteLibraryEntries(
       folder,
       paths,
       `deleted by ${admin.name}`,

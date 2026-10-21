@@ -13,18 +13,18 @@ import { CLEANUP_HOUR, isCleanupDay } from '../downloads/cleanup.utils.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobsService } from '../jobs/jobs.service.js';
-import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
-import { DeleteLibraryEntriesResultDto } from './local-media.dto.js';
-import { entryExists, LocalMediaService } from './local-media.service.js';
+import { DeleteLibraryEntriesResultDto } from './library.dto.js';
+import { entryExists, LibraryService } from './library.service.js';
 import {
   describeError,
   isInsideFolder,
   relativePath,
-} from './local-media.utils.js';
+} from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
+import { RequestBinding } from './request-binding.entity.js';
 
 const READ = { disableIdentityMap: true };
 
@@ -38,18 +38,18 @@ const isStillImported = (
   stats.mtime.getTime() === file.modifiedAt.getTime();
 
 /**
- * What the library keeps: the cleanup of the imported files that no request
- * holds, and the deletion of files by an admin together with the requests
- * that have them
+ * What the library deletes: the managed files that no request holds, at
+ * the cleanup, and what an admin selects, together with the requests that
+ * have the files
  */
 @Injectable()
-export class CleanupService implements OnModuleInit {
-  private readonly logger = new Logger(CleanupService.name);
+export class DeletionService implements OnModuleInit {
+  private readonly logger = new Logger(DeletionService.name);
 
   constructor(
     private readonly em: EntityManager,
     private readonly jobs: JobsService,
-    private readonly localMediaService: LocalMediaService,
+    private readonly libraryService: LibraryService,
     private readonly downloadsService: DownloadsService,
     private readonly requestsService: RequestsService,
     private readonly serverLog: ServerLogService,
@@ -57,13 +57,13 @@ export class CleanupService implements OnModuleInit {
 
   onModuleInit() {
     // A cleanup that did not run at 04:00 waits for the next one
-    this.jobs.define('localMedia.cleanUpLibrary', {
+    this.jobs.define('library.cleanUpLibrary', {
       dropAtRestart: true,
       run: async (payload, { em }) => {
         await this.cleanUpLibrary(false, em);
       },
     });
-    this.jobs.define('localMedia.cleanUpTitle', {
+    this.jobs.define('library.cleanUpTitle', {
       dropAtRestart: true,
       run: async (payload) => {
         await this.cleanUpTitle(payload);
@@ -78,50 +78,41 @@ export class CleanupService implements OnModuleInit {
   @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async onCleanupHour(): Promise<void> {
     const { movieFolders, seriesFolders } =
-      await this.localMediaService.getSettings();
+      await this.libraryService.getSettings();
     const { cleanup } = await this.downloadsService.getSettings();
     const isCleanup = isCleanupDay(new Date(), cleanup);
 
     await this.em.fork().transactional(async (tx) => {
       for (const folder of [...seriesFolders, ...movieFolders]) {
-        await this.jobs.enqueue(tx, 'localMedia.scanFolder', { folder });
+        await this.jobs.enqueue(tx, 'library.scanFolder', { folder });
       }
       if (isCleanup) {
-        await this.jobs.enqueue(tx, 'localMedia.cleanUpLibrary', {});
+        await this.jobs.enqueue(tx, 'library.cleanUpLibrary', {});
       }
     });
   }
 
   /**
    * Deletes what an admin selected in a library folder, a directory with
-   * everything in it, and forgets the indexed files among them together with
-   * the requests that have them, which would download them again. Nothing
-   * else is removed: a directory that this leaves empty stays. An entry that
-   * cannot be deleted, or only in part, is reported and the others are
-   * deleted anyway. Every deletion is logged with the reason.
+   * everything in it, and forgets the indexed files among them together
+   * with the requests that have them, which would download them again.
+   * Nothing else is removed: a directory that this leaves empty stays. An
+   * entry that cannot be deleted, or only in part, is reported and the
+   * others are deleted anyway. Every deletion is logged with the reason.
    */
   async deleteLibraryEntries(
     folder: string,
     paths: string[],
     reason: string,
   ): Promise<DeleteLibraryEntriesResultDto> {
-    const entries = await this.localMediaService.validateLibraryEntries(
+    const entries = await this.libraryService.validateLibraryEntries(
       folder,
       paths,
-    );
-    // Read before anything is deleted, so that a scan that forgets the rows
-    // meanwhile does not keep the requests
-    const selected: MediaFile[] = [];
-    for (const entryPath of entries) {
-      selected.push(...(await this.localMediaService.findFilesAt(entryPath)));
-    }
-    const before = await this.requestsService.findReferringRequests(
-      selected.map((file) => file.id),
     );
 
     const result: DeleteLibraryEntriesResultDto = { deleted: 0, failed: [] };
     for (const entryPath of entries) {
-      const files = await this.localMediaService.findFilesAt(entryPath);
+      const files = await this.libraryService.findFilesAt(entryPath);
       // A cleanup can delete files of the entry meanwhile
       const existed = await entryExists(entryPath);
       const error = await fs
@@ -140,33 +131,32 @@ export class CleanupService implements OnModuleInit {
         existed &&
         !gone.some((file) => file.path === entryPath) &&
         !(await entryExists(entryPath));
+
       await this.em.transactional(async (tx) => {
         const goneIds = gone.map((file) => file.id);
-        // The rows that a cleanup did not forget meanwhile
-        const present = new Set(
-          (
-            await tx.find(
-              MediaFile,
-              { id: { $in: goneIds } },
-              { fields: ['id'], disableIdentityMap: true },
-            )
-          ).map((file) => file.id),
-        );
-        // The requests of every file that is gone, also one whose row a scan
-        // forgot while the rm ran
-        if (gone.length) {
-          await this.requestsService.deleteRequests(tx, {
-            ids: before
-              .filter((request) => goneIds.includes(request.mediaFileId))
-              .map((request) => request.id),
-            mediaFileIds: goneIds,
-          });
+        if (goneIds.length) {
+          // The requests that have the files go, so that nothing downloads
+          // them again; a reconcile between the rm and here would have
+          // bound them again, so they are read now
+          const bindings = await tx.find(
+            RequestBinding,
+            { mediaFileId: { $in: goneIds } },
+            { ...READ, fields: ['requestId'] },
+          );
+          await this.requestsService.deleteRequests(
+            tx,
+            bindings.map((binding) => binding.requestId),
+          );
         }
-        const forgotten = gone.filter((file) => present.has(file.id));
+        // The rows that a cleanup or a scan did not forget meanwhile
+        const forgotten = goneIds.length
+          ? await tx.find(MediaFile, { id: { $in: goneIds } }, READ)
+          : [];
         if (forgotten.length) {
           await tx.nativeDelete(MediaFile, {
             id: { $in: forgotten.map((file) => file.id) },
           });
+          await this.libraryService.filesForgotten(tx, forgotten);
         }
         for (const file of forgotten) {
           await this.logDeleted(tx, file.path, reason, file);
@@ -188,17 +178,23 @@ export class CleanupService implements OnModuleInit {
   }
 
   /**
-   * Deletes an imported file from the library, with the folders that it
-   * leaves empty, and logs it with the reason. A file that is not what was
-   * imported, or that the library folders no longer contain, is kept and
-   * becomes an external file.
+   * Deletes a managed file that no request holds from the library, with the
+   * folders that it leaves empty, and logs it with the reason. Whether a
+   * request holds it is asked in the transaction that forgets the row,
+   * before the file is unlinked, so that a file that something came to hold
+   * meanwhile is kept. A file that is not what was imported, or that the
+   * library folders no longer contain, is kept and becomes an external
+   * file.
    */
-  async deleteManagedFile(id: string, reason: string): Promise<void> {
-    const file = await this.localMediaService.findFile(id);
+  async deleteManagedFile(
+    id: string,
+    reason: string,
+  ): Promise<'deleted' | 'kept'> {
+    const file = await this.libraryService.findFile(id);
     if (!file.managed) throw new Error(`"${file.path}" is not managed`);
 
     const { movieFolders, seriesFolders } =
-      await this.localMediaService.getSettings();
+      await this.libraryService.getSettings();
     const libraryFolder = [...movieFolders, ...seriesFolders].find((folder) =>
       isInsideFolder(file.path, folder),
     );
@@ -207,23 +203,38 @@ export class CleanupService implements OnModuleInit {
     if (!stats) {
       // The file is only known to be gone when its folder can be read
       if (libraryFolder) {
-        await this.localMediaService.readAvailableLibraryFolder(libraryFolder);
+        await this.libraryService.readAvailableLibraryFolder(libraryFolder);
       }
-      await this.forgetDeleted(file, `${reason}, it was gone already`);
-      return;
+      const forgotten = await this.forget(file);
+      if (forgotten) {
+        await this.em.transactional((tx) =>
+          this.logDeleted(
+            tx,
+            file.path,
+            `${reason}, it was gone already`,
+            file,
+          ),
+        );
+      }
+      return forgotten ? 'deleted' : 'kept';
     }
 
     if (!libraryFolder || !isStillImported(file, stats)) {
       this.logger.warn(`"${file.path}" is not as imported, it is kept`);
       await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
-      return;
+      return 'kept';
     }
 
-    // An admin can have deleted it meanwhile
+    if (!(await this.forget(file))) return 'kept';
+
+    // An admin can have deleted it meanwhile. A file that cannot be deleted
+    // stays without a row, and the next scan finds it as an external file.
     await fs.unlink(file.path).catch((error) => {
       if (error.code !== 'ENOENT') throw error;
     });
-    await this.forgetDeleted(file, reason);
+    await this.em.transactional((tx) =>
+      this.logDeleted(tx, file.path, reason, file),
+    );
 
     for (
       let folder = path.dirname(file.path);
@@ -237,6 +248,8 @@ export class CleanupService implements OnModuleInit {
       );
       if (!removed) break;
     }
+
+    return 'deleted';
   }
 
   /**
@@ -248,7 +261,7 @@ export class CleanupService implements OnModuleInit {
     em: EntityManager = this.em,
   ): Promise<MediaFile[]> {
     const titles = (
-      await this.localMediaService.findTitlesWithManagedFiles(MediaType.Series)
+      await this.libraryService.findTitlesWithManagedFiles(MediaType.Series)
     ).map((tmdbId) => ({ mediaType: MediaType.Series, tmdbId }));
 
     if (dryRun) {
@@ -261,19 +274,19 @@ export class CleanupService implements OnModuleInit {
 
     await em.transactional(async (tx) => {
       for (const title of titles) {
-        await this.jobs.enqueue(tx, 'localMedia.cleanUpTitle', title);
+        await this.jobs.enqueue(tx, 'library.cleanUpTitle', title);
       }
     });
     return [];
   }
 
   /**
-   * Deletes the imported files of a title that no request refers to, or with
+   * Deletes the managed files of a title that no request holds, or with
    * dryRun only tells which they are. A file that cannot be deleted is left
    * for the next cleanup.
    */
   private async cleanUpTitle(
-    { mediaType, tmdbId }: JobPayloads['localMedia.cleanUpTitle'],
+    { mediaType, tmdbId }: JobPayloads['library.cleanUpTitle'],
     dryRun = false,
   ): Promise<MediaFile[]> {
     const files = await this.em.find(
@@ -285,11 +298,11 @@ export class CleanupService implements OnModuleInit {
       files.length
         ? (
             await this.em.find(
-              MediaRequest,
+              RequestBinding,
               { mediaFileId: { $in: files.map((file) => file.id) } },
               { ...READ, fields: ['mediaFileId'] },
             )
-          ).map((request) => request.mediaFileId)
+          ).map((binding) => binding.mediaFileId)
         : [],
     );
     const unheld = files.filter((file) => !held.has(file.id));
@@ -314,19 +327,18 @@ export class CleanupService implements OnModuleInit {
     return unheld;
   }
 
-  /**
-   * Forgets the row of a deleted file and logs the deletion. The title is
-   * reconciled in the same transaction: a request that referred to the file
-   * downloads it again.
-   */
-  private forgetDeleted(file: MediaFile, reason: string): Promise<void> {
+  /** Forgets the row of a file unless a request holds it, in one transaction */
+  private forget(file: MediaFile): Promise<boolean> {
     return this.em.transactional(async (tx) => {
-      await this.jobs.enqueue(tx, 'downloads.reconcileTitle', {
-        mediaType: file.mediaType,
-        tmdbId: file.tmdbId,
+      const held = await tx.count(RequestBinding, { mediaFileId: file.id });
+      if (held) return false;
+
+      const deleted = await tx.nativeDelete(MediaFile, {
+        id: file.id,
+        managed: true,
       });
-      const deleted = await tx.nativeDelete(MediaFile, { id: file.id });
-      if (deleted) await this.logDeleted(tx, file.path, reason, file);
+
+      return deleted > 0;
     });
   }
 
