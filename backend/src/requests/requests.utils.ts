@@ -46,18 +46,3 @@ export const seriesPair = (userId: string, tmdbId: string): Pair => ({
   mediaType: MediaType.Series,
   tmdbId,
 });
-
-export const groupBy = <T>(
-  rows: T[],
-  keyOf: (row: T) => string,
-): Map<string, T[]> => {
-  const groups = new Map<string, T[]>();
-  for (const row of rows) {
-    const key = keyOf(row);
-    const group = groups.get(key);
-    if (group) group.push(row);
-    else groups.set(key, [row]);
-  }
-
-  return groups;
-};

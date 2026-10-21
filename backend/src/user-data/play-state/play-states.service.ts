@@ -214,15 +214,17 @@ export class PlayStatesService {
     );
   }
 
-  /** What a rule makes of the requests of the series changes with it */
+  /** What the rule makes of the requests of the series changes with it */
   private watchStatusChanged(
     em: EntityManager,
     userId: string,
     tmdbId: string,
   ) {
-    return this.requestsService.applyRules(em, [
-      { userId, mediaType: MediaType.Series, tmdbId },
-    ]);
+    return this.requestsService.applyRule(em, {
+      userId,
+      mediaType: MediaType.Series,
+      tmdbId,
+    });
   }
 }
 

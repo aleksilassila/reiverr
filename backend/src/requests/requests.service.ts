@@ -20,7 +20,6 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
 import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { User } from '../users/user.entity.js';
-import { evaluateRules as evaluateRule } from './request-rules.js';
 import {
   EpisodeSource,
   RequestSource,
@@ -36,10 +35,8 @@ import {
 } from './requests.dto.js';
 import {
   fullTypeOf,
-  groupBy,
   isNeeded,
   Pair,
-  pairKey,
   pairOf,
   seriesPair,
   titleTypeOf,
@@ -77,6 +74,12 @@ interface RuleRow extends RequestRuleDto {
 }
 
 const READ = { disableIdentityMap: true };
+const HOUR = 60 * 60 * 1000;
+
+const byEpisode = (
+  a: { season: number; episode: number },
+  b: { season: number; episode: number },
+) => a.season - b.season || a.episode - b.episode;
 
 /**
  * What users want on disk, and the gates a request passes before the
@@ -96,64 +99,105 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /** The rules can be behind after a restart or a migration */
   onApplicationBootstrap(): Promise<void> {
-    return this.applyRulesToAll();
+    return this.applyAllRules();
   }
 
   /**
-   * Applies the rules to the requests of (user, title) pairs after a change
-   * of what they go by, in the caller's transaction. A rule looks at all the
-   * requests of its user for the title, so the rules are applied to a pair
-   * whole. The requests that become needed or are deleted are looked at by
-   * the library.
+   * Applies the rule of a user for a title to their requests for it, after
+   * a change of what the rule goes by, in the caller's transaction. A rule
+   * looks at all the requests of its user for the title, so it is applied
+   * to the pair whole. A request row is a wish for its file, so the rule
+   * can only let a request through to the library, or delete it; the
+   * requests that become needed or are deleted are looked at by the
+   * library.
+   *
+   * A request's `watchedAt` mirrors the play state of its episode. An
+   * episode that was marked watched before the time was stored counts as
+   * watched long ago.
+   *
+   * The rule looks at the approved requests in episode order. With
+   * keepWatched or keepWatchedHours, the request for a watched episode is
+   * deleted unless it is among the last keepWatched watched requests while
+   * there is more to watch (a request after the last watched episode), or
+   * it was watched within keepWatchedHours.
+   *
+   * Of the requests after the last watched episode, only the next keepNext
+   * are needed, and a needed request stays so. An episode in progress is
+   * not watched, so its request is one of the next ones. The requests for
+   * the episodes up to the last watched one, skipped or watched, are
+   * needed. Without a rule, or without keepNext, every approved request is.
+   * A request only becomes needed with a source, the preference of its user
+   * for the episode: without one it has not passed the gate, and a rule set
+   * later applies to it. It takes its place in the window all the same, so
+   * that nothing downloads past it.
    */
-  async applyRules(em: EntityManager, pairs: Pair[]): Promise<void> {
-    const unique = uniquePairs(pairs);
-    if (!unique.length) return;
-
-    const ofPairs = unique.map(({ userId, mediaType, tmdbId }) => ({
-      userId,
-      tmdbId,
-      mediaType: fullTypeOf(mediaType),
-    }));
-    const requests = await em.find(MediaRequest, { $or: ofPairs }, READ);
-    const rules = await em.find(RequestRule, { $or: unique }, READ);
-    const playStates = requests.length
-      ? await em.find(PlayState, { $or: ofPairs }, READ)
-      : [];
-
-    const requestsOf = groupBy(requests, (request) => pairKey(pairOf(request)));
-    const playStatesOf = groupBy(playStates, (playState) =>
-      pairKey(pairOf(playState)),
-    );
-    const rulesOf = new Map(rules.map((rule) => [pairKey(rule), rule]));
+  async applyRule(em: EntityManager, pair: Pair): Promise<void> {
+    const { userId, tmdbId } = pair;
+    const ofTitle = { userId, tmdbId, mediaType: fullTypeOf(pair.mediaType) };
+    const requests = await em.find(MediaRequest, ofTitle, READ);
+    if (!requests.length) return;
+    const rule = await em.findOne(RequestRule, pair, READ);
+    const playStates = await em.find(PlayState, ofTitle, READ);
 
     const now = new Date();
-    const outcomes = unique.map((pair) =>
-      evaluateRule({
-        rule: rulesOf.get(pairKey(pair)),
-        requests: requestsOf.get(pairKey(pair)) ?? [],
-        playStates: playStatesOf.get(pairKey(pair)) ?? [],
-        now: now.getTime(),
-      }),
-    );
-    const watched = outcomes.flatMap((outcome) => [...outcome.watched]);
-    const deleted = outcomes.flatMap((outcome) => outcome.deleted);
-    const needed = outcomes.flatMap((outcome) => outcome.needed);
-
-    const stamps = new Map<number | null, string[]>();
-    for (const [id, watchedAt] of watched) {
-      const key = watchedAt?.getTime() ?? null;
-      stamps.set(key, [...(stamps.get(key) ?? []), id]);
-    }
-    for (const [time, ids] of stamps) {
-      await em.nativeUpdate(
-        MediaRequest,
-        { id: { $in: ids } },
-        { watchedAt: time === null ? null : new Date(time) },
+    const stamps = new Map<string, Date | null>();
+    const watchedAt = new Map<string, Date | null>();
+    for (const request of requests) {
+      const playState = playStates.find(
+        (p) => p.season === request.season && p.episode === request.episode,
       );
+      const at = playState?.watched
+        ? (playState.watchedAt ?? new Date(0))
+        : null;
+      watchedAt.set(request.id, at);
+      if (at?.getTime() !== request.watchedAt?.getTime()) {
+        stamps.set(request.id, at);
+      }
     }
-    if (deleted.length) {
-      await em.nativeDelete(MediaRequest, { id: { $in: deleted } });
+
+    const ordered = requests
+      .filter((request) => request.approved)
+      .sort(byEpisode);
+    const lastWatched = playStates
+      .filter((p) => p.watched)
+      .sort(byEpisode)
+      .pop();
+    const ahead = ordered.filter(
+      (request) => !lastWatched || byEpisode(request, lastWatched) > 0,
+    );
+
+    const deleted = new Set<string>();
+    if (rule && (rule.keepWatched !== null || rule.keepWatchedHours !== null)) {
+      const watched = ordered.filter((request) => watchedAt.get(request.id));
+      watched.forEach((request, index) => {
+        const at = (watchedAt.get(request.id) as Date).getTime();
+        const isAmongLast =
+          rule.keepWatched !== null &&
+          ahead.length > 0 &&
+          index >= watched.length - rule.keepWatched;
+        const isRecent =
+          rule.keepWatchedHours !== null &&
+          now.getTime() - at < rule.keepWatchedHours * HOUR;
+        if (!isAmongLast && !isRecent) deleted.add(request.id);
+      });
+    }
+
+    const next =
+      rule && rule.keepNext !== null ? ahead.slice(0, rule.keepNext) : ahead;
+    const needed: string[] = [];
+    for (const request of ordered) {
+      if (request.neededSince || deleted.has(request.id)) continue;
+
+      const isInWindow = !ahead.includes(request) || next.includes(request);
+      const hasSource = !!sourceOf(rule, request.season, request.episode);
+      if (isInWindow && hasSource) needed.push(request.id);
+    }
+
+    for (const [id, at] of stamps) {
+      await em.nativeUpdate(MediaRequest, { id }, { watchedAt: at });
+    }
+    if (deleted.size) {
+      await em.nativeDelete(MediaRequest, { id: { $in: [...deleted] } });
     }
     if (needed.length) {
       await em.nativeUpdate(
@@ -167,27 +211,28 @@ export class RequestsService implements OnApplicationBootstrap {
 
   /**
    * An hours limit expires with time, and whatever a writer missed is right
-   * by the morning: before the cleanup hour
+   * by the morning: before the cleanup hour. Every pair is its own
+   * transaction, as it is for the writers.
    */
   @Cron('50 3 * * *')
-  async applyRulesToAll(): Promise<void> {
-    await this.em.fork().transactional(async (tx) => {
-      const rows: {
-        user_id: string;
-        media_type: MediaTypeFull;
-        tmdb_id: string;
-      }[] = await tx.execute(
-        'select distinct user_id, media_type, tmdb_id from request',
-      );
-      await this.applyRules(
-        tx,
-        rows.map((row) => ({
+  async applyAllRules(): Promise<void> {
+    const rows: {
+      user_id: string;
+      media_type: MediaTypeFull;
+      tmdb_id: string;
+    }[] = await this.em
+      .fork()
+      .execute('select distinct user_id, media_type, tmdb_id from request');
+
+    for (const row of rows) {
+      await this.em.fork().transactional((tx) =>
+        this.applyRule(tx, {
           userId: row.user_id,
           mediaType: titleTypeOf(row.media_type),
           tmdbId: row.tmdb_id,
-        })),
+        }),
       );
-    });
+    }
   }
 
   /** A request with the source its user prefers for it, for the library */
@@ -304,9 +349,7 @@ export class RequestsService implements OnApplicationBootstrap {
           approved,
         },
       ]);
-      await this.applyRules(tx, [
-        { userId, mediaType: MediaType.Movie, tmdbId },
-      ]);
+      await this.applyRule(tx, { userId, mediaType: MediaType.Movie, tmdbId });
     });
 
     return this.findMovieRequest(userId, tmdbId);
@@ -369,7 +412,7 @@ export class RequestsService implements OnApplicationBootstrap {
             $or: episodes.map(({ season, episode }) => ({ season, episode })),
           });
         }
-        await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+        await this.applyRule(tx, seriesPair(userId, tmdbId));
       });
     }
 
@@ -407,7 +450,7 @@ export class RequestsService implements OnApplicationBootstrap {
         keepWatched,
         keepWatchedHours,
       });
-      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.applyRule(tx, seriesPair(userId, tmdbId));
     });
 
     return { keepNext, keepWatched, keepWatchedHours };
@@ -471,7 +514,7 @@ export class RequestsService implements OnApplicationBootstrap {
       else episodeSources.push({ season, episode, kind: 'torrent', infoHash });
       await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
 
-      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.applyRule(tx, seriesPair(userId, tmdbId));
       await this.reconcileSelectionScope(tx, target);
     });
   }
@@ -496,7 +539,7 @@ export class RequestsService implements OnApplicationBootstrap {
       episodeSources.push({ season, episode, kind: 'file', mediaFileId });
       await this.writeRule(tx, { ...rule, episodeSources });
 
-      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.applyRule(tx, seriesPair(userId, tmdbId));
       await this.reconcileSelectionScope(tx, target);
     });
   }
@@ -522,7 +565,7 @@ export class RequestsService implements OnApplicationBootstrap {
       if (!had) return false;
 
       await this.writeRule(tx, { ...rule, seasonTorrents, episodeSources });
-      await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+      await this.applyRule(tx, seriesPair(userId, tmdbId));
       await this.reconcileSelectionScope(tx, target);
 
       return true;
@@ -624,7 +667,7 @@ export class RequestsService implements OnApplicationBootstrap {
         }
         await this.writeRule(tx, { ...rule, episodeSources });
 
-        await this.applyRules(tx, [seriesPair(userId, tmdbId)]);
+        await this.applyRule(tx, seriesPair(userId, tmdbId));
         await this.reconcileLater(
           tx,
           requests.map((request) => request.id),
@@ -654,7 +697,9 @@ export class RequestsService implements OnApplicationBootstrap {
       em,
       requests.map((request) => request.id),
     );
-    await this.applyRules(em, requests.map(pairOf));
+    for (const pair of uniquePairs(requests.map(pairOf))) {
+      await this.applyRule(em, pair);
+    }
 
     return requests.length;
   }
@@ -719,7 +764,7 @@ export class RequestsService implements OnApplicationBootstrap {
         { id },
         { approved: true, updatedAt: new Date() },
       );
-      await this.applyRules(tx, [pairOf(request)]);
+      await this.applyRule(tx, pairOf(request));
     });
 
     return this.findById(id);

@@ -72,7 +72,7 @@ describe('MyListService', () => {
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
-      { applyRules: async () => {} } as unknown as RequestsService,
+      { applyRule: async () => {} } as unknown as RequestsService,
     );
     library = new MyListService(
       myListItems,

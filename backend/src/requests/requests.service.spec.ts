@@ -17,6 +17,7 @@ import { SelectedRelease } from './selected-release.entity.js';
 const SERIES = '100';
 const PACK = '1'.repeat(40);
 const EPISODE = '2'.repeat(40);
+const HOUR = 60 * 60 * 1000;
 
 describe('RequestsService', () => {
   let orm: MikroORM;
@@ -83,8 +84,12 @@ describe('RequestsService', () => {
       }),
     );
 
-  /** Marks an episode watched or unwatched, as the play states service does */
-  const watch = async (episode: number, watched = true) => {
+  /** Writes the play state of an episode, as the play states service does, and applies the rule */
+  const setPlayState = async (
+    episode: number,
+    watched: boolean,
+    watchedAt: Date | null,
+  ) => {
     const em = orm.em.fork();
     const where = {
       userId,
@@ -93,7 +98,6 @@ describe('RequestsService', () => {
       season: 1,
       episode,
     };
-    const watchedAt = watched ? new Date() : null;
     const playState = await em.findOne(PlayState, where);
     if (playState) {
       await em.nativeUpdate(PlayState, where, { watched, watchedAt });
@@ -106,11 +110,20 @@ describe('RequestsService', () => {
       });
     }
     await em.transactional((tx) =>
-      requests.applyRules(tx, [
-        { userId, mediaType: MediaType.Series, tmdbId: SERIES },
-      ]),
+      requests.applyRule(tx, {
+        userId,
+        mediaType: MediaType.Series,
+        tmdbId: SERIES,
+      }),
     );
   };
+
+  /** Marks an episode watched at a time; without one, as an episode marked watched before the time was stored */
+  const watch = (episode: number, at: Date | null = new Date()) =>
+    setPlayState(episode, true, at);
+  /** Unwatched, or in progress: a play state that is not watched */
+  const unwatch = (episode: number) => setPlayState(episode, false, null);
+  const hoursAgo = (hours: number) => new Date(Date.now() - hours * HOUR);
 
   const target = (episode: number): SelectionTarget => ({
     userId,
@@ -139,6 +152,12 @@ describe('RequestsService', () => {
       !r.approved ? 'waiting' : !r.neededSince ? 'ahead' : 'needed',
       !!r.watchedAt,
     ]);
+
+  /** The watch stamp of each episode's request, as a time */
+  const stamps = async () =>
+    Object.fromEntries(
+      (await rows()).map((r) => [r.episode, r.watchedAt?.getTime() ?? null]),
+    );
 
   const sourceOf = async (episode: number) => {
     const row = (await rows()).find((r) => r.episode === episode);
@@ -186,7 +205,9 @@ describe('RequestsService', () => {
           seasons: [
             {
               season_number: 1,
-              episodes: [1, 2, 3].map((episode_number) => ({ episode_number })),
+              episodes: [1, 2, 3, 4].map((episode_number) => ({
+                episode_number,
+              })),
             },
           ],
         },
@@ -314,7 +335,7 @@ describe('RequestsService', () => {
     expect(await reconciled()).toEqual([2]);
 
     // Unwatching takes nothing back
-    await watch(1, false);
+    await unwatch(1);
     expect(await standings()).toEqual([
       [1, 'needed', false],
       [2, 'needed', false],
@@ -332,6 +353,171 @@ describe('RequestsService', () => {
       [3, 'needed', false],
     ]);
     expect(await reconciled()).toEqual([3, expect.stringMatching(/^gone:/)]);
+  });
+
+  it('lets through the next requests after the last watched episode, and leaves the rest for later', async () => {
+    await setRule({ keepNext: 1 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2, 3]);
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'ahead', false],
+      [3, 'ahead', false],
+    ]);
+
+    // An episode in progress is not watched yet: its request is the next one
+    await unwatch(1);
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'ahead', false],
+      [3, 'ahead', false],
+    ]);
+
+    // A skipped episode stays wanted
+    await watch(2);
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'needed', true],
+      [3, 'needed', false],
+    ]);
+  });
+
+  it('counts the approved requests only', async () => {
+    await setRule({ keepNext: 1 });
+    await select(0, 'pack');
+    await requestEpisodes([1], false);
+    await requestEpisodes([2]);
+
+    // A request that waits for approval takes no place in the window
+    expect(await standings()).toEqual([
+      [1, 'waiting', false],
+      [2, 'needed', false],
+    ]);
+  });
+
+  it('lets a request through only with a source, which takes its place in the window all the same', async () => {
+    await setRule({ keepNext: 2 });
+    await requestEpisodes([1, 2, 3]);
+    await select(2, 'episode');
+    await select(3, 'episode');
+    expect(await standings()).toEqual([
+      [1, 'ahead', false],
+      [2, 'needed', false],
+      [3, 'ahead', false],
+    ]);
+
+    // The season's torrent gives the first its source; the third stays
+    // past the window
+    await select(0, 'pack');
+    expect(await standings()).toEqual([
+      [1, 'needed', false],
+      [2, 'needed', false],
+      [3, 'ahead', false],
+    ]);
+  });
+
+  it('stamps a request with the time its episode was watched, as the play state has it', async () => {
+    await requestEpisodes([1, 2]);
+    await requestEpisodes([3], false);
+
+    const at = hoursAgo(2);
+    await watch(1, at);
+    expect(await stamps()).toEqual({ 1: at.getTime(), 2: null, 3: null });
+
+    await unwatch(1);
+    // Marked watched before the time was stored: long ago, approved or not
+    await watch(3, null);
+    expect(await stamps()).toEqual({ 1: null, 2: null, 3: 0 });
+  });
+
+  it('deletes the watched requests that are not among the last ones', async () => {
+    await setRule({ keepWatched: 1 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2, 3, 4]);
+
+    await watch(1);
+    await watch(2);
+    await watch(3);
+    expect(await standings()).toEqual([
+      [3, 'needed', true],
+      [4, 'needed', false],
+    ]);
+
+    // Nothing is kept once nothing is left to watch
+    await watch(4);
+    expect(await standings()).toEqual([]);
+  });
+
+  it('keeps the last watched requests only while there is more to watch after them', async () => {
+    await setRule({ keepWatched: 1 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2, 3, 4]);
+
+    // A skipped episode is not something left to watch
+    await watch(2);
+    await watch(3);
+    await watch(4);
+    expect(await standings()).toEqual([[1, 'needed', false]]);
+  });
+
+  it('deletes the watched requests that were not watched lately', async () => {
+    await setRule({ keepWatchedHours: 24 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2, 3, 4]);
+
+    await watch(1, hoursAgo(30));
+    await watch(3, hoursAgo(20));
+    expect(await standings()).toEqual([
+      [2, 'needed', false],
+      [3, 'needed', true],
+      [4, 'needed', false],
+    ]);
+
+    // The limit expires with time
+    await setRule({ keepWatchedHours: 20 });
+    expect(await standings()).toEqual([
+      [2, 'needed', false],
+      [4, 'needed', false],
+    ]);
+
+    // An episode watched before the time was stored was watched long ago
+    await watch(2, null);
+    expect(await standings()).toEqual([[4, 'needed', false]]);
+  });
+
+  it('deletes with both limits only what neither of them keeps', async () => {
+    await setRule({ keepWatched: 1, keepWatchedHours: 24 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2, 3, 4]);
+
+    await watch(1, hoursAgo(30));
+    await watch(2, hoursAgo(20));
+    await watch(3, hoursAgo(25));
+    expect(await standings()).toEqual([
+      [2, 'needed', true],
+      [3, 'needed', true],
+      [4, 'needed', false],
+    ]);
+
+    // The time limit goes on keeping what was watched lately after the end
+    await watch(4);
+    expect(await standings()).toEqual([
+      [2, 'needed', true],
+      [4, 'needed', true],
+    ]);
+  });
+
+  it('deletes nothing without a keep setting', async () => {
+    await setRule({ keepNext: 1 });
+    await select(0, 'pack');
+    await requestEpisodes([1, 2]);
+
+    await watch(1, hoursAgo(100));
+    await watch(2, hoursAgo(100));
+    expect(await standings()).toEqual([
+      [1, 'needed', true],
+      [2, 'needed', true],
+    ]);
   });
 
   it('makes a file the preference of an episode', async () => {
