@@ -92,6 +92,7 @@ export class TorrentRuntime
     );
   }
 
+  /** Take what the engine currently knows about a torrent and copy it into a plain object (snapshot) */
   snapshot(infoHash: string): TorrentSnapshot | undefined {
     const entry = this.entries.get(infoHash);
     if (!entry) return undefined;

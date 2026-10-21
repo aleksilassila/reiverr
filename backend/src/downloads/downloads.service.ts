@@ -32,7 +32,6 @@ import { TorrentFileInfo } from './torrent-engine.js';
 import { TorrentItem } from './torrent-item.entity.js';
 import { findItemFile } from './torrent-match.js';
 import { TorrentRuntime, TorrentSnapshot } from './torrent-runtime.js';
-import { decideTorrent, TorrentDecision } from './torrent.decide.js';
 import { Torrent } from './torrent.entity.js';
 
 const READ = { disableIdentityMap: true };
@@ -354,7 +353,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     const hasDirectory = await exists(this.getDirectory(infoHash));
     const { seedRatio } = await this.getSettings();
 
-    const decided = await context.em.transactional(async (tx) => {
+    const state = await context.em.transactional(async (tx) => {
       const torrent = await tx.findOne(Torrent, { infoHash }, READ);
       if (!torrent) return undefined;
 
@@ -398,103 +397,94 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         }
       }
 
-      const decision = decideTorrent({
-        wanted,
-        hasFiles: !!files,
-        torrent: {
-          downloadedBytes:
-            torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0),
-          uploadedBytes:
-            torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0),
-          error: torrent.error,
-        },
-        runtime: snapshot,
-        hasData: snapshot?.ready ? snapshot.hasData : hasDirectory,
-        seedRatio,
-      });
-      await this.store(tx, torrent, wanted, decision);
-
-      return { torrent, decision };
-    });
-
-    if (decided) await this.act(context, decided.torrent, decided.decision);
-  }
-
-  /** What a decision changes in the database, in its transaction */
-  private async store(
-    tx: EntityManager,
-    torrent: Torrent,
-    wanted: TorrentItem[],
-    decision: TorrentDecision,
-  ) {
-    const { infoHash } = torrent;
-
-    switch (decision.kind) {
-      case 'fail':
-        this.logger.warn(`"${torrent.title}" failed: ${decision.error}`);
-        await tx.nativeUpdate(Torrent, { infoHash }, { error: decision.error });
-        break;
-      case 'run':
-        if (torrent.error) {
-          await tx.nativeUpdate(Torrent, { infoHash }, { error: null });
-        }
-        break;
-    }
-
-    // Whatever the torrent does, a complete item is the library's to import
-    for (const item of wanted) {
-      if (!item.completedAt) continue;
-      await this.jobs.enqueue(tx, 'library.importItem', {
-        infoHash,
-        itemId: item.id,
-      });
-    }
-  }
-
-  /** What a decision does to the engine and the downloads folder */
-  private async act(
-    context: JobContext,
-    torrent: Torrent,
-    decision: TorrentDecision,
-  ) {
-    const { infoHash } = torrent;
-
-    switch (decision.kind) {
-      case 'fail':
-      case 'stop':
-        await this.runtime.stop(context, infoHash);
-        break;
-      case 'release':
-        await this.release(context, torrent);
-        break;
-      case 'start': {
-        const { torrentFile } = await context.em.findOneOrFail(
-          Torrent,
-          { infoHash },
-          { ...READ, populate: ['torrentFile'] },
-        );
-        try {
-          this.runtime.start(
-            context,
-            { infoHash, magnetUrl: torrent.magnetUrl, torrentFile },
-            this.getDirectory(infoHash),
-          );
-        } catch (error) {
-          // A source that the engine refuses would fail every start
-          const message =
-            error instanceof Error ? error.message : String(error);
-          this.logger.warn(`"${torrent.title}" did not start: ${message}`);
-          await context.em.nativeUpdate(
-            Torrent,
-            { infoHash },
-            { error: message },
-          );
-        }
-        break;
+      // Whatever the torrent does, a complete item is the library's to import
+      for (const item of wanted) {
+        if (!item.completedAt) continue;
+        await this.jobs.enqueue(tx, 'library.importItem', {
+          infoHash,
+          itemId: item.id,
+        });
       }
-      case 'run':
-        this.runtime.setWantedFiles(context, infoHash, decision.wanted);
-        break;
+
+      return { torrent, wanted, hasFiles: !!files };
+    });
+    if (!state) return;
+    const { torrent, wanted, hasFiles } = state;
+
+    // Stopped with its error, until the torrent is picked or needed again
+    if (snapshot?.error) {
+      this.logger.warn(`"${torrent.title}" failed: ${snapshot.error}`);
+      await context.em.nativeUpdate(
+        Torrent,
+        { infoHash },
+        { error: snapshot.error },
+      );
+      await this.runtime.stop(context, infoHash);
+      return;
+    }
+
+    const isDownloading = wanted.some(
+      (item) =>
+        item.fileIndex !== null &&
+        item.fileIndex !== undefined &&
+        !item.completedAt,
+    );
+    const needsFiles =
+      !hasFiles && wanted.some((item) => item.fileIndex == null);
+    const downloadedBytes =
+      torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0);
+    const uploadedBytes =
+      torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0);
+    const hasData = snapshot?.ready ? snapshot.hasData : hasDirectory;
+    // A failed torrent does not seed: its data goes once nothing wants it
+    const isSeeding =
+      !torrent.error &&
+      hasData &&
+      downloadedBytes > 0 &&
+      uploadedBytes < seedRatio * downloadedBytes;
+
+    if (!isDownloading && !needsFiles && !isSeeding) {
+      // Nothing downloads: an item that waits for its import keeps the data
+      if (wanted.length) await this.runtime.stop(context, infoHash);
+      else await this.release(context, torrent);
+      return;
+    }
+    // A failed torrent stays stopped
+    if (!snapshot && torrent.error) return;
+    if (!snapshot) {
+      await this.start(context, torrent);
+      return;
+    }
+    // Started: the engine says when it is ready
+    if (!snapshot.ready) return;
+
+    if (torrent.error) {
+      await context.em.nativeUpdate(Torrent, { infoHash }, { error: null });
+    }
+    this.runtime.setWantedFiles(context, infoHash, [
+      ...new Set(wanted.flatMap((item) => item.fileIndex ?? [])),
+    ]);
+  }
+
+  /** Starts a torrent in the engine; a source the engine refuses fails it */
+  private async start(context: JobContext, torrent: Torrent) {
+    const { infoHash } = torrent;
+    const { torrentFile } = await context.em.findOneOrFail(
+      Torrent,
+      { infoHash },
+      { ...READ, populate: ['torrentFile'] },
+    );
+    try {
+      this.runtime.start(
+        context,
+        { infoHash, magnetUrl: torrent.magnetUrl, torrentFile },
+        this.getDirectory(infoHash),
+      );
+    } catch (error) {
+      // A source that the engine refuses would fail every start
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`"${torrent.title}" did not start: ${message}`);
+      await context.em.nativeUpdate(Torrent, { infoHash }, { error: message });
     }
   }
 
