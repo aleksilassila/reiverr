@@ -15,7 +15,7 @@ COPY frontend ./frontend
 
 RUN npm run --prefix frontend build:tizen
 
-FROM --platform=linux/amd64 vitalets/tizen-webos-sdk
+FROM --platform=linux/amd64 vitalets/tizen-webos-sdk:3.0
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
