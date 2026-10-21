@@ -39,7 +39,8 @@
 </script>
 
 <!-- Enter toggles the checkbox; right, or a click outside the checkbox, opens a directory and left
-	closes the one the row is, or is in. With nothing to close, left leaves the tree -->
+	closes the one the row is, or is in. With nothing to close, left leaves the tree. A click anywhere
+	on a file toggles it -->
 <div class="flex items-stretch">
 	<!-- A line for every directory the row is in, outside the row, so that the lines meet -->
 	{#each { length: node.depth } as _}
@@ -64,38 +65,58 @@
 				dispatch('collapse', detail.selectable);
 			}
 		}}
+		let:hasFocus
 	>
-		{#if isDirectory}
-			<div class="flex-shrink-0 w-6 flex items-center mr-1">
-				<svelte:component this={expanded ? ChevronDown : ChevronRight} size={24} />
-			</div>
-		{/if}
-		<div class="flex-1 min-w-0 flex items-center text-xl font-semibold">
-			<span class="line-clamp-1">{node.name}</span>
-		</div>
-		{#if tag}
+		<!-- What a click opens, without the checkbox -->
+		<div class="group/open flex-1 min-w-0 flex items-center pr-6">
+			{#if isDirectory}
+				<div
+					class={classNames(
+						'flex-shrink-0 w-6 flex items-center mr-1 group-hover/open:text-primary-500',
+						{
+							'text-primary-500': hasFocus
+						}
+					)}
+				>
+					<svelte:component this={expanded ? ChevronDown : ChevronRight} size={24} />
+				</div>
+			{/if}
 			<div
-				class={classNames(
-					'flex-shrink-0 flex items-center ml-4 text-base font-medium',
-					node.entry.error ? 'text-red-400' : 'text-secondary-400'
-				)}
+				class={classNames('flex-1 min-w-0 flex items-center text-xl font-semibold', {
+					'group-hover/open:text-primary-500': isDirectory,
+					'text-primary-500': isDirectory && hasFocus
+				})}
 			>
-				{tag}
+				<span class="line-clamp-1">{node.name}</span>
 			</div>
-		{/if}
-		<div
-			class="flex-shrink-0 flex items-center justify-end ml-4 w-28 text-lg font-medium text-secondary-300"
-		>
-			{formatSize(node.size)}
+			{#if tag}
+				<div
+					class={classNames(
+						'flex-shrink-0 flex items-center ml-4 text-base font-medium',
+						node.entry.error ? 'text-red-400' : 'text-secondary-400'
+					)}
+				>
+					{tag}
+				</div>
+			{/if}
+			<div
+				class="flex-shrink-0 flex items-center justify-end ml-4 w-28 text-lg font-medium text-secondary-300"
+			>
+				{formatSize(node.size)}
+			</div>
 		</div>
-		<div class="flex-shrink-0 flex items-center ml-6">
+		<div class="flex-shrink-0 flex items-center">
 			<div
 				class={classNames(
 					'border-2 rounded-lg w-7 h-7 flex items-center justify-center transition-colors',
 					{
 						'border-primary-500 bg-primary-500 text-secondary-800': checked,
 						'border-primary-500 bg-primary-500/30 text-primary-300': partiallyChecked && !checked,
-						'border-secondary-500 hover:border-primary-500': !checked && !partiallyChecked
+						'border-secondary-500 hover:border-primary-500':
+							!checked && !partiallyChecked && !hasFocus,
+						'group-hover:border-primary-500':
+							!checked && !partiallyChecked && !hasFocus && !isDirectory,
+						'border-primary-500': !checked && !partiallyChecked && hasFocus
 					}
 				)}
 				on:click|stopPropagation={() => dispatch('toggle')}

@@ -36,7 +36,8 @@
 			{
 				'border-primary-500 bg-primary-500 text-secondary-800': checked,
 				'border-primary-500 bg-primary-500/30 text-primary-300': partiallyChecked && !checked,
-				'border-secondary-500 hover:border-primary-500': !checked && !partiallyChecked
+				'border-secondary-500 hover:border-primary-500': !checked && !partiallyChecked && !hasFocus,
+				'border-primary-500': !checked && !partiallyChecked && hasFocus
 			}
 		)}
 		on:click|stopPropagation={() => dispatch('toggle')}
@@ -50,37 +51,43 @@
 			<Minus size={20} />
 		{/if}
 	</div>
-	<div class="flex-1 min-w-0 ml-4">
-		<div class="text-2xl font-semibold line-clamp-1">
-			{#if title}
-				{title}
-			{:else}
-				<slot />
+	<!-- What a click opens, without the checkbox -->
+	<div class="group/open flex-1 min-w-0 flex items-center pl-4">
+		<div class="flex-1 min-w-0">
+			<div class="text-2xl font-semibold line-clamp-1">
+				{#if title}
+					{title}
+				{:else}
+					<slot />
+				{/if}
+			</div>
+			{#if subtitle}
+				<div
+					class={classNames('text-lg font-medium line-clamp-1 mt-1', {
+						'text-secondary-400': subtitleDimmed,
+						'text-secondary-200': !subtitleDimmed
+					})}
+				>
+					{subtitle}
+				</div>
 			{/if}
 		</div>
-		{#if subtitle}
+		{#if status}
 			<div
-				class={classNames('text-lg font-medium line-clamp-1 mt-1', {
-					'text-secondary-400': subtitleDimmed,
-					'text-secondary-200': !subtitleDimmed
-				})}
+				class={classNames(
+					'flex-shrink-0 ml-4 max-w-md line-clamp-1 text-lg font-medium',
+					isError ? 'text-red-400' : 'text-secondary-300'
+				)}
 			>
-				{subtitle}
+				{status}
 			</div>
 		{/if}
-	</div>
-	{#if status}
-		<div
+		<ChevronRight
+			size={24}
 			class={classNames(
-				'flex-shrink-0 ml-4 max-w-md line-clamp-1 text-lg font-medium',
-				isError ? 'text-red-400' : 'text-secondary-300'
+				'flex-shrink-0 ml-2 group-hover:opacity-100 group-hover/open:text-primary-500',
+				{ 'opacity-0': !hasFocus, 'text-primary-500': hasFocus }
 			)}
-		>
-			{status}
-		</div>
-	{/if}
-	<ChevronRight
-		size={24}
-		class={classNames('flex-shrink-0 ml-2 group-hover:opacity-100', { 'opacity-0': !hasFocus })}
-	/>
+		/>
+	</div>
 </ListRow>

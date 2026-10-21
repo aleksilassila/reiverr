@@ -236,10 +236,21 @@
 							on:enter={scrollIntoView({ vertical: 96 })}
 							on:clickOrSelect={() => selectFile(file)}
 							focusOnMount={index === 0 && !selection}
+							let:hasFocus
 						>
 							<div class="flex-1 min-w-0">
 								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
 								<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
+							</div>
+							<div class="flex-shrink-0 ml-4 text-lg font-medium">
+								<span
+									class={classNames(
+										'items-center text-primary-500 group-hover:flex',
+										hasFocus ? 'flex' : 'hidden'
+									)}
+								>
+									Select
+								</span>
 							</div>
 						</ListRow>
 					{/each}
@@ -259,6 +270,7 @@
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
 						focusOnMount={index === 0 && !hasFiles && !selection}
+						let:hasFocus
 					>
 						<div class="flex-1 min-w-0">
 							<div class="text-2xl font-semibold line-clamp-1">{release.title}</div>
@@ -266,9 +278,25 @@
 								{releaseDetails(release)}
 							</div>
 						</div>
-						{#if onServer}
-							<div class="flex-shrink-0 ml-4 text-lg font-medium text-secondary-300">On server</div>
-						{/if}
+						<div class="flex-shrink-0 ml-4 text-lg font-medium">
+							{#if onServer}
+								<span
+									class={classNames('text-secondary-300 group-hover:hidden', {
+										hidden: hasFocus
+									})}
+								>
+									On server
+								</span>
+							{/if}
+							<span
+								class={classNames(
+									'items-center text-primary-500 group-hover:flex',
+									hasFocus ? 'flex' : 'hidden'
+								)}
+							>
+								Select
+							</span>
+						</div>
 					</ListRow>
 				{/each}
 			</div>
