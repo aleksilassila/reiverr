@@ -12,7 +12,6 @@ import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
-import { CleanupSchedule } from './downloads.dto.js';
 import { DownloadsService } from './downloads.service.js';
 import { TorrentItem } from './torrent-item.entity.js';
 import { TorrentRuntime } from './torrent-runtime.js';
@@ -116,12 +115,7 @@ describe('DownloadsService', () => {
     engine = new FakeEngine();
     jobs = new JobsService(orm.em);
     const settings = new SettingsService(orm.em);
-    await request(() =>
-      settings.saveValue('downloads', {
-        seedRatio,
-        cleanup: CleanupSchedule.Off,
-      }),
-    );
+    await request(() => settings.saveValue('downloads', { seedRatio }));
     runtime = new TorrentRuntime(orm.em, jobs, settings, engine);
     downloads = new DownloadsService(
       orm.em,
@@ -258,10 +252,7 @@ describe('DownloadsService', () => {
   it('seeds until the ratio is reached', async () => {
     seedRatio = 2;
     await request(() =>
-      new SettingsService(orm.em).saveValue('downloads', {
-        seedRatio,
-        cleanup: CleanupSchedule.Off,
-      }),
+      new SettingsService(orm.em).saveValue('downloads', { seedRatio }),
     );
     await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
     const wanted = await wantItem(PACK, item(1));

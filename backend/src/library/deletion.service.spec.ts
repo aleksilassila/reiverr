@@ -17,8 +17,6 @@ import {
   LibraryFixture,
   TMDB_ID,
 } from '../../test/library-fixture.js';
-import { CleanupSchedule } from '../downloads/downloads.dto.js';
-import { DownloadsService } from '../downloads/downloads.service.js';
 import { Job } from '../jobs/job.entity.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
@@ -26,7 +24,8 @@ import { RequestsService } from '../requests/requests.service.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { DeletionService } from './deletion.service.js';
-import { LibraryService } from './folder.service.js';
+import { CleanupSchedule } from './library.dto.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 
 describe('DeletionService', () => {
@@ -44,20 +43,17 @@ describe('DeletionService', () => {
       orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
       await orm.migrator.up();
 
-      const localMedia = {
+      const library = {
         getSettings: async () => ({
           movieFolders: ['/movies'],
           seriesFolders: ['/tv', '/anime'],
+          cleanup,
         }),
-      };
-      const downloads = {
-        getSettings: async () => ({ seedRatio: 0, cleanup }),
       };
       deletionService = new DeletionService(
         orm.em,
         new JobsService(orm.em),
-        localMedia as unknown as LibraryService,
-        downloads as unknown as DownloadsService,
+        library as unknown as LibraryService,
         {} as RequestsService,
         {} as ServerLogService,
       );

@@ -1,4 +1,4 @@
-import { CleanupSchedule } from './downloads.dto.js';
+import { CleanupSchedule } from './library.dto.js';
 
 export const CLEANUP_HOUR = 4;
 

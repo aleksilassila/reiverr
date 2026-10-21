@@ -1,7 +1,6 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
-import { getNextCleanup } from '../downloads/cleanup.utils.js';
 import {
   TorrentDto,
   TorrentItemDto,
@@ -15,6 +14,7 @@ import { RequestSource, sourceOf } from '../requests/request-source.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { SelectedRelease } from '../requests/selected-release.entity.js';
+import { getNextCleanup } from './cleanup.utils.js';
 import {
   EpisodeDownloadStatus,
   EpisodeStatusDto,
@@ -22,6 +22,7 @@ import {
   PreferredFileDto,
   SeriesStatusDto,
 } from './library.dto.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import * as path from 'node:path';
@@ -44,6 +45,7 @@ export class StatusService {
     private readonly jobs: JobsService,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
+    private readonly libraryService: LibraryService,
   ) {}
 
   async getSeriesStatus(
@@ -124,7 +126,7 @@ export class StatusService {
       { mediaType: MediaType.Series, tmdbId },
       { runAt: new Date(Date.now() + SCAN_DELAY) },
     );
-    const { cleanup } = await this.downloadsService.getSettings();
+    const { cleanup } = await this.libraryService.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
 
     const torrentOf = (

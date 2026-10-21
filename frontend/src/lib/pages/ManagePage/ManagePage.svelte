@@ -20,6 +20,7 @@
 	import { reiverrApi, user } from '../../stores/user.store';
 	import Accounts from './Accounts.ManagePage.svelte';
 	import Downloads from './Downloads.ManagePage.svelte';
+	import Library from './Library.ManagePage.svelte';
 
 	enum Tabs {
 		Account,
@@ -252,6 +253,8 @@
 					<Accounts />
 
 					<Downloads />
+
+					<Library />
 
 					<div>
 						<h1 class="h3 mb-8">Metadata</h1>

@@ -24,7 +24,8 @@ import {
 import { MediaType } from '../common/common.dto.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { DeletionService } from './deletion.service.js';
-import { LibraryService } from './folder.service.js';
+import { CleanupSchedule } from './library.dto.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 
 describe('LibraryService', () => {
@@ -161,7 +162,11 @@ describe('LibraryService', () => {
     const move = (forgetFiles?: boolean) =>
       request(() =>
         library.updateSettings(
-          { movieFolders: [], seriesFolders: [other] },
+          {
+            movieFolders: [],
+            seriesFolders: [other],
+            cleanup: CleanupSchedule.Daily,
+          },
           { forgetFiles },
         ),
       );

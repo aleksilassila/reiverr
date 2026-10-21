@@ -12,7 +12,6 @@ import parseTorrent from 'parse-torrent';
 import { FakeEngine, magnetFiles } from '../../test/fake-engine.js';
 import { createTorrent } from '../../test/torrent-fixture.js';
 import { MediaType } from '../common/common.dto.js';
-import { CleanupSchedule } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { TorrentItem } from '../downloads/torrent-item.entity.js';
 import { TorrentRuntime } from '../downloads/torrent-runtime.js';
@@ -31,6 +30,7 @@ import { User } from '../users/user.entity.js';
 import { DeletionService } from './deletion.service.js';
 import { FulfilmentService } from './fulfilment.service.js';
 import { ImportService } from './import.service.js';
+import { CleanupSchedule } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
@@ -189,7 +189,6 @@ async function createHub() {
     orm.em,
     jobs,
     libraryService,
-    downloads,
     requests,
     serverLog,
   );
@@ -200,20 +199,22 @@ async function createHub() {
     downloads,
     importService,
   );
-  const status = new StatusService(orm.em, jobs, requests, downloads);
+  const status = new StatusService(
+    orm.em,
+    jobs,
+    requests,
+    downloads,
+    libraryService,
+  );
   for (const service of [libraryService, downloads, deletion, fulfilment]) {
     service.onModuleInit();
   }
-  await request(() =>
-    settings.saveValue('downloads', {
-      seedRatio: 0,
-      cleanup: CleanupSchedule.Daily,
-    }),
-  );
+  await request(() => settings.saveValue('downloads', { seedRatio: 0 }));
   await request(() =>
     libraryService.updateSettings({
       movieFolders: [],
       seriesFolders: [dirs.library],
+      cleanup: CleanupSchedule.Daily,
     }),
   );
 

@@ -17,7 +17,6 @@ import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
-  CleanupSchedule,
   DownloadSettingsDto,
   TorrentDto,
   TorrentItemDto,
@@ -121,19 +120,13 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   async updateSettings(
     settings: DownloadSettingsDto,
   ): Promise<DownloadSettingsDto> {
-    const { seedRatio, cleanup } = settings ?? {};
+    const { seedRatio } = settings ?? {};
     if (typeof seedRatio !== 'number' || !(seedRatio >= 0)) {
       throw new BadRequestException('seedRatio must be a number, 0 or greater');
-    }
-    if (!Object.values(CleanupSchedule).includes(cleanup)) {
-      throw new BadRequestException(
-        `cleanup must be one of ${Object.values(CleanupSchedule).join(', ')}`,
-      );
     }
 
     const saved = await this.settingsService.saveValue(DOWNLOADS_SETTINGS_KEY, {
       seedRatio,
-      cleanup,
     });
     // How long torrents seed changes
     await this.enqueueEveryTorrent(this.em);

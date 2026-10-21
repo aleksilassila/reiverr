@@ -1,29 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MediaType } from '../common/common.dto.js';
 
-/** A cleanup runs at 4 in the morning, in the time zone of the server */
-export enum CleanupSchedule {
-  Off = 'off',
-  Daily = 'daily',
-  /** On Mondays */
-  Weekly = 'weekly',
-  /** On the first of the month */
-  Monthly = 'monthly',
-}
-
 export class DownloadSettingsDto {
   @ApiProperty({
     description:
       'Torrents are seeded until they have uploaded this many times what they downloaded. 0 disables seeding.',
   })
   seedRatio: number;
-
-  @ApiProperty({
-    enum: CleanupSchedule,
-    description:
-      'When the imported files that no request keeps are deleted: at 4 in the morning every day, on Mondays or on the first of the month',
-  })
-  cleanup: CleanupSchedule;
 }
 
 export enum TorrentStatus {

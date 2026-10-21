@@ -9,13 +9,12 @@ import { Cron } from '@nestjs/schedule';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
-import { CLEANUP_HOUR, isCleanupDay } from '../downloads/cleanup.utils.js';
-import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
+import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
 import { DeleteLibraryEntriesResultDto } from './library.dto.js';
 import { entryExists, LibraryService } from './library.service.js';
 import {
@@ -50,7 +49,6 @@ export class DeletionService implements OnModuleInit {
     private readonly em: EntityManager,
     private readonly jobs: JobsService,
     private readonly libraryService: LibraryService,
-    private readonly downloadsService: DownloadsService,
     private readonly requestsService: RequestsService,
     private readonly serverLog: ServerLogService,
   ) {}
@@ -77,9 +75,8 @@ export class DeletionService implements OnModuleInit {
    */
   @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async onCleanupHour(): Promise<void> {
-    const { movieFolders, seriesFolders } =
+    const { movieFolders, seriesFolders, cleanup } =
       await this.libraryService.getSettings();
-    const { cleanup } = await this.downloadsService.getSettings();
     const isCleanup = isCleanupDay(new Date(), cleanup);
 
     await this.em.fork().transactional(async (tx) => {

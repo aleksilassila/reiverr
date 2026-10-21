@@ -1363,6 +1363,8 @@ export interface UpdateMediaRequestDto {
 export interface LibrarySettingsDto {
   movieFolders: string[];
   seriesFolders: string[];
+  /** When the managed files that no request holds are deleted: at 4 in the morning every day, on Mondays or on the first of the month */
+  cleanup: "off" | "daily" | "weekly" | "monthly";
 }
 
 export interface SubtitleFileDto {
@@ -1533,8 +1535,6 @@ export interface ReleaseDto {
 export interface DownloadSettingsDto {
   /** Torrents are seeded until they have uploaded this many times what they downloaded. 0 disables seeding. */
   seedRatio: number;
-  /** When the imported files that no request keeps are deleted: at 4 in the morning every day, on Mondays or on the first of the month */
-  cleanup: "off" | "daily" | "weekly" | "monthly";
 }
 
 export interface TorrentItemDto {

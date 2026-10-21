@@ -1,5 +1,5 @@
 import { getNextCleanup, isCleanupDay } from './cleanup.utils.js';
-import { CleanupSchedule } from './downloads.dto.js';
+import { CleanupSchedule } from './library.dto.js';
 
 // The 5th of October 2026 is a Monday
 const october = (day: number, hour = 12) => new Date(2026, 9, day, hour);

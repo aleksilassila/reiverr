@@ -5,11 +5,10 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { vi } from 'vitest';
 import { MediaType } from '../src/common/common.dto.js';
-import { CleanupSchedule } from '../src/downloads/downloads.dto.js';
-import { DownloadsService } from '../src/downloads/downloads.service.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import { DeletionService } from '../src/library/deletion.service.js';
 import { ImportService } from '../src/library/import.service.js';
+import { CleanupSchedule } from '../src/library/library.dto.js';
 import { LibraryService } from '../src/library/library.service.js';
 import { MediaFile } from '../src/library/media-file.entity.js';
 import { RequestBinding } from '../src/library/request-binding.entity.js';
@@ -58,9 +57,6 @@ export async function createLibraryFixture() {
       tmdbSeries: { name: 'Test Show', first_air_date: '2020-01-01' },
     }),
   };
-  const downloads = {
-    getSettings: async () => ({ seedRatio: 0, cleanup: CleanupSchedule.Daily }),
-  };
   const requests = {
     deleteRequests: vi.fn(async (_em: EntityManager, _ids: string[]) => 0),
   };
@@ -80,7 +76,6 @@ export async function createLibraryFixture() {
     orm.em,
     jobs as unknown as JobsService,
     libraryService,
-    downloads as unknown as DownloadsService,
     requests as unknown as RequestsService,
     serverLog,
   );
@@ -93,6 +88,7 @@ export async function createLibraryFixture() {
     libraryService.updateSettings({
       movieFolders: [],
       seriesFolders: [library],
+      cleanup: CleanupSchedule.Daily,
     }),
   );
 

@@ -2,12 +2,29 @@ import { ApiProperty } from '@nestjs/swagger';
 import { EpisodeRefDto } from '../common/common.dto.js';
 import { TorrentDto } from '../downloads/downloads.dto.js';
 
+/** A cleanup runs at 4 in the morning, in the time zone of the server */
+export enum CleanupSchedule {
+  Off = 'off',
+  Daily = 'daily',
+  /** On Mondays */
+  Weekly = 'weekly',
+  /** On the first of the month */
+  Monthly = 'monthly',
+}
+
 export class LibrarySettingsDto {
   @ApiProperty({ type: [String] })
   movieFolders: string[];
 
   @ApiProperty({ type: [String] })
   seriesFolders: string[];
+
+  @ApiProperty({
+    enum: CleanupSchedule,
+    description:
+      'When the managed files that no request holds are deleted: at 4 in the morning every day, on Mondays or on the first of the month',
+  })
+  cleanup: CleanupSchedule;
 }
 
 export class SubtitleFileDto {

@@ -18,6 +18,7 @@ import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import {
+  CleanupSchedule,
   LibraryEntryDto,
   ScanLibraryResultDto,
   LibraryEpisodeFileDto,
@@ -48,6 +49,7 @@ const SETTINGS_KEY = 'library';
 const DEFAULT_SETTINGS: LibrarySettingsDto = {
   movieFolders: [],
   seriesFolders: [],
+  cleanup: CleanupSchedule.Daily,
 };
 
 // Title folder -> season folder -> file is the deepest layout Radarr and Sonarr produce
@@ -129,17 +131,23 @@ export class LibraryService implements OnModuleInit {
   }
 
   /**
-   * Sets the library folders. Removing a folder that has indexed files in it
-   * forgets them, and their requests download them again, so it takes
-   * `forgetFiles`.
+   * Sets the library folders and the cleanup schedule. Removing a folder
+   * that has indexed files in it forgets them, and their requests download
+   * them again, so it takes `forgetFiles`.
    */
   async updateSettings(
     settings: LibrarySettingsDto,
     { forgetFiles = false }: { forgetFiles?: boolean } = {},
   ): Promise<LibrarySettingsDto> {
+    if (!Object.values(CleanupSchedule).includes(settings.cleanup)) {
+      throw new BadRequestException(
+        `cleanup must be one of ${Object.values(CleanupSchedule).join(', ')}`,
+      );
+    }
     const value: LibrarySettingsDto = {
       movieFolders: await this.validateFolders(settings.movieFolders),
       seriesFolders: await this.validateFolders(settings.seriesFolders),
+      cleanup: settings.cleanup,
     };
 
     const current = await this.getSettings();
