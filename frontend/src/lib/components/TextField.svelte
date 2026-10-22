@@ -2,10 +2,10 @@
 	import Container from './Container.svelte';
 	import type { FormEventHandler, HTMLInputTypeAttribute } from 'svelte/elements';
 	import { type ComponentType, createEventDispatcher } from 'svelte';
-	import { PLATFORM_TV } from '../constants';
 	import classNames from 'classnames';
 	import Spinner from './Utils/Spinner.svelte';
 	import { Check, Cross1 } from 'radix-icons-svelte';
+	import type { Selectable } from '../selectable';
 
 	export let value = '';
 	export let placeholder: string = '';
@@ -39,16 +39,31 @@
 		// @ts-ignore
 		dispatch('change', e.target?.value);
 	};
+
+	// Navigating onto the field focuses the container, not the input, which on a TV
+	// would open the keyboard; enter or a click focuses the input, enter or back leaves it.
+	// While the input has the focus the arrow keys move the caret and shift+enter is the
+	// input's, so they do not reach the navigation
+	const isEditing = () => document.activeElement === input;
+
+	function toggleEditing(selectable: Selectable) {
+		if (isEditing()) selectable.focus();
+		else input?.focus();
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key.startsWith('Arrow') || (e.key === 'Enter' && e.shiftKey)) e.stopPropagation();
+	}
 </script>
 
 <Container
-	on:enter={(e) => {
-		if (!PLATFORM_TV) {
-			e.detail.options.setFocusedElement = input;
-		}
-	}}
 	on:enter
-	on:clickOrSelect={() => input?.focus()}
+	on:clickOrSelect={({ detail }) => toggleEditing(detail)}
+	on:back={(e) => {
+		if (!isEditing()) return;
+		e.detail.selectable.focus();
+		e.detail.stopPropagation();
+	}}
 	class={classNames('flex flex-col', $$restProps.class)}
 	let:hasFocus
 	focusOnClick
@@ -63,6 +78,7 @@
 				unselected: !hasFocus
 			})}
 			on:blur
+			on:keydown={handleKeyDown}
 			{type}
 			{value}
 			on:input={handleChange}
