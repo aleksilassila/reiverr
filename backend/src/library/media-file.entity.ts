@@ -54,3 +54,14 @@ export class MediaFile {
   @Property()
   createdAt: Date = new Date();
 }
+
+/** The columns of a file that a scan keeps in line with the disk */
+export const INDEXED_FIELDS = [
+  'mediaType',
+  'tmdbId',
+  'season',
+  'episode',
+  'lastEpisode',
+  'size',
+  'modifiedAt',
+] as const;

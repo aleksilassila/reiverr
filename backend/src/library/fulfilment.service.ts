@@ -6,16 +6,15 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
-import { MediaRequest } from '../requests/request.entity.js';
 import { isNeeded } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { ImportService } from './import.service.js';
-import { parseEpisodeNumbers } from './library.utils.js';
+import { coversEpisode, parseEpisodeNumbers } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
@@ -38,20 +37,6 @@ const NOTHING: BindingChange = {
   mediaFileId: null,
   error: null,
 };
-
-/** Whether a file of a series is of the episode of a request */
-const covers = (
-  file: Pick<
-    MediaFile,
-    'mediaType' | 'tmdbId' | 'season' | 'episode' | 'lastEpisode'
-  >,
-  request: Pick<MediaRequest, 'tmdbId' | 'season' | 'episode'>,
-) =>
-  file.mediaType === MediaType.Series &&
-  file.tmdbId === request.tmdbId &&
-  file.season === request.season &&
-  file.episode <= request.episode &&
-  request.episode <= file.lastEpisode;
 
 /**
  * Fulfils requests: gives an active request the file it wants from the
@@ -107,12 +92,13 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Has the sweep run, in the caller's transaction when it has one. Called
-   * whenever room may have been made: a binding let go of a file or an
-   * item, a file or the data of a torrent was deleted, a quota or the disk
-   * limit was set.
+   * Has the sweep run, in the caller's transaction when it has one, when
+   * room may have been made here: a binding let go of a file or an item,
+   * or an import settled what a request takes. The other services and
+   * modules enqueue the job themselves when they delete files or data, or
+   * set a quota or the disk limit.
    */
-  sweepLater(em: EntityManager): Promise<void> {
+  private sweepLater(em: EntityManager): Promise<void> {
     return this.jobs.enqueue(em, 'library.sweepRequests', {});
   }
 
@@ -169,11 +155,11 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * Brings the binding of a request in line with the request: what its
    * user wants it to have, and whether it is active at all. A request that
    * is gone or not active lets go of the item it waited for; a file it has
-   * stays its own until its source says otherwise. What the request keeps
-   * passes no gate; what it is to get, a file in the library or a download,
-   * it gets when it fits the quota of its user, and a download when no disk
-   * is at the limit. Else it lets go of what it had and is bound to
-   * nothing, until the sweep has it looked at again.
+   * stays its own until its source says otherwise or the library forgets
+   * it. What the request keeps passes no gate; what it is to get, a file in
+   * the library or a download, it gets when it fits the quota of its user,
+   * and a download when no disk is at the limit. Else it lets go of what it
+   * had and is bound to nothing, until the sweep has it looked at again.
    */
   private async reconcileRequest(
     requestId: string,
@@ -198,8 +184,11 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       const isActive = isNeeded(request) && !!source;
       if (!isActive) {
         await this.releaseItemOf(tx, binding);
+        // The file it has stays its own, unless the library forgot it
+        const held = await this.heldFile(tx, binding);
         await this.write(tx, requestId, binding, {
           torrentItemId: null,
+          mediaFileId: held?.id ?? null,
           error: null,
         });
         return;
@@ -216,7 +205,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           READ,
         );
         await this.releaseItemOf(tx, binding);
-        if (!file || !covers(file, request)) {
+        if (!file || !coversEpisode(file, request)) {
           await this.write(tx, requestId, binding, {
             torrentItemId: null,
             mediaFileId: null,
@@ -244,12 +233,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       // A file it has from this torrent is what it wants; a season's torrent
       // picked later replaces nothing that is on disk, an episode's does
       const { infoHash } = source;
-      const held = binding?.mediaFileId
-        ? await tx.findOne(MediaFile, { id: binding.mediaFileId }, READ)
-        : undefined;
+      const held = await this.heldFile(tx, binding);
       const keepsHeld =
         !!held &&
-        covers(held, request) &&
+        coversEpisode(held, request) &&
         (held.infoHash === infoHash || !source.forEpisode);
       if (keepsHeld) {
         await this.releaseItemOf(tx, binding);
@@ -419,6 +406,19 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     });
   }
 
+  /** The file a binding has, as long as its row is in the index */
+  private async heldFile(
+    tx: EntityManager,
+    binding: RequestBinding | undefined,
+  ): Promise<MediaFile | undefined> {
+    if (!binding?.mediaFileId) return undefined;
+
+    return (
+      (await tx.findOne(MediaFile, { id: binding.mediaFileId }, READ)) ??
+      undefined
+    );
+  }
+
   /** Lets go of the item a binding waits for, unless it is kept or another request waits for it */
   private async releaseItemOf(
     tx: EntityManager,
@@ -490,7 +490,3 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     if (letsGo) await this.sweepLater(tx);
   }
 }
-
-/** For the status: whether a request is for an episode */
-export const isEpisodeRequest = (request: Pick<MediaRequest, 'mediaType'>) =>
-  request.mediaType === MediaTypeFull.Episode;

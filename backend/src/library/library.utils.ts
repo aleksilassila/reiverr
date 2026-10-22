@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { MediaType } from '../common/common.dto.js';
+import { MediaFile } from './media-file.entity.js';
 
 const VIDEO_EXTENSIONS = new Set([
   '.mkv',
@@ -244,3 +246,20 @@ export const describeError = (error: Error) => error.message.split(',')[0];
 /** A path in a library folder as the API gives it, with / between the names */
 export const relativePath = (folder: string, entryPath: string) =>
   path.relative(folder, entryPath).split(path.sep).join('/');
+
+/** Whether a file of a series is of an episode: of its title and season, and the episode is among the file's */
+export function coversEpisode(
+  file: Pick<
+    MediaFile,
+    'mediaType' | 'tmdbId' | 'season' | 'episode' | 'lastEpisode'
+  >,
+  episode: { tmdbId: string; season: number; episode: number },
+): boolean {
+  return (
+    file.mediaType === MediaType.Series &&
+    file.tmdbId === episode.tmdbId &&
+    file.season === episode.season &&
+    file.episode <= episode.episode &&
+    episode.episode <= file.lastEpisode
+  );
+}

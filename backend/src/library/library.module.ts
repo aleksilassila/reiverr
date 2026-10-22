@@ -13,7 +13,9 @@ import { ImportService } from './import.service.js';
 import { LibraryController } from './library.controller.js';
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
+import { PlaybackService } from './playback.service.js';
 import { RequestBinding } from './request-binding.entity.js';
+import { ScanService } from './scan.service.js';
 import { StatusService } from './status.service.js';
 import { StorageService } from './storage.service.js';
 
@@ -31,12 +33,14 @@ import { StorageService } from './storage.service.js';
   controllers: [LibraryController],
   providers: [
     LibraryService,
+    ScanService,
+    PlaybackService,
     ImportService,
     DeletionService,
     StorageService,
     FulfilmentService,
     StatusService,
   ],
-  exports: [LibraryService, DeletionService, FulfilmentService],
+  exports: [LibraryService, ScanService, DeletionService, FulfilmentService],
 })
 export class LibraryModule {}

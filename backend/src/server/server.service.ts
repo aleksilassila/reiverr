@@ -8,6 +8,7 @@ import {
   ScanLibraryResultDto,
 } from '../library/library.dto.js';
 import { LibraryService } from '../library/library.service.js';
+import { ScanService } from '../library/scan.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
 import {
@@ -21,6 +22,7 @@ import {
 export class ServerService {
   constructor(
     private readonly libraryService: LibraryService,
+    private readonly scanService: ScanService,
     private readonly deletionService: DeletionService,
     private readonly fulfilmentService: FulfilmentService,
     private readonly requestsService: RequestsService,
@@ -40,7 +42,7 @@ export class ServerService {
 
   async previewLibraryScan(folder: string): Promise<LibraryScanPreviewDto> {
     const { available, reason, missing } =
-      await this.libraryService.previewScan(folder);
+      await this.scanService.previewScan(folder);
     const requests = await this.fulfilmentService.countByMediaFile();
 
     return {
@@ -55,7 +57,7 @@ export class ServerService {
   }
 
   scanLibrary(folder: string, force: boolean): Promise<ScanLibraryResultDto> {
-    return this.libraryService.scanFolder(folder, {
+    return this.scanService.scanFolder(folder, {
       evenIfUnavailable: force,
     });
   }

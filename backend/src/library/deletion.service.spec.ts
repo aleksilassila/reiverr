@@ -43,13 +43,7 @@ describe('DeletionService', () => {
       orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
       await orm.migrator.up();
 
-      const library = {
-        getSettings: async () => ({
-          movieFolders: ['/movies'],
-          seriesFolders: ['/tv', '/anime'],
-          cleanup,
-        }),
-      };
+      const library = { getSettings: async () => ({ cleanup }) };
       deletionService = new DeletionService(
         orm.em,
         new JobsService(orm.em),
@@ -61,26 +55,17 @@ describe('DeletionService', () => {
 
     afterEach(() => orm.close());
 
-    it('queues a scan of every library folder every night, and the cleanup on cleanup days', async () => {
+    it('queues the cleanup on cleanup days', async () => {
       cleanup = CleanupSchedule.Off;
       await deletionService.onCleanupHour();
+      expect(await queued()).toEqual([]);
 
-      expect(await queued()).toEqual([
-        ['library.scanFolder', { folder: '/anime' }],
-        ['library.scanFolder', { folder: '/movies' }],
-        ['library.scanFolder', { folder: '/tv' }],
-      ]);
-
-      // The scans that have not run yet are not queued twice
       cleanup = CleanupSchedule.Daily;
       await deletionService.onCleanupHour();
+      // A cleanup that has not run yet is not queued twice
+      await deletionService.onCleanupHour();
 
-      expect(await queued()).toEqual([
-        ['library.cleanUpLibrary', {}],
-        ['library.scanFolder', { folder: '/anime' }],
-        ['library.scanFolder', { folder: '/movies' }],
-        ['library.scanFolder', { folder: '/tv' }],
-      ]);
+      expect(await queued()).toEqual([['library.cleanUpLibrary', {}]]);
     });
   });
 

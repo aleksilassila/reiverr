@@ -4,13 +4,13 @@ import { promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
-import { INDEXED_FIELDS, LibraryService } from './library.service.js';
+import { LibraryService } from './library.service.js';
 import {
   episodeFileName,
   seasonFolderName,
   seriesFolderName,
 } from './library.utils.js';
-import { MediaFile } from './media-file.entity.js';
+import { INDEXED_FIELDS, MediaFile } from './media-file.entity.js';
 
 // The length of the version label in the names of imported files
 const VERSION_LABEL_LENGTH = 8;
@@ -166,7 +166,10 @@ export class ImportService {
   /** The Jellyfin naming, under the title folder of the series or a new one */
   private async getImportPath(target: ImportTarget): Promise<string> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = target;
-    const { name, match } = await this.libraryService.getSeriesMatch(tmdbId);
+    const { name, match } = await this.libraryService.getTitleMatch(
+      MediaType.Series,
+      tmdbId,
+    );
     const { seriesFolders } = await this.libraryService.getSettings();
     if (!seriesFolders.length) {
       throw new Error('No series folder is configured');

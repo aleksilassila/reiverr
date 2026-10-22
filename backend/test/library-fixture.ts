@@ -11,7 +11,9 @@ import { ImportService } from '../src/library/import.service.js';
 import { CleanupSchedule } from '../src/library/library.dto.js';
 import { LibraryService } from '../src/library/library.service.js';
 import { MediaFile } from '../src/library/media-file.entity.js';
+import { PlaybackService } from '../src/library/playback.service.js';
 import { RequestBinding } from '../src/library/request-binding.entity.js';
+import { ScanService } from '../src/library/scan.service.js';
 import { MetadataService } from '../src/metadata/metadata.service.js';
 import { TmdbService } from '../src/metadata/tmdb/tmdb.service.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
@@ -67,10 +69,16 @@ export async function createLibraryFixture() {
     orm.em,
     settings,
     metadata as unknown as MetadataService,
+    jobs as unknown as JobsService,
+  );
+  const scan = new ScanService(
+    orm.em,
+    libraryService,
     tmdb as unknown as TmdbService,
     jobs as unknown as JobsService,
     serverLog,
   );
+  const playback = new PlaybackService(libraryService, scan);
   const importService = new ImportService(orm.em, libraryService);
   const deletion = new DeletionService(
     orm.em,
@@ -122,9 +130,9 @@ export async function createLibraryFixture() {
 
   /** A scan of the series, which the job does, and what is on disk then */
   const scanSeries = async (tmdbId = TMDB_ID) => {
-    await request(() => libraryService.scanTitle(MediaType.Series, tmdbId));
+    await request(() => scan.scanTitle(MediaType.Series, tmdbId));
 
-    return request(() => libraryService.listSeriesFiles(tmdbId));
+    return request(() => playback.listSeriesFiles(tmdbId));
   };
 
   /** Library folders that changed without the service, which forgets nothing */
@@ -157,6 +165,8 @@ export async function createLibraryFixture() {
     root,
     library,
     libraryService,
+    scan,
+    playback,
     importService,
     deletion,
     jobs,

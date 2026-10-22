@@ -15,8 +15,9 @@ import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
+import { entryExists } from './disk.utils.js';
 import { DeleteLibraryEntriesResultDto } from './library.dto.js';
-import { entryExists, LibraryService } from './library.service.js';
+import { LibraryService } from './library.service.js';
 import {
   describeError,
   isInsideFolder,
@@ -69,24 +70,13 @@ export class DeletionService implements OnModuleInit {
     });
   }
 
-  /**
-   * The nightly jobs: a scan of every library folder, and the cleanup on a
-   * cleanup day. Nothing makes the cleanup wait for the scans.
-   */
+  /** The nightly cleanup, on a cleanup day. It does not wait for the scans of the same hour. */
   @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async onCleanupHour(): Promise<void> {
-    const { movieFolders, seriesFolders, cleanup } =
-      await this.libraryService.getSettings();
-    const isCleanup = isCleanupDay(new Date(), cleanup);
+    const { cleanup } = await this.libraryService.getSettings();
+    if (!isCleanupDay(new Date(), cleanup)) return;
 
-    await this.em.fork().transactional(async (tx) => {
-      for (const folder of [...seriesFolders, ...movieFolders]) {
-        await this.jobs.enqueue(tx, 'library.scanFolder', { folder });
-      }
-      if (isCleanup) {
-        await this.jobs.enqueue(tx, 'library.cleanUpLibrary', {});
-      }
-    });
+    await this.jobs.enqueue(this.em.fork(), 'library.cleanUpLibrary', {});
   }
 
   /**

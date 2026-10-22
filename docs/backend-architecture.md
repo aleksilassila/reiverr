@@ -19,6 +19,8 @@ flowchart LR
     FS["FulfilmentService"]
     IS["ImportService"]
     LS["LibraryService"]
+    SCN["ScanService"]
+    PB["PlaybackService"]
     DEL["DeletionService"]
     STS["StatusService"]
     STO["StorageService"]
@@ -173,3 +175,7 @@ stateDiagram-v2
   external --> gone: an admin deletes it, or a scan finds it gone and forgets it
   gone --> [*]
 ```
+
+## Quotas
+
+Quotas and storage limits are enforced server side only when a request is binding (FulfilmentService.reconcileRequest), not in any route or request creation time. The frontend has a separate client side check to enforce quotas in the UI.

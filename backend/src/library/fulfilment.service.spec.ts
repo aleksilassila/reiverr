@@ -35,6 +35,7 @@ import { CleanupSchedule } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
+import { ScanService } from './scan.service.js';
 import { StatusService } from './status.service.js';
 import { StorageService } from './storage.service.js';
 
@@ -170,6 +171,11 @@ async function createHub() {
     orm.em,
     settings,
     metadata as unknown as MetadataService,
+    jobs,
+  );
+  const scan = new ScanService(
+    orm.em,
+    libraryService,
     tmdb as unknown as TmdbService,
     jobs,
     serverLog,
@@ -215,14 +221,14 @@ async function createHub() {
   );
   const status = new StatusService(
     orm.em,
-    jobs,
     requests,
     downloads,
     metadata as unknown as MetadataService,
     libraryService,
+    scan,
     storage,
   );
-  for (const service of [libraryService, downloads, deletion, fulfilment]) {
+  for (const service of [scan, downloads, deletion, fulfilment]) {
     service.onModuleInit();
   }
   await request(() => settings.saveValue('downloads', { seedRatio: 0 }));
@@ -250,6 +256,7 @@ async function createHub() {
     engine,
     runtime,
     libraryService,
+    scan,
     requests,
     downloads,
     deletion,
@@ -545,9 +552,7 @@ describe('FulfilmentService', () => {
     expect(await bindings()).toEqual([[1, null, 'file:1111', null]]);
 
     rmSync(path.join(dirs.library, episodeFile(1, PACK)));
-    await request(() =>
-      hub.libraryService.scanTitle(MediaType.Series, TMDB_ID),
-    );
+    await request(() => hub.scan.scanTitle(MediaType.Series, TMDB_ID));
     await settle();
 
     expect(await bindings()).toEqual([[1, 'item:1111', null, null]]);
@@ -575,9 +580,7 @@ describe('FulfilmentService', () => {
     mkdirSync(path.dirname(external), { recursive: true });
     const { writeFileSync } = await import('node:fs');
     writeFileSync(external, 'external');
-    await request(() =>
-      hub.libraryService.scanTitle(MediaType.Series, TMDB_ID),
-    );
+    await request(() => hub.scan.scanTitle(MediaType.Series, TMDB_ID));
     const file = await orm.em.fork().findOne(MediaFile, { path: external });
 
     await selectFile(3, file.id);

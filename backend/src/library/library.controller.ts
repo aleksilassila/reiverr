@@ -26,6 +26,7 @@ import {
   StorageUsageDto,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
+import { PlaybackService } from './playback.service.js';
 import { StatusService } from './status.service.js';
 import { StorageService } from './storage.service.js';
 
@@ -35,6 +36,7 @@ import { StorageService } from './storage.service.js';
 export class LibraryController {
   constructor(
     private readonly libraryService: LibraryService,
+    private readonly playbackService: PlaybackService,
     private readonly statusService: StatusService,
     private readonly storageService: StorageService,
   ) {}
@@ -88,7 +90,7 @@ export class LibraryController {
   @Get('movies/:tmdbId')
   @ApiOkResponse({ type: [LibraryFileDto] })
   getMovieFiles(@Param('tmdbId') tmdbId: string): Promise<LibraryFileDto[]> {
-    return this.libraryService.listMovieFiles(tmdbId);
+    return this.playbackService.listMovieFiles(tmdbId);
   }
 
   @Get('series/:tmdbId')
@@ -96,7 +98,7 @@ export class LibraryController {
   getSeriesFiles(
     @Param('tmdbId') tmdbId: string,
   ): Promise<LibraryEpisodeFileDto[]> {
-    return this.libraryService.listSeriesFiles(tmdbId);
+    return this.playbackService.listSeriesFiles(tmdbId);
   }
 
   @Get('series/:tmdbId/status')
@@ -119,7 +121,7 @@ export class LibraryController {
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<LibraryEpisodeFileDto[]> {
-    return this.libraryService.listEpisodeFiles(tmdbId, season, episode);
+    return this.playbackService.listEpisodeFiles(tmdbId, season, episode);
   }
 
   @Get('files/:id/subtitles/:fileName')
@@ -133,7 +135,7 @@ export class LibraryController {
   ) {
     res
       .type('text/vtt')
-      .send(await this.libraryService.readSubtitles(id, fileName));
+      .send(await this.playbackService.readSubtitles(id, fileName));
   }
 
   @Get('files/:id/stream')
@@ -142,7 +144,7 @@ export class LibraryController {
       'The video file. Supports range requests; pass the token as the reiverr_token query parameter.',
   })
   async streamFile(@Param('id') id: string, @Res() res: Response) {
-    const filePath = await this.libraryService.getStreamPath(id);
+    const filePath = await this.playbackService.getStreamPath(id);
     res.sendFile(filePath);
   }
 }

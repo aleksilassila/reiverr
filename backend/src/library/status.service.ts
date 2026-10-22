@@ -9,7 +9,6 @@ import {
   TorrentWithItemsDto,
 } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
-import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestSource, sourceOf } from '../requests/request-source.js';
 import { MediaRequest } from '../requests/request.entity.js';
@@ -25,8 +24,10 @@ import {
   SeriesStatusDto,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
+import { coversEpisode } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
+import { ScanService } from './scan.service.js';
 import {
   Candidate,
   expectedBytes,
@@ -38,9 +39,6 @@ import * as path from 'node:path';
 
 const READ = { disableIdentityMap: true };
 
-// How soon a series that is looked at is scanned
-const SCAN_DELAY = 30_000;
-
 const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
 
 /** Where the request of a user stands, as the request page shows it */
@@ -51,11 +49,11 @@ type Standing = Pick<EpisodeStatusDto, 'status' | 'progress' | 'error'>;
 export class StatusService {
   constructor(
     private readonly em: EntityManager,
-    private readonly jobs: JobsService,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
     private readonly metadataService: MetadataService,
     private readonly libraryService: LibraryService,
+    private readonly scanService: ScanService,
     private readonly storage: StorageService,
   ) {}
 
@@ -131,12 +129,7 @@ export class StatusService {
     );
 
     // The index of the series is brought in line with the disk soon
-    await this.jobs.enqueue(
-      em,
-      'library.scanTitle',
-      { mediaType: MediaType.Series, tmdbId },
-      { runAt: new Date(Date.now() + SCAN_DELAY) },
-    );
+    await this.scanService.requestScan(MediaType.Series, tmdbId);
     const { cleanup } = await this.libraryService.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
 
@@ -160,12 +153,7 @@ export class StatusService {
     };
     const filesById = new Map(files.map((file) => [file.id, file]));
     const filesOf = (e: EpisodeRefDto) =>
-      files.filter(
-        (file) =>
-          file.season === e.season &&
-          file.episode <= e.episode &&
-          e.episode <= file.lastEpisode,
-      );
+      files.filter((file) => coversEpisode(file, { tmdbId, ...e }));
     const isCleanedUp = (e: EpisodeRefDto) => {
       const ofEpisode = filesOf(e);
 

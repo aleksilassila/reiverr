@@ -7,11 +7,13 @@ import {
   TMDB_ID,
 } from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
-import { LibraryService } from './library.service.js';
+import { PlaybackService } from './playback.service.js';
+import { ScanService } from './scan.service.js';
 
 describe('ImportService', () => {
   let fixture: LibraryFixture;
-  let library: LibraryService;
+  let scan: ScanService;
+  let playback: PlaybackService;
   let folder: string;
   let request: LibraryFixture['request'];
   let write: LibraryFixture['write'];
@@ -22,7 +24,8 @@ describe('ImportService', () => {
   beforeEach(async () => {
     fixture = await createLibraryFixture();
     ({
-      libraryService: library,
+      scan,
+      playback,
       library: folder,
       request,
       write,
@@ -46,8 +49,8 @@ describe('ImportService', () => {
     expect(statSync(destination).ino).toBe(statSync(source).ino);
 
     // The file found next to it stays as it is, and both play as the episode
-    await request(() => library.scanTitle(MediaType.Series, TMDB_ID));
-    const files = await request(() => library.listEpisodeFiles(TMDB_ID, 1, 2));
+    await request(() => scan.scanTitle(MediaType.Series, TMDB_ID));
+    const files = await request(() => playback.listEpisodeFiles(TMDB_ID, 1, 2));
     expect(files.map((file) => file.fileName)).toEqual([
       'Test Show - S01E02 - a1b2c3d4.mkv',
       'Test Show - S01E02.mkv',

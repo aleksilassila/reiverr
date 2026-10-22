@@ -28,6 +28,7 @@ import { DeletionService } from '../src/library/deletion.service.js';
 import { SeriesStatusDto } from '../src/library/library.dto.js';
 import { MediaFile } from '../src/library/media-file.entity.js';
 import { RequestBinding } from '../src/library/request-binding.entity.js';
+import { ScanService } from '../src/library/scan.service.js';
 import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
 import { MediaRequest } from '../src/requests/request.entity.js';
@@ -259,8 +260,9 @@ describe('Series downloads (e2e)', () => {
   // The jobs run where the loop would run them
   const settle = () => app.get(JobsService).drain();
 
-  /** The 04:00 cron, with the cleanup jobs it queues */
+  /** The 04:00 crons, with the scans and the cleanup jobs they queue */
   async function cleanUp() {
+    await app.get(ScanService).scanNightly();
     await app.get(DeletionService).onCleanupHour();
     await app.get(JobsService).drain();
   }
