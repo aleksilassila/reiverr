@@ -63,6 +63,10 @@ function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
 			return `Downloading ${Math.floor((status.progress ?? 0) * 100)}%`;
 		case 'resolving':
 			return 'Starting';
+		case 'over-quota':
+			return 'Over quota';
+		case 'disk-full':
+			return 'Disk full';
 		case 'failed':
 		case 'no-file-in-torrent':
 			return status.error;

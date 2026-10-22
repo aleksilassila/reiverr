@@ -22,6 +22,13 @@ export class RequestBinding {
   @Property({ nullable: true })
   torrentItemId?: string;
 
+  /**
+   * What the download the request waits for is expected to take: what the
+   * request takes of the quota of its user until it has the file
+   */
+  @Property({ type: 'integer', nullable: true })
+  pendingBytes?: number;
+
   @Property({ nullable: true })
   mediaFileId?: string;
 

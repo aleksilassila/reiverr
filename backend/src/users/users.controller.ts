@@ -137,6 +137,16 @@ export class UsersController {
     if ((!callerUser.isAdmin && callerUser.id !== id) || !id) {
       throw new NotFoundException();
     }
+    const { quotaBytes } = updateUserDto;
+    if (
+      quotaBytes !== undefined &&
+      quotaBytes !== null &&
+      !(Number.isInteger(quotaBytes) && quotaBytes >= 0)
+    ) {
+      throw new BadRequestException(
+        'quotaBytes must be null or a whole number of bytes, 0 or more',
+      );
+    }
 
     const updated = await this.usersService
       .update(id, callerUser, updateUserDto)

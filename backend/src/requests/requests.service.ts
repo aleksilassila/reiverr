@@ -35,7 +35,6 @@ import {
 } from './requests.dto.js';
 import {
   fullTypeOf,
-  isNeeded,
   Pair,
   pairOf,
   seriesPair,
@@ -260,24 +259,31 @@ export class RequestsService implements OnApplicationBootstrap {
     };
   }
 
-  /** The ids of every request, and the ones among them that are needed */
-  async findRequestIds(
+  /**
+   * Every request, or those of a user, with the fields that say whether it
+   * is needed, in user, title and episode order: for the library
+   */
+  findRequests(
     em: EntityManager,
-  ): Promise<{ all: Set<string>; needed: Set<string> }> {
-    const requests = await em.find(
+    filter: { userId?: string } = {},
+  ): Promise<
+    Pick<MediaRequest, 'id' | 'userId' | 'approved' | 'neededSince'>[]
+  > {
+    return em.find(
       MediaRequest,
-      {},
+      filter.userId ? { userId: filter.userId } : {},
       {
         ...READ,
-        fields: ['id', 'approved', 'neededSince'],
+        fields: ['id', 'userId', 'approved', 'neededSince'],
+        orderBy: {
+          userId: 'asc',
+          mediaType: 'asc',
+          tmdbId: 'asc',
+          season: 'asc',
+          episode: 'asc',
+        },
       },
     );
-    const needed = requests.filter(isNeeded);
-
-    return {
-      all: new Set(requests.map((request) => request.id)),
-      needed: new Set(needed.map((request) => request.id)),
-    };
   }
 
   /** The releases users picked, with their .torrent files, for the library to hand to downloads */

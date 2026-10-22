@@ -194,6 +194,30 @@ export class MetadataService {
   /**
    * TODO: Use episode entities?
    */
+  /**
+   * How many episodes every season of a series has, as the cache says;
+   * nothing is fetched. Read in the caller's entity manager: inside a
+   * transaction, a read on this service's own would wait on the
+   * transaction and never return
+   */
+  async getEpisodeCounts(
+    em: EntityManager,
+    tmdbId: string,
+  ): Promise<Map<number, number>> {
+    const series = await em.findOne(
+      SeriesMetadata,
+      { tmdbId },
+      { disableIdentityMap: true, fields: ['tmdbSeries'] },
+    );
+
+    return new Map(
+      (series?.tmdbSeries.seasons ?? []).map((season) => [
+        season.season_number,
+        season.episodes?.length ?? 0,
+      ]),
+    );
+  }
+
   async getEpisodeByTmdbId(options: {
     tmdbId: string;
     season: number;

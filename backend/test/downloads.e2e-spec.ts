@@ -1273,6 +1273,123 @@ describe('Series downloads (e2e)', () => {
     expect(existsSync(imported)).toBe(true);
   });
 
+  it('holds back what does not fit the quota of a user or the disk limit, and lets it through when room is made', async () => {
+    await api('post', '/users')
+      .send({ name: 'limited', password: 'password', isAdmin: false })
+      .expect(201);
+    const limited = await signIn('limited');
+    const setQuota = (quotaBytes: unknown, user = admin, status = 200) =>
+      api('put', `/users/${limited.id}`, user)
+        .send({ quotaBytes })
+        .expect(status);
+    const getUsage = () =>
+      api('get', `/library/storage/users/${limited.id}`, limited)
+        .expect(200)
+        .then((res) => res.body);
+    const setLimit = (maxDiskUsagePercent: number | null) =>
+      api('put', '/library/settings')
+        .send({
+          movieFolders: [],
+          seriesFolders: [dirs.library],
+          cleanup: 'daily',
+          maxDiskUsagePercent,
+        })
+        .expect(200);
+    const approveAll = async () => {
+      const pending = await api('get', '/requests?approved=false').expect(200);
+      for (const request of pending.body.items) {
+        await api('put', `/requests/${request.id}`)
+          .send({ approved: true })
+          .expect(200);
+      }
+    };
+
+    // Only admins set quotas, in whole bytes
+    await setQuota(10, limited);
+    await setQuota(-1, admin, 400);
+    await setQuota(1.5, admin, 400);
+    expect((await getUsage()).quotaBytes).toBeNull();
+    await setQuota(100);
+    expect(
+      (await api('get', `/users/${limited.id}`).expect(200)).body.quotaBytes,
+    ).toBe(100);
+
+    // The version of the first episode in the library takes 7 bytes and
+    // fits; a download from the season torrent of 1000 bytes is expected
+    // to take 334, which does not
+    await select('Test.Show.S01.1080p.WEB-GRP', { user: limited });
+    await setRequested([1, 2], true, { user: limited });
+    await approveAll();
+    await settle();
+    expect(statuses(await getStatus(limited))).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'over-quota'],
+    ]);
+    expect(await getUsage()).toEqual({
+      quotaBytes: 100,
+      heldBytes: 7,
+      pendingBytes: 0,
+    });
+
+    // A quota with room has the request looked at again
+    await setQuota(400);
+    await settle();
+    expect(statuses(await getStatus(limited))).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'downloading'],
+    ]);
+    expect(await getUsage()).toEqual({
+      quotaBytes: 400,
+      heldBytes: 7,
+      pendingBytes: 334,
+    });
+    engine.running(PACK).download(1);
+    await settle();
+    expect(await getUsage()).toEqual({
+      quotaBytes: 400,
+      heldBytes: 14,
+      pendingBytes: 0,
+    });
+
+    // At the disk limit nothing more is downloaded, for anyone
+    await setLimit(0);
+    await setRequested([3], true, { user: limited });
+    await approveAll();
+    await settle();
+    expect(statuses(await getStatus(limited))).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'available'],
+      [1, 3, 'disk-full'],
+    ]);
+    const storage = await api('get', '/library/storage').expect(200);
+    expect(storage.body.maxDiskUsagePercent).toBe(0);
+    expect(storage.body.disks).toContainEqual(
+      expect.objectContaining({ path: dirs.library }),
+    );
+    expect(storage.body.users).toContainEqual({
+      userId: limited.id,
+      name: 'limited',
+      quotaBytes: 400,
+      heldBytes: 14,
+      pendingBytes: 0,
+    });
+    await api('get', '/library/storage', limited).expect(403);
+    await api('get', `/library/storage/users/${limited.id}`, viewer).expect(
+      401,
+    );
+
+    await setLimit(null);
+    await settle();
+    expect(statuses(await getStatus(limited))).toEqual([
+      [1, 1, 'available'],
+      [1, 2, 'available'],
+      [1, 3, 'downloading'],
+    ]);
+
+    await setRequested([1, 2, 3], false, { user: limited });
+    await settle();
+  });
+
   it('lists the torrents for admins', async () => {
     await api('get', '/downloads/torrents', viewer).expect(403);
     const { body } = await api('get', '/downloads/torrents').expect(200);

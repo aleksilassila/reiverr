@@ -25,6 +25,7 @@ export class UpdateUserDto extends PartialType(
     'name',
     'password',
     'isAdmin',
+    'quotaBytes',
   ] as const),
 ) {
   @ApiProperty({ type: 'string', required: false })

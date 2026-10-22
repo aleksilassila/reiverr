@@ -505,6 +505,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
           `Deleted the downloaded data of "${torrent.title}"`,
           { directory, infoHash },
         );
+        // The library may wait for room on the disk
+        await this.jobs.enqueue(tx, 'library.sweepRequests', {});
       }
       await tx.nativeUpdate(
         Torrent,

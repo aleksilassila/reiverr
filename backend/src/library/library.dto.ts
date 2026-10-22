@@ -25,6 +25,14 @@ export class LibrarySettingsDto {
       'When the managed files that no request holds are deleted: at 4 in the morning every day, on Mondays or on the first of the month',
   })
   cleanup: CleanupSchedule;
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description:
+      'The share of a disk, in percent, at which nothing more is downloaded for anyone, measured over the download directory and the library folders. Null for no limit',
+  })
+  maxDiskUsagePercent: number | null;
 }
 
 export class SubtitleFileDto {
@@ -245,6 +253,10 @@ export enum EpisodeDownloadStatus {
   NoPreference = 'no-preference',
   /** The library is looking at the request, or the files of its torrent are not known yet */
   Resolving = 'resolving',
+  /** The file or the download the request is to get does not fit the quota of the user; it is looked at again when room is made */
+  OverQuota = 'over-quota',
+  /** A disk is at the limit of the library settings, so nothing more is downloaded for anyone */
+  DiskFull = 'disk-full',
   NoFileInTorrent = 'no-file-in-torrent',
   Downloading = 'downloading',
   Failed = 'failed',
@@ -313,4 +325,64 @@ export class SeriesStatusDto {
       'Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from',
   })
   onServer: string[];
+}
+
+export class StorageUsageDto {
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description: 'Bytes; null for no quota',
+  })
+  quotaBytes: number | null;
+
+  @ApiProperty({
+    description: 'Bytes of the files that the requests of the user hold',
+  })
+  heldBytes: number;
+
+  @ApiProperty({
+    description:
+      'Bytes that the downloads the requests of the user wait for are expected to take',
+  })
+  pendingBytes: number;
+}
+
+export class UserStorageDto extends StorageUsageDto {
+  @ApiProperty()
+  userId: string;
+
+  @ApiProperty()
+  name: string;
+}
+
+export class DiskUsageDto {
+  @ApiProperty({ description: 'The download directory or a library folder' })
+  path: string;
+
+  @ApiProperty()
+  totalBytes: number;
+
+  @ApiProperty({ description: 'Bytes available to the server' })
+  freeBytes: number;
+
+  @ApiProperty({ description: 'From 0 to 100' })
+  usedPercent: number;
+}
+
+export class StorageDto {
+  @ApiProperty({
+    type: [DiskUsageDto],
+    description: 'The disks the files go to, as far as they can be measured',
+  })
+  disks: DiskUsageDto[];
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description: 'The disk limit of the library settings',
+  })
+  maxDiskUsagePercent: number | null;
+
+  @ApiProperty({ type: [UserStorageDto] })
+  users: UserStorageDto[];
 }

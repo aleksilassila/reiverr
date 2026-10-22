@@ -89,6 +89,7 @@ export async function createLibraryFixture() {
       movieFolders: [],
       seriesFolders: [library],
       cleanup: CleanupSchedule.Daily,
+      maxDiskUsagePercent: null,
     }),
   );
 

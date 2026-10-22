@@ -4,7 +4,7 @@ This file contains an overview of the most important parts of the backend archit
 
 ## Request, library and downloads modules
 
-These modules drive the requests, files management and downloads. Requests don't know of downloads or the library, and are only responsible for reacting to users requests and watch status changes, managing which requests are active, and notifying the library of changes. Library matches requests to files on disk, or tells downloads module if a file is missing. It also takes care of disk cleanup and housekeeping.
+These modules drive the requests, files management and downloads. Requests don't know of downloads or the library, and are only responsible for reacting to users requests and watch status changes, managing which requests are active, and notifying the library of changes. Library matches requests to files on disk, or tells downloads module if a file is missing, as far as the quota of the user and the disk limit allow. It also takes care of disk cleanup and housekeeping.
 
 ```mermaid
 flowchart LR
@@ -21,6 +21,7 @@ flowchart LR
     LS["LibraryService"]
     DEL["DeletionService"]
     STS["StatusService"]
+    STO["StorageService"]
     RB[("request_binding")]
     MF[("media_file")]
   end
@@ -35,7 +36,7 @@ flowchart LR
   RS -.->|"library.reconcileRequest<br/>{requestId}"| FS
   FS -->|"readRequest<br/>findSelectedReleases<br/>deleteRequests"| RS
   FS -->|"ensureTorrent<br/>requestItem<br/>releaseItem"| DS
-  DS -.->|"library.importItem<br/>{infoHash, itemId}"| FS
+  DS -.->|"library.importItem<br/>{infoHash, itemId}<br/>library.sweepRequests"| FS
 ```
 
 ## Request creation to fulfillment overview
@@ -54,6 +55,7 @@ sequenceDiagram
   Requests->>Requests: resolves the release into selected_release, applies the rules, the request is needed
   Requests-->>Library: library.reconcileRequest {requestId}
   Library->>Requests: readRequest, findSelectedReleases
+  Library->>Library: the expected size of the download fits the quota of the user, and no disk is at the limit
   Library->>Downloads: ensureTorrent, requestItem
   Library->>Library: binds the request to the item
   Downloads-->>Downloads: downloads.reconcileTorrent {infoHash}
@@ -74,7 +76,7 @@ sequenceDiagram
 
 ## The request lifecycle
 
-The life of a request row, from a user's wish to its deletion: a request is inactive until it's approved and passes gates, such as user has picked a source and the episode is needed.
+The life of a request row, from a user's wish to its deletion: a request is inactive until it's approved and passes gates, such as user has picked a source and the episode is needed. An active request gets what it wants when it fits the quota of its user, and a download only while no disk is at the limit; else it is held back, which is to say bound to nothing, until the sweep has it looked at again once room may have been made.
 
 ```mermaid
 stateDiagram-v2
@@ -96,16 +98,19 @@ stateDiagram-v2
 
     state Active {
       state "No file in torrent" as nofile
+      state "Held back (over quota, disk full)" as heldback
 
       [*] --> Resolving
       Resolving --> Downloading: the torrent has a file for the episode
       Resolving --> nofile: the torrent has no file for it
       Resolving --> Failed: the torrent failed, or the preferred file is not in the library
       Resolving --> Available: its file is in the library already
+      Resolving --> heldback: what it is to get does not fit the quota of the user, or it is a download and a disk is at the limit
+      heldback --> Resolving: room may have been made, so the sweep has it looked at again
       Downloading --> Available: imported into the library
       nofile --> Resolving: another release is picked
       Failed --> Resolving: the release is picked again, or another one
-      Available --> Resolving: its file is forgotten by a scan (deleted externally)
+      Available --> Resolving: its file is forgotten by a scan (deleted externally), or another file or torrent is picked for the episode itself
     }
   }
 
@@ -154,7 +159,7 @@ stateDiagram-v2
     state "Held by a request" as held
     state "Unretained" as unretained
     unretained --> held: a request is bound to it, as the version of its torrent, as a preferred file, or from the server page
-    held --> unretained: the last request that had it is deleted
+    held --> unretained: the last request that had it is deleted, or lets go of it for another source
   }
 
   [*] --> external: a scan finds a video file in a library folder

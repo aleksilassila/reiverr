@@ -166,6 +166,7 @@ describe('LibraryService', () => {
             movieFolders: [],
             seriesFolders: [other],
             cleanup: CleanupSchedule.Daily,
+            maxDiskUsagePercent: null,
           },
           { forgetFiles },
         ),

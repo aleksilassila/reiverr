@@ -171,6 +171,11 @@ export class DeletionService implements OnModuleInit {
       }
     }
 
+    // The room the entries took is free
+    if (result.deleted) {
+      await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
+    }
+
     return result;
   }
 
@@ -318,6 +323,10 @@ export class DeletionService implements OnModuleInit {
       );
     }
 
+    // The room the files took is free
+    if (unheld.length > failed) {
+      await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
+    }
     if (failed) {
       throw new Error(`${failed} of ${unheld.length} files were not deleted`);
     }

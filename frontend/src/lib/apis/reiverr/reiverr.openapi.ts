@@ -51,6 +51,8 @@ export interface UserDto {
   name: string;
   isAdmin: boolean;
   onboardingDone?: boolean;
+  /** Bytes; null for no quota */
+  quotaBytes: number | null;
   settings: UserSettingsDto;
   profilePicture: string;
 }
@@ -73,6 +75,8 @@ export interface UpdateUserDto {
   password?: string;
   isAdmin?: boolean;
   onboardingDone?: boolean;
+  /** Bytes; null for no quota */
+  quotaBytes?: number | null;
   settings?: UserSettingsDto;
   profilePicture?: string;
   oldPassword?: string;
@@ -1365,6 +1369,46 @@ export interface LibrarySettingsDto {
   seriesFolders: string[];
   /** When the managed files that no request holds are deleted: at 4 in the morning every day, on Mondays or on the first of the month */
   cleanup: "off" | "daily" | "weekly" | "monthly";
+  /** The share of a disk, in percent, at which nothing more is downloaded for anyone, measured over the download directory and the library folders. Null for no limit */
+  maxDiskUsagePercent: number | null;
+}
+
+export interface DiskUsageDto {
+  /** The download directory or a library folder */
+  path: string;
+  totalBytes: number;
+  /** Bytes available to the server */
+  freeBytes: number;
+  /** From 0 to 100 */
+  usedPercent: number;
+}
+
+export interface UserStorageDto {
+  /** Bytes; null for no quota */
+  quotaBytes: number | null;
+  /** Bytes of the files that the requests of the user hold */
+  heldBytes: number;
+  /** Bytes that the downloads the requests of the user wait for are expected to take */
+  pendingBytes: number;
+  userId: string;
+  name: string;
+}
+
+export interface StorageDto {
+  /** The disks the files go to, as far as they can be measured */
+  disks: DiskUsageDto[];
+  /** The disk limit of the library settings */
+  maxDiskUsagePercent: number | null;
+  users: UserStorageDto[];
+}
+
+export interface StorageUsageDto {
+  /** Bytes; null for no quota */
+  quotaBytes: number | null;
+  /** Bytes of the files that the requests of the user hold */
+  heldBytes: number;
+  /** Bytes that the downloads the requests of the user wait for are expected to take */
+  pendingBytes: number;
 }
 
 export interface SubtitleFileDto {
@@ -1459,6 +1503,8 @@ export interface EpisodeStatusDto {
     | "inactive-ahead"
     | "no-preference"
     | "resolving"
+    | "over-quota"
+    | "disk-full"
     | "no-file-in-torrent"
     | "downloading"
     | "failed"
@@ -2624,6 +2670,36 @@ export class Api<
         query: query,
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetStorage
+     * @request GET:/api/library/storage
+     */
+    getStorage: (params: RequestParams = {}) =>
+      this.request<StorageDto, any>({
+        path: `/api/library/storage`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetUserStorage
+     * @request GET:/api/library/storage/users/{userId}
+     */
+    getUserStorage: (userId: string, params: RequestParams = {}) =>
+      this.request<StorageUsageDto, any>({
+        path: `/api/library/storage/users/${userId}`,
+        method: "GET",
         format: "json",
         ...params,
       }),

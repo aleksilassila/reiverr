@@ -130,6 +130,18 @@ export class User {
   @Property({ default: false })
   onboardingDone: boolean = false;
 
+  /**
+   * The most that the files the requests of the user hold, and the
+   * downloads they wait for, may take. Set by admins; null is no quota.
+   */
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description: 'Bytes; null for no quota',
+  })
+  @Property({ type: 'integer', nullable: true })
+  quotaBytes: number | null = null;
+
   /** @deprecated Use UserSettingsService to manage user settings instead */
   @ApiProperty({ required: true, type: UserSettingsDto })
   @Property({ type: 'json' })

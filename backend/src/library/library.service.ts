@@ -50,6 +50,7 @@ const DEFAULT_SETTINGS: LibrarySettingsDto = {
   movieFolders: [],
   seriesFolders: [],
   cleanup: CleanupSchedule.Daily,
+  maxDiskUsagePercent: null,
 };
 
 // Title folder -> season folder -> file is the deepest layout Radarr and Sonarr produce
@@ -131,9 +132,9 @@ export class LibraryService implements OnModuleInit {
   }
 
   /**
-   * Sets the library folders and the cleanup schedule. Removing a folder
-   * that has indexed files in it forgets them, and their requests download
-   * them again, so it takes `forgetFiles`.
+   * Sets the library folders, the cleanup schedule and the disk limit.
+   * Removing a folder that has indexed files in it forgets them, and their
+   * requests download them again, so it takes `forgetFiles`.
    */
   async updateSettings(
     settings: LibrarySettingsDto,
@@ -144,10 +145,24 @@ export class LibraryService implements OnModuleInit {
         `cleanup must be one of ${Object.values(CleanupSchedule).join(', ')}`,
       );
     }
+    const maxDiskUsagePercent = settings.maxDiskUsagePercent ?? null;
+    if (
+      maxDiskUsagePercent !== null &&
+      !(
+        typeof maxDiskUsagePercent === 'number' &&
+        maxDiskUsagePercent >= 0 &&
+        maxDiskUsagePercent <= 100
+      )
+    ) {
+      throw new BadRequestException(
+        'maxDiskUsagePercent must be null or a number from 0 to 100',
+      );
+    }
     const value: LibrarySettingsDto = {
       movieFolders: await this.validateFolders(settings.movieFolders),
       seriesFolders: await this.validateFolders(settings.seriesFolders),
       cleanup: settings.cleanup,
+      maxDiskUsagePercent,
     };
 
     const current = await this.getSettings();
@@ -180,6 +195,10 @@ export class LibraryService implements OnModuleInit {
     const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
     // Imports that wait for a folder that was missing or unreadable
     await this.jobs.runNow(this.em, 'library.importItem');
+    // Requests held back by the limit may fit the new one
+    if (current.maxDiskUsagePercent !== maxDiskUsagePercent) {
+      await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
+    }
 
     return saved;
   }
@@ -880,6 +899,8 @@ export class LibraryService implements OnModuleInit {
     for (const { requestId } of bindings) {
       await this.jobs.enqueue(em, 'library.reconcileRequest', { requestId });
     }
+    // The room the files took is free
+    await this.jobs.enqueue(em, 'library.sweepRequests', {});
   }
 
   /**

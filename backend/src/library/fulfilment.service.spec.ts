@@ -27,6 +27,7 @@ import { RequestsService } from '../requests/requests.service.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { User } from '../users/user.entity.js';
+import { UsersService } from '../users/users.service.js';
 import { DeletionService } from './deletion.service.js';
 import { FulfilmentService } from './fulfilment.service.js';
 import { ImportService } from './import.service.js';
@@ -35,6 +36,7 @@ import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { StatusService } from './status.service.js';
+import { StorageService } from './storage.service.js';
 
 // The downloads directory is read from the environment when the app is imported
 const dirs = await vi.hoisted(async () => {
@@ -148,6 +150,9 @@ async function createHub() {
           }
         : undefined,
     getMovieByTmdbId: async () => undefined,
+    // The three episodes of the document above
+    getEpisodeCounts: async (_em: unknown, tmdbId: string) =>
+      tmdbId === TMDB_ID ? new Map([[1, 3]]) : new Map(),
   };
   const tmdb = {
     searchTitles: async () => [],
@@ -176,6 +181,12 @@ async function createHub() {
     indexers as unknown as IndexersService,
     jobs,
   );
+  const users = new UsersService(
+    orm.em.getRepository(User),
+    orm.em,
+    requests,
+    jobs,
+  );
   const engine = new FakeEngine();
   const runtime = new TorrentRuntime(orm.em, jobs, settings, engine);
   const downloads = new DownloadsService(
@@ -192,19 +203,24 @@ async function createHub() {
     requests,
     serverLog,
   );
+  const storage = new StorageService(orm.em, requests, users, libraryService);
   const fulfilment = new FulfilmentService(
     orm.em,
     jobs,
     requests,
     downloads,
+    metadata as unknown as MetadataService,
     importService,
+    storage,
   );
   const status = new StatusService(
     orm.em,
     jobs,
     requests,
     downloads,
+    metadata as unknown as MetadataService,
     libraryService,
+    storage,
   );
   for (const service of [libraryService, downloads, deletion, fulfilment]) {
     service.onModuleInit();
@@ -215,9 +231,9 @@ async function createHub() {
       movieFolders: [],
       seriesFolders: [dirs.library],
       cleanup: CleanupSchedule.Daily,
+      maxDiskUsagePercent: null,
     }),
   );
-
   const user = new User();
   user.name = 'user';
   user.password = '';
@@ -239,6 +255,7 @@ async function createHub() {
     deletion,
     fulfilment,
     status,
+    storage,
     userId: user.id,
     otherId: other.id,
   };
@@ -330,6 +347,10 @@ describe('FulfilmentService', () => {
     orm.em.fork().find(TorrentItem, {}, { orderBy: { episode: 'asc' } });
   const queued = (type: string) =>
     orm.em.fork().find(Job, { type, status: JobStatus.Queued });
+  const setQuota = (quotaBytes: number | null, user = userId) =>
+    orm.em.fork().nativeUpdate(User, { id: user }, { quotaBytes });
+  const usage = async (user = userId) =>
+    (await hub.storage.gateOf(orm.em.fork(), user, { diskFull: false })).usage;
 
   beforeEach(async () => {
     hub = await createHub();
@@ -639,5 +660,141 @@ describe('FulfilmentService', () => {
     expect(
       await orm.em.fork().count(RequestBinding, { requestId: 'gone' }),
     ).toBe(0);
+  });
+
+  it('holds back a download that does not fit the quota of the user, and lets it through when room is made', async () => {
+    // Each of the three episodes of the 200 byte season torrent is expected
+    // to take 67; the second does not fit beside the first
+    await setQuota(100);
+    await setRequested([1, 2]);
+    await select(0, 'pack');
+    await settle();
+
+    expect(await bindings()).toEqual([
+      [1, 'item:1111', null, null],
+      [2, null, null, null],
+    ]);
+    expect(await statuses()).toEqual([
+      [1, 'downloading', false],
+      [2, 'over-quota', false],
+    ]);
+    expect(await usage()).toEqual({ heldBytes: 0, pendingBytes: 67 });
+    expect(hub.engine.running(PACK).wanted).toEqual([0]);
+
+    // The file settles what the first request takes, which makes room
+    hub.engine.running(PACK).download(0);
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, null, 'file:1111', null],
+      [2, 'item:1111', null, null],
+    ]);
+    expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 67 });
+
+    // A third does not fit; unrequesting the second makes room for it
+    await setRequested([3]);
+    await settle();
+    expect(await statuses()).toEqual([
+      [1, 'available', true],
+      [2, 'downloading', false],
+      [3, 'over-quota', false],
+    ]);
+    await setRequested([2], false);
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, null, 'file:1111', null],
+      [3, 'item:1111', null, null],
+    ]);
+    expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 67 });
+
+    // Nothing is taken back for being over a quota that is lowered
+    await setQuota(1);
+    await hub.fulfilment.sweep();
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, null, 'file:1111', null],
+      [3, 'item:1111', null, null],
+    ]);
+  });
+
+  it('gates a file in the library by its size, and a switch by what it adds', async () => {
+    // Another user downloads the first episode, so the library has a version of it
+    await select(0, 'pack', hub.otherId);
+    await setRequested([1], true, { user: hub.otherId });
+    await settle();
+    hub.engine.running(PACK).download(0);
+    await settle();
+    const [file] = await orm.em.fork().find(MediaFile, {});
+
+    // The version of 7 bytes does not fit a quota of 5
+    await setQuota(5);
+    await select(0, 'pack');
+    await setRequested([1]);
+    await settle();
+    expect(await bindings()).toEqual([[1, null, null, null]]);
+    expect(await statuses()).toEqual([[1, 'over-quota', true]]);
+
+    await setQuota(7);
+    await hub.fulfilment.sweep();
+    await settle();
+    expect(await bindings()).toEqual([[1, null, 'file:1111', null]]);
+    expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 0 });
+
+    // A torrent picked for the episode replaces its file: the download of
+    // 50 bytes does not fit against the 7 the file gives back, so the
+    // request lets go of the file and holds nothing
+    await select(1, 'episode');
+    await settle();
+    expect(await bindings()).toEqual([[1, null, null, null]]);
+    expect(await statuses()).toEqual([[1, 'over-quota', true]]);
+    expect(await hub.fulfilment.countByMediaFile()).toEqual(
+      new Map([[file.id, 1]]),
+    );
+
+    await setQuota(50);
+    await hub.fulfilment.sweep();
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, `item:${EPISODE.slice(0, 4)}`, null, null],
+    ]);
+    expect(await usage()).toEqual({ heldBytes: 0, pendingBytes: 50 });
+  });
+
+  it('holds back downloads while a disk is at the limit, and files in the library not', async () => {
+    const setLimit = (maxDiskUsagePercent: number | null) =>
+      request(() =>
+        hub.libraryService.updateSettings({
+          movieFolders: [],
+          seriesFolders: [dirs.library],
+          cleanup: CleanupSchedule.Daily,
+          maxDiskUsagePercent,
+        }),
+      );
+    // The library has a version of the first episode from the other user
+    await select(0, 'pack', hub.otherId);
+    await setRequested([1], true, { user: hub.otherId });
+    await settle();
+    hub.engine.running(PACK).download(0);
+    await settle();
+
+    await setLimit(0);
+    await setRequested([1, 2]);
+    await select(0, 'pack');
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, null, 'file:1111', null],
+      [2, null, null, null],
+    ]);
+    expect(await statuses()).toEqual([
+      [1, 'available', true],
+      [2, 'disk-full', false],
+    ]);
+
+    // A new limit has the request looked at again
+    await setLimit(100);
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, null, 'file:1111', null],
+      [2, 'item:1111', null, null],
+    ]);
   });
 });

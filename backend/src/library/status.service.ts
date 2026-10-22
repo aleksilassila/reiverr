@@ -10,9 +10,11 @@ import {
 } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
+import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestSource, sourceOf } from '../requests/request-source.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { isNeeded } from '../requests/requests.utils.js';
 import { SelectedRelease } from '../requests/selected-release.entity.js';
 import { getNextCleanup } from './cleanup.utils.js';
 import {
@@ -25,6 +27,13 @@ import {
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
+import {
+  Candidate,
+  expectedBytes,
+  Room,
+  roomFor,
+  StorageService,
+} from './storage.service.js';
 import * as path from 'node:path';
 
 const READ = { disableIdentityMap: true };
@@ -45,7 +54,9 @@ export class StatusService {
     private readonly jobs: JobsService,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
+    private readonly metadataService: MetadataService,
     private readonly libraryService: LibraryService,
+    private readonly storage: StorageService,
   ) {}
 
   async getSeriesStatus(
@@ -129,6 +140,14 @@ export class StatusService {
     const { cleanup } = await this.libraryService.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
 
+    // What holds back a request that is bound to nothing
+    const diskFull = await this.storage.isDiskFull();
+    const gate = await this.storage.gateOf(em, userId, { diskFull });
+    const episodeCounts = await this.metadataService.getEpisodeCounts(
+      em,
+      tmdbId,
+    );
+
     const torrentOf = (
       infoHash: string | undefined,
     ): TorrentDto | undefined => {
@@ -154,6 +173,31 @@ export class StatusService {
         ofEpisode.length > 0 &&
         ofEpisode.every((file) => file.managed && !held.has(file.id))
       );
+    };
+    /** What a request that is bound to nothing is to get, as the fulfilment would find it */
+    const candidateOf = (
+      request: MediaRequest,
+      source: RequestSource,
+    ): Candidate => {
+      if (source.kind === 'file') {
+        return {
+          bytes: filesById.get(source.mediaFileId)?.size ?? 0,
+          download: false,
+        };
+      }
+      const version = filesOf(request).find(
+        (file) => file.infoHash === source.infoHash,
+      );
+      if (version) return { bytes: version.size, download: false };
+
+      return {
+        bytes: expectedBytes(
+          torrentOf(source.infoHash)?.size ?? 0,
+          source.forEpisode,
+          episodeCounts.get(request.season),
+        ),
+        download: true,
+      };
     };
 
     const onDisk = new Map<string, EpisodeRefDto>();
@@ -209,13 +253,18 @@ export class StatusService {
           const source =
             request && sourceOf(rule, request.season, request.episode);
           const torrent = torrentOf(item?.infoHash ?? file?.infoHash);
+          const room =
+            request && source && isNeeded(request) && !binding
+              ? roomFor(gate, candidateOf(request, source))
+              : undefined;
 
           return {
             season: episode.season,
             episode: episode.episode,
             requested: !!request,
             onDisk: onDisk.has(episodeKey(episode)),
-            ...(request && standingOf(request, source, binding, item, file)),
+            ...(request &&
+              standingOf(request, source, binding, item, file, room)),
             torrent,
             cleanupAt: isCleanedUp(episode) ? nextCleanup : undefined,
           };
@@ -233,13 +282,17 @@ export class StatusService {
   }
 }
 
-/** Where the request of a user stands, from what the modules say of it */
+/**
+ * Where the request of a user stands, from what the modules say of it. The
+ * room is what holds back a request that is bound to nothing.
+ */
 function standingOf(
   request: MediaRequest,
   source: RequestSource | undefined,
   binding: RequestBinding | undefined,
   item: TorrentItemDto | undefined,
   file: MediaFile | undefined,
+  room: Room | undefined,
 ): Standing {
   if (!request.approved) {
     return { status: EpisodeDownloadStatus.WaitingForApproval };
@@ -257,7 +310,14 @@ function standingOf(
   if (binding?.error) {
     return { status: EpisodeDownloadStatus.Failed, error: binding.error };
   }
-  if (!item) return { status: EpisodeDownloadStatus.Resolving };
+  if (!item) {
+    if (room === 'over-quota') {
+      return { status: EpisodeDownloadStatus.OverQuota };
+    }
+    if (room === 'disk-full') return { status: EpisodeDownloadStatus.DiskFull };
+
+    return { status: EpisodeDownloadStatus.Resolving };
+  }
 
   switch (item.status) {
     case TorrentItemStatus.Failed:

@@ -10,6 +10,7 @@ import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
+import { MetadataService } from '../metadata/metadata.service.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { isNeeded } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
@@ -17,16 +18,26 @@ import { ImportService } from './import.service.js';
 import { parseEpisodeNumbers } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
+import { expectedBytes, roomFor, StorageService } from './storage.service.js';
 
 const READ = { disableIdentityMap: true };
 
 /** What a binding is to say, in the columns that change */
 interface BindingChange {
   torrentItemId: string | null;
+  /** With an item: what its download is expected to take */
+  pendingBytes?: number | null;
   /** Unchanged when left out */
   mediaFileId?: string | null;
   error: string | null;
 }
+
+/** Bound to nothing, which is no binding at all */
+const NOTHING: BindingChange = {
+  torrentItemId: null,
+  mediaFileId: null,
+  error: null,
+};
 
 /** Whether a file of a series is of the episode of a request */
 const covers = (
@@ -44,10 +55,13 @@ const covers = (
 
 /**
  * Fulfils requests: gives an active request the file it wants from the
- * library, or has downloads get it and imports it when it is complete. The
- * binding of a request is what it waits for or has; the job
- * `library.reconcileRequest` brings it in line with the request, whatever
- * changed, and `library.importItem` puts a complete item into the library.
+ * library, or has downloads get it and imports it when it is complete, as
+ * far as the quota of its user and the disk limit allow. The binding of a
+ * request is what it waits for or has; the job `library.reconcileRequest`
+ * brings it in line with the request, whatever changed, `library.importItem`
+ * puts a complete item into the library, and `library.sweepRequests` has
+ * every active request that is bound to nothing looked at again, which is
+ * how a request that was held back gets what it wants once there is room.
  */
 @Injectable()
 export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
@@ -58,7 +72,9 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     private readonly jobs: JobsService,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
+    private readonly metadataService: MetadataService,
     private readonly importService: ImportService,
+    private readonly storage: StorageService,
   ) {}
 
   onModuleInit() {
@@ -74,22 +90,43 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       maxRetryDelay: 5 * 60 * 1000,
       run: (payload, context) => this.importItem(payload, context),
     });
+    this.jobs.define('library.sweepRequests', {
+      run: (payload, context) => this.sweep(context.em),
+    });
   }
 
   /** A change that was made while the server was down has no job */
   onApplicationBootstrap(): Promise<void> {
-    return this.sweep();
+    return this.sweepLater(this.em.fork());
+  }
+
+  /** Before the rules are applied to everything at 03:50 */
+  @Cron('40 3 * * *')
+  sweepNightly(): Promise<void> {
+    return this.sweepLater(this.em.fork());
   }
 
   /**
-   * Has every request that wants a file and is connected to nothing looked
-   * at, and every binding whose request is gone. Before the rules are
-   * applied to everything at 03:50.
+   * Has the sweep run, in the caller's transaction when it has one. Called
+   * whenever room may have been made: a binding let go of a file or an
+   * item, a file or the data of a torrent was deleted, a quota or the disk
+   * limit was set.
    */
-  @Cron('40 3 * * *')
-  async sweep(): Promise<void> {
-    await this.em.fork().transactional(async (tx) => {
-      const { all, needed } = await this.requestsService.findRequestIds(tx);
+  sweepLater(em: EntityManager): Promise<void> {
+    return this.jobs.enqueue(em, 'library.sweepRequests', {});
+  }
+
+  /**
+   * Has every request that wants a file and is bound to nothing looked at,
+   * in user, title and episode order, and every binding whose request is
+   * gone. A request that was held back by the quota of its user or by the
+   * disk limit is bound to nothing, so this is how it gets what it wants
+   * once there is room.
+   */
+  async sweep(em: EntityManager = this.em.fork()): Promise<void> {
+    await em.transactional(async (tx) => {
+      const requests = await this.requestsService.findRequests(tx);
+      const all = new Set(requests.map((request) => request.id));
       const bindings = await tx.find(RequestBinding, {}, READ);
       const attached = new Set(
         bindings
@@ -98,7 +135,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       );
 
       const toReconcile = new Set([
-        ...[...needed].filter((requestId) => !attached.has(requestId)),
+        ...requests
+          .filter(isNeeded)
+          .map((request) => request.id)
+          .filter((requestId) => !attached.has(requestId)),
         ...bindings
           .map((binding) => binding.requestId)
           .filter((requestId) => !all.has(requestId)),
@@ -129,21 +169,28 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * Brings the binding of a request in line with the request: what its
    * user wants it to have, and whether it is active at all. A request that
    * is gone or not active lets go of the item it waited for; a file it has
-   * stays its own until its source says otherwise.
+   * stays its own until its source says otherwise. What the request keeps
+   * passes no gate; what it is to get, a file in the library or a download,
+   * it gets when it fits the quota of its user, and a download when no disk
+   * is at the limit. Else it lets go of what it had and is bound to
+   * nothing, until the sweep has it looked at again.
    */
   private async reconcileRequest(
     requestId: string,
     context: JobContext,
   ): Promise<void> {
+    // Read and measured outside the transaction: the settings are read
+    // outside it, and the disk is not what the transaction keeps consistent
+    const diskFull = await this.storage.isDiskFull();
+
     await context.em.transactional(async (tx) => {
       const request = await this.requestsService.readRequest(tx, requestId);
       const binding =
         (await tx.findOne(RequestBinding, { requestId }, READ)) ?? undefined;
 
       if (!request) {
-        if (!binding) return;
         await this.releaseItemOf(tx, binding);
-        await tx.nativeDelete(RequestBinding, { requestId });
+        await this.write(tx, requestId, binding, NOTHING);
         return;
       }
 
@@ -157,6 +204,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         });
         return;
       }
+      const gate = await this.storage.gateOf(tx, request.userId, {
+        diskFull,
+        except: request.id,
+      });
 
       if (source.kind === 'file') {
         const file = await tx.findOne(
@@ -164,21 +215,28 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           { id: source.mediaFileId },
           READ,
         );
-        const isOfEpisode = !!file && covers(file, request);
         await this.releaseItemOf(tx, binding);
+        if (!file || !covers(file, request)) {
+          await this.write(tx, requestId, binding, {
+            torrentItemId: null,
+            mediaFileId: null,
+            error: file
+              ? 'The file is not of this episode'
+              : 'The file is not in the library',
+          });
+          return;
+        }
+        const room =
+          binding?.mediaFileId === file.id
+            ? 'ok'
+            : roomFor(gate, { bytes: file.size, download: false });
         await this.write(
           tx,
           requestId,
           binding,
-          isOfEpisode
+          room === 'ok'
             ? { torrentItemId: null, mediaFileId: file.id, error: null }
-            : {
-                torrentItemId: null,
-                mediaFileId: null,
-                error: file
-                  ? 'The file is not of this episode'
-                  : 'The file is not in the library',
-              },
+            : NOTHING,
         );
         return;
       }
@@ -217,11 +275,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       );
       if (version) {
         await this.releaseItemOf(tx, binding);
-        await this.write(tx, requestId, binding, {
-          torrentItemId: null,
-          mediaFileId: version.id,
-          error: null,
-        });
+        const room = roomFor(gate, { bytes: version.size, download: false });
+        await this.write(
+          tx,
+          requestId,
+          binding,
+          room === 'ok'
+            ? { torrentItemId: null, mediaFileId: version.id, error: null }
+            : NOTHING,
+        );
         return;
       }
 
@@ -238,6 +300,33 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         return;
       }
 
+      // The item of its source that it waits for is kept; an item it is to
+      // get is a download, gated by what the download is expected to take
+      const [waited] = binding?.torrentItemId
+        ? await this.downloadsService.findItems(tx, [binding.torrentItemId])
+        : [];
+      const keepsItem =
+        !!waited && waited.torrentHash === infoHash && !waited.releasedAt;
+      let pendingBytes = binding?.pendingBytes ?? null;
+      if (!keepsItem) {
+        const counts = await this.metadataService.getEpisodeCounts(
+          tx,
+          request.tmdbId,
+        );
+        const bytes = expectedBytes(
+          release.size,
+          source.forEpisode,
+          counts.get(request.season),
+        );
+        const room = roomFor(gate, { bytes, download: true });
+        if (room !== 'ok') {
+          await this.releaseItemOf(tx, binding);
+          await this.write(tx, requestId, binding, NOTHING);
+          return;
+        }
+        pendingBytes = bytes;
+      }
+
       await this.downloadsService.ensureTorrent(tx, release);
       const item = await this.downloadsService.requestItem(tx, infoHash, {
         mediaType: MediaType.Series,
@@ -249,6 +338,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       await this.releaseItemOf(tx, binding, item.id);
       await this.write(tx, requestId, binding, {
         torrentItemId: item.id,
+        pendingBytes,
         mediaFileId: null,
         // An import that failed is tried again by the torrent, not here
         error:
@@ -317,12 +407,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         { torrentItemId: itemId },
         {
           torrentItemId: null,
+          pendingBytes: null,
           mediaFileId: imported.id,
           error: null,
           updatedAt: new Date(),
         },
       );
       await this.downloadsService.releaseItem(tx, itemId);
+      // What the requests take is settled, which can be less than expected
+      await this.sweepLater(tx);
     });
   }
 
@@ -342,7 +435,11 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     if (!others) await this.downloadsService.releaseItem(tx, itemId);
   }
 
-  /** Writes what a binding is to say, when that is not what it says */
+  /**
+   * Writes what a binding is to say, when that is not what it says. A
+   * binding that lets go of a file or an item may make room for a request
+   * that was held back, so the sweep runs.
+   */
   private async write(
     tx: EntityManager,
     requestId: string,
@@ -351,6 +448,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   ): Promise<void> {
     const next = {
       torrentItemId: change.torrentItemId,
+      pendingBytes: change.torrentItemId ? (change.pendingBytes ?? null) : null,
       mediaFileId:
         change.mediaFileId === undefined
           ? (current?.mediaFileId ?? null)
@@ -358,6 +456,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       error: change.error,
     };
     const isEmpty = !next.torrentItemId && !next.mediaFileId && !next.error;
+    const letsGo =
+      (!!current?.torrentItemId &&
+        current.torrentItemId !== next.torrentItemId) ||
+      (!!current?.mediaFileId && current.mediaFileId !== next.mediaFileId);
 
     if (!current) {
       if (isEmpty) return;
@@ -370,10 +472,12 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     }
     if (isEmpty) {
       await tx.nativeDelete(RequestBinding, { requestId });
+      if (letsGo) await this.sweepLater(tx);
       return;
     }
     const isSame =
       (current.torrentItemId ?? null) === next.torrentItemId &&
+      (current.pendingBytes ?? null) === next.pendingBytes &&
       (current.mediaFileId ?? null) === next.mediaFileId &&
       (current.error ?? null) === next.error;
     if (isSame) return;
@@ -383,6 +487,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       { requestId },
       { ...next, updatedAt: new Date() },
     );
+    if (letsGo) await this.sweepLater(tx);
   }
 }
 

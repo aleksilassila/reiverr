@@ -1449,6 +1449,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "pending_bytes": {
+          "name": "pending_bytes",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "request_id": {
           "name": "request_id",
           "type": "text",
@@ -2727,6 +2744,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "blob"
+        },
+        "quota_bytes": {
+          "name": "quota_bytes",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
         },
         "settings": {
           "name": "settings",

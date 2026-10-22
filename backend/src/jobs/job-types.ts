@@ -11,12 +11,14 @@ type Title = { mediaType: MediaType; tmdbId: string };
  * The jobs table is also how a module tells another one what happened, in
  * the transaction of the change: requests enqueues `library.reconcileRequest`
  * for every request whose inputs changed, and downloads enqueues
- * `library.importItem` for every item of a torrent that is complete.
+ * `library.importItem` for every item of a torrent that is complete and
+ * `library.sweepRequests` when it deleted the data of a torrent.
  */
 export interface JobPayloads {
   'downloads.reconcileTorrent': { infoHash: string };
   'library.reconcileRequest': { requestId: string };
   'library.importItem': { infoHash: string; itemId: string };
+  'library.sweepRequests': Record<string, never>;
   'library.scanTitle': Title;
   'library.scanFolder': { folder: string };
   'library.cleanUpLibrary': Record<string, never>;
@@ -48,6 +50,12 @@ export const JOB_KEYS: {
   'library.importItem': ({ infoHash, itemId }) => ({
     dedupe: `library.importItem:${itemId}`,
     lock: `torrent:${infoHash}`,
+  }),
+  // Every active request bound to nothing is looked at: at boot, at night,
+  // and whenever room may have been made for one that was held back
+  'library.sweepRequests': () => ({
+    dedupe: 'library.sweepRequests',
+    lock: 'library',
   }),
   'library.scanTitle': ({ mediaType, tmdbId }) => ({
     dedupe: `library.scanTitle:${mediaType}:${tmdbId}`,

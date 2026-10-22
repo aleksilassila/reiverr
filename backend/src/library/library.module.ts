@@ -6,6 +6,7 @@ import { MetadataModule } from '../metadata/metadata.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
 import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
+import { UsersModule } from '../users/users.module.js';
 import { DeletionService } from './deletion.service.js';
 import { FulfilmentService } from './fulfilment.service.js';
 import { ImportService } from './import.service.js';
@@ -14,6 +15,7 @@ import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { StatusService } from './status.service.js';
+import { StorageService } from './storage.service.js';
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { StatusService } from './status.service.js';
     MetadataModule,
     ServerLogModule,
     RequestsModule,
+    UsersModule,
     DownloadsModule,
     JobsModule,
   ],
@@ -30,6 +33,7 @@ import { StatusService } from './status.service.js';
     LibraryService,
     ImportService,
     DeletionService,
+    StorageService,
     FulfilmentService,
     StatusService,
   ],

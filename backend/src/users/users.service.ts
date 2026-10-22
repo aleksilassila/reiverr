@@ -1,6 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
 import { User } from './user.entity.js';
@@ -18,6 +19,7 @@ export class UsersService {
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
+    private readonly jobs: JobsService,
   ) {}
 
   // Finds
@@ -31,6 +33,25 @@ export class UsersService {
 
   async findOneByName(name: string): Promise<User | undefined> {
     return this.userRepository.findOne({ name });
+  }
+
+  /** Every user, or one, with their quota, by name, in the caller's entity manager: what the library's storage goes by */
+  findQuotas(
+    em: EntityManager,
+    filter: { userId?: string } = {},
+  ): Promise<Pick<User, 'id' | 'name' | 'quotaBytes'>[]> {
+    return em.find(User, filter.userId ? { id: filter.userId } : {}, {
+      disableIdentityMap: true,
+      fields: ['id', 'name', 'quotaBytes'],
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /** The quota of a user, in the caller's entity manager: null for no quota */
+  async getQuota(em: EntityManager, userId: string): Promise<number | null> {
+    const [user] = await this.findQuotas(em, { userId });
+
+    return user?.quotaBytes ?? null;
   }
 
   // The rest
@@ -99,7 +120,18 @@ export class UsersService {
     if (updateUserDto.isAdmin !== undefined && callerUser.isAdmin)
       user.isAdmin = updateUserDto.isAdmin;
 
+    // Only admins set quotas
+    const quotaChanged =
+      updateUserDto.quotaBytes !== undefined &&
+      callerUser.isAdmin &&
+      updateUserDto.quotaBytes !== user.quotaBytes;
+    if (quotaChanged) user.quotaBytes = updateUserDto.quotaBytes;
+
     await this.em.flush();
+    // Requests held back by the quota may fit the new one
+    if (quotaChanged) {
+      await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
+    }
 
     return this.findOne(user.id);
   }
