@@ -34,7 +34,12 @@
 
 	const tab = useTabs(Tabs.EditProfile, { remount: false });
 
+	const GIGABYTE = 1024 ** 3;
+	const gigabytesOf = (bytes: number | null | undefined) =>
+		bytes === null || bytes === undefined ? '' : String(bytes / GIGABYTE);
+
 	let name = user?.name || '';
+	let quota = gigabytesOf(user?.quotaBytes);
 	let oldPassword = '';
 	let oldPasswordVisible = false;
 	let newPassword = '';
@@ -90,7 +95,8 @@
 		(name !== user?.name && name !== '') ||
 		oldPassword !== newPassword ||
 		profilePictureBase64 !== user?.profilePicture ||
-		isAdmin !== user?.isAdmin;
+		isAdmin !== user?.isAdmin ||
+		quota !== gigabytesOf(user?.quotaBytes);
 	$: complete = name !== '';
 	let errorMessage = '';
 
@@ -121,7 +127,8 @@
 							password: newPassword,
 							oldPassword,
 							profilePicture: profilePictureBase64,
-							isAdmin
+							isAdmin,
+							quotaBytes: quota === '' ? null : Math.round(Number(quota) * GIGABYTE)
 						})
 						.then(() => undefined)
 						.catch((e: AxiosError<any>) => e.response?.data?.message);
@@ -218,6 +225,11 @@
 					<label>Admin</label>
 					<Toggle bind:checked={isAdmin}>Admin</Toggle>
 				</div>
+			{/if}
+			{#if admin && !createNew}
+				<TextField type="number" bind:value={quota} placeholder="No quota">
+					Storage quota in GB (empty for no quota)
+				</TextField>
 			{/if}
 			{#if errorMessage}
 				<div class="text-red-500 mb-4">{errorMessage}</div>
