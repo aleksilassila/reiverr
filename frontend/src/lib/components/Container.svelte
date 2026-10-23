@@ -140,6 +140,7 @@
 	on:click={handleClick}
 	on:mousemove
 	on:wheel
+	on:scroll
 	on:mouseenter
 	on:mouseleave
 	tabindex={disabled ? -1 : 0}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TitleUsageDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import LazyImg from '$lib/components/LazyImg.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -117,17 +118,25 @@
 		{/if}
 	</div>
 
-	<Container direction="horizontal" class="flex items-center justify-between">
-		<Container direction="horizontal" class="flex space-x-4">
+	<Scrollable class="flex items-center justify-between space-x-4" fadeWidth={3}>
+		<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 			{#each MEDIA_TYPES as option (option.value)}
-				<Pill selected={mediaType === option.value} on:clickOrSelect={() => filter(option.value)}>
+				<Pill
+					selected={mediaType === option.value}
+					on:clickOrSelect={() => filter(option.value)}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					{option.label}
 				</Pill>
 			{/each}
 		</Container>
-		<Container direction="horizontal" class="flex space-x-4">
+		<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 			{#each SORTS as option (option.value)}
-				<Pill selected={sort === option.value} on:clickOrSelect={() => selectSort(option.value)}>
+				<Pill
+					selected={sort === option.value}
+					on:clickOrSelect={() => selectSort(option.value)}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					<span class="flex items-center">
 						{option.label}
 						{#if sort === option.value}
@@ -141,7 +150,7 @@
 				</Pill>
 			{/each}
 		</Container>
-	</Container>
+	</Scrollable>
 
 	{#if $titles.length}
 		<Container

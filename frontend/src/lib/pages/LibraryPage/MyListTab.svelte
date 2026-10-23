@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
+	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
@@ -160,25 +161,31 @@
 
 <Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
 	<div class="h-full flex-1 flex flex-col">
-		<Container class="px-32 flex items-center justify-between" direction="horizontal">
-			<Container direction="horizontal" class="flex space-x-4">
+		<Scrollable class="mx-32 flex items-center justify-between space-x-4" fadeWidth={3}>
+			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 				{#each CATEGORIES as option (option.value)}
-					<Pill selected={$category === option.value} on:clickOrSelect={() => filter(option.value)}>
+					<Pill
+						selected={$category === option.value}
+						on:clickOrSelect={() => filter(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
+					>
 						{option.label}
 					</Pill>
 				{/each}
 				<Pill
 					selected={$libraryViewSettings.separateWatched}
 					on:clickOrSelect={toggleSeparateWatched}
+					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
 					Group Watched
 				</Pill>
 			</Container>
-			<Container direction="horizontal" class="flex space-x-4">
+			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 				{#each SORTS as option (option.value)}
 					<Pill
 						selected={$libraryViewSettings.order === option.value}
 						on:clickOrSelect={() => selectSort(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
 					>
 						<span class="flex items-center">
 							{option.label}
@@ -193,7 +200,7 @@
 					</Pill>
 				{/each}
 			</Container>
-		</Container>
+		</Scrollable>
 		<Container
 			focusOnMount={hasFocus || !didMount}
 			on:mount={(e) => {
