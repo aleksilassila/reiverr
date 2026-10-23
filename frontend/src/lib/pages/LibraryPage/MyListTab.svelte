@@ -1,19 +1,40 @@
 <script lang="ts">
-	import Button from '$lib/components/Button/Button.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
-	import { createModal } from '$lib/components/Modal/modal.store';
-	import TabItem from '$lib/components/Tab/TabItem.svelte';
+	import Pill from '$lib/components/Pill.svelte';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
-	import { libraryContext } from '$lib/stores/data/library-data.store';
+	import {
+		libraryContext,
+		type MyListOrder,
+		type MyListOrderDirection
+	} from '$lib/stores/data/library-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import { MixerHorizontal } from 'radix-icons-svelte';
+	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
-	import MyListOptions from './MyListOptions.svelte';
+
+	type Category = 'series' | 'movies';
+
+	const CATEGORIES: { label: string; value: Category }[] = [
+		{ label: 'Series', value: 'series' },
+		{ label: 'Movies', value: 'movies' }
+	];
+	const SORTS: { label: string; value: MyListOrder }[] = [
+		{ label: 'Last Release', value: 'last-release-date' },
+		{ label: 'First Release', value: 'first-release-date' },
+		{ label: 'Date Added', value: 'date-added' },
+		{ label: 'Name', value: 'name' }
+	];
+	// The direction a sort starts in: newest, A to Z
+	const NATURAL: Record<MyListOrder, MyListOrderDirection> = {
+		'last-release-date': 'desc',
+		'first-release-date': 'desc',
+		'date-added': 'desc',
+		name: 'asc'
+	};
 
 	const { topVisible } = getScrollContext();
 
@@ -22,6 +43,27 @@
 
 	const { category, libraryViewSettings, upcoming, unwatched, watched, unsubscribe } =
 		libraryContext.createContext();
+
+	// Selecting the category that is shown shows both again
+	function filter(selected: Category) {
+		$category = $category === selected ? 'all' : selected;
+	}
+
+	// One sort is always on; selecting it again turns it around
+	function selectSort(order: MyListOrder) {
+		libraryViewSettings.update((settings) =>
+			settings.order === order
+				? { ...settings, direction: settings.direction === 'asc' ? 'desc' : 'asc' }
+				: { ...settings, order, direction: NATURAL[order] }
+		);
+	}
+
+	function toggleSeparateWatched() {
+		libraryViewSettings.update((settings) => ({
+			...settings,
+			separateWatched: !settings.separateWatched
+		}));
+	}
 
 	const { loading: loadingUpcoming, observer: upcomingObserver } = upcoming;
 	const { loading: loadingWatched, observer: watchedObserver } = watched;
@@ -118,25 +160,39 @@
 
 <Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
 	<div class="h-full flex-1 flex flex-col">
-		<Container class="px-32 flex space-x-4 items-center justify-between" direction="horizontal">
-			<Container
-				class="flex space-x-4"
-				direction="horizontal"
-				on:blur={({ detail: selectable }) => {
-					selectable.activateChild($category === 'all' ? 0 : $category === 'series' ? 1 : 2);
-				}}
-			>
-				<TabItem selected={$category === 'all'} on:select={() => ($category = 'all')}>All</TabItem>
-				<TabItem selected={$category === 'series'} on:select={() => ($category = 'series')}>
-					Series
-				</TabItem>
-				<TabItem selected={$category === 'movies'} on:select={() => ($category = 'movies')}>
-					Movies
-				</TabItem>
+		<Container class="px-32 flex items-center justify-between" direction="horizontal">
+			<Container direction="horizontal" class="flex space-x-4">
+				{#each CATEGORIES as option (option.value)}
+					<Pill selected={$category === option.value} on:clickOrSelect={() => filter(option.value)}>
+						{option.label}
+					</Pill>
+				{/each}
+				<Pill
+					selected={$libraryViewSettings.separateWatched}
+					on:clickOrSelect={toggleSeparateWatched}
+				>
+					Group Watched
+				</Pill>
 			</Container>
-			<Button icon={MixerHorizontal} on:clickOrSelect={() => createModal(MyListOptions, {})}>
-				Options
-			</Button>
+			<Container direction="horizontal" class="flex space-x-4">
+				{#each SORTS as option (option.value)}
+					<Pill
+						selected={$libraryViewSettings.order === option.value}
+						on:clickOrSelect={() => selectSort(option.value)}
+					>
+						<span class="flex items-center">
+							{option.label}
+							{#if $libraryViewSettings.order === option.value}
+								<svelte:component
+									this={$libraryViewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
+									size={20}
+									class="ml-2"
+								/>
+							{/if}
+						</span>
+					</Pill>
+				{/each}
+			</Container>
 		</Container>
 		<Container
 			focusOnMount={hasFocus || !didMount}
@@ -201,7 +257,11 @@
 				<Container class="h-ghost m-auto px-32">Loading...</Container>
 			{:else if !$upcoming.length && !$unwatched.length && !$watched.length}
 				<Container focusOnMount class="h-ghost m-auto px-32">
-					Add content to your list to see it here.
+					{#if $category !== 'all'}
+						No {$category} in your list.
+					{:else}
+						Add content to your list to see it here.
+					{/if}
 				</Container>
 			{/if}
 

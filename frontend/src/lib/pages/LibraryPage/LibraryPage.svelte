@@ -25,13 +25,15 @@
 >
 	<Container
 		direction="horizontal"
-		class="flex space-x-8 px-32 mb-4"
+		class="divider-lg pb-4 mx-32 mb-8 flex space-x-8"
 		on:blur={({ detail: selectable }) => {
 			selectable.activateChild($tab);
 		}}
 	>
-		<TabItem class="text-4xl" selected={$tab === 0} on:select={() => tab.set(0)}>My List</TabItem>
-		<TabItem class="text-4xl" disabled>Downloaded</TabItem>
+		<TabItem class="text-4xl tracking-wider" selected={$tab === 0} on:select={() => tab.set(0)}>
+			My List
+		</TabItem>
+		<TabItem class="text-4xl tracking-wider" disabled>Downloaded</TabItem>
 	</Container>
 	<Container focusOnMount class="contents">
 		<TabContainer class="flex-1 flex *:flex-1">
