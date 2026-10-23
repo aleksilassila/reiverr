@@ -5,6 +5,7 @@
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
 	import TabItem from '$lib/components/Tab/TabItem.svelte';
 	import { setScrollContext } from '$lib/stores/scroll.store';
+	import AvailableTab from './AvailableTab.svelte';
 	import MyListTab from './MyListTab.svelte';
 
 	const { registrar: scrollRegistrar } = setScrollContext();
@@ -33,12 +34,17 @@
 		<TabItem class="text-4xl tracking-wider" selected={$tab === 0} on:select={() => tab.set(0)}>
 			My List
 		</TabItem>
-		<TabItem class="text-4xl tracking-wider" disabled>Downloaded</TabItem>
+		<TabItem class="text-4xl tracking-wider" selected={$tab === 1} on:select={() => tab.set(1)}>
+			Available
+		</TabItem>
 	</Container>
 	<Container focusOnMount class="contents">
 		<TabContainer class="flex-1 flex *:flex-1">
 			<Tab class="h-full" tab={0} {...tab}>
 				<MyListTab />
+			</Tab>
+			<Tab class="h-full" tab={1} {...tab}>
+				<AvailableTab />
 			</Tab>
 		</TabContainer>
 	</Container>

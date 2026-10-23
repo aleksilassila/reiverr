@@ -1491,6 +1491,16 @@ export interface TitleUsageDto {
   rule?: RequestRuleDto;
 }
 
+export interface LibraryTitleDto {
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** Whether the user has a request for the title */
+  requested: boolean;
+  /** The play state of the title that the user played last */
+  lastPlayState?: PlayStateDto;
+}
+
 export interface SubtitleFileDto {
   fileName: string;
   /** Language code from the file name */
@@ -2753,6 +2763,42 @@ export class Api<
         any
       >({
         path: `/api/library/storage/users/${userId}/titles`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetTitles
+     * @request GET:/api/library/titles
+     */
+    getTitles: (
+      query?: {
+        mediaType?: "movie" | "series";
+        status?: "requested" | "unrequested";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: LibraryTitleDto[];
+        },
+        any
+      >({
+        path: `/api/library/titles`,
         method: "GET",
         query: query,
         format: "json",

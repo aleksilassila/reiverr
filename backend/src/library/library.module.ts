@@ -6,7 +6,9 @@ import { MetadataModule } from '../metadata/metadata.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
 import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
+import { PlayStatesModule } from '../user-data/play-state/play-states.module.js';
 import { UsersModule } from '../users/users.module.js';
+import { CatalogService } from './catalog.service.js';
 import { DeletionService } from './deletion.service.js';
 import { FulfilmentService } from './fulfilment.service.js';
 import { ImportService } from './import.service.js';
@@ -27,6 +29,7 @@ import { StorageService } from './storage.service.js';
     ServerLogModule,
     RequestsModule,
     UsersModule,
+    PlayStatesModule,
     DownloadsModule,
     JobsModule,
   ],
@@ -40,6 +43,7 @@ import { StorageService } from './storage.service.js';
     StorageService,
     FulfilmentService,
     StatusService,
+    CatalogService,
   ],
   exports: [LibraryService, ScanService, DeletionService, FulfilmentService],
 })

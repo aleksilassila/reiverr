@@ -90,3 +90,72 @@ export const libraryContext = createStoreContext(`library`, () => {
 		}
 	};
 });
+
+export type AvailableOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
+
+/** The titles with files in the library: those the user requested, and the rest */
+export const availableContext = createStoreContext(`library-available`, () => {
+	const category = writable<'all' | 'series' | 'movies'>('all');
+	const viewSettings = createLocalStorageStore<{
+		order: AvailableOrder;
+		direction: MyListOrderDirection;
+		separateRequested: boolean;
+	}>('library-available-view-settings', {
+		order: 'date-added',
+		direction: 'desc',
+		separateRequested: true
+	});
+	const query = () => {
+		const selected = get(category);
+		const settings = get(viewSettings);
+
+		return {
+			mediaType:
+				selected === 'all'
+					? undefined
+					: selected === 'movies'
+						? ('movie' as const)
+						: ('series' as const),
+			order: settings.order,
+			direction: settings.direction
+		};
+	};
+
+	// Grouped, the first list is the requested titles and the second the rest; else the first is every title
+	const requested = usePaginatedData(
+		(page) =>
+			reiverrApi.library
+				.getTitles({
+					...query(),
+					...(get(viewSettings).separateRequested ? { status: 'requested' as const } : {}),
+					page
+				})
+				.then((r) => r.data.items),
+		{ initialize: false }
+	);
+	const unrequested = usePaginatedData(
+		(page) =>
+			get(viewSettings).separateRequested
+				? reiverrApi.library
+						.getTitles({ ...query(), status: 'unrequested', page })
+						.then((r) => r.data.items)
+				: Promise.resolve([]),
+		{ initialize: false }
+	);
+
+	const unsubscribe = betterSubscribe(
+		derived([category, viewSettings], () => {
+			requested.reset();
+			unrequested.reset();
+		}),
+		() => {}
+	);
+
+	return {
+		category,
+		viewSettings,
+		requested,
+		unrequested,
+		unsubscribe
+	};
+});

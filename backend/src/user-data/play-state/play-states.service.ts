@@ -51,6 +51,33 @@ export class PlayStatesService {
     return playStates;
   }
 
+  /**
+   * The play state of each title the user played last, by `<media type>:<TMDB id>`
+   * of the title (the episodes of a series are its play states): for the
+   * library page
+   */
+  async findLastPlayed(
+    userId: string,
+    titles: { mediaType: MediaType; tmdbId: string }[],
+  ): Promise<Map<string, PlayState>> {
+    if (!titles.length) return new Map();
+
+    const playStates = await this.playStateRepository.find(
+      { userId, tmdbId: { $in: titles.map((title) => title.tmdbId) } },
+      { orderBy: { lastPlayedAt: 'asc' } },
+    );
+    const last = new Map<string, PlayState>();
+    for (const playState of playStates) {
+      const mediaType =
+        playState.mediaType === MediaTypeFull.Movie
+          ? MediaType.Movie
+          : MediaType.Series;
+      last.set(`${mediaType}:${playState.tmdbId}`, playState);
+    }
+
+    return last;
+  }
+
   async findEpisodePlayState(
     userId: string,
     tmdbId: string,
