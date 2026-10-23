@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { RequestRuleDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { EpisodeRefDto, RequestRuleDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
@@ -10,8 +10,9 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import { useData } from '$lib/stores/data/data.store';
-	import { useSeriesContext } from '$lib/stores/data/series-data.store';
+	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
@@ -127,6 +128,29 @@
 		});
 	}
 
+	/** What a new request of the episode is expected to take from its source, if it has one */
+	function sourceBytes({ season, episode }: EpisodeRefDto): number {
+		const own = $requests?.preferences.get(episodeKey(season, episode));
+		if (own?.torrent) return own.torrent.size;
+		if (own?.file) return own.file.size ?? 0;
+
+		const pack = $requests?.preferences.get(episodeKey(season, 0))?.torrent;
+		const episodesInSeason = seasons.find((s) => s.season_number === season)?.episodes?.length;
+		return pack ? expectedBytes(pack.size, false, episodesInSeason) : 0;
+	}
+
+	async function request(episodes: EpisodeRefDto[], requested: boolean) {
+		const bytes = !requested
+			? 0
+			: episodes
+					.filter((e) => !$requests?.episodes.get(episodeKey(e.season, e.episode))?.requested)
+					.reduce((sum, e) => sum + sourceBytes(e), 0);
+		if (!(await confirmQuota(bytes))) return;
+
+		await seriesData.setRequested?.(episodes, requested);
+		await storage.update();
+	}
+
 	// Download progress and usage change without the user doing anything
 	const refresh = setInterval(() => {
 		seriesData.requestsData?.update();
@@ -217,15 +241,12 @@
 					{season}
 					requests={$requests}
 					on:request={({ detail }) =>
-						seriesData
-							.setRequested?.(detail.episodes, detail.requested)
-							.then(() => storage.update())
-							.catch((e) =>
-								createErrorNotification(
-									'Could not update the request',
-									e?.response?.data?.message ?? e?.message
-								)
-							)}
+						request(detail.episodes, detail.requested).catch((e) =>
+							createErrorNotification(
+								'Could not update the request',
+								e?.response?.data?.message ?? e?.message
+							)
+						)}
 					on:torrents={({ detail }) =>
 						componentStack.push({ component: TorrentsView, props: { tmdbId, ...detail } })}
 				/>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toGigabytes } from '$lib/utils';
+	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import ProgressBar from './ProgressBar.svelte';
 
@@ -17,8 +17,8 @@
 	<div class="flex justify-between items-baseline mb-2 space-x-4">
 		<div class="uppercase text-secondary-200 font-semibold tracking-wider text-lg">Quota</div>
 		<div class="font-semibold text-lg text-secondary-100 tabular-nums">
-			<span class={over ? 'error' : ''}>{toGigabytes(usedBytes)}</span>
-			<span class="text-secondary-500">/ {toGigabytes(quotaBytes)} GB</span>
+			<span class={over ? 'error' : ''}>{formatSize(usedBytes)}</span>
+			<span class="text-secondary-500">/ {formatSize(quotaBytes)}</span>
 		</div>
 	</div>
 	<ProgressBar {progress} excess={over ? 1 - progress : 0} />

@@ -106,7 +106,11 @@ export function getEpisodeRequestStatus(
 		file: own?.file,
 		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent?.infoHash,
 		label: getStatusLabel(status),
-		isError: status?.status === 'failed' || status?.status === 'no-file-in-torrent'
+		isError:
+			status?.status === 'failed' ||
+			status?.status === 'no-file-in-torrent' ||
+			status?.status === 'over-quota' ||
+			status?.status === 'disk-full'
 	};
 }
 

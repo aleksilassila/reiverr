@@ -29,23 +29,21 @@ export function formatMinutesToTime(minutes: number) {
 	}`;
 }
 
-export function formatSize(size: number) {
-	const gbs = size / 1024 / 1024 / 1024;
-	const mbs = size / 1024 / 1024;
+const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-	if (gbs >= 1) {
-		return `${gbs.toFixed(2)} GB`;
-	} else {
-		return `${mbs.toFixed(2)} MB`;
+/** A size in the largest unit it is at least one of, to one decimal: "512 B", "1.5 GB" */
+export function formatSize(bytes: number) {
+	let value = bytes;
+	let unit = 0;
+	while (value >= 1024 && unit < SIZE_UNITS.length - 1) {
+		value /= 1024;
+		unit++;
 	}
+
+	return `${Number(value.toFixed(1))} ${SIZE_UNITS[unit]}`;
 }
 
 export const GIGABYTE = 1024 ** 3;
-
-/** Gigabytes to one decimal */
-export function toGigabytes(bytes: number) {
-	return Number((bytes / GIGABYTE).toFixed(1));
-}
 
 export function formatThousands(num: number) {
 	if (num > 999) return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');

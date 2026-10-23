@@ -6,6 +6,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
 	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { reiverrApi, user } from '$lib/stores/user.store';
@@ -25,6 +26,7 @@
 	const { background } = backgroundContext.getContext();
 	const seriesData = useSeriesContext(tmdbId).getContext();
 	const requests = seriesData.requestsData?.data ?? readable(undefined);
+	const tmdbSeries = seriesData.seriesData?.data ?? readable(undefined);
 
 	$: selection = $requests?.preferences.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
@@ -92,37 +94,58 @@
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
+	/** The requests that would download from the release: the episode's, or those of the season without a torrent of their own that do not keep their file */
+	$: affected = [...($requests?.episodes.values() ?? [])].filter(
+		(e) =>
+			e.requested &&
+			e.season === season &&
+			(episode === undefined
+				? !$requests?.preferences.has(episodeKey(e.season, e.episode)) && e.status !== 'available'
+				: e.episode === episode)
+	);
+	$: episodesInSeason = $tmdbSeries?.seasons?.find((s) => s.season_number === season)?.episodes
+		?.length;
+
 	async function select(release: ReleaseDto) {
 		error = '';
 
-		await (
-			episode === undefined
+		try {
+			const bytes =
+				affected.length * expectedBytes(release.size, episode !== undefined, episodesInSeason);
+			if (!(await confirmQuota(bytes))) return;
+
+			await (episode === undefined
 				? reiverrApi.requests.setSeasonPreference($user?.id as string, tmdbId, season, {
 						releaseId: release.id
 					})
 				: reiverrApi.requests.setEpisodePreference($user?.id as string, tmdbId, season, episode, {
 						releaseId: release.id
-					})
-		)
-			.then(() => {
-				componentStack.close();
-				seriesData.requestsData?.update();
-			})
-			.catch((e) => (error = errorMessage(e)));
+					}));
+			componentStack.close();
+			seriesData.requestsData?.update();
+		} catch (e) {
+			error = errorMessage(e);
+		}
 	}
 
 	async function selectFile(file: LibraryEpisodeFileDto) {
 		error = '';
 
-		await reiverrApi.requests
-			.setEpisodePreference($user?.id as string, tmdbId, season, episode as number, {
-				mediaFileId: file.id
-			})
-			.then(() => {
-				componentStack.close();
-				seriesData.requestsData?.update();
-			})
-			.catch((e) => (error = errorMessage(e)));
+		try {
+			if (!(await confirmQuota(affected.length * file.size))) return;
+
+			await reiverrApi.requests.setEpisodePreference(
+				$user?.id as string,
+				tmdbId,
+				season,
+				episode as number,
+				{ mediaFileId: file.id }
+			);
+			componentStack.close();
+			seriesData.requestsData?.update();
+		} catch (e) {
+			error = errorMessage(e);
+		}
 	}
 
 	async function clear() {

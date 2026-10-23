@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Container from '../Container.svelte';
 	import Button from '../Button/Button.svelte';
 	import Dialog from './Dialog.svelte';
@@ -10,11 +11,18 @@
 	export let header: string;
 	export let body: string;
 	export let confirm: ActionFn;
+	/** Also runs when the dialog is closed without a choice, by back or the cross */
 	export let cancel: ActionFn = () => {};
 
 	let fetching = false;
+	let chosen = false;
+
+	onDestroy(() => {
+		if (!chosen) cancel();
+	});
 
 	function handleAction(actionFn: ActionFn) {
+		chosen = true;
 		const result = actionFn();
 		if (result) {
 			fetching = true;
