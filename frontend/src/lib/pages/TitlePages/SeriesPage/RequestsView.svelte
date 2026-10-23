@@ -7,6 +7,7 @@
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 	import QuickNav from '$lib/components/QuickNav.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
+	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { useData } from '$lib/stores/data/data.store';
@@ -90,6 +91,11 @@
 	);
 	const ruleData = rule.data;
 
+	const storage = useData(() =>
+		reiverrApi.library.getUserStorage($user?.id as string).then((r) => r.data)
+	);
+	const storageData = storage.data;
+
 	const getLabel = (field: RuleField, rule?: RequestRuleDto) =>
 		field.options.find((option) => option.value === (rule?.[field.key] ?? null))?.label ?? '';
 
@@ -121,8 +127,11 @@
 		});
 	}
 
-	// Download progress changes without the user doing anything
-	const refresh = setInterval(() => seriesData.requestsData?.update(), REFRESH_INTERVAL);
+	// Download progress and usage change without the user doing anything
+	const refresh = setInterval(() => {
+		seriesData.requestsData?.update();
+		storage.update();
+	}, REFRESH_INTERVAL);
 	onDestroy(() => clearInterval(refresh));
 </script>
 
@@ -158,11 +167,22 @@
 	/>
 	<Container class="flex-1 min-h-0 flex flex-col">
 		<div class="mx-32 mt-16">
-			<HeroTitleInfo
-				title="Requests"
-				overview=""
-				properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
-			/>
+			<div class="flex justify-between items-end">
+				<div>
+					<HeroTitleInfo
+						title="Requests"
+						overview=""
+						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
+					/>
+				</div>
+				{#if $storageData && $storageData.quotaBytes !== null}
+					<StorageQuota
+						class="flex-shrink-0 ml-8"
+						quotaBytes={$storageData.quotaBytes}
+						usedBytes={$storageData.heldBytes + $storageData.pendingBytes}
+					/>
+				{/if}
+			</div>
 
 			<Container direction="horizontal" class="flex space-x-4 mt-6">
 				{#each RULE_FIELDS as field (field.key)}
@@ -199,6 +219,7 @@
 					on:request={({ detail }) =>
 						seriesData
 							.setRequested?.(detail.episodes, detail.requested)
+							.then(() => storage.update())
 							.catch((e) =>
 								createErrorNotification(
 									'Could not update the request',

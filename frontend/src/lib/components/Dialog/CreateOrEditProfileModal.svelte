@@ -5,6 +5,7 @@
 	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user as userStore } from '../../stores/user.store';
+	import { GIGABYTE } from '../../utils';
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import IconToggle from '../IconToggle.svelte';
@@ -34,7 +35,6 @@
 
 	const tab = useTabs(Tabs.EditProfile, { remount: false });
 
-	const GIGABYTE = 1024 ** 3;
 	const gigabytesOf = (bytes: number | null | undefined) =>
 		bytes === null || bytes === undefined ? '' : String(bytes / GIGABYTE);
 
@@ -110,6 +110,7 @@
 
 		if (!id) return;
 
+		const quotaBytes = quota === '' ? null : Math.round(Number(quota) * GIGABYTE);
 		const error =
 			id === get(userStore)?.id
 				? await userStore.updateUser((u) => ({
@@ -118,7 +119,8 @@
 						password: newPassword,
 						oldPassword,
 						profilePicture: profilePictureBase64,
-						isAdmin
+						isAdmin,
+						quotaBytes
 						// password: newPassword
 					}))
 				: await reiverrApi.users
@@ -128,7 +130,7 @@
 							oldPassword,
 							profilePicture: profilePictureBase64,
 							isAdmin,
-							quotaBytes: quota === '' ? null : Math.round(Number(quota) * GIGABYTE)
+							quotaBytes
 						})
 						.then(() => undefined)
 						.catch((e: AxiosError<any>) => e.response?.data?.message);
@@ -226,7 +228,7 @@
 					<Toggle bind:checked={isAdmin}>Admin</Toggle>
 				</div>
 			{/if}
-			{#if admin && !createNew}
+			{#if $userStore?.isAdmin && !createNew}
 				<TextField type="number" bind:value={quota} placeholder="No quota">
 					Storage quota in GB (empty for no quota)
 				</TextField>

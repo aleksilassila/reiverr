@@ -23,6 +23,7 @@
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import SelectItem from '$lib/components/SelectItem.svelte';
+	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useTabs } from '$lib/components/Tab/Tab';
 	import Tab from '$lib/components/Tab/Tab.svelte';
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
@@ -30,6 +31,7 @@
 	import TextField from '$lib/components/TextField.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
 	import { scrollIntoView } from '$lib/selectable';
+	import { GIGABYTE } from '$lib/utils';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowRight, Bookmark, ChevronDown, Heart, Plus, Trash } from 'radix-icons-svelte';
 	import RequestRow from '../TitlePages/SeriesPage/RequestRow.svelte';
@@ -460,7 +462,17 @@
 		<div class="space-y-4 max-w-md">
 			<ProgressBar progress={0.3} />
 			<ProgressBar progress={0.75} />
+			<ProgressBar progress={0.8} excess={0.2} />
 			<Marquee class="h3 w-64">A title that is too long to fit and scrolls back and forth</Marquee>
+		</div>
+	</section>
+
+	<section class="space-y-8">
+		<h2 class="h2">Storage quota</h2>
+		<div class="flex space-x-16">
+			<StorageQuota quotaBytes={50 * GIGABYTE} usedBytes={12.5 * GIGABYTE} />
+			<StorageQuota quotaBytes={50 * GIGABYTE} usedBytes={49.2 * GIGABYTE} />
+			<StorageQuota quotaBytes={50 * GIGABYTE} usedBytes={52.3 * GIGABYTE} />
 		</div>
 	</section>
 
@@ -473,7 +485,10 @@
 			/>
 		</div>
 		<div class="relative bg-primary-900/50 px-32 py-16 space-y-8">
-			<h2 class="h2">On the request page background</h2>
+			<div class="flex justify-between items-start">
+				<h2 class="h2">On the request page background</h2>
+				<StorageQuota quotaBytes={50 * GIGABYTE} usedBytes={37.5 * GIGABYTE} />
+			</div>
 			<Container
 				direction="horizontal"
 				class="flex space-x-8"

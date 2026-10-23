@@ -40,6 +40,13 @@ export function formatSize(size: number) {
 	}
 }
 
+export const GIGABYTE = 1024 ** 3;
+
+/** Gigabytes to one decimal */
+export function toGigabytes(bytes: number) {
+	return Number((bytes / GIGABYTE).toFixed(1));
+}
+
 export function formatThousands(num: number) {
 	if (num > 999) return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 	else return num;
