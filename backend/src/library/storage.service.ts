@@ -1,7 +1,15 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { statfs } from 'node:fs/promises';
+import {
+  MediaType,
+  MediaTypeFull,
+  OrderDirection,
+  PaginatedResponseDto,
+  PaginationDto,
+} from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
+import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { UsersService } from '../users/users.service.js';
 import {
@@ -9,6 +17,8 @@ import {
   LibrarySettingsDto,
   StorageDto,
   StorageUsageDto,
+  TitleUsageDto,
+  TitleUsageSort,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
@@ -106,6 +116,7 @@ export class StorageService {
     private readonly requestsService: RequestsService,
     private readonly usersService: UsersService,
     private readonly libraryService: LibraryService,
+    private readonly metadataService: MetadataService,
   ) {}
 
   /**
@@ -260,4 +271,174 @@ export class StorageService {
       ...(usages.get(userId) ?? NO_USAGE),
     };
   }
+
+  /**
+   * The titles a user has requests for, with what the requests take and
+   * the rule of the title: a page, of one type of title or both, by size,
+   * by name or by when they last got a file, in the direction asked for
+   * or the one natural to the sort. Counted as the usage of the user is,
+   * so that the titles add up to it
+   */
+  async describeUserTitles(
+    userId: string,
+    options: {
+      mediaType?: MediaType;
+      sort: TitleUsageSort;
+      direction?: OrderDirection;
+      pagination: PaginationDto;
+    },
+  ): Promise<PaginatedResponseDto<TitleUsageDto>> {
+    const em = this.em.fork();
+    const requests = (
+      await this.requestsService.findRequests(em, { userId })
+    ).filter(
+      (request) =>
+        !options.mediaType || titleTypeOf(request) === options.mediaType,
+    );
+    const bindings = requests.length
+      ? await em.find(
+          RequestBinding,
+          { requestId: { $in: requests.map((request) => request.id) } },
+          READ,
+        )
+      : [];
+    const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
+    const sizeOf = await this.findFileSizes(em, bindings);
+
+    // A binding is written when it gets its file and left alone while it keeps it
+    type Title = Omit<
+      TitleUsageDto,
+      'tmdbItem' | 'rule' | 'lastFulfilledAt'
+    > & {
+      lastFulfilledAt?: Date;
+    };
+    const titles = new Map<string, Title & { bindings: RequestBinding[] }>();
+    for (const request of requests) {
+      const mediaType = titleTypeOf(request);
+      const key = titleKey(mediaType, request.tmdbId);
+      const title = titles.get(key) ?? {
+        mediaType,
+        tmdbId: request.tmdbId,
+        requests: 0,
+        withFile: 0,
+        downloading: 0,
+        heldBytes: 0,
+        pendingBytes: 0,
+        bindings: [],
+      };
+      const binding = bindingOf.get(request.id);
+      title.requests++;
+      if (binding?.mediaFileId) {
+        title.withFile++;
+        if (
+          !title.lastFulfilledAt ||
+          binding.updatedAt > title.lastFulfilledAt
+        ) {
+          title.lastFulfilledAt = binding.updatedAt;
+        }
+      }
+      if (binding?.torrentItemId) title.downloading++;
+      if (binding) title.bindings.push(binding);
+      titles.set(key, title);
+    }
+    const rows: Title[] = [...titles.values()].map(
+      ({ bindings, ...title }) => ({
+        ...title,
+        ...usageOf(bindings, sizeOf),
+      }),
+    );
+    const takes = (row: Title) => row.heldBytes + row.pendingBytes;
+    // The sort's own order, reversed when the other direction is asked for
+    const reversed =
+      !!options.direction && options.direction !== NATURAL[options.sort];
+    const sign = reversed ? -1 : 1;
+
+    if (options.sort === TitleUsageSort.Fulfilled) {
+      const hasFile = (row: Title) => (row.lastFulfilledAt ? 1 : 0);
+      const fulfilledAt = (row: Title) => row.lastFulfilledAt?.getTime() ?? 0;
+      // Titles without a file go last either way
+      rows.sort(
+        (a, b) =>
+          hasFile(b) - hasFile(a) ||
+          sign * (fulfilledAt(b) - fulfilledAt(a)) ||
+          takes(b) - takes(a) ||
+          a.tmdbId.localeCompare(b.tmdbId),
+      );
+    } else if (options.sort === TitleUsageSort.Name) {
+      const names = new Map<string, string>();
+      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
+        const ofType = rows.filter((row) => row.mediaType === mediaType);
+        const found = await this.metadataService.findNames(
+          em,
+          mediaType,
+          ofType.map((row) => row.tmdbId),
+        );
+        for (const [tmdbId, name] of found) {
+          names.set(titleKey(mediaType, tmdbId), name);
+        }
+      }
+      const nameOf = (row: Title) =>
+        names.get(titleKey(row.mediaType, row.tmdbId)) ?? '';
+      rows.sort(
+        (a, b) =>
+          sign * nameOf(a).localeCompare(nameOf(b)) ||
+          a.tmdbId.localeCompare(b.tmdbId),
+      );
+    } else {
+      rows.sort(
+        (a, b) =>
+          sign * (takes(b) - takes(a)) || a.tmdbId.localeCompare(b.tmdbId),
+      );
+    }
+
+    const { page, itemsPerPage } = options.pagination;
+    const ofPage = rows.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const rules = new Map(
+      (await this.requestsService.findRules(em, { userId })).map((rule) => [
+        titleKey(rule.mediaType, rule.tmdbId),
+        rule,
+      ]),
+    );
+    const items: TitleUsageDto[] = [];
+    for (const { lastFulfilledAt, ...row } of ofPage) {
+      const rule = rules.get(titleKey(row.mediaType, row.tmdbId));
+      items.push({
+        ...row,
+        tmdbItem: await this.metadataService.getTmdbItem(
+          row.tmdbId,
+          row.mediaType,
+        ),
+        ...(lastFulfilledAt && {
+          lastFulfilledAt: lastFulfilledAt.toISOString(),
+        }),
+        ...(rule && {
+          rule: {
+            keepNext: rule.keepNext,
+            keepWatched: rule.keepWatched,
+            keepWatchedHours: rule.keepWatchedHours,
+          },
+        }),
+      });
+    }
+
+    return { items, total: rows.length, page, itemsPerPage };
+  }
+}
+
+/** The direction each sort of the titles reads in when none is asked for */
+const NATURAL: Record<TitleUsageSort, OrderDirection> = {
+  [TitleUsageSort.Size]: OrderDirection.Desc,
+  [TitleUsageSort.Name]: OrderDirection.Asc,
+  [TitleUsageSort.Fulfilled]: OrderDirection.Desc,
+};
+
+/** The title of a request: a movie, or the series of an episode */
+function titleTypeOf(request: { mediaType: MediaTypeFull }): MediaType {
+  return request.mediaType === MediaTypeFull.Movie
+    ? MediaType.Movie
+    : MediaType.Series;
+}
+
+function titleKey(mediaType: MediaType, tmdbId: string): string {
+  return `${mediaType}:${tmdbId}`;
 }

@@ -5,6 +5,7 @@
 		Bookmark,
 		CardStack,
 		DotFilled,
+		Download,
 		Gear,
 		Laptop,
 		MagnifyingGlass,
@@ -27,9 +28,10 @@
 		Series: 1,
 		Movies: 2,
 		Library: 3,
-		Search: 4,
-		Server: $user?.isAdmin ? 5 : -1,
-		Manage: $user?.isAdmin ? 6 : 5
+		Requests: 4,
+		Search: 5,
+		Server: $user?.isAdmin ? 6 : -1,
+		Manage: $user?.isAdmin ? 7 : 6
 	};
 
 	const { visibleStyle } = getUiVisibilityContext();
@@ -63,6 +65,7 @@
 				[Tabs.Series]: '/',
 				[Tabs.Movies]: '/movies',
 				[Tabs.Library]: '/library',
+				[Tabs.Requests]: '/requests',
 				[Tabs.Search]: '/search',
 				[Tabs.Server]: '/server',
 				[Tabs.Manage]: '/manage'
@@ -86,6 +89,7 @@
 					'/series': Tabs.Series,
 					'/movies': Tabs.Movies,
 					'/library': Tabs.Library,
+					'/requests': Tabs.Requests,
 					'/search': Tabs.Search,
 					'/server': Tabs.Server,
 					'/manage': Tabs.Manage
@@ -266,6 +270,38 @@
 					)}
 				>
 					Library
+				</span>
+			</div>
+		</Container>
+		<Container
+			class="w-full h-12 cursor-pointer"
+			on:clickOrSelect={selectIndex(Tabs.Requests)}
+			let:hasFocus
+		>
+			<div
+				class={classNames('w-full h-full relative flex items-center justify-center', {
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Requests),
+					'text-stone-300 hover:text-primary-500':
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Requests)
+				})}
+			>
+				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+					<DotFilled
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Requests })}
+						size={19}
+					/>
+				</div>
+				<Download class="w-8 h-8" />
+				<span
+					class={classNames(
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+						{
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					Requests
 				</span>
 			</div>
 		</Container>

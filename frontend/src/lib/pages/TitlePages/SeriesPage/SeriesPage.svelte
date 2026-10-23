@@ -227,9 +227,9 @@
 				</Button>
 
 				{#if !$inLibrary}
-					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to Library</Button>
+					<Button action={() => setInLibrary(true)} icon={Bookmark}>Add to My List</Button>
 				{:else}
-					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from Library</Button>
+					<Button action={() => setInLibrary(false)} icon={Minus}>Remove from My List</Button>
 				{/if}
 
 				{#if trailerId}

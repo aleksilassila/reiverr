@@ -9,7 +9,7 @@
 	class={classNames(
 		'rounded-full px-4 py-1 border-2 cursor-pointer select-none font-semibold text-lg',
 		selected
-			? 'bg-white text-secondary-950 border-white focus:bg-primary-500 focus:border-primary-500'
+			? 'bg-secondary-100 text-secondary-950 border-secondary-100 focus:bg-primary-500 focus:border-primary-500'
 			: 'bg-secondary-800 text-secondary-300 border-transparent focus:border-primary-500 hover:border-primary-500',
 		$$restProps.class
 	)}

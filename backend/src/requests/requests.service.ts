@@ -260,21 +260,32 @@ export class RequestsService implements OnApplicationBootstrap {
   }
 
   /**
-   * Every request, or those of a user, with the fields that say whether it
-   * is needed, in user, title and episode order: for the library
+   * Every request, or those of a user, with its title and the fields that
+   * say whether it is needed, in user, title and episode order: for the
+   * library
    */
   findRequests(
     em: EntityManager,
     filter: { userId?: string } = {},
   ): Promise<
-    Pick<MediaRequest, 'id' | 'userId' | 'approved' | 'neededSince'>[]
+    Pick<
+      MediaRequest,
+      'id' | 'userId' | 'mediaType' | 'tmdbId' | 'approved' | 'neededSince'
+    >[]
   > {
     return em.find(
       MediaRequest,
       filter.userId ? { userId: filter.userId } : {},
       {
         ...READ,
-        fields: ['id', 'userId', 'approved', 'neededSince'],
+        fields: [
+          'id',
+          'userId',
+          'mediaType',
+          'tmdbId',
+          'approved',
+          'neededSince',
+        ],
         orderBy: {
           userId: 'asc',
           mediaType: 'asc',
@@ -284,6 +295,28 @@ export class RequestsService implements OnApplicationBootstrap {
         },
       },
     );
+  }
+
+  /** The limits of the rules of a user, by title: for the library's view of the user's titles */
+  findRules(
+    em: EntityManager,
+    filter: { userId: string },
+  ): Promise<
+    Pick<
+      RequestRule,
+      'mediaType' | 'tmdbId' | 'keepNext' | 'keepWatched' | 'keepWatchedHours'
+    >[]
+  > {
+    return em.find(RequestRule, filter, {
+      ...READ,
+      fields: [
+        'mediaType',
+        'tmdbId',
+        'keepNext',
+        'keepWatched',
+        'keepWatchedHours',
+      ],
+    });
   }
 
   /** The releases users picked, with their .torrent files, for the library to hand to downloads */

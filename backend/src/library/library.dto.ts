@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { EpisodeRefDto } from '../common/common.dto.js';
+import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { TorrentDto } from '../downloads/downloads.dto.js';
+import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
+import { RequestRuleDto } from '../requests/requests.dto.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -385,4 +387,61 @@ export class StorageDto {
 
   @ApiProperty({ type: [UserStorageDto] })
   users: UserStorageDto[];
+}
+
+export enum TitleUsageSort {
+  /** What the requests of the title take, largest first */
+  Size = 'size',
+  Name = 'name',
+  /** When a request of the title last got its file, newest first; titles without a file last */
+  Fulfilled = 'fulfilled',
+}
+
+/** A title a user has requests for, and what they take */
+export class TitleUsageDto {
+  @ApiProperty({ enum: MediaType })
+  mediaType: MediaType;
+
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty({ type: TmdbItemDto })
+  tmdbItem: TmdbItemDto;
+
+  @ApiProperty({ description: 'The requests of the user for the title' })
+  requests: number;
+
+  @ApiProperty({ description: 'Requests that have their file' })
+  withFile: number;
+
+  @ApiProperty({ description: 'Requests that wait for a download' })
+  downloading: number;
+
+  @ApiProperty({
+    description: 'Bytes of the files that the requests hold, each file once',
+  })
+  heldBytes: number;
+
+  @ApiProperty({
+    description:
+      'Bytes that the downloads the requests wait for are expected to take',
+  })
+  pendingBytes: number;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    required: false,
+    description:
+      'When a request of the title last got its file; absent while none has one',
+  })
+  lastFulfilledAt?: string;
+
+  @ApiProperty({
+    type: RequestRuleDto,
+    required: false,
+    description:
+      'The limits of the rule of the title; absent for a movie or without a rule',
+  })
+  rule?: RequestRuleDto;
 }

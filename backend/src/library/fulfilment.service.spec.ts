@@ -209,7 +209,13 @@ async function createHub() {
     requests,
     serverLog,
   );
-  const storage = new StorageService(orm.em, requests, users, libraryService);
+  const storage = new StorageService(
+    orm.em,
+    requests,
+    users,
+    libraryService,
+    metadata as unknown as MetadataService,
+  );
   const fulfilment = new FulfilmentService(
     orm.em,
     jobs,

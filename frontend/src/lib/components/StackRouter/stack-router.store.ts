@@ -15,6 +15,7 @@ import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
+import RequestsPage from '../../pages/RequestsPage/RequestsPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
 import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
@@ -438,6 +439,12 @@ const libraryRoute: Route = {
 	root: true
 };
 
+const requestsRoute: Route = {
+	path: '/requests',
+	component: RequestsPage,
+	root: true
+};
+
 const searchRoute: Route = {
 	path: '/search',
 	component: SearchPage,
@@ -481,6 +488,7 @@ export const stackRouter = useStackRouter({
 		companyRoute,
 		personRoute,
 		libraryRoute,
+		requestsRoute,
 		searchRoute,
 		manageRoute,
 		serverRoute,

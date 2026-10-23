@@ -5,6 +5,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import {
   MediaType,
   MediaTypeFull,
+  OrderDirection,
   PaginatedResponseDto,
   PaginationDto,
 } from '../../common/common.dto.js';
@@ -15,7 +16,6 @@ import {
   MyListOrder,
   MyListStatusFilter,
   MyListTypeFilter,
-  OrderDirection,
 } from './my-list.dto.js';
 import { MyListItem } from './my-list-item.entity.js';
 

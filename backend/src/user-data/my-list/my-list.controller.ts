@@ -18,6 +18,7 @@ import {
 } from '../../common/common.decorator.js';
 import {
   MediaType,
+  OrderDirection,
   PaginatedResponseDto,
   PaginationDto,
   SuccessResponseDto,
@@ -27,7 +28,6 @@ import {
   MyListOrder,
   MyListStatusFilter,
   MyListTypeFilter,
-  OrderDirection,
 } from './my-list.dto.js';
 import { MyListService } from './my-list.service.js';
 

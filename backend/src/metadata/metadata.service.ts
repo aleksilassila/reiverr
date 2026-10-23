@@ -1,6 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable, Logger } from '@nestjs/common';
+import { MediaType } from '../common/common.dto.js';
 import {
   EpisodeMetadata,
   MovieMetadata,
@@ -215,6 +216,31 @@ export class MetadataService {
         season.season_number,
         season.episodes?.length ?? 0,
       ]),
+    );
+  }
+
+  /**
+   * The names of the titles of a type the cache has, by TMDB id; nothing
+   * is fetched. Read in the caller's entity manager
+   */
+  async findNames(
+    em: EntityManager,
+    mediaType: MediaType,
+    tmdbIds: string[],
+  ): Promise<Map<string, string>> {
+    if (!tmdbIds.length) return new Map();
+
+    const options = {
+      disableIdentityMap: true,
+      fields: ['tmdbId', 'name'] as const,
+    };
+    const rows: Pick<MovieMetadata | SeriesMetadata, 'tmdbId' | 'name'>[] =
+      mediaType === MediaType.Movie
+        ? await em.find(MovieMetadata, { tmdbId: { $in: tmdbIds } }, options)
+        : await em.find(SeriesMetadata, { tmdbId: { $in: tmdbIds } }, options);
+
+    return new Map(
+      rows.flatMap((row) => (row.name ? [[row.tmdbId, row.name]] : [])),
     );
   }
 

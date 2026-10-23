@@ -1411,6 +1411,86 @@ export interface StorageUsageDto {
   pendingBytes: number;
 }
 
+export interface SeasonDto {
+  /**
+   * Season air date
+   * @example "2010-12-05"
+   */
+  air_date?: string;
+  /**
+   * Episode count
+   * @example 272
+   */
+  episode_count?: number;
+  /**
+   * Season ID
+   * @example 3627
+   */
+  id?: number;
+  /**
+   * Season name
+   * @example "Specials"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example ""
+   */
+  overview?: string;
+  /**
+   * Poster path
+   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 0
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 0
+   */
+  vote_average?: number;
+}
+
+export interface TmdbItemDto {
+  id?: number;
+  poster_path?: string;
+  vote_average?: number;
+  title?: string;
+  release_date?: string;
+  runtime?: number;
+  name?: string;
+  first_air_date?: string;
+  last_air_date?: string;
+  next_episode_to_air?: NextEpisodeToAir;
+  seasons?: SeasonDto[];
+}
+
+export interface TitleUsageDto {
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** The requests of the user for the title */
+  requests: number;
+  /** Requests that have their file */
+  withFile: number;
+  /** Requests that wait for a download */
+  downloading: number;
+  /** Bytes of the files that the requests hold, each file once */
+  heldBytes: number;
+  /** Bytes that the downloads the requests wait for are expected to take */
+  pendingBytes: number;
+  /**
+   * When a request of the title last got its file; absent while none has one
+   * @format date-time
+   */
+  lastFulfilledAt?: string;
+  /** The limits of the rule of the title; absent for a movie or without a rule */
+  rule?: RequestRuleDto;
+}
+
 export interface SubtitleFileDto {
   fileName: string;
   /** Language code from the file name */
@@ -1758,63 +1838,6 @@ export interface UpdatePlayStateDto {
 
 export interface BulkUpdatePlayStateDto {
   playStates: UpdatePlayStateDto[];
-}
-
-export interface SeasonDto {
-  /**
-   * Season air date
-   * @example "2010-12-05"
-   */
-  air_date?: string;
-  /**
-   * Episode count
-   * @example 272
-   */
-  episode_count?: number;
-  /**
-   * Season ID
-   * @example 3627
-   */
-  id?: number;
-  /**
-   * Season name
-   * @example "Specials"
-   */
-  name?: string;
-  /**
-   * Season overview
-   * @example ""
-   */
-  overview?: string;
-  /**
-   * Poster path
-   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
-   */
-  poster_path?: string;
-  /**
-   * Season number
-   * @example 0
-   */
-  season_number?: number;
-  /**
-   * Vote average
-   * @example 0
-   */
-  vote_average?: number;
-}
-
-export interface TmdbItemDto {
-  id?: number;
-  poster_path?: string;
-  vote_average?: number;
-  title?: string;
-  release_date?: string;
-  runtime?: number;
-  name?: string;
-  first_air_date?: string;
-  last_air_date?: string;
-  next_episode_to_air?: NextEpisodeToAir;
-  seasons?: SeasonDto[];
 }
 
 export interface MyListItemDto {
@@ -2700,6 +2723,38 @@ export class Api<
       this.request<StorageUsageDto, any>({
         path: `/api/library/storage/users/${userId}`,
         method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetUserTitles
+     * @request GET:/api/library/storage/users/{userId}/titles
+     */
+    getUserTitles: (
+      userId: string,
+      query?: {
+        mediaType?: "movie" | "series";
+        sort?: "size" | "name" | "fulfilled";
+        /** Without it, the direction natural to the sort */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: TitleUsageDto[];
+        },
+        any
+      >({
+        path: `/api/library/storage/users/${userId}/titles`,
+        method: "GET",
+        query: query,
         format: "json",
         ...params,
       }),

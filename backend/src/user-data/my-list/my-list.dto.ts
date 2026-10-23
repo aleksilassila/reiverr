@@ -4,11 +4,6 @@ import { MyListItem } from './my-list-item.entity.js';
 import { PlayStateDto } from '../play-state/play-state.dto.js';
 import { PlayState } from '../play-state/play-state.entity.js';
 
-export enum OrderDirection {
-  Asc = 'asc',
-  Desc = 'desc',
-}
-
 export enum MyListOrder {
   DateAdded = 'date-added',
   Name = 'name',

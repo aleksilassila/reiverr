@@ -73,3 +73,8 @@ export enum MediaTypeFull {
   Series = 'series',
   Episode = 'episode',
 }
+
+export enum OrderDirection {
+  Asc = 'asc',
+  Desc = 'desc',
+}
