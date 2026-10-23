@@ -1,7 +1,8 @@
 <script lang="ts">
 	import ListRow from '$lib/components/ListRow.svelte';
+	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
 	import classNames from 'classnames';
-	import { Check, ChevronRight, Minus } from 'radix-icons-svelte';
+	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
 
 	export let title = '';
@@ -30,27 +31,7 @@
 	}}
 	let:hasFocus
 >
-	<div
-		class={classNames(
-			'flex-shrink-0 border-2 rounded-lg w-8 h-8 flex items-center justify-center transition-colors',
-			{
-				'border-primary-500 bg-primary-500 text-secondary-800': checked,
-				'border-primary-500 bg-primary-500/30 text-primary-300': partiallyChecked && !checked,
-				'border-secondary-500 hover:border-primary-500': !checked && !partiallyChecked && !hasFocus,
-				'border-primary-500': !checked && !partiallyChecked && hasFocus
-			}
-		)}
-		on:click|stopPropagation={() => dispatch('toggle')}
-		on:keypress={() => {
-			/* For a11y */
-		}}
-	>
-		{#if checked}
-			<Check size={20} />
-		{:else if partiallyChecked}
-			<Minus size={20} />
-		{/if}
-	</div>
+	<RowCheckbox {checked} {partiallyChecked} {hasFocus} on:toggle />
 	<!-- What a click opens, without the checkbox -->
 	<div class="group/open flex-1 min-w-0 flex items-center pl-4">
 		<div class="flex-1 min-w-0">

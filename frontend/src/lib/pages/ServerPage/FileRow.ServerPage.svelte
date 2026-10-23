@@ -1,9 +1,10 @@
 <script lang="ts">
 	import ListRow from '$lib/components/ListRow.svelte';
+	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
-	import { Check, ChevronDown, ChevronRight, Minus } from 'radix-icons-svelte';
+	import { ChevronDown, ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
 	import type { LibraryNode } from './library-tree';
 
@@ -106,30 +107,14 @@
 			</div>
 		</div>
 		<div class="flex-shrink-0 flex items-center">
-			<div
-				class={classNames(
-					'border-2 rounded-lg w-7 h-7 flex items-center justify-center transition-colors',
-					{
-						'border-primary-500 bg-primary-500 text-secondary-800': checked,
-						'border-primary-500 bg-primary-500/30 text-primary-300': partiallyChecked && !checked,
-						'border-secondary-500 hover:border-primary-500':
-							!checked && !partiallyChecked && !hasFocus,
-						'group-hover:border-primary-500':
-							!checked && !partiallyChecked && !hasFocus && !isDirectory,
-						'border-primary-500': !checked && !partiallyChecked && hasFocus
-					}
-				)}
-				on:click|stopPropagation={() => dispatch('toggle')}
-				on:keypress={() => {
-					/* For a11y */
-				}}
-			>
-				{#if checked}
-					<Check size={18} />
-				{:else if partiallyChecked}
-					<Minus size={18} />
-				{/if}
-			</div>
+			<RowCheckbox
+				{checked}
+				{partiallyChecked}
+				{hasFocus}
+				rowToggles={!isDirectory}
+				size="sm"
+				on:toggle
+			/>
 		</div>
 	</ListRow>
 </div>

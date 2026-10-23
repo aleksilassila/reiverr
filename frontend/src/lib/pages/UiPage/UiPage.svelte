@@ -10,6 +10,7 @@
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import IconToggle from '$lib/components/IconToggle.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Marquee from '$lib/components/Marquee.svelte';
 	import { createModal } from '$lib/components/Modal/modal.store';
 	import {
@@ -20,6 +21,7 @@
 	import PlayButton from '$lib/components/PlayButton.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
+	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import SelectItem from '$lib/components/SelectItem.svelte';
@@ -119,6 +121,7 @@
 	let selectedItem: string | undefined = undefined;
 	let toggled = true;
 	let checked = false;
+	let smallChecked = false;
 	let text = '';
 	let backdrop = 0;
 	let rows = [
@@ -402,6 +405,21 @@
 					on:enter={scroll}
 				/>
 			{/each}
+			<ListRow
+				on:select={() => (smallChecked = !smallChecked)}
+				on:click={() => (smallChecked = !smallChecked)}
+				on:enter={scroll}
+				let:hasFocus
+			>
+				<div class="flex-1 text-xl font-semibold">A file row: small, toggled by the row</div>
+				<RowCheckbox
+					size="sm"
+					rowToggles
+					checked={smallChecked}
+					{hasFocus}
+					on:toggle={() => (smallChecked = !smallChecked)}
+				/>
+			</ListRow>
 		</Container>
 	</section>
 
