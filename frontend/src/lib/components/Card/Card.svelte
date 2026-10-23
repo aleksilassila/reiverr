@@ -6,6 +6,7 @@
 	import Container from '../Container.svelte';
 	import LazyImg from '../LazyImg.svelte';
 	import ProgressBar from '../ProgressBar.svelte';
+	import type { CardBadge } from './Card';
 
 	export let backdropUrl: string = '';
 	// export let group = false;
@@ -17,6 +18,8 @@
 	export let disabled = false;
 	export let size: 'md' | 'lg' | 'sm' = 'md';
 	export let orientation: 'portrait' | 'landscape' = 'landscape';
+	/** Short marks in the top right corner, such as a count or a warning */
+	export let badges: CardBadge[] = [];
 
 	let hasFocus: Readable<boolean>;
 	let dimensions = getCardDimensions({ viewportWidth: window.innerWidth, orientation, size });
@@ -76,6 +79,27 @@
 				</h1>
 			{/if}
 		</slot>
+
+		{#if badges.length}
+			<div class="absolute top-2 right-2 flex space-x-1">
+				{#each badges as badge}
+					<div
+						class={classNames(
+							'flex items-center rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums',
+							{
+								'bg-secondary-900/80 text-secondary-100': badge.type !== 'error',
+								'bg-red-500/90 text-white': badge.type === 'error'
+							}
+						)}
+					>
+						{#if badge.icon}
+							<svelte:component this={badge.icon} size={14} class="mr-1" />
+						{/if}
+						{badge.label}
+					</div>
+				{/each}
+			</div>
+		{/if}
 
 		{#if progress && progress > lowerLimit && progress < upperLimit}
 			<div

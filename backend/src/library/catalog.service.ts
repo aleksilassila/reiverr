@@ -8,12 +8,17 @@ import {
 } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
+import { getNextCleanup } from './cleanup.utils.js';
 import {
   LibraryTitleDto,
   LibraryTitlesOrder,
   LibraryTitlesStatus,
 } from './library.dto.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
+import { RequestBinding } from './request-binding.entity.js';
+
+const READ = { disableIdentityMap: true };
 
 /** The direction each order of the titles reads in when none is asked for */
 const NATURAL: Record<LibraryTitlesOrder, OrderDirection> = {
@@ -34,6 +39,7 @@ export class CatalogService {
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
     private readonly playStatesService: PlayStatesService,
+    private readonly libraryService: LibraryService,
   ) {}
 
   async findTitles(
@@ -101,9 +107,16 @@ export class CatalogService {
       userId,
       rows,
     );
+    const files = await this.findFiles(em, rows);
+    const { cleanup } = await this.libraryService.getSettings();
+    const nextCleanup = getNextCleanup(new Date(), cleanup);
     const items: LibraryTitleDto[] = [];
     for (const row of rows) {
-      const lastPlayState = lastPlayed.get(`${row.mediaType}:${row.tmdbId}`);
+      const key = `${row.mediaType}:${row.tmdbId}`;
+      const lastPlayState = lastPlayed.get(key);
+      const titleFiles = files.get(key) ?? [];
+      const cleanedUp =
+        !!nextCleanup && titleFiles.every((file) => file.managed && !file.held);
       items.push({
         mediaType: row.mediaType,
         tmdbId: row.tmdbId,
@@ -112,10 +125,75 @@ export class CatalogService {
           row.mediaType,
         ),
         requested: !!row.requested,
+        available:
+          row.mediaType === MediaType.Movie ? 1 : countEpisodes(titleFiles),
+        ...(cleanedUp && { cleanupAt: nextCleanup.toISOString() }),
         ...(lastPlayState && { lastPlayState }),
       });
     }
 
     return { items, total, page, itemsPerPage };
   }
+
+  /** The files of the titles, by `<media type>:<TMDB id>`, with whether a request of anyone holds them */
+  private async findFiles(
+    em: EntityManager,
+    titles: { mediaType: MediaType; tmdbId: string }[],
+  ): Promise<Map<string, TitleFile[]>> {
+    if (!titles.length) return new Map();
+
+    const files = await em.find(
+      MediaFile,
+      { $or: titles.map(({ mediaType, tmdbId }) => ({ mediaType, tmdbId })) },
+      {
+        ...READ,
+        fields: [
+          'id',
+          'mediaType',
+          'tmdbId',
+          'season',
+          'episode',
+          'lastEpisode',
+          'managed',
+        ],
+      },
+    );
+    const held = new Set(
+      (
+        await em.find(
+          RequestBinding,
+          { mediaFileId: { $in: files.map((file) => file.id) } },
+          { ...READ, fields: ['mediaFileId'] },
+        )
+      ).map((binding) => binding.mediaFileId),
+    );
+
+    const byTitle = new Map<string, TitleFile[]>();
+    for (const file of files) {
+      const key = `${file.mediaType}:${file.tmdbId}`;
+      byTitle.set(key, [
+        ...(byTitle.get(key) ?? []),
+        { ...file, held: held.has(file.id) },
+      ]);
+    }
+
+    return byTitle;
+  }
+}
+
+type TitleFile = Pick<
+  MediaFile,
+  'id' | 'season' | 'episode' | 'lastEpisode' | 'managed'
+> & { held: boolean };
+
+/** The episodes the files cover, each once; a file may hold several */
+function countEpisodes(files: TitleFile[]): number {
+  const episodes = new Set<string>();
+  for (const file of files) {
+    for (let episode = file.episode; episode <= file.lastEpisode; episode++) {
+      episodes.add(`${file.season}:${episode}`);
+    }
+  }
+
+  return episodes.size;
 }

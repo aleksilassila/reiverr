@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
@@ -10,8 +11,10 @@
 		type MyListOrderDirection
 	} from '$lib/stores/data/library-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
+	import type { LibraryTitleDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { ArrowDown, ArrowUp, Trash, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
+	import type { CardBadge } from '../../components/Card/Card';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 
@@ -63,6 +66,20 @@
 		}));
 	}
 
+	// The episodes on disk of a series, and the hours until the cleanup deletes every file of the title
+	const badgesOf = (item: LibraryTitleDto): CardBadge[] => [
+		...(item.mediaType === 'series' ? [{ label: String(item.available), icon: Video }] : []),
+		...(item.cleanupAt
+			? [
+					{
+						label: `${Math.max(1, Math.ceil((Date.parse(item.cleanupAt) - Date.now()) / 3_600_000))}h`,
+						icon: Trash,
+						type: 'error' as const
+					}
+				]
+			: [])
+	];
+
 	const { loading: loadingRequested, observer: requestedObserver } = requested;
 	const { loading: loadingUnrequested, observer: unrequestedObserver } = unrequested;
 
@@ -78,22 +95,31 @@
 
 <Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
 	<div class="h-full flex-1 flex flex-col">
-		<Container class="px-32 flex items-center justify-between" direction="horizontal">
-			<Container direction="horizontal" class="flex space-x-4">
+		<Scrollable class="mx-32 flex items-center justify-between space-x-4" fadeWidth={3}>
+			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 				{#each CATEGORIES as option (option.value)}
-					<Pill selected={$category === option.value} on:clickOrSelect={() => filter(option.value)}>
+					<Pill
+						selected={$category === option.value}
+						on:clickOrSelect={() => filter(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
+					>
 						{option.label}
 					</Pill>
 				{/each}
-				<Pill selected={$viewSettings.separateRequested} on:clickOrSelect={toggleSeparateRequested}>
+				<Pill
+					selected={$viewSettings.separateRequested}
+					on:clickOrSelect={toggleSeparateRequested}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					Group Requested
 				</Pill>
 			</Container>
-			<Container direction="horizontal" class="flex space-x-4">
+			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
 				{#each SORTS as option (option.value)}
 					<Pill
 						selected={$viewSettings.order === option.value}
 						on:clickOrSelect={() => selectSort(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
 					>
 						<span class="flex items-center">
 							{option.label}
@@ -108,7 +134,7 @@
 					</Pill>
 				{/each}
 			</Container>
-		</Container>
+		</Scrollable>
 		<Container
 			focusOnMount={hasFocus || !didMount}
 			on:mount={() => {
@@ -128,6 +154,7 @@
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
+								badges={badgesOf(item)}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}
@@ -144,6 +171,7 @@
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
+								badges={badgesOf(item)}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}

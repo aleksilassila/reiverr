@@ -477,6 +477,20 @@ export class LibraryTitleDto {
   requested: boolean;
 
   @ApiProperty({
+    description: 'The episodes of the title that have a file; 1 for a movie',
+  })
+  available: number;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    required: false,
+    description:
+      'When the next cleanup deletes every file of the title, because all are managed and no request of anyone holds one; absent otherwise, and while the cleanup is off',
+  })
+  cleanupAt?: string;
+
+  @ApiProperty({
     type: PlayStateDto,
     required: false,
     description: 'The play state of the title that the user played last',

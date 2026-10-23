@@ -1497,6 +1497,13 @@ export interface LibraryTitleDto {
   tmdbItem: TmdbItemDto;
   /** Whether the user has a request for the title */
   requested: boolean;
+  /** The episodes of the title that have a file; 1 for a movie */
+  available: number;
+  /**
+   * When the next cleanup deletes every file of the title, because all are managed and no request of anyone holds one; absent otherwise, and while the cleanup is off
+   * @format date-time
+   */
+  cleanupAt?: string;
   /** The play state of the title that the user played last */
   lastPlayState?: PlayStateDto;
 }

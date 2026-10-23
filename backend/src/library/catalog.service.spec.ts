@@ -15,8 +15,14 @@ import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import { User } from '../users/user.entity.js';
 import { CatalogService } from './catalog.service.js';
-import { LibraryTitlesOrder, LibraryTitlesStatus } from './library.dto.js';
+import {
+  CleanupSchedule,
+  LibraryTitlesOrder,
+  LibraryTitlesStatus,
+} from './library.dto.js';
+import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
+import { RequestBinding } from './request-binding.entity.js';
 
 describe('CatalogService', () => {
   let orm: MikroORM;
@@ -56,6 +62,7 @@ describe('CatalogService', () => {
     tmdbId: string,
     episode: number,
     createdAt: Date,
+    options: { managed?: boolean; lastEpisode?: number } = {},
   ) => {
     const row = new MediaFile();
     row.path = `/tv/${mediaType}-${tmdbId}-${episode}.mkv`;
@@ -63,9 +70,11 @@ describe('CatalogService', () => {
     row.tmdbId = tmdbId;
     row.season = episode ? 1 : 0;
     row.episode = episode;
+    row.lastEpisode = options.lastEpisode ?? episode;
     row.size = 1;
     row.modifiedAt = createdAt;
     row.createdAt = createdAt;
+    row.managed = options.managed ?? false;
     return insert(row);
   };
   const request = (tmdbId: string, mediaType: MediaTypeFull, episode = 0) => {
@@ -131,14 +140,33 @@ describe('CatalogService', () => {
         undefined,
       ),
       playStates,
+      {
+        getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
+      } as unknown as LibraryService,
     );
 
-    // The series: two files, requested by the user; the movie and the other series: files, no requests
-    await file(MediaType.Series, '1', 1, new Date('2026-01-01T00:00:00Z'));
-    await file(MediaType.Series, '1', 2, new Date('2026-01-03T00:00:00Z'));
-    await request('1', MediaTypeFull.Episode, 1);
+    // The series: a managed file the user's request holds, and a file of two
+    // episodes; the movie: an external file; the other series: a managed file
+    // nobody holds
+    const held = await file(
+      MediaType.Series,
+      '1',
+      1,
+      new Date('2026-01-01T00:00:00Z'),
+      { managed: true },
+    );
+    await file(MediaType.Series, '1', 2, new Date('2026-01-03T00:00:00Z'), {
+      lastEpisode: 3,
+    });
+    const { id } = await request('1', MediaTypeFull.Episode, 1);
+    const binding = new RequestBinding();
+    binding.requestId = id;
+    binding.mediaFileId = held.id;
+    await insert(binding);
     await file(MediaType.Movie, '1', 0, new Date('2026-01-02T00:00:00Z'));
-    await file(MediaType.Series, '2', 1, new Date('2026-01-04T00:00:00Z'));
+    await file(MediaType.Series, '2', 1, new Date('2026-01-04T00:00:00Z'), {
+      managed: true,
+    });
   });
 
   afterEach(() => orm.close());
@@ -153,6 +181,22 @@ describe('CatalogService', () => {
       mediaType: MediaType.Series,
       tmdbId: '1',
     });
+  });
+
+  it('counts the episodes on disk, and dates the cleanup of a title nobody holds', async () => {
+    const { items } = await titles({ order: LibraryTitlesOrder.Name });
+    const [another, movie, series] = items;
+
+    // A file of two episodes counts both
+    expect(series.available).toBe(3);
+    expect(movie.available).toBe(1);
+    expect(another.available).toBe(1);
+
+    // Managed and held, and external, stay; managed and unheld goes at 4 in the morning
+    expect(series.cleanupAt).toBeUndefined();
+    expect(movie.cleanupAt).toBeUndefined();
+    expect(new Date(another.cleanupAt).getHours()).toBe(4);
+    expect(Date.parse(another.cleanupAt)).toBeGreaterThan(Date.now());
   });
 
   it('separates the titles the user requested from the rest', async () => {
