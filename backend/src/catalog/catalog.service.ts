@@ -18,6 +18,7 @@ import { MyListItem } from '../user-data/my-list/my-list-item.entity.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import {
   CatalogTitleDto,
+  Letter,
   LibraryOrder,
   LibraryStatus,
   MyListOrder,
@@ -45,6 +46,8 @@ const MY_LIST_NATURAL: Record<MyListOrder, OrderDirection> = {
 const NAME = sql`coalesce(sm.name, mm.name)`;
 const FIRST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.first_release_date)`;
 const LAST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.last_release_date)`;
+// The initial of the name, in upper case; empty without a cached name
+const INITIAL = sql`upper(substr(coalesce(sm.name, mm.name, ''), 1, 1))`;
 
 type Title = { mediaType: MediaType; tmdbId: string };
 
@@ -68,6 +71,7 @@ export class CatalogService {
     options: {
       mediaType?: MediaType;
       status?: LibraryStatus;
+      letter?: Letter;
       order: LibraryOrder;
       direction?: OrderDirection;
       pagination: PaginationDto;
@@ -101,6 +105,7 @@ export class CatalogService {
       } else if (options.status === LibraryStatus.Unrequested) {
         builder.andWhere(sql`not ${requested}`);
       }
+      if (options.letter) builder.andWhere(letterFilter(options.letter));
 
       return builder;
     };
@@ -138,6 +143,7 @@ export class CatalogService {
     options: {
       mediaType?: MediaType;
       status?: MyListStatus;
+      letter?: Letter;
       order: MyListOrder;
       direction?: OrderDirection;
       pagination: PaginationDto;
@@ -169,6 +175,7 @@ export class CatalogService {
         builder.andWhere({ mediaType: options.mediaType });
       }
       if (status) builder.andWhere(status);
+      if (options.letter) builder.andWhere(letterFilter(options.letter));
 
       return builder;
     };
@@ -332,6 +339,13 @@ function countEpisodes(files: TitleFile[]): number {
   }
 
   return episodes.size;
+}
+
+/** The titles whose name (from mm, sm) starts with the letter; '#' is those that start with none */
+function letterFilter(letter: Letter) {
+  return letter === '#'
+    ? sql`${INITIAL} not between 'A' and 'Z'`
+    : sql`${INITIAL} = ${letter}`;
 }
 
 /** The items (li) whose play states (ps) and metadata (mm, sm) give them the status */

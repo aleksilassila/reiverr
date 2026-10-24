@@ -8,6 +8,11 @@ import { reiverrApi } from '../user.store';
 export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
 export type CatalogOrderDirection = 'asc' | 'desc';
 export type CatalogCategory = 'all' | 'series' | 'movies';
+/** The initials a catalogue is filtered by: a letter, or '#' for the names that start with none */
+export type CatalogLetter = NonNullable<
+	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>['letter']
+>;
+export const CATALOG_LETTERS = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') as CatalogLetter[];
 
 /** The media type a category of the pills asks the catalogue for */
 const mediaTypeOf = (category: CatalogCategory) =>
@@ -16,6 +21,7 @@ const mediaTypeOf = (category: CatalogCategory) =>
 /** The titles of the user's list: those in progress, and the rest, watched or not */
 export const libraryContext = createStoreContext(`library`, () => {
 	const category = writable<CatalogCategory>('all');
+	const letter = writable<CatalogLetter | null>(null);
 	const libraryViewSettings = createLocalStorageStore<{
 		order: CatalogOrder;
 		direction: CatalogOrderDirection;
@@ -31,6 +37,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 			reiverrApi.catalog
 				.getMyList({
 					mediaType: 'series',
+					letter: get(letter) ?? undefined,
 					order: 'last-played',
 					status: 'continue-watching',
 					page
@@ -45,6 +52,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 				.getMyList({
 					status: 'watched',
 					mediaType: mediaTypeOf(get(category)),
+					letter: get(letter) ?? undefined,
 					order: get(libraryViewSettings).order,
 					direction: get(libraryViewSettings).direction,
 					page
@@ -58,6 +66,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 			reiverrApi.catalog
 				.getMyList({
 					mediaType: mediaTypeOf(get(category)),
+					letter: get(letter) ?? undefined,
 					order: get(libraryViewSettings).order,
 					direction: get(libraryViewSettings).direction,
 					...(get(libraryViewSettings).separateWatched ? { status: 'unwatched' as const } : {}),
@@ -74,7 +83,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 	});
 
 	const unsubscribe = betterSubscribe(
-		derived([category, libraryViewSettings], () => {
+		derived([category, letter, libraryViewSettings], () => {
 			upcoming.reset();
 			watched.reset();
 			unwatched.reset();
@@ -84,6 +93,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	return {
 		category,
+		letter,
 		libraryViewSettings,
 		upcoming,
 		watched,
@@ -99,6 +109,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 /** The titles with files in the library: those the user requested, and the rest */
 export const availableContext = createStoreContext(`library-available`, () => {
 	const category = writable<CatalogCategory>('all');
+	const letter = writable<CatalogLetter | null>(null);
 	const viewSettings = createLocalStorageStore<{
 		order: CatalogOrder;
 		direction: CatalogOrderDirection;
@@ -110,6 +121,7 @@ export const availableContext = createStoreContext(`library-available`, () => {
 	});
 	const query = () => ({
 		mediaType: mediaTypeOf(get(category)),
+		letter: get(letter) ?? undefined,
 		order: get(viewSettings).order,
 		direction: get(viewSettings).direction
 	});
@@ -137,7 +149,7 @@ export const availableContext = createStoreContext(`library-available`, () => {
 	);
 
 	const unsubscribe = betterSubscribe(
-		derived([category, viewSettings], () => {
+		derived([category, letter, viewSettings], () => {
 			requested.reset();
 			unrequested.reset();
 		}),
@@ -146,6 +158,7 @@ export const availableContext = createStoreContext(`library-available`, () => {
 
 	return {
 		category,
+		letter,
 		viewSettings,
 		requested,
 		unrequested,

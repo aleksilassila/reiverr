@@ -5,6 +5,7 @@
 
 	export let selected = false;
 	export let disabled = false;
+	export let size: 'sm' | 'md' = 'md';
 
 	const dispatch = createEventDispatcher<{ select: null }>();
 </script>
@@ -22,7 +23,8 @@
 >
 	<span
 		class={classNames(
-			'font-semibold text-2xl group-focus-within:text-primary-500',
+			'font-semibold group-focus-within:text-primary-500',
+			size === 'sm' ? 'text-lg' : 'text-2xl',
 			{
 				'text-secondary-50': selected && !hasFocus,
 				'text-secondary-400': !hasFocus && !selected

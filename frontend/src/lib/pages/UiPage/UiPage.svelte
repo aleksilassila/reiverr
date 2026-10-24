@@ -125,6 +125,7 @@
 
 	const tab = useTabs(0);
 	let quickNav = 0;
+	let quickNavLetter = -1;
 	let pill = 'first';
 	let selected = 'first';
 	let selectedItem: string | undefined = undefined;
@@ -382,6 +383,19 @@
 				on:select={({ detail }) => (quickNav = detail)}
 			/>
 			<p class="body">Quick navigation: the focus moves between the items, selecting one jumps.</p>
+		</div>
+		<div class="flex items-center space-x-16">
+			<QuickNav
+				size="sm"
+				class="h-64"
+				items={'#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')}
+				selected={quickNavLetter}
+				on:select={({ detail }) => (quickNavLetter = quickNavLetter === detail ? -1 : detail)}
+			/>
+			<p class="body">
+				Small, as a filter: the highlighted item is the filter that is on, selecting it again turns
+				it off. The items scroll when the box is not tall enough for them.
+			</p>
 		</div>
 		<Container direction="horizontal" class="flex space-x-4">
 			{#each SELECT_OPTIONS as option (option.value)}

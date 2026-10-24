@@ -3273,6 +3273,35 @@ export class Api<
         direction?: "asc" | "desc";
         page?: number;
         itemsPerPage?: number;
+        /** Titles whose name starts with the letter; '#' for a name that starts with none */
+        letter?:
+          | "#"
+          | "A"
+          | "B"
+          | "C"
+          | "D"
+          | "E"
+          | "F"
+          | "G"
+          | "H"
+          | "I"
+          | "J"
+          | "K"
+          | "L"
+          | "M"
+          | "N"
+          | "O"
+          | "P"
+          | "Q"
+          | "R"
+          | "S"
+          | "T"
+          | "U"
+          | "V"
+          | "W"
+          | "X"
+          | "Y"
+          | "Z";
       },
       params: RequestParams = {},
     ) =>
@@ -3310,6 +3339,35 @@ export class Api<
         direction?: "asc" | "desc";
         page?: number;
         itemsPerPage?: number;
+        /** Titles whose name starts with the letter; '#' for a name that starts with none */
+        letter?:
+          | "#"
+          | "A"
+          | "B"
+          | "C"
+          | "D"
+          | "E"
+          | "F"
+          | "G"
+          | "H"
+          | "I"
+          | "J"
+          | "K"
+          | "L"
+          | "M"
+          | "N"
+          | "O"
+          | "P"
+          | "Q"
+          | "R"
+          | "S"
+          | "T"
+          | "U"
+          | "V"
+          | "W"
+          | "X"
+          | "Y"
+          | "Z";
       },
       params: RequestParams = {},
     ) =>

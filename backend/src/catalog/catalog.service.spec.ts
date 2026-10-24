@@ -20,6 +20,7 @@ import { PlayState } from '../user-data/play-state/play-state.entity.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import { User } from '../users/user.entity.js';
 import {
+  Letter,
   LibraryOrder,
   LibraryStatus,
   MyListOrder,
@@ -105,6 +106,7 @@ describe('CatalogService', () => {
     options: {
       mediaType?: MediaType;
       status?: LibraryStatus;
+      letter?: Letter;
       order?: LibraryOrder;
       direction?: OrderDirection;
       page?: number;
@@ -115,6 +117,7 @@ describe('CatalogService', () => {
       catalog.findLibraryTitles(userId, {
         mediaType: options.mediaType,
         status: options.status,
+        letter: options.letter,
         order: options.order ?? LibraryOrder.DateAdded,
         direction: options.direction,
         pagination: {
@@ -127,6 +130,7 @@ describe('CatalogService', () => {
     options: {
       mediaType?: MediaType;
       status?: MyListStatus;
+      letter?: Letter;
       order?: MyListOrder;
       direction?: OrderDirection;
     } = {},
@@ -135,6 +139,7 @@ describe('CatalogService', () => {
       catalog.findMyList(userId, {
         mediaType: options.mediaType,
         status: options.status,
+        letter: options.letter,
         order: options.order ?? MyListOrder.Name,
         direction: options.direction,
         pagination: { page: 1, itemsPerPage: 10 },
@@ -292,6 +297,28 @@ describe('CatalogService', () => {
       });
       expect(items[0].lastPlayState).toBeUndefined();
     });
+
+    it('filters by the first letter of the name, # for the names that start with none', async () => {
+      await insert(
+        SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
+      );
+      await insert(
+        MovieMetadata.from({
+          ...MOVIE,
+          id: 3,
+          title: 'zodiac',
+        } as TmdbMovieFull),
+      );
+      await file(MediaType.Series, '3', 1, new Date('2026-01-05T00:00:00Z'));
+      await file(MediaType.Movie, '3', 0, new Date('2026-01-06T00:00:00Z'));
+
+      const another = await library({ letter: 'A' });
+      expect(names(another)).toEqual(['Another']);
+      expect(another.total).toBe(1);
+      expect(names(await library({ letter: 'Z' }))).toEqual(['zodiac']);
+      expect(names(await library({ letter: '#' }))).toEqual(['24']);
+      expect(await library({ letter: 'B' })).toMatchObject({ total: 0 });
+    });
   });
 
   describe('the my list', () => {
@@ -354,6 +381,21 @@ describe('CatalogService', () => {
       expect(
         names(await myList({ status: MyListStatus.ContinueWatching })),
       ).toEqual(['Movie']);
+    });
+
+    it('filters by the first letter of the name', async () => {
+      await insert(
+        MovieMetadata.from({
+          ...MOVIE,
+          id: 3,
+          title: '12 Angry Men',
+        } as TmdbMovieFull),
+      );
+      await listed(MediaType.Movie, '3');
+
+      expect(names(await myList({ letter: 'M' }))).toEqual(['Movie']);
+      expect(names(await myList({ letter: '#' }))).toEqual(['12 Angry Men']);
+      expect(names(await myList({ letter: 'A' }))).toEqual(['Another Movie']);
     });
   });
 });

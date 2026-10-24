@@ -1,12 +1,9 @@
 import { get_store_value as get } from 'svelte/internal';
 import { localSettings } from './stores/localstorage.store';
 
-export type Offsets = Partial<
-	Record<
-		'top' | 'bottom' | 'left' | 'right' | 'horizontal' | 'vertical' | 'all',
-		number | undefined
-	>
->;
+/** How far from the edges of the scroll parent the element is kept, per side or per axis; 'center' puts it in the middle of the axis */
+export type Offsets = Partial<Record<'top' | 'bottom' | 'left' | 'right' | 'all', number>> &
+	Partial<Record<'horizontal' | 'vertical', number | 'center'>>;
 
 export function getScrollParent(
 	node: HTMLElement,
@@ -27,6 +24,9 @@ export function getScrollParent(
 			(overflow === 'auto' || overflow === 'scroll')
 		) {
 			return parent;
+		} else if (style.position === 'fixed') {
+			// Nothing above a fixed element scrolls it
+			return undefined;
 		} else {
 			return getScrollParent(parent, direction, overflowedOnly);
 		}
@@ -39,12 +39,12 @@ export const scrollElementIntoView = (
 	htmlElement: HTMLElement,
 	offsets: Offsets & { instant?: boolean } = { all: 16 }
 ) => {
-	if (offsets.vertical !== undefined) {
+	if (typeof offsets.vertical === 'number') {
 		offsets.top = offsets.vertical;
 		offsets.bottom = offsets.vertical;
 	}
 
-	if (offsets.horizontal !== undefined) {
+	if (typeof offsets.horizontal === 'number') {
 		offsets.left = offsets.horizontal;
 		offsets.right = offsets.horizontal;
 	}
@@ -62,12 +62,21 @@ export const scrollElementIntoView = (
 	const verticalParent = getScrollParent(htmlElement, 'vertical');
 	const horizontalParent = getScrollParent(htmlElement, 'horizontal');
 
-	if (verticalParent && (offsets.top !== undefined || offsets.bottom !== undefined)) {
+	if (
+		verticalParent &&
+		(offsets.vertical === 'center' || offsets.top !== undefined || offsets.bottom !== undefined)
+	) {
 		const parentBoundingRect = verticalParent.getBoundingClientRect();
 
 		let top = -1;
 
-		if (offsets.top !== undefined && offsets.bottom !== undefined) {
+		if (offsets.vertical === 'center') {
+			top =
+				boundingRect.y -
+				parentBoundingRect.y +
+				verticalParent.scrollTop -
+				(verticalParent.clientHeight - boundingRect.height) / 2;
+		} else if (offsets.top !== undefined && offsets.bottom !== undefined) {
 			const topClipsAbove = boundingRect.y - parentBoundingRect.y < offsets.top;
 			const bottomClipsBelow =
 				boundingRect.y + boundingRect.height >
@@ -122,12 +131,21 @@ export const scrollElementIntoView = (
 			// });
 		}
 	}
-	if (horizontalParent && (offsets.left !== undefined || offsets.right !== undefined)) {
+	if (
+		horizontalParent &&
+		(offsets.horizontal === 'center' || offsets.left !== undefined || offsets.right !== undefined)
+	) {
 		const parentBoundingRect = horizontalParent.getBoundingClientRect();
 
 		let left = -1;
 
-		if (offsets.left !== undefined && offsets.right !== undefined) {
+		if (offsets.horizontal === 'center') {
+			left =
+				boundingRect.x -
+				parentBoundingRect.x +
+				horizontalParent.scrollLeft -
+				(horizontalParent.clientWidth - boundingRect.width) / 2;
+		} else if (offsets.left !== undefined && offsets.right !== undefined) {
 			left =
 				boundingRect.x - parentBoundingRect.x < offsets.left
 					? boundingRect.x - parentBoundingRect.x + horizontalParent.scrollLeft - offsets.left

@@ -4,10 +4,12 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
+	import QuickNav from '$lib/components/QuickNav.svelte';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
 		libraryContext,
+		CATALOG_LETTERS,
 		type CatalogOrder,
 		type CatalogOrderDirection
 	} from '$lib/stores/data/library-data.store';
@@ -43,12 +45,18 @@
 	let didMount = false;
 	// let category: 'all' | 'series' | 'movies' = 'all';
 
-	const { category, libraryViewSettings, upcoming, unwatched, watched, unsubscribe } =
+	const { category, letter, libraryViewSettings, upcoming, unwatched, watched, unsubscribe } =
 		libraryContext.createContext();
 
 	// Selecting the category that is shown shows both again
 	function filter(selected: Category) {
 		$category = $category === selected ? 'all' : selected;
+	}
+
+	// Selecting the letter that is on turns the filter off
+	function filterLetter(index: number) {
+		const selected = CATALOG_LETTERS[index] ?? null;
+		$letter = $letter === selected ? null : selected;
 	}
 
 	// One sort is always on; selecting it again turns it around
@@ -160,150 +168,165 @@
 	<TitleText title="My List" size="sm" />
 </FloatingHeader>
 
-<Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
-	<div class="h-full flex-1 flex flex-col">
-		<Scrollable class="mx-32 flex items-end space-x-8" fadeWidth={3}>
-			<div class="flex-shrink-0">
-				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-					Media Type
-				</div>
-				<Container direction="horizontal" class="flex space-x-4">
-					{#each CATEGORIES as option (option.value)}
-						<Pill
-							selected={$category === option.value}
-							on:clickOrSelect={() => filter(option.value)}
-							on:enter={scrollIntoView({ horizontal: 64 })}
-						>
-							{option.label}
-						</Pill>
-					{/each}
-				</Container>
-			</div>
-			<div class="flex-shrink-0">
-				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-					Display
-				</div>
-				<Container direction="horizontal" class="flex">
-					<Pill
-						selected={$libraryViewSettings.separateWatched}
-						on:clickOrSelect={toggleSeparateWatched}
-						on:enter={scrollIntoView({ horizontal: 64 })}
-					>
-						Group Watched
-					</Pill>
-				</Container>
-			</div>
-			<div class="flex-shrink-0">
-				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-					Sort By
-				</div>
-				<Container direction="horizontal" class="flex space-x-4">
-					{#each SORTS as option (option.value)}
-						<Pill
-							selected={$libraryViewSettings.order === option.value}
-							on:clickOrSelect={() => selectSort(option.value)}
-							on:enter={scrollIntoView({ horizontal: 64 })}
-						>
-							<span class="flex items-center">
+<Container direction="horizontal" class="min-h-full flex" focusOnMount>
+	<Container class="flex-1 min-w-0 pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
+		<div class="h-full flex-1 flex flex-col">
+			<Scrollable class="mx-32 flex items-end space-x-8" fadeWidth={3}>
+				<div class="flex-shrink-0">
+					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+						Media Type
+					</div>
+					<Container direction="horizontal" class="flex space-x-4">
+						{#each CATEGORIES as option (option.value)}
+							<Pill
+								selected={$category === option.value}
+								on:clickOrSelect={() => filter(option.value)}
+								on:enter={scrollIntoView({ horizontal: 64 })}
+							>
 								{option.label}
-								{#if $libraryViewSettings.order === option.value}
-									<svelte:component
-										this={$libraryViewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
-										size={20}
-										class="ml-2"
-									/>
-								{/if}
-							</span>
+							</Pill>
+						{/each}
+					</Container>
+				</div>
+				<div class="flex-shrink-0">
+					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+						Display
+					</div>
+					<Container direction="horizontal" class="flex">
+						<Pill
+							selected={$libraryViewSettings.separateWatched}
+							on:clickOrSelect={toggleSeparateWatched}
+							on:enter={scrollIntoView({ horizontal: 64 })}
+						>
+							Group Watched
 						</Pill>
-					{/each}
-				</Container>
-			</div>
-		</Scrollable>
-		<Container
-			focusOnMount={hasFocus || !didMount}
-			on:mount={(e) => {
-				didMount = true;
-				// registrar(e);
-			}}
-			focusedChild
-			class="flex-1 flex flex-col"
-		>
-			{#if $upcoming.length}
-				<div class="mt-6">
-					<Carousel header="Upcoming" scrollClass="px-32" on:enter={scrollIntoView({ bottom: 0 })}>
-						{#each $upcoming as item, index (`${item.mediaType}-${item.tmdbId}`)}
-							<TmdbCard
-								{index}
-								on:enter={scrollIntoView({ horizontal: 128 })}
-								size="lg"
-								item={item.tmdbItem}
-								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
-							/>
-						{/each}
-						<div use:upcomingObserver />
-					</Carousel>
+					</Container>
 				</div>
-			{/if}
-			{#if $unwatched.length}
-				<div class="my-6">
-					{#if $libraryViewSettings.separateWatched}
-						<div class="px-32 mb-6 h3">Unwatched</div>
-					{/if}
-					<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-						{#each $unwatched as item, index (`${item.mediaType}-${item.tmdbId}`)}
-							<TmdbCard
-								{index}
-								item={item.tmdbItem}
-								progress={item.lastPlayState?.progress || 0}
-								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
-								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
-							/>
+				<div class="flex-shrink-0">
+					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+						Sort By
+					</div>
+					<Container direction="horizontal" class="flex space-x-4">
+						{#each SORTS as option (option.value)}
+							<Pill
+								selected={$libraryViewSettings.order === option.value}
+								on:clickOrSelect={() => selectSort(option.value)}
+								on:enter={scrollIntoView({ horizontal: 64 })}
+							>
+								<span class="flex items-center">
+									{option.label}
+									{#if $libraryViewSettings.order === option.value}
+										<svelte:component
+											this={$libraryViewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
+											size={20}
+											class="ml-2"
+										/>
+									{/if}
+								</span>
+							</Pill>
 						{/each}
-					</CardGrid>
-					<div use:interactionObserver />
+					</Container>
 				</div>
-			{/if}
-			{#if $watched.length}
-				<div class="mt-6 px-32">
-					<div class="mb-6 h3">Watched</div>
-					<CardGrid let:columns>
-						{#each $watched as item, index (`${item.mediaType}-${item.tmdbId}`)}
-							<TmdbCard
-								{index}
-								item={item.tmdbItem}
-								progress={item.lastPlayState?.progress || 0}
-								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
-								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
-							/>
-						{/each}
-					</CardGrid>
-					<div use:watchedObserver />
-				</div>
-			{/if}
+			</Scrollable>
+			<Container
+				focusOnMount={hasFocus || !didMount}
+				on:mount={(e) => {
+					didMount = true;
+					// registrar(e);
+				}}
+				focusedChild
+				class="flex-1 flex flex-col"
+			>
+				{#if $upcoming.length}
+					<div class="mt-6">
+						<Carousel
+							header="Upcoming"
+							scrollClass="px-32"
+							on:enter={scrollIntoView({ bottom: 0 })}
+						>
+							{#each $upcoming as item, index (`${item.mediaType}-${item.tmdbId}`)}
+								<TmdbCard
+									{index}
+									on:enter={scrollIntoView({ horizontal: 128 })}
+									size="lg"
+									item={item.tmdbItem}
+									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
+								/>
+							{/each}
+							<div use:upcomingObserver />
+						</Carousel>
+					</div>
+				{/if}
+				{#if $unwatched.length}
+					<div class="my-6">
+						{#if $libraryViewSettings.separateWatched}
+							<div class="px-32 mb-6 h3">Unwatched</div>
+						{/if}
+						<CardGrid class="px-32" let:columns on:back={scrollToTop}>
+							{#each $unwatched as item, index (`${item.mediaType}-${item.tmdbId}`)}
+								<TmdbCard
+									{index}
+									item={item.tmdbItem}
+									progress={item.lastPlayState?.progress || 0}
+									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
+									on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
+								/>
+							{/each}
+						</CardGrid>
+						<div use:interactionObserver />
+					</div>
+				{/if}
+				{#if $watched.length}
+					<div class="mt-6 px-32">
+						<div class="mb-6 h3">Watched</div>
+						<CardGrid let:columns>
+							{#each $watched as item, index (`${item.mediaType}-${item.tmdbId}`)}
+								<TmdbCard
+									{index}
+									item={item.tmdbItem}
+									progress={item.lastPlayState?.progress || 0}
+									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
+									on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
+								/>
+							{/each}
+						</CardGrid>
+						<div use:watchedObserver />
+					</div>
+				{/if}
 
-			{#if ($loadingUnwatched || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$unwatched.length && !$watched.length}
-				<Container class="h-ghost m-auto px-32">Loading...</Container>
-			{:else if !$upcoming.length && !$unwatched.length && !$watched.length}
-				<Container focusOnMount class="h-ghost m-auto px-32">
-					{#if $category !== 'all'}
-						No {$category} in your list.
-					{:else}
-						Add content to your list to see it here.
-					{/if}
-				</Container>
-			{/if}
-
-			<!-- {#await Promise.all([upcoming, items, watched]) then [upcoming, items, watched]}
-				{#if !upcoming.length && !items.length && !watched.length}
+				{#if ($loadingUnwatched || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$unwatched.length && !$watched.length}
+					<Container class="h-ghost m-auto px-32">Loading...</Container>
+				{:else if !$upcoming.length && !$unwatched.length && !$watched.length}
 					<Container focusOnMount class="h-ghost m-auto px-32">
-						Add content to your list to see it here.
+						{#if $letter}
+							Nothing in your list under {$letter}.
+						{:else if $category !== 'all'}
+							No {$category} in your list.
+						{:else}
+							Add content to your list to see it here.
+						{/if}
 					</Container>
 				{/if}
-			{:catch error}
-				<Container class="h-ghost m-auto px-32">
-					<div class="text-red-500">Error loading data: {error.message}</div>
-				</Container>
-			{/await} -->
-		</Container>
-	</div>
+
+				<!-- {#await Promise.all([upcoming, items, watched]) then [upcoming, items, watched]}
+					{#if !upcoming.length && !items.length && !watched.length}
+						<Container focusOnMount class="h-ghost m-auto px-32">
+							Add content to your list to see it here.
+						</Container>
+					{/if}
+				{:catch error}
+					<Container class="h-ghost m-auto px-32">
+						<div class="text-red-500">Error loading data: {error.message}</div>
+					</Container>
+				{/await} -->
+			</Container>
+		</div>
+	</Container>
+	<QuickNav
+		size="sm"
+		class="fixed right-12 inset-y-0 justify-center z-10"
+		items={CATALOG_LETTERS}
+		selected={$letter ? CATALOG_LETTERS.indexOf($letter) : -1}
+		on:select={({ detail }) => filterLetter(detail)}
+	/>
 </Container>

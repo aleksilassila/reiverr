@@ -21,6 +21,8 @@ import {
 import { User } from '../users/user.entity.js';
 import {
   CatalogTitleDto,
+  LETTERS,
+  type Letter,
   LibraryOrder,
   LibraryStatus,
   MyListOrder,
@@ -37,6 +39,13 @@ export class CatalogController {
   @Get('library')
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   @ApiQuery({ name: 'status', enum: LibraryStatus, required: false })
+  @ApiQuery({
+    name: 'letter',
+    enum: LETTERS,
+    required: false,
+    description:
+      "Titles whose name starts with the letter; '#' for a name that starts with none",
+  })
   @ApiQuery({ name: 'order', enum: LibraryOrder, required: false })
   @ApiQuery({
     name: 'direction',
@@ -53,6 +62,8 @@ export class CatalogController {
     mediaType?: MediaType,
     @Query('status', new ParseEnumPipe(LibraryStatus, { optional: true }))
     status?: LibraryStatus,
+    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
+    letter?: Letter,
     @Query('order', new ParseEnumPipe(LibraryOrder, { optional: true }))
     order?: LibraryOrder,
     @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
@@ -61,6 +72,7 @@ export class CatalogController {
     return this.catalogService.findLibraryTitles(user.id, {
       mediaType,
       status,
+      letter,
       order: order ?? LibraryOrder.DateAdded,
       direction,
       pagination,
@@ -70,6 +82,13 @@ export class CatalogController {
   @Get('my-list')
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   @ApiQuery({ name: 'status', enum: MyListStatus, required: false })
+  @ApiQuery({
+    name: 'letter',
+    enum: LETTERS,
+    required: false,
+    description:
+      "Titles whose name starts with the letter; '#' for a name that starts with none",
+  })
   @ApiQuery({ name: 'order', enum: MyListOrder, required: false })
   @ApiQuery({
     name: 'direction',
@@ -86,6 +105,8 @@ export class CatalogController {
     mediaType?: MediaType,
     @Query('status', new ParseEnumPipe(MyListStatus, { optional: true }))
     status?: MyListStatus,
+    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
+    letter?: Letter,
     @Query('order', new ParseEnumPipe(MyListOrder, { optional: true }))
     order?: MyListOrder,
     @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
@@ -94,6 +115,7 @@ export class CatalogController {
     return this.catalogService.findMyList(user.id, {
       mediaType,
       status,
+      letter,
       order: order ?? MyListOrder.DateAdded,
       direction,
       pagination,
