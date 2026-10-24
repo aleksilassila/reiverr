@@ -80,45 +80,62 @@
 
 <Container class="min-h-full pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
 	<div class="h-full flex-1 flex flex-col">
-		<Scrollable class="mx-32 flex items-center justify-between space-x-4" fadeWidth={3}>
-			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
-				{#each CATEGORIES as option (option.value)}
-					<Pill
-						selected={$category === option.value}
-						on:clickOrSelect={() => filter(option.value)}
-						on:enter={scrollIntoView({ horizontal: 64 })}
-					>
-						{option.label}
-					</Pill>
-				{/each}
-				<Pill
-					selected={$viewSettings.separateRequested}
-					on:clickOrSelect={toggleSeparateRequested}
-					on:enter={scrollIntoView({ horizontal: 64 })}
-				>
-					Group Requested
-				</Pill>
-			</Container>
-			<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
-				{#each SORTS as option (option.value)}
-					<Pill
-						selected={$viewSettings.order === option.value}
-						on:clickOrSelect={() => selectSort(option.value)}
-						on:enter={scrollIntoView({ horizontal: 64 })}
-					>
-						<span class="flex items-center">
+		<Scrollable class="mx-32 flex items-end space-x-8" fadeWidth={3}>
+			<div class="flex-shrink-0">
+				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+					Media Type
+				</div>
+				<Container direction="horizontal" class="flex space-x-4">
+					{#each CATEGORIES as option (option.value)}
+						<Pill
+							selected={$category === option.value}
+							on:clickOrSelect={() => filter(option.value)}
+							on:enter={scrollIntoView({ horizontal: 64 })}
+						>
 							{option.label}
-							{#if $viewSettings.order === option.value}
-								<svelte:component
-									this={$viewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
-									size={20}
-									class="ml-2"
-								/>
-							{/if}
-						</span>
+						</Pill>
+					{/each}
+				</Container>
+			</div>
+			<div class="flex-shrink-0">
+				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+					Display
+				</div>
+				<Container direction="horizontal" class="flex">
+					<Pill
+						selected={$viewSettings.separateRequested}
+						on:clickOrSelect={toggleSeparateRequested}
+						on:enter={scrollIntoView({ horizontal: 64 })}
+					>
+						Group Requested
 					</Pill>
-				{/each}
-			</Container>
+				</Container>
+			</div>
+			<div class="flex-shrink-0">
+				<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+					Sort By
+				</div>
+				<Container direction="horizontal" class="flex space-x-4">
+					{#each SORTS as option (option.value)}
+						<Pill
+							selected={$viewSettings.order === option.value}
+							on:clickOrSelect={() => selectSort(option.value)}
+							on:enter={scrollIntoView({ horizontal: 64 })}
+						>
+							<span class="flex items-center">
+								{option.label}
+								{#if $viewSettings.order === option.value}
+									<svelte:component
+										this={$viewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
+										size={20}
+										class="ml-2"
+									/>
+								{/if}
+							</span>
+						</Pill>
+					{/each}
+				</Container>
+			</div>
 		</Scrollable>
 		<Container
 			focusOnMount={hasFocus || !didMount}

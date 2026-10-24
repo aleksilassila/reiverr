@@ -118,38 +118,48 @@
 		{/if}
 	</div>
 
-	<Scrollable class="flex items-center justify-between space-x-4" fadeWidth={3}>
-		<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
-			{#each MEDIA_TYPES as option (option.value)}
-				<Pill
-					selected={mediaType === option.value}
-					on:clickOrSelect={() => filter(option.value)}
-					on:enter={scrollIntoView({ horizontal: 64 })}
-				>
-					{option.label}
-				</Pill>
-			{/each}
-		</Container>
-		<Container direction="horizontal" class="flex flex-shrink-0 space-x-4">
-			{#each SORTS as option (option.value)}
-				<Pill
-					selected={sort === option.value}
-					on:clickOrSelect={() => selectSort(option.value)}
-					on:enter={scrollIntoView({ horizontal: 64 })}
-				>
-					<span class="flex items-center">
+	<Scrollable class="flex items-end space-x-8" fadeWidth={3}>
+		<div class="flex-shrink-0">
+			<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+				Media Type
+			</div>
+			<Container direction="horizontal" class="flex space-x-4">
+				{#each MEDIA_TYPES as option (option.value)}
+					<Pill
+						selected={mediaType === option.value}
+						on:clickOrSelect={() => filter(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
+					>
 						{option.label}
-						{#if sort === option.value}
-							<svelte:component
-								this={direction === 'desc' ? ArrowDown : ArrowUp}
-								size={20}
-								class="ml-2"
-							/>
-						{/if}
-					</span>
-				</Pill>
-			{/each}
-		</Container>
+					</Pill>
+				{/each}
+			</Container>
+		</div>
+		<div class="flex-shrink-0">
+			<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+				Sort By
+			</div>
+			<Container direction="horizontal" class="flex space-x-4">
+				{#each SORTS as option (option.value)}
+					<Pill
+						selected={sort === option.value}
+						on:clickOrSelect={() => selectSort(option.value)}
+						on:enter={scrollIntoView({ horizontal: 64 })}
+					>
+						<span class="flex items-center">
+							{option.label}
+							{#if sort === option.value}
+								<svelte:component
+									this={direction === 'desc' ? ArrowDown : ArrowUp}
+									size={20}
+									class="ml-2"
+								/>
+							{/if}
+						</span>
+					</Pill>
+				{/each}
+			</Container>
+		</div>
 	</Scrollable>
 
 	{#if $titles.length}
