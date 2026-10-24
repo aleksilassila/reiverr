@@ -94,8 +94,8 @@ export async function createLibraryFixture() {
 
   await request(() =>
     libraryService.updateSettings({
-      movieFolders: [],
-      seriesFolders: [library],
+      movieFolders: {},
+      seriesFolders: { [library]: { primary: true } },
       cleanup: CleanupSchedule.Daily,
       maxDiskUsagePercent: null,
     }),
@@ -135,10 +135,18 @@ export async function createLibraryFixture() {
     return request(() => playback.listSeriesFiles(tmdbId));
   };
 
-  /** Library folders that changed without the service, which forgets nothing */
+  /** Library folders that changed without the service, which forgets nothing; the first is primary */
   const saveFoldersAround = (seriesFolders: string[]) =>
     request(() =>
-      settings.saveValue('library', { movieFolders: [], seriesFolders }),
+      settings.saveValue('library', {
+        movieFolders: {},
+        seriesFolders: Object.fromEntries(
+          seriesFolders.map((folder, index) => [
+            folder,
+            { primary: index === 0 },
+          ]),
+        ),
+      }),
     );
 
   /** A request that has a file, as the fulfilment binds it */

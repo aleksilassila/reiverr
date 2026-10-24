@@ -10,7 +10,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   AdminAccessControl,
@@ -34,6 +39,7 @@ import { User } from '../users/user.entity.js';
 import {
   LibraryEpisodeFileDto,
   LibraryFileDto,
+  LibraryFolderDto,
   LibrarySettingsDto,
   SeriesStatusDto,
   StorageDto,
@@ -47,6 +53,7 @@ import { StatusService } from './status.service.js';
 import { StorageService } from './storage.service.js';
 
 @ApiTags('library')
+@ApiExtraModels(LibraryFolderDto)
 @Controller('library')
 @UseGuards(UserAccessControl)
 export class LibraryController {

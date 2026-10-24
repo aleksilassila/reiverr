@@ -240,8 +240,8 @@ async function createHub() {
   await request(() => settings.saveValue('downloads', { seedRatio: 0 }));
   await request(() =>
     libraryService.updateSettings({
-      movieFolders: [],
-      seriesFolders: [dirs.library],
+      movieFolders: {},
+      seriesFolders: { [dirs.library]: { primary: true } },
       cleanup: CleanupSchedule.Daily,
       maxDiskUsagePercent: null,
     }),
@@ -772,8 +772,8 @@ describe('FulfilmentService', () => {
     const setLimit = (maxDiskUsagePercent: number | null) =>
       request(() =>
         hub.libraryService.updateSettings({
-          movieFolders: [],
-          seriesFolders: [dirs.library],
+          movieFolders: {},
+          seriesFolders: { [dirs.library]: { primary: true } },
           cleanup: CleanupSchedule.Daily,
           maxDiskUsagePercent,
         }),

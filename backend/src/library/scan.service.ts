@@ -26,6 +26,7 @@ import {
   folderMatchesTitle,
   isInsideFolder,
   isVideoFile,
+  libraryFolderPaths,
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
@@ -89,7 +90,10 @@ export class ScanService implements OnModuleInit {
       await this.libraryService.getSettings();
 
     await this.em.fork().transactional(async (tx) => {
-      for (const folder of [...seriesFolders, ...movieFolders]) {
+      for (const folder of [
+        ...libraryFolderPaths(seriesFolders),
+        ...libraryFolderPaths(movieFolders),
+      ]) {
         await this.jobs.enqueue(tx, 'library.scanFolder', { folder });
       }
     });
@@ -120,8 +124,9 @@ export class ScanService implements OnModuleInit {
   async scanTitle(mediaType: MediaType, tmdbId: string): Promise<void> {
     const { movieFolders, seriesFolders } =
       await this.libraryService.getSettings();
-    const folders =
-      mediaType === MediaType.Movie ? movieFolders : seriesFolders;
+    const folders = libraryFolderPaths(
+      mediaType === MediaType.Movie ? movieFolders : seriesFolders,
+    );
     const { match } = await this.libraryService.getTitleMatch(
       mediaType,
       tmdbId,
@@ -247,8 +252,12 @@ export class ScanService implements OnModuleInit {
   private async runFolderScan(folder: string): Promise<void> {
     const { movieFolders, seriesFolders } =
       await this.libraryService.getSettings();
+    const folders = [
+      ...libraryFolderPaths(movieFolders),
+      ...libraryFolderPaths(seriesFolders),
+    ];
     // Removed from the library since the job was queued
-    if (![...movieFolders, ...seriesFolders].includes(folder)) return;
+    if (!folders.includes(folder)) return;
 
     let result: ScanLibraryResultDto;
     try {

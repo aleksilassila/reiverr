@@ -76,8 +76,8 @@ describe('StorageService', () => {
       { findQuotas: async () => [] } as unknown as UsersService,
       {
         getSettings: async () => ({
-          movieFolders: [path.join(root, 'missing')],
-          seriesFolders: [root],
+          movieFolders: { [path.join(root, 'missing')]: { primary: true } },
+          seriesFolders: { [root]: { primary: true } },
           cleanup: CleanupSchedule.Daily,
           maxDiskUsagePercent,
         }),

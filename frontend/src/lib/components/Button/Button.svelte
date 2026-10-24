@@ -13,6 +13,7 @@
 		focusOnMount?: boolean;
 		focusedChild?: boolean;
 		type?: 'primary' | 'secondary' | 'primary-dark';
+		size?: 'md' | 'sm';
 		confirmDanger?: boolean;
 		action?: (() => Promise<any>) | null;
 		secondaryAction?: (() => Promise<any> | any) | null;
@@ -28,6 +29,7 @@
 	export let focusOnMount: Required<$$Props>['focusOnMount'] = false;
 	export let focusedChild: Required<$$Props>['focusedChild'] = false;
 	export let type: Required<$$Props>['type'] = 'primary';
+	export let size: Required<$$Props>['size'] = 'md';
 	export let confirmDanger: Required<$$Props>['confirmDanger'] = false;
 	export let action: Required<$$Props>['action'] = null;
 	export let secondaryAction: Required<$$Props>['secondaryAction'] = null;
@@ -42,6 +44,7 @@
 	let hasFocus: Readable<boolean>;
 	let hasSecondaryFocus: Readable<boolean>;
 	$: if (!$hasFocus && armed) armed = false;
+	$: iconSize = size === 'md' ? 19 : 16;
 
 	function handleClickOrSelect({ detail: selectable }: { detail: Selectable }) {
 		if (actionIsFetching || _disabled) return;
@@ -70,14 +73,24 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'h-12 flex-1 flex items-center group',
-			secondaryAction ? 'rounded-l-xl' : 'rounded-xl',
-			(type === 'primary' || type === 'primary-dark') && (secondaryAction ? 'pl-6 pr-5' : 'px-6'),
+			'flex-1 flex items-center group/button',
+			size === 'md' && 'h-12',
+			size === 'sm' && 'h-9 text-base',
+			size === 'md' && (secondaryAction ? 'rounded-l-xl' : 'rounded-xl'),
+			size === 'sm' && (secondaryAction ? 'rounded-l-lg' : 'rounded-lg'),
+			(type === 'primary' || type === 'primary-dark') &&
+				size === 'md' &&
+				(secondaryAction ? 'pl-6 pr-5' : 'px-6'),
+			(type === 'primary' || type === 'primary-dark') &&
+				size === 'sm' &&
+				(secondaryAction ? 'pl-4 pr-3' : 'px-4'),
 			_disabled ? 'cursor-not-allowed pointer-events-none opacity-40' : 'cursor-pointer',
 			{
 				'bg-secondary-800 selectable': type === 'primary',
 				'bg-primary-900 selectable': type === 'primary-dark',
-				'border-2 p-1 hover:border-primary-500': type === 'secondary',
+				'border-2 hover:border-primary-500': type === 'secondary',
+				'p-1': type === 'secondary' && size === 'md',
+				'p-0.5': type === 'secondary' && size === 'sm',
 				'border-primary-500': type === 'secondary' && $hasFocus,
 				'!border-red-500': confirmDanger && armed
 			}
@@ -93,10 +106,12 @@
 		<div
 			class={classNames({
 				contents: type === 'primary' || type === 'primary-dark',
-				'border-2 border-transparent h-full w-full rounded-lg flex items-center px-6':
-					type === 'secondary',
+				'border-2 border-transparent h-full w-full flex items-center': type === 'secondary',
+				'rounded-lg px-6': type === 'secondary' && size === 'md',
+				'rounded-md px-4': type === 'secondary' && size === 'sm',
 				'bg-primary-500 text-secondary-950': type === 'secondary' && $hasFocus,
-				'group-hover:bg-primary-500 group-hover:text-secondary-950': type === 'secondary',
+				'group-hover/button:bg-primary-500 group-hover/button:text-secondary-950':
+					type === 'secondary',
 				'!bg-red-500': confirmDanger && armed
 			})}
 		>
@@ -108,7 +123,7 @@
 				{/if}
 				{#if icon}
 					<div class="mr-2">
-						<svelte:component this={icon} size={19} />
+						<svelte:component this={icon} size={iconSize} />
 					</div>
 				{/if}
 				<slot {hasFocus} loading={actionIsFetching} />
@@ -119,7 +134,7 @@
 				{/if}
 				{#if iconAfter}
 					<div class="ml-2">
-						<svelte:component this={iconAfter} size={19} />
+						<svelte:component this={iconAfter} size={iconSize} />
 					</div>
 				{/if}
 				{#if $$slots['icon-absolute']}
@@ -130,7 +145,7 @@
 				{#if iconAbsolute}
 					<div class="w-8" />
 					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
-						<svelte:component this={iconAbsolute} size={19} />
+						<svelte:component this={iconAbsolute} size={iconSize} />
 					</div>
 				{/if}
 			</div>
@@ -140,7 +155,9 @@
 		<div class="w-0.5 h-full bg-secondary-700" />
 		<Container
 			bind:hasFocus={hasSecondaryFocus}
-			class={classNames('rounded-r-xl h-12 flex items-center group cursor-pointer', {
+			class={classNames('flex items-center group cursor-pointer', {
+				'rounded-r-xl h-12': size === 'md',
+				'rounded-r-lg h-9': size === 'sm',
 				'bg-secondary-800 selectable pl-2 pr-2': type === 'primary',
 				'bg-primary-900 selectable pl-2 pr-2': type === 'primary-dark',
 				'border-2 p-1 hover:border-primary-500 cursor-pointer': type === 'secondary' && !_disabled,

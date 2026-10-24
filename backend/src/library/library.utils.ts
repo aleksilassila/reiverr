@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
+import type { LibraryFolderDto } from './library.dto.js';
 import { MediaFile } from './media-file.entity.js';
 
 const VIDEO_EXTENSIONS = new Set([
@@ -231,6 +232,28 @@ export function episodeFileName(
     `S${pad(season)}E${pad(first)}` + (last > first ? `-E${pad(last)}` : '');
 
   return `${sanitizeFileName(name)} - ${numbering} - ${label}${extension.toLowerCase()}`;
+}
+
+/**
+ * The paths of the folders of a type, the primary first: the order their
+ * title folders and the versions of an episode are looked at in
+ */
+export function libraryFolderPaths(
+  folders: Record<string, LibraryFolderDto>,
+): string[] {
+  const paths = Object.keys(folders);
+
+  return [
+    ...paths.filter((folder) => folders[folder].primary),
+    ...paths.filter((folder) => !folders[folder].primary),
+  ];
+}
+
+/** The folder of a type that new titles are imported into */
+export function primaryLibraryFolder(
+  folders: Record<string, LibraryFolderDto>,
+): string | undefined {
+  return Object.keys(folders).find((folder) => folders[folder].primary);
 }
 
 export function isInsideFolder(filePath: string, folder: string): boolean {

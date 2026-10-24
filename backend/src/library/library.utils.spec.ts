@@ -2,10 +2,12 @@ import {
   episodeFileName,
   folderMatchesTitle,
   isInsideFolder,
+  libraryFolderPaths,
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
   parseSubtitleName,
+  primaryLibraryFolder,
   seasonFolderName,
   seriesFolderName,
   srtToWebVtt,
@@ -157,6 +159,21 @@ describe('isInsideFolder', () => {
       false,
     );
     expect(isInsideFolder('/media/moviesx/a.mkv', '/media/movies')).toBe(false);
+  });
+});
+
+describe('libraryFolderPaths', () => {
+  it('puts the primary folder first', () => {
+    const folders = {
+      '/tv': { primary: false },
+      '/anime': { primary: true },
+      '/kids': { primary: false },
+    };
+
+    expect(libraryFolderPaths(folders)).toEqual(['/anime', '/tv', '/kids']);
+    expect(primaryLibraryFolder(folders)).toBe('/anime');
+    expect(libraryFolderPaths({})).toEqual([]);
+    expect(primaryLibraryFolder({})).toBeUndefined();
   });
 });
 

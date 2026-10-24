@@ -323,8 +323,8 @@ describe('Series downloads (e2e)', () => {
 
     await api('put', '/library/settings')
       .send({
-        movieFolders: [],
-        seriesFolders: [dirs.library],
+        movieFolders: {},
+        seriesFolders: { [dirs.library]: { primary: true } },
         cleanup: 'daily',
       })
       .expect(200);
@@ -998,7 +998,11 @@ describe('Series downloads (e2e)', () => {
   it('deletes the imported files that no request holds at a cleanup', async () => {
     const setCleanup = (cleanup: string, status = 200) =>
       api('put', '/library/settings')
-        .send({ movieFolders: [], seriesFolders: [dirs.library], cleanup })
+        .send({
+          movieFolders: {},
+          seriesFolders: { [dirs.library]: { primary: true } },
+          cleanup,
+        })
         .expect(status);
     const cleanedUp = async (user = admin) =>
       (await getStatus(user)).episodes.map((e) => [
@@ -1291,8 +1295,8 @@ describe('Series downloads (e2e)', () => {
     const setLimit = (maxDiskUsagePercent: number | null) =>
       api('put', '/library/settings')
         .send({
-          movieFolders: [],
-          seriesFolders: [dirs.library],
+          movieFolders: {},
+          seriesFolders: { [dirs.library]: { primary: true } },
           cleanup: 'daily',
           maxDiskUsagePercent,
         })

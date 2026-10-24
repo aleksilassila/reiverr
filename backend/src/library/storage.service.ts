@@ -1,6 +1,5 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { statfs } from 'node:fs/promises';
 import {
   Letter,
   MediaType,
@@ -10,6 +9,7 @@ import {
   PaginationDto,
 } from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
+import { measureDisk } from './disk.utils.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -22,6 +22,7 @@ import {
   TitleUsageSort,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
+import { libraryFolderPaths } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 
@@ -216,26 +217,15 @@ export class StorageService {
   ): Promise<DiskUsageDto[]> {
     const paths = new Set([
       DOWNLOADS_DIR,
-      ...settings.seriesFolders,
-      ...settings.movieFolders,
+      ...libraryFolderPaths(settings.seriesFolders),
+      ...libraryFolderPaths(settings.movieFolders),
     ]);
 
     const disks: DiskUsageDto[] = [];
     for (const path of paths) {
       // A path that cannot be measured, as one that is not there, is left out
-      const stats = await statfs(path).catch(() => undefined);
-      if (!stats) continue;
-
-      // The percent is of what the server can use: the blocks reserved for root are left out
-      const usedBytes = (stats.blocks - stats.bfree) * stats.bsize;
-      const availableBytes = stats.bavail * stats.bsize;
-      const usableBytes = usedBytes + availableBytes;
-      disks.push({
-        path,
-        totalBytes: stats.blocks * stats.bsize,
-        freeBytes: availableBytes,
-        usedPercent: usableBytes > 0 ? (usedBytes / usableBytes) * 100 : 0,
-      });
+      const disk = await measureDisk(path);
+      if (disk) disks.push(disk);
     }
 
     return disks;

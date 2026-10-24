@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, statSync } from 'node:fs';
 import * as path from 'node:path';
 import {
   createLibraryFixture,
@@ -7,6 +7,7 @@ import {
   TMDB_ID,
 } from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
+import { CleanupSchedule } from './library.dto.js';
 import { PlaybackService } from './playback.service.js';
 import { ScanService } from './scan.service.js';
 
@@ -81,5 +82,35 @@ describe('ImportService', () => {
     expect(await indexed()).toMatchObject([
       { managed: true, infoHash: INFO_HASH, episode: 2, lastEpisode: 3 },
     ]);
+  });
+
+  it('imports into the folder of the series, else into the primary folder', async () => {
+    const other = path.join(fixture.root, 'other');
+    mkdirSync(other);
+    const setPrimary = (primary: string) =>
+      request(() =>
+        fixture.libraryService.updateSettings({
+          movieFolders: {},
+          seriesFolders: {
+            [folder]: { primary: primary === folder },
+            [other]: { primary: primary === other },
+          },
+          cleanup: CleanupSchedule.Daily,
+          maxDiskUsagePercent: null,
+        }),
+      );
+
+    await setPrimary(other);
+    const first = await importEpisode(write('downloads/S01E01.mkv'), [1]);
+    expect(path.relative(other, first)).toBe(
+      'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E01 - a1b2c3d4.mkv',
+    );
+
+    // The series has its folder now, in a folder that is not the primary
+    await setPrimary(folder);
+    const second = await importEpisode(write('downloads/S01E02.mkv'), [2]);
+    expect(path.relative(other, second)).toBe(
+      'Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E02 - a1b2c3d4.mkv',
+    );
   });
 });

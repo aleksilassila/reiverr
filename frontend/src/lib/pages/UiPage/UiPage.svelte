@@ -7,6 +7,7 @@
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
+	import FolderPickerDialog from '$lib/components/Dialog/FolderPickerDialog.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import IconToggle from '$lib/components/IconToggle.svelte';
@@ -259,6 +260,15 @@
 			<IconToggle icon={Bookmark} on:clickOrSelect={() => createInfoNotification('Icon toggle')} />
 			<PlayButton on:click={() => createInfoNotification('Play button', 'Mouse only')} />
 		</Container>
+		<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
+			<Button size="sm">Small</Button>
+			<Button size="sm" type="secondary">Small secondary</Button>
+			<Button size="sm" type="primary-dark">Small primary dark</Button>
+			<Button size="sm" icon={Plus}>Small icon</Button>
+			<Button size="sm" secondaryAction={() => createInfoNotification('Secondary action')}>
+				Small secondary action
+			</Button>
+		</Container>
 	</section>
 
 	<section class="space-y-8">
@@ -495,6 +505,16 @@
 				Confirm dialog
 			</Button>
 			<Button on:clickOrSelect={openSelectDialog}>Select dialog</Button>
+			<Button
+				on:clickOrSelect={() =>
+					createModal(FolderPickerDialog, {
+						title: 'Folder picker',
+						disabled: { '/tmp': 'Series folder' },
+						onSelect: wait
+					})}
+			>
+				Folder picker
+			</Button>
 			<Button on:clickOrSelect={() => createModal(UiSheet, {})}>Sheet</Button>
 			<Button
 				on:clickOrSelect={() =>
@@ -597,6 +617,7 @@
 				<Button type="secondary">Secondary</Button>
 				<Button type="primary-dark">Primary dark</Button>
 				<Button disabled>Disabled</Button>
+				<Button size="sm" type="secondary">Small</Button>
 				<IconButton on:clickOrSelect={() => createInfoNotification('Icon button')}>
 					<Heart size={24} />
 				</IconButton>

@@ -7,7 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AdminAccessControl, GetAuthUser } from '../auth/auth.guard.js';
 import {
   CleanupPreviewDto,
@@ -18,6 +18,7 @@ import {
 import { User } from '../users/user.entity.js';
 import {
   DeleteLibraryEntriesDto,
+  DirectoryListingDto,
   LibraryEntriesDto,
   ManageLibraryEntriesResultDto,
   RequestLibraryEntriesResultDto,
@@ -31,6 +32,17 @@ import { ServerService } from './server.service.js';
 @UseGuards(AdminAccessControl)
 export class ServerController {
   constructor(private readonly serverService: ServerService) {}
+
+  @Get('directories')
+  @ApiQuery({ name: 'path', description: 'An absolute path' })
+  @ApiOkResponse({
+    type: DirectoryListingDto,
+    description:
+      'The directories in a directory, one level of the filesystem for picking a library folder',
+  })
+  getDirectories(@Query('path') path: string): Promise<DirectoryListingDto> {
+    return this.serverService.listDirectory(path);
+  }
 
   @Get('library')
   @ApiOkResponse({

@@ -12,6 +12,7 @@ import { LibraryService } from './library.service.js';
 import {
   isInsideFolder,
   isSubtitleFile,
+  libraryFolderPaths,
   parseEpisodeNumbers,
   parseSubtitleName,
   srtToWebVtt,
@@ -111,12 +112,13 @@ export class PlaybackService {
   /** The indexed files of a title that are files in a library folder, and whether any is not */
   private async statIndexedFiles(mediaType: MediaType, tmdbId: string) {
     const settings = await this.libraryService.getSettings();
-    const folders =
+    const folders = libraryFolderPaths(
       mediaType === MediaType.Movie
         ? settings.movieFolders
-        : settings.seriesFolders;
-    // In the order of the library folders, which decides the version that
-    // plays first, and by path within one
+        : settings.seriesFolders,
+    );
+    // In the order of the library folders, the primary first, which decides
+    // the version that plays first, and by path within one
     const folderOf = (file: MediaFile) =>
       folders.findIndex((folder) => isInsideFolder(file.path, folder));
     const indexed = (
@@ -206,9 +208,10 @@ export class PlaybackService {
     const { movieFolders, seriesFolders } =
       await this.libraryService.getSettings();
 
-    const isInLibrary = [...movieFolders, ...seriesFolders].some((folder) =>
-      isInsideFolder(filePath, folder),
-    );
+    const isInLibrary = [
+      ...libraryFolderPaths(movieFolders),
+      ...libraryFolderPaths(seriesFolders),
+    ].some((folder) => isInsideFolder(filePath, folder));
     const stats = isInLibrary
       ? await fs.stat(filePath).catch(() => undefined)
       : undefined;

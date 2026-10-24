@@ -22,12 +22,14 @@ import {
 import {
   CleanupSchedule,
   LibraryEntryDto,
+  LibraryFolderDto,
   LibrarySettingsDto,
 } from './library.dto.js';
 import {
   describeError,
   folderMatchesTitle,
   isInsideFolder,
+  libraryFolderPaths,
   TitleMatch,
   normalizeTitle,
   parseMediaFolderName,
@@ -40,8 +42,8 @@ import { RequestBinding } from './request-binding.entity.js';
 const SETTINGS_KEY = 'library';
 
 const DEFAULT_SETTINGS: LibrarySettingsDto = {
-  movieFolders: [],
-  seriesFolders: [],
+  movieFolders: {},
+  seriesFolders: {},
   cleanup: CleanupSchedule.Daily,
   maxDiskUsagePercent: null,
 };
@@ -118,17 +120,32 @@ export class LibraryService {
       );
     }
     const value: LibrarySettingsDto = {
-      movieFolders: await this.validateFolders(settings.movieFolders),
-      seriesFolders: await this.validateFolders(settings.seriesFolders),
+      movieFolders: await this.validateFolders(settings.movieFolders, 'movie'),
+      seriesFolders: await this.validateFolders(
+        settings.seriesFolders,
+        'series',
+      ),
       cleanup: settings.cleanup,
       maxDiskUsagePercent,
     };
+    const shared = libraryFolderPaths(value.movieFolders).find(
+      (folder) => folder in value.seriesFolders,
+    );
+    if (shared) {
+      throw new BadRequestException(
+        `A folder cannot hold both movies and series: ${shared}`,
+      );
+    }
 
     const current = await this.getSettings();
-    const kept = [...value.movieFolders, ...value.seriesFolders];
-    const removed = [...current.movieFolders, ...current.seriesFolders].filter(
-      (folder) => !kept.includes(folder),
-    );
+    const kept = [
+      ...libraryFolderPaths(value.movieFolders),
+      ...libraryFolderPaths(value.seriesFolders),
+    ];
+    const removed = [
+      ...libraryFolderPaths(current.movieFolders),
+      ...libraryFolderPaths(current.seriesFolders),
+    ].filter((folder) => !kept.includes(folder));
     // A folder inside a removed one can stay
     const forgotten = [
       ...new Map(
@@ -162,34 +179,60 @@ export class LibraryService {
     return saved;
   }
 
-  private async validateFolders(folders: unknown): Promise<string[]> {
+  /** The folders of a type by their resolved paths, exactly one of them primary when there are any */
+  private async validateFolders(
+    folders: unknown,
+    kind: 'movie' | 'series',
+  ): Promise<Record<string, LibraryFolderDto>> {
     if (
-      !Array.isArray(folders) ||
-      folders.some((folder) => typeof folder !== 'string' || !folder)
+      typeof folders !== 'object' ||
+      folders === null ||
+      Array.isArray(folders) ||
+      Object.values(folders).some(
+        (folder) => typeof folder?.primary !== 'boolean',
+      )
     ) {
-      throw new BadRequestException('Folders must be a list of paths');
+      throw new BadRequestException(
+        `${kind}Folders must map paths to { primary: boolean }`,
+      );
+    }
+    const entries = Object.entries(folders as Record<string, LibraryFolderDto>);
+    if (
+      entries.length &&
+      entries.filter(([, folder]) => folder.primary).length !== 1
+    ) {
+      throw new BadRequestException(
+        `Exactly one ${kind} folder must be primary`,
+      );
     }
 
-    return Promise.all(
-      folders.map(async (folder: string) => {
-        const resolved = path.resolve(folder);
-        const stats = await fs.stat(resolved).catch(() => undefined);
+    const resolved: Record<string, LibraryFolderDto> = {};
+    for (const [folder, { primary }] of entries) {
+      if (!folder) throw new BadRequestException('A folder path is empty');
+      const resolvedPath = path.resolve(folder);
+      const stats = await fs.stat(resolvedPath).catch(() => undefined);
+      if (!stats?.isDirectory()) {
+        throw new BadRequestException(`Not a directory: ${folder}`);
+      }
+      if (resolvedPath in resolved) {
+        throw new BadRequestException(`Listed twice: ${folder}`);
+      }
+      resolved[resolvedPath] = { primary };
+    }
 
-        if (!stats?.isDirectory()) {
-          throw new BadRequestException(`Not a directory: ${folder}`);
-        }
-
-        return resolved;
-      }),
-    );
+    return resolved;
   }
 
   /** What a library folder holds, movies or series */
   async getLibraryFolderType(folder: string): Promise<MediaType> {
     const { movieFolders, seriesFolders } = await this.getSettings();
 
-    if (seriesFolders.includes(folder)) return MediaType.Series;
-    if (movieFolders.includes(folder)) return MediaType.Movie;
+    if (libraryFolderPaths(seriesFolders).includes(folder)) {
+      return MediaType.Series;
+    }
+    if (libraryFolderPaths(movieFolders).includes(folder)) {
+      return MediaType.Movie;
+    }
     throw new BadRequestException('Not a library folder');
   }
 

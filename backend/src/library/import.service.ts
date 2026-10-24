@@ -7,6 +7,8 @@ import { MediaType } from '../common/common.dto.js';
 import { LibraryService } from './library.service.js';
 import {
   episodeFileName,
+  libraryFolderPaths,
+  primaryLibraryFolder,
   seasonFolderName,
   seriesFolderName,
 } from './library.utils.js';
@@ -163,7 +165,7 @@ export class ImportService {
     return version?.path;
   }
 
-  /** The Jellyfin naming, under the title folder of the series or a new one */
+  /** The Jellyfin naming, under the title folder of the series or a new one in the primary folder */
   private async getImportPath(target: ImportTarget): Promise<string> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = target;
     const { name, match } = await this.libraryService.getTitleMatch(
@@ -171,17 +173,18 @@ export class ImportService {
       tmdbId,
     );
     const { seriesFolders } = await this.libraryService.getSettings();
-    if (!seriesFolders.length) {
+    const primaryFolder = primaryLibraryFolder(seriesFolders);
+    if (!primaryFolder) {
       throw new Error('No series folder is configured');
     }
 
     const [titleFolder] = await this.libraryService.findTitleFolders(
-      seriesFolders,
+      libraryFolderPaths(seriesFolders),
       match,
     );
     return path.join(
       titleFolder ??
-        path.join(seriesFolders[0], seriesFolderName(name, match.year, tmdbId)),
+        path.join(primaryFolder, seriesFolderName(name, match.year, tmdbId)),
       seasonFolderName(season),
       episodeFileName(
         name,

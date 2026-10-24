@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { LibraryFolderDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button/Button.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
@@ -60,6 +61,11 @@
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 	const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+	// The primary folder first, as the server orders them
+	const folderPaths = (folders: Record<string, LibraryFolderDto>) => [
+		...Object.keys(folders).filter((path) => folders[path]?.primary),
+		...Object.keys(folders).filter((path) => !folders[path]?.primary)
+	];
 	const observer = useInteractionObserver(() => (limit += ROWS));
 
 	/** Directories stay expanded when the folder they are in is loaded again */
@@ -312,8 +318,8 @@
 	reiverrApi.library
 		.getLibrarySettings()
 		.then(({ data }) => {
-			folders = [...data.seriesFolders, ...data.movieFolders];
-			seriesFolders = data.seriesFolders;
+			folders = [...folderPaths(data.seriesFolders), ...folderPaths(data.movieFolders)];
+			seriesFolders = folderPaths(data.seriesFolders);
 
 			const first = folders[0];
 			if (first) return load(first);

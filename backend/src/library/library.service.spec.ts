@@ -60,8 +60,8 @@ describe('LibraryService', () => {
       request(() =>
         library.updateSettings(
           {
-            movieFolders: [],
-            seriesFolders: [other],
+            movieFolders: {},
+            seriesFolders: { [other]: { primary: true } },
             cleanup: CleanupSchedule.Daily,
             maxDiskUsagePercent: null,
           },
@@ -74,6 +74,54 @@ describe('LibraryService', () => {
 
     await move(true);
     expect(await indexed()).toEqual([]);
+  });
+
+  it('keeps the folders by their resolved paths, exactly one of them primary', async () => {
+    const other = path.join(root, 'other');
+    mkdirSync(other);
+    const save = (seriesFolders: Record<string, { primary: boolean }>) =>
+      request(() =>
+        library.updateSettings({
+          movieFolders: {},
+          seriesFolders,
+          cleanup: CleanupSchedule.Daily,
+          maxDiskUsagePercent: null,
+        }),
+      );
+
+    await expect(
+      save({ [folder]: { primary: true }, [other]: { primary: true } }),
+    ).rejects.toThrow('Exactly one series folder must be primary');
+    await expect(
+      save({ [folder]: { primary: false }, [other]: { primary: false } }),
+    ).rejects.toThrow('Exactly one series folder must be primary');
+    await expect(
+      save({ [folder]: { primary: true }, [`${folder}/`]: { primary: false } }),
+    ).rejects.toThrow('Listed twice');
+    await expect(
+      save({ [path.join(root, 'missing')]: { primary: true } }),
+    ).rejects.toThrow('Not a directory');
+
+    await expect(
+      request(() =>
+        library.updateSettings({
+          movieFolders: { [other]: { primary: true } },
+          seriesFolders: { [other]: { primary: true } },
+          cleanup: CleanupSchedule.Daily,
+          maxDiskUsagePercent: null,
+        }),
+      ),
+    ).rejects.toThrow('A folder cannot hold both movies and series');
+
+    const saved = await save({
+      [`${other}/`]: { primary: true },
+      [folder]: { primary: false },
+    });
+    expect(saved.seriesFolders).toEqual({
+      [other]: { primary: true },
+      [folder]: { primary: false },
+    });
+    expect((await save({})).seriesFolders).toEqual({});
   });
 
   describe('a library folder that is not available', () => {

@@ -38,8 +38,11 @@ describe('ScanService', () => {
     it('queues a scan of every library folder, once until it runs', async () => {
       const library = {
         getSettings: async () => ({
-          movieFolders: ['/movies'],
-          seriesFolders: ['/tv', '/anime'],
+          movieFolders: { '/movies': { primary: true } },
+          seriesFolders: {
+            '/tv': { primary: true },
+            '/anime': { primary: false },
+          },
         }),
       };
       const scan = new ScanService(

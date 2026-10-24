@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { TorrentDto } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
@@ -14,12 +14,29 @@ export enum CleanupSchedule {
   Monthly = 'monthly',
 }
 
-export class LibrarySettingsDto {
-  @ApiProperty({ type: [String] })
-  movieFolders: string[];
+/** A library folder, keyed by its path in the settings */
+export class LibraryFolderDto {
+  @ApiProperty({
+    description:
+      'Whether new titles are imported into the folder. Exactly one folder of each type is primary, when there are any',
+  })
+  primary: boolean;
+}
 
-  @ApiProperty({ type: [String] })
-  seriesFolders: string[];
+export class LibrarySettingsDto {
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { $ref: getSchemaPath(LibraryFolderDto) },
+    description: 'The movie folders by their paths',
+  })
+  movieFolders: Record<string, LibraryFolderDto>;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { $ref: getSchemaPath(LibraryFolderDto) },
+    description: 'The series folders by their paths',
+  })
+  seriesFolders: Record<string, LibraryFolderDto>;
 
   @ApiProperty({
     enum: CleanupSchedule,

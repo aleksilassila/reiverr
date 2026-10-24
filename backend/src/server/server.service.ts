@@ -1,5 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import * as path from 'path';
 import { DeletionService } from '../library/deletion.service.js';
+import {
+  isDirectory,
+  measureDisk,
+  readDirectory,
+} from '../library/disk.utils.js';
 import { FulfilmentService } from '../library/fulfilment.service.js';
 import {
   CleanupPreviewDto,
@@ -8,10 +14,13 @@ import {
   ScanLibraryResultDto,
 } from '../library/library.dto.js';
 import { LibraryService } from '../library/library.service.js';
+import { describeError } from '../library/library.utils.js';
 import { ScanService } from '../library/scan.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { User } from '../users/user.entity.js';
 import {
+  DirectoryEntryDto,
+  DirectoryListingDto,
   ManageLibraryEntriesResultDto,
   RequestLibraryEntriesResultDto,
   ServerLibraryEntryDto,
@@ -38,6 +47,37 @@ export class ServerService {
         ? (requests.get(entry.mediaFileId) ?? 0)
         : undefined,
     }));
+  }
+
+  /** The directories in a directory: one level of the filesystem, for picking a library folder */
+  async listDirectory(requested: string): Promise<DirectoryListingDto> {
+    if (typeof requested !== 'string' || !requested) {
+      throw new BadRequestException('path is required');
+    }
+    const dir = path.resolve(requested);
+    const dirents = await readDirectory(dir).catch((error) => {
+      throw new BadRequestException(
+        `Cannot read "${dir}": ${describeError(error)}`,
+      );
+    });
+
+    const entries: DirectoryEntryDto[] = [];
+    for (const entry of dirents) {
+      if (!(await isDirectory(entry, dir))) continue;
+      entries.push({
+        name: entry.name,
+        path: path.join(dir, entry.name),
+        isSymbolicLink: entry.isSymbolicLink(),
+      });
+    }
+    const parent = path.dirname(dir);
+
+    return {
+      path: dir,
+      parent: parent === dir ? null : parent,
+      disk: await measureDisk(dir),
+      entries,
+    };
   }
 
   async previewLibraryScan(folder: string): Promise<LibraryScanPreviewDto> {

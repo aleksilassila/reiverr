@@ -1364,9 +1364,16 @@ export interface UpdateMediaRequestDto {
   approved: boolean;
 }
 
+export interface LibraryFolderDto {
+  /** Whether new titles are imported into the folder. Exactly one folder of each type is primary, when there are any */
+  primary: boolean;
+}
+
 export interface LibrarySettingsDto {
-  movieFolders: string[];
-  seriesFolders: string[];
+  /** The movie folders by their paths */
+  movieFolders: Record<string, LibraryFolderDto>;
+  /** The series folders by their paths */
+  seriesFolders: Record<string, LibraryFolderDto>;
   /** When the managed files that no request holds are deleted: at 4 in the morning every day, on Mondays or on the first of the month */
   cleanup: "off" | "daily" | "weekly" | "monthly";
   /** The share of a disk, in percent, at which nothing more is downloaded for anyone, measured over the download directory and the library folders. Null for no limit */
@@ -1726,6 +1733,25 @@ export interface ServerLogSettingsDto {
   maxEntries: number;
   /** Entries older than this many days are deleted. 0 keeps them whatever their age. */
   maxAgeDays: number;
+}
+
+export interface DirectoryEntryDto {
+  name: string;
+  /** The absolute path */
+  path: string;
+  /** A link that leads to a directory */
+  isSymbolicLink: boolean;
+}
+
+export interface DirectoryListingDto {
+  /** The resolved absolute path */
+  path: string;
+  /** The directory above; null at the root */
+  parent: string | null;
+  /** The disk the directory is on, when it can be measured */
+  disk?: DiskUsageDto;
+  /** The directories in it, hidden ones left out */
+  entries: DirectoryEntryDto[];
 }
 
 export interface ServerLibraryEntryDto {
@@ -2746,11 +2772,6 @@ export class Api<
       userId: string,
       query?: {
         mediaType?: "movie" | "series";
-        sort?: "size" | "name" | "fulfilled";
-        /** Without it, the direction natural to the sort */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -2780,6 +2801,11 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        sort?: "size" | "name" | "fulfilled";
+        /** Without it, the direction natural to the sort */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -2937,6 +2963,28 @@ export class Api<
       this.request<void, any>({
         path: `/api/server/jobs/${id}`,
         method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags server
+     * @name GetDirectories
+     * @request GET:/api/server/directories
+     */
+    getDirectories: (
+      query: {
+        /** An absolute path */
+        path: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<DirectoryListingDto, any>({
+        path: `/api/server/directories`,
+        method: "GET",
+        query: query,
+        format: "json",
         ...params,
       }),
 
@@ -3293,15 +3341,6 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "requested" | "unrequested";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3331,6 +3370,15 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3358,16 +3406,6 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "upcoming" | "unwatched" | "watched" | "continue-watching";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date"
-          | "last-played";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3397,6 +3435,16 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>

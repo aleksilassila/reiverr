@@ -1,5 +1,42 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { LibraryEntryDto } from '../library/library.dto.js';
+import { DiskUsageDto, LibraryEntryDto } from '../library/library.dto.js';
+
+export class DirectoryEntryDto {
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty({ description: 'The absolute path' })
+  path: string;
+
+  @ApiProperty({ description: 'A link that leads to a directory' })
+  isSymbolicLink: boolean;
+}
+
+/** One level of the filesystem, for picking a folder */
+export class DirectoryListingDto {
+  @ApiProperty({ description: 'The resolved absolute path' })
+  path: string;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    description: 'The directory above; null at the root',
+  })
+  parent: string | null;
+
+  @ApiProperty({
+    type: DiskUsageDto,
+    required: false,
+    description: 'The disk the directory is on, when it can be measured',
+  })
+  disk?: DiskUsageDto;
+
+  @ApiProperty({
+    type: [DirectoryEntryDto],
+    description: 'The directories in it, hidden ones left out',
+  })
+  entries: DirectoryEntryDto[];
+}
 
 export class ServerLibraryEntryDto extends LibraryEntryDto {
   @ApiProperty({

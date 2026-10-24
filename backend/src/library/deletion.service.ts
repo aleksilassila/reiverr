@@ -21,6 +21,7 @@ import { LibraryService } from './library.service.js';
 import {
   describeError,
   isInsideFolder,
+  libraryFolderPaths,
   relativePath,
 } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
@@ -187,9 +188,10 @@ export class DeletionService implements OnModuleInit {
 
     const { movieFolders, seriesFolders } =
       await this.libraryService.getSettings();
-    const libraryFolder = [...movieFolders, ...seriesFolders].find((folder) =>
-      isInsideFolder(file.path, folder),
-    );
+    const libraryFolder = [
+      ...libraryFolderPaths(movieFolders),
+      ...libraryFolderPaths(seriesFolders),
+    ].find((folder) => isInsideFolder(file.path, folder));
 
     const stats = await fs.stat(file.path).catch(() => undefined);
     if (!stats) {
