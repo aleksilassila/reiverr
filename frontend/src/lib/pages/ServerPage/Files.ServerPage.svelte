@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LibraryFolderDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Button from '$lib/components/Button/Button.svelte';
+	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import ConfirmDialog from '$lib/components/Dialog/ConfirmDialog.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
@@ -10,7 +11,7 @@
 		createInfoNotification
 	} from '$lib/components/Notifications/notification.store';
 	import SelectField from '$lib/components/SelectField.svelte';
-	import type { Selectable } from '$lib/selectable';
+	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { reiverrApi } from '$lib/stores/user.store';
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
@@ -342,23 +343,39 @@
 			Library folder
 			<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
 		</SelectField>
-		<Container direction="horizontal" class="flex items-center justify-between space-x-8">
-			<Container direction="horizontal" class="flex items-center space-x-4">
-				<Button iconAfter={ChevronDown} disabled={!folder} on:clickOrSelect={selectOrder}>
+		<Scrollable class="flex items-center justify-between space-x-8" fadeWidth={3}>
+			<Container direction="horizontal" class="flex-shrink-0 flex items-center space-x-4">
+				<Button
+					iconAfter={ChevronDown}
+					disabled={!folder}
+					on:clickOrSelect={selectOrder}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					Sort by {orderLabel}
 				</Button>
-				<Button icon={Reload} disabled={!folder || isScanning} on:clickOrSelect={confirmScan}>
+				<Button
+					icon={Reload}
+					disabled={!folder || isScanning}
+					on:clickOrSelect={confirmScan}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					{isScanning ? 'Scanning...' : 'Scan library'}
 				</Button>
-				<Button icon={Trash} disabled={!folders.length} on:clickOrSelect={confirmCleanup}>
+				<Button
+					icon={Trash}
+					disabled={!folders.length}
+					on:clickOrSelect={confirmCleanup}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					Delete unretained{unretained ? ` (${unretained})` : ''}
 				</Button>
 			</Container>
-			<Container direction="horizontal" class="flex items-center space-x-4">
+			<Container direction="horizontal" class="flex-shrink-0 flex items-center space-x-4">
 				<Button
 					icon={Bookmark}
 					disabled={!isSeriesFolder || !selection.indexedFiles}
 					on:clickOrSelect={confirmRequest}
+					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
 					Request
 				</Button>
@@ -366,18 +383,29 @@
 					icon={Archive}
 					disabled={!isSeriesFolder || selection.indexedFiles === selection.managedFiles}
 					on:clickOrSelect={confirmManage}
+					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
 					Set managed
 				</Button>
-				<Button icon={Cross2} disabled={!selection.managedFiles} action={() => setManaged(false)}>
+				<Button
+					icon={Cross2}
+					disabled={!selection.managedFiles}
+					action={() => setManaged(false)}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					Set external
 				</Button>
-				<Button icon={Trash} disabled={!checked.size} on:clickOrSelect={confirmDelete}>
+				<Button
+					icon={Trash}
+					disabled={!checked.size}
+					on:clickOrSelect={confirmDelete}
+					on:enter={scrollIntoView({ horizontal: 64 })}
+				>
 					Delete {count(selection.files, 'file', 'files')}
 					{#if checked.size}({formatSize(selection.size)}){/if}
 				</Button>
 			</Container>
-		</Container>
+		</Scrollable>
 	</Container>
 
 	<!-- The list is mounted together with its first rows: rows that are added one by one to an
