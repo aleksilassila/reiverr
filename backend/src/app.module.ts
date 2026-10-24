@@ -14,6 +14,7 @@ import { IndexersModule } from './indexers/indexers.module.js';
 import { DownloadsModule } from './downloads/downloads.module.js';
 import { ServerLogModule } from './server-log/server-log.module.js';
 import { ServerModule } from './server/server.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     DownloadsModule,
     ServerLogModule,
     ServerModule,
+    CatalogModule,
   ],
 })
 export class AppModule implements NestModule {

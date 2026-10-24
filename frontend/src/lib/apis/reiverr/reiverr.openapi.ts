@@ -1491,23 +1491,6 @@ export interface TitleUsageDto {
   rule?: RequestRuleDto;
 }
 
-export interface LibraryTitleDto {
-  mediaType: "movie" | "series";
-  tmdbId: string;
-  tmdbItem: TmdbItemDto;
-  /** Whether the user has a request for the title */
-  requested: boolean;
-  /** The episodes of the title that have a file; 1 for a movie */
-  available: number;
-  /**
-   * When the next cleanup deletes every file of the title, because all are managed and no request of anyone holds one; absent otherwise, and while the cleanup is off
-   * @format date-time
-   */
-  cleanupAt?: string;
-  /** The play state of the title that the user played last */
-  lastPlayState?: PlayStateDto;
-}
-
 export interface SubtitleFileDto {
   fileName: string;
   /** Language code from the file name */
@@ -1837,6 +1820,23 @@ export interface DeleteLibraryEntriesResultDto {
   failed: FailedLibraryEntryDto[];
 }
 
+export interface CatalogTitleDto {
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** Whether the user has a request for the title */
+  requested: boolean;
+  /** The episodes of the title that have a file; 1 for a movie with a file */
+  available: number;
+  /**
+   * When the next cleanup deletes every file of the title, because all are managed and no request of anyone holds one; absent otherwise, and while the cleanup is off
+   * @format date-time
+   */
+  cleanupAt?: string;
+  /** The play state of the title that the user played last */
+  lastPlayState?: PlayStateDto;
+}
+
 export interface UpdatePlayStateDto {
   season?: number;
   episode?: number;
@@ -1855,15 +1855,6 @@ export interface UpdatePlayStateDto {
 
 export interface BulkUpdatePlayStateDto {
   playStates: UpdatePlayStateDto[];
-}
-
-export interface MyListItemDto {
-  tmdbId: string;
-  mediaType: "movie" | "series";
-  playStates?: PlayStateDto[];
-  tmdbItem: TmdbItemDto;
-  lastPlayState?: PlayStateDto;
-  watched?: boolean;
 }
 
 import type {
@@ -2780,42 +2771,6 @@ export class Api<
      * No description
      *
      * @tags library
-     * @name GetTitles
-     * @request GET:/api/library/titles
-     */
-    getTitles: (
-      query?: {
-        mediaType?: "movie" | "series";
-        status?: "requested" | "unrequested";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: LibraryTitleDto[];
-        },
-        any
-      >({
-        path: `/api/library/titles`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags library
      * @name GetMovieFiles
      * @request GET:/api/library/movies/{tmdbId}
      */
@@ -3297,30 +3252,24 @@ export class Api<
         ...params,
       }),
   };
-  myList = {
+  catalog = {
     /**
      * No description
      *
-     * @tags myList
-     * @name GetMyList
-     * @request GET:/api/users/{userId}/my-list
+     * @tags catalog
+     * @name GetLibrary
+     * @request GET:/api/catalog/library
      */
-    getMyList: (
-      userId: string,
+    getLibrary: (
       query?: {
-        status?:
-          | "all"
-          | "upcoming"
-          | "unwatched"
-          | "watched"
-          | "continue-watching";
-        type?: "movies" | "series" | "all";
+        mediaType?: "movie" | "series";
+        status?: "requested" | "unrequested";
         order?:
           | "date-added"
           | "name"
           | "first-release-date"
-          | "last-release-date"
-          | "last-played";
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
         direction?: "asc" | "desc";
         page?: number;
         itemsPerPage?: number;
@@ -3329,17 +3278,55 @@ export class Api<
     ) =>
       this.request<
         PaginatedResponseDto & {
-          items: MyListItemDto[];
+          items: CatalogTitleDto[];
         },
         any
       >({
-        path: `/api/users/${userId}/my-list`,
+        path: `/api/catalog/library`,
         method: "GET",
         query: query,
         format: "json",
         ...params,
       }),
 
+    /**
+     * No description
+     *
+     * @tags catalog
+     * @name GetMyList
+     * @request GET:/api/catalog/my-list
+     */
+    getMyList: (
+      query?: {
+        mediaType?: "movie" | "series";
+        status?: "upcoming" | "unwatched" | "watched" | "continue-watching";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: CatalogTitleDto[];
+        },
+        any
+      >({
+        path: `/api/catalog/my-list`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+  };
+  myList = {
     /**
      * No description
      *

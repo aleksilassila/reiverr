@@ -2,16 +2,23 @@ import { betterSubscribe, createStoreContext } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import { usePaginatedData, useStaleable } from './data.store';
 import { createLocalStorageStore } from '../localstorage.store';
-import { reiverrApi, user } from '../user.store';
+import { reiverrApi } from '../user.store';
 
-export type MyListOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
-export type MyListOrderDirection = 'asc' | 'desc';
+/** The orders the library page sorts both catalogues by; the my list also has 'last-played' */
+export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
+export type CatalogOrderDirection = 'asc' | 'desc';
+export type CatalogCategory = 'all' | 'series' | 'movies';
 
+/** The media type a category of the pills asks the catalogue for */
+const mediaTypeOf = (category: CatalogCategory) =>
+	category === 'all' ? undefined : category === 'movies' ? ('movie' as const) : ('series' as const);
+
+/** The titles of the user's list: those in progress, and the rest, watched or not */
 export const libraryContext = createStoreContext(`library`, () => {
-	const category = writable<'all' | 'series' | 'movies'>('all');
+	const category = writable<CatalogCategory>('all');
 	const libraryViewSettings = createLocalStorageStore<{
-		order: MyListOrder;
-		direction: MyListOrderDirection;
+		order: CatalogOrder;
+		direction: CatalogOrderDirection;
 		separateWatched: boolean;
 	}>('library-view-settings', {
 		order: 'last-release-date',
@@ -21,9 +28,9 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	const upcoming = usePaginatedData(
 		(page) =>
-			reiverrApi.myList
-				.getMyList(String(get(user)?.id), {
-					type: 'series',
+			reiverrApi.catalog
+				.getMyList({
+					mediaType: 'series',
 					order: 'last-played',
 					status: 'continue-watching',
 					page
@@ -34,31 +41,29 @@ export const libraryContext = createStoreContext(`library`, () => {
 
 	const watched = usePaginatedData(
 		(page) =>
-			reiverrApi.myList
-				.getMyList(String(get(user)?.id), {
+			reiverrApi.catalog
+				.getMyList({
 					status: 'watched',
-					type: get(category),
+					mediaType: mediaTypeOf(get(category)),
 					order: get(libraryViewSettings).order,
 					direction: get(libraryViewSettings).direction,
 					page
 				})
-				.then((i) => i.data.items),
+				.then((r) => r.data.items),
 		{ initialize: false }
 	);
 
-	watched.subscribe((items) => console.log('Watched items:', items));
-
 	const unwatched = usePaginatedData(
 		(page) =>
-			reiverrApi.myList
-				.getMyList(String(get(user)?.id), {
-					type: get(category),
+			reiverrApi.catalog
+				.getMyList({
+					mediaType: mediaTypeOf(get(category)),
 					order: get(libraryViewSettings).order,
 					direction: get(libraryViewSettings).direction,
-					...(get(libraryViewSettings).separateWatched ? { status: 'unwatched' } : {}),
+					...(get(libraryViewSettings).separateWatched ? { status: 'unwatched' as const } : {}),
 					page
 				})
-				.then((i) => i.data.items),
+				.then((r) => r.data.items),
 		{ initialize: false }
 	);
 
@@ -91,41 +96,29 @@ export const libraryContext = createStoreContext(`library`, () => {
 	};
 });
 
-export type AvailableOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
-
 /** The titles with files in the library: those the user requested, and the rest */
 export const availableContext = createStoreContext(`library-available`, () => {
-	const category = writable<'all' | 'series' | 'movies'>('all');
+	const category = writable<CatalogCategory>('all');
 	const viewSettings = createLocalStorageStore<{
-		order: AvailableOrder;
-		direction: MyListOrderDirection;
+		order: CatalogOrder;
+		direction: CatalogOrderDirection;
 		separateRequested: boolean;
 	}>('library-available-view-settings', {
 		order: 'date-added',
 		direction: 'desc',
 		separateRequested: true
 	});
-	const query = () => {
-		const selected = get(category);
-		const settings = get(viewSettings);
-
-		return {
-			mediaType:
-				selected === 'all'
-					? undefined
-					: selected === 'movies'
-						? ('movie' as const)
-						: ('series' as const),
-			order: settings.order,
-			direction: settings.direction
-		};
-	};
+	const query = () => ({
+		mediaType: mediaTypeOf(get(category)),
+		order: get(viewSettings).order,
+		direction: get(viewSettings).direction
+	});
 
 	// Grouped, the first list is the requested titles and the second the rest; else the first is every title
 	const requested = usePaginatedData(
 		(page) =>
-			reiverrApi.library
-				.getTitles({
+			reiverrApi.catalog
+				.getLibrary({
 					...query(),
 					...(get(viewSettings).separateRequested ? { status: 'requested' as const } : {}),
 					page
@@ -136,8 +129,8 @@ export const availableContext = createStoreContext(`library-available`, () => {
 	const unrequested = usePaginatedData(
 		(page) =>
 			get(viewSettings).separateRequested
-				? reiverrApi.library
-						.getTitles({ ...query(), status: 'unrequested', page })
+				? reiverrApi.catalog
+						.getLibrary({ ...query(), status: 'unrequested', page })
 						.then((r) => r.data.items)
 				: Promise.resolve([]),
 		{ initialize: false }

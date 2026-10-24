@@ -35,7 +35,16 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import { GIGABYTE } from '$lib/utils';
 	import { setScrollContext } from '$lib/stores/scroll.store';
-	import { ArrowRight, Bookmark, ChevronDown, Heart, Plus, Trash, Video } from 'radix-icons-svelte';
+	import {
+		ArrowRight,
+		Bookmark,
+		ChevronDown,
+		Download,
+		Heart,
+		Plus,
+		Trash,
+		Video
+	} from 'radix-icons-svelte';
 	import RequestRow from '../TitlePages/SeriesPage/RequestRow.svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
 	import UiSheet from './UiSheet.svelte';
@@ -438,11 +447,13 @@
 					title="Badges"
 					orientation="portrait"
 					badges={[
+						{ icon: Download },
 						{ label: '8', icon: Video },
 						{ label: '6h', icon: Trash, type: 'error' }
 					]}
 					on:enter={scrollIntoView({ horizontal: 128 })}
-					on:clickOrSelect={() => createInfoNotification('Badges', 'A count and a warning')}
+					on:clickOrSelect={() =>
+						createInfoNotification('Badges', 'An icon alone, a count and a warning')}
 				/>
 				<Card
 					title="Portrait"

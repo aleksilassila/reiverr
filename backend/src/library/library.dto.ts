@@ -3,7 +3,6 @@ import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { TorrentDto } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 import { RequestRuleDto } from '../requests/requests.dto.js';
-import { PlayStateDto } from '../user-data/play-state/play-state.dto.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -445,55 +444,4 @@ export class TitleUsageDto {
       'The limits of the rule of the title; absent for a movie or without a rule',
   })
   rule?: RequestRuleDto;
-}
-
-export enum LibraryTitlesOrder {
-  /** When the newest file of the title was indexed */
-  DateAdded = 'date-added',
-  Name = 'name',
-  FirstReleaseDate = 'first-release-date',
-  LastReleaseDate = 'last-release-date',
-}
-
-export enum LibraryTitlesStatus {
-  /** Titles the user has requests for */
-  Requested = 'requested',
-  /** Titles with files that the user has no request for */
-  Unrequested = 'unrequested',
-}
-
-/** A title with files in the library, for the library page */
-export class LibraryTitleDto {
-  @ApiProperty({ enum: MediaType })
-  mediaType: MediaType;
-
-  @ApiProperty()
-  tmdbId: string;
-
-  @ApiProperty({ type: TmdbItemDto })
-  tmdbItem: TmdbItemDto;
-
-  @ApiProperty({ description: 'Whether the user has a request for the title' })
-  requested: boolean;
-
-  @ApiProperty({
-    description: 'The episodes of the title that have a file; 1 for a movie',
-  })
-  available: number;
-
-  @ApiProperty({
-    type: 'string',
-    format: 'date-time',
-    required: false,
-    description:
-      'When the next cleanup deletes every file of the title, because all are managed and no request of anyone holds one; absent otherwise, and while the cleanup is off',
-  })
-  cleanupAt?: string;
-
-  @ApiProperty({
-    type: PlayStateDto,
-    required: false,
-    description: 'The play state of the title that the user played last',
-  })
-  lastPlayState?: PlayStateDto;
 }

@@ -8,12 +8,13 @@
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
 		libraryContext,
-		type MyListOrder,
-		type MyListOrderDirection
+		type CatalogOrder,
+		type CatalogOrderDirection
 	} from '$lib/stores/data/library-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
+	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 
@@ -23,14 +24,14 @@
 		{ label: 'Series', value: 'series' },
 		{ label: 'Movies', value: 'movies' }
 	];
-	const SORTS: { label: string; value: MyListOrder }[] = [
+	const SORTS: { label: string; value: CatalogOrder }[] = [
 		{ label: 'Last Release', value: 'last-release-date' },
 		{ label: 'First Release', value: 'first-release-date' },
 		{ label: 'Date Added', value: 'date-added' },
 		{ label: 'Name', value: 'name' }
 	];
 	// The direction a sort starts in: newest, A to Z
-	const NATURAL: Record<MyListOrder, MyListOrderDirection> = {
+	const NATURAL: Record<CatalogOrder, CatalogOrderDirection> = {
 		'last-release-date': 'desc',
 		'first-release-date': 'desc',
 		'date-added': 'desc',
@@ -51,7 +52,7 @@
 	}
 
 	// One sort is always on; selecting it again turns it around
-	function selectSort(order: MyListOrder) {
+	function selectSort(order: CatalogOrder) {
 		libraryViewSettings.update((settings) =>
 			settings.order === order
 				? { ...settings, direction: settings.direction === 'asc' ? 'desc' : 'asc' }
@@ -213,12 +214,13 @@
 			{#if $upcoming.length}
 				<div class="mt-6">
 					<Carousel header="Upcoming" scrollClass="px-32" on:enter={scrollIntoView({ bottom: 0 })}>
-						{#each $upcoming as item, index (item.tmdbId)}
+						{#each $upcoming as item, index (`${item.mediaType}-${item.tmdbId}`)}
 							<TmdbCard
 								{index}
 								on:enter={scrollIntoView({ horizontal: 128 })}
 								size="lg"
 								item={item.tmdbItem}
+								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
 							/>
 						{/each}
 						<div use:upcomingObserver />
@@ -231,11 +233,12 @@
 						<div class="px-32 mb-6 h3">Unwatched</div>
 					{/if}
 					<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-						{#each $unwatched as item, index (item.tmdbId)}
+						{#each $unwatched as item, index (`${item.mediaType}-${item.tmdbId}`)}
 							<TmdbCard
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
+								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}
@@ -247,11 +250,12 @@
 				<div class="mt-6 px-32">
 					<div class="mb-6 h3">Watched</div>
 					<CardGrid let:columns>
-						{#each $watched as item, index (item.tmdbId)}
+						{#each $watched as item, index (`${item.mediaType}-${item.tmdbId}`)}
 							<TmdbCard
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
+								badges={titleBadges(item, { requested: true, movieOnDisk: true })}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}

@@ -29,14 +29,10 @@ import {
   PaginationDto,
 } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import { CatalogService } from './catalog.service.js';
 import {
   LibraryEpisodeFileDto,
   LibraryFileDto,
   LibrarySettingsDto,
-  LibraryTitleDto,
-  LibraryTitlesOrder,
-  LibraryTitlesStatus,
   SeriesStatusDto,
   StorageDto,
   StorageUsageDto,
@@ -57,7 +53,6 @@ export class LibraryController {
     private readonly playbackService: PlaybackService,
     private readonly statusService: StatusService,
     private readonly storageService: StorageService,
-    private readonly catalogService: CatalogService,
   ) {}
 
   @Get('settings')
@@ -130,39 +125,6 @@ export class LibraryController {
     return this.storageService.describeUserTitles(userId, {
       mediaType,
       sort: sort ?? TitleUsageSort.Size,
-      direction,
-      pagination,
-    });
-  }
-
-  @Get('titles')
-  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
-  @ApiQuery({ name: 'status', enum: LibraryTitlesStatus, required: false })
-  @ApiQuery({ name: 'order', enum: LibraryTitlesOrder, required: false })
-  @ApiQuery({
-    name: 'direction',
-    enum: OrderDirection,
-    required: false,
-    description: 'Without it, the direction natural to the order',
-  })
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(LibraryTitleDto)
-  getTitles(
-    @GetAuthUser() user: User,
-    @GetPaginationParams() pagination: PaginationDto,
-    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
-    mediaType?: MediaType,
-    @Query('status', new ParseEnumPipe(LibraryTitlesStatus, { optional: true }))
-    status?: LibraryTitlesStatus,
-    @Query('order', new ParseEnumPipe(LibraryTitlesOrder, { optional: true }))
-    order?: LibraryTitlesOrder,
-    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
-    direction?: OrderDirection,
-  ): Promise<PaginatedResponseDto<LibraryTitleDto>> {
-    return this.catalogService.findTitles(user.id, {
-      mediaType,
-      status,
-      order: order ?? LibraryTitlesOrder.DateAdded,
       direction,
       pagination,
     });

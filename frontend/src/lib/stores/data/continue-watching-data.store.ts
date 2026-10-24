@@ -1,13 +1,12 @@
 import { createStoreContext } from '$lib/utils';
-import { get } from 'svelte/store';
 import { useData, useStaleable } from './data.store';
-import { reiverrApi, user } from '../user.store';
+import { reiverrApi } from '../user.store';
 
 export const continueWatchingSeriesContext = createStoreContext(`continue-watching-series`, () => {
 	const data = useData(() =>
-		reiverrApi.myList
-			.getMyList(String(get(user)?.id), {
-				type: 'series',
+		reiverrApi.catalog
+			.getMyList({
+				mediaType: 'series',
 				order: 'last-played',
 				status: 'continue-watching',
 				itemsPerPage: 10
@@ -28,9 +27,9 @@ export const continueWatchingSeriesContext = createStoreContext(`continue-watchi
 
 export const continueWatchingMoviesContext = createStoreContext(`continue-watching-movies`, () => {
 	const data = useData(() =>
-		reiverrApi.myList
-			.getMyList(String(get(user)?.id), {
-				type: 'movies',
+		reiverrApi.catalog
+			.getMyList({
+				mediaType: 'movie',
 				order: 'last-played',
 				status: 'continue-watching',
 				itemsPerPage: 10

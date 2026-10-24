@@ -93,9 +93,11 @@
 						)}
 					>
 						{#if badge.icon}
-							<svelte:component this={badge.icon} size={14} class="mr-1" />
+							<svelte:component this={badge.icon} size={14} class={badge.label ? 'mr-1' : ''} />
 						{/if}
-						{badge.label}
+						{#if badge.label}
+							{badge.label}
+						{/if}
 					</div>
 				{/each}
 			</div>

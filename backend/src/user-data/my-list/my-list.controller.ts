@@ -1,7 +1,5 @@
 import {
   Controller,
-  Delete,
-  Get,
   Param,
   ParseBoolPipe,
   ParseEnumPipe,
@@ -11,24 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserAccessControl } from '../../auth/auth.guard.js';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-  PaginationApiQuery,
-} from '../../common/common.decorator.js';
-import {
-  MediaType,
-  OrderDirection,
-  PaginatedResponseDto,
-  PaginationDto,
-  SuccessResponseDto,
-} from '../../common/common.dto.js';
-import {
-  MyListItemDto,
-  MyListOrder,
-  MyListStatusFilter,
-  MyListTypeFilter,
-} from './my-list.dto.js';
+import { MediaType, SuccessResponseDto } from '../../common/common.dto.js';
 import { MyListService } from './my-list.service.js';
 
 @ApiTags('myList')
@@ -36,39 +17,6 @@ import { MyListService } from './my-list.service.js';
 @UseGuards(UserAccessControl)
 export class MyListController {
   constructor(private myListService: MyListService) {}
-
-  @Get()
-  @ApiQuery({ name: 'status', enum: MyListStatusFilter, required: false })
-  @ApiQuery({ name: 'type', enum: MyListTypeFilter, required: false })
-  @ApiQuery({ name: 'order', enum: MyListOrder, required: false })
-  @ApiQuery({ name: 'direction', enum: OrderDirection, required: false })
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(MyListItemDto)
-  async getMyList(
-    @GetPaginationParams() pagination: PaginationDto,
-    @Param('userId') userId: string,
-    @Query('status', new ParseEnumPipe(MyListStatusFilter, { optional: true }))
-    status?: MyListStatusFilter,
-    @Query('type', new ParseEnumPipe(MyListTypeFilter, { optional: true }))
-    type?: MyListTypeFilter,
-    @Query('order', new ParseEnumPipe(MyListOrder, { optional: true }))
-    order?: MyListOrder,
-    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
-    direction?: OrderDirection,
-  ): Promise<PaginatedResponseDto<MyListItemDto>> {
-    // const user = await this.userService.findOne(userId);
-
-    const response = await this.myListService.getMyList({
-      userId,
-      pagination,
-      type,
-      status,
-      order,
-      direction,
-    });
-
-    return response;
-  }
 
   @Put(':tmdbId')
   @ApiQuery({ name: 'mediaType', enum: MediaType })

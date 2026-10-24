@@ -7,14 +7,13 @@
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
 		availableContext,
-		type AvailableOrder,
-		type MyListOrderDirection
+		type CatalogOrder,
+		type CatalogOrderDirection
 	} from '$lib/stores/data/library-data.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
-	import type { LibraryTitleDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { ArrowDown, ArrowUp, Trash, Video } from 'radix-icons-svelte';
+	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import type { CardBadge } from '../../components/Card/Card';
+	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 
@@ -24,14 +23,14 @@
 		{ label: 'Series', value: 'series' },
 		{ label: 'Movies', value: 'movies' }
 	];
-	const SORTS: { label: string; value: AvailableOrder }[] = [
+	const SORTS: { label: string; value: CatalogOrder }[] = [
 		{ label: 'Added', value: 'date-added' },
 		{ label: 'Last Release', value: 'last-release-date' },
 		{ label: 'First Release', value: 'first-release-date' },
 		{ label: 'Name', value: 'name' }
 	];
 	// The direction a sort starts in: newest, A to Z
-	const NATURAL: Record<AvailableOrder, MyListOrderDirection> = {
+	const NATURAL: Record<CatalogOrder, CatalogOrderDirection> = {
 		'date-added': 'desc',
 		'last-release-date': 'desc',
 		'first-release-date': 'desc',
@@ -51,7 +50,7 @@
 	}
 
 	// One sort is always on; selecting it again turns it around
-	function selectSort(order: AvailableOrder) {
+	function selectSort(order: CatalogOrder) {
 		viewSettings.update((settings) =>
 			settings.order === order
 				? { ...settings, direction: settings.direction === 'asc' ? 'desc' : 'asc' }
@@ -65,20 +64,6 @@
 			separateRequested: !settings.separateRequested
 		}));
 	}
-
-	// The episodes on disk of a series, and the hours until the cleanup deletes every file of the title
-	const badgesOf = (item: LibraryTitleDto): CardBadge[] => [
-		...(item.mediaType === 'series' ? [{ label: String(item.available), icon: Video }] : []),
-		...(item.cleanupAt
-			? [
-					{
-						label: `${Math.max(1, Math.ceil((Date.parse(item.cleanupAt) - Date.now()) / 3_600_000))}h`,
-						icon: Trash,
-						type: 'error' as const
-					}
-				]
-			: [])
-	];
 
 	const { loading: loadingRequested, observer: requestedObserver } = requested;
 	const { loading: loadingUnrequested, observer: unrequestedObserver } = unrequested;
@@ -154,7 +139,7 @@
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
-								badges={badgesOf(item)}
+								badges={titleBadges(item, { requested: !$viewSettings.separateRequested })}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}
@@ -171,7 +156,7 @@
 								{index}
 								item={item.tmdbItem}
 								progress={item.lastPlayState?.progress || 0}
-								badges={badgesOf(item)}
+								badges={titleBadges(item)}
 								on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 							/>
 						{/each}
