@@ -49,10 +49,10 @@ describe('JobsService', () => {
   });
 
   it('refuses a type that is defined twice', () => {
-    jobs.define('library.cleanUpLibrary', { run: async () => {} });
+    jobs.define('library.sweepRequests', { run: async () => {} });
 
     expect(() =>
-      jobs.define('library.cleanUpLibrary', { run: async () => {} }),
+      jobs.define('library.sweepRequests', { run: async () => {} }),
     ).toThrow('defined already');
   });
 
@@ -105,7 +105,7 @@ describe('JobsService', () => {
 
   it('runs what the jobs enqueue, and leaves the jobs that are not due', async () => {
     const ran: string[] = [];
-    jobs.define('library.cleanUpLibrary', {
+    jobs.define('library.sweepRequests', {
       run: async (payload, { em }) => {
         ran.push('library');
         await jobs.enqueue(em, 'library.cleanUpTitle', cleanup('1'));
@@ -120,7 +120,7 @@ describe('JobsService', () => {
       },
     });
 
-    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
+    await jobs.enqueue(orm.em.fork(), 'library.sweepRequests', {});
     await jobs.drain();
 
     expect(ran).toEqual(['library', '1']);
@@ -239,10 +239,10 @@ describe('JobsService', () => {
 
   it('claims nothing of a paused type until it is resumed', async () => {
     const run = vi.fn(async () => {});
-    jobs.define('library.cleanUpLibrary', { run });
-    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
+    jobs.define('library.sweepRequests', { run });
+    await jobs.enqueue(orm.em.fork(), 'library.sweepRequests', {});
 
-    const resume = jobs.pause('library.cleanUpLibrary');
+    const resume = jobs.pause('library.sweepRequests');
     await jobs.drain();
     expect(run).not.toHaveBeenCalled();
 
@@ -254,8 +254,8 @@ describe('JobsService', () => {
   it('fails the jobs that a restart interrupted', async () => {
     await orm.em.fork().insert(Job, {
       ...new Job(),
-      type: 'library.cleanUpLibrary',
-      dedupeKey: 'library.cleanUpLibrary',
+      type: 'library.sweepRequests',
+      dedupeKey: 'library.sweepRequests',
       lockKey: 'library',
       status: JobStatus.Running,
     });
@@ -332,11 +332,11 @@ describe('JobsService', () => {
 
   it('runs jobs from the loop once started', async () => {
     const ran = new Promise<void>((resolve) =>
-      jobs.define('library.cleanUpLibrary', { run: async () => resolve() }),
+      jobs.define('library.sweepRequests', { run: async () => resolve() }),
     );
 
     await jobs.start();
-    await jobs.enqueue(orm.em.fork(), 'library.cleanUpLibrary', {});
+    await jobs.enqueue(orm.em.fork(), 'library.sweepRequests', {});
 
     await ran;
   });

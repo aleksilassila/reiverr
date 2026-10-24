@@ -31,6 +31,18 @@ const SEASON_EPISODE_PATTERN =
 const SEASON_X_EPISODE_PATTERN =
   /(?<![a-z0-9])(\d{1,2})x(\d{1,3})(?![a-z0-9])/i;
 
+/**
+ * What the name of a title folder tells of its title (`parseMediaFolderName`)
+ *
+ * @example
+ * // "Marvel's Agents of S.H.I.E.L.D. (2013) [tmdbid-1403]"
+ * {
+ *   name: "Marvel's Agents of S.H.I.E.L.D.",
+ *   title: 'marvelsagentsofshield',
+ *   year: 2013,
+ *   tmdbId: '1403',
+ * }
+ */
 export interface ParsedMediaFolderName {
   /** The name without its tags and year, as it is written */
   name: string;
@@ -42,6 +54,21 @@ export interface ParsedMediaFolderName {
   tvdbId?: string;
 }
 
+/**
+ * What the folders of a title are matched against, from its TMDB metadata
+ * (`LibraryService.getTitleMatch`): the title and the original title
+ * normalized like folder names, the year of the first release and the ids
+ *
+ * @example
+ * // The series Money Heist
+ * {
+ *   titles: ['moneyheist', 'lacasadepapel'],
+ *   year: 2017,
+ *   tmdbId: '71446',
+ *   imdbId: 'tt6468322',
+ *   tvdbId: '327417',
+ * }
+ */
 export interface TitleMatch {
   titles: string[];
   year?: number;
@@ -50,6 +77,16 @@ export interface TitleMatch {
   tvdbId?: string;
 }
 
+/**
+ * The episodes a video file is by its name (`parseEpisodeNumbers`), every
+ * episode of a multi-episode range
+ *
+ * @example
+ * // "Money Heist - S01E01-E03.mkv"
+ * { season: 1, episodes: [1, 2, 3] }
+ * // "Money Heist - 1x02.mkv"
+ * { season: 1, episodes: [2] }
+ */
 export interface ParsedEpisodeNumbers {
   season: number;
   episodes: number[];

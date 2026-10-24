@@ -57,12 +57,6 @@ export class DeletionService implements OnModuleInit {
 
   onModuleInit() {
     // A cleanup that did not run at 04:00 waits for the next one
-    this.jobs.define('library.cleanUpLibrary', {
-      dropAtRestart: true,
-      run: async (payload, { em }) => {
-        await this.cleanUpLibrary(false, em);
-      },
-    });
     this.jobs.define('library.cleanUpTitle', {
       dropAtRestart: true,
       run: async (payload) => {
@@ -77,7 +71,7 @@ export class DeletionService implements OnModuleInit {
     const { cleanup } = await this.libraryService.getSettings();
     if (!isCleanupDay(new Date(), cleanup)) return;
 
-    await this.jobs.enqueue(this.em.fork(), 'library.cleanUpLibrary', {});
+    await this.cleanUpLibrary();
   }
 
   /**
@@ -250,10 +244,7 @@ export class DeletionService implements OnModuleInit {
    * The cleanup of every title that has managed files, a job per title, or
    * with dryRun the files those jobs would delete, looked at now
    */
-  async cleanUpLibrary(
-    dryRun = false,
-    em: EntityManager = this.em,
-  ): Promise<MediaFile[]> {
+  async cleanUpLibrary(dryRun = false): Promise<MediaFile[]> {
     const titles = (
       await this.libraryService.findTitlesWithManagedFiles(MediaType.Series)
     ).map((tmdbId) => ({ mediaType: MediaType.Series, tmdbId }));
@@ -266,7 +257,7 @@ export class DeletionService implements OnModuleInit {
       return unheld;
     }
 
-    await em.transactional(async (tx) => {
+    await this.em.fork().transactional(async (tx) => {
       for (const title of titles) {
         await this.jobs.enqueue(tx, 'library.cleanUpTitle', title);
       }

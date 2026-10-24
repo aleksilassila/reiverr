@@ -17,6 +17,7 @@ import {
   LibraryFixture,
   TMDB_ID,
 } from '../../test/library-fixture.js';
+import { MediaType } from '../common/common.dto.js';
 import { Job } from '../jobs/job.entity.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
@@ -43,7 +44,10 @@ describe('DeletionService', () => {
       orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
       await orm.migrator.up();
 
-      const library = { getSettings: async () => ({ cleanup }) };
+      const library = {
+        getSettings: async () => ({ cleanup }),
+        findTitlesWithManagedFiles: async () => ['1', '2'],
+      };
       deletionService = new DeletionService(
         orm.em,
         new JobsService(orm.em),
@@ -65,7 +69,10 @@ describe('DeletionService', () => {
       // A cleanup that has not run yet is not queued twice
       await deletionService.onCleanupHour();
 
-      expect(await queued()).toEqual([['library.cleanUpLibrary', {}]]);
+      expect(await queued()).toEqual([
+        ['library.cleanUpTitle', { mediaType: MediaType.Series, tmdbId: '1' }],
+        ['library.cleanUpTitle', { mediaType: MediaType.Series, tmdbId: '2' }],
+      ]);
     });
   });
 

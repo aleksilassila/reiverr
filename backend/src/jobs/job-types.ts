@@ -21,7 +21,6 @@ export interface JobPayloads {
   'library.sweepRequests': Record<string, never>;
   'library.scanTitle': Title;
   'library.scanFolder': { folder: string };
-  'library.cleanUpLibrary': Record<string, never>;
   'library.cleanUpTitle': Title;
 }
 
@@ -64,10 +63,6 @@ export const JOB_KEYS: {
   'library.scanFolder': ({ folder }) => ({
     dedupe: `library.scanFolder:${folder}`,
     lock: `folder:${folder}`,
-  }),
-  'library.cleanUpLibrary': () => ({
-    dedupe: 'library.cleanUpLibrary',
-    lock: 'library',
   }),
   'library.cleanUpTitle': ({ mediaType, tmdbId }) => ({
     dedupe: `library.cleanUpTitle:${mediaType}:${tmdbId}`,
