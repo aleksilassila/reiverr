@@ -9,7 +9,7 @@
 	import SelectField from '../../components/SelectField.svelte';
 	import TextField from '../../components/TextField.svelte';
 	import { reiverrApi } from '../../stores/user.store';
-	import EditIndexerDialog from './EditIndexerDialog.ManagePage.svelte';
+	import EditIndexerDialog from './EditIndexerDialog.SettingsPage.svelte';
 
 	let indexers = getIndexers();
 	let seedRatio = '';

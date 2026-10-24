@@ -25,7 +25,7 @@
 			type="primary-dark"
 			iconAfter={ArrowRight}
 			on:click={() => {
-				navigate('/manage');
+				navigate('/settings');
 				close();
 			}}
 		>

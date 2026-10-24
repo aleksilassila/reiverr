@@ -31,7 +31,7 @@
 		Requests: 4,
 		Search: 5,
 		Server: $user?.isAdmin ? 6 : -1,
-		Manage: $user?.isAdmin ? 7 : 6
+		Settings: $user?.isAdmin ? 7 : 6
 	};
 
 	const { visibleStyle } = getUiVisibilityContext();
@@ -44,7 +44,7 @@
 	// 	movies: 1,
 	// 	library: 2,
 	// 	search: 3,
-	// 	manage: 4
+	// 	settings: 4
 	// }[$location.pathname.split('/')[1] || '/'];
 
 	let focusIndex: Writable<number> = writable(0);
@@ -68,7 +68,7 @@
 				[Tabs.Requests]: '/requests',
 				[Tabs.Search]: '/search',
 				[Tabs.Server]: '/server',
-				[Tabs.Manage]: '/manage'
+				[Tabs.Settings]: '/settings'
 			}[index] || '/';
 		navigate(path);
 		selectedIndex = index;
@@ -92,7 +92,7 @@
 					'/requests': Tabs.Requests,
 					'/search': Tabs.Search,
 					'/server': Tabs.Server,
-					'/manage': Tabs.Manage
+					'/settings': Tabs.Settings
 				}[uri] ?? -1;
 			selectable.focusIndex.set(activeIndex);
 			selectedIndex = activeIndex;
@@ -380,16 +380,16 @@
 	{/if}
 	<Container
 		class="w-full h-12 cursor-pointer"
-		on:clickOrSelect={selectIndex(Tabs.Manage)}
+		on:clickOrSelect={selectIndex(Tabs.Settings)}
 		let:hasFocus
 	>
 		<div
 			class={classNames(
 				'w-full h-full relative flex items-center justify-center transition-opacity',
 				{
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Manage),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Settings),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Manage),
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Settings),
 					'opacity-0 pointer-events-none': hasFocusWithin === false,
 					'group-hover:opacity-100 group-hover:pointer-events-auto': true
 				}
@@ -397,7 +397,7 @@
 		>
 			<div class="absolute inset-y-0 left-2 flex items-center justify-center">
 				<DotFilled
-					class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Manage })}
+					class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Settings })}
 					size={19}
 				/>
 			</div>
@@ -411,7 +411,7 @@
 					}
 				)}
 			>
-				Manage
+				Settings
 			</span>
 		</div>
 	</Container>

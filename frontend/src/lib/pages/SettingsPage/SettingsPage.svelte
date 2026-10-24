@@ -18,9 +18,9 @@
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
 	import { reiverrApi, user } from '../../stores/user.store';
-	import Accounts from './Accounts.ManagePage.svelte';
-	import Downloads from './Downloads.ManagePage.svelte';
-	import Library from './Library.ManagePage.svelte';
+	import Accounts from './Accounts.SettingsPage.svelte';
+	import Downloads from './Downloads.SettingsPage.svelte';
+	import Library from './Library.SettingsPage.svelte';
 
 	enum Tabs {
 		Account,

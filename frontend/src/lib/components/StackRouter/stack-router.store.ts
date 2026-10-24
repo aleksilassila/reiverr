@@ -11,7 +11,6 @@ import {
 } from 'svelte';
 import { writable, type Readable, type Writable } from 'svelte/store';
 import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
-import ManagePage from '../../pages/ManagePage/ManagePage.svelte';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
@@ -19,6 +18,7 @@ import RequestsPage from '../../pages/RequestsPage/RequestsPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
 import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
+import SettingsPage from '../../pages/SettingsPage/SettingsPage.svelte';
 import EpisodePage from '../../pages/TitlePages/EpisodePage.svelte';
 import MoviePage from '../../pages/TitlePages/MoviePage/MoviePage.svelte';
 import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
@@ -451,9 +451,9 @@ const searchRoute: Route = {
 	root: true
 };
 
-const manageRoute: Route = {
-	path: '/manage',
-	component: ManagePage,
+const settingsRoute: Route = {
+	path: '/settings',
+	component: SettingsPage,
 	root: true
 };
 
@@ -490,7 +490,7 @@ export const stackRouter = useStackRouter({
 		libraryRoute,
 		requestsRoute,
 		searchRoute,
-		manageRoute,
+		settingsRoute,
 		serverRoute,
 		uiRoute
 	],
