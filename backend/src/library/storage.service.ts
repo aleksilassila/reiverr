@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { statfs } from 'node:fs/promises';
 import {
+  Letter,
   MediaType,
   MediaTypeFull,
   OrderDirection,
@@ -274,15 +275,16 @@ export class StorageService {
 
   /**
    * The titles a user has requests for, with what the requests take and
-   * the rule of the title: a page, of one type of title or both, by size,
-   * by name or by when they last got a file, in the direction asked for
-   * or the one natural to the sort. Counted as the usage of the user is,
-   * so that the titles add up to it
+   * the rule of the title: a page, of one type of title or both, under a
+   * letter or all, by size, by name or by when they last got a file, in
+   * the direction asked for or the one natural to the sort. Counted as
+   * the usage of the user is, so that the titles add up to it
    */
   async describeUserTitles(
     userId: string,
     options: {
       mediaType?: MediaType;
+      letter?: Letter;
       sort: TitleUsageSort;
       direction?: OrderDirection;
       pagination: PaginationDto;
@@ -341,12 +343,32 @@ export class StorageService {
       if (binding) title.bindings.push(binding);
       titles.set(key, title);
     }
-    const rows: Title[] = [...titles.values()].map(
+    const grouped: Title[] = [...titles.values()].map(
       ({ bindings, ...title }) => ({
         ...title,
         ...usageOf(bindings, sizeOf),
       }),
     );
+    // The cached names, for the letter and the name sort; without one a title is '': first by name, under '#'
+    const names = new Map<string, string>();
+    if (options.letter || options.sort === TitleUsageSort.Name) {
+      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
+        const ofType = grouped.filter((row) => row.mediaType === mediaType);
+        const found = await this.metadataService.findNames(
+          em,
+          mediaType,
+          ofType.map((row) => row.tmdbId),
+        );
+        for (const [tmdbId, name] of found) {
+          names.set(titleKey(mediaType, tmdbId), name);
+        }
+      }
+    }
+    const nameOf = (row: Title) =>
+      names.get(titleKey(row.mediaType, row.tmdbId)) ?? '';
+    const rows = options.letter
+      ? grouped.filter((row) => initialOf(nameOf(row)) === options.letter)
+      : grouped;
     const takes = (row: Title) => row.heldBytes + row.pendingBytes;
     // The sort's own order, reversed when the other direction is asked for
     const reversed =
@@ -365,20 +387,6 @@ export class StorageService {
           a.tmdbId.localeCompare(b.tmdbId),
       );
     } else if (options.sort === TitleUsageSort.Name) {
-      const names = new Map<string, string>();
-      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-        const ofType = rows.filter((row) => row.mediaType === mediaType);
-        const found = await this.metadataService.findNames(
-          em,
-          mediaType,
-          ofType.map((row) => row.tmdbId),
-        );
-        for (const [tmdbId, name] of found) {
-          names.set(titleKey(mediaType, tmdbId), name);
-        }
-      }
-      const nameOf = (row: Title) =>
-        names.get(titleKey(row.mediaType, row.tmdbId)) ?? '';
       rows.sort(
         (a, b) =>
           sign * nameOf(a).localeCompare(nameOf(b)) ||
@@ -423,6 +431,12 @@ export class StorageService {
 
     return { items, total: rows.length, page, itemsPerPage };
   }
+}
+
+/** The letter a name is listed under: its first character in upper case, '#' when that is no letter (as the catalogue's letter filter) */
+function initialOf(name: string): Letter {
+  const initial = name.charAt(0).toUpperCase();
+  return /^[A-Z]$/.test(initial) ? (initial as Letter) : '#';
 }
 
 /** The direction each sort of the titles reads in when none is asked for */

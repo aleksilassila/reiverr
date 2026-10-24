@@ -23,6 +23,8 @@ import {
   PaginationApiQuery,
 } from '../common/common.decorator.js';
 import {
+  LETTERS,
+  type Letter,
   MediaType,
   OrderDirection,
   PaginatedResponseDto,
@@ -103,6 +105,13 @@ export class LibraryController {
 
   @Get('storage/users/:userId/titles')
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
+  @ApiQuery({
+    name: 'letter',
+    enum: LETTERS,
+    required: false,
+    description:
+      "Titles whose name starts with the letter; '#' for a name that starts with none",
+  })
   @ApiQuery({ name: 'sort', enum: TitleUsageSort, required: false })
   @ApiQuery({
     name: 'direction',
@@ -117,6 +126,8 @@ export class LibraryController {
     @GetPaginationParams() pagination: PaginationDto,
     @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
     mediaType?: MediaType,
+    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
+    letter?: Letter,
     @Query('sort', new ParseEnumPipe(TitleUsageSort, { optional: true }))
     sort?: TitleUsageSort,
     @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
@@ -124,6 +135,7 @@ export class LibraryController {
   ): Promise<PaginatedResponseDto<TitleUsageDto>> {
     return this.storageService.describeUserTitles(userId, {
       mediaType,
+      letter,
       sort: sort ?? TitleUsageSort.Size,
       direction,
       pagination,

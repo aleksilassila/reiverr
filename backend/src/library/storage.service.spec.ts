@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import {
+  Letter,
   MediaType,
   MediaTypeFull,
   OrderDirection,
@@ -175,6 +176,7 @@ describe('describeUserTitles', () => {
   const titles = (
     options: {
       mediaType?: MediaType;
+      letter?: Letter;
       sort?: TitleUsageSort;
       direction?: OrderDirection;
       page?: number;
@@ -184,6 +186,7 @@ describe('describeUserTitles', () => {
     RequestContext.create(orm.em, () =>
       storage.describeUserTitles(userId, {
         mediaType: options.mediaType,
+        letter: options.letter,
         sort: options.sort ?? TitleUsageSort.Size,
         direction: options.direction,
         pagination: {
@@ -314,6 +317,23 @@ describe('describeUserTitles', () => {
     const page = await titles({ page: 2, itemsPerPage: 2 });
     expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
     expect(page.items.map((item) => item.tmdbId)).toEqual(['2']);
+  });
+
+  it('lists the titles under a letter, # for the names that start with none', async () => {
+    await insert(
+      SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
+    );
+    await request('3', MediaTypeFull.Episode, 1);
+    const names = (result: {
+      items: { tmdbItem: { name?: string; title?: string } }[];
+    }) => result.items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title);
+
+    const under = await titles({ letter: 'A' });
+    expect(names(under)).toEqual(['Another']);
+    expect(under.total).toBe(1);
+    expect(names(await titles({ letter: 'S' }))).toEqual(['Series']);
+    expect(names(await titles({ letter: '#' }))).toEqual(['24']);
+    expect((await titles({ letter: 'B' })).total).toBe(0);
   });
 
   it('reads each sort in the other direction when asked, titles without a file still last', async () => {

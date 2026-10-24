@@ -21,6 +21,7 @@
 	import PlayButton from '$lib/components/PlayButton.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
+	import { LETTERS } from '$lib/utils';
 	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
@@ -388,7 +389,7 @@
 			<QuickNav
 				size="sm"
 				class="h-64"
-				items={'#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')}
+				items={LETTERS}
 				selected={quickNavLetter}
 				on:select={({ detail }) => (quickNavLetter = quickNavLetter === detail ? -1 : detail)}
 			/>

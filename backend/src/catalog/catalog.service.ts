@@ -1,6 +1,7 @@
 import { EntityManager, sql } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import {
+  Letter,
   MediaType,
   MediaTypeFull,
   OrderDirection,
@@ -18,7 +19,6 @@ import { MyListItem } from '../user-data/my-list/my-list-item.entity.js';
 import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
 import {
   CatalogTitleDto,
-  Letter,
   LibraryOrder,
   LibraryStatus,
   MyListOrder,

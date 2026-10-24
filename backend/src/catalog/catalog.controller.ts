@@ -13,6 +13,8 @@ import {
   PaginationApiQuery,
 } from '../common/common.decorator.js';
 import {
+  LETTERS,
+  type Letter,
   MediaType,
   OrderDirection,
   PaginatedResponseDto,
@@ -21,8 +23,6 @@ import {
 import { User } from '../users/user.entity.js';
 import {
   CatalogTitleDto,
-  LETTERS,
-  type Letter,
   LibraryOrder,
   LibraryStatus,
   MyListOrder,

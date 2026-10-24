@@ -1,4 +1,5 @@
 import { getContext, hasContext, setContext } from './components/StackRouter/stack-router.store';
+import type { reiverrApi } from './stores/user.store';
 import {
 	getContext as getSvelteContext,
 	hasContext as hasSvelteContext,
@@ -490,3 +491,9 @@ export function useInteractionObserver(
 		};
 	};
 }
+
+/** The initials the title lists are filtered by: a letter, or '#' for the names that start with none */
+export type Letter = NonNullable<
+	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>['letter']
+>;
+export const LETTERS = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') as Letter[];

@@ -78,3 +78,35 @@ export enum OrderDirection {
   Asc = 'asc',
   Desc = 'desc',
 }
+
+/** The initials a list of titles is filtered by: a letter, or '#' for a name that starts with none */
+export const LETTERS = [
+  '#',
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+] as const;
+export type Letter = (typeof LETTERS)[number];

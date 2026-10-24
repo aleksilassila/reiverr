@@ -38,38 +38,6 @@ export enum MyListStatus {
   ContinueWatching = 'continue-watching',
 }
 
-/** The initials a catalogue is filtered by: a letter, or '#' for a name that starts with none */
-export const LETTERS = [
-  '#',
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-  'I',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'P',
-  'Q',
-  'R',
-  'S',
-  'T',
-  'U',
-  'V',
-  'W',
-  'X',
-  'Y',
-  'Z',
-] as const;
-export type Letter = (typeof LETTERS)[number];
-
 /** A title of a catalogue of the user, with what the library and their requests have of it */
 export class CatalogTitleDto {
   @ApiProperty({ enum: MediaType })

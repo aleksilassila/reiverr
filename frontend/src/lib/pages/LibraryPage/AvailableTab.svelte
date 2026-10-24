@@ -4,11 +4,11 @@
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
+	import { LETTERS } from '$lib/utils';
 	import TitleText from '$lib/components/TitleText.svelte';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
 		availableContext,
-		CATALOG_LETTERS,
 		type CatalogOrder,
 		type CatalogOrderDirection
 	} from '$lib/stores/data/library-data.store';
@@ -53,7 +53,7 @@
 
 	// Selecting the letter that is on turns the filter off
 	function filterLetter(index: number) {
-		const selected = CATALOG_LETTERS[index] ?? null;
+		const selected = LETTERS[index] ?? null;
 		$letter = $letter === selected ? null : selected;
 	}
 
@@ -210,8 +210,8 @@
 	<QuickNav
 		size="sm"
 		class="fixed right-12 inset-y-0 justify-center z-10"
-		items={CATALOG_LETTERS}
-		selected={$letter ? CATALOG_LETTERS.indexOf($letter) : -1}
+		items={LETTERS}
+		selected={$letter ? LETTERS.indexOf($letter) : -1}
 		on:select={({ detail }) => filterLetter(detail)}
 	/>
 </Container>

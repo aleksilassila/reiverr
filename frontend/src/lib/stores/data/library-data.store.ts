@@ -1,4 +1,4 @@
-import { betterSubscribe, createStoreContext } from '$lib/utils';
+import { betterSubscribe, createStoreContext, type Letter } from '$lib/utils';
 import { derived, get, writable } from 'svelte/store';
 import { usePaginatedData, useStaleable } from './data.store';
 import { createLocalStorageStore } from '../localstorage.store';
@@ -8,11 +8,6 @@ import { reiverrApi } from '../user.store';
 export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
 export type CatalogOrderDirection = 'asc' | 'desc';
 export type CatalogCategory = 'all' | 'series' | 'movies';
-/** The initials a catalogue is filtered by: a letter, or '#' for the names that start with none */
-export type CatalogLetter = NonNullable<
-	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>['letter']
->;
-export const CATALOG_LETTERS = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') as CatalogLetter[];
 
 /** The media type a category of the pills asks the catalogue for */
 const mediaTypeOf = (category: CatalogCategory) =>
@@ -21,7 +16,7 @@ const mediaTypeOf = (category: CatalogCategory) =>
 /** The titles of the user's list: those in progress, and the rest, watched or not */
 export const libraryContext = createStoreContext(`library`, () => {
 	const category = writable<CatalogCategory>('all');
-	const letter = writable<CatalogLetter | null>(null);
+	const letter = writable<Letter | null>(null);
 	const libraryViewSettings = createLocalStorageStore<{
 		order: CatalogOrder;
 		direction: CatalogOrderDirection;
@@ -109,7 +104,7 @@ export const libraryContext = createStoreContext(`library`, () => {
 /** The titles with files in the library: those the user requested, and the rest */
 export const availableContext = createStoreContext(`library-available`, () => {
 	const category = writable<CatalogCategory>('all');
-	const letter = writable<CatalogLetter | null>(null);
+	const letter = writable<Letter | null>(null);
 	const viewSettings = createLocalStorageStore<{
 		order: CatalogOrder;
 		direction: CatalogOrderDirection;
