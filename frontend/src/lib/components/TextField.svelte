@@ -10,6 +10,8 @@
 	export let value = '';
 	export let placeholder: string = '';
 	export let type: HTMLInputTypeAttribute = 'text';
+	/** The surface; `type` is the input's */
+	export let variant: 'primary' | 'primary-dark' = 'primary';
 	export let isValid: Promise<boolean> | boolean | undefined = undefined;
 	let icon: ComponentType | undefined = undefined;
 
@@ -64,8 +66,7 @@
 		e.detail.selectable.focus();
 		e.detail.stopPropagation();
 	}}
-	class={classNames('flex flex-col', $$restProps.class)}
-	let:hasFocus
+	class={classNames('group flex flex-col', $$restProps.class)}
 	focusOnClick
 >
 	<label class="text-secondary-300 font-medium tracking-wide text-sm mb-1">
@@ -73,9 +74,9 @@
 	</label>
 	<div class="relative flex flex-col">
 		<input
-			class={classNames('bg-primary-900 px-6 py-2 rounded-lg', {
-				selected: hasFocus,
-				unselected: !hasFocus
+			class={classNames('selectable group-focus-within:border-primary-500 px-6 py-2 rounded-lg', {
+				'bg-secondary-800': variant === 'primary',
+				'bg-primary-900': variant === 'primary-dark'
 			})}
 			on:blur
 			on:keydown={handleKeyDown}

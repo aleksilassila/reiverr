@@ -13,7 +13,7 @@
 	export let options: Option[] = [];
 	export let selected: string | undefined = undefined;
 	export let name: string | undefined = undefined;
-	export let style: 'primary' | 'secondary' = 'secondary';
+	export let type: 'primary' | 'primary-dark' = 'primary';
 
 	const dispatch = createEventDispatcher<{
 		select: string;
@@ -29,8 +29,8 @@
 		class={classNames(
 			'rounded-xl',
 			{
-				'bg-primary-900': style === 'secondary',
-				'bg-secondary-800': style === 'primary'
+				'bg-secondary-800': type === 'primary',
+				'bg-primary-900': type === 'primary-dark'
 			},
 			$$restProps.class
 		)}

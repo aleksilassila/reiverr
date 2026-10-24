@@ -187,8 +187,9 @@
 			<h1 class="h3">
 				{createNew ? 'Create Account' : 'Edit Profile'}
 			</h1>
-			<TextField bind:value={name}>name</TextField>
+			<TextField variant="primary-dark" bind:value={name}>name</TextField>
 			<SelectField
+				type="primary-dark"
 				value={profilePictureTitle}
 				on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}
 			>
@@ -197,6 +198,7 @@
 			{#if !createNew}
 				<Container direction="horizontal" class="flex space-x-4 items-end">
 					<TextField
+						variant="primary-dark"
 						class="flex-1"
 						bind:value={oldPassword}
 						type={oldPasswordVisible ? 'text' : 'password'}
@@ -204,6 +206,7 @@
 						Old Password
 					</TextField>
 					<IconToggle
+						type="primary-dark"
 						on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
 						icon={oldPasswordVisible ? EyeOpen : EyeClosed}
 					/>
@@ -211,6 +214,7 @@
 			{/if}
 			<Container direction="horizontal" class="flex space-x-4 items-end">
 				<TextField
+					variant="primary-dark"
 					class="flex-1"
 					bind:value={newPassword}
 					type={newPasswordVisible ? 'text' : 'password'}
@@ -218,6 +222,7 @@
 					New Password
 				</TextField>
 				<IconToggle
+					type="primary-dark"
 					on:clickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
 					icon={newPasswordVisible ? EyeOpen : EyeClosed}
 				/>
@@ -229,7 +234,7 @@
 				</div>
 			{/if}
 			{#if $userStore?.isAdmin && !createNew}
-				<TextField type="number" bind:value={quota} placeholder="No quota">
+				<TextField variant="primary-dark" type="number" bind:value={quota} placeholder="No quota">
 					Storage quota in GB (empty for no quota)
 				</TextField>
 			{/if}

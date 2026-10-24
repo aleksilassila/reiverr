@@ -1,20 +1,18 @@
 <script lang="ts">
 	import Container from './Container.svelte';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
 	import type { ComponentType } from 'svelte';
 
 	export let icon: ComponentType;
-	let hasFocus: Readable<boolean>;
+	export let type: 'primary' | 'primary-dark' = 'primary';
 </script>
 
 <Container
-	bind:hasFocus
 	class={classNames(
-		'bg-primary-900 flex items-center justify-center h-11 w-11 rounded-lg cursor-pointer',
+		'selectable flex items-center justify-center h-11 w-11 rounded-lg cursor-pointer',
 		{
-			selected: $hasFocus,
-			unselected: !$hasFocus
+			'bg-secondary-800': type === 'primary',
+			'bg-primary-900': type === 'primary-dark'
 		}
 	)}
 	on:clickOrSelect

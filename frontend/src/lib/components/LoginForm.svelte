@@ -45,14 +45,26 @@
 		If this is your first time logging in, a new account will be created based on your credentials.
 	</div>
 
-	<TextField value={$baseUrl} on:change={(e) => baseUrl.set(e.detail)} class="mb-4 w-full">
+	<TextField
+		variant="primary-dark"
+		value={$baseUrl}
+		on:change={(e) => baseUrl.set(e.detail)}
+		class="mb-4 w-full"
+	>
 		Server
 	</TextField>
 
-	<TextField value={$name} on:change={({ detail }) => name.set(detail)} class="mb-4 w-full">
+	<TextField
+		variant="primary-dark"
+		value={$name}
+		on:change={({ detail }) => name.set(detail)}
+		class="mb-4 w-full"
+	>
 		Name
 	</TextField>
-	<TextField bind:value={password} type="password" class="mb-8 w-full">Password</TextField>
+	<TextField variant="primary-dark" bind:value={password} type="password" class="mb-8 w-full">
+		Password
+	</TextField>
 
 	<Button type="primary-dark" disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full">
 		Submit

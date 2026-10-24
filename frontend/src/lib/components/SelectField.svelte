@@ -6,7 +6,7 @@
 
 	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
 
-	export let type: 'secondary' | 'primary' | 'transparent' = 'secondary';
+	export let type: 'primary' | 'primary-dark' | 'transparent' = 'primary';
 	export let value: string = '';
 	export let disabled: boolean = false;
 	export let action: (() => Promise<any>) | undefined = undefined;
@@ -33,8 +33,8 @@
 		{
 			'cursor-pointer': !_disabled,
 			'cursor-not-allowed pointer-events-none opacity-40': _disabled,
-			'bg-primary-900': type === 'secondary',
 			'bg-secondary-800': type === 'primary',
+			'bg-primary-900': type === 'primary-dark',
 			'bg-secondary-700/50': type === 'transparent'
 		},
 		$$restProps.class

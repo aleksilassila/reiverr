@@ -46,17 +46,28 @@
 	<h1 class="h3">{indexer ? 'Edit Indexer' : 'Add Indexer'}</h1>
 	<p class="body mb-4">A Torznab feed from Jackett or Prowlarr</p>
 	<Container class="flex flex-col space-y-4 mb-8">
-		<TextField value={name} on:change={({ detail }) => (name = detail)} placeholder="Jackett">
+		<TextField
+			variant="primary-dark"
+			value={name}
+			on:change={({ detail }) => (name = detail)}
+			placeholder="Jackett"
+		>
 			Name
 		</TextField>
 		<TextField
+			variant="primary-dark"
 			value={url}
 			on:change={({ detail }) => (url = detail)}
 			placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/"
 		>
 			Torznab URL
 		</TextField>
-		<TextField type="password" value={apiKey} on:change={({ detail }) => (apiKey = detail)}>
+		<TextField
+			variant="primary-dark"
+			type="password"
+			value={apiKey}
+			on:change={({ detail }) => (apiKey = detail)}
+		>
 			API Key
 		</TextField>
 		{#if error}

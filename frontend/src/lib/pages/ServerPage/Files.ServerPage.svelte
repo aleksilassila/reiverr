@@ -338,7 +338,6 @@
 			disabled={!folders.length}
 			class="max-w-md"
 			on:clickOrSelect={selectFolder}
-			type="primary"
 		>
 			Library folder
 			<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />

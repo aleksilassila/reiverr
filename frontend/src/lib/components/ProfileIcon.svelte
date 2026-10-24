@@ -16,11 +16,7 @@
 	<Container
 		bind:hasFocus
 		class={classNames(
-			'w-40 h-40 rounded-xl overflow-hidden cursor-pointer relative',
-			{
-				selected: $hasFocus,
-				unselected: !$hasFocus
-			},
+			'selectable w-40 h-40 rounded-xl overflow-hidden cursor-pointer relative',
 			$$restProps.class
 		)}
 		{focusOnMount}

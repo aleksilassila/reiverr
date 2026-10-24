@@ -258,6 +258,11 @@
 				<Heart size={24} />
 			</IconButton>
 			<IconToggle icon={Bookmark} on:clickOrSelect={() => createInfoNotification('Icon toggle')} />
+			<IconToggle
+				type="primary-dark"
+				icon={Bookmark}
+				on:clickOrSelect={() => createInfoNotification('Icon toggle', 'Primary dark')}
+			/>
 			<PlayButton on:click={() => createInfoNotification('Play button', 'Mouse only')} />
 		</Container>
 		<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
@@ -284,11 +289,11 @@
 			</SelectField>
 			<SelectField
 				class="flex-1"
-				type="primary"
+				type="primary-dark"
 				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
 				on:clickOrSelect={openSelectDialog}
 			>
-				Select field, primary
+				Select field, primary dark
 			</SelectField>
 			<SelectField
 				class="flex-1"
@@ -313,6 +318,9 @@
 			<TextField class="flex-1" value="Valid" isValid={true}>Valid</TextField>
 			<TextField class="flex-1" value="Invalid" isValid={false} type="password">
 				Invalid, password
+			</TextField>
+			<TextField class="flex-1" placeholder="Type something" variant="primary-dark">
+				Primary dark
 			</TextField>
 		</Container>
 		<Container direction="horizontal" class="flex space-x-8" on:enter={scroll}>
@@ -341,8 +349,8 @@
 			</div>
 			<div class="flex-1">
 				<SelectButtonGroup
-					name="Primary style"
-					style="primary"
+					name="Primary dark"
+					type="primary-dark"
 					options={[...SELECT_OPTIONS, { label: 'Disabled', value: 'disabled', disabled: true }]}
 					{selected}
 					on:select={({ detail }) => (selected = detail)}
@@ -586,11 +594,11 @@
 				</SelectField>
 				<SelectField
 					class="flex-1"
-					type="primary"
+					type="primary-dark"
 					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
 					on:clickOrSelect={openSelectDialog}
 				>
-					Select field, primary
+					Select field, primary dark
 					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
 				</SelectField>
 				<SelectField
@@ -637,8 +645,8 @@
 				</div>
 				<div class="flex-1">
 					<SelectButtonGroup
-						name="Primary style"
-						style="primary"
+						name="Primary dark"
+						type="primary-dark"
 						options={SELECT_OPTIONS}
 						{selected}
 						on:select={({ detail }) => (selected = detail)}

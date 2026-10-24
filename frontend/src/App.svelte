@@ -89,9 +89,10 @@
 {:else}
 	<GlobalBackgroundStack>
 		{#if $user === null}
-			<!-- <StackRouterPage hasSidebar={false}> -->
-			<UsersPage />
-			<!-- </StackRouterPage> -->
+			<!-- Positioned like a routed page, so that it paints above the backdrop of the stack -->
+			<div class="fixed inset-0">
+				<UsersPage />
+			</div>
 		{:else}
 			<StackRouter stack={stackRouter} />
 		{/if}
