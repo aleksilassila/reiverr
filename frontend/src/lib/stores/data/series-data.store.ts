@@ -1,11 +1,11 @@
 import type {
+	EpisodePreferenceDto,
 	EpisodeRefDto,
 	EpisodeStatusDto,
 	PreferredFileDto,
 	SeriesUserDataDto,
 	TmdbSeriesFull,
-	TorrentDto,
-	PreferenceDto
+	TorrentDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
@@ -14,6 +14,7 @@ import { derived, get, writable } from 'svelte/store';
 import { continueWatchingSeriesContext } from './continue-watching-data.store';
 import { useData, useStaleable } from './data.store';
 import { libraryContext } from './library-data.store';
+import { getStatusLabel, isErrorStatus } from './request-status';
 import { reiverrApi, user } from '../user.store';
 
 export type EpisodeUserData = {
@@ -31,7 +32,7 @@ export type SeriesRequests = {
 	/** The episodes the current user requested or that are on disk */
 	episodes: Map<string, EpisodeStatusDto>;
 	/** The torrents the current user selected */
-	preferences: Map<string, PreferenceDto>;
+	preferences: Map<string, EpisodePreferenceDto>;
 	/** Info hashes of the torrents the server has for the series */
 	onServer: Set<string>;
 };
@@ -48,44 +49,6 @@ export type EpisodeRequestStatus = {
 	label?: string;
 	isError: boolean;
 };
-
-function formatTimeUntil(date: string): string {
-	const hours = Math.max(1, Math.ceil((new Date(date).getTime() - Date.now()) / 3_600_000));
-	const days = Math.round(hours / 24);
-
-	if (hours < 24) return `in ${hours} ${hours === 1 ? 'hour' : 'hours'}`;
-	return `in ${days} ${days === 1 ? 'day' : 'days'}`;
-}
-
-function getStatusLabel(status?: EpisodeStatusDto): string | undefined {
-	switch (status?.status) {
-		case 'downloading':
-			return `Downloading ${Math.floor((status.progress ?? 0) * 100)}%`;
-		case 'resolving':
-			return 'Starting';
-		case 'over-quota':
-			return 'Over quota';
-		case 'disk-full':
-			return 'Disk full';
-		case 'failed':
-		case 'no-file-in-torrent':
-			return status.error;
-	}
-
-	// The rule of the series holds the request back until the user has watched up to it
-	const inactive = status?.status === 'inactive-ahead' ? 'Not needed yet' : undefined;
-
-	// No request of anyone keeps a file of the episode from the next cleanup
-	if (status?.onDisk && status.cleanupAt) {
-		return `Deleted ${formatTimeUntil(status.cleanupAt)}`;
-	}
-	// A file of another torrent, or one that was found on disk, plays as well
-	if (status?.onDisk) return inactive ? `On disk · ${inactive}` : 'On disk';
-	if (status?.status === 'waiting-for-approval') return 'Waiting for approval';
-	if (status?.status === 'no-preference') return 'No source selected';
-
-	return inactive;
-}
 
 export function getEpisodeRequestStatus(
 	data: SeriesRequests | undefined,
@@ -106,11 +69,7 @@ export function getEpisodeRequestStatus(
 		file: own?.file,
 		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent?.infoHash,
 		label: getStatusLabel(status),
-		isError:
-			status?.status === 'failed' ||
-			status?.status === 'no-file-in-torrent' ||
-			status?.status === 'over-quota' ||
-			status?.status === 'disk-full'
+		isError: isErrorStatus(status)
 	};
 }
 

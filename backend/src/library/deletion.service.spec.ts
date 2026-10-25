@@ -70,6 +70,8 @@ describe('DeletionService', () => {
       await deletionService.onCleanupHour();
 
       expect(await queued()).toEqual([
+        ['library.cleanUpTitle', { mediaType: MediaType.Movie, tmdbId: '1' }],
+        ['library.cleanUpTitle', { mediaType: MediaType.Movie, tmdbId: '2' }],
         ['library.cleanUpTitle', { mediaType: MediaType.Series, tmdbId: '1' }],
         ['library.cleanUpTitle', { mediaType: MediaType.Series, tmdbId: '2' }],
       ]);

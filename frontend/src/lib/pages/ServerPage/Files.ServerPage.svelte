@@ -38,7 +38,6 @@
 	];
 
 	let folders: string[] = [];
-	let seriesFolders: string[] = [];
 	let folder = '';
 	let tree: LibraryTree = { roots: [], nodes: new Map() };
 	let expanded = new Set<string>();
@@ -57,8 +56,6 @@
 	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
 	$: partiallyChecked = getPartiallyChecked(checked);
 	$: selection = getSelection(checked, tree.nodes);
-	// Managing files and requesting them is built for series
-	$: isSeriesFolder = seriesFolders.includes(folder);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 	const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -184,7 +181,7 @@
 
 		createModal(ConfirmDialog, {
 			header: 'Request the files?',
-			body: `The episodes of ${files} will be requested for you, bound to the files, so that they are kept as long as your requests keep them under your request rules. Of several files of one episode, one gets the request. Automatic request rules apply.`,
+			body: `The episodes or movies of ${files} will be requested for you, bound to the files, so that they are kept as long as your requests keep them under your request rules. Of several files of one episode or movie, one gets the request. Automatic request rules apply.`,
 			confirm: () =>
 				reiverrApi.server
 					.requestLibraryEntries({ folder, paths: Array.from(checked) })
@@ -236,7 +233,7 @@
 
 		createModal(ConfirmDialog, {
 			header: 'Manage the files?',
-			body: `${files} will be managed. A managed file that no request holds is deleted at the next cleanup. Until then a request can be bound to it from the sources of its episode, or with Request here.`,
+			body: `${files} will be managed. A managed file that no request holds is deleted at the next cleanup. Until then a request can be bound to it from the sources of its episode or movie, or with Request here.`,
 			confirm: () => setManaged(true)
 		});
 	}
@@ -320,7 +317,6 @@
 		.getLibrarySettings()
 		.then(({ data }) => {
 			folders = [...folderPaths(data.seriesFolders), ...folderPaths(data.movieFolders)];
-			seriesFolders = folderPaths(data.seriesFolders);
 
 			const first = folders[0];
 			if (first) return load(first);
@@ -373,7 +369,7 @@
 			<Container direction="horizontal" class="flex-shrink-0 flex items-center space-x-4">
 				<Button
 					icon={Bookmark}
-					disabled={!isSeriesFolder || !selection.indexedFiles}
+					disabled={!selection.indexedFiles}
 					on:clickOrSelect={confirmRequest}
 					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
@@ -381,7 +377,7 @@
 				</Button>
 				<Button
 					icon={Archive}
-					disabled={!isSeriesFolder || selection.indexedFiles === selection.managedFiles}
+					disabled={selection.indexedFiles === selection.managedFiles}
 					on:clickOrSelect={confirmManage}
 					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
@@ -428,7 +424,6 @@
 						checked={isChecked(node, checked)}
 						partiallyChecked={partiallyChecked.has(node.entry.path)}
 						expanded={expanded.has(node.entry.path)}
-						cleanup={isSeriesFolder}
 						on:toggle={() => (checked = toggleChecked(node, checked))}
 						on:expand={({ detail }) => expand(node, detail)}
 						on:collapse={({ detail }) => collapse(node, detail)}

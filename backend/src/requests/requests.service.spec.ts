@@ -15,6 +15,7 @@ import { RequestsService, SelectionTarget } from './requests.service.js';
 import { SelectedRelease } from './selected-release.entity.js';
 
 const SERIES = '100';
+const MOVIE = '200';
 const PACK = '1'.repeat(40);
 const EPISODE = '2'.repeat(40);
 const HOUR = 60 * 60 * 1000;
@@ -127,9 +128,17 @@ describe('RequestsService', () => {
 
   const target = (episode: number): SelectionTarget => ({
     userId,
+    mediaType: MediaType.Series,
     tmdbId: SERIES,
     season: 1,
     episode,
+  });
+  const movieTarget = (): SelectionTarget => ({
+    userId,
+    mediaType: MediaType.Movie,
+    tmdbId: MOVIE,
+    season: 0,
+    episode: 0,
   });
   const select = (episode: number, releaseId: string) =>
     request(() => requests.preferRelease(target(episode), releaseId));
@@ -548,11 +557,12 @@ describe('RequestsService', () => {
         requests.requestFiles(userId, [
           { ...file('f1', MediaType.Series, 2), lastEpisode: 3 },
           file('f2', MediaType.Series, 3),
-          file('f3', MediaType.Movie),
+          { ...file('f3', MediaType.Movie), tmdbId: MOVIE, season: 0 },
+          { ...file('f5', MediaType.Movie), tmdbId: MOVIE, season: 0 },
           file('f4', MediaType.Series, 9),
         ]),
       ),
-    ).toEqual({ requests: 2, skipped: 2 });
+    ).toEqual({ requests: 3, skipped: 1 });
 
     // The request that waited for approval is let through too
     expect(await standings()).toEqual([
@@ -562,7 +572,15 @@ describe('RequestsService', () => {
     // The first file of an episode gets it
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'f1' });
     expect(await sourceOf(3)).toEqual({ kind: 'file', mediaFileId: 'f1' });
-    expect(await reconciled()).toEqual([2, 3]);
+    // The movie likewise, with its first file
+    const movie = await request(() => requests.findMovieRequest(userId, MOVIE));
+    expect(movie).toMatchObject({ approved: true });
+    expect(movie.neededSince).toBeTruthy();
+    expect(
+      (await request(() => requests.readRequestWithSource(orm.em, movie.id)))
+        .source,
+    ).toEqual({ kind: 'file', mediaFileId: 'f3' });
+    expect(await reconciled()).toEqual([2, 3, `gone:${movie.id}`]);
   });
 
   it('approves a request and takes no approval back', async () => {
@@ -610,26 +628,104 @@ describe('RequestsService', () => {
     expect(await reconciled()).toEqual([1, 2]);
   });
 
-  it('requests a movie, which waits for a source it cannot have yet', async () => {
+  it('requests a movie, which is needed once it has a source, and keeps it as long as its rule says', async () => {
+    const readMovie = async () => {
+      const row = await request(() => requests.findMovieRequest(userId, MOVIE));
+      return (
+        row && request(() => requests.readRequestWithSource(orm.em, row.id))
+      );
+    };
+    const movieRule = () =>
+      orm.em.fork().findOne(RequestRule, {
+        userId,
+        mediaType: MediaType.Movie,
+        tmdbId: MOVIE,
+      });
+
     const created = await request(() =>
-      requests.createMovieRequest(userId, '7', true),
+      requests.createMovieRequest(userId, MOVIE, true),
     );
     expect(created).toMatchObject({
       mediaType: MediaTypeFull.Movie,
+      season: 0,
+      episode: 0,
       approved: true,
     });
     expect(created.neededSince).toBeFalsy();
-    const read = await request(() =>
-      requests.readRequestWithSource(orm.em, created.id),
-    );
-    expect(read).toMatchObject({ id: created.id });
-    expect(read.source).toBeUndefined();
+    expect((await readMovie()).source).toBeUndefined();
+    expect(await reconciled()).toEqual([]);
 
-    expect(await request(() => requests.deleteMovieRequest(userId, '7'))).toBe(
-      1,
+    // A torrent picked for the movie is wanted for the movie itself
+    await request(() => requests.preferRelease(movieTarget(), 'episode'));
+    expect((await readMovie()).neededSince).toBeTruthy();
+    expect((await readMovie()).source).toEqual({
+      kind: 'torrent',
+      infoHash: EPISODE,
+      forEpisode: true,
+    });
+    expect(await movieRule()).toMatchObject({
+      keepNext: null,
+      keepWatched: null,
+      keepWatchedHours: null,
+      seasonTorrents: null,
+      episodeSources: [
+        { season: 0, episode: 0, kind: 'torrent', infoHash: EPISODE },
+      ],
+    });
+    expect(await reconciled()).toEqual([`gone:${created.id}`]);
+
+    // A file instead, then nothing: the request stays needed without a source
+    await request(() => requests.preferFile(movieTarget(), 'f1'));
+    expect((await readMovie()).source).toEqual({
+      kind: 'file',
+      mediaFileId: 'f1',
+    });
+    expect(await request(() => requests.clearPreference(movieTarget()))).toBe(
+      true,
     );
+    expect((await readMovie()).source).toBeUndefined();
+    expect((await readMovie()).neededSince).toBeTruthy();
+    expect(await movieRule()).toBeNull();
+
+    // The rule of a movie keeps a watched one for a time
+    await request(() =>
+      requests.setMovieRule(userId, MOVIE, { keepWatchedHours: 12 }),
+    );
+    expect(await movieRule()).toMatchObject({ keepWatchedHours: 12 });
+    const watch = async (watchedAt: Date) => {
+      const em = orm.em.fork();
+      await em.insert(PlayState, {
+        ...new PlayState(),
+        userId,
+        mediaType: MediaTypeFull.Movie,
+        tmdbId: MOVIE,
+        season: 0,
+        episode: 0,
+        watched: true,
+        watchedAt,
+      });
+      await em.transactional((tx) =>
+        requests.applyRule(tx, {
+          userId,
+          mediaType: MediaType.Movie,
+          tmdbId: MOVIE,
+        }),
+      );
+    };
+    const recently = hoursAgo(6);
+    await watch(recently);
+    expect(await readMovie()).toMatchObject({ watchedAt: recently });
+
+    await orm.em.fork().nativeDelete(PlayState, {});
+    await watch(hoursAgo(24));
+    expect(await readMovie()).toBeUndefined();
+
+    // Deleting a request
+    await orm.em.fork().nativeDelete(PlayState, {});
+    await request(() => requests.createMovieRequest(userId, MOVIE, true));
     expect(
-      await request(() => requests.findMovieRequest(userId, '7')),
-    ).toBeUndefined();
+      await request(() => requests.deleteMovieRequest(userId, MOVIE)),
+    ).toBe(1);
+    expect(await readMovie()).toBeUndefined();
   });
 });

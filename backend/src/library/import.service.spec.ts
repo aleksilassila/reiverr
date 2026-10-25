@@ -4,6 +4,7 @@ import {
   createLibraryFixture,
   INFO_HASH,
   LibraryFixture,
+  MOVIE_ID,
   TMDB_ID,
 } from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
@@ -20,6 +21,7 @@ describe('ImportService', () => {
   let write: LibraryFixture['write'];
   let indexed: LibraryFixture['indexed'];
   let importEpisode: LibraryFixture['importEpisode'];
+  let importMovie: LibraryFixture['importMovie'];
   let scanSeries: LibraryFixture['scanSeries'];
 
   beforeEach(async () => {
@@ -32,6 +34,7 @@ describe('ImportService', () => {
       write,
       indexed,
       importEpisode,
+      importMovie,
       scanSeries,
     } = fixture);
   });
@@ -129,6 +132,42 @@ describe('ImportService', () => {
     expect(await indexed()).toMatchObject([
       { managed: true, infoHash: INFO_HASH, episode: 2, lastEpisode: 3 },
     ]);
+  });
+
+  it('imports a movie as a managed version in the folder of the movie, else in a new one', async () => {
+    write('movies/Test Movie (2021)/Test.Movie.2021.mkv');
+    const source = write('downloads/Test.Movie.2021.1080p.MKV', 'download');
+
+    const destination = await importMovie(source);
+
+    expect(path.relative(fixture.movies, destination)).toBe(
+      'Test Movie (2021)/Test Movie (2021) - a1b2c3d4.mkv',
+    );
+    expect(statSync(destination).ino).toBe(statSync(source).ino);
+
+    // The file found next to it stays as it is, and both play as the movie
+    await request(() => scan.scanTitle(MediaType.Movie, MOVIE_ID));
+    const files = await request(() => playback.listMovieFiles(MOVIE_ID));
+    expect(files.map((file) => file.fileName)).toEqual([
+      'Test Movie (2021) - a1b2c3d4.mkv',
+      'Test.Movie.2021.mkv',
+    ]);
+    expect(await indexed()).toMatchObject([
+      {
+        mediaType: MediaType.Movie,
+        tmdbId: MOVIE_ID,
+        season: 0,
+        episode: 0,
+        lastEpisode: 0,
+        managed: true,
+        infoHash: INFO_HASH,
+      },
+      { mediaType: MediaType.Movie, managed: false },
+    ]);
+
+    // Importing the same file of the torrent again changes nothing
+    await importMovie(source);
+    expect(readdirSync(path.dirname(destination))).toHaveLength(2);
   });
 
   it('imports into the folder of the series, else into the primary folder', async () => {

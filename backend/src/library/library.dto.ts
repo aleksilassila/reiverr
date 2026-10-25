@@ -1,4 +1,4 @@
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import { ApiProperty, getSchemaPath, IntersectionType } from '@nestjs/swagger';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { TorrentDto } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
@@ -219,7 +219,7 @@ export class DeleteLibraryEntriesResultDto {
   failed: FailedLibraryEntryDto[];
 }
 
-/** A file in the library a user prefers for an episode */
+/** A file in the library a user prefers for an episode or a movie */
 export class PreferredFileDto {
   @ApiProperty({
     description: 'The id of the file, which the API serves it by',
@@ -253,10 +253,10 @@ export class PreferredFileDto {
 }
 
 /**
- * What a user prefers for a season (episode 0) or an episode: a torrent, or
- * for an episode a file in the library
+ * What a user prefers for a movie, a season or an episode: a torrent, or
+ * for a movie or an episode a file in the library
  */
-export class PreferenceDto extends EpisodeRefDto {
+export class PreferenceDto {
   @ApiProperty({ type: TorrentDto, required: false })
   torrent?: TorrentDto;
 
@@ -264,11 +264,18 @@ export class PreferenceDto extends EpisodeRefDto {
   file?: PreferredFileDto;
 }
 
-export enum EpisodeDownloadStatus {
+/** A preference of a series: for a season (episode 0) or an episode */
+export class EpisodePreferenceDto extends IntersectionType(
+  EpisodeRefDto,
+  PreferenceDto,
+) {}
+
+/** Where the request of a user for an episode or a movie stands */
+export enum RequestStatus {
   WaitingForApproval = 'waiting-for-approval',
   /** The rule of the user holds the request back until they have watched up to it */
   InactiveAhead = 'inactive-ahead',
-  /** The user has picked no source for the episode; a request passes the gate with one */
+  /** The user has picked no source for the episode or the movie; a request passes the gate with one */
   NoPreference = 'no-preference',
   /** The library is looking at the request, or the files of its torrent are not known yet */
   Resolving = 'resolving',
@@ -283,22 +290,23 @@ export enum EpisodeDownloadStatus {
   Available = 'available',
 }
 
-export class EpisodeStatusDto extends EpisodeRefDto {
-  @ApiProperty({ description: 'Whether the user has requested the episode' })
+/** Where the request of a user for an episode or a movie stands, and what is on disk of it */
+export class RequestStatusDto {
+  @ApiProperty({ description: 'Whether the user has requested it' })
   requested: boolean;
 
   @ApiProperty({
     description:
-      'Whether a file of the episode is in the library, from any torrent or found on disk',
+      'Whether a file of it is in the library, from any torrent or found on disk',
   })
   onDisk: boolean;
 
   @ApiProperty({
-    enum: EpisodeDownloadStatus,
+    enum: RequestStatus,
     required: false,
     description: 'Where the request of the user stands',
   })
-  status?: EpisodeDownloadStatus;
+  status?: RequestStatus;
 
   @ApiProperty({ required: false, description: 'From 0 to 1' })
   progress?: number;
@@ -319,18 +327,39 @@ export class EpisodeStatusDto extends EpisodeRefDto {
     format: 'date-time',
     required: false,
     description:
-      'When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them',
+      'When the next cleanup deletes the files of it, if no request of anyone keeps one of them',
   })
   cleanupAt?: Date;
 }
 
+export class EpisodeStatusDto extends IntersectionType(
+  EpisodeRefDto,
+  RequestStatusDto,
+) {}
+
+export class MovieStatusDto extends RequestStatusDto {
+  @ApiProperty({
+    type: PreferenceDto,
+    required: false,
+    description: 'What the user prefers for the movie: a torrent, or a file',
+  })
+  preference?: PreferenceDto;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from',
+  })
+  onServer: string[];
+}
+
 export class SeriesStatusDto {
   @ApiProperty({
-    type: [PreferenceDto],
+    type: [EpisodePreferenceDto],
     description:
       'What the user prefers for the seasons and episodes: torrents, and files for episodes',
   })
-  preferences: PreferenceDto[];
+  preferences: EpisodePreferenceDto[];
 
   @ApiProperty({
     type: [EpisodeStatusDto],
@@ -458,7 +487,7 @@ export class TitleUsageDto {
     type: RequestRuleDto,
     required: false,
     description:
-      'The limits of the rule of the title; absent for a movie or without a rule',
+      'The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only',
   })
   rule?: RequestRuleDto;
 }

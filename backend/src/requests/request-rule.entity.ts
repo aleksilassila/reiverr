@@ -14,8 +14,8 @@ import type { EpisodeSource, SeasonTorrent } from './request-source.js';
 /**
  * What a user wants of the requests of a title: which of them are needed,
  * going by what the user has watched, and which torrents or files they get
- * their files from. A limit that is null does not apply. Only series have
- * rules so far.
+ * their files from. A limit that is null does not apply. The rule of a
+ * movie has only keepWatchedHours and the source of the movie.
  */
 @Entity()
 @Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })

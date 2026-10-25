@@ -8,10 +8,11 @@ import { LibraryService } from './library.service.js';
 import {
   episodeFileName,
   libraryFolderPaths,
+  movieFileName,
   primaryLibraryFolder,
   seasonFolderName,
-  seriesFolderName,
   subtitleFileName,
+  titleFolderName,
 } from './library.utils.js';
 import { INDEXED_FIELDS, MediaFile } from './media-file.entity.js';
 
@@ -25,8 +26,9 @@ export interface ImportTarget {
   infoHash: string;
   mediaType: MediaType;
   tmdbId: string;
+  /** 0 for a movie */
   season: number;
-  /** The episodes the file is, by its name or by what was wanted of it */
+  /** The episodes the file is, by its name or by what was wanted of it; [0] for a movie */
   episodes: number[];
   /** The subtitle files of the torrent that belong to the file, placed next to it */
   subtitles: { sourcePath: string; name: string }[];
@@ -35,6 +37,7 @@ export interface ImportTarget {
 /** A file that an import put into the library */
 interface PlacedFile {
   path: string;
+  mediaType: MediaType;
   tmdbId: string;
   season: number;
   episodes: number[];
@@ -43,7 +46,7 @@ interface PlacedFile {
   modifiedAt: Date;
 }
 
-/** Puts the files that downloads finish into the library, as versions of their episodes */
+/** Puts the files that downloads finish into the library, as versions of their movies and episodes */
 @Injectable()
 export class ImportService {
   constructor(
@@ -56,23 +59,20 @@ export class ImportService {
    * version. Importing the same file again changes nothing.
    */
   async importFile(target: ImportTarget): Promise<MediaFile> {
-    if (target.mediaType !== MediaType.Series) {
-      throw new Error('Movies cannot be imported yet');
-    }
-
-    const placed = await this.placeEpisodeFile(target);
+    const placed = await this.placeVersion(target);
 
     return this.em.transactional((tx) => this.indexImportedFile(tx, placed));
   }
 
   /**
-   * Puts a video file into the library as the given episodes of a series,
-   * as the version of the torrent it comes from, with its subtitles as
-   * sidecars named after it. A rerun puts the files where that version is
-   * already.
+   * Puts a video file into the library as the version of the torrent it
+   * comes from, of a movie or of the given episodes of a series, with its
+   * subtitles as sidecars named after it. A rerun puts the files where that
+   * version is already.
    */
-  private async placeEpisodeFile(target: ImportTarget): Promise<PlacedFile> {
-    const { tmdbId, season, episodes, sourcePath, infoHash } = target;
+  private async placeVersion(target: ImportTarget): Promise<PlacedFile> {
+    const { mediaType, tmdbId, season, episodes, sourcePath, infoHash } =
+      target;
     const destination =
       (await this.findVersionPath(target)) ??
       (await this.getImportPath(target));
@@ -99,6 +99,7 @@ export class ImportService {
 
     return {
       path: destination,
+      mediaType,
       tmdbId,
       season,
       episodes,
@@ -149,7 +150,7 @@ export class ImportService {
       .insert({
         id: randomUUID(),
         path: file.path,
-        mediaType: MediaType.Series,
+        mediaType: file.mediaType,
         tmdbId: file.tmdbId,
         season: file.season,
         episode: Math.min(...file.episodes),
@@ -160,7 +161,7 @@ export class ImportService {
         managed: true,
         createdAt: new Date(),
       })
-      // A scan of the series or of its folder can have indexed the file already
+      // A scan of the title or of its folder can have indexed the file already
       .onConflict('path')
       .merge([...INDEXED_FIELDS, 'infoHash', 'managed'])
       .execute();
@@ -172,15 +173,15 @@ export class ImportService {
     );
   }
 
-  /** Where the version of the torrent for the episodes is, when it was imported before */
+  /** Where the version of the torrent for the movie or the episodes is, when it was imported before */
   private async findVersionPath(
     target: ImportTarget,
   ): Promise<string | undefined> {
-    const { tmdbId, season, episodes, infoHash } = target;
+    const { mediaType, tmdbId, season, episodes, infoHash } = target;
     const version = await this.em.findOne(
       MediaFile,
       {
-        mediaType: MediaType.Series,
+        mediaType,
         tmdbId,
         season,
         episode: Math.min(...episodes),
@@ -194,34 +195,47 @@ export class ImportService {
     return version?.path;
   }
 
-  /** The Jellyfin naming, under the title folder of the series or a new one in the primary folder */
+  /**
+   * The Jellyfin naming, under the title folder of the movie or the series,
+   * or a new one in the primary folder of its type
+   */
   private async getImportPath(target: ImportTarget): Promise<string> {
-    const { tmdbId, season, episodes, sourcePath, infoHash } = target;
+    const { mediaType, tmdbId, season, episodes, sourcePath, infoHash } =
+      target;
     const { name, match } = await this.libraryService.getTitleMatch(
-      MediaType.Series,
+      mediaType,
       tmdbId,
     );
-    const { seriesFolders } = await this.libraryService.getSettings();
-    const primaryFolder = primaryLibraryFolder(seriesFolders);
+    const settings = await this.libraryService.getSettings();
+    const folders =
+      mediaType === MediaType.Movie
+        ? settings.movieFolders
+        : settings.seriesFolders;
+    const primaryFolder = primaryLibraryFolder(folders);
     if (!primaryFolder) {
-      throw new Error('No series folder is configured');
+      throw new Error(`No ${mediaType} folder is configured`);
     }
 
     const [titleFolder] = await this.libraryService.findTitleFolders(
-      libraryFolderPaths(seriesFolders),
+      libraryFolderPaths(folders),
       match,
     );
-    return path.join(
+    const folder =
       titleFolder ??
-        path.join(primaryFolder, seriesFolderName(name, match.year, tmdbId)),
+      path.join(primaryFolder, titleFolderName(name, match.year, tmdbId));
+    const label = infoHash.slice(0, VERSION_LABEL_LENGTH);
+    const extension = path.extname(sourcePath);
+
+    if (mediaType === MediaType.Movie) {
+      return path.join(
+        folder,
+        movieFileName(name, match.year, label, extension),
+      );
+    }
+    return path.join(
+      folder,
       seasonFolderName(season),
-      episodeFileName(
-        name,
-        season,
-        episodes,
-        infoHash.slice(0, VERSION_LABEL_LENGTH),
-        path.extname(sourcePath),
-      ),
+      episodeFileName(name, season, episodes, label, extension),
     );
   }
 }

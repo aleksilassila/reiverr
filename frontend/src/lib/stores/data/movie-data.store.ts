@@ -1,3 +1,5 @@
+import type { MovieStatusDto } from '$lib/apis/reiverr/reiverr.openapi';
+import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 import { get, writable } from 'svelte/store';
@@ -37,6 +39,27 @@ function useMovieData(tmdbId: string) {
 		return data;
 	});
 
+	// The requests view refreshes the status periodically, so a failure is reported once
+	let statusFailed = false;
+	const statusData = useData(async (): Promise<MovieStatusDto> => {
+		const status = await reiverrApi.library
+			.getMovieStatus(tmdbId)
+			.then((r) => r.data)
+			.catch((e) => {
+				if (!statusFailed) {
+					createErrorNotification(
+						'Could not load the request',
+						e?.response?.data?.message ?? e?.message ?? String(e)
+					);
+				}
+				statusFailed = true;
+				throw e;
+			});
+		statusFailed = false;
+
+		return status;
+	});
+
 	async function setWatched(watched: boolean) {
 		const userId = get(user)?.id;
 
@@ -50,6 +73,16 @@ function useMovieData(tmdbId: string) {
 		});
 
 		return invalidateUserData();
+	}
+
+	async function setRequested(requested: boolean) {
+		const userId = get(user)?.id as string;
+
+		await (requested
+			? reiverrApi.requests.createMovieRequest(userId, tmdbId)
+			: reiverrApi.requests.deleteMovieRequest(userId, tmdbId));
+
+		return statusData.update();
 	}
 
 	async function setInLibrary(state: boolean) {
@@ -75,6 +108,8 @@ function useMovieData(tmdbId: string) {
 		previous.setStale?.();
 		previousContinueWatching.setStale?.();
 		previousLibrary.setStale?.();
+		// The rule of the movie follows the watched state
+		statusData.update();
 		return userData.update();
 	}
 
@@ -83,11 +118,13 @@ function useMovieData(tmdbId: string) {
 	return {
 		componentStack,
 		movieData,
+		statusData,
 		inLibrary,
 		isWatched,
 		progress,
 		setInLibrary,
 		setWatched,
+		setRequested,
 		setStale,
 		unsubscribe: () => {
 			unsubscribe();

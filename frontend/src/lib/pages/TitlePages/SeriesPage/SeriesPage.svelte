@@ -21,7 +21,7 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
-	import { playEpisode } from '../play-episode';
+	import { playEpisode } from '../play-media';
 	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
 	import RequestsView from './RequestsView.svelte';
 

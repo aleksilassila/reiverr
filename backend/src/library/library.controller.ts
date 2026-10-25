@@ -41,6 +41,7 @@ import {
   LibraryFileDto,
   LibraryFolderDto,
   LibrarySettingsDto,
+  MovieStatusDto,
   SeriesStatusDto,
   StorageDto,
   StorageUsageDto,
@@ -153,6 +154,19 @@ export class LibraryController {
   @ApiOkResponse({ type: [LibraryFileDto] })
   getMovieFiles(@Param('tmdbId') tmdbId: string): Promise<LibraryFileDto[]> {
     return this.playbackService.listMovieFiles(tmdbId);
+  }
+
+  @Get('movies/:tmdbId/status')
+  @ApiOkResponse({
+    type: MovieStatusDto,
+    description:
+      'Where the request and the preferred source of the user stand for the movie',
+  })
+  getMovieStatus(
+    @GetAuthUser() user: User,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<MovieStatusDto> {
+    return this.statusService.getMovieStatus(user.id, tmdbId);
   }
 
   @Get('series/:tmdbId')

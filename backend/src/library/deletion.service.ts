@@ -272,9 +272,14 @@ export class DeletionService implements OnModuleInit {
    * with dryRun the files those jobs would delete, looked at now
    */
   async cleanUpLibrary(dryRun = false): Promise<MediaFile[]> {
-    const titles = (
-      await this.libraryService.findTitlesWithManagedFiles(MediaType.Series)
-    ).map((tmdbId) => ({ mediaType: MediaType.Series, tmdbId }));
+    const titles: JobPayloads['library.cleanUpTitle'][] = [];
+    for (const mediaType of [MediaType.Movie, MediaType.Series]) {
+      for (const tmdbId of await this.libraryService.findTitlesWithManagedFiles(
+        mediaType,
+      )) {
+        titles.push({ mediaType, tmdbId });
+      }
+    }
 
     if (dryRun) {
       const unheld: MediaFile[] = [];

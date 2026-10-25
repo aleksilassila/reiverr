@@ -192,12 +192,13 @@
 	<Container class="flex-1 min-h-0 flex flex-col">
 		<div class="mx-32 mt-16">
 			<div class="flex justify-between items-end">
-				<div>
+				<div class="min-w-0">
 					<HeroTitleInfo
-						title="Requests"
 						overview=""
 						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
-					/>
+					>
+						<span slot="title" class="block truncate leading-tight">{$tmdbSeries?.name ?? ''}</span>
+					</HeroTitleInfo>
 				</div>
 				{#if $storageData && $storageData.quotaBytes !== null}
 					<StorageQuota

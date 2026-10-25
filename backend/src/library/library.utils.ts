@@ -236,8 +236,8 @@ export function sanitizeFileName(name: string): string {
     .trim();
 }
 
-/** "Name (Year) [tmdbid-123]", the Jellyfin naming that the folder matching reads back */
-export function seriesFolderName(
+/** "Name (Year) [tmdbid-123]", the Jellyfin naming of the folder of a movie or a series, which the folder matching reads back */
+export function titleFolderName(
   name: string,
   year: number | undefined,
   tmdbId: string,
@@ -249,6 +249,23 @@ export function seriesFolderName(
 
 export function seasonFolderName(season: number): string {
   return `Season ${season}`;
+}
+
+/**
+ * "Name (Year) - label.mkv", the naming Jellyfin reads as the versions of a
+ * movie. The label tells the versions apart.
+ */
+export function movieFileName(
+  name: string,
+  year: number | undefined,
+  label: string,
+  extension: string,
+): string {
+  const title = [sanitizeFileName(name), year && `(${year})`]
+    .filter(Boolean)
+    .join(' ');
+
+  return `${title} - ${label}${extension.toLowerCase()}`;
 }
 /**
  * "Name - S01E02 - label.mkv", or "Name - S01E02-E03 - label.mkv" for a file
@@ -335,19 +352,28 @@ export const describeError = (error: Error) => error.message.split(',')[0];
 export const relativePath = (folder: string, entryPath: string) =>
   path.relative(folder, entryPath).split(path.sep).join('/');
 
-/** Whether a file of a series is of an episode: of its title and season, and the episode is among the file's */
-export function coversEpisode(
+/**
+ * Whether a file is of a movie, or of an episode of a series: of its title
+ * and season, and the episode is among the file's. A movie and its files
+ * are season and episode 0.
+ */
+export function coversMedia(
   file: Pick<
     MediaFile,
     'mediaType' | 'tmdbId' | 'season' | 'episode' | 'lastEpisode'
   >,
-  episode: { tmdbId: string; season: number; episode: number },
+  media: {
+    mediaType: MediaType;
+    tmdbId: string;
+    season: number;
+    episode: number;
+  },
 ): boolean {
   return (
-    file.mediaType === MediaType.Series &&
-    file.tmdbId === episode.tmdbId &&
-    file.season === episode.season &&
-    file.episode <= episode.episode &&
-    episode.episode <= file.lastEpisode
+    file.mediaType === media.mediaType &&
+    file.tmdbId === media.tmdbId &&
+    file.season === media.season &&
+    file.episode <= media.episode &&
+    media.episode <= file.lastEpisode
   );
 }

@@ -7,10 +7,11 @@ import {
 } from '@nestjs/common';
 import axios from 'axios';
 import { createHash, randomUUID } from 'node:crypto';
+import { normalizeTitle, yearOf } from '../library/library.utils.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { IndexerDto } from './indexers.dto.js';
-import { parseReleaseTitle } from './release-title.utils.js';
+import { isReleaseOfMovie, parseReleaseTitle } from './release-title.utils.js';
 import { parseTorrentSource, TorrentSource } from './torrent-source.utils.js';
 import {
   parseTorznabCaps,
@@ -27,9 +28,14 @@ const MAX_REDIRECTS = 5;
 export interface Release extends TorznabItem {
   id: string;
   indexer: string;
+  /** Empty for a movie */
   seasons: number[];
+  /** Empty for a movie and for a season pack */
   episodes: number[];
 }
+
+/** An item of an indexer, as the clients refer to it */
+type FoundItem = TorznabItem & Pick<Release, 'id' | 'indexer'>;
 
 interface SeriesQuery {
   name: string;
@@ -40,7 +46,17 @@ interface SeriesQuery {
   episode?: number;
 }
 
+interface MovieQuery {
+  name: string;
+  tmdbId: string;
+  imdbId?: string;
+  year?: number;
+}
+
 const pad = (n: number) => String(n).padStart(2, '0');
+
+/** Apostrophes and colons are not searched for; indexers write them differently */
+const searchable = (name: string) => name.replace(/['’:]/g, '');
 
 @Injectable()
 export class IndexersService {
@@ -111,11 +127,6 @@ export class IndexersService {
     const metadata = await this.metadataService.getSeriesByTmdbId(tmdbId);
     if (!metadata) throw new NotFoundException('Series not found');
 
-    const indexers = await this.getIndexers();
-    if (!indexers.length) {
-      throw new BadRequestException('No indexers are configured');
-    }
-
     const series = metadata.tmdbSeries;
     const query: SeriesQuery = {
       name: series.name,
@@ -127,45 +138,51 @@ export class IndexersService {
       season,
       episode,
     };
-
-    const results = await Promise.allSettled(
-      indexers.map((indexer) => this.searchIndexer(indexer, query)),
+    const items = await this.searchAll((indexer) =>
+      this.searchSeriesItems(indexer, query),
     );
 
-    const failures = results.flatMap((result, i) =>
-      result.status === 'rejected'
-        ? [`${indexers[i].name}: ${result.reason?.message}`]
-        : [],
+    return this.remember(
+      items.flatMap((item): Release[] => {
+        const { kind, seasons, episodes } = parseReleaseTitle(item.title);
+        const matches =
+          episode === undefined
+            ? kind === 'season-pack' && seasons.includes(season)
+            : kind === 'episode' &&
+              seasons.includes(season) &&
+              episodes.includes(episode);
+
+        return matches ? [{ ...item, seasons, episodes }] : [];
+      }),
     );
-    failures.forEach((failure) =>
-      this.logger.warn(`Search failed, ${failure}`),
-    );
-    if (failures.length === indexers.length) {
-      throw new BadGatewayException(failures.join('; '));
-    }
+  }
 
-    const releases = results
-      .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
-      .filter((release) =>
-        episode === undefined
-          ? release.kind === 'season-pack' && release.seasons.includes(season)
-          : release.kind === 'episode' &&
-            release.seasons.includes(season) &&
-            release.episodes.includes(episode),
-      )
-      .map(({ kind, ...release }): Release => release)
-      .sort((a, b) => b.seeders - a.seeders);
+  /** Releases of a movie, by its name and year, with the most seeded first */
+  async searchMovies(tmdbId: string): Promise<Release[]> {
+    const metadata = await this.metadataService.getMovieByTmdbId(tmdbId);
+    if (!metadata) throw new NotFoundException('Movie not found');
 
-    // The same torrent can be listed by several indexers
-    const unique = releases.filter(
-      (release, i) =>
-        !release.infoHash ||
-        releases.findIndex((r) => r.infoHash === release.infoHash) === i,
+    const movie = metadata.tmdbMovie;
+    const query: MovieQuery = {
+      name: movie.title,
+      tmdbId,
+      imdbId: movie.imdb_id ?? movie.external_ids?.imdb_id ?? undefined,
+      year: yearOf(movie.release_date),
+    };
+    const titles = [movie.title, movie.original_title]
+      .filter(Boolean)
+      .map(normalizeTitle);
+    const items = await this.searchAll((indexer) =>
+      this.searchMovieItems(indexer, query),
     );
 
-    this.remember(unique);
-
-    return unique;
+    return this.remember(
+      items
+        .filter((item) =>
+          isReleaseOfMovie(item.title, { titles, year: query.year }),
+        )
+        .map((item): Release => ({ ...item, seasons: [], episodes: [] })),
+    );
   }
 
   getRelease(id: string): Release | undefined {
@@ -202,22 +219,53 @@ export class IndexersService {
     );
   }
 
-  private async searchIndexer(indexer: IndexerDto, query: SeriesQuery) {
-    const items = await this.searchItems(indexer, query);
+  /**
+   * Runs a search on every indexer and gives what they found, with the ids
+   * the clients refer to the items by. Indexers that fail are logged and
+   * left out; the search fails when all of them do.
+   */
+  private async searchAll(
+    search: (indexer: IndexerDto) => Promise<TorznabItem[]>,
+  ): Promise<FoundItem[]> {
+    const indexers = await this.getIndexers();
+    if (!indexers.length) {
+      throw new BadRequestException('No indexers are configured');
+    }
 
-    return items.map((item) => ({
-      ...item,
-      ...parseReleaseTitle(item.title),
-      id: createHash('sha1').update(`${indexer.id}:${item.guid}`).digest('hex'),
-      indexer: item.tracker ?? indexer.name,
-    }));
+    const results = await Promise.allSettled(
+      indexers.map(async (indexer) =>
+        (await search(indexer)).map((item): FoundItem => ({
+          ...item,
+          id: createHash('sha1')
+            .update(`${indexer.id}:${item.guid}`)
+            .digest('hex'),
+          indexer: item.tracker ?? indexer.name,
+        })),
+      ),
+    );
+
+    const failures = results.flatMap((result, i) =>
+      result.status === 'rejected'
+        ? [`${indexers[i].name}: ${result.reason?.message}`]
+        : [],
+    );
+    failures.forEach((failure) =>
+      this.logger.warn(`Search failed, ${failure}`),
+    );
+    if (failures.length === indexers.length) {
+      throw new BadGatewayException(failures.join('; '));
+    }
+
+    return results.flatMap((result) =>
+      result.status === 'fulfilled' ? result.value : [],
+    );
   }
 
   /**
    * Searches by an id the indexer supports and falls back to the series name
    * when it supports none or the id search finds nothing.
    */
-  private async searchItems(
+  private async searchSeriesItems(
     indexer: IndexerDto,
     query: SeriesQuery,
   ): Promise<TorznabItem[]> {
@@ -245,7 +293,7 @@ export class IndexersService {
       if (items.length) return items;
     }
 
-    const name = query.name.replace(/['’:]/g, '');
+    const name = searchable(query.name);
     const numbering =
       `S${pad(season)}` + (episode === undefined ? '' : `E${pad(episode)}`);
 
@@ -254,6 +302,43 @@ export class IndexersService {
         ...mode,
         q: supportsNumbers ? name : `${name} ${numbering}`,
         ...numbers,
+      }),
+    );
+  }
+
+  /**
+   * Searches by an id the indexer supports and falls back to the movie name
+   * with its year when it supports none or the id search finds nothing.
+   */
+  private async searchMovieItems(
+    indexer: IndexerDto,
+    query: MovieQuery,
+  ): Promise<TorznabItem[]> {
+    const { movieSearch } = await this.getCaps(indexer);
+
+    const mode = { t: movieSearch.length ? 'movie' : 'search' };
+    const id = movieSearch.includes('tmdbid')
+      ? { tmdbid: query.tmdbId }
+      : movieSearch.includes('imdbid') && query.imdbId
+        ? { imdbid: query.imdbId }
+        : undefined;
+
+    if (id) {
+      const items = parseTorznabItems(
+        await this.request(indexer, { ...mode, ...id }),
+      );
+      if (items.length) return items;
+    }
+
+    const name = searchable(query.name);
+    const { year } = query;
+    const byYear = year !== undefined && movieSearch.includes('year');
+
+    return parseTorznabItems(
+      await this.request(indexer, {
+        ...mode,
+        q: year === undefined || byYear ? name : `${name} ${year}`,
+        ...(byYear && { year }),
       }),
     );
   }
@@ -314,14 +399,27 @@ export class IndexersService {
     return Buffer.from(response.data);
   }
 
-  private remember(releases: Release[]) {
-    const now = Date.now();
+  /**
+   * Keeps the releases of a search for the clients to refer to by id, the
+   * most seeded first and each torrent once: the same torrent can be listed
+   * by several indexers
+   */
+  private remember(releases: Release[]): Release[] {
+    const sorted = [...releases].sort((a, b) => b.seeders - a.seeders);
+    const unique = sorted.filter(
+      (release, i) =>
+        !release.infoHash ||
+        sorted.findIndex((r) => r.infoHash === release.infoHash) === i,
+    );
 
+    const now = Date.now();
     for (const [id, entry] of this.releases) {
       if (entry.expiresAt <= now) this.releases.delete(id);
     }
-    for (const release of releases) {
+    for (const release of unique) {
       this.releases.set(release.id, { release, expiresAt: now + RELEASE_TTL });
     }
+
+    return unique;
   }
 }

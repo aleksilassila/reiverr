@@ -9,7 +9,7 @@
 	import { getEpisodeRequestStatus, useSeriesContext } from '$lib/stores/data/series-data.store';
 	import { Check, Play } from 'radix-icons-svelte';
 	import { readable } from 'svelte/store';
-	import { playEpisode } from '../play-episode';
+	import { playEpisode } from '../play-media';
 
 	export let tmdbId: string;
 	export let season: number;

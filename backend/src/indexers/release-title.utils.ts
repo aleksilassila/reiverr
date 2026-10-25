@@ -1,4 +1,7 @@
-import { parseEpisodeNumbers } from '../library/library.utils.js';
+import {
+  normalizeTitle,
+  parseEpisodeNumbers,
+} from '../library/library.utils.js';
 
 export type ReleaseKind = 'episode' | 'season-pack' | 'other';
 
@@ -6,6 +9,20 @@ export interface ParsedReleaseTitle {
   kind: ReleaseKind;
   seasons: number[];
   episodes: number[];
+}
+
+/**
+ * What the title of a movie release says of its movie
+ * (`parseMovieReleaseTitle`)
+ *
+ * @example
+ * // "The.Matrix.1999.REMASTERED.1080p.BluRay.x264-GRP"
+ * { title: 'thematrix', year: 1999 }
+ */
+export interface ParsedMovieReleaseTitle {
+  /** The name as a comparison key, as `normalizeTitle` reads the title of the movie */
+  title: string;
+  year?: number;
 }
 
 // The patterns below follow Sonarr's release parser (NzbDrone.Core/Parser/Parser.cs):
@@ -66,4 +83,69 @@ export function parseReleaseTitle(title: string): ParsedReleaseTitle {
     !SEASON_EXTRAS_PATTERN.test(simpleTitle);
 
   return { kind: isPack ? 'season-pack' : 'other', seasons, episodes: [] };
+}
+
+// A year as a token of its own: "Name.2019.1080p", "Name (2019)"; not part of a longer number
+const YEAR_PATTERN = /(?<![a-z0-9])((?:19|20)\d{2})(?![a-z0-9])/gi;
+// Where the source and codec tokens begin, which end the name of a release without a year
+const SOURCE_PATTERN =
+  /[\W_](?:blu-?ray|bd-?rip|br-?rip|web-?dl|web-?rip|web|hdtv|dvd-?rip|dvd|hd-?rip|remux|uhd|hdr(?:10)?|hevc|avc|aac|ac3|dts|atmos|truehd|multi|proper|repack|internal|complete)(?![a-z0-9])/i;
+// Editions, which the name of a movie does not have (Radarr's edition tokens)
+const EDITION_PATTERN =
+  /[\W_](?:directors?[\W_]?cut|extended(?:[\W_](?:cut|edition))?|unrated|uncut|theatrical(?:[\W_]cut)?|remastered|imax|final[\W_]cut|ultimate[\W_](?:cut|edition)|special[\W_]edition|collectors?[\W_]edition|anniversary[\W_]edition|limited|criterion)(?![a-z0-9])/gi;
+// "[Group] Name 2019"
+const GROUP_PREFIX_PATTERN = /^\s*\[[^\]]*\]\s*/;
+
+/**
+ * The movie of a release, after Radarr's parser: the name is what comes
+ * before the last year, or before the first source token when there is no
+ * year, without the editions. A year that nothing comes before is part of
+ * the name ("2001.A.Space.Odyssey.1968").
+ */
+export function parseMovieReleaseTitle(title: string): ParsedMovieReleaseTitle {
+  const simpleTitle = title
+    .replace(GROUP_PREFIX_PATTERN, '')
+    .replace(QUALITY_PATTERN, ' ');
+  const years = [...simpleTitle.matchAll(YEAR_PATTERN)].filter((match) =>
+    /[a-z0-9]/i.test(simpleTitle.slice(0, match.index)),
+  );
+  const year = years[years.length - 1];
+
+  let name = year ? simpleTitle.slice(0, year.index) : simpleTitle;
+  if (!year) {
+    const source = SOURCE_PATTERN.exec(name);
+    if (source) name = name.slice(0, source.index);
+  }
+  name = name.replace(EDITION_PATTERN, ' ');
+
+  return {
+    title: normalizeTitle(name),
+    ...(year && { year: Number(year[1]) }),
+  };
+}
+
+/**
+ * Whether a release is of a movie, by its title: the name is one of the
+ * titles of the movie (normalized) and the year, when the release has one,
+ * is within one of the movie's; or the name with the year is the title
+ * ("Blade Runner 2049"). Not an episode or a season pack of a series of
+ * the same name.
+ */
+export function isReleaseOfMovie(
+  releaseTitle: string,
+  movie: { titles: string[]; year?: number },
+): boolean {
+  if (parseReleaseTitle(releaseTitle).kind !== 'other') return false;
+
+  const { title, year } = parseMovieReleaseTitle(releaseTitle);
+  if (year !== undefined && movie.titles.includes(`${title}${year}`)) {
+    return true;
+  }
+  if (!movie.titles.includes(title)) return false;
+
+  return (
+    year === undefined ||
+    movie.year === undefined ||
+    Math.abs(year - movie.year) <= 1
+  );
 }

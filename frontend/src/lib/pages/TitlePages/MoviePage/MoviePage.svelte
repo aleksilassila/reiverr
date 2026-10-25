@@ -10,21 +10,35 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { useMovieContext } from '$lib/stores/data/movie-data.store';
+	import { getStatusLabel } from '$lib/stores/data/request-status';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { tmdbApi } from '$lib/stores/user.store';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
-	import { Bookmark, Check, ExternalLink, Minus, Video } from 'radix-icons-svelte';
+	import { Bookmark, Check, ExternalLink, Minus, Play, Plus, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
+	import { playMovie } from '../play-media';
+	import RequestsView from './RequestsView.svelte';
 
 	export let id: string;
 
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
-	const { movieData, inLibrary, isWatched, setInLibrary, setWatched, unsubscribe } =
-		useMovieContext(id).createContext();
+	const {
+		componentStack,
+		movieData,
+		statusData,
+		inLibrary,
+		isWatched,
+		progress,
+		setInLibrary,
+		setWatched,
+		setStale,
+		unsubscribe
+	} = useMovieContext(id).createContext();
 	const { promise: tmdbMovie } = movieData;
+	const { data: status } = statusData;
 
 	$tmdbMovie.then(async (movie) => {
 		const backgrounds =
@@ -93,6 +107,24 @@
 		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
 
+	// Where the request of the user stands, or what is on disk, first among the properties
+	$: statusLabel = getStatusLabel($status);
+	$: heroProperties = statusLabel ? [{ label: statusLabel }, ...titleProperties] : titleProperties;
+
+	async function play() {
+		const movie = await $tmdbMovie;
+		if (!movie) return;
+
+		await playMovie({
+			tmdbId: id,
+			title: movie.title ?? '',
+			subtitle: movie.release_date ? String(new Date(movie.release_date).getFullYear()) : '',
+			progress: $progress,
+			playMedia: background.playMedia,
+			onProgressSaved: setStale
+		});
+	}
+
 	onDestroy(() => {
 		unsubscribe();
 	});
@@ -108,12 +140,24 @@
 				{#if movie}
 					<HeroTitleInfo
 						title={`${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})`}
-						properties={titleProperties}
+						properties={heroProperties}
 						overview={movie.overview ?? ''}
 					/>
 				{/if}
 			{/await}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
+				{#if $status?.onDisk}
+					<Button action={play} icon={Play}>Play</Button>
+				{/if}
+
+				<Button
+					icon={Plus}
+					on:clickOrSelect={() =>
+						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
+				>
+					Request
+				</Button>
+
 				{#if trailerId}
 					<Button
 						on:clickOrSelect={() =>

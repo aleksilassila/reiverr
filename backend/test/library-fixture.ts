@@ -22,6 +22,7 @@ import { ServerLogService } from '../src/server-log/server-log.service.js';
 import { SettingsService } from '../src/settings/settings.service.js';
 
 export const TMDB_ID = '100';
+export const MOVIE_ID = '200';
 export const INFO_HASH = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
 export type LibraryFixture = Awaited<ReturnType<typeof createLibraryFixture>>;
@@ -33,7 +34,9 @@ export type LibraryFixture = Awaited<ReturnType<typeof createLibraryFixture>>;
 export async function createLibraryFixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'reiverr-library-'));
   const library = path.join(root, 'tv');
+  const movies = path.join(root, 'movies');
   mkdirSync(library);
+  mkdirSync(movies);
 
   const orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
   await orm.migrator.up();
@@ -57,6 +60,9 @@ export async function createLibraryFixture() {
   const metadata = {
     getSeriesByTmdbId: async () => ({
       tmdbSeries: { name: 'Test Show', first_air_date: '2020-01-01' },
+    }),
+    getMovieByTmdbId: async () => ({
+      tmdbMovie: { title: 'Test Movie', release_date: '2021-05-05' },
     }),
   };
   const requests = {
@@ -94,7 +100,7 @@ export async function createLibraryFixture() {
 
   await request(() =>
     libraryService.updateSettings({
-      movieFolders: {},
+      movieFolders: { [movies]: { primary: true } },
       seriesFolders: { [library]: { primary: true } },
       cleanup: CleanupSchedule.Daily,
       maxDiskUsagePercent: null,
@@ -130,6 +136,23 @@ export async function createLibraryFixture() {
           sourcePath: subtitlePath,
           name: path.basename(subtitlePath),
         })),
+      }),
+    );
+
+    return file.path;
+  };
+
+  /** Imports a file as the version of the test torrent of the test movie */
+  const importMovie = async (sourcePath: string) => {
+    const file = await request(() =>
+      importService.importFile({
+        sourcePath,
+        infoHash: INFO_HASH,
+        mediaType: MediaType.Movie,
+        tmdbId: MOVIE_ID,
+        season: 0,
+        episodes: [0],
+        subtitles: [],
       }),
     );
 
@@ -180,6 +203,7 @@ export async function createLibraryFixture() {
     orm,
     root,
     library,
+    movies,
     libraryService,
     scan,
     playback,
@@ -192,6 +216,7 @@ export async function createLibraryFixture() {
     write,
     indexed,
     importEpisode,
+    importMovie,
     scanSeries,
     saveFoldersAround,
     bind,

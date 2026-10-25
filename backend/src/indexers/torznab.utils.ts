@@ -4,6 +4,7 @@ export interface TorznabCaps {
   /** Supported parameters of the search modes, empty when a mode is unavailable */
   search: string[];
   tvSearch: string[];
+  movieSearch: string[];
 }
 
 export interface TorznabItem {
@@ -58,6 +59,7 @@ export function parseTorznabCaps(xml: string): TorznabCaps {
   return {
     search: params(searching.search),
     tvSearch: params(searching['tv-search']),
+    movieSearch: params(searching['movie-search']),
   };
 }
 

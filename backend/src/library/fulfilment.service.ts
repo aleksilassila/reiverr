@@ -11,10 +11,10 @@ import { DownloadsService } from '../downloads/downloads.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
-import { isNeeded } from '../requests/requests.utils.js';
+import { isNeeded, mediaOf } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { ImportService } from './import.service.js';
-import { coversEpisode, parseEpisodeNumbers } from './library.utils.js';
+import { coversMedia, parseEpisodeNumbers } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
@@ -200,6 +200,8 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         diskFull,
         except: request.id,
       });
+      // The movie or the episode the request is for, as the files are keyed
+      const media = mediaOf(request);
 
       if (source.kind === 'file') {
         const file = await tx.findOne(
@@ -208,13 +210,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           READ,
         );
         await this.releaseItemOf(tx, binding);
-        if (!file || !coversEpisode(file, request)) {
+        if (!file || !coversMedia(file, media)) {
           await this.write(tx, requestId, binding, {
             torrentItemId: null,
             mediaFileId: null,
-            error: file
-              ? 'The file is not of this episode'
-              : 'The file is not in the library',
+            error: !file
+              ? 'The file is not in the library'
+              : media.mediaType === MediaType.Movie
+                ? 'The file is not of this movie'
+                : 'The file is not of this episode',
           });
           return;
         }
@@ -234,12 +238,13 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       }
 
       // A file it has from this torrent is what it wants; a season's torrent
-      // picked later replaces nothing that is on disk, an episode's does
+      // picked later replaces nothing that is on disk, an episode's or a
+      // movie's does
       const { infoHash } = source;
       const held = await this.heldFile(tx, binding);
       const keepsHeld =
         !!held &&
-        coversEpisode(held, request) &&
+        coversMedia(held, media) &&
         (held.infoHash === infoHash || !source.forEpisode);
       if (keepsHeld) {
         await this.releaseItemOf(tx, binding);
@@ -254,12 +259,12 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       const version = await tx.findOne(
         MediaFile,
         {
-          mediaType: MediaType.Series,
-          tmdbId: request.tmdbId,
+          mediaType: media.mediaType,
+          tmdbId: media.tmdbId,
           infoHash,
-          season: request.season,
-          episode: { $lte: request.episode },
-          lastEpisode: { $gte: request.episode },
+          season: media.season,
+          episode: { $lte: media.episode },
+          lastEpisode: { $gte: media.episode },
         },
         { ...READ, orderBy: { path: 'asc' } },
       );
@@ -299,14 +304,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         !!waited && waited.torrentHash === infoHash && !waited.releasedAt;
       let pendingBytes = binding?.pendingBytes ?? null;
       if (!keepsItem) {
-        const counts = await this.metadataService.getEpisodeCounts(
-          tx,
-          request.tmdbId,
-        );
+        // A season's torrent is shared by its episodes; a movie's is the movie
+        const counts =
+          media.mediaType === MediaType.Series
+            ? await this.metadataService.getEpisodeCounts(tx, media.tmdbId)
+            : undefined;
         const bytes = expectedBytes(
           release.size,
           source.forEpisode,
-          counts.get(request.season),
+          counts?.get(media.season),
         );
         const room = roomFor(gate, { bytes, download: true });
         if (room !== 'ok') {
@@ -319,10 +325,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
 
       await this.downloadsService.ensureTorrent(tx, release);
       const item = await this.downloadsService.requestItem(tx, infoHash, {
-        mediaType: MediaType.Series,
-        tmdbId: request.tmdbId,
-        season: request.season,
-        episode: request.episode,
+        ...media,
         onlyVideo: source.forEpisode,
       });
       await this.releaseItemOf(tx, binding, item.id);
@@ -365,8 +368,12 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     if (!file) throw new Error(`The file of item ${itemId} is not known`);
 
     // The file is the episodes its name says when those include the wanted
-    // one, else the wanted one, so that the library always gets what was wanted
-    const numbers = parseEpisodeNumbers(file.name);
+    // one, else the wanted one, so that the library always gets what was
+    // wanted; a movie is its own
+    const numbers =
+      item.mediaType === MediaType.Series
+        ? parseEpisodeNumbers(file.name)
+        : undefined;
     const isNamed =
       numbers?.season === item.season &&
       numbers.episodes.includes(item.episode);

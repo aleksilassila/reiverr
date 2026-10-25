@@ -3,13 +3,14 @@ import {
   folderMatchesTitle,
   isInsideFolder,
   libraryFolderPaths,
+  movieFileName,
   normalizeTitle,
   parseEpisodeNumbers,
   parseMediaFolderName,
   parseSubtitleName,
   primaryLibraryFolder,
   seasonFolderName,
-  seriesFolderName,
+  titleFolderName,
   subtitleFileName,
   srtToWebVtt,
 } from './library.utils.js';
@@ -179,8 +180,8 @@ describe('libraryFolderPaths', () => {
 });
 
 describe('import naming', () => {
-  it('names a series folder that the folder matching reads back', () => {
-    const name = seriesFolderName('Title: Part 2?', 2020, '123');
+  it('names a title folder that the folder matching reads back', () => {
+    const name = titleFolderName('Title: Part 2?', 2020, '123');
 
     expect(name).toBe('Title Part 2 (2020) [tmdbid-123]');
     expect(
@@ -189,8 +190,17 @@ describe('import naming', () => {
         titles: [normalizeTitle('Something else')],
       }),
     ).toBe(true);
-    expect(seriesFolderName('Title', undefined, '123')).toBe(
+    expect(titleFolderName('Title', undefined, '123')).toBe(
       'Title [tmdbid-123]',
+    );
+  });
+
+  it('names movie files as the versions of the movie', () => {
+    expect(movieFileName('Title: Part 2?', 2020, 'a1b2c3d4', '.MKV')).toBe(
+      'Title Part 2 (2020) - a1b2c3d4.mkv',
+    );
+    expect(movieFileName('Title', undefined, 'a1b2c3d4', '.mp4')).toBe(
+      'Title - a1b2c3d4.mp4',
     );
   });
 

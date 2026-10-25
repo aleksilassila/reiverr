@@ -41,8 +41,29 @@ export const pairOf = (
   tmdbId: request.tmdbId,
 });
 
+/** The movie or the episode a request is for, as the files of the library are keyed */
+export const mediaOf = (
+  request: Pick<MediaRequest, 'mediaType' | 'tmdbId' | 'season' | 'episode'>,
+): {
+  mediaType: MediaType;
+  tmdbId: string;
+  season: number;
+  episode: number;
+} => ({
+  mediaType: titleTypeOf(request.mediaType),
+  tmdbId: request.tmdbId,
+  season: request.season,
+  episode: request.episode,
+});
+
 export const seriesPair = (userId: string, tmdbId: string): Pair => ({
   userId,
   mediaType: MediaType.Series,
+  tmdbId,
+});
+
+export const moviePair = (userId: string, tmdbId: string): Pair => ({
+  userId,
+  mediaType: MediaType.Movie,
   tmdbId,
 });

@@ -52,10 +52,12 @@ const dirs = await vi.hoisted(async () => {
     root,
     downloads: join(root, 'downloads'),
     library: join(root, 'tv'),
+    movies: join(root, 'movies'),
   };
 });
 
 const TMDB_ID = '100';
+const MOVIE_ID = '200';
 const PACK_MAGNET =
   'magnet:?xt=urn:btih:1111111111111111111111111111111111111111';
 const OTHER_PACK_MAGNET =
@@ -64,9 +66,15 @@ const EPISODE_TORRENT = createTorrent('Test.Show.S01E01.1080p.WEB-GRP', [
   { name: 'release-group-1080p.mkv', data: Buffer.alloc(50, 'a') },
   { name: 'readme.txt', data: Buffer.alloc(1, 'b') },
 ]);
+// The movie is the largest video that is not a sample
+const MOVIE_TORRENT = createTorrent('Test.Movie.2021.1080p.WEB-GRP', [
+  { name: 'Test.Movie.2021.1080p.WEB-GRP.mkv', data: Buffer.alloc(60, 'm') },
+  { name: 'sample.mkv', data: Buffer.alloc(5, 's') },
+]);
 const PACK = parseTorrent(PACK_MAGNET).infoHash;
 const OTHER_PACK = parseTorrent(OTHER_PACK_MAGNET).infoHash;
 const EPISODE = parseTorrent(EPISODE_TORRENT).infoHash;
+const MOVIE = parseTorrent(MOVIE_TORRENT).infoHash;
 const version = (hash: string) => hash.slice(0, 8);
 
 magnetFiles[PACK] = [
@@ -117,6 +125,22 @@ const releases: Record<string, Release> = {
     seasons: [1],
     episodes: [1],
   },
+  movie: {
+    id: 'movie',
+    guid: 'movie',
+    indexer: 'test',
+    title: 'Test.Movie.2021.1080p.WEB-GRP',
+    size: 60,
+    seeders: 1,
+    peers: 1,
+    downloadUrl: 'http://indexer/dl/movie',
+    seasons: [],
+    episodes: [],
+  },
+};
+const torrentFiles: Record<string, Buffer> = {
+  episode: EPISODE_TORRENT,
+  movie: MOVIE_TORRENT,
 };
 
 /** The three modules on an in-memory database, with the fake engine and a temporary library folder */
@@ -125,6 +149,7 @@ async function createHub() {
   await orm.migrator.up();
   rmSync(dirs.root, { recursive: true, force: true });
   mkdirSync(dirs.library, { recursive: true });
+  mkdirSync(dirs.movies, { recursive: true });
 
   const request = <T>(run: () => Promise<T>) =>
     RequestContext.create(orm.em, run);
@@ -150,7 +175,10 @@ async function createHub() {
             },
           }
         : undefined,
-    getMovieByTmdbId: async () => undefined,
+    getMovieByTmdbId: async (tmdbId: string) =>
+      tmdbId === MOVIE_ID
+        ? { tmdbMovie: { title: 'Test Movie', release_date: '2021-05-05' } }
+        : undefined,
     // The three episodes of the document above
     getEpisodeCounts: async (_em: unknown, tmdbId: string) =>
       tmdbId === TMDB_ID ? new Map([[1, 3]]) : new Map(),
@@ -162,9 +190,7 @@ async function createHub() {
   const indexers = {
     getRelease: (id: string) => releases[id],
     resolveTorrent: async (release: Release) =>
-      parseTorrentSource(
-        release.magnetUrl ?? (release.id === 'episode' ? EPISODE_TORRENT : ''),
-      ),
+      parseTorrentSource(release.magnetUrl ?? torrentFiles[release.id] ?? ''),
   };
 
   const libraryService = new LibraryService(
@@ -240,7 +266,7 @@ async function createHub() {
   await request(() => settings.saveValue('downloads', { seedRatio: 0 }));
   await request(() =>
     libraryService.updateSettings({
-      movieFolders: {},
+      movieFolders: { [dirs.movies]: { primary: true } },
       seriesFolders: { [dirs.library]: { primary: true } },
       cleanup: CleanupSchedule.Daily,
       maxDiskUsagePercent: null,
@@ -299,17 +325,48 @@ describe('FulfilmentService', () => {
   const select = (episode: number, releaseId: string, user = userId) =>
     request(() =>
       hub.requests.preferRelease(
-        { userId: user, tmdbId: TMDB_ID, season: 1, episode },
+        {
+          userId: user,
+          mediaType: MediaType.Series,
+          tmdbId: TMDB_ID,
+          season: 1,
+          episode,
+        },
         releaseId,
       ),
     );
   const selectFile = (episode: number, mediaFileId: string, user = userId) =>
     request(() =>
       hub.requests.preferFile(
-        { userId: user, tmdbId: TMDB_ID, season: 1, episode },
+        {
+          userId: user,
+          mediaType: MediaType.Series,
+          tmdbId: TMDB_ID,
+          season: 1,
+          episode,
+        },
         mediaFileId,
       ),
     );
+  const movieTarget = (user = userId) => ({
+    userId: user,
+    mediaType: MediaType.Movie,
+    tmdbId: MOVIE_ID,
+    season: 0,
+    episode: 0,
+  });
+  const requestMovie = (user = userId) =>
+    request(() => hub.requests.createMovieRequest(user, MOVIE_ID, true));
+  const movieStatus = (user = userId) =>
+    request(() => hub.status.getMovieStatus(user, MOVIE_ID));
+  const movieFiles = () =>
+    existsSync(dirs.movies)
+      ? (readdirSync(dirs.movies, { recursive: true }) as string[])
+          .filter((file) => file.endsWith('.mkv'))
+          .sort()
+      : [];
+  const movieFile = (hash: string) =>
+    `Test Movie (2021) [tmdbid-200]/Test Movie (2021) - ${version(hash)}.mkv`;
 
   /** The requests of a user, with what their bindings say */
   const bindings = async (user = userId) => {
@@ -532,6 +589,7 @@ describe('FulfilmentService', () => {
     await request(() =>
       hub.requests.clearPreference({
         userId,
+        mediaType: MediaType.Series,
         tmdbId: TMDB_ID,
         season: 1,
         episode: 0,
@@ -772,7 +830,7 @@ describe('FulfilmentService', () => {
     const setLimit = (maxDiskUsagePercent: number | null) =>
       request(() =>
         hub.libraryService.updateSettings({
-          movieFolders: {},
+          movieFolders: { [dirs.movies]: { primary: true } },
           seriesFolders: { [dirs.library]: { primary: true } },
           cleanup: CleanupSchedule.Daily,
           maxDiskUsagePercent,
@@ -805,5 +863,99 @@ describe('FulfilmentService', () => {
       [1, null, 'file:1111', null],
       [2, 'item:1111', null, null],
     ]);
+  });
+
+  it('downloads a movie from the torrent its user picked, imports it as a version, and cleans it up when nothing holds it', async () => {
+    await requestMovie();
+    await settle();
+    expect(await movieStatus()).toMatchObject({
+      requested: true,
+      onDisk: false,
+      status: 'no-preference',
+    });
+
+    await request(() => hub.requests.preferRelease(movieTarget(), 'movie'));
+    await settle();
+    const torrent = hub.engine.running(MOVIE);
+    expect(torrent.wanted).toEqual([0]);
+    expect(
+      (await items()).map((i) => [i.mediaType, i.tmdbId, i.season]),
+    ).toEqual([[MediaType.Movie, MOVIE_ID, 0]]);
+    expect(await movieStatus()).toMatchObject({
+      status: 'downloading',
+      torrent: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
+      preference: { torrent: { infoHash: MOVIE } },
+      onServer: [MOVIE],
+    });
+    // The whole release is expected for a movie
+    expect(await usage()).toEqual({ heldBytes: 0, pendingBytes: 60 });
+
+    torrent.download(0);
+    await settle();
+    expect(movieFiles()).toEqual([movieFile(MOVIE)]);
+    expect(await movieStatus()).toMatchObject({
+      status: 'available',
+      onDisk: true,
+      torrent: { infoHash: MOVIE },
+    });
+    // The file the fake engine writes settles what the request takes
+    expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 0 });
+    expect(hub.engine.running(MOVIE)).toBeUndefined();
+
+    // Nothing holds the version of a movie that is not requested, so the cleanup deletes it
+    await request(() => hub.requests.deleteMovieRequest(userId, MOVIE_ID));
+    await settle();
+    expect(await movieStatus()).toMatchObject({
+      requested: false,
+      onDisk: true,
+      cleanupAt: expect.any(Date),
+    });
+    expect(
+      (await request(() => hub.deletion.cleanUpLibrary(true))).map((file) =>
+        path.relative(dirs.movies, file.path),
+      ),
+    ).toEqual([movieFile(MOVIE)]);
+    await request(() => hub.deletion.cleanUpLibrary());
+    await settle();
+    expect(movieFiles()).toEqual([]);
+  });
+
+  it('gives a movie request the file its user picked, when it is of the movie', async () => {
+    const external = path.join(
+      dirs.movies,
+      'Test Movie (2021)/Test.Movie.2021.mkv',
+    );
+    mkdirSync(path.dirname(external), { recursive: true });
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(external, 'external');
+    await request(() => hub.scan.scanTitle(MediaType.Movie, MOVIE_ID));
+    const file = await orm.em.fork().findOne(MediaFile, { path: external });
+    expect(file).toMatchObject({ mediaType: MediaType.Movie, season: 0 });
+
+    await requestMovie();
+    await request(() => hub.requests.preferFile(movieTarget(), file.id));
+    await settle();
+    expect(await movieStatus()).toMatchObject({
+      status: 'available',
+      onDisk: true,
+      preference: { file: { id: file.id, inLibrary: true, managed: false } },
+    });
+    expect(await usage()).toEqual({ heldBytes: 8, pendingBytes: 0 });
+
+    // A file of an episode is refused for the movie
+    await setRequested([1]);
+    await select(0, 'pack');
+    await settle();
+    hub.engine.running(PACK).download(0);
+    await settle();
+    const [episode] = await orm.em
+      .fork()
+      .find(MediaFile, { mediaType: MediaType.Series });
+    await request(() => hub.requests.preferFile(movieTarget(), episode.id));
+    await settle();
+    expect(await movieStatus()).toMatchObject({
+      status: 'failed',
+      error: 'The file is not of this movie',
+    });
   });
 });

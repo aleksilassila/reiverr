@@ -1309,6 +1309,18 @@ export interface SuccessResponseDto {
   success: boolean;
 }
 
+export interface MovieRequestRuleDto {
+  /** For how many hours after it was watched a request keeps its file. With keepWatched, either one keeps it */
+  keepWatchedHours: number | null;
+}
+
+export interface SetPreferenceDto {
+  /** Id of a release from an indexer search */
+  releaseId?: string;
+  /** Id of a file of the episode or the movie in the library */
+  mediaFileId?: string;
+}
+
 export interface EpisodeRefDto {
   season: number;
   episode: number;
@@ -1327,13 +1339,6 @@ export interface RequestRuleDto {
   keepWatched: number | null;
   /** For how many hours after it was watched a request keeps its file. With keepWatched, either one keeps it */
   keepWatchedHours: number | null;
-}
-
-export interface SetPreferenceDto {
-  /** Id of a release from an indexer search */
-  releaseId?: string;
-  /** Id of a file of the episode in the library */
-  mediaFileId?: string;
 }
 
 export interface RequesterDto {
@@ -1494,7 +1499,7 @@ export interface TitleUsageDto {
    * @format date-time
    */
   lastFulfilledAt?: string;
-  /** The limits of the rule of the title; absent for a movie or without a rule */
+  /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
   rule?: RequestRuleDto;
 }
 
@@ -1516,20 +1521,6 @@ export interface LibraryFileDto {
   managed: boolean;
   /** The torrent the file was imported from */
   infoHash?: string;
-}
-
-export interface LibraryEpisodeFileDto {
-  id: string;
-  fileName: string;
-  size: number;
-  /** Subtitle files next to the video */
-  subtitles: SubtitleFileDto[];
-  /** Whether the cleanup may delete the file when no request holds it */
-  managed: boolean;
-  /** The torrent the file was imported from */
-  infoHash?: string;
-  season: number;
-  episodes: number[];
 }
 
 export interface TorrentDto {
@@ -1571,18 +1562,14 @@ export interface PreferredFileDto {
 }
 
 export interface PreferenceDto {
-  season: number;
-  episode: number;
   torrent?: TorrentDto;
   file?: PreferredFileDto;
 }
 
-export interface EpisodeStatusDto {
-  season: number;
-  episode: number;
-  /** Whether the user has requested the episode */
+export interface MovieStatusDto {
+  /** Whether the user has requested it */
   requested: boolean;
-  /** Whether a file of the episode is in the library, from any torrent or found on disk */
+  /** Whether a file of it is in the library, from any torrent or found on disk */
   onDisk: boolean;
   /** Where the request of the user stands */
   status?:
@@ -1602,7 +1589,63 @@ export interface EpisodeStatusDto {
   /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
   torrent?: TorrentDto;
   /**
-   * When the next cleanup deletes the files of the episode, if no request of anyone keeps one of them
+   * When the next cleanup deletes the files of it, if no request of anyone keeps one of them
+   * @format date-time
+   */
+  cleanupAt?: string;
+  /** What the user prefers for the movie: a torrent, or a file */
+  preference?: PreferenceDto;
+  /** Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from */
+  onServer: string[];
+}
+
+export interface LibraryEpisodeFileDto {
+  id: string;
+  fileName: string;
+  size: number;
+  /** Subtitle files next to the video */
+  subtitles: SubtitleFileDto[];
+  /** Whether the cleanup may delete the file when no request holds it */
+  managed: boolean;
+  /** The torrent the file was imported from */
+  infoHash?: string;
+  season: number;
+  episodes: number[];
+}
+
+export interface EpisodePreferenceDto {
+  season: number;
+  episode: number;
+  torrent?: TorrentDto;
+  file?: PreferredFileDto;
+}
+
+export interface EpisodeStatusDto {
+  season: number;
+  episode: number;
+  /** Whether the user has requested it */
+  requested: boolean;
+  /** Whether a file of it is in the library, from any torrent or found on disk */
+  onDisk: boolean;
+  /** Where the request of the user stands */
+  status?:
+    | "waiting-for-approval"
+    | "inactive-ahead"
+    | "no-preference"
+    | "resolving"
+    | "over-quota"
+    | "disk-full"
+    | "no-file-in-torrent"
+    | "downloading"
+    | "failed"
+    | "available";
+  /** From 0 to 1 */
+  progress?: number;
+  error?: string;
+  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
+  torrent?: TorrentDto;
+  /**
+   * When the next cleanup deletes the files of it, if no request of anyone keeps one of them
    * @format date-time
    */
   cleanupAt?: string;
@@ -1610,7 +1653,7 @@ export interface EpisodeStatusDto {
 
 export interface SeriesStatusDto {
   /** What the user prefers for the seasons and episodes: torrents, and files for episodes */
-  preferences: PreferenceDto[];
+  preferences: EpisodePreferenceDto[];
   /** The episodes that the user requested or that are on disk */
   episodes: EpisodeStatusDto[];
   /** Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from */
@@ -1660,8 +1703,9 @@ export interface ReleaseDto {
   peers: number;
   publishedAt?: string;
   infoHash?: string;
+  /** Empty for movies */
   seasons: number[];
-  /** Empty for season packs */
+  /** Empty for movies and season packs */
   episodes: number[];
 }
 
@@ -2462,6 +2506,88 @@ export class Api<
      * No description
      *
      * @tags requests
+     * @name GetMovieRequestRule
+     * @request GET:/api/users/{userId}/requests/movies/{tmdbId}/rule
+     */
+    getMovieRequestRule: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<MovieRequestRuleDto, any>({
+        path: `/api/users/${userId}/requests/movies/${tmdbId}/rule`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name UpdateMovieRequestRule
+     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}/rule
+     */
+    updateMovieRequestRule: (
+      userId: string,
+      tmdbId: string,
+      data: MovieRequestRuleDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<MovieRequestRuleDto, any>({
+        path: `/api/users/${userId}/requests/movies/${tmdbId}/rule`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name SetMoviePreference
+     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}/preference
+     */
+    setMoviePreference: (
+      userId: string,
+      tmdbId: string,
+      data: SetPreferenceDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/users/${userId}/requests/movies/${tmdbId}/preference`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
+     * @name ClearMoviePreference
+     * @request DELETE:/api/users/{userId}/requests/movies/{tmdbId}/preference
+     */
+    clearMoviePreference: (
+      userId: string,
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/users/${userId}/requests/movies/${tmdbId}/preference`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags requests
      * @name GetSeriesRequests
      * @request GET:/api/users/{userId}/requests/series/{tmdbId}
      */
@@ -2774,6 +2900,11 @@ export class Api<
       userId: string,
       query?: {
         mediaType?: "movie" | "series";
+        sort?: "size" | "name" | "fulfilled";
+        /** Without it, the direction natural to the sort */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -2803,11 +2934,6 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
-        sort?: "size" | "name" | "fulfilled";
-        /** Without it, the direction natural to the sort */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -2834,6 +2960,21 @@ export class Api<
     getMovieFiles: (tmdbId: string, params: RequestParams = {}) =>
       this.request<LibraryFileDto[], any>({
         path: `/api/library/movies/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetMovieStatus
+     * @request GET:/api/library/movies/{tmdbId}/status
+     */
+    getMovieStatus: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<MovieStatusDto, any>({
+        path: `/api/library/movies/${tmdbId}/status`,
         method: "GET",
         format: "json",
         ...params,
@@ -3215,6 +3356,21 @@ export class Api<
         format: "json",
         ...params,
       }),
+
+    /**
+     * No description
+     *
+     * @tags indexers
+     * @name SearchMovieReleases
+     * @request GET:/api/indexers/search/movies/{tmdbId}
+     */
+    searchMovieReleases: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<ReleaseDto[], any>({
+        path: `/api/indexers/search/movies/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
   };
   downloads = {
     /**
@@ -3343,6 +3499,15 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "requested" | "unrequested";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3372,15 +3537,6 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3408,6 +3564,16 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "upcoming" | "unwatched" | "watched" | "continue-watching";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3437,16 +3603,6 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date"
-          | "last-played";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>

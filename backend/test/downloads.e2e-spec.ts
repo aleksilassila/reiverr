@@ -25,11 +25,14 @@ import { Torrent } from '../src/downloads/torrent.entity.js';
 import { ReleaseDto } from '../src/indexers/indexers.dto.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import { DeletionService } from '../src/library/deletion.service.js';
-import { SeriesStatusDto } from '../src/library/library.dto.js';
+import { MovieStatusDto, SeriesStatusDto } from '../src/library/library.dto.js';
 import { MediaFile } from '../src/library/media-file.entity.js';
 import { RequestBinding } from '../src/library/request-binding.entity.js';
 import { ScanService } from '../src/library/scan.service.js';
-import { SeriesMetadata } from '../src/metadata/metadata.entity.js';
+import {
+  MovieMetadata,
+  SeriesMetadata,
+} from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
 import { MediaRequest } from '../src/requests/request.entity.js';
 import { RequestRuleDto } from '../src/requests/requests.dto.js';
@@ -50,10 +53,12 @@ const dirs = await vi.hoisted(async () => {
     root,
     downloads: join(root, 'downloads'),
     library: join(root, 'tv'),
+    movies: join(root, 'movies'),
   };
 });
 
 const TMDB_ID = '100';
+const MOVIE_ID = '200';
 
 const PACK_MAGNET =
   'magnet:?xt=urn:btih:1111111111111111111111111111111111111111';
@@ -66,6 +71,11 @@ const EPISODE_TORRENT = createTorrent('Test.Show.S01E02.1080p.WEB-GRP', [
 const SEASON_2_TORRENT = createTorrent('Test.Show.S02', [
   { name: 'Test Show 2x01.mkv', data: Buffer.alloc(50, 'c') },
 ]);
+// The movie is the largest video that is not a sample
+const MOVIE_TORRENT = createTorrent('Test.Movie.2021.1080p.WEB-GRP', [
+  { name: 'Test.Movie.2021.1080p.WEB-GRP.mkv', data: Buffer.alloc(60, 'm') },
+  { name: 'sample.mkv', data: Buffer.alloc(5, 's') },
+]);
 
 const infoHash = (source: string | Buffer): string =>
   parseTorrent(source).infoHash;
@@ -74,6 +84,7 @@ const PACK = infoHash(PACK_MAGNET);
 const REDIRECT = infoHash(REDIRECT_MAGNET);
 const EPISODE = infoHash(EPISODE_TORRENT);
 const SEASON_2 = infoHash(SEASON_2_TORRENT);
+const MOVIE = infoHash(MOVIE_TORRENT);
 
 // Imported files carry the start of the info hash as their version label
 const version = (hash: string) => hash.slice(0, 8);
@@ -111,6 +122,7 @@ function startIndexer(): Promise<{
 
     if (url.pathname === '/dl/episode') return res.end(EPISODE_TORRENT);
     if (url.pathname === '/dl/other') return res.end(SEASON_2_TORRENT);
+    if (url.pathname === '/dl/movie') return res.end(MOVIE_TORRENT);
     if (url.pathname === '/dl/broken') return res.end('<html>Sign in</html>');
     if (url.pathname === '/dl/redirect') {
       return res.writeHead(302, { Location: REDIRECT_MAGNET }).end();
@@ -122,15 +134,19 @@ function startIndexer(): Promise<{
       return res.end(`<caps><searching>
         <search available="yes" supportedParams="q" />
         <tv-search available="yes" supportedParams="q,season,ep,tmdbid" />
+        <movie-search available="yes" supportedParams="q,tmdbid,year" />
       </searching></caps>`);
     }
 
+    // Every search answers with everything, as a lenient indexer does
     res.end(`<rss xmlns:torznab="http://torznab.com/schemas/2015/feed"><channel>
       ${item('Test.Show.S01.1080p.WEB-GRP', PACK_MAGNET.replace(/&/g, '&amp;'), 50)}
       ${item('Test.Show.S02.1080p.WEB-GRP', `${origin}/dl/other`, 40)}
       ${item('Test.Show.S01E02.1080p.WEB-GRP', `${origin}/dl/episode`, 9)}
       ${item('Test.Show.S01E02.720p.WEB-GRP', `${origin}/dl/redirect`, 30)}
       ${item('Test.Show.S01E03.1080p.WEB-GRP', `${origin}/dl/broken`, 20)}
+      ${item('Test.Movie.2021.1080p.WEB-GRP', `${origin}/dl/movie`, 15)}
+      ${item('Test.Movie.2.2024.1080p.WEB-GRP', `${origin}/dl/broken`, 15)}
     </channel></rss>`);
   });
 
@@ -300,6 +316,7 @@ describe('Series downloads (e2e)', () => {
   beforeAll(async () => {
     indexer = await startIndexer();
     mkdirSync(dirs.library);
+    mkdirSync(dirs.movies);
     await startApp();
 
     await em().insert(
@@ -312,6 +329,14 @@ describe('Series downloads (e2e)', () => {
           season_number,
           episodes: [1, 2, 3].map((episode_number) => ({ episode_number })),
         })),
+      } as any),
+    );
+    await em().insert(
+      MovieMetadata,
+      MovieMetadata.from({
+        id: Number(MOVIE_ID),
+        title: 'Test Movie',
+        release_date: '2021-05-05',
       } as any),
     );
 
@@ -1422,5 +1447,127 @@ describe('Series downloads (e2e)', () => {
     await api('put', '/downloads/settings', viewer)
       .send({ seedRatio: 5 })
       .expect(403);
+  });
+
+  it('downloads a movie from the release its user picks, plays it, and cleans it up when nothing holds it', async () => {
+    const moviePath = `/users/${admin.id}/requests/movies/${MOVIE_ID}`;
+    const getMovieStatus = (user = admin): Promise<MovieStatusDto> =>
+      api('get', `/library/movies/${MOVIE_ID}/status`, user)
+        .expect(200)
+        .then((res) => res.body);
+    const movieFiles = () =>
+      (readdirSync(dirs.movies, { recursive: true }) as string[])
+        .filter((file) => file.endsWith('.mkv'))
+        .sort();
+    const movieFile = `Test Movie (2021) [tmdbid-200]/Test Movie (2021) - ${version(MOVIE)}.mkv`;
+
+    await api('put', '/library/settings')
+      .send({
+        movieFolders: { [dirs.movies]: { primary: true } },
+        seriesFolders: { [dirs.library]: { primary: true } },
+        cleanup: 'daily',
+      })
+      .expect(200);
+
+    // Requested without a source
+    await api('put', moviePath).expect(200);
+    expect(await getMovieStatus()).toMatchObject({
+      requested: true,
+      onDisk: false,
+      status: 'no-preference',
+      onServer: [],
+    });
+
+    // The releases of the movie, by its name and year, asked for by its TMDB id
+    const releases: ReleaseDto[] = await api(
+      'get',
+      `/indexers/search/movies/${MOVIE_ID}`,
+    )
+      .expect(200)
+      .then((res) => res.body);
+    expect(releases.map((r) => r.title)).toEqual([
+      'Test.Movie.2021.1080p.WEB-GRP',
+    ]);
+    expect(releases[0]).toMatchObject({ seasons: [], episodes: [] });
+    expect(
+      indexer.requests.some(
+        (url) =>
+          url.searchParams.get('t') === 'movie' &&
+          url.searchParams.get('tmdbid') === MOVIE_ID,
+      ),
+    ).toBe(true);
+
+    await api('put', `${moviePath}/preference`).send({}).expect(400);
+    await api('put', `${moviePath}/preference`, viewer)
+      .send({ releaseId: releases[0].id })
+      .expect(401);
+    await api('put', `${moviePath}/preference`)
+      .send({ releaseId: releases[0].id })
+      .expect(200);
+    await settle();
+    expect(await getMovieStatus()).toMatchObject({
+      status: 'downloading',
+      preference: {
+        torrent: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
+      },
+      onServer: [MOVIE],
+    });
+    expect(engine.running(MOVIE).wanted).toEqual([0]);
+
+    engine.running(MOVIE).download(0);
+    await settle();
+    expect(movieFiles()).toEqual([movieFile]);
+    expect(await getMovieStatus()).toMatchObject({
+      status: 'available',
+      onDisk: true,
+      torrent: { infoHash: MOVIE },
+    });
+    const files = await api('get', `/library/movies/${MOVIE_ID}`).expect(200);
+    expect(files.body.map((f) => f.fileName)).toEqual([
+      `Test Movie (2021) - ${version(MOVIE)}.mkv`,
+    ]);
+    await api(
+      'get',
+      `/library/files/${files.body[0].id}/stream`,
+      viewer,
+    ).expect(200);
+
+    // The rule of a movie: for how long a watched one keeps its file
+    await api('put', `${moviePath}/rule`)
+      .send({ keepWatchedHours: 0 })
+      .expect(400);
+    await api('put', `${moviePath}/rule`)
+      .send({ keepWatchedHours: 1 })
+      .expect(200);
+    expect((await api('get', `${moviePath}/rule`).expect(200)).body).toEqual({
+      keepWatchedHours: 1,
+    });
+    await api('put', `/users/${admin.id}/play-states/movies/${MOVIE_ID}`)
+      .send({ watched: true })
+      .expect(200);
+    await settle();
+    expect(await getMovieStatus()).toMatchObject({
+      requested: true,
+      status: 'available',
+    });
+    expect(
+      (await em().findOne(MediaRequest, { tmdbId: MOVIE_ID })).watchedAt,
+    ).toBeTruthy();
+
+    // Unrequested, nothing holds the version, and the cleanup deletes it
+    await api('delete', `${moviePath}/preference`).expect(200);
+    await api('delete', moviePath).expect(200);
+    await settle();
+    expect(await getMovieStatus()).toMatchObject({
+      requested: false,
+      onDisk: true,
+    });
+    expect((await getMovieStatus()).cleanupAt).toBeTruthy();
+    await cleanUp();
+    expect(movieFiles()).toEqual([]);
+    expect(await getMovieStatus()).toMatchObject({
+      requested: false,
+      onDisk: false,
+    });
   });
 });

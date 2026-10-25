@@ -97,6 +97,7 @@ describe('parseTorznabCaps', () => {
     expect(caps).toEqual({
       search: ['q'],
       tvSearch: ['q', 'season', 'ep', 'tmdbid'],
+      movieSearch: [],
     });
   });
 
@@ -104,8 +105,10 @@ describe('parseTorznabCaps', () => {
     const caps = parseTorznabCaps(`<caps><searching>
       <search available="yes" supportedParams="q" />
       <tv-search available="no" supportedParams="q,season,ep" />
+      <movie-search available="yes" supportedParams="q,imdbid,year" />
     </searching></caps>`);
 
     expect(caps.tvSearch).toEqual([]);
+    expect(caps.movieSearch).toEqual(['q', 'imdbid', 'year']);
   });
 });

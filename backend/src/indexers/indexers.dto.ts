@@ -46,9 +46,12 @@ export class ReleaseDto {
   @ApiProperty({ required: false })
   infoHash?: string;
 
-  @ApiProperty({ type: [Number] })
+  @ApiProperty({ type: [Number], description: 'Empty for movies' })
   seasons: number[];
 
-  @ApiProperty({ type: [Number], description: 'Empty for season packs' })
+  @ApiProperty({
+    type: [Number],
+    description: 'Empty for movies and season packs',
+  })
   episodes: number[];
 }

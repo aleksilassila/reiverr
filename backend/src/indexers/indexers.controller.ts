@@ -59,6 +59,16 @@ export class IndexersController {
 
     return releases.map(toReleaseDto);
   }
+
+  @Get('search/movies/:tmdbId')
+  @ApiOkResponse({ type: [ReleaseDto] })
+  async searchMovieReleases(
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<ReleaseDto[]> {
+    const releases = await this.indexersService.searchMovies(tmdbId);
+
+    return releases.map(toReleaseDto);
+  }
 }
 
 function toReleaseDto(release: Release): ReleaseDto {

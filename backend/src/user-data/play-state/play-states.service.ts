@@ -138,10 +138,13 @@ export class PlayStatesService {
       const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
         mediaType: MediaTypeFull.Movie,
       });
-      applyUpdate(state, playState);
+      const changed = applyUpdate(state, playState);
 
       await tx.flush();
       await this.touchMyListItem(tx, userId, tmdbId, MediaType.Movie);
+      if (changed) {
+        await this.watchStatusChanged(tx, userId, MediaType.Movie, tmdbId);
+      }
 
       return state;
     });
@@ -164,7 +167,9 @@ export class PlayStatesService {
 
       await tx.flush();
       await this.touchMyListItem(tx, userId, tmdbId, MediaType.Series);
-      if (changed) await this.watchStatusChanged(tx, userId, tmdbId);
+      if (changed) {
+        await this.watchStatusChanged(tx, userId, MediaType.Series, tmdbId);
+      }
 
       return state;
     });
@@ -172,9 +177,17 @@ export class PlayStatesService {
 
   async deleteMoviePlayState(userId: string, tmdbId: string) {
     const state = await this.findMoviePlayState(userId, tmdbId);
-    await this.em.remove(state).flush();
 
-    return state;
+    if (state) {
+      await this.em.transactional(async (tx) => {
+        await tx.nativeDelete(PlayState, { id: state.id });
+        if (state.watched) {
+          await this.watchStatusChanged(tx, userId, MediaType.Movie, tmdbId);
+        }
+      });
+
+      return state;
+    }
   }
 
   async deleteEpisodePlayState(
@@ -193,7 +206,9 @@ export class PlayStatesService {
     if (state) {
       await this.em.transactional(async (tx) => {
         await tx.nativeDelete(PlayState, { id: state.id });
-        if (state.watched) await this.watchStatusChanged(tx, userId, tmdbId);
+        if (state.watched) {
+          await this.watchStatusChanged(tx, userId, MediaType.Series, tmdbId);
+        }
       });
 
       return state;
@@ -220,7 +235,9 @@ export class PlayStatesService {
       }
 
       await tx.flush();
-      if (changed) await this.watchStatusChanged(tx, userId, tmdbId);
+      if (changed) {
+        await this.watchStatusChanged(tx, userId, MediaType.Series, tmdbId);
+      }
 
       return states;
     });
@@ -241,17 +258,14 @@ export class PlayStatesService {
     );
   }
 
-  /** What the rule makes of the requests of the series changes with it */
+  /** What the rule makes of the requests of the title changes with it */
   private watchStatusChanged(
     em: EntityManager,
     userId: string,
+    mediaType: MediaType,
     tmdbId: string,
   ) {
-    return this.requestsService.applyRule(em, {
-      userId,
-      mediaType: MediaType.Series,
-      tmdbId,
-    });
+    return this.requestsService.applyRule(em, { userId, mediaType, tmdbId });
   }
 }
 

@@ -31,6 +31,11 @@ export class RequestRuleDto extends PickType(RequestRule, [
   'keepWatchedHours',
 ]) {}
 
+/** The one limit of the rule of a movie: download ahead and keep last watched have no meaning for a single request */
+export class MovieRequestRuleDto extends PickType(RequestRule, [
+  'keepWatchedHours',
+]) {}
+
 export class UpdateSeriesRequestsDto {
   @ApiProperty({ type: [EpisodeRefDto] })
   episodes: EpisodeRefDto[];
@@ -39,7 +44,7 @@ export class UpdateSeriesRequestsDto {
   requested: boolean;
 }
 
-/** A release from an indexer search, or for an episode a file of it in the library */
+/** A release from an indexer search, or for an episode or a movie a file of it in the library */
 export class SetPreferenceDto {
   @ApiProperty({
     required: false,
@@ -49,7 +54,7 @@ export class SetPreferenceDto {
 
   @ApiProperty({
     required: false,
-    description: 'Id of a file of the episode in the library',
+    description: 'Id of a file of the episode or the movie in the library',
   })
   mediaFileId?: string;
 }

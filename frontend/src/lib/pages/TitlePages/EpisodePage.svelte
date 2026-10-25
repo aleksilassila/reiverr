@@ -9,7 +9,7 @@
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
 	import TitleProperties from './HeroTitleInfo.svelte';
-	import { playEpisode } from './play-episode';
+	import { playEpisode } from './play-media';
 
 	export let id: string; // Series tmdbId
 	export let season: string;

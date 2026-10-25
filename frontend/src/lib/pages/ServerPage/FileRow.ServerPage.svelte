@@ -12,8 +12,6 @@
 	export let checked = false;
 	export let partiallyChecked = false;
 	export let expanded = false;
-	/** Whether the cleanup deletes the managed files of the folder that no request holds */
-	export let cleanup = false;
 
 	const dispatch = createEventDispatcher<{
 		toggle: null;
@@ -24,14 +22,15 @@
 	let row: Selectable;
 
 	$: isDirectory = node.entry.isDirectory;
-	// An indexed file is managed by the cleanup or external, the rest is unknown to the server
+	// An indexed file is managed by the cleanup or external, the rest is unknown to the server;
+	// a managed file that no request holds goes at the next cleanup
 	$: requests = node.requests
 		? `${node.requests} ${node.requests === 1 ? 'request' : 'requests'} · `
 		: '';
 	$: tag = node.entry.error
 		? node.entry.error
 		: node.entry.managed
-			? cleanup && !node.requests
+			? !node.requests
 				? 'Unretained'
 				: `${requests}Managed`
 			: node.entry.managed === false
