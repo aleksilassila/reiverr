@@ -44,12 +44,29 @@ magnetFiles[PACK] = [
   { path: 'Test.Show.S01/info.nfo', length: 1 },
 ];
 
+const SUBS_MAGNET =
+  'magnet:?xt=urn:btih:2222222222222222222222222222222222222222';
+const SUBS = parseTorrent(SUBS_MAGNET).infoHash;
+magnetFiles[SUBS] = [
+  { path: 'Test.Show.S01/Test.Show.S01E01.mkv', length: 100 },
+  { path: 'Test.Show.S01/Subs/Test.Show.S01E01/2_English.srt', length: 5 },
+  { path: 'Test.Show.S01/Test.Show.S01E02.mkv', length: 100 },
+  { path: 'Test.Show.S01/Test.Show.S01E02.en.srt', length: 5 },
+];
+
 const packRelease = {
   infoHash: PACK,
   title: 'Test.Show.S01.1080p.WEB-GRP',
   indexer: 'test',
   size: 1000,
   magnetUrl: PACK_MAGNET,
+};
+const subsRelease = {
+  infoHash: SUBS,
+  title: 'Test.Show.S01.1080p.WEB-SUBS',
+  indexer: 'test',
+  size: 1000,
+  magnetUrl: SUBS_MAGNET,
 };
 const episodeRelease = {
   infoHash: EPISODE,
@@ -212,6 +229,7 @@ describe('DownloadsService', () => {
         'Test.Show.S01/Test.Show.S01E01.1080p.mkv',
       ),
       name: 'Test.Show.S01E01.1080p.mkv',
+      subtitles: [],
     });
     // Nothing downloads and nothing seeds: the engine stops, the data stays
     expect(pack.destroyed).toBe(true);
@@ -247,6 +265,52 @@ describe('DownloadsService', () => {
     await settle();
     expect(engine.running(PACK).wanted).toEqual([0]);
     expect(await describeItems()).toEqual([[1, 'downloading', 0.5, null]]);
+  });
+
+  it('downloads the subtitles of an item with its file, while the setting is on', async () => {
+    await inTx((tx) => downloads.ensureTorrent(tx, subsRelease));
+    const wanted = await wantItem(SUBS, item(1));
+    await settle();
+    const subs = engine.running(SUBS);
+    expect(subs.wanted).toEqual([0, 1]);
+    expect((await items())[0].subtitleFileIndexes).toEqual([1]);
+
+    // Complete with its subtitles only
+    subs.download(0);
+    await settle();
+    expect(await describeItems()).toEqual([[1, 'downloading', 1, null]]);
+    expect(await imports()).toEqual([]);
+
+    subs.download(1);
+    await settle();
+    expect(await describeItems()).toEqual([[1, 'complete', null, null]]);
+    expect(await imports()).toEqual([wanted.id]);
+    expect(
+      await request(() => downloads.getItemFile(orm.em, wanted.id)),
+    ).toEqual({
+      path: path.join(directory(SUBS), 'Test.Show.S01/Test.Show.S01E01.mkv'),
+      name: 'Test.Show.S01E01.mkv',
+      subtitles: [
+        {
+          path: path.join(
+            directory(SUBS),
+            'Test.Show.S01/Subs/Test.Show.S01E01/2_English.srt',
+          ),
+          name: '2_English.srt',
+        },
+      ],
+    });
+
+    // An item matched while the setting is off downloads its file alone
+    await downloads.updateSettings({ seedRatio: 0, downloadSubtitles: false });
+    await wantItem(SUBS, item(2));
+    await settle();
+    const second = (await items())[1];
+    expect(engine.running(SUBS).wanted).toEqual([0, 1, 2]);
+    expect(second.subtitleFileIndexes).toEqual([]);
+    expect(
+      await request(() => downloads.getItemFile(orm.em, second.id)),
+    ).toMatchObject({ name: 'Test.Show.S01E02.mkv', subtitles: [] });
   });
 
   it('seeds until the ratio is reached', async () => {

@@ -162,7 +162,7 @@ describe('RequestsService', () => {
   const sourceOf = async (episode: number) => {
     const row = (await rows()).find((r) => r.episode === episode);
     const { source } = await request(() =>
-      requests.readRequest(orm.em, row.id),
+      requests.readRequestWithSource(orm.em, row.id),
     );
 
     return source;
@@ -619,7 +619,9 @@ describe('RequestsService', () => {
       approved: true,
     });
     expect(created.neededSince).toBeFalsy();
-    const read = await request(() => requests.readRequest(orm.em, created.id));
+    const read = await request(() =>
+      requests.readRequestWithSource(orm.em, created.id),
+    );
     expect(read).toMatchObject({ id: created.id });
     expect(read.source).toBeUndefined();
 

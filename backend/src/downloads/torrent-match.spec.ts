@@ -1,5 +1,6 @@
+import * as path from 'node:path';
 import { MediaType } from '../common/common.dto.js';
-import { findItemFile } from './torrent-match.js';
+import { findItemFile, findSubtitleFiles } from './torrent-match.js';
 
 const files = [
   {
@@ -64,5 +65,49 @@ describe('findItemFile', () => {
         files,
       )?.index,
     ).toBe(0);
+  });
+});
+
+describe('findSubtitleFiles', () => {
+  const file = (index: number, filePath: string, length = 10) => ({
+    index,
+    name: path.basename(filePath),
+    path: filePath,
+    length,
+  });
+  const indexesOf = (
+    episode: number,
+    video: ReturnType<typeof file>,
+    all: ReturnType<typeof file>[],
+  ) => findSubtitleFiles(item(episode), video, all).map((f) => f.index);
+
+  it('finds the subtitles named after the video, in its folder, or after its episode', () => {
+    const pack = [
+      file(0, 'Show.S01/Show.S01E01.mkv', 100),
+      file(1, 'Show.S01/Show.S01E02.mkv', 100),
+      file(2, 'Show.S01/Show.S01E02.en.srt'),
+      file(3, 'Show.S01/Show.S01E02.srt'),
+      file(4, 'Show.S01/Subs/Show.S01E02/2_English.srt'),
+      file(5, 'Show.S01/Subs/Show.S01E01/2_English.srt'),
+      file(6, 'Show.S01/Subs/Show.S01E02.fi.srt'),
+      file(7, 'Show.S01/Subs/English.srt'),
+      file(8, 'Show.S01/Show.S01E02.idx'),
+      file(9, 'Show.S01/Show.S01E02.nfo'),
+    ];
+
+    expect(indexesOf(2, pack[1], pack)).toEqual([2, 3, 4, 6]);
+    expect(indexesOf(1, pack[0], pack)).toEqual([5]);
+  });
+
+  it('takes every subtitle of a torrent whose only video it is', () => {
+    const single = [
+      file(0, 'release-group-1080p.mkv', 50),
+      file(1, 'sample.mkv', 5),
+      file(2, 'Subs/English.srt'),
+      file(3, 'Subs/2_French.vtt'),
+      file(4, 'readme.txt'),
+    ];
+
+    expect(indexesOf(2, single[0], single)).toEqual([2, 3]);
   });
 });

@@ -11,6 +11,7 @@ import {
   primaryLibraryFolder,
   seasonFolderName,
   seriesFolderName,
+  subtitleFileName,
 } from './library.utils.js';
 import { INDEXED_FIELDS, MediaFile } from './media-file.entity.js';
 
@@ -27,6 +28,8 @@ export interface ImportTarget {
   season: number;
   /** The episodes the file is, by its name or by what was wanted of it */
   episodes: number[];
+  /** The subtitle files of the torrent that belong to the file, placed next to it */
+  subtitles: { sourcePath: string; name: string }[];
 }
 
 /** A file that an import put into the library */
@@ -64,11 +67,9 @@ export class ImportService {
 
   /**
    * Puts a video file into the library as the given episodes of a series,
-   * as the version of the torrent it comes from. A rerun puts the file where
-   * that version is already. The file is hard linked so it takes no extra
-   * space, or copied when the source is on another filesystem. A file that
-   * is there already counts only when it is the same file, which a rerun of
-   * an import finds.
+   * as the version of the torrent it comes from, with its subtitles as
+   * sidecars named after it. A rerun puts the files where that version is
+   * already.
    */
   private async placeEpisodeFile(target: ImportTarget): Promise<PlacedFile> {
     const { tmdbId, season, episodes, sourcePath, infoHash } = target;
@@ -77,6 +78,46 @@ export class ImportService {
       (await this.getImportPath(target));
 
     await fs.mkdir(path.dirname(destination), { recursive: true });
+    await this.placeFile(sourcePath, destination);
+    const stats = await fs.stat(destination);
+
+    // Two subtitles of the torrent with one name give the first sidecar only
+    const sidecars = new Set<string>();
+    for (const subtitle of target.subtitles) {
+      const sidecar = path.join(
+        path.dirname(destination),
+        subtitleFileName(
+          path.basename(destination),
+          path.basename(sourcePath),
+          subtitle.name,
+        ),
+      );
+      if (sidecars.has(sidecar)) continue;
+      sidecars.add(sidecar);
+      await this.placeFile(subtitle.sourcePath, sidecar);
+    }
+
+    return {
+      path: destination,
+      tmdbId,
+      season,
+      episodes,
+      infoHash,
+      size: stats.size,
+      modifiedAt: stats.mtime,
+    };
+  }
+
+  /**
+   * Hard links a file to where it goes, so that it takes no extra space, or
+   * copies it when the source is on another filesystem. A file that is
+   * there already counts only when it is the same file, which a rerun of an
+   * import finds.
+   */
+  private async placeFile(
+    sourcePath: string,
+    destination: string,
+  ): Promise<void> {
     await fs.link(sourcePath, destination).catch(async (error) => {
       if (error.code === 'EEXIST') {
         const [source, there] = await Promise.all([
@@ -96,18 +137,6 @@ export class ImportService {
       await fs.copyFile(sourcePath, partial);
       await fs.rename(partial, destination);
     });
-
-    const stats = await fs.stat(destination);
-
-    return {
-      path: destination,
-      tmdbId,
-      season,
-      episodes,
-      infoHash,
-      size: stats.size,
-      modifiedAt: stats.mtime,
-    };
   }
 
   /** Indexes a file that was put into the library as a managed version */

@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { promises as fs } from 'fs';
+import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
 import { JobPayloads } from '../jobs/job-types.js';
@@ -15,13 +15,15 @@ import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
-import { entryExists } from './disk.utils.js';
+import { entryExists, readDirectory } from './disk.utils.js';
 import { DeleteLibraryEntriesResultDto } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import {
   describeError,
   isInsideFolder,
+  isSubtitleFile,
   libraryFolderPaths,
+  parseSubtitleName,
   relativePath,
 } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
@@ -217,12 +219,18 @@ export class DeletionService implements OnModuleInit {
 
     // An admin can have deleted it meanwhile. A file that cannot be deleted
     // stays without a row, and the next scan finds it as an external file.
-    await fs.unlink(file.path).catch((error) => {
-      if (error.code !== 'ENOENT') throw error;
+    const sidecars = await this.findSidecars(file.path);
+    for (const filePath of [file.path, ...sidecars]) {
+      await fs.unlink(filePath).catch((error) => {
+        if (error.code !== 'ENOENT') throw error;
+      });
+    }
+    await this.em.transactional(async (tx) => {
+      await this.logDeleted(tx, file.path, reason, file);
+      for (const sidecar of sidecars) {
+        await this.logDeleted(tx, sidecar, `${reason}, with its video`);
+      }
     });
-    await this.em.transactional((tx) =>
-      this.logDeleted(tx, file.path, reason, file),
-    );
 
     for (
       let folder = path.dirname(file.path);
@@ -238,6 +246,25 @@ export class DeletionService implements OnModuleInit {
     }
 
     return 'deleted';
+  }
+
+  /**
+   * The subtitle files next to a video that are named after it, as the
+   * import names the subtitles of a version, and which go with it
+   */
+  private async findSidecars(videoPath: string): Promise<string[]> {
+    const directory = path.dirname(videoPath);
+    const videoName = path.basename(videoPath);
+    const entries = await readDirectory(directory).catch((): Dirent[] => []);
+
+    return entries
+      .filter(
+        (entry) =>
+          entry.isFile() &&
+          isSubtitleFile(entry.name) &&
+          !!parseSubtitleName(entry.name, videoName),
+      )
+      .map((entry) => path.join(directory, entry.name));
   }
 
   /**

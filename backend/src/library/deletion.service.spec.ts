@@ -167,6 +167,35 @@ describe('DeletionService', () => {
         expect(readdirSync(seasonFolder)).toEqual(['notes.txt']);
       });
 
+      it('deletes the subtitles named after the file with it', async () => {
+        const imported = await importEpisode(
+          write('downloads/S01E01.mkv'),
+          [1],
+          [write('downloads/S01E01.en.srt', 'subtitles')],
+        );
+        const seasonFolder = path.dirname(imported);
+        // Of another version, and of the episode but not of the version
+        writeFileSync(
+          path.join(seasonFolder, 'Test Show - S01E01 - ffffffff.en.srt'),
+          'other',
+        );
+        writeFileSync(
+          path.join(seasonFolder, 'Test Show - S01E01.en.srt'),
+          'by hand',
+        );
+
+        await deleteFile(await idOf(imported));
+
+        expect(readdirSync(seasonFolder)).toEqual([
+          'Test Show - S01E01 - ffffffff.en.srt',
+          'Test Show - S01E01.en.srt',
+        ]);
+        expect(await logged()).toEqual([
+          `Deleted "${imported}": a test`,
+          `Deleted "${path.join(seasonFolder, 'Test Show - S01E01 - a1b2c3d4.en.srt')}": a test, with its video`,
+        ]);
+      });
+
       it('keeps a file that is not as it was imported and stops managing it', async () => {
         const imported = await importEpisode(
           write('downloads/S01E01.mkv'),

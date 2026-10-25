@@ -235,7 +235,7 @@ export class RequestsService implements OnApplicationBootstrap {
   }
 
   /** A request with the source its user prefers for it, for the library */
-  async readRequest(
+  async readRequestWithSource(
     em: EntityManager,
     id: string,
   ): Promise<RequestWithSource | undefined> {

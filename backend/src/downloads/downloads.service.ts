@@ -30,7 +30,7 @@ import {
 } from './downloads.settings.js';
 import { TorrentFileInfo } from './torrent-engine.js';
 import { TorrentItem } from './torrent-item.entity.js';
-import { findItemFile } from './torrent-match.js';
+import { findItemFile, findSubtitleFiles } from './torrent-match.js';
 import { TorrentRuntime, TorrentSnapshot } from './torrent-runtime.js';
 import { Torrent } from './torrent.entity.js';
 
@@ -62,10 +62,11 @@ export interface WantedItem {
   onlyVideo: boolean;
 }
 
-/** The complete file of an item, where the import reads it */
+/** The complete file of an item, where the import reads it, with its subtitle files */
 export interface ItemFile {
   path: string;
   name: string;
+  subtitles: { path: string; name: string }[];
 }
 
 const fileOf = (
@@ -75,6 +76,14 @@ const fileOf = (
   index === null || index === undefined
     ? undefined
     : files?.find((file) => file.index === index);
+
+/** The files of the torrent that an item downloads: its file with its subtitles, once matched */
+const itemFileIndexes = (
+  item: Pick<TorrentItem, 'fileIndex' | 'subtitleFileIndexes'>,
+): number[] =>
+  item.fileIndex === null || item.fileIndex === undefined
+    ? []
+    : [item.fileIndex, ...(item.subtitleFileIndexes ?? [])];
 
 /**
  * Downloads the items that the library wants from torrents and seeds the
@@ -119,13 +128,17 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   async updateSettings(
     settings: DownloadSettingsDto,
   ): Promise<DownloadSettingsDto> {
-    const { seedRatio } = settings ?? {};
+    const { seedRatio, downloadSubtitles } = settings ?? {};
     if (typeof seedRatio !== 'number' || !(seedRatio >= 0)) {
       throw new BadRequestException('seedRatio must be a number, 0 or greater');
+    }
+    if (typeof downloadSubtitles !== 'boolean') {
+      throw new BadRequestException('downloadSubtitles must be a boolean');
     }
 
     const saved = await this.settingsService.saveValue(DOWNLOADS_SETTINGS_KEY, {
       seedRatio,
+      downloadSubtitles,
     });
     // How long torrents seed changes
     await this.enqueueEveryTorrent(this.em);
@@ -313,13 +326,19 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       { ...READ, fields: ['infoHash', 'files'] },
     );
     const file = fileOf(torrent?.files, item.fileIndex);
+    if (!file) return undefined;
 
-    return (
-      file && {
-        path: path.join(this.getDirectory(item.torrentHash), file.path),
-        name: file.name,
-      }
-    );
+    const directory = this.getDirectory(item.torrentHash);
+    return {
+      path: path.join(directory, file.path),
+      name: file.name,
+      subtitles: (item.subtitleFileIndexes ?? []).flatMap((index) => {
+        const subtitle = fileOf(torrent.files, index);
+        return subtitle
+          ? [{ path: path.join(directory, subtitle.path), name: subtitle.name }]
+          : [];
+      }),
+    };
   }
 
   /** Torrent rows that nothing ever wanted, or that were picked and never needed, go */
@@ -351,7 +370,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   ): Promise<void> {
     const snapshot = this.runtime.snapshot(infoHash);
     const hasDirectory = await exists(this.getDirectory(infoHash));
-    const { seedRatio } = await this.getSettings();
+    const { seedRatio, downloadSubtitles } = await this.getSettings();
 
     const state = await context.em.transactional(async (tx) => {
       const torrent = await tx.findOne(Torrent, { infoHash }, READ);
@@ -373,11 +392,16 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         ) {
           const file = findItemFile(item, files);
           if (file) {
+            // Matched once, with the file: the setting at the time decides
+            const subtitles = downloadSubtitles
+              ? findSubtitleFiles(item, file, files).map((f) => f.index)
+              : [];
             item.fileIndex = file.index;
+            item.subtitleFileIndexes = subtitles;
             await tx.nativeUpdate(
               TorrentItem,
               { id: item.id },
-              { fileIndex: file.index },
+              { fileIndex: file.index, subtitleFileIndexes: subtitles },
             );
           }
         }
@@ -386,7 +410,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
           item.fileIndex !== undefined &&
           !item.completedAt &&
           snapshot?.ready &&
-          snapshot.complete.has(item.fileIndex);
+          itemFileIndexes(item).every((index) => snapshot.complete.has(index));
         if (isComplete) {
           item.completedAt = now;
           await tx.nativeUpdate(
@@ -462,7 +486,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       await context.em.nativeUpdate(Torrent, { infoHash }, { error: null });
     }
     this.runtime.setWantedFiles(context, infoHash, [
-      ...new Set(wanted.flatMap((item) => item.fileIndex ?? [])),
+      ...new Set(wanted.flatMap(itemFileIndexes)),
     ]);
   }
 

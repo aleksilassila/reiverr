@@ -272,6 +272,34 @@ export function episodeFileName(
 }
 
 /**
+ * The name of a subtitle file of a torrent next to the version it was
+ * imported with, as a sidecar `parseSubtitleName` reads: the version's name
+ * with the torrent's name of the subtitle as the tags ("Name - S01E02 -
+ * label.2_English.srt"), or with only what that name adds to the torrent's
+ * name of the video ("<video>.en.srt" gives the tag "en").
+ */
+export function subtitleFileName(
+  versionFileName: string,
+  sourceVideoName: string,
+  subtitleName: string,
+): string {
+  const withoutExtension = (fileName: string) =>
+    fileName.slice(0, fileName.length - path.extname(fileName).length);
+  const base = withoutExtension(versionFileName);
+  const sourceBase = withoutExtension(sourceVideoName);
+  const subtitleBase = withoutExtension(subtitleName);
+  const tags = sanitizeFileName(
+    subtitleBase === sourceBase
+      ? ''
+      : subtitleBase.startsWith(`${sourceBase}.`)
+        ? subtitleBase.slice(sourceBase.length + 1)
+        : subtitleBase,
+  );
+
+  return `${base}${tags ? `.${tags}` : ''}${path.extname(subtitleName).toLowerCase()}`;
+}
+
+/**
  * The paths of the folders of a type, the primary first: the order their
  * title folders and the versions of an episode are looked at in
  */

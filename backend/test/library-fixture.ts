@@ -113,7 +113,11 @@ export async function createLibraryFixture() {
     orm.em.fork().find(MediaFile, {}, { orderBy: { path: 'asc' } });
 
   /** Imports a file as a version of the test torrent, as the import job does */
-  const importEpisode = async (sourcePath: string, episodes: number[]) => {
+  const importEpisode = async (
+    sourcePath: string,
+    episodes: number[],
+    subtitles: string[] = [],
+  ) => {
     const file = await request(() =>
       importService.importFile({
         sourcePath,
@@ -122,6 +126,10 @@ export async function createLibraryFixture() {
         tmdbId: TMDB_ID,
         season: 1,
         episodes,
+        subtitles: subtitles.map((subtitlePath) => ({
+          sourcePath: subtitlePath,
+          name: path.basename(subtitlePath),
+        })),
       }),
     );
 

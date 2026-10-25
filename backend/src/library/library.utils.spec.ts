@@ -10,6 +10,7 @@ import {
   primaryLibraryFolder,
   seasonFolderName,
   seriesFolderName,
+  subtitleFileName,
   srtToWebVtt,
 } from './library.utils.js';
 
@@ -206,6 +207,30 @@ describe('import naming', () => {
       season: 12,
       episodes: [3, 4],
     });
+  });
+
+  it('names the subtitles of a torrent as sidecars that the sidecar parsing reads back', () => {
+    const version = 'Show - S01E02 - a1b2c3d4.mkv';
+    const name = (subtitle: string) =>
+      subtitleFileName(version, 'Show.S01E02.1080p-GRP.mkv', subtitle);
+
+    expect(name('2_English.srt')).toBe(
+      'Show - S01E02 - a1b2c3d4.2_English.srt',
+    );
+    expect(name('Show.S01E02.1080p-GRP.en.forced.SRT')).toBe(
+      'Show - S01E02 - a1b2c3d4.en.forced.srt',
+    );
+    expect(name('Show.S01E02.1080p-GRP.srt')).toBe(
+      'Show - S01E02 - a1b2c3d4.srt',
+    );
+    expect(name('Eng: SDH?.vtt')).toBe('Show - S01E02 - a1b2c3d4.Eng SDH.vtt');
+    expect(parseSubtitleName(name('2_English.srt'), version)).toEqual({
+      lang: undefined,
+      label: '2_English',
+    });
+    expect(
+      parseSubtitleName(name('Show.S01E02.1080p-GRP.en.forced.SRT'), version),
+    ).toEqual({ lang: 'en', label: 'en forced' });
   });
 });
 

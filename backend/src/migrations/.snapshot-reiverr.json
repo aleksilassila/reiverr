@@ -2541,6 +2541,23 @@
           "enumItems": [],
           "mappedType": "integer"
         },
+        "subtitle_file_indexes": {
+          "name": "subtitle_file_indexes",
+          "type": "json",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
         "tmdb_id": {
           "name": "tmdb_id",
           "type": "text",

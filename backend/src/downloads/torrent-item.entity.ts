@@ -56,7 +56,15 @@ export class TorrentItem {
   @Property({ nullable: true })
   fileIndex?: number;
 
-  /** When the engine reported the file complete */
+  /**
+   * The subtitle files of the torrent that belong to the file, matched with
+   * it and downloaded with it; null for an item matched before subtitles
+   * were downloaded
+   */
+  @Property({ type: 'json', nullable: true })
+  subtitleFileIndexes?: number[];
+
+  /** When the engine reported the file complete, with its subtitles */
   @Property({ nullable: true })
   completedAt?: Date;
 

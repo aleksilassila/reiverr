@@ -7,6 +7,12 @@ export class DownloadSettingsDto {
       'Torrents are seeded until they have uploaded this many times what they downloaded. 0 disables seeding.',
   })
   seedRatio: number;
+
+  @ApiProperty({
+    description:
+      'The subtitle files of a torrent that belong to a downloaded video are downloaded with it and put next to it in the library.',
+  })
+  downloadSubtitles: boolean;
 }
 
 export enum TorrentStatus {

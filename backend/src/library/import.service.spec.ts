@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import * as path from 'node:path';
 import {
   createLibraryFixture,
@@ -68,6 +68,53 @@ describe('ImportService', () => {
       files[0].id,
       files[1].id,
     ]);
+  });
+
+  it('puts the subtitles of the torrent next to the version, named after it', async () => {
+    const source = write('downloads/Test.Show.S01E02.1080p.MKV', 'download');
+    const subtitles = [
+      write('downloads/Subs/Test.Show.S01E02.1080p/2_English.srt', 'english'),
+      write('downloads/Test.Show.S01E02.1080p.en.forced.srt', 'forced'),
+      // A second subtitle of the same name gives no second sidecar
+      write('downloads/Subs/2_English.srt', 'again'),
+    ];
+
+    const destination = await importEpisode(source, [2], subtitles);
+
+    const seasonFolder = path.dirname(destination);
+    const english = path.join(
+      seasonFolder,
+      'Test Show - S01E02 - a1b2c3d4.2_English.srt',
+    );
+    expect(readdirSync(seasonFolder)).toEqual([
+      'Test Show - S01E02 - a1b2c3d4.2_English.srt',
+      'Test Show - S01E02 - a1b2c3d4.en.forced.srt',
+      'Test Show - S01E02 - a1b2c3d4.mkv',
+    ]);
+    expect(readFileSync(english, 'utf8')).toBe('english');
+    expect(statSync(english).ino).toBe(statSync(subtitles[0]).ino);
+    expect(await indexed()).toHaveLength(1);
+
+    // The player offers them with the version
+    await request(() => scan.scanTitle(MediaType.Series, TMDB_ID));
+    const [file] = await request(() =>
+      playback.listEpisodeFiles(TMDB_ID, 1, 2),
+    );
+    expect(file.subtitles).toEqual([
+      {
+        fileName: 'Test Show - S01E02 - a1b2c3d4.2_English.srt',
+        label: '2_English',
+      },
+      {
+        fileName: 'Test Show - S01E02 - a1b2c3d4.en.forced.srt',
+        lang: 'en',
+        label: 'en forced',
+      },
+    ]);
+
+    // Importing the same files again changes nothing
+    await importEpisode(source, [2], subtitles);
+    expect(readdirSync(seasonFolder)).toHaveLength(3);
   });
 
   it('creates the folder of a series that is not in the library yet', async () => {

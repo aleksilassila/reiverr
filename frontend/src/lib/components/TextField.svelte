@@ -74,7 +74,7 @@
 	</label>
 	<div class="relative flex flex-col">
 		<input
-			class={classNames('selectable group-focus-within:border-primary-500 px-6 py-2 rounded-lg', {
+			class={classNames('selectable group-focus-within:border-primary-500 px-6 py-2 rounded-xl', {
 				'bg-secondary-800': variant === 'primary',
 				'bg-primary-900': variant === 'primary-dark'
 			})}

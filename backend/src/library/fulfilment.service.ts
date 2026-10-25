@@ -170,7 +170,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     const diskFull = await this.storage.isDiskFull();
 
     await context.em.transactional(async (tx) => {
-      const request = await this.requestsService.readRequest(tx, requestId);
+      const request = await this.requestsService.readRequestWithSource(
+        tx,
+        requestId,
+      );
       const binding =
         (await tx.findOne(RequestBinding, { requestId }, READ)) ?? undefined;
 
@@ -376,6 +379,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         tmdbId: item.tmdbId,
         season: item.season,
         episodes: isNamed ? numbers.episodes : [item.episode],
+        subtitles: file.subtitles.map((subtitle) => ({
+          sourcePath: subtitle.path,
+          name: subtitle.name,
+        })),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

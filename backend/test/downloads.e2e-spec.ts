@@ -725,7 +725,9 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('seeds until the ratio is reached, also after a restart', async () => {
-    await api('put', '/downloads/settings').send({ seedRatio: 2 }).expect(200);
+    await api('put', '/downloads/settings')
+      .send({ seedRatio: 2, downloadSubtitles: true })
+      .expect(200);
     await select('Test.Show.S01.1080p.WEB-GRP', { user: viewer });
     await settle();
 
@@ -769,7 +771,9 @@ describe('Series downloads (e2e)', () => {
       uploadedBytes: 0,
     });
 
-    await api('put', '/downloads/settings').send({ seedRatio: 0 }).expect(200);
+    await api('put', '/downloads/settings')
+      .send({ seedRatio: 0, downloadSubtitles: true })
+      .expect(200);
   });
 
   it('keeps what it knows while the library folder is not mounted', async () => {
