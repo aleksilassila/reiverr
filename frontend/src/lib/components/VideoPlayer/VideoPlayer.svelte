@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { EnterFullScreen, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
+	import { EnterFullScreen, Pause, SpeakerLoud, TextAlignLeft, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { useRegistrar } from '../../selectable';
 	import Container from '../Container.svelte';
@@ -11,6 +11,7 @@
 	import { get } from 'svelte/store';
 	import { useSimpleModal as useSimpleModalStack } from '../Modal/modal.store';
 	import ModalStackProvider from '../Modal/ModalStackProvider.svelte';
+	import SelectAudioModal from './SelectAudioModal.svelte';
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import SelectVideoModal from './SelectVideoModal.svelte';
 	import VideoElement from './VideoElement.svelte';
@@ -30,6 +31,7 @@
 	const {
 		videoTracks: videoTrackState,
 		subtitleTracks: subtitleTrackState,
+		audioTracks: audioTrackState,
 		paused,
 		duration,
 		currentTime,
@@ -44,6 +46,7 @@
 		seekAndPlay,
 		selectVideoTrack,
 		selectSubtitles,
+		selectAudioTrack,
 		toggleFullscreen,
 		handleKeyboardShortcut
 	} = videoPlayerContext.createContext({
@@ -198,6 +201,19 @@
 					<h1 class="h1">{title}</h1>
 				</div>
 				<div class="flex space-x-2">
+					{#if $audioTrackState.tracks.length > 1}
+						<IconButton
+							on:clickOrSelect={() => {
+								modalStack.createModal(SelectAudioModal, {
+									available: $audioTrackState.tracks,
+									current: $audioTrackState.current,
+									selectAudioTrack
+								});
+							}}
+						>
+							<SpeakerLoud size={24} />
+						</IconButton>
+					{/if}
 					{#if $subtitleTrackState.tracks.length}
 						<IconButton
 							on:clickOrSelect={() => {

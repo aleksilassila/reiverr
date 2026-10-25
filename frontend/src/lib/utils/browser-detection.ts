@@ -186,6 +186,15 @@ export function isTizen55(): boolean {
 }
 
 /**
+ * Returns the version of Tizen, such as 5.5
+ */
+export function tizenVersion(): number | undefined {
+	const version = (navigator.userAgent || '').match(/Tizen (\d+(?:\.\d+)?)/)?.[1];
+
+	return version ? Number.parseFloat(version) : undefined;
+}
+
+/**
  * Check if the current platform is WebOS.
  *
  * @returns Determines if current platform is WebOS

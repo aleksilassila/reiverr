@@ -27,6 +27,7 @@
 			}}
 			class="relative"
 			on:enter={scrollIntoView({ vertical: 64 })}
+			type="primary-dark"
 		>
 			{#if !current}
 				<div class="absolute inset-y-0 right-6 flex items-center justify-center">
@@ -44,6 +45,7 @@
 				}}
 				on:enter={scrollIntoView({ vertical: 64 })}
 				class="relative"
+				type="primary-dark"
 			>
 				{#if current?.id === subtitles.id}
 					<div class="absolute inset-y-0 right-6 flex items-center justify-center">
@@ -51,10 +53,8 @@
 					</div>
 				{/if}
 				<div class="text-left">
-					{subtitles.label}
-					{#if language}
-						<span class="text-secondary-400">({language})</span>
-					{/if}
+					{language ?? 'Unknown'}
+					<span class="text-secondary-400">({subtitles.label})</span>
 				</div>
 			</Button>
 		{/each}

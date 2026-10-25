@@ -2,9 +2,10 @@
 	import Hls from 'hls.js';
 	import { onDestroy, onMount } from 'svelte';
 	import { isTizen } from '../../utils/browser-detection';
-	import { videoPlayerContext, type VideoTrack } from './video-player.store';
+	import { getAudioTrackList, videoPlayerContext, type VideoTrack } from './video-player.store';
 
 	const REPORT_PROGRESS_INTERVAL = 10_000;
+	const AUDIO_TRACK_EVENTS = ['addtrack', 'removetrack', 'change'];
 
 	const {
 		video,
@@ -22,7 +23,8 @@
 		handleLoadedData,
 		handleWaiting,
 		handlePlaying,
-		updateSubtitlesVisibility
+		updateSubtitlesVisibility,
+		updateAudioTracks
 	} = videoPlayerContext.getContext();
 
 	let hls: Hls | undefined;
@@ -67,6 +69,11 @@
 
 	onMount(() => {
 		$video?.textTracks.addEventListener('addtrack', updateSubtitlesVisibility);
+
+		const audioTrackList = $video && getAudioTrackList($video);
+		for (const event of AUDIO_TRACK_EVENTS) {
+			audioTrackList?.addEventListener(event, updateAudioTracks);
+		}
 	});
 
 	onDestroy(() => {
@@ -74,6 +81,10 @@
 		reportProgress();
 
 		$video?.textTracks.removeEventListener('addtrack', updateSubtitlesVisibility);
+		const audioTrackList = $video && getAudioTrackList($video);
+		for (const event of AUDIO_TRACK_EVENTS) {
+			audioTrackList?.removeEventListener(event, updateAudioTracks);
+		}
 		hls?.destroy();
 		$video?.pause();
 		$video?.removeAttribute('src');
@@ -97,6 +108,7 @@
 	on:dblclick
 	on:click
 	autoplay
+	crossorigin="anonymous"
 	playsinline
 	class="w-full h-full"
 >

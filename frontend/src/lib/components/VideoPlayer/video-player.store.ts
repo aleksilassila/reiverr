@@ -1,4 +1,5 @@
 import { _createStoreContext } from '$lib/utils';
+import { isTizen, isWebOS1, isWebOS2, isWebOS3, tizenVersion } from '$lib/utils/browser-detection';
 import { derived, get, writable } from 'svelte/store';
 
 export type VideoTrack = {
@@ -15,6 +16,35 @@ export type SubtitleTrack = {
 	src: string;
 	lang?: string;
 };
+
+export type AudioTrack = {
+	/** The position of the track in the audio tracks of the video element */
+	index: number;
+	label: string;
+	lang?: string;
+};
+
+/** HTMLMediaElement.audioTracks, which TypeScript does not type since few browsers have it */
+type AudioTrackList = EventTarget &
+	ArrayLike<{ label: string; language: string; enabled: boolean }>;
+
+/**
+ * The audio tracks of the file a video element plays, on platforms that can
+ * switch between them. Tizen before 5.5 and from 8 on, and webOS before 4,
+ * list the tracks but play only the first one (after jellyfin-web).
+ */
+export function getAudioTrackList(video: HTMLVideoElement): AudioTrackList | undefined {
+	const tizen = tizenVersion();
+	const canSwitch =
+		(!isTizen() || (tizen !== undefined && tizen >= 5.5 && tizen < 8)) &&
+		!isWebOS1() &&
+		!isWebOS2() &&
+		!isWebOS3();
+
+	return canSwitch
+		? (video as HTMLVideoElement & { audioTracks?: AudioTrackList }).audioTracks
+		: undefined;
+}
 
 export interface VideoPlayerOptions {
 	videoTracks: VideoTrack[];
@@ -104,6 +134,7 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 	const subtitleTracks = writable<{ current?: SubtitleTrack; tracks: SubtitleTrack[] }>({
 		tracks: options.subtitleTracks
 	});
+	const audioTracks = writable<{ current?: AudioTrack; tracks: AudioTrack[] }>({ tracks: [] });
 
 	const paused = writable(false);
 	const muted = writable(false);
@@ -177,6 +208,31 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 
 	function selectSubtitles(track?: SubtitleTrack) {
 		subtitleTracks.update((prev) => ({ ...prev, current: track }));
+	}
+
+	function readAudioTrackList() {
+		const el = get(video);
+
+		return Array.from((el && getAudioTrackList(el)) ?? []);
+	}
+
+	/** Called when the audio tracks of the video element change, which lists them once the file's metadata has loaded */
+	function updateAudioTracks() {
+		const list = readAudioTrackList();
+		const tracks = list.map((track, index) => ({
+			index,
+			label: track.label,
+			lang: track.language || undefined
+		}));
+
+		audioTracks.set({ current: tracks[list.findIndex((track) => track.enabled)], tracks });
+	}
+
+	function selectAudioTrack(track: AudioTrack) {
+		readAudioTrackList().forEach((audioTrack, index) => {
+			audioTrack.enabled = index === track.index;
+		});
+		updateAudioTracks();
 	}
 
 	function reportProgress() {
@@ -253,6 +309,7 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 		video,
 		videoTracks,
 		subtitleTracks,
+		audioTracks,
 		paused,
 		muted,
 		volume,
@@ -276,6 +333,8 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 		toggleFullscreen,
 		selectVideoTrack,
 		selectSubtitles,
+		selectAudioTrack,
+		updateAudioTracks,
 		reportProgress,
 		handleProgress,
 		handleLoadedData,
