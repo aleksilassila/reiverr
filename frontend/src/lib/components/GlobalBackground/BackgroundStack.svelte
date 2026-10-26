@@ -57,9 +57,12 @@
 			}}
 			on:mount={globalBackground.registrar}
 		>
-			{#if $topBackground.video}
-				{@const video = $topBackground.video}
-				{#key video.id}
+			<!-- Every change of the video makes a new block, so that a video that comes back while the
+				previous one fades out is not given the block that is going away: Svelte 3 nulls an if
+				branch when its outro ends, also when the branch was shown again in the meantime -->
+			{#key $topBackground.video?.id}
+				{#if $topBackground.video}
+					{@const video = $topBackground.video}
 					<div out:fade={{ duration: 200 }}>
 						<Container
 							class={classNames('absolute inset-0 transition-opacity duration-500', {
@@ -68,61 +71,59 @@
 							on:click={({ detail: e }) => e.stopPropagation()}
 							on:back={() => topBackground.destroyVideo()}
 						>
-							{#if $topBackground.video}
-								<svelte:component
-									this={video.component}
-									{...video.props}
-									paused={!$hasFocus && !$localSettings.autoplayTrailers}
-									muted={!$hasFocus}
-									load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
-								/>
-							{/if}
+							<svelte:component
+								this={video.component}
+								{...video.props}
+								paused={!$hasFocus && !$localSettings.autoplayTrailers}
+								muted={!$hasFocus}
+								load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
+							/>
 						</Container>
 					</div>
-				{/key}
-			{:else}
-				<Container
-					on:back={() => unfocusGlobalBackground()}
-					on:wheel={(e) => e.stopPropagation()}
-					on:click={({ detail: e }) => e.stopPropagation()}
-					on:navigate={({ detail }) => {
-						if (detail.direction === 'left') {
-							topBackground.previousBackground();
-							detail.preventNavigation();
-							detail.stopPropagation();
-						} else if (detail.direction === 'right') {
-							topBackground.nextBackground();
-							detail.preventNavigation();
-							detail.stopPropagation();
-						}
-					}}
-					class={classNames(
-						'absolute inset-x-0 bottom-0 z-20 transition-opacity duration-500 flex flex-col justify-end bg-gradient-to-b from-transparent to-secondary-900',
-						{
-							'pointer-events-none': !$hasFocus,
-							'opacity-0': !$hasFocus || $userActivity
-						}
-					)}
-				>
-					<BackgroundCarousel
-						backgrounds={$topBackground.backgrounds}
-						focusIndex={$topBackground.index}
-						on:jumpTo={({ detail: index }) => {
-							topBackground.setIndex(index);
+				{:else}
+					<Container
+						on:back={() => unfocusGlobalBackground()}
+						on:wheel={(e) => e.stopPropagation()}
+						on:click={({ detail: e }) => e.stopPropagation()}
+						on:navigate={({ detail }) => {
+							if (detail.direction === 'left') {
+								topBackground.previousBackground();
+								detail.preventNavigation();
+								detail.stopPropagation();
+							} else if (detail.direction === 'right') {
+								topBackground.nextBackground();
+								detail.preventNavigation();
+								detail.stopPropagation();
+							}
 						}}
-					/>
-				</Container>
-				{#if PLATFORM_WEB}
-					<FloatingIconButton
-						class={classNames('absolute top-12 right-16 transition-opacity', {
-							'opacity-0': !$hasFocus || $userActivity
-						})}
-						on:click={() => unfocusGlobalBackground()}
+						class={classNames(
+							'absolute inset-x-0 bottom-0 z-20 transition-opacity duration-500 flex flex-col justify-end bg-gradient-to-b from-transparent to-secondary-900',
+							{
+								'pointer-events-none': !$hasFocus,
+								'opacity-0': !$hasFocus || $userActivity
+							}
+						)}
 					>
-						<Cross1 size={32} />
-					</FloatingIconButton>
+						<BackgroundCarousel
+							backgrounds={$topBackground.backgrounds}
+							focusIndex={$topBackground.index}
+							on:jumpTo={({ detail: index }) => {
+								topBackground.setIndex(index);
+							}}
+						/>
+					</Container>
+					{#if PLATFORM_WEB}
+						<FloatingIconButton
+							class={classNames('absolute top-12 right-16 transition-opacity', {
+								'opacity-0': !$hasFocus || $userActivity
+							})}
+							on:click={() => unfocusGlobalBackground()}
+						>
+							<Cross1 size={32} />
+						</FloatingIconButton>
+					{/if}
 				{/if}
-			{/if}
+			{/key}
 		</Container>
 		<!-- For willLeaveContainer -->
 		<Container />
