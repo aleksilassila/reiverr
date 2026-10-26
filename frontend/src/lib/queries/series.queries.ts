@@ -81,7 +81,10 @@ export const seriesQueries = {
 		})
 };
 
-/** The progress of playback: the user data of the series and the lists follow */
+/**
+ * The progress of playback: the user data of the series and the lists follow, and the usage,
+ * since a save past the end marks the episode watched
+ */
 export async function saveEpisodePlayState(
 	tmdbId: string,
 	season: number,
@@ -89,12 +92,20 @@ export async function saveEpisodePlayState(
 	playState: UpdatePlayStateDto
 ) {
 	await reiverrApi.users.updateEpisodePlayState(tmdbId, season, episode, playState);
-	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all);
+	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all, storageKeys.all);
 }
 
-/** The rule of the series follows the watched state, so its status changes with it */
+/**
+ * The rule of the series follows the watched state, so its status changes with it, and the usage
+ * when the rule deletes watched requests
+ */
 const seriesWatchedChanged = (tmdbId: string) =>
-	invalidate(seriesKeys.userData(tmdbId), seriesKeys.status(tmdbId), catalogKeys.all);
+	invalidate(
+		seriesKeys.userData(tmdbId),
+		seriesKeys.status(tmdbId),
+		catalogKeys.all,
+		storageKeys.all
+	);
 
 export async function setEpisodeWatched(
 	tmdbId: string,
@@ -131,7 +142,8 @@ export async function setSeriesRequests(
 
 export async function updateSeriesRequestRule(tmdbId: string, rule: RequestRuleDto) {
 	await reiverrApi.requests.updateSeriesRequestRule(tmdbId, rule);
-	await invalidate(seriesKeys.rule(tmdbId), seriesKeys.status(tmdbId));
+	// The usage lists the rule of the title, which may also delete watched requests
+	await invalidate(seriesKeys.rule(tmdbId), seriesKeys.status(tmdbId), storageKeys.all);
 }
 
 /** Selects a release or a file for the episode, or a season pack without an episode */
@@ -144,14 +156,15 @@ export async function setPreference(
 	await (episode === undefined
 		? reiverrApi.requests.setSeasonPreference(tmdbId, season, preference)
 		: reiverrApi.requests.setEpisodePreference(tmdbId, season, episode, preference));
-	await invalidate(seriesKeys.status(tmdbId));
+	// What the requests have and download, and so what they take, follows the source
+	await invalidate(seriesKeys.status(tmdbId), storageKeys.all);
 }
 
 export async function clearPreference(tmdbId: string, season: number, episode: number | undefined) {
 	await (episode === undefined
 		? reiverrApi.requests.clearSeasonPreference(tmdbId, season)
 		: reiverrApi.requests.clearEpisodePreference(tmdbId, season, episode));
-	await invalidate(seriesKeys.status(tmdbId));
+	await invalidate(seriesKeys.status(tmdbId), storageKeys.all);
 }
 
 export const episodeKey = (season: number, episode: number) => `${season}-${episode}`;

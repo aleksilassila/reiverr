@@ -65,16 +65,25 @@ export const movieQueries = {
 		})
 };
 
-/** The progress of playback: the user data of the movie and the lists follow */
+/**
+ * The progress of playback: the user data of the movie and the lists follow, and the usage,
+ * since a save past the end marks the movie watched
+ */
 export async function saveMoviePlayState(tmdbId: string, playState: UpdatePlayStateDto) {
 	await reiverrApi.users.updateMoviePlayState(tmdbId, playState);
-	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all);
+	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all, storageKeys.all);
 }
 
 export async function setMovieWatched(tmdbId: string, watched: boolean) {
 	await reiverrApi.users.updateMoviePlayState(tmdbId, { watched });
-	// The rule of the movie follows the watched state, so its status changes with it
-	await invalidate(movieKeys.userData(tmdbId), movieKeys.status(tmdbId), catalogKeys.all);
+	// The rule of the movie follows the watched state, so its status changes with it, and the
+	// usage when the rule deletes the watched request
+	await invalidate(
+		movieKeys.userData(tmdbId),
+		movieKeys.status(tmdbId),
+		catalogKeys.all,
+		storageKeys.all
+	);
 }
 
 export async function setMovieInMyList(tmdbId: string, inMyList: boolean) {
@@ -92,16 +101,18 @@ export async function setMovieRequested(tmdbId: string, requested: boolean) {
 
 export async function updateMovieRequestRule(tmdbId: string, rule: MovieRequestRuleDto) {
 	await reiverrApi.requests.updateMovieRequestRule(tmdbId, rule);
-	await invalidate(movieKeys.rule(tmdbId), movieKeys.status(tmdbId));
+	// The usage lists the rule of the title, which may also delete the watched request
+	await invalidate(movieKeys.rule(tmdbId), movieKeys.status(tmdbId), storageKeys.all);
 }
 
 /** Selects a release or a file for the movie */
 export async function setMoviePreference(tmdbId: string, preference: SetPreferenceDto) {
 	await reiverrApi.requests.setMoviePreference(tmdbId, preference);
-	await invalidate(movieKeys.status(tmdbId));
+	// What the request has and downloads, and so what it takes, follows the source
+	await invalidate(movieKeys.status(tmdbId), storageKeys.all);
 }
 
 export async function clearMoviePreference(tmdbId: string) {
 	await reiverrApi.requests.clearMoviePreference(tmdbId);
-	await invalidate(movieKeys.status(tmdbId));
+	await invalidate(movieKeys.status(tmdbId), storageKeys.all);
 }
