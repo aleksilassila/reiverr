@@ -3,7 +3,8 @@
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
 	import { navigate } from '../StackRouter/stack-router.store';
 	import HeroShowcase from './HeroShowcase.svelte';
-	import { tmdbApi } from '$lib/apis/tmdb/tmdb-api';
+	import { queryClient } from '$lib/queries/query-client';
+	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { Video } from 'radix-icons-svelte';
 
 	export let movies: Promise<TmdbMovie[]>;
@@ -11,7 +12,7 @@
 	$: items = movies
 		.then(async (movies) =>
 			movies.map(async (movie) => {
-				const movieFull = await tmdbApi.getTmdbMovie(movie.id ?? 0);
+				const movieFull = await queryClient.fetchQuery(tmdbQueries.movie(movie.id ?? 0));
 				const videoUrl = movieFull?.videos?.results?.find(
 					(video) => video.type === 'Trailer' && video.site === 'YouTube'
 				)?.key;

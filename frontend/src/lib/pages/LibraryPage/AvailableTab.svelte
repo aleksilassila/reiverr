@@ -4,17 +4,21 @@
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
-	import { LETTERS } from '$lib/utils';
+	import { LETTERS, type Letter } from '$lib/utils';
 	import TitleText from '$lib/components/TitleText.svelte';
-	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
-		availableContext,
+		catalogQueries,
+		mediaTypeOf,
+		type CatalogCategory,
 		type CatalogOrder,
 		type CatalogOrderDirection
-	} from '$lib/stores/data/library-data.store';
+	} from '$lib/queries/catalog.queries';
+	import { usePageInfiniteQuery } from '$lib/queries/page-query';
+	import { scrollIntoView, scrollToTop } from '$lib/selectable';
+	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
+	import { derived, writable } from 'svelte/store';
 	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
@@ -43,8 +47,51 @@
 
 	let didMount = false;
 
-	const { category, letter, viewSettings, requested, unrequested, unsubscribe } =
-		availableContext.createContext();
+	const category = writable<CatalogCategory>('all');
+	const letter = writable<Letter | null>(null);
+	const viewSettings = createLocalStorageStore<{
+		order: CatalogOrder;
+		direction: CatalogOrderDirection;
+		separateRequested: boolean;
+	}>('library-available-view-settings', {
+		order: 'date-added',
+		direction: 'desc',
+		separateRequested: true
+	});
+
+	const filters = derived(
+		[category, letter, viewSettings],
+		([$category, $letter, $viewSettings]) => ({
+			mediaType: mediaTypeOf($category),
+			letter: $letter ?? undefined,
+			order: $viewSettings.order,
+			direction: $viewSettings.direction
+		})
+	);
+
+	// Grouped, the first list is the requested titles and the second the rest; else the first is every title
+	const requested = usePageInfiniteQuery(
+		derived([filters, viewSettings], ([$filters, $viewSettings]) =>
+			catalogQueries.library({
+				...$filters,
+				...($viewSettings.separateRequested ? { status: 'requested' as const } : {})
+			})
+		)
+	);
+	const unrequested = usePageInfiniteQuery(
+		derived([filters, viewSettings], ([$filters, $viewSettings]) => ({
+			...catalogQueries.library({ ...$filters, status: 'unrequested' }),
+			enabled: $viewSettings.separateRequested
+		}))
+	);
+	const { loadMore: loadMoreRequested } = requested;
+	const { loadMore: loadMoreUnrequested } = unrequested;
+
+	$: requestedItems = $requested.data ?? [];
+	$: unrequestedItems = ($viewSettings.separateRequested && $unrequested.data) || [];
+	$: error = $requested.error ?? $unrequested.error;
+
+	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the category that is shown shows both again
 	function filter(selected: Category) {
@@ -72,13 +119,6 @@
 			separateRequested: !settings.separateRequested
 		}));
 	}
-
-	const { loading: loadingRequested, observer: requestedObserver } = requested;
-	const { loading: loadingUnrequested, observer: unrequestedObserver } = unrequested;
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
@@ -154,13 +194,13 @@
 				focusedChild
 				class="flex-1 flex flex-col"
 			>
-				{#if $requested.length}
+				{#if requestedItems.length}
 					<div class="my-6">
 						{#if $viewSettings.separateRequested}
 							<div class="px-32 mb-6 h3">Requested</div>
 						{/if}
 						<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-							{#each $requested as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each requestedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
@@ -170,14 +210,14 @@
 								/>
 							{/each}
 						</CardGrid>
-						<div use:requestedObserver />
+						<div use:loadMoreRequested />
 					</div>
 				{/if}
-				{#if $unrequested.length}
+				{#if unrequestedItems.length}
 					<div class="mt-6 px-32">
 						<div class="mb-6 h3">On disk</div>
 						<CardGrid let:columns>
-							{#each $unrequested as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each unrequestedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
@@ -187,22 +227,28 @@
 								/>
 							{/each}
 						</CardGrid>
-						<div use:unrequestedObserver />
+						<div use:loadMoreUnrequested />
 					</div>
 				{/if}
 
-				{#if ($loadingRequested || $loadingUnrequested) && !$requested.length && !$unrequested.length}
-					<Container class="h-ghost m-auto px-32">Loading...</Container>
-				{:else if !$requested.length && !$unrequested.length}
-					<Container focusOnMount class="h-ghost m-auto px-32">
-						{#if $letter}
-							Nothing on disk under {$letter}.
-						{:else if $category !== 'all'}
-							No {$category} on disk.
-						{:else}
-							Nothing on disk yet.
-						{/if}
-					</Container>
+				{#if !requestedItems.length && !unrequestedItems.length}
+					{#if $requested.isLoading || $unrequested.isLoading}
+						<Container class="h-ghost m-auto px-32">Loading...</Container>
+					{:else if error}
+						<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
+							{errorMessage(error)}
+						</Container>
+					{:else}
+						<Container focusOnMount class="h-ghost m-auto px-32">
+							{#if $letter}
+								Nothing on disk under {$letter}.
+							{:else if $category !== 'all'}
+								No {$category} on disk.
+							{:else}
+								Nothing on disk yet.
+							{/if}
+						</Container>
+					{/if}
 				{/if}
 			</Container>
 		</div>

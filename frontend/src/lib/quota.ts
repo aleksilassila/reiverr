@@ -1,7 +1,7 @@
-import { get } from 'svelte/store';
 import ConfirmDialog from './components/Dialog/ConfirmDialog.svelte';
 import { createModal } from './components/Modal/modal.store';
-import { reiverrApi, user } from './stores/user.store';
+import { queryClient } from './queries/query-client';
+import { storageQueries } from './queries/storage.queries';
 import { formatSize } from './utils';
 
 /**
@@ -23,9 +23,8 @@ export function expectedBytes(
 export async function confirmQuota(bytes: number): Promise<boolean> {
 	if (bytes <= 0) return true;
 
-	const usage = await reiverrApi.library
-		.getUserStorage(get(user)?.id as string)
-		.then((r) => r.data);
+	// Read again: the usage changes with every request and download
+	const usage = await queryClient.fetchQuery({ ...storageQueries.user(), staleTime: 0 });
 	const quota = usage.quotaBytes;
 	if (quota === null) return true;
 

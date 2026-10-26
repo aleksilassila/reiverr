@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import type { EpisodeUserData } from '$lib/stores/data/series-data.store';
+	import type { EpisodeUserData } from '$lib/queries/series.queries';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';
 	import {
-		tmdbApi,
 		type TmdbEpisode,
+		type TmdbSeason,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull
 	} from '../../../apis/tmdb/tmdb-api';
@@ -26,9 +26,7 @@
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 	// export let handleRequestSeason: (season: number) => Promise<any>;
-	export let tmdbSeasons = tmdbSeries.then((series) =>
-		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
-	);
+	export let tmdbSeasons: Promise<TmdbSeason[]>;
 
 	let seasonIndex = 0;
 

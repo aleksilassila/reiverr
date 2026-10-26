@@ -2,6 +2,7 @@ import { getTmdbApi, getTmdbApi4 } from '$lib/apis/tmdb/tmdb-api';
 import { tick } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import { getReiverrApi, type ReiverrUser } from '../apis/reiverr/reiverr-api';
+import { queryClient } from '../queries/query-client';
 import { type Session, sessions } from './session.store';
 
 export let reiverrApi: ReturnType<typeof getReiverrApi>;
@@ -24,6 +25,8 @@ function useUser() {
 			.catch((e) => ({ error: e, user: undefined }));
 
 		if (update) {
+			// The client of the user's TMDB account carries its session, which the update may change
+			tmdbApi4 = getTmdbApi4(update);
 			userStore.set(update);
 		}
 
@@ -46,6 +49,7 @@ function useUser() {
 
 		if (lastActiveSession === activeSession) {
 			reiverrApi = getReiverrApi();
+			queryClient.clear();
 			tmdbApi = getTmdbApi();
 			tmdbApi4 = getTmdbApi4(user);
 			userStore.set(user);
@@ -64,6 +68,9 @@ function useUser() {
 }
 
 export const user = useUser();
+
+/** The id of the user of the session, for the routes under their account; read by the queries, which run once there is one */
+export const getUserId = () => get(user)?.id as string;
 
 export const isAppInitialized = derived(user, ($user) => {
 	return $user !== undefined;

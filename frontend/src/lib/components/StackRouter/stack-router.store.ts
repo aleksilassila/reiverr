@@ -56,6 +56,8 @@ export interface CompStackPage extends CreateCompStackPage {
 export interface CompStackForPageContext extends Readonly<CompStackPage> {
 	readonly root: Readable<Selectable | undefined>;
 	readonly hasFocusWithin: Readable<boolean>;
+	/** Whether another route group covers the page; the queries of the page fetch while it does not */
+	readonly isHidden: Readable<boolean>;
 }
 
 class RouteGroup {

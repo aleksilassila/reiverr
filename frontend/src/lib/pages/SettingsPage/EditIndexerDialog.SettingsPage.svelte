@@ -1,17 +1,16 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import type { IndexerDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { updateIndexers } from '$lib/queries/downloads.queries';
 	import { Pencil1, Trash } from 'radix-icons-svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';
 	import { useComponentStack } from '../../components/StackRouter/stack-router.store';
 	import TextField from '../../components/TextField.svelte';
-	import { reiverrApi } from '../../stores/user.store';
 
 	export let indexers: IndexerDto[];
 	/** The indexer to edit; a new one is added without it */
 	export let indexer: IndexerDto | undefined = undefined;
-	export let onComplete: () => void = () => {};
 
 	const { close } = useComponentStack();
 
@@ -23,12 +22,8 @@
 	async function save(next: IndexerDto[]) {
 		error = '';
 
-		await reiverrApi.indexers
-			.updateIndexers({ indexers: next })
-			.then(() => {
-				onComplete();
-				close();
-			})
+		await updateIndexers(next)
+			.then(() => close())
 			.catch((e) => (error = e?.response?.data?.message ?? e?.message));
 	}
 

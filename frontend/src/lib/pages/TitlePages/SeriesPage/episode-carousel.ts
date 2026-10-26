@@ -1,8 +1,9 @@
+import type { TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
+import type { EpisodesData } from '$lib/queries/series.queries';
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
-import { useSeriesContext } from '$lib/stores/data/series-data.store';
 import { formatThousands, waitFor } from '$lib/utils';
-import { derived, writable, type Writable } from 'svelte/store';
+import { derived, writable, type Readable, type Writable } from 'svelte/store';
 import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 type SelectedEpisode = { episode: number; season: number } | undefined;
@@ -30,8 +31,11 @@ function useCardHover(selectedEpisode: Writable<SelectedEpisode>) {
 	};
 }
 
-export function useEpisodeCarousel(tmdbId: string) {
-	const { seriesData, episodesData } = useSeriesContext(tmdbId).getContext(true);
+export function useEpisodeCarousel(
+	tmdbId: string,
+	series: Readable<TmdbSeriesFull | undefined>,
+	episodesData: Readable<EpisodesData>
+) {
 	const selectedEpisode: Writable<SelectedEpisode> = writable(undefined);
 	const cardHover = useCardHover(selectedEpisode);
 
@@ -46,55 +50,52 @@ export function useEpisodeCarousel(tmdbId: string) {
 	// 		}))
 	// );
 
-	const selectedTmdbEpisode = derived(
-		[selectedEpisode, seriesData.data],
-		([selectedEpisode, series]) => {
-			const episode = series?.seasons
-				?.map((s) => s.episodes ?? [])
-				.flat()
-				.find(
-					(e) =>
-						e.season_number === selectedEpisode?.season &&
-						e.episode_number === selectedEpisode?.episode
-				);
+	const selectedTmdbEpisode = derived([selectedEpisode, series], ([selectedEpisode, series]) => {
+		const episode = series?.seasons
+			?.map((s) => s.episodes ?? [])
+			.flat()
+			.find(
+				(e) =>
+					e.season_number === selectedEpisode?.season &&
+					e.episode_number === selectedEpisode?.episode
+			);
 
-			if (!episode) return undefined;
+		if (!episode) return undefined;
 
-			const properties: TitleInfoProperty[] = [];
+		const properties: TitleInfoProperty[] = [];
 
-			if (episode.air_date) {
-				const date = new Date(episode.air_date);
-				const dateFormatted = date.toLocaleDateString('en-US', {
-					month: 'long',
-					day: 'numeric',
-					year: 'numeric'
-				});
+		if (episode.air_date) {
+			const date = new Date(episode.air_date);
+			const dateFormatted = date.toLocaleDateString('en-US', {
+				month: 'long',
+				day: 'numeric',
+				year: 'numeric'
+			});
 
-				properties.push({
-					label:
-						date.getTime() > Date.now() ? `Airs on ${dateFormatted}` : `Aired on ${dateFormatted}`
-				});
-			}
-
-			if (episode.runtime) {
-				properties.push({ label: `${episode.runtime} Minutes` });
-			}
-
-			if (episode?.vote_average) {
-				properties.push({
-					label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
-						episode.vote_count ?? 0
-					)})`,
-					href: `https://www.themoviedb.org/tv/${tmdbId}`
-				});
-			}
-
-			return {
-				...episode,
-				properties
-			};
+			properties.push({
+				label:
+					date.getTime() > Date.now() ? `Airs on ${dateFormatted}` : `Aired on ${dateFormatted}`
+			});
 		}
-	);
+
+		if (episode.runtime) {
+			properties.push({ label: `${episode.runtime} Minutes` });
+		}
+
+		if (episode?.vote_average) {
+			properties.push({
+				label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
+					episode.vote_count ?? 0
+				)})`,
+				href: `https://www.themoviedb.org/tv/${tmdbId}`
+			});
+		}
+
+		return {
+			...episode,
+			properties
+		};
+	});
 
 	// const unsubscribeNextEpisode = episodesData.subscribe(({ nextEpisode }) => {
 	// 	if (nextEpisode?.season) episodesRequest.requestUntil(nextEpisode.season);

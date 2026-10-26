@@ -1,10 +1,12 @@
 <script lang="ts">
 	import type { DirectoryListingDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { serverQueries } from '$lib/queries/server.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronRight, Link2 } from 'radix-icons-svelte';
-	import { reiverrApi } from '../../stores/user.store';
+	import { derived, writable } from 'svelte/store';
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import ListRow from '../ListRow.svelte';
@@ -23,29 +25,24 @@
 	/** Gets the picked folder. The picker closes when it resolves and shows what it rejects with */
 	export let onSelect: (path: string) => Promise<unknown>;
 
+	/** One level at a time: entering a folder loads what is in it */
+	const current = writable(path);
+	const directories = usePageQuery(
+		derived(current, ($current) => serverQueries.directories($current))
+	);
+
+	// The folder shown stays until the one entered is loaded, and when it cannot be
 	let listing: DirectoryListingDto | undefined = undefined;
-	let error = '';
-	let loads = 0;
+	let pickError = '';
+	$: if ($directories.data) listing = $directories.data;
+	$: error = ($directories.error && errorMessage($directories.error)) || pickError;
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
-	/** One level at a time: entering a folder loads what is in it */
-	async function load(next: string) {
-		const id = ++loads;
-		error = '';
-
-		const result = await reiverrApi.server
-			.getDirectories({ path: next })
-			.then((r) => r.data)
-			.catch((e) => errorMessage(e));
-		// Another folder was entered in the meantime
-		if (id !== loads) return;
-
-		if (typeof result === 'string') error = result;
-		else listing = result;
+	function load(next: string) {
+		pickError = '';
+		current.set(next);
 	}
-
-	load(path);
 
 	function goUp() {
 		if (listing?.parent) load(listing.parent);
@@ -60,7 +57,7 @@
 			confirm: () =>
 				onSelect(folder).then(
 					() => close(),
-					(e) => (error = errorMessage(e))
+					(e) => (pickError = errorMessage(e))
 				)
 		});
 	}

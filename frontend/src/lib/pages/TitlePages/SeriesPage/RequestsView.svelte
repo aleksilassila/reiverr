@@ -10,20 +10,24 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import {
+		episodeKey,
+		seriesQueries,
+		setSeriesRequests,
+		updateSeriesRequestRule
+	} from '$lib/queries/series.queries';
+	import { storageQueries } from '$lib/queries/storage.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
-	import { useData } from '$lib/stores/data/data.store';
-	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
-	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import SeasonItem from './SeasonItem.svelte';
 	import TorrentsView from './TorrentsView.svelte';
 
 	export let tmdbId: string;
 
+	/** Download progress and usage change without the user doing anything */
 	const REFRESH_INTERVAL = 5000;
 
 	type RuleField = {
@@ -73,35 +77,31 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const seriesData = useSeriesContext(tmdbId).getContext();
-	const requests = seriesData.requestsData?.data ?? readable(undefined);
-	const tmdbSeries = seriesData.seriesData?.data ?? readable(undefined);
-	const tmdbSeriesLoading = seriesData.seriesData?.isLoading ?? readable(false);
+	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
+	const status = usePageQuery({
+		...seriesQueries.status(tmdbId),
+		refetchInterval: REFRESH_INTERVAL
+	});
+	const rule = usePageQuery(seriesQueries.rule(tmdbId));
+	const storage = usePageQuery({ ...storageQueries.user(), refetchInterval: REFRESH_INTERVAL });
+	$: requests = $status.data;
+	$: ruleData = $rule.data;
+	$: usage = $storage.data;
 
 	const seasonItems: SeasonItem[] = [];
 	// The season of the focused row, highlighted in the quick navigation
 	let activeSeason: number | undefined = undefined;
-	$: seasons = $tmdbSeries?.seasons ?? [];
+	$: seasons = $tmdbSeries.data?.seasons ?? [];
 	$: selectedSeason = Math.max(
 		0,
 		seasons.findIndex((season) => season.season_number === activeSeason)
 	);
 
-	const rule = useData(() =>
-		reiverrApi.requests.getSeriesRequestRule($user?.id as string, tmdbId).then((r) => r.data)
-	);
-	const ruleData = rule.data;
-
-	const storage = useData(() =>
-		reiverrApi.library.getUserStorage($user?.id as string).then((r) => r.data)
-	);
-	const storageData = storage.data;
-
 	const getLabel = (field: RuleField, rule?: RequestRuleDto) =>
 		field.options.find((option) => option.value === (rule?.[field.key] ?? null))?.label ?? '';
 
 	function selectRuleOption(field: RuleField) {
-		const current = $ruleData;
+		const current = ruleData;
 		if (!current) return;
 
 		componentStack.push({
@@ -112,29 +112,26 @@
 				options: field.options.map((option) => option.label),
 				selectedOption: getLabel(field, current),
 				handleSelectOption: (label: string) =>
-					reiverrApi.requests
-						.updateSeriesRequestRule($user?.id as string, tmdbId, {
-							...current,
-							[field.key]: field.options.find((option) => option.label === label)?.value ?? null
-						})
-						.then(() => Promise.all([rule.update(), seriesData.requestsData?.update()]))
-						.catch((e) =>
-							createErrorNotification(
-								'Could not update the setting',
-								e?.response?.data?.message ?? e?.message
-							)
+					updateSeriesRequestRule(tmdbId, {
+						...current,
+						[field.key]: field.options.find((option) => option.label === label)?.value ?? null
+					}).catch((e) =>
+						createErrorNotification(
+							'Could not update the setting',
+							e?.response?.data?.message ?? e?.message
 						)
+					)
 			}
 		});
 	}
 
 	/** What a new request of the episode is expected to take from its source, if it has one */
 	function sourceBytes({ season, episode }: EpisodeRefDto): number {
-		const own = $requests?.preferences.get(episodeKey(season, episode));
+		const own = requests?.preferences.get(episodeKey(season, episode));
 		if (own?.torrent) return own.torrent.size;
 		if (own?.file) return own.file.size ?? 0;
 
-		const pack = $requests?.preferences.get(episodeKey(season, 0))?.torrent;
+		const pack = requests?.preferences.get(episodeKey(season, 0))?.torrent;
 		const episodesInSeason = seasons.find((s) => s.season_number === season)?.episodes?.length;
 		return pack ? expectedBytes(pack.size, false, episodesInSeason) : 0;
 	}
@@ -143,20 +140,12 @@
 		const bytes = !requested
 			? 0
 			: episodes
-					.filter((e) => !$requests?.episodes.get(episodeKey(e.season, e.episode))?.requested)
+					.filter((e) => !requests?.episodes.get(episodeKey(e.season, e.episode))?.requested)
 					.reduce((sum, e) => sum + sourceBytes(e), 0);
 		if (!(await confirmQuota(bytes))) return;
 
-		await seriesData.setRequested?.(episodes, requested);
-		await storage.update();
+		await setSeriesRequests(tmdbId, episodes, requested);
 	}
-
-	// Download progress and usage change without the user doing anything
-	const refresh = setInterval(() => {
-		seriesData.requestsData?.update();
-		storage.update();
-	}, REFRESH_INTERVAL);
-	onDestroy(() => clearInterval(refresh));
 </script>
 
 <div class="fixed inset-0 scale-110 z-[-1]">
@@ -197,14 +186,16 @@
 						overview=""
 						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
 					>
-						<span slot="title" class="block truncate leading-tight">{$tmdbSeries?.name ?? ''}</span>
+						<span slot="title" class="block truncate leading-tight">
+							{$tmdbSeries.data?.name ?? ''}
+						</span>
 					</HeroTitleInfo>
 				</div>
-				{#if $storageData && $storageData.quotaBytes !== null}
+				{#if usage && usage.quotaBytes !== null}
 					<StorageQuota
 						class="flex-shrink-0 ml-8"
-						quotaBytes={$storageData.quotaBytes}
-						usedBytes={$storageData.heldBytes + $storageData.pendingBytes}
+						quotaBytes={usage.quotaBytes}
+						usedBytes={usage.heldBytes + usage.pendingBytes}
 					/>
 				{/if}
 			</div>
@@ -213,8 +204,8 @@
 				{#each RULE_FIELDS as field (field.key)}
 					<SelectField
 						class="flex-1"
-						value={getLabel(field, $ruleData)}
-						disabled={!$ruleData}
+						value={getLabel(field, ruleData)}
+						disabled={!ruleData}
 						on:clickOrSelect={() => selectRuleOption(field)}
 						type="transparent"
 					>
@@ -240,7 +231,7 @@
 					bind:this={seasonItems[index]}
 					on:enter={() => (activeSeason = season.season_number)}
 					{season}
-					requests={$requests}
+					{requests}
 					on:request={({ detail }) =>
 						request(detail.episodes, detail.requested).catch((e) =>
 							createErrorNotification(
@@ -253,7 +244,7 @@
 				/>
 			{:else}
 				<div class="h-ghost m-auto">
-					{#if $tmdbSeriesLoading}
+					{#if $tmdbSeries.isPending}
 						Loading...
 					{:else}
 						Could not load series.

@@ -5,17 +5,21 @@
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
 	import Pill from '$lib/components/Pill.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
-	import { LETTERS } from '$lib/utils';
+	import { LETTERS, type Letter } from '$lib/utils';
 	import TitleText from '$lib/components/TitleText.svelte';
-	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import {
-		libraryContext,
+		catalogQueries,
+		mediaTypeOf,
+		type CatalogCategory,
 		type CatalogOrder,
 		type CatalogOrderDirection
-	} from '$lib/stores/data/library-data.store';
+	} from '$lib/queries/catalog.queries';
+	import { usePageInfiniteQuery } from '$lib/queries/page-query';
+	import { scrollIntoView, scrollToTop } from '$lib/selectable';
+	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
+	import { derived, writable } from 'svelte/store';
 	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
@@ -43,10 +47,64 @@
 	const { topVisible } = getScrollContext();
 
 	let didMount = false;
-	// let category: 'all' | 'series' | 'movies' = 'all';
 
-	const { category, letter, libraryViewSettings, upcoming, unwatched, watched, unsubscribe } =
-		libraryContext.createContext();
+	const category = writable<CatalogCategory>('all');
+	const letter = writable<Letter | null>(null);
+	const libraryViewSettings = createLocalStorageStore<{
+		order: CatalogOrder;
+		direction: CatalogOrderDirection;
+		separateWatched: boolean;
+	}>('library-view-settings', {
+		order: 'last-release-date',
+		direction: 'desc',
+		separateWatched: true
+	});
+
+	const filters = derived(
+		[category, letter, libraryViewSettings],
+		([$category, $letter, $libraryViewSettings]) => ({
+			mediaType: mediaTypeOf($category),
+			letter: $letter ?? undefined,
+			order: $libraryViewSettings.order,
+			direction: $libraryViewSettings.direction
+		})
+	);
+
+	const upcoming = usePageInfiniteQuery(
+		derived(letter, ($letter) =>
+			catalogQueries.myList({
+				mediaType: 'series',
+				letter: $letter ?? undefined,
+				order: 'last-played',
+				status: 'continue-watching'
+			})
+		)
+	);
+	const unwatched = usePageInfiniteQuery(
+		derived([filters, libraryViewSettings], ([$filters, $libraryViewSettings]) =>
+			catalogQueries.myList({
+				...$filters,
+				...($libraryViewSettings.separateWatched ? { status: 'unwatched' as const } : {})
+			})
+		)
+	);
+	// Without grouping, the watched titles are in the list above
+	const watched = usePageInfiniteQuery(
+		derived([filters, libraryViewSettings], ([$filters, $libraryViewSettings]) => ({
+			...catalogQueries.myList({ ...$filters, status: 'watched' }),
+			enabled: $libraryViewSettings.separateWatched
+		}))
+	);
+	const { loadMore: loadMoreUpcoming } = upcoming;
+	const { loadMore: loadMoreUnwatched } = unwatched;
+	const { loadMore: loadMoreWatched } = watched;
+
+	$: upcomingItems = $upcoming.data ?? [];
+	$: unwatchedItems = $unwatched.data ?? [];
+	$: watchedItems = ($libraryViewSettings.separateWatched && $watched.data) || [];
+	$: error = $upcoming.error ?? $unwatched.error ?? $watched.error;
+
+	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the category that is shown shows both again
 	function filter(selected: Category) {
@@ -74,93 +132,6 @@
 			separateWatched: !settings.separateWatched
 		}));
 	}
-
-	const { loading: loadingUpcoming, observer: upcomingObserver } = upcoming;
-	const { loading: loadingWatched, observer: watchedObserver } = watched;
-	const { loading: loadingUnwatched, observer: interactionObserver } = unwatched;
-
-	// const {
-	// 	data: upcoming,
-	// 	interactionObserver: upcomingObserver,
-	// 	load: loadUpcoming,
-	// 	isLoading: loadingUpcoming
-	// } = usePaginatedRequest(
-	// 	async (page) => {
-	// 		if (!$user?.id || !$libraryViewSettings.separateWatched) {
-	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-	// 		}
-
-	// 		return reiverrApi.myList
-	// 			.getMyList($user.id, {
-	// 				status: 'upcoming',
-	// 				type: category,
-	// 				order: $libraryViewSettings.order,
-	// 				direction: $libraryViewSettings.direction,
-	// 				page
-	// 			})
-	// 			.then((i) => i.data);
-	// 	},
-	// 	{
-	// 		loadOnInit: false,
-	// 		refresher: libraryRefresher
-	// 	}
-	// );
-
-	// const {
-	// 	data: watched,
-	// 	interactionObserver: watchedObserver,
-	// 	load: loadWatched,
-	// 	isLoading: loadingWatched
-	// } = usePaginatedRequest(
-	// 	async (page) => {
-	// 		if (!$user?.id || !$libraryViewSettings.separateWatched) {
-	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-	// 		}
-
-	// 		return reiverrApi.myList
-	// 			.getMyList($user.id, {
-	// 				status: 'watched',
-	// 				type: category,
-	// 				order: $libraryViewSettings.order,
-	// 				direction: $libraryViewSettings.direction,
-	// 				page
-	// 			})
-	// 			.then((i) => i.data);
-	// 	},
-	// 	{ loadOnInit: false, refresher: libraryRefresher }
-	// );
-
-	// const { interactionObserver, data, load, isLoading } = usePaginatedRequest(
-	// 	async (page) => {
-	// 		if (!$user?.id) {
-	// 			return { items: [], total: 0, itemsPerPage: 0, page: 0 };
-	// 		}
-
-	// 		return reiverrApi.myList
-	// 			.getMyList($user.id, {
-	// 				type: category,
-	// 				order: $libraryViewSettings.order,
-	// 				direction: $libraryViewSettings.direction,
-	// 				...($libraryViewSettings.separateWatched ? { status: 'unwatched' } : {}),
-	// 				page
-	// 			})
-	// 			.then((i) => i.data);
-	// 	},
-	// 	{ loadOnInit: false, refresher: libraryRefresher }
-	// );
-
-	// $: {
-	// 	$libraryViewSettings;
-	// 	category;
-	// 	$user;
-	// 	load({ lazy: true });
-	// 	loadUpcoming({ lazy: true });
-	// 	loadWatched({ lazy: true });
-	// }
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
@@ -237,14 +208,14 @@
 				focusedChild
 				class="flex-1 flex flex-col"
 			>
-				{#if $upcoming.length}
+				{#if upcomingItems.length}
 					<div class="mt-6">
 						<Carousel
 							header="Upcoming"
 							scrollClass="px-32"
 							on:enter={scrollIntoView({ bottom: 0 })}
 						>
-							{#each $upcoming as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each upcomingItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									on:enter={scrollIntoView({ horizontal: 128 })}
@@ -253,17 +224,17 @@
 									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
 								/>
 							{/each}
-							<div use:upcomingObserver />
+							<div use:loadMoreUpcoming />
 						</Carousel>
 					</div>
 				{/if}
-				{#if $unwatched.length}
+				{#if unwatchedItems.length}
 					<div class="my-6">
 						{#if $libraryViewSettings.separateWatched}
 							<div class="px-32 mb-6 h3">Unwatched</div>
 						{/if}
 						<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-							{#each $unwatched as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each unwatchedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
@@ -273,14 +244,14 @@
 								/>
 							{/each}
 						</CardGrid>
-						<div use:interactionObserver />
+						<div use:loadMoreUnwatched />
 					</div>
 				{/if}
-				{#if $watched.length}
+				{#if watchedItems.length}
 					<div class="mt-6 px-32">
 						<div class="mb-6 h3">Watched</div>
 						<CardGrid let:columns>
-							{#each $watched as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each watchedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
@@ -290,35 +261,29 @@
 								/>
 							{/each}
 						</CardGrid>
-						<div use:watchedObserver />
+						<div use:loadMoreWatched />
 					</div>
 				{/if}
 
-				{#if ($loadingUnwatched || $loadingUpcoming || $loadingWatched) && !$upcoming.length && !$unwatched.length && !$watched.length}
-					<Container class="h-ghost m-auto px-32">Loading...</Container>
-				{:else if !$upcoming.length && !$unwatched.length && !$watched.length}
-					<Container focusOnMount class="h-ghost m-auto px-32">
-						{#if $letter}
-							Nothing in your list under {$letter}.
-						{:else if $category !== 'all'}
-							No {$category} in your list.
-						{:else}
-							Add content to your list to see it here.
-						{/if}
-					</Container>
-				{/if}
-
-				<!-- {#await Promise.all([upcoming, items, watched]) then [upcoming, items, watched]}
-					{#if !upcoming.length && !items.length && !watched.length}
+				{#if !upcomingItems.length && !unwatchedItems.length && !watchedItems.length}
+					{#if $upcoming.isLoading || $unwatched.isLoading || $watched.isLoading}
+						<Container class="h-ghost m-auto px-32">Loading...</Container>
+					{:else if error}
+						<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
+							{errorMessage(error)}
+						</Container>
+					{:else}
 						<Container focusOnMount class="h-ghost m-auto px-32">
-							Add content to your list to see it here.
+							{#if $letter}
+								Nothing in your list under {$letter}.
+							{:else if $category !== 'all'}
+								No {$category} in your list.
+							{:else}
+								Add content to your list to see it here.
+							{/if}
 						</Container>
 					{/if}
-				{:catch error}
-					<Container class="h-ghost m-auto px-32">
-						<div class="text-red-500">Error loading data: {error.message}</div>
-					</Container>
-				{/await} -->
+				{/if}
 			</Container>
 		</div>
 	</Container>

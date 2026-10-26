@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getEpisodeRequestStatus, type SeriesRequests } from '$lib/stores/data/series-data.store';
+	import { getEpisodeRequestStatus, type SeriesRequests } from '$lib/queries/series.queries';
 	import RequestRow from './RequestRow.svelte';
 
 	export let seasonNumber: number;

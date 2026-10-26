@@ -1,10 +1,11 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
+	import type { SeasonEpisodeDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
-	import { useEpisodeContext } from '$lib/stores/data/episode-data.store';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { seriesQueries, setEpisodeWatched } from '$lib/queries/series.queries';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
@@ -15,33 +16,43 @@
 	export let season: string;
 	export let episode: string;
 
+	const seasonNumber = Number(season);
+	const episodeNumber = Number(episode);
+
 	const background = backgroundContext.createContext({ videoMediaId: id });
+	const tmdbSeries = usePageQuery(seriesQueries.metadata(id));
+	const userData = usePageQuery(seriesQueries.userData(id));
 
-	const { episodeData, progress, isWatched, setIsWatched, setStale, unsubscribe } =
-		useEpisodeContext(id, Number(season), Number(episode)).createContext();
+	$: tmdbEpisode = $tmdbSeries.data?.seasons
+		?.map((s) => s.episodes ?? [])
+		.flat()
+		.find((e) => e.season_number === seasonNumber && e.episode_number === episodeNumber);
+	$: playState = $userData.data?.playStates.find(
+		(p) => p.season === seasonNumber && p.episode === episodeNumber
+	);
+	$: isWatched = playState?.watched ?? false;
+	$: progress = playState?.progress ?? 0;
 
-	let titleProperties: { href?: string; label: string }[] = [];
-	$episodeData.then((episode) => {
-		background?.setBackgrounds([
-			{
-				backdropUri: `${episode?.still_path}`
-			}
-		]);
+	$: if (tmdbEpisode) background.setBackgrounds([{ backdropUri: `${tmdbEpisode.still_path}` }]);
+	$: titleProperties = tmdbEpisode ? getTitleProperties(tmdbEpisode) : [];
 
-		if (episode?.vote_average) {
-			titleProperties.push({
+	function getTitleProperties(episode: SeasonEpisodeDto) {
+		const properties: { href?: string; label: string }[] = [];
+
+		if (episode.vote_average) {
+			properties.push({
 				label: `${episode.vote_average.toFixed(1)} TMDB (${formatThousands(
 					episode.vote_count ?? 0
 				)})`,
-				href: `https://www.themoviedb.org/tv/${id}/season/${season}/episode/${episode}`
+				href: `https://www.themoviedb.org/tv/${id}/season/${season}/episode/${episodeNumber}`
 			});
 		}
-		if (episode?.runtime) {
-			titleProperties.push({ label: `${episode.runtime} Minutes` });
+		if (episode.runtime) {
+			properties.push({ label: `${episode.runtime} Minutes` });
 		}
 
-		if (episode?.air_date) {
-			titleProperties.push({
+		if (episode.air_date) {
+			properties.push({
 				label: `Aired on ${new Date(episode.air_date).toLocaleDateString('en-US', {
 					year: 'numeric',
 					month: 'long',
@@ -49,29 +60,23 @@
 				})}`
 			});
 		}
-	});
 
-	async function play() {
-		const data = await $episodeData;
-
-		return playEpisode({
-			tmdbId: id,
-			season: Number(season),
-			episode: Number(episode),
-			title: data?.name ?? '',
-			subtitle: `Season ${season} Episode ${episode}`,
-			progress: $progress,
-			playMedia: background.playMedia,
-			onProgressSaved: setStale
-		});
+		return properties;
 	}
 
-	onDestroy(() => {
-		unsubscribe();
-	});
+	const play = () =>
+		playEpisode({
+			tmdbId: id,
+			season: seasonNumber,
+			episode: episodeNumber,
+			title: tmdbEpisode?.name ?? '',
+			subtitle: `Season ${season} Episode ${episode}`,
+			progress,
+			playMedia: background.playMedia
+		});
 </script>
 
-{#await $episodeData then tmdbEpisode}
+{#if tmdbEpisode}
 	<!-- <div class="absolute inset-0 flex flex-col -z-10">
 		<div class="h-screen bg-gradient-to-b from-transparent to-secondary-900" />
 		<div class="flex-1 bg-secondary-500" />
@@ -82,12 +87,12 @@
 			<!-- <div class="mt-2 text-zinc-200 font-medium text-lg tracking-wider">
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
 			</div> -->
-			<TitleProperties properties={titleProperties} overview={tmdbEpisode?.overview ?? ''}>
+			<TitleProperties properties={titleProperties} overview={tmdbEpisode.overview ?? ''}>
 				<span slot="title">
 					<span class="text-secondary-400">
-						{`S${tmdbEpisode?.season_number}E${tmdbEpisode?.episode_number}`}
+						{`S${tmdbEpisode.season_number}E${tmdbEpisode.episode_number}`}
 					</span>
-					{tmdbEpisode?.name ?? ''}
+					{tmdbEpisode.name ?? ''}
 				</span>
 			</TitleProperties>
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
@@ -96,12 +101,20 @@
 					<Play size={19} slot="icon" />
 				</Button>
 
-				{#if $isWatched}
-					<Button on:clickOrSelect={() => setIsWatched(false)} icon={Check}>
+				{#if isWatched}
+					<Button
+						action={() => setEpisodeWatched(id, seasonNumber, episodeNumber, false)}
+						icon={Check}
+					>
 						Mark as Unwatched
 					</Button>
 				{:else}
-					<Button on:clickOrSelect={() => setIsWatched(true)} icon={Check}>Mark as Watched</Button>
+					<Button
+						action={() => setEpisodeWatched(id, seasonNumber, episodeNumber, true)}
+						icon={Check}
+					>
+						Mark as Watched
+					</Button>
 				{/if}
 
 				{#if PLATFORM_WEB}
@@ -113,4 +126,4 @@
 			</Container>
 		</HeroCarousel>
 	</Container>
-{/await}
+{/if}

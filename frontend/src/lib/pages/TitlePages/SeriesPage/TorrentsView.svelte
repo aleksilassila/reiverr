@@ -6,14 +6,18 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import {
+		clearPreference,
+		episodeKey,
+		seriesQueries,
+		setPreference
+	} from '$lib/queries/series.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
-	import { episodeKey, useSeriesContext } from '$lib/stores/data/series-data.store';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Check, Cross1, Cross2 } from 'radix-icons-svelte';
-	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let tmdbId: string;
@@ -24,24 +28,27 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const seriesData = useSeriesContext(tmdbId).getContext();
-	const requests = seriesData.requestsData?.data ?? readable(undefined);
-	const tmdbSeries = seriesData.seriesData?.data ?? readable(undefined);
+	const status = usePageQuery(seriesQueries.status(tmdbId));
+	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
+	const releases = usePageQuery(seriesQueries.releases(tmdbId, season, episode));
+	// The files of the episode in the library, external or imported, which a request can have instead
+	const files = usePageQuery(seriesQueries.episodeFiles(tmdbId, season, episode));
+	$: requests = $status.data;
 
-	$: selection = $requests?.preferences.get(episodeKey(season, episode ?? 0));
+	$: selection = requests?.preferences.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
 	$: seasonPack =
-		episode === undefined ? undefined : $requests?.preferences.get(episodeKey(season, 0));
+		episode === undefined ? undefined : requests?.preferences.get(episodeKey(season, 0));
 	// A request that has its file keeps it when another torrent is selected for the season
-	$: kept = [...($requests?.episodes.values() ?? [])].filter(
+	$: kept = [...(requests?.episodes.values() ?? [])].filter(
 		(e) =>
 			e.season === season &&
 			(episode === undefined || e.episode === episode) &&
 			e.status === 'available' &&
 			e.torrent?.infoHash !==
 				(
-					$requests?.preferences.get(episodeKey(e.season, e.episode)) ??
-					$requests?.preferences.get(episodeKey(e.season, 0))
+					requests?.preferences.get(episodeKey(e.season, e.episode)) ??
+					requests?.preferences.get(episodeKey(e.season, 0))
 				)?.torrent?.infoHash
 	);
 	$: keptHint = !kept.length
@@ -53,21 +60,8 @@
 				: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
-	const releases: Promise<ReleaseDto[]> = reiverrApi.indexers
-		.searchSeriesReleases(tmdbId, { season, episode })
-		.then((r) => r.data);
-	// The files of the episode in the library, external or imported, which a request can have instead
-	const files: Promise<LibraryEpisodeFileDto[]> =
-		episode === undefined
-			? Promise.resolve([])
-			: reiverrApi.library
-					.getEpisodeFiles(tmdbId, season, episode)
-					.then((r) => r.data)
-					.catch(() => []);
-	let fileList: LibraryEpisodeFileDto[] = [];
-	let releaseList: ReleaseDto[] = [];
-	files.then((f) => (fileList = f));
-	releases.then((r) => (releaseList = r)).catch(() => {});
+	$: fileList = $files.data ?? [];
+	$: releaseList = $releases.data ?? [];
 
 	$: hasFiles = fileList.length > 0;
 	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
@@ -95,15 +89,15 @@
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** The requests that would download from the release: the episode's, or those of the season without a torrent of their own that do not keep their file */
-	$: affected = [...($requests?.episodes.values() ?? [])].filter(
+	$: affected = [...(requests?.episodes.values() ?? [])].filter(
 		(e) =>
 			e.requested &&
 			e.season === season &&
 			(episode === undefined
-				? !$requests?.preferences.has(episodeKey(e.season, e.episode)) && e.status !== 'available'
+				? !requests?.preferences.has(episodeKey(e.season, e.episode)) && e.status !== 'available'
 				: e.episode === episode)
 	);
-	$: episodesInSeason = $tmdbSeries?.seasons?.find((s) => s.season_number === season)?.episodes
+	$: episodesInSeason = $tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes
 		?.length;
 
 	async function select(release: ReleaseDto) {
@@ -114,15 +108,8 @@
 				affected.length * expectedBytes(release.size, episode !== undefined, episodesInSeason);
 			if (!(await confirmQuota(bytes))) return;
 
-			await (episode === undefined
-				? reiverrApi.requests.setSeasonPreference($user?.id as string, tmdbId, season, {
-						releaseId: release.id
-					})
-				: reiverrApi.requests.setEpisodePreference($user?.id as string, tmdbId, season, episode, {
-						releaseId: release.id
-					}));
+			await setPreference(tmdbId, season, episode, { releaseId: release.id });
 			componentStack.close();
-			seriesData.requestsData?.update();
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -134,15 +121,8 @@
 		try {
 			if (!(await confirmQuota(affected.length * file.size))) return;
 
-			await reiverrApi.requests.setEpisodePreference(
-				$user?.id as string,
-				tmdbId,
-				season,
-				episode as number,
-				{ mediaFileId: file.id }
-			);
+			await setPreference(tmdbId, season, episode, { mediaFileId: file.id });
 			componentStack.close();
-			seriesData.requestsData?.update();
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -151,15 +131,8 @@
 	async function clear() {
 		error = '';
 
-		await (
-			episode === undefined
-				? reiverrApi.requests.clearSeasonPreference($user?.id as string, tmdbId, season)
-				: reiverrApi.requests.clearEpisodePreference($user?.id as string, tmdbId, season, episode)
-		)
-			.then(() => {
-				componentStack.close();
-				seriesData.requestsData?.update();
-			})
+		await clearPreference(tmdbId, season, episode)
+			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}
 </script>
@@ -250,45 +223,45 @@
 				</ListRow>
 			</div>
 		{/if}
-		{#await files then}
-			{#if otherFiles.length}
-				<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
-				<div class="space-y-4">
-					{#each otherFiles as file, index (file.id)}
-						<ListRow
-							on:enter={scrollIntoView({ vertical: 96 })}
-							on:clickOrSelect={() => selectFile(file)}
-							focusOnMount={index === 0 && !selection}
-							let:hasFocus
-						>
-							<div class="flex-1 min-w-0">
-								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
-								<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
-							</div>
-							<div class="flex-shrink-0 ml-4 text-lg font-medium">
-								<span
-									class={classNames(
-										'items-center text-primary-500 group-hover:flex',
-										hasFocus ? 'flex' : 'hidden'
-									)}
-								>
-									Select
-								</span>
-							</div>
-						</ListRow>
-					{/each}
-				</div>
-			{/if}
-		{/await}
+		{#if otherFiles.length}
+			<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
+			<div class="space-y-4">
+				{#each otherFiles as file, index (file.id)}
+					<ListRow
+						on:enter={scrollIntoView({ vertical: 96 })}
+						on:clickOrSelect={() => selectFile(file)}
+						focusOnMount={index === 0 && !selection}
+						let:hasFocus
+					>
+						<div class="flex-1 min-w-0">
+							<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
+							<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
+						</div>
+						<div class="flex-shrink-0 ml-4 text-lg font-medium">
+							<span
+								class={classNames(
+									'items-center text-primary-500 group-hover:flex',
+									hasFocus ? 'flex' : 'hidden'
+								)}
+							>
+								Select
+							</span>
+						</div>
+					</ListRow>
+				{/each}
+			</div>
+		{/if}
 		{#if selection || otherFiles.length}
 			<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 		{/if}
-		{#await releases}
+		{#if $releases.isPending}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
-		{:then}
+		{:else if $releases.error}
+			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage($releases.error)}</div>
+		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}
-					{@const onServer = !!release.infoHash && !!$requests?.onServer.has(release.infoHash)}
+					{@const onServer = !!release.infoHash && !!requests?.onServer.has(release.infoHash)}
 					<ListRow
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
@@ -330,8 +303,6 @@
 						: 'No torrents found for this episode.'}
 				</div>
 			{/if}
-		{:catch e}
-			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(e)}</div>
-		{/await}
+		{/if}
 	</div>
 </Container>

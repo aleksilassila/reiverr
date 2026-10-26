@@ -3,14 +3,14 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView } from '$lib/selectable';
-	import type { EpisodeUserData } from '$lib/stores/data/series-data.store';
+	import type { EpisodeUserData } from '$lib/queries/series.queries';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import {
-		tmdbApi,
 		type TmdbEpisode,
+		type TmdbSeason,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull
 	} from '../../../apis/tmdb/tmdb-api';
@@ -19,16 +19,13 @@
 
 	const { topVisible } = getScrollContext();
 
-	export let tmdbId: number;
 	export let tmdbSeries: Promise<TmdbSeriesFull | undefined>;
 	export let nextEpisode: Readable<EpisodeUserData>;
 	export let episodesUserData: EpisodeUserData[];
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
 	// export let handleRequestSeason: (season: number) => Promise<any>;
-	export let tmdbSeasons = tmdbSeries.then((series) =>
-		tmdbApi.getTmdbSeriesSeasons(tmdbId, series?.seasons?.length ?? 1)
-	);
+	export let tmdbSeasons: Promise<TmdbSeason[]>;
 	export let onSelectEpisode: (season: number, episode: number) => void;
 	export let selectedEpisode: Writable<TmdbSeasonEpisode | undefined>;
 

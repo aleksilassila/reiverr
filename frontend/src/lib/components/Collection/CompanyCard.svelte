@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
-	import { tmdbApi } from '$lib/stores/user.store';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import classNames from 'classnames';
 	import Card from '../Card/Card.svelte';
 	import { navigate } from '../StackRouter/stack-router.store';
@@ -8,10 +9,9 @@
 
 	export let company: Company;
 
-	let backdropUrl: string | undefined;
-	$: tmdbApi.v3.companyDetails(company.id).then((r) => {
-		backdropUrl = r.data.logo_path ? `${TMDB_IMAGES_ORIGINAL}${r.data.logo_path}` : undefined;
-	});
+	const details = usePageQuery(tmdbQueries.company(company.id));
+	$: logoPath = $details.data?.logo_path;
+	$: backdropUrl = logoPath ? `${TMDB_IMAGES_ORIGINAL}${logoPath}` : undefined;
 </script>
 
 <Card

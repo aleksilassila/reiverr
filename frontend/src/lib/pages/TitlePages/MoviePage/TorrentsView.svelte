@@ -6,14 +6,17 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import {
+		clearMoviePreference,
+		movieQueries,
+		setMoviePreference
+	} from '$lib/queries/movie.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
 	import { confirmQuota } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
-	import { useMovieContext } from '$lib/stores/data/movie-data.store';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Check, Cross1, Cross2 } from 'radix-icons-svelte';
-	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 
 	export let tmdbId: string;
@@ -21,32 +24,25 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const movieData = useMovieContext(tmdbId).getContext();
-	const status = movieData.statusData?.data ?? readable(undefined);
+	const statusQuery = usePageQuery(movieQueries.status(tmdbId));
+	const releases = usePageQuery(movieQueries.releases(tmdbId));
+	// The files of the movie in the library, external or imported, which the request can have instead
+	const files = usePageQuery(movieQueries.files(tmdbId));
+	$: status = $statusQuery.data;
 
-	$: selection = $status?.preference;
+	$: selection = status?.preference;
 	// A torrent picked for the movie replaces the file the request has
 	$: kept =
-		$status?.status === 'available' && $status.torrent?.infoHash !== selection?.torrent?.infoHash;
+		status?.status === 'available' && status.torrent?.infoHash !== selection?.torrent?.infoHash;
 	$: keptHint = !kept
 		? ''
-		: $status?.torrent
-			? `On disk from: ${$status.torrent.title}. Select a torrent or a file to replace it.`
+		: status?.torrent
+			? `On disk from: ${status.torrent.title}. Select a torrent or a file to replace it.`
 			: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
-	const releases: Promise<ReleaseDto[]> = reiverrApi.indexers
-		.searchMovieReleases(tmdbId)
-		.then((r) => r.data);
-	// The files of the movie in the library, external or imported, which the request can have instead
-	const files: Promise<LibraryFileDto[]> = reiverrApi.library
-		.getMovieFiles(tmdbId)
-		.then((r) => r.data)
-		.catch(() => []);
-	let fileList: LibraryFileDto[] = [];
-	let releaseList: ReleaseDto[] = [];
-	files.then((f) => (fileList = f));
-	releases.then((r) => (releaseList = r)).catch(() => {});
+	$: fileList = $files.data ?? [];
+	$: releaseList = $releases.data ?? [];
 
 	$: hasFiles = fileList.length > 0;
 	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
@@ -74,7 +70,7 @@
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** Whether the request downloads from the release: there is one, and a new torrent replaces its file */
-	$: affected = $status?.requested ? 1 : 0;
+	$: affected = status?.requested ? 1 : 0;
 
 	async function select(release: ReleaseDto) {
 		error = '';
@@ -82,11 +78,8 @@
 		try {
 			if (!(await confirmQuota(affected * release.size))) return;
 
-			await reiverrApi.requests.setMoviePreference($user?.id as string, tmdbId, {
-				releaseId: release.id
-			});
+			await setMoviePreference(tmdbId, { releaseId: release.id });
 			componentStack.close();
-			movieData.statusData?.update();
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -98,11 +91,8 @@
 		try {
 			if (!(await confirmQuota(affected * file.size))) return;
 
-			await reiverrApi.requests.setMoviePreference($user?.id as string, tmdbId, {
-				mediaFileId: file.id
-			});
+			await setMoviePreference(tmdbId, { mediaFileId: file.id });
 			componentStack.close();
-			movieData.statusData?.update();
 		} catch (e) {
 			error = errorMessage(e);
 		}
@@ -111,12 +101,8 @@
 	async function clear() {
 		error = '';
 
-		await reiverrApi.requests
-			.clearMoviePreference($user?.id as string, tmdbId)
-			.then(() => {
-				componentStack.close();
-				movieData.statusData?.update();
-			})
+		await clearMoviePreference(tmdbId)
+			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}
 </script>
@@ -198,45 +184,45 @@
 				</ListRow>
 			</div>
 		{/if}
-		{#await files then}
-			{#if otherFiles.length}
-				<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
-				<div class="space-y-4">
-					{#each otherFiles as file, index (file.id)}
-						<ListRow
-							on:enter={scrollIntoView({ vertical: 96 })}
-							on:clickOrSelect={() => selectFile(file)}
-							focusOnMount={index === 0 && !selection}
-							let:hasFocus
-						>
-							<div class="flex-1 min-w-0">
-								<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
-								<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
-							</div>
-							<div class="flex-shrink-0 ml-4 text-lg font-medium">
-								<span
-									class={classNames(
-										'items-center text-primary-500 group-hover:flex',
-										hasFocus ? 'flex' : 'hidden'
-									)}
-								>
-									Select
-								</span>
-							</div>
-						</ListRow>
-					{/each}
-				</div>
-			{/if}
-		{/await}
+		{#if otherFiles.length}
+			<div class="text-lg font-semibold text-secondary-400 mb-4">On disk</div>
+			<div class="space-y-4">
+				{#each otherFiles as file, index (file.id)}
+					<ListRow
+						on:enter={scrollIntoView({ vertical: 96 })}
+						on:clickOrSelect={() => selectFile(file)}
+						focusOnMount={index === 0 && !selection}
+						let:hasFocus
+					>
+						<div class="flex-1 min-w-0">
+							<div class="text-2xl font-semibold line-clamp-1">{file.fileName}</div>
+							<div class="text-lg font-medium text-secondary-400 mt-1">{fileDetails(file)}</div>
+						</div>
+						<div class="flex-shrink-0 ml-4 text-lg font-medium">
+							<span
+								class={classNames(
+									'items-center text-primary-500 group-hover:flex',
+									hasFocus ? 'flex' : 'hidden'
+								)}
+							>
+								Select
+							</span>
+						</div>
+					</ListRow>
+				{/each}
+			</div>
+		{/if}
 		{#if selection || otherFiles.length}
 			<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 		{/if}
-		{#await releases}
+		{#if $releases.isPending}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
-		{:then}
+		{:else if $releases.error}
+			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage($releases.error)}</div>
+		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}
-					{@const onServer = !!release.infoHash && !!$status?.onServer.includes(release.infoHash)}
+					{@const onServer = !!release.infoHash && !!status?.onServer.includes(release.infoHash)}
 					<ListRow
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
@@ -276,8 +262,6 @@
 					No torrents found for this movie.
 				</div>
 			{/if}
-		{:catch e}
-			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(e)}</div>
-		{/await}
+		{/if}
 	</div>
 </Container>

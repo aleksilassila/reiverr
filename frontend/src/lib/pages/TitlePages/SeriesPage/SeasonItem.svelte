@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { EpisodeRefDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbSeason } from '$lib/apis/tmdb/tmdb-api';
-	import { episodeKey, type SeriesRequests } from '$lib/stores/data/series-data.store';
+	import { episodeKey, type SeriesRequests } from '$lib/queries/series.queries';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';

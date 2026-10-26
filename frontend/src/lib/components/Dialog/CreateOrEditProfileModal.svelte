@@ -3,8 +3,9 @@
 	import { get } from 'svelte/store';
 	import { type ReiverrUser } from '../../apis/reiverr/reiverr-api';
 	import { getRandomProfilePicture, profilePictures } from '../../profile-pictures';
+	import { createUser, deleteUser, updateUser } from '../../queries/users.queries';
 	import { sessions } from '../../stores/session.store';
-	import { reiverrApi, user as userStore } from '../../stores/user.store';
+	import { user as userStore } from '../../stores/user.store';
 	import { GIGABYTE } from '../../utils';
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
@@ -29,7 +30,6 @@
 	const { close, push } = useComponentStack();
 
 	export let user: ReiverrUser | undefined = undefined;
-	export let onComplete: () => void = () => {};
 	export let createNew = false;
 	export let admin = createNew;
 
@@ -100,6 +100,9 @@
 	$: complete = name !== '';
 	let errorMessage = '';
 
+	const messageOf = (e: AxiosError<any>): string =>
+		e.response?.data?.message ?? e.message ?? String(e);
+
 	function setProfilePicture(image: string) {
 		profilePictureBase64 = image;
 		tab.set(Tabs.EditProfile);
@@ -111,64 +114,47 @@
 		if (!id) return;
 
 		const quotaBytes = quota === '' ? null : Math.round(Number(quota) * GIGABYTE);
-		const error =
-			id === get(userStore)?.id
-				? await userStore.updateUser((u) => ({
-						...u,
-						name,
-						password: newPassword,
-						oldPassword,
-						profilePicture: profilePictureBase64,
-						isAdmin,
-						quotaBytes
-						// password: newPassword
-					}))
-				: await reiverrApi.users
-						.updateUser(id, {
-							name,
-							password: newPassword,
-							oldPassword,
-							profilePicture: profilePictureBase64,
-							isAdmin,
-							quotaBytes
-						})
-						.then(() => undefined)
-						.catch((e: AxiosError<any>) => e.response?.data?.message);
+		const error = await updateUser(id, {
+			name,
+			password: newPassword,
+			oldPassword,
+			profilePicture: profilePictureBase64,
+			isAdmin,
+			quotaBytes
+		})
+			.then(() => undefined)
+			.catch(messageOf);
 
 		if (error) {
 			errorMessage = error;
 		} else {
 			close();
-			onComplete();
 		}
 	}
 
 	async function create() {
-		const error = await reiverrApi.users
-			.createUser({
-				name,
-				password: newPassword,
-				isAdmin,
-				profilePicture: profilePictureBase64
-			})
+		const error = await createUser({
+			name,
+			password: newPassword,
+			isAdmin,
+			profilePicture: profilePictureBase64
+		})
 			.then(() => undefined)
-			.catch((e: AxiosError<any>) => e.response?.data?.message);
+			.catch(messageOf);
 
 		if (error) {
 			errorMessage = error;
 		} else {
 			close();
-			onComplete();
 		}
 	}
 
 	async function handleDeleteAccount() {
 		const self = user?.id === get(userStore)?.id;
 		if (!user?.id) return;
-		const error = await reiverrApi.users
-			.deleteUser(user.id)
+		const error = await deleteUser(user.id)
 			.then(() => undefined)
-			.catch((e: AxiosError<any>) => e.response?.data?.message);
+			.catch(messageOf);
 		if (error) {
 			errorMessage = error;
 		} else {
@@ -176,7 +162,7 @@
 			if (self) {
 				sessions.removeSession();
 				navigate('/');
-			} else onComplete();
+			}
 		}
 	}
 </script>

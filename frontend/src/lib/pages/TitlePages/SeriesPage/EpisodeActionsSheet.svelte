@@ -6,9 +6,15 @@
 	import { createModal } from '$lib/components/Modal/modal.store';
 	import { Sheet } from '$lib/components/Sheet';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
-	import { getEpisodeRequestStatus, useSeriesContext } from '$lib/stores/data/series-data.store';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import {
+		getEpisodeData,
+		getEpisodeRequestStatus,
+		seriesQueries,
+		setEpisodesWatched,
+		setEpisodeWatched
+	} from '$lib/queries/series.queries';
 	import { Check, Play } from 'radix-icons-svelte';
-	import { readable } from 'svelte/store';
 	import { playEpisode } from '../play-media';
 
 	export let tmdbId: string;
@@ -19,16 +25,16 @@
 
 	const componentStack = useComponentStack();
 	const { playMedia } = backgroundContext.getContext();
-	const seriesData = useSeriesContext(tmdbId).getContext();
-	const requests = seriesData.requestsData?.data ?? readable(undefined);
-	const episodesData = seriesData.episodesData ?? readable(undefined);
+	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
+	const seriesUserData = usePageQuery(seriesQueries.userData(tmdbId));
+	const status = usePageQuery(seriesQueries.status(tmdbId));
 
-	$: userData = $episodesData?.episodes.find((e) => e.season === season && e.episode === episode);
-	$: seasonEpisodes =
-		$episodesData?.episodes.filter((e) => e.season === season && !e.upcoming) ?? [];
+	$: episodesData = getEpisodeData($tmdbSeries.data, $seriesUserData.data);
+	$: userData = episodesData.episodes.find((e) => e.season === season && e.episode === episode);
+	$: seasonEpisodes = episodesData.episodes.filter((e) => e.season === season && !e.upcoming);
 	$: seasonWatched = seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched);
-	$: status = getEpisodeRequestStatus($requests, season, episode);
-	$: onDisk = status.onDisk;
+	$: requestStatus = getEpisodeRequestStatus($status.data, season, episode);
+	$: onDisk = requestStatus.onDisk;
 
 	async function play() {
 		componentStack.close();
@@ -40,13 +46,12 @@
 			title: name,
 			subtitle: `${seriesName} · Season ${season} Episode ${episode}`,
 			progress: userData?.progress,
-			playMedia: (props) => playMedia?.(props),
-			onProgressSaved: seriesData.setStale
+			playMedia: (props) => playMedia?.(props)
 		});
 	}
 
 	async function setWatched(watched: boolean) {
-		await seriesData.setEpisodeWatched?.(season, episode, watched);
+		await setEpisodeWatched(tmdbId, season, episode, watched);
 		componentStack.close();
 	}
 
@@ -61,7 +66,10 @@
 				? `${episodes} will be marked as watched. The request rules of the series follow the watched state: the next episodes may start downloading, and watched episodes the rules do not keep are unrequested.`
 				: `${episodes} will be marked as unwatched. The request rules of the series follow the watched state: the episodes count as unwatched again for what is kept on disk and downloaded ahead.`,
 			confirm: async () => {
-				await seriesData.setSeasonWatched?.(season, watched);
+				await setEpisodesWatched(
+					tmdbId,
+					seasonEpisodes.map((e) => ({ season: e.season, episode: e.episode, watched }))
+				);
 				componentStack.close();
 			}
 		});
@@ -71,7 +79,7 @@
 <Sheet size="lg" on:close={() => componentStack.close()}>
 	<div class="text-secondary-400 font-medium text-lg">Season {season} Episode {episode}</div>
 	<h1 class="h3 mb-2">{name}</h1>
-	<p class="body mb-8">{status.label ?? 'Not requested'}</p>
+	<p class="body mb-8">{requestStatus.label ?? 'Not requested'}</p>
 
 	<Container class="flex flex-col space-y-4">
 		{#if onDisk}

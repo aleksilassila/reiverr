@@ -11,12 +11,25 @@
 		createInfoNotification
 	} from '$lib/components/Notifications/notification.store';
 	import SelectField from '$lib/components/SelectField.svelte';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { queryClient } from '$lib/queries/query-client';
+	import {
+		deleteLibraryEntries,
+		manageLibraryEntries,
+		previewLibraryScan,
+		requestLibraryEntries,
+		runCleanup,
+		scanLibrary,
+		serverQueries,
+		unmanageLibraryEntries
+	} from '$lib/queries/server.queries';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
-	import { reiverrApi } from '$lib/stores/user.store';
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, Bookmark, ChevronDown, Cross2, Reload, Trash } from 'radix-icons-svelte';
 	import { tick } from 'svelte';
+	import { derived, writable } from 'svelte/store';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -36,21 +49,38 @@
 		{ value: 'size', label: 'Size' },
 		{ value: 'name', label: 'Name' }
 	];
+	const EMPTY_TREE: LibraryTree = { roots: [], nodes: new Map() };
 
-	let folders: string[] = [];
-	let folder = '';
-	let tree: LibraryTree = { roots: [], nodes: new Map() };
+	const folder = writable('');
+	const settings = usePageQuery(libraryQueries.settings());
+	const entries = usePageQuery(
+		derived(folder, ($folder) => ({
+			...serverQueries.libraryEntries($folder),
+			select: buildTree,
+			enabled: !!$folder
+		}))
+	);
+	// What the cleanup would delete now, library-wide as the button runs it
+	const cleanup = usePageQuery(serverQueries.cleanupPreview());
+
 	let expanded = new Set<string>();
 	let checked = new Set<string>();
 	let order: LibraryOrder = 'size';
 	let limit = ROWS;
-	let isLoading = true;
 	let isScanning = false;
-	let error = '';
-	let loads = 0;
-	// What the cleanup would delete now, library-wide as the button runs it
-	let unretained = 0;
 	let header: Selectable | undefined;
+
+	$: folders = $settings.data
+		? [...folderPaths($settings.data.seriesFolders), ...folderPaths($settings.data.movieFolders)]
+		: [];
+	$: if (!$folder && folders[0]) $folder = folders[0];
+	$: tree = $entries.data ?? EMPTY_TREE;
+	// A selection is of the entries as they were listed: a new listing of the folder clears it
+	$: (tree, (checked = new Set()));
+	$: isLoading = $settings.isLoading || $entries.isLoading;
+	$: loadError = $settings.error ?? $entries.error;
+	$: error = loadError ? errorMessage(loadError) : '';
+	$: unretained = $cleanup.data?.files ?? 0;
 
 	$: rows = getRows(tree.roots, expanded, order);
 	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
@@ -66,44 +96,18 @@
 	];
 	const observer = useInteractionObserver(() => (limit += ROWS));
 
-	/** Directories stay expanded when the folder they are in is loaded again */
-	async function load(next: string) {
-		const id = ++loads;
-		const isSameFolder = next === folder;
-
-		folder = next;
-		isLoading = true;
-		error = '';
-		checked = new Set();
-		if (!isSameFolder) {
-			tree = { roots: [], nodes: new Map() };
-			expanded = new Set();
-			limit = ROWS;
-		}
-
-		const result = await reiverrApi.server
-			.getLibraryEntries({ folder })
-			.then((r) => buildTree(r.data))
-			.catch((e) => errorMessage(e));
-		// Another folder was selected in the meantime
-		if (id !== loads) return;
-
-		if (typeof result === 'string') error = result;
-		else tree = result;
-		isLoading = false;
-
-		reiverrApi.server
-			.previewCleanup()
-			.then((r) => (unretained = r.data.files))
-			.catch(() => (unretained = 0));
-	}
-
+	/** Directories stay expanded when the folder they are in is listed again */
 	function selectFolder() {
 		createModal(SelectDialog, {
 			title: 'Library folder',
 			options: folders,
-			selectedOption: folder,
-			handleSelectOption: load
+			selectedOption: $folder,
+			handleSelectOption: (next: string) => {
+				if (next === $folder) return;
+				expanded = new Set();
+				limit = ROWS;
+				$folder = next;
+			}
 		});
 	}
 
@@ -160,18 +164,16 @@
 					? ` ${count(heldFiles, 'file is', 'files are')} held by ${count(requests, 'request', 'requests')}, which will be deleted too.`
 					: ''),
 			confirm: () =>
-				reiverrApi.server
-					.deleteLibraryEntries({ folder, paths: Array.from(checked) })
-					.then(({ data }) => {
-						if (data.failed.length) {
+				deleteLibraryEntries({ folder: $folder, paths: Array.from(checked) })
+					.then(({ failed }) => {
+						if (failed.length) {
 							createErrorNotification(
-								`Could not delete ${count(data.failed.length, 'entry', 'entries')}`,
-								data.failed.map((f) => `${f.path}: ${f.error}`).join('\n')
+								`Could not delete ${count(failed.length, 'entry', 'entries')}`,
+								failed.map((f) => `${f.path}: ${f.error}`).join('\n')
 							);
 						}
 					})
 					.catch((e) => createErrorNotification('Could not delete', errorMessage(e)))
-					.then(() => load(folder))
 		});
 	}
 
@@ -183,9 +185,8 @@
 			header: 'Request the files?',
 			body: `The episodes or movies of ${files} will be requested for you, bound to the files, so that they are kept as long as your requests keep them under your request rules. Of several files of one episode or movie, one gets the request. Automatic request rules apply.`,
 			confirm: () =>
-				reiverrApi.server
-					.requestLibraryEntries({ folder, paths: Array.from(checked) })
-					.then(({ data }) => {
+				requestLibraryEntries({ folder: $folder, paths: Array.from(checked) })
+					.then((data) => {
 						const what = [
 							`${count(data.requests, 'request', 'requests')} bound`,
 							data.skipped ? `${count(data.skipped, 'file', 'files')} skipped` : ''
@@ -193,15 +194,13 @@
 						createInfoNotification('Requested', what.join(', '));
 					})
 					.catch((e) => createErrorNotification('Could not request', errorMessage(e)))
-					.then(() => load(folder))
 		});
 	}
 
 	/** The nightly cleanup, now: it asks with what a dry run of it would delete */
 	async function confirmCleanup() {
-		const preview = await reiverrApi.server
-			.previewCleanup()
-			.then((r) => r.data)
+		const preview = await queryClient
+			.fetchQuery({ ...serverQueries.cleanupPreview(), staleTime: 0 })
 			.catch((e) => {
 				createErrorNotification('Could not preview the cleanup', errorMessage(e));
 				return undefined;
@@ -215,9 +214,8 @@
 			header: 'Delete unretained files now?',
 			body: `${count(preview.files, 'managed file', 'managed files')} (${formatSize(preview.size)}) that no request holds will be deleted immediately.`,
 			confirm: () =>
-				reiverrApi.server
-					.runCleanup()
-					.then(({ data }) =>
+				runCleanup()
+					.then((data) =>
 						createInfoNotification(
 							'Cleanup queued',
 							`${count(data.files, 'file', 'files')} (${formatSize(data.size)}) to delete`
@@ -239,14 +237,10 @@
 	}
 
 	function setManaged(managed: boolean) {
-		const paths = Array.from(checked);
+		const entries = { folder: $folder, paths: Array.from(checked) };
 
-		return (
-			managed
-				? reiverrApi.server.manageLibraryEntries({ folder, paths })
-				: reiverrApi.server.unmanageLibraryEntries({ folder, paths })
-		)
-			.then(({ data }) =>
+		return (managed ? manageLibraryEntries(entries) : unmanageLibraryEntries(entries))
+			.then((data) =>
 				createInfoNotification(
 					managed ? 'Managed' : 'Unmanaged',
 					`${count(data.files, 'file', 'files')} changed`
@@ -257,19 +251,15 @@
 					managed ? 'Could not manage' : 'Could not unmanage',
 					errorMessage(e)
 				)
-			)
-			.then(() => load(folder));
+			);
 	}
 
 	/** Warns when the scan would forget indexed files, which happens to all of them in a folder that is not mounted */
 	async function confirmScan() {
-		const preview = await reiverrApi.server
-			.previewLibraryScan({ folder })
-			.then((r) => r.data)
-			.catch((e) => {
-				createErrorNotification('Could not scan', errorMessage(e));
-				return undefined;
-			});
+		const preview = await previewLibraryScan($folder).catch((e) => {
+			createErrorNotification('Could not scan', errorMessage(e));
+			return undefined;
+		});
 		if (!preview) return;
 		if (preview.available && !preview.missing) return scan(false);
 
@@ -289,9 +279,8 @@
 
 	async function scan(force: boolean) {
 		isScanning = true;
-		await reiverrApi.server
-			.scanLibrary({ folder, force })
-			.then(({ data }) => {
+		await scanLibrary($folder, force)
+			.then((data) => {
 				const what = [
 					`${data.added} added`,
 					`${data.updated} updated`,
@@ -310,28 +299,13 @@
 			})
 			.catch((e) => createErrorNotification('Could not scan', errorMessage(e)));
 		isScanning = false;
-		await load(folder);
 	}
-
-	reiverrApi.library
-		.getLibrarySettings()
-		.then(({ data }) => {
-			folders = [...folderPaths(data.seriesFolders), ...folderPaths(data.movieFolders)];
-
-			const first = folders[0];
-			if (first) return load(first);
-			isLoading = false;
-		})
-		.catch((e) => {
-			error = errorMessage(e);
-			isLoading = false;
-		});
 </script>
 
 <Container class="h-full flex flex-col">
 	<Container class="space-y-4" bind:selectable={header}>
 		<SelectField
-			value={folder || 'None'}
+			value={$folder || 'None'}
 			disabled={!folders.length}
 			class="max-w-md"
 			on:clickOrSelect={selectFolder}
@@ -343,7 +317,7 @@
 			<Container direction="horizontal" class="flex-shrink-0 flex items-center space-x-4">
 				<Button
 					iconAfter={ChevronDown}
-					disabled={!folder}
+					disabled={!$folder}
 					on:clickOrSelect={selectOrder}
 					on:enter={scrollIntoView({ horizontal: 64 })}
 				>
@@ -351,7 +325,7 @@
 				</Button>
 				<Button
 					icon={Reload}
-					disabled={!folder || isScanning}
+					disabled={!$folder || isScanning}
 					on:clickOrSelect={confirmScan}
 					on:enter={scrollIntoView({ horizontal: 64 })}
 				>

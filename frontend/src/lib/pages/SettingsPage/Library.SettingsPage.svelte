@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import type { LibraryFolderDto, LibrarySettingsDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import { libraryQueries, updateLibrarySettings } from '$lib/queries/library.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { Check, ChevronRight, Plus } from 'radix-icons-svelte';
@@ -10,7 +12,6 @@
 	import SelectButtonGroup from '../../components/SelectButtonGroup.svelte';
 	import SelectField from '../../components/SelectField.svelte';
 	import TextField from '../../components/TextField.svelte';
-	import { reiverrApi } from '../../stores/user.store';
 	import LibraryFolderDialog from './LibraryFolderDialog.SettingsPage.svelte';
 
 	type FolderKey = 'movieFolders' | 'seriesFolders';
@@ -26,11 +27,19 @@
 		{ key: 'movieFolders', name: 'Movie folders', label: 'Movie folder', add: 'Add Movie Folder' }
 	];
 
-	let settings: LibrarySettingsDto | undefined = undefined;
+	const settingsQuery = usePageQuery(libraryQueries.settings());
+
 	let cleanupError = '';
-	let diskLimit = '';
-	let savedDiskLimit = '';
+	/** What is typed into the disk limit field, until it is saved */
+	let diskLimitInput: string | undefined;
 	let diskLimitError = '';
+
+	$: settings = $settingsQuery.data;
+	$: savedDiskLimit =
+		settings?.maxDiskUsagePercent === null || settings?.maxDiskUsagePercent === undefined
+			? ''
+			: String(settings.maxDiskUsagePercent);
+	$: diskLimit = diskLimitInput ?? savedDiskLimit;
 
 	const cleanupOptions: { label: string; value: LibrarySettingsDto['cleanup'] }[] = [
 		{ label: 'Off', value: 'off' },
@@ -39,14 +48,6 @@
 		{ label: 'First of the month', value: 'monthly' }
 	];
 
-	reiverrApi.library.getLibrarySettings().then((r) => setSettings(r.data));
-
-	function setSettings(value: LibrarySettingsDto) {
-		settings = value;
-		diskLimit = savedDiskLimit =
-			value.maxDiskUsagePercent === null ? '' : String(value.maxDiskUsagePercent);
-	}
-
 	/** Saves the folders of a type; the dialogs show what it rejects with */
 	function saveFolders(
 		current: LibrarySettingsDto,
@@ -54,9 +55,7 @@
 		folders: Record<string, LibraryFolderDto>,
 		force = false
 	) {
-		return reiverrApi.library
-			.updateLibrarySettings({ ...current, [key]: folders }, force ? { force } : undefined)
-			.then((r) => setSettings(r.data));
+		return updateLibrarySettings({ ...current, [key]: folders }, force);
 	}
 
 	function makePrimary(current: LibrarySettingsDto, key: FolderKey, primary: string) {
@@ -120,22 +119,21 @@
 		if (!settings) return;
 		cleanupError = '';
 
-		await reiverrApi.library
-			.updateLibrarySettings({ ...settings, cleanup: value as LibrarySettingsDto['cleanup'] })
-			.then((r) => setSettings(r.data))
-			.catch((e) => (cleanupError = e?.response?.data?.message ?? e?.message));
+		await updateLibrarySettings({
+			...settings,
+			cleanup: value as LibrarySettingsDto['cleanup']
+		}).catch((e) => (cleanupError = e?.response?.data?.message ?? e?.message));
 	}
 
 	async function saveDiskLimit() {
 		if (!settings) return;
 		diskLimitError = '';
 
-		await reiverrApi.library
-			.updateLibrarySettings({
-				...settings,
-				maxDiskUsagePercent: diskLimit === '' ? null : Number(diskLimit)
-			})
-			.then((r) => setSettings(r.data))
+		await updateLibrarySettings({
+			...settings,
+			maxDiskUsagePercent: diskLimit === '' ? null : Number(diskLimit)
+		})
+			.then(() => (diskLimitInput = undefined))
 			.catch((e) => (diskLimitError = e?.response?.data?.message ?? e?.message));
 	}
 </script>
@@ -210,7 +208,7 @@
 				value={diskLimit}
 				placeholder="No limit"
 				on:enter={scrollIntoView({ vertical: 128 })}
-				on:change={({ detail }) => (diskLimit = detail)}
+				on:change={({ detail }) => (diskLimitInput = detail)}
 			>
 				Disk limit (percent of a disk in use, empty for no limit)
 			</TextField>

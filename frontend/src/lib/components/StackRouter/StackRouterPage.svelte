@@ -2,6 +2,7 @@
 	import { useRegistrar } from '$lib/selectable';
 	import { nestedDerived } from '$lib/utils';
 	import classNames from 'classnames';
+	import { writable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import Sidebar from '../Sidebar/Sidebar.svelte';
@@ -9,14 +10,17 @@
 	import { backgroundContext } from '../GlobalBackground/background-stack.store';
 
 	export let page: CompStackPage;
-	export let isHidden;
+	export let isHidden: boolean;
 	const registrar = useRegistrar();
 	const hasFocusWithin = nestedDerived(registrar, (r) => r?.hasFocusWithin);
+	const hidden = writable(isHidden);
+	$: hidden.set(isHidden);
 
 	const componentStack = _setComponentStack({
 		...page,
 		root: registrar,
-		hasFocusWithin
+		hasFocusWithin,
+		isHidden: hidden
 	});
 
 	componentStack.handleMount();

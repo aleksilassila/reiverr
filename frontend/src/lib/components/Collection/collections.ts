@@ -1,5 +1,4 @@
 import { TMDB_BACKDROP_SMALL } from '$lib/constants';
-import { tmdbApi } from '$lib/stores/user.store';
 
 export type Network = {
 	name: string;

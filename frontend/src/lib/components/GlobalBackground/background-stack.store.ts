@@ -6,7 +6,6 @@ import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
 import type { SubtitleTrack, VideoTrack } from '../VideoPlayer/video-player.store';
 import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
-import { reiverrApi, user } from '$lib/stores/user.store';
 
 export const BACKGROUND_CONTEXT_KEY = 'background-context';
 

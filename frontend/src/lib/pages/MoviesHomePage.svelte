@@ -5,32 +5,49 @@
 	import Container from '$lib/components/Container.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import TmdbMoviesHeroShowcase from '$lib/components/HeroShowcase/TmdbMoviesHeroShowcase.svelte';
+	import { catalogQueries } from '$lib/queries/catalog.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { queryClient } from '$lib/queries/query-client';
+	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { scrollIntoView } from '$lib/selectable';
-	import { continueWatchingMoviesContext } from '$lib/stores/data/continue-watching-data.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
-	import { tmdbApi, tmdbApi4 } from '$lib/stores/user.store';
-	import { onDestroy } from 'svelte';
 	import { TMDB_MOVIE_GENRES } from '../apis/tmdb/tmdb-api';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 
 	backgroundContext.createContext();
 
-	const { data: continueWatching, unsubscribe } = continueWatchingMoviesContext.createContext();
+	const continueWatching = usePageQuery(catalogQueries.continueWatching('movie'));
 
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const popularMovies = tmdbApi.getTrendingMovies();
-	const newDigitalReleases = tmdbApi.getDigitalMovieReleases();
-	const upcomingMovies = tmdbApi.getUpcomingMovies();
-	const recommendedMovies = tmdbApi4.getRecommendedMovies();
-	const mostRecommendedGenres: Promise<number[]> = recommendedMovies.then(({ genreIdToMovie }) => {
-		const allGenres = Object.keys(genreIdToMovie).map((k) => Number(k));
-		allGenres.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0));
-		return allGenres;
-	});
+	const trendingQuery = usePageQuery(tmdbQueries.trending('movie'));
+	const digitalReleasesQuery = usePageQuery(tmdbQueries.digitalReleases());
+	const upcomingQuery = usePageQuery(tmdbQueries.upcomingMovies());
+	const recommendedQuery = usePageQuery(tmdbQueries.recommendedMovies());
+	$: digitalReleases = $digitalReleasesQuery.data;
+	$: upcomingMovies = $upcomingQuery.data;
+	// Trending without what the upcoming row shows
+	$: trending =
+		$trendingQuery.data && digitalReleases && upcomingMovies
+			? $trendingQuery.data.filter((p) => !upcomingMovies?.find((u) => u.id === p.id))
+			: undefined;
+	$: genreIdToMovie = $recommendedQuery.data?.genreIdToMovie ?? {};
+	// The genres with the most recommendations first
+	$: genres = Object.keys(genreIdToMovie)
+		.map((k) => Number(k))
+		.sort((a, b) => (genreIdToMovie[b]?.length || 0) - (genreIdToMovie[a]?.length || 0));
+
+	// The account's top recommendations, else the upcoming movies
+	const showcase = queryClient
+		.fetchQuery(tmdbQueries.recommendedMovies())
+		.then(({ top10 }) =>
+			top10.length
+				? top10
+				: queryClient.fetchQuery(tmdbQueries.upcomingMovies()).then((m) => m.slice(0, 10))
+		);
 
 	// const travisBellCollections: Promise<Collection[]> = tmdbApi.v3
 	// 	.accountLists('travisbell')
@@ -44,26 +61,18 @@
 	// 			})) || []
 	// 		);
 	// 	});
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 </script>
 
 <div class="flex flex-col relative">
 	<div use:registerScroll />
 	<Container class="h-[calc(100vh-12rem)] flex px-32" on:enter={scrollIntoView({ top: 0 })}>
-		<TmdbMoviesHeroShowcase
-			movies={recommendedMovies.then(({ top10 }) =>
-				top10.length ? top10 : upcomingMovies.then((m) => m.slice(0, 10))
-			)}
-		/>
+		<TmdbMoviesHeroShowcase movies={showcase} />
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $continueWatching?.length}
+		{#if $continueWatching.data?.length}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
 				<span slot="header">Continue Watching</span>
-				{#each $continueWatching ?? [] as item, index (item.tmdbId)}
+				{#each $continueWatching.data as item, index (item.tmdbId)}
 					<TmdbCard
 						{index}
 						on:enter={scrollIntoView({ left: 128 })}
@@ -75,16 +84,16 @@
 			</Carousel>
 		{/if}
 
-		{#await Promise.all( [popularMovies, newDigitalReleases, upcomingMovies] ) then [popularMovies, newDigitalReleases, upcomingMovies]}
+		{#if trending}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
 				<span slot="header">Trending</span>
-				{#each popularMovies.filter((p) => !upcomingMovies.find((u) => u.id === p.id)) as item}
+				{#each trending as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
-		{/await}
+		{/if}
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[0] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -95,18 +104,18 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
-		{#await newDigitalReleases then nowStreaming}
+		{#if digitalReleases}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
 				<span slot="header">New Digital Releases</span>
-				{#each nowStreaming as item}
+				{#each digitalReleases as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
-		{/await}
+		{/if}
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[1] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -117,18 +126,18 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
-		{#await upcomingMovies then upcomingSeries}
+		{#if upcomingMovies}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
 				<span slot="header">Upcoming Movies</span>
-				{#each upcomingSeries as item}
+				{#each upcomingMovies as item}
 					<TmdbCard on:enter={scrollIntoView({ left: 128 })} size="lg" {item} />
 				{/each}
 			</Carousel>
-		{/await}
+		{/if}
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[2] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -139,9 +148,9 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[3] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -152,7 +161,7 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
 		<!-- {#await travisBellCollections then travisBellCollections}
 			<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
@@ -170,7 +179,7 @@
 			{/each}
 		</Carousel>
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[4] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -181,9 +190,9 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
-		{#await Promise.all( [mostRecommendedGenres, recommendedMovies] ) then [genres, { genreIdToMovie }]}
+		{#if $recommendedQuery.data}
 			{@const genre = genres[5] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -194,7 +203,7 @@
 					{/each}
 				</Carousel>
 			{/if}
-		{/await}
+		{/if}
 
 		<Carousel scrollClass="px-32" on:enter={scrollIntoView({ top: 128 })}>
 			<span slot="header">Production Companies</span>

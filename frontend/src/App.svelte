@@ -2,8 +2,11 @@
 	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
 	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
+	import { queryClient } from '$lib/queries/query-client';
 	import { inputMode } from '$lib/stores/input-mode.store';
 	import { userActivity } from '$lib/stores/user-activity.store';
+	import { QueryClientProvider } from '@tanstack/svelte-query';
+	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
@@ -84,20 +87,25 @@
 <I18n />
 
 <!--<Container class="w-full h-full overflow-auto text-white scrollbar-hide">-->
-{#if !$isAppInitialized || $user === undefined}
-	<SplashScreen />
-{:else}
-	<GlobalBackgroundStack>
-		{#if $user === null}
-			<!-- Positioned like a routed page, so that it paints above the backdrop of the stack -->
-			<div class="fixed inset-0">
-				<UsersPage />
-			</div>
-		{:else}
-			<StackRouter stack={stackRouter} />
-		{/if}
-	</GlobalBackgroundStack>
-{/if}
+<QueryClientProvider client={queryClient}>
+	{#if !$isAppInitialized || $user === undefined}
+		<SplashScreen />
+	{:else}
+		<GlobalBackgroundStack>
+			{#if $user === null}
+				<!-- Positioned like a routed page, so that it paints above the backdrop of the stack -->
+				<div class="fixed inset-0">
+					<UsersPage />
+				</div>
+			{:else}
+				<StackRouter stack={stackRouter} />
+			{/if}
+		</GlobalBackgroundStack>
+	{/if}
+	{#if import.meta.env.DEV}
+		<SvelteQueryDevtools buttonPosition="bottom-left" />
+	{/if}
+</QueryClientProvider>
 
 <NotificationStack />
 

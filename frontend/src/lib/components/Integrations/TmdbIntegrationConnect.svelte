@@ -1,10 +1,13 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
+	import {
+		requestTmdbAccessToken,
+		requestTmdbToken,
+		setTmdbAccount
+	} from '../../queries/tmdb.queries';
 	import Button from '../Button/Button.svelte';
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
-	import { user } from '../../stores/user.store';
 
 	const dispatch = createEventDispatcher<{ connected: null }>();
 
@@ -16,7 +19,7 @@
 	handleGenerateTMDBLink();
 
 	async function handleGenerateTMDBLink() {
-		return tmdbApi.getConnectAccountLink().then((res) => {
+		return requestTmdbToken().then((res) => {
 			if (res?.status_code !== 1) return; // TODO add notification
 			const link = `https://www.themoviedb.org/auth/access?request_token=${res?.request_token}`;
 			const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${link}`;
@@ -28,23 +31,14 @@
 
 	async function completeTMDBConnect() {
 		if (!tmdbConnectRequestToken) return;
-		return tmdbApi.getAccountAccessToken(tmdbConnectRequestToken).then((res) => {
+		return requestTmdbAccessToken(tmdbConnectRequestToken).then(async (res) => {
 			const { status_code, access_token, account_id } = res || {};
 			if (status_code !== 1 || !access_token || !account_id) {
 				tmdbError = 'Failed to connect account. Did you approve the request?';
 				return; // TODO add notification
 			}
 
-			user.updateUser((prev) => ({
-				...prev,
-				settings: {
-					...prev.settings,
-					tmdb: {
-						userId: account_id,
-						sessionId: access_token
-					}
-				}
-			}));
+			await setTmdbAccount({ userId: account_id, sessionId: access_token });
 
 			dispatch('connected');
 		});

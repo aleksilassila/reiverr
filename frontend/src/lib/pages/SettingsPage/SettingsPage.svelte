@@ -1,10 +1,10 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
+	import { clearMetadataCache } from '$lib/queries/metadata.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { ArrowRight, Exit, Pencil2 } from 'radix-icons-svelte';
-	import { tmdbApi } from '../../apis/tmdb/tmdb-api';
 	import Button from '../../components/Button/Button.svelte';
 	import EditProfileModal from '../../components/Dialog/CreateOrEditProfileModal.svelte';
 	import TmdbIntegration from '../../components/Integrations/TmdbIntegration.svelte';
@@ -17,7 +17,7 @@
 	import Toggle from '../../components/Toggle.svelte';
 	import { localSettings } from '../../stores/localstorage.store';
 	import { sessions } from '../../stores/session.store';
-	import { reiverrApi, user } from '../../stores/user.store';
+	import { user } from '../../stores/user.store';
 	import Accounts from './Accounts.SettingsPage.svelte';
 	import Downloads from './Downloads.SettingsPage.svelte';
 	import Library from './Library.SettingsPage.svelte';
@@ -33,7 +33,6 @@
 	let lastKeyCode = 0;
 	let lastKey = '';
 	const tizenMediaKey = '';
-	$: tmdbAccount = $user?.settings.tmdb.userId ? tmdbApi.getAccountDetails() : undefined;
 
 	function handleLogOut() {
 		sessions.removeSession();
@@ -258,10 +257,7 @@
 
 					<div>
 						<h1 class="h3 mb-8">Metadata</h1>
-						<Button
-							action={() => reiverrApi.metadata.clearCache()}
-							on:enter={scrollIntoView({ vertical: 128 })}
-						>
+						<Button action={clearMetadataCache} on:enter={scrollIntoView({ vertical: 128 })}>
 							Clear TMDB Cache
 						</Button>
 					</div>

@@ -8,21 +8,24 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import {
+		movieQueries,
+		setMovieRequested,
+		updateMovieRequestRule
+	} from '$lib/queries/movie.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { getStatusLabel, isErrorStatus } from '$lib/queries/request-status';
+	import { storageQueries } from '$lib/queries/storage.queries';
 	import { confirmQuota } from '$lib/quota';
-	import { useData } from '$lib/stores/data/data.store';
-	import { useMovieContext } from '$lib/stores/data/movie-data.store';
-	import { getStatusLabel, isErrorStatus } from '$lib/stores/data/request-status';
-	import { reiverrApi, user } from '$lib/stores/user.store';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
-	import { onDestroy } from 'svelte';
-	import { readable } from 'svelte/store';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import RequestRow from '../SeriesPage/RequestRow.svelte';
 	import TorrentsView from './TorrentsView.svelte';
 
 	export let tmdbId: string;
 
+	/** Download progress and usage change without the user doing anything */
 	const REFRESH_INTERVAL = 5000;
 
 	// The one setting of a movie: download ahead and keep last watched are for episodes
@@ -39,32 +42,27 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const movieData = useMovieContext(tmdbId).getContext();
-	const status = movieData.statusData?.data ?? readable(undefined);
-	const tmdbMovie = movieData.movieData?.data ?? readable(undefined);
-	const tmdbMovieLoading = movieData.movieData?.isLoading ?? readable(false);
+	const tmdbMovie = usePageQuery(movieQueries.metadata(tmdbId));
+	const statusQuery = usePageQuery({
+		...movieQueries.status(tmdbId),
+		refetchInterval: REFRESH_INTERVAL
+	});
+	const rule = usePageQuery(movieQueries.rule(tmdbId));
+	const storage = usePageQuery({ ...storageQueries.user(), refetchInterval: REFRESH_INTERVAL });
+	$: movie = $tmdbMovie.data;
+	$: status = $statusQuery.data;
+	$: ruleData = $rule.data;
+	$: usage = $storage.data;
 
-	const rule = useData(() =>
-		reiverrApi.requests.getMovieRequestRule($user?.id as string, tmdbId).then((r) => r.data)
-	);
-	const ruleData = rule.data;
-
-	const storage = useData(() =>
-		reiverrApi.library.getUserStorage($user?.id as string).then((r) => r.data)
-	);
-	const storageData = storage.data;
-
-	$: name = $tmdbMovie
-		? `${$tmdbMovie.title} (${new Date($tmdbMovie.release_date ?? 0).getFullYear()})`
-		: '';
+	$: name = movie ? `${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})` : '';
 	$: keepLabel =
-		KEEP_FIELD.options.find((option) => option.value === ($ruleData?.keepWatchedHours ?? null))
+		KEEP_FIELD.options.find((option) => option.value === (ruleData?.keepWatchedHours ?? null))
 			?.label ?? '';
-	$: source = $status?.preference;
+	$: source = status?.preference;
 	$: sourceTitle = source?.torrent?.title ?? source?.file?.fileName;
 
 	function selectKeepOption() {
-		if (!$ruleData) return;
+		if (!ruleData) return;
 
 		componentStack.push({
 			component: SelectDialog,
@@ -74,18 +72,15 @@
 				options: KEEP_FIELD.options.map((option) => option.label),
 				selectedOption: keepLabel,
 				handleSelectOption: (label: string) =>
-					reiverrApi.requests
-						.updateMovieRequestRule($user?.id as string, tmdbId, {
-							keepWatchedHours:
-								KEEP_FIELD.options.find((option) => option.label === label)?.value ?? null
-						})
-						.then(() => Promise.all([rule.update(), movieData.statusData?.update()]))
-						.catch((e) =>
-							createErrorNotification(
-								'Could not update the setting',
-								e?.response?.data?.message ?? e?.message
-							)
+					updateMovieRequestRule(tmdbId, {
+						keepWatchedHours:
+							KEEP_FIELD.options.find((option) => option.label === label)?.value ?? null
+					}).catch((e) =>
+						createErrorNotification(
+							'Could not update the setting',
+							e?.response?.data?.message ?? e?.message
 						)
+					)
 			}
 		});
 	}
@@ -96,16 +91,8 @@
 	async function request(requested: boolean) {
 		if (requested && !(await confirmQuota(sourceBytes))) return;
 
-		await movieData.setRequested?.(requested);
-		await storage.update();
+		await setMovieRequested(tmdbId, requested);
 	}
-
-	// Download progress and usage change without the user doing anything
-	const refresh = setInterval(() => {
-		movieData.statusData?.update();
-		storage.update();
-	}, REFRESH_INTERVAL);
-	onDestroy(() => clearInterval(refresh));
 </script>
 
 <div class="fixed inset-0 scale-110 z-[-1]">
@@ -140,14 +127,14 @@
 						overview=""
 						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
 					>
-						<span slot="title" class="block truncate leading-tight">{$tmdbMovie?.title ?? ''}</span>
+						<span slot="title" class="block truncate leading-tight">{movie?.title ?? ''}</span>
 					</HeroTitleInfo>
 				</div>
-				{#if $storageData && $storageData.quotaBytes !== null}
+				{#if usage && usage.quotaBytes !== null}
 					<StorageQuota
 						class="flex-shrink-0 ml-8"
-						quotaBytes={$storageData.quotaBytes}
-						usedBytes={$storageData.heldBytes + $storageData.pendingBytes}
+						quotaBytes={usage.quotaBytes}
+						usedBytes={usage.heldBytes + usage.pendingBytes}
 					/>
 				{/if}
 			</div>
@@ -156,7 +143,7 @@
 				<SelectField
 					class="flex-1"
 					value={keepLabel}
-					disabled={!$ruleData}
+					disabled={!ruleData}
 					on:clickOrSelect={selectKeepOption}
 					type="transparent"
 				>
@@ -169,14 +156,14 @@
 		</div>
 
 		<Container focusOnMount class="pb-16 mx-32 mt-8">
-			{#if $tmdbMovie}
+			{#if movie}
 				<RequestRow
 					subtitle={sourceTitle ?? 'No torrent selected'}
-					status={getStatusLabel($status)}
-					isError={isErrorStatus($status)}
-					checked={!!$status?.requested}
+					status={getStatusLabel(status)}
+					isError={isErrorStatus(status)}
+					checked={!!status?.requested}
 					on:toggle={() =>
-						request(!$status?.requested).catch((e) =>
+						request(!status?.requested).catch((e) =>
 							createErrorNotification(
 								'Could not update the request',
 								e?.response?.data?.message ?? e?.message
@@ -188,7 +175,7 @@
 				</RequestRow>
 			{:else}
 				<div class="h-ghost m-auto">
-					{#if $tmdbMovieLoading}
+					{#if $tmdbMovie.isLoading}
 						Loading...
 					{:else}
 						Could not load movie.

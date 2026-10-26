@@ -3,31 +3,28 @@
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
-	import { type ComponentProps, onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
-	import { tmdbApi } from '../apis/tmdb/tmdb-api';
+	import { usePageQuery } from '$lib/queries/page-query';
+	import { tmdbQueries } from '$lib/queries/tmdb.queries';
+	import { onDestroy } from 'svelte';
+	import { derived, writable, type Readable } from 'svelte/store';
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import CardGrid from '../components/CardGrid.svelte';
 
 	let searchQuery = '';
 	let typingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
-	let loadingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
-	let results: Promise<ComponentProps<TmdbCard>[]> = Promise.resolve([]);
 	let searchInput: HTMLInputElement | undefined = undefined;
 	let inputFocused: Readable<boolean>;
 
-	function handleInput(query: string) {
+	/** What is searched: the input once typing pauses */
+	const query = writable('');
+	const results = usePageQuery(derived(query, ($query) => tmdbQueries.search($query)));
+
+	function handleInput(value: string) {
 		clearTimeout(typingTimeout);
 
-		typingTimeout = setTimeout(async () => {
-			if (!query) return;
-			results = tmdbApi.searchTitles(query).then((results) =>
-				results.map((result) => ({
-					item: result
-				}))
-			);
-			if (query !== searchQuery) return;
+		typingTimeout = setTimeout(() => {
+			if (value) query.set(value);
 		}, 500);
 	}
 
@@ -69,14 +66,12 @@
 		</Container>
 	</Container>
 	<div class="min-h-0 overflow-y-auto scrollbar-hide pt-4">
-		{#if !!searchQuery}
-			{#await results then results}
-				<CardGrid class="px-4">
-					{#each results as result}
-						<TmdbCard {...result} on:enter={scrollIntoView({ vertical: 128 })} />
-					{/each}
-				</CardGrid>
-			{/await}
+		{#if !!searchQuery && $results.data}
+			<CardGrid class="px-4">
+				{#each $results.data as item}
+					<TmdbCard {item} on:enter={scrollIntoView({ vertical: 128 })} />
+				{/each}
+			</CardGrid>
 		{/if}
 	</div>
 </div>

@@ -1,8 +1,10 @@
 import type { LibraryFileDto, UpdatePlayStateDto } from '$lib/apis/reiverr/reiverr.openapi';
 import type { PlayMediaOptions } from '$lib/components/GlobalBackground/background-stack.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
+import { movieQueries, saveMoviePlayState } from '$lib/queries/movie.queries';
+import { queryClient } from '$lib/queries/query-client';
+import { saveEpisodePlayState, seriesQueries } from '$lib/queries/series.queries';
 import { sessions } from '$lib/stores/session.store';
-import { reiverrApi, user } from '$lib/stores/user.store';
 import { get } from 'svelte/store';
 
 const WATCHED_PROGRESS = 0.9;
@@ -12,8 +14,6 @@ type PlayOptions = {
 	subtitle: string;
 	progress?: number;
 	playMedia: (props: PlayMediaOptions) => void;
-	/** Called after the play state has been saved */
-	onProgressSaved?: () => void;
 };
 
 /**
@@ -24,17 +24,21 @@ type PlayOptions = {
  * @returns whether playback started
  */
 export async function playEpisode(
-	options: PlayOptions & { tmdbId: string; season: number; episode: number }
+	options: PlayOptions & {
+		tmdbId: string;
+		season: number;
+		episode: number;
+	}
 ): Promise<boolean> {
 	const { tmdbId, season, episode } = options;
 
-	const files = await reiverrApi.library
-		.getEpisodeFiles(tmdbId, season, episode)
-		.then((r) => r.data)
+	// Looked up again, since an import may have just added a file
+	const files = await queryClient
+		.fetchQuery({ ...seriesQueries.episodeFiles(tmdbId, season, episode), staleTime: 0 })
 		.catch(reportLookupFailure);
 
-	return playFiles(files, options, (userId, playState) =>
-		reiverrApi.users.updateEpisodePlayState(userId, tmdbId, season, episode, playState)
+	return playFiles(files, options, (playState) =>
+		saveEpisodePlayState(tmdbId, season, episode, playState)
 	);
 }
 
@@ -48,14 +52,11 @@ export async function playEpisode(
 export async function playMovie(options: PlayOptions & { tmdbId: string }): Promise<boolean> {
 	const { tmdbId } = options;
 
-	const files = await reiverrApi.library
-		.getMovieFiles(tmdbId)
-		.then((r) => r.data)
+	const files = await queryClient
+		.fetchQuery({ ...movieQueries.files(tmdbId), staleTime: 0 })
 		.catch(reportLookupFailure);
 
-	return playFiles(files, options, (userId, playState) =>
-		reiverrApi.users.updateMoviePlayState(userId, tmdbId, playState)
-	);
+	return playFiles(files, options, (playState) => saveMoviePlayState(tmdbId, playState));
 }
 
 function reportLookupFailure(e: any): LibraryFileDto[] {
@@ -66,7 +67,7 @@ function reportLookupFailure(e: any): LibraryFileDto[] {
 function playFiles(
 	files: LibraryFileDto[],
 	options: PlayOptions,
-	savePlayState: (userId: string, playState: UpdatePlayStateDto) => Promise<unknown>
+	savePlayState: (playState: UpdatePlayStateDto) => Promise<unknown>
 ): boolean {
 	if (!files.length) return false;
 
@@ -93,13 +94,10 @@ function playFiles(
 			})
 		),
 		onProgress: (progress) => {
-			const userId = get(user)?.id;
-			if (!userId) return;
-
-			savePlayState(userId, {
+			savePlayState({
 				progress,
 				...(progress > WATCHED_PROGRESS && { watched: true })
-			}).finally(() => options.onProgressSaved?.());
+			});
 		}
 	});
 
