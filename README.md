@@ -2,19 +2,18 @@
 
 ![Stargazers](https://img.shields.io/github/stars/aleksilassila/reiverr)
 ![GitHub issues](https://img.shields.io/github/issues/aleksilassila/reiverr)
-![Discord](https://img.shields.io/discord/923259625145524354)
 ![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
 ![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
 
-Reiverr is a project that aims to create a single UI for interacting with TMDB, streaming content from various sources and be an alternative to Overseerr.
+Reiverr is a self hosted, TVs-first replacement for the arr stack (Jellyfin, Sonarr, Radarr, Seerr, a torrent client). See [installation](#installation) and [wiki](./docs/user-guide.md) to get started.
 
 This project is still in early stages, and many features are still missing / being tested and changed. Contributions are welcome! See [contributing](#Contributing) for more information.
 
+> For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0).
+
+<!-- TODO: Rename that branch to v1.0 ^ -->
+
 ![Demo Video](images/reiverr-demo.gif)
-
-## Reiverr 1.0
-
-This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind. It still lacks many features of the previous version. If you want a more stable experience, or only care about the web app, you might want to check out the [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
 
 # List of major features
 
@@ -25,23 +24,33 @@ TMDB Discovery:
 - View details about movies and TV shows, such as cast, crew, ratings & a trailer.
 - Movie & TV show search
 
+Requests & downloads:
+
+- Media is automatically downloaded when requested
+- Can be configured to request episodes only as they are needed
+- Watched episodes can be automatically unrequested
+- Media that no user requests is automatically cleaned up
+- Storage usage quotas per user
+- Built-in torrent client
+- ~~Discovery of new content via RSS~~
+
+Library:
+
+- Supports multiple library folders and is compatible with jellyfin libraries
+- External files are automatically discovered from disk
+
+Playback:
+
+- Direct playback (see [your browser compatibility](https://cconcolato.github.io/media-mime-support/))
+- ~~Transcoding/HLS~~
+- Audio track selection (Tizen, or [audioTracks](https://caniuse.com/audiotracks))
+- Subtitles (VTT/SRT as sidecar files)
+
 For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
 
 # Installation
 
-The easiest and the recommended way to install Reiverr is via Docker. Make sure to update the api keys and base URLs to match your setup.
-
-### Docker CLI
-
-```sh
-docker run -it --init \
-  --name reiverr \
-  --restart unless-stopped \
-  -p 9494:9494 \
-  -v /path/to/appdata/config:/config \
-  -v /path/to/data:/data \
-  ghcr.io/aleksilassila/reiverr:latest
-```
+The easiest and the recommended way to install Reiverr is via Docker. After installation, see [post-installation](#post-installation).
 
 ### Docker compose
 
@@ -65,6 +74,18 @@ services:
     restart: unless-stopped
 ```
 
+### Docker CLI
+
+```sh
+docker run -it --init \
+  --name reiverr \
+  --restart unless-stopped \
+  -p 9494:9494 \
+  -v /path/to/appdata/config:/config \
+  -v /path/to/data:/data \
+  ghcr.io/aleksilassila/reiverr:latest
+```
+
 The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold the media library too, for example `/data/tv` and `/data/movies`. When both are on the same volume, finished downloads are hard linked into the library and take no extra space; across volumes they are copied.
 
 ### Building from Source
@@ -82,7 +103,7 @@ The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold 
 
 ### Tizen / Samsung Smart TVs
 
-To be able to use Reiverr on TVs, you'll still need to host the backend server on a separate device. See the above methods for instructions on how to set up the backend / web app.
+To be able to use Reiverr on TVs, you'll **still need to host the backend server** on a separate device. See the above methods for instructions on how to set up the backend / web app.
 
 Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker image to build and install the application on tizen. To get started:
 
@@ -92,7 +113,7 @@ Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker
 
 For troubleshooting and more detailed instructions, you can see [the repository](https://github.com/Georift/install-jellyfin-tizen) that this build method is based on. In case the installation requires custom certificates, refer to the above repository. Certificate password can be provided as secondary argument after the ip.
 
-If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions), open an [issue](https://github.com/aleksilassila/reiverr/issues) or check out the [Discord channel](https://discord.gg/enypPQh6pz). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
+If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
 
 ## Other Platforms
 
@@ -106,9 +127,9 @@ To create the first user account, you can log in with any credentials and an adm
 
 To get most out of Reiverr, it is recommended to also connect to TMDB.
 
-# Contributing
+You can find more detailed documentation in the [wiki](./docs/user-guide.md).
 
-Unlike the most Servarr projects, this one is built with Svelte and NestJS. If you haven't used Svelte before, don't worry, this was my first Svelte project too. I'd recommend reading the official [Svelte tutorial](https://learn.svelte.dev/tutorial/welcome-to-svelte) to get started.
+# Contributing
 
 To see a list of missing features & known bugs that you can help with, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7). Feel free to also create your own issues for bug reports or feature requests, as well as discussions for general questions. Issues with the `community` label are issues that I can't or won't work on myself, and are left for the community to pick up. Feel free to work on any issues though, even without the label.
 
@@ -120,9 +141,9 @@ Before you contribute:
 - [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
 - When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
 
-I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated! Also the project is still missing a logo :)
-
 # Development
+
+See [docs](./docs/backend-architecture.md) for an overview of the backend architecture.
 
 To get started with development:
 
@@ -148,15 +169,13 @@ Frontend will run on port 5173 and backend port 9494
 
 ## Notes
 
-- 2.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc. [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource for how to design for TVs.
+- 3.0 will primarily target TVs, so the UI must be optimized with TVs in mind. This means larger text, buttons, etc. [Design Guide for Android TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) is a good resource for how to design for TVs.
 - The app should support old browsers all the way to Chromium 69, as that's what used in Tizen 5.5. This means that you might not be able to use the latest browser features, or that you'll have to use a polyfill. [caniuse.com](https://caniuse.com/) is a great resource if you need to check compatibility.
-  - Most of the time you don't need to worry about this, but one big feature that's not available in older browsers is css `gap` property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
+  - For example older browsers don't support `gap` css property. You can use the `space-x` and `space-y` classes from Tailwind CSS to achieve the same effect.
 
 ## Useful resources
 
 - https://developer.themoviedb.org/reference
-- https://api.jellyfin.org/
-- https://github.com/jellyfin/jellyfin-web
 - Network tab in the browser in Jellyfin, Radarr & Sonarr web UIs
 
 # Additional Screenshots
