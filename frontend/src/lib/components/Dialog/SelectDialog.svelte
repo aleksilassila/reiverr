@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Dialog from '../Dialog/Dialog.svelte';
-	import type { JellyfinUser } from '../../apis/jellyfin/jellyfin-api';
 	import SelectItem from '../SelectItem.svelte';
 	import { useComponentStack } from '../StackRouter/stack-router.store';
 

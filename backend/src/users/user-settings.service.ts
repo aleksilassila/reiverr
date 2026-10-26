@@ -1,27 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SettingsService } from '../settings/settings.service.js';
 
-export class SonarrSettings {
-  apiKey: string;
-  baseUrl: string;
-  qualityProfileId: number;
-  rootFolderPath: string;
-  languageProfileId: number;
-}
-
-export class RadarrSettings {
-  apiKey: string;
-  baseUrl: string;
-  qualityProfileId: number;
-  rootFolderPath: string;
-}
-
-export class JellyfinSettings {
-  apiKey: string;
-  baseUrl: string;
-  userId: string;
-}
-
 export class TmdbSettings {
   sessionId: string;
   userId: string;
@@ -31,9 +10,6 @@ export class UserSettings {
   autoplayTrailers: boolean;
   language: string;
   animationDuration: number;
-  sonarr: SonarrSettings;
-  radarr: RadarrSettings;
-  jellyfin: JellyfinSettings;
   tmdb: TmdbSettings;
 }
 
@@ -41,24 +17,6 @@ const DEFAULT_USER_SETTINGS: UserSettings = {
   autoplayTrailers: true,
   language: 'en',
   animationDuration: 300,
-  sonarr: {
-    apiKey: '',
-    baseUrl: '',
-    qualityProfileId: 0,
-    rootFolderPath: '',
-    languageProfileId: 0,
-  },
-  radarr: {
-    apiKey: '',
-    baseUrl: '',
-    qualityProfileId: 0,
-    rootFolderPath: '',
-  },
-  jellyfin: {
-    apiKey: '',
-    baseUrl: '',
-    userId: '',
-  },
   tmdb: {
     sessionId: '',
     userId: '',

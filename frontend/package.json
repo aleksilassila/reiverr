@@ -28,7 +28,6 @@
 		"generate:tmdb-4-openapi": "swagger-typescript-api -p \"https://developer.themoviedb.org/openapi/6453cc549c91cf004cd2a015\" -o src/lib/apis/tmdb -n tmdb-v4.openapi.ts --axios --module-name-first-tag --extract-response-body --api-class-name TmdbApi4Generated"
 	},
 	"devDependencies": {
-		"@jellyfin/sdk": "^0.8.2",
 		"@playwright/test": "^1.28.1",
 		"@sveltejs/vite-plugin-svelte": "^2.4.2",
 		"@tanstack/svelte-query": "^5.90.2",

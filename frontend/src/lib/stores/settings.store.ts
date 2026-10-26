@@ -10,24 +10,6 @@ export interface SettingsValues {
 		excludeLibraryItems: boolean;
 		includedLanguages: string;
 	};
-	sonarr: {
-		baseUrl: string | null;
-		apiKey: string | null;
-		rootFolderPath: string;
-		qualityProfileId: number;
-		languageProfileId: number;
-	};
-	radarr: {
-		baseUrl: string | null;
-		apiKey: string | null;
-		rootFolderPath: string;
-		qualityProfileId: number;
-	};
-	jellyfin: {
-		baseUrl: string | null;
-		apiKey: string | null;
-		userId: string | null;
-	};
 }
 
 export const defaultSettings: SettingsValues = {
@@ -40,24 +22,6 @@ export const defaultSettings: SettingsValues = {
 		region: '',
 		excludeLibraryItems: true,
 		includedLanguages: 'en'
-	},
-	sonarr: {
-		apiKey: null,
-		baseUrl: null,
-		qualityProfileId: 0,
-		rootFolderPath: '',
-		languageProfileId: 0
-	},
-	radarr: {
-		apiKey: null,
-		baseUrl: null,
-		qualityProfileId: 0,
-		rootFolderPath: ''
-	},
-	jellyfin: {
-		apiKey: '',
-		baseUrl: '',
-		userId: ''
 	}
 };
 

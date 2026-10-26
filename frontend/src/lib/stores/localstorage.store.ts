@@ -54,20 +54,3 @@ export const localSettings = createLocalStorageStore<{
 	enableTrailers: true,
 	autoplayTrailers: true
 });
-
-export type LibraryViewSettings = {
-	sortBy: 'date-added' | 'title' | 'first-release-date' | 'last-release-date';
-	sortDirection: 'asc' | 'desc';
-	separateUpcoming: boolean;
-	separateWatched: boolean;
-};
-
-export const libraryViewSettings = createLocalStorageStore<LibraryViewSettings>(
-	'library-view-settings',
-	{
-		sortBy: 'last-release-date',
-		sortDirection: 'desc',
-		separateUpcoming: true,
-		separateWatched: true
-	}
-);

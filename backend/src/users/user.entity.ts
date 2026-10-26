@@ -3,42 +3,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 
 /** @deprecated Use UserSettings from user-settings.service.ts instead */
-export class SonarrSettings {
-  @ApiProperty({ required: true })
-  apiKey: string;
-  @ApiProperty({ required: true })
-  baseUrl: string;
-  @ApiProperty({ required: true })
-  qualityProfileId: number;
-  @ApiProperty({ required: true })
-  rootFolderPath: string;
-  @ApiProperty({ required: true })
-  languageProfileId: number;
-}
-
-/** @deprecated Use UserSettings from user-settings.service.ts instead */
-export class RadarrSettings {
-  @ApiProperty({ required: true })
-  apiKey: string;
-  @ApiProperty({ required: true })
-  baseUrl: string;
-  @ApiProperty({ required: true })
-  qualityProfileId: number;
-  @ApiProperty({ required: true })
-  rootFolderPath: string;
-}
-
-/** @deprecated Use UserSettings from user-settings.service.ts instead */
-export class JellyfinSettings {
-  @ApiProperty({ required: true })
-  apiKey: string;
-  @ApiProperty({ required: true })
-  baseUrl: string;
-  @ApiProperty({ required: true })
-  userId: string;
-}
-
-/** @deprecated Use UserSettings from user-settings.service.ts instead */
 export class TmdbSettings {
   @ApiProperty({ required: true })
   sessionId: string;
@@ -60,12 +24,6 @@ export class UserSettingsDto {
   // 	excludeLibraryItems: true,
   // 	includedLanguages: 'en'
   // },
-  @ApiProperty({ required: true, type: SonarrSettings })
-  sonarr: SonarrSettings;
-  @ApiProperty({ required: true, type: RadarrSettings })
-  radarr: RadarrSettings;
-  @ApiProperty({ required: true, type: JellyfinSettings })
-  jellyfin: JellyfinSettings;
   @ApiProperty({ required: true, type: TmdbSettings })
   tmdb: TmdbSettings;
 }
@@ -80,24 +38,6 @@ const DEFAULT_SETTINGS: UserSettingsDto = {
   // 	excludeLibraryItems: true,
   // 	includedLanguages: 'en'
   // },
-  sonarr: {
-    apiKey: '',
-    baseUrl: '',
-    qualityProfileId: 0,
-    rootFolderPath: '',
-    languageProfileId: 0,
-  },
-  radarr: {
-    apiKey: '',
-    baseUrl: '',
-    qualityProfileId: 0,
-    rootFolderPath: '',
-  },
-  jellyfin: {
-    apiKey: '',
-    baseUrl: '',
-    userId: '',
-  },
   tmdb: {
     sessionId: '',
     userId: '',
