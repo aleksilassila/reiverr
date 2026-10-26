@@ -8,12 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from '../../auth/auth.guard.js';
+import { GetAuthUser, UserAccessControl } from '../../auth/auth.guard.js';
 import { MediaType, SuccessResponseDto } from '../../common/common.dto.js';
+import { User } from '../../users/user.entity.js';
 import { MyListService } from './my-list.service.js';
 
 @ApiTags('myList')
-@Controller('users/:userId/my-list')
+@Controller('me/my-list')
 @UseGuards(UserAccessControl)
 export class MyListController {
   constructor(private myListService: MyListService) {}
@@ -26,7 +27,7 @@ export class MyListController {
     type: SuccessResponseDto,
   })
   async setMyListItem(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Query('inMyList', new ParseBoolPipe()) inMyList: boolean,
     @Query('mediaType', new ParseEnumPipe(MediaType))
@@ -34,7 +35,7 @@ export class MyListController {
   ): Promise<SuccessResponseDto> {
     if (inMyList) {
       const item = await this.myListService.findOrCreateByTmdbId(
-        userId,
+        user.id,
         tmdbId,
         mediaType,
       );
@@ -44,7 +45,7 @@ export class MyListController {
       };
     } else {
       const deleteAction = await this.myListService.deleteByTmdbId(
-        userId,
+        user.id,
         tmdbId,
         mediaType,
       );

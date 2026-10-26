@@ -3,7 +3,7 @@ import type {
 	SetPreferenceDto,
 	UpdatePlayStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
-import { getUserId, reiverrApi } from '$lib/stores/user.store';
+import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
@@ -36,7 +36,7 @@ export const movieQueries = {
 	userData: (tmdbId: string) =>
 		queryOptions({
 			queryKey: movieKeys.userData(tmdbId),
-			queryFn: () => reiverrApi.users.getMovieUserData(getUserId(), tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.users.getMovieUserData(tmdbId).then((r) => r.data)
 		}),
 	/** Where the request of the user stands, its preference, and the torrents on the server */
 	status: (tmdbId: string) =>
@@ -48,8 +48,7 @@ export const movieQueries = {
 	rule: (tmdbId: string) =>
 		queryOptions({
 			queryKey: movieKeys.rule(tmdbId),
-			queryFn: () =>
-				reiverrApi.requests.getMovieRequestRule(getUserId(), tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.requests.getMovieRequestRule(tmdbId).then((r) => r.data)
 		}),
 	/** The files of the movie in the library, external or imported */
 	files: (tmdbId: string) =>
@@ -68,41 +67,41 @@ export const movieQueries = {
 
 /** The progress of playback: the user data of the movie and the lists follow */
 export async function saveMoviePlayState(tmdbId: string, playState: UpdatePlayStateDto) {
-	await reiverrApi.users.updateMoviePlayState(getUserId(), tmdbId, playState);
+	await reiverrApi.users.updateMoviePlayState(tmdbId, playState);
 	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all);
 }
 
 export async function setMovieWatched(tmdbId: string, watched: boolean) {
-	await reiverrApi.users.updateMoviePlayState(getUserId(), tmdbId, { watched });
+	await reiverrApi.users.updateMoviePlayState(tmdbId, { watched });
 	// The rule of the movie follows the watched state, so its status changes with it
 	await invalidate(movieKeys.userData(tmdbId), movieKeys.status(tmdbId), catalogKeys.all);
 }
 
 export async function setMovieInMyList(tmdbId: string, inMyList: boolean) {
-	await reiverrApi.myList.setMyListItem(getUserId(), tmdbId, { mediaType: 'movie', inMyList });
+	await reiverrApi.myList.setMyListItem(tmdbId, { mediaType: 'movie', inMyList });
 	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all);
 }
 
 export async function setMovieRequested(tmdbId: string, requested: boolean) {
 	await (requested
-		? reiverrApi.requests.createMovieRequest(getUserId(), tmdbId)
-		: reiverrApi.requests.deleteMovieRequest(getUserId(), tmdbId));
+		? reiverrApi.requests.createMovieRequest(tmdbId)
+		: reiverrApi.requests.deleteMovieRequest(tmdbId));
 	// The lists show whether the user requested the title
 	await invalidate(movieKeys.status(tmdbId), storageKeys.all, catalogKeys.all);
 }
 
 export async function updateMovieRequestRule(tmdbId: string, rule: MovieRequestRuleDto) {
-	await reiverrApi.requests.updateMovieRequestRule(getUserId(), tmdbId, rule);
+	await reiverrApi.requests.updateMovieRequestRule(tmdbId, rule);
 	await invalidate(movieKeys.rule(tmdbId), movieKeys.status(tmdbId));
 }
 
 /** Selects a release or a file for the movie */
 export async function setMoviePreference(tmdbId: string, preference: SetPreferenceDto) {
-	await reiverrApi.requests.setMoviePreference(getUserId(), tmdbId, preference);
+	await reiverrApi.requests.setMoviePreference(tmdbId, preference);
 	await invalidate(movieKeys.status(tmdbId));
 }
 
 export async function clearMoviePreference(tmdbId: string) {
-	await reiverrApi.requests.clearMoviePreference(getUserId(), tmdbId);
+	await reiverrApi.requests.clearMoviePreference(tmdbId);
 	await invalidate(movieKeys.status(tmdbId));
 }

@@ -1,11 +1,11 @@
-import { getUserId, reiverrApi } from '$lib/stores/user.store';
+import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
 import { pagedQueryOptions } from './query-client';
 
 const TITLES_PAGE_SIZE = 50;
 
 type TitlesParams = Omit<
-	NonNullable<Parameters<typeof reiverrApi.library.getUserTitles>[1]>,
+	NonNullable<Parameters<typeof reiverrApi.library.getUserTitles>[0]>,
 	'page' | 'itemsPerPage'
 >;
 
@@ -21,7 +21,7 @@ export const storageQueries = {
 	user: () =>
 		queryOptions({
 			queryKey: storageKeys.user(),
-			queryFn: () => reiverrApi.library.getUserStorage(getUserId()).then((r) => r.data)
+			queryFn: () => reiverrApi.library.getUserStorage().then((r) => r.data)
 		}),
 	/** The titles the user has requests for, with what they take */
 	titles: (params: TitlesParams) =>
@@ -29,7 +29,7 @@ export const storageQueries = {
 			queryKey: storageKeys.titles(params),
 			queryFn: (page) =>
 				reiverrApi.library
-					.getUserTitles(getUserId(), { ...params, page, itemsPerPage: TITLES_PAGE_SIZE })
+					.getUserTitles({ ...params, page, itemsPerPage: TITLES_PAGE_SIZE })
 					.then((r) => r.data.items)
 		})
 };

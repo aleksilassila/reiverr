@@ -1,6 +1,7 @@
 import type { CreateUserDto, UpdateUserDto } from '$lib/apis/reiverr/reiverr.openapi';
-import { getUserId, reiverrApi, user } from '$lib/stores/user.store';
+import { reiverrApi, user } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
+import { get } from 'svelte/store';
 import { invalidate } from './query-client';
 import { storageKeys } from './storage.queries';
 
@@ -24,7 +25,7 @@ export async function createUser(dto: CreateUserDto) {
 
 /** The user of the session is updated through the user store, which the app reads them from */
 export async function updateUser(id: string, update: UpdateUserDto) {
-	if (id === getUserId()) {
+	if (id === get(user)?.id) {
 		const error = await user.updateUser((current) => ({ ...current, ...update }));
 		if (error) throw error;
 	} else {

@@ -18,6 +18,7 @@ import { RequestBinding } from './request-binding.entity.js';
 import { ScanService } from './scan.service.js';
 import { StatusService } from './status.service.js';
 import { StorageService } from './storage.service.js';
+import { UserStorageController } from './user-storage.controller.js';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { StorageService } from './storage.service.js';
     DownloadsModule,
     JobsModule,
   ],
-  controllers: [LibraryController],
+  controllers: [LibraryController, UserStorageController],
   providers: [
     LibraryService,
     ScanService,

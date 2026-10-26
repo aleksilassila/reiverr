@@ -6,8 +6,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from '../auth/auth.guard.js';
+import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
 import { MediaType } from '../common/common.dto.js';
+import { User } from '../users/user.entity.js';
 import { MyListService } from './my-list/my-list.service.js';
 import {
   MovieUserDataDto,
@@ -16,30 +17,30 @@ import {
 import { PlayStatesService } from './play-state/play-states.service.js';
 
 @ApiTags('users')
-@Controller('users')
+@Controller('me/user-data')
+@UseGuards(UserAccessControl)
 export class UserDataController {
   constructor(
     private myListService: MyListService,
     private playStateService: PlayStatesService,
   ) {}
 
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/movies/:tmdbId')
+  @Get('movies/:tmdbId')
   @ApiOkResponse({
     description: 'User movie data found',
     type: MovieUserDataDto,
   })
   async getMovieUserData(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieUserDataDto> {
     const myListItem = await this.myListService.findByTmdbId(
-      userId,
+      user.id,
       tmdbId,
       MediaType.Movie,
     );
     const playState = await this.playStateService.findMoviePlayState(
-      userId,
+      user.id,
       tmdbId,
     );
 
@@ -50,23 +51,22 @@ export class UserDataController {
     };
   }
 
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/:tmdbId')
+  @Get('series/:tmdbId')
   @ApiOkResponse({
     description: 'User series data found',
     type: SeriesUserDataDto,
   })
   async getSeriesUserData(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SeriesUserDataDto> {
     const myListItem = await this.myListService.findByTmdbId(
-      userId,
+      user.id,
       tmdbId,
       MediaType.Series,
     );
     const playState = await this.playStateService.findSeriesPlayStates(
-      userId,
+      user.id,
       tmdbId,
     );
 
@@ -77,25 +77,24 @@ export class UserDataController {
     };
   }
 
-  @UseGuards(UserAccessControl)
-  @Get(':userId/user-data/series/:tmdbId/seasons/:season/episodes/:episode')
+  @Get('series/:tmdbId/seasons/:season/episodes/:episode')
   @ApiOkResponse({
     description: 'User series data found',
     type: MovieUserDataDto,
   })
   async getEpisodeUserData(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<MovieUserDataDto> {
     const myListItem = await this.myListService.findByTmdbId(
-      userId,
+      user.id,
       tmdbId,
       MediaType.Series,
     );
     const playState = await this.playStateService.findEpisodePlayState(
-      userId,
+      user.id,
       tmdbId,
       season,
       episode,

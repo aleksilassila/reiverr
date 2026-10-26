@@ -10,27 +10,6 @@
  * ---------------------------------------------------------------
  */
 
-export interface SonarrSettings {
-  apiKey: string;
-  baseUrl: string;
-  qualityProfileId: number;
-  rootFolderPath: string;
-  languageProfileId: number;
-}
-
-export interface RadarrSettings {
-  apiKey: string;
-  baseUrl: string;
-  qualityProfileId: number;
-  rootFolderPath: string;
-}
-
-export interface JellyfinSettings {
-  apiKey: string;
-  baseUrl: string;
-  userId: string;
-}
-
 export interface TmdbSettings {
   sessionId: string;
   userId: string;
@@ -40,9 +19,6 @@ export interface UserSettingsDto {
   autoplayTrailers: boolean;
   language: string;
   animationDuration: number;
-  sonarr: SonarrSettings;
-  radarr: RadarrSettings;
-  jellyfin: JellyfinSettings;
   tmdb: TmdbSettings;
 }
 
@@ -1414,95 +1390,6 @@ export interface StorageDto {
   users: UserStorageDto[];
 }
 
-export interface StorageUsageDto {
-  /** Bytes; null for no quota */
-  quotaBytes: number | null;
-  /** Bytes of the files that the requests of the user hold */
-  heldBytes: number;
-  /** Bytes that the downloads the requests of the user wait for are expected to take */
-  pendingBytes: number;
-}
-
-export interface SeasonDto {
-  /**
-   * Season air date
-   * @example "2010-12-05"
-   */
-  air_date?: string;
-  /**
-   * Episode count
-   * @example 272
-   */
-  episode_count?: number;
-  /**
-   * Season ID
-   * @example 3627
-   */
-  id?: number;
-  /**
-   * Season name
-   * @example "Specials"
-   */
-  name?: string;
-  /**
-   * Season overview
-   * @example ""
-   */
-  overview?: string;
-  /**
-   * Poster path
-   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
-   */
-  poster_path?: string;
-  /**
-   * Season number
-   * @example 0
-   */
-  season_number?: number;
-  /**
-   * Vote average
-   * @example 0
-   */
-  vote_average?: number;
-}
-
-export interface TmdbItemDto {
-  id?: number;
-  poster_path?: string;
-  vote_average?: number;
-  title?: string;
-  release_date?: string;
-  runtime?: number;
-  name?: string;
-  first_air_date?: string;
-  last_air_date?: string;
-  next_episode_to_air?: NextEpisodeToAir;
-  seasons?: SeasonDto[];
-}
-
-export interface TitleUsageDto {
-  mediaType: "movie" | "series";
-  tmdbId: string;
-  tmdbItem: TmdbItemDto;
-  /** The requests of the user for the title */
-  requests: number;
-  /** Requests that have their file */
-  withFile: number;
-  /** Requests that wait for a download */
-  downloading: number;
-  /** Bytes of the files that the requests hold, each file once */
-  heldBytes: number;
-  /** Bytes that the downloads the requests wait for are expected to take */
-  pendingBytes: number;
-  /**
-   * When a request of the title last got its file; absent while none has one
-   * @format date-time
-   */
-  lastFulfilledAt?: string;
-  /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
-  rule?: RequestRuleDto;
-}
-
 export interface SubtitleFileDto {
   fileName: string;
   /** Language code from the file name */
@@ -1658,6 +1545,95 @@ export interface SeriesStatusDto {
   episodes: EpisodeStatusDto[];
   /** Info hashes of the torrents that have data on the server or that something is wanted of, and of the torrents files came from */
   onServer: string[];
+}
+
+export interface StorageUsageDto {
+  /** Bytes; null for no quota */
+  quotaBytes: number | null;
+  /** Bytes of the files that the requests of the user hold */
+  heldBytes: number;
+  /** Bytes that the downloads the requests of the user wait for are expected to take */
+  pendingBytes: number;
+}
+
+export interface SeasonDto {
+  /**
+   * Season air date
+   * @example "2010-12-05"
+   */
+  air_date?: string;
+  /**
+   * Episode count
+   * @example 272
+   */
+  episode_count?: number;
+  /**
+   * Season ID
+   * @example 3627
+   */
+  id?: number;
+  /**
+   * Season name
+   * @example "Specials"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example ""
+   */
+  overview?: string;
+  /**
+   * Poster path
+   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 0
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 0
+   */
+  vote_average?: number;
+}
+
+export interface TmdbItemDto {
+  id?: number;
+  poster_path?: string;
+  vote_average?: number;
+  title?: string;
+  release_date?: string;
+  runtime?: number;
+  name?: string;
+  first_air_date?: string;
+  last_air_date?: string;
+  next_episode_to_air?: NextEpisodeToAir;
+  seasons?: SeasonDto[];
+}
+
+export interface TitleUsageDto {
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** The requests of the user for the title */
+  requests: number;
+  /** Requests that have their file */
+  withFile: number;
+  /** Requests that wait for a download */
+  downloading: number;
+  /** Bytes of the files that the requests hold, each file once */
+  heldBytes: number;
+  /** Bytes that the downloads the requests wait for are expected to take */
+  pendingBytes: number;
+  /**
+   * When a request of the title last got its file; absent while none has one
+   * @format date-time
+   */
+  lastFulfilledAt?: string;
+  /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
+  rule?: RequestRuleDto;
 }
 
 export interface JobDto {
@@ -2196,15 +2172,11 @@ export class Api<
      *
      * @tags users
      * @name GetMovieUserData
-     * @request GET:/api/users/{userId}/user-data/movies/{tmdbId}
+     * @request GET:/api/me/user-data/movies/{tmdbId}
      */
-    getMovieUserData: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getMovieUserData: (tmdbId: string, params: RequestParams = {}) =>
       this.request<MovieUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/movies/${tmdbId}`,
+        path: `/api/me/user-data/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2215,15 +2187,11 @@ export class Api<
      *
      * @tags users
      * @name GetSeriesUserData
-     * @request GET:/api/users/{userId}/user-data/series/{tmdbId}
+     * @request GET:/api/me/user-data/series/{tmdbId}
      */
-    getSeriesUserData: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getSeriesUserData: (tmdbId: string, params: RequestParams = {}) =>
       this.request<SeriesUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/series/${tmdbId}`,
+        path: `/api/me/user-data/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2234,17 +2202,16 @@ export class Api<
      *
      * @tags users
      * @name GetEpisodeUserData
-     * @request GET:/api/users/{userId}/user-data/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     * @request GET:/api/me/user-data/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     getEpisodeUserData: (
-      userId: string,
       tmdbId: string,
       season: number,
       episode: number,
       params: RequestParams = {},
     ) =>
       this.request<MovieUserDataDto, any>({
-        path: `/api/users/${userId}/user-data/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/user-data/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2255,16 +2222,15 @@ export class Api<
      *
      * @tags users
      * @name UpdateMoviePlayState
-     * @request PUT:/api/users/{userId}/play-states/movies/{tmdbId}
+     * @request PUT:/api/me/play-states/movies/{tmdbId}
      */
     updateMoviePlayState: (
-      userId: string,
       tmdbId: string,
       data: UpdatePlayStateDto,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-states/movies/${tmdbId}`,
+        path: `/api/me/play-states/movies/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2276,15 +2242,11 @@ export class Api<
      *
      * @tags users
      * @name DeleteMoviePlayState
-     * @request DELETE:/api/users/{userId}/play-states/movies/{tmdbId}
+     * @request DELETE:/api/me/play-states/movies/{tmdbId}
      */
-    deleteMoviePlayState: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    deleteMoviePlayState: (tmdbId: string, params: RequestParams = {}) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-states/movies/${tmdbId}`,
+        path: `/api/me/play-states/movies/${tmdbId}`,
         method: "DELETE",
         ...params,
       }),
@@ -2294,10 +2256,9 @@ export class Api<
      *
      * @tags users
      * @name UpdateEpisodePlayState
-     * @request PUT:/api/users/{userId}/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     * @request PUT:/api/me/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     updateEpisodePlayState: (
-      userId: string,
       tmdbId: string,
       season: number,
       episode: number,
@@ -2305,7 +2266,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2317,17 +2278,16 @@ export class Api<
      *
      * @tags users
      * @name DeleteEpisodePlayState
-     * @request DELETE:/api/users/{userId}/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
+     * @request DELETE:/api/me/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
      */
     deleteEpisodePlayState: (
-      userId: string,
       tmdbId: string,
       season: number,
       episode: number,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
         method: "DELETE",
         ...params,
       }),
@@ -2337,16 +2297,15 @@ export class Api<
      *
      * @tags users
      * @name UpdateSeriesPlayStates
-     * @request PUT:/api/users/{userId}/play-states/series/{tmdbId}
+     * @request PUT:/api/me/play-states/series/{tmdbId}
      */
     updateSeriesPlayStates: (
-      userId: string,
       tmdbId: string,
       data: BulkUpdatePlayStateDto,
       params: RequestParams = {},
     ) =>
       this.request<void, any>({
-        path: `/api/users/${userId}/play-states/series/${tmdbId}`,
+        path: `/api/me/play-states/series/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2422,10 +2381,9 @@ export class Api<
      *
      * @tags requests
      * @name GetUserRequests
-     * @request GET:/api/users/{userId}/requests
+     * @request GET:/api/me/requests
      */
     getUserRequests: (
-      userId: string,
       query?: {
         page?: number;
         itemsPerPage?: number;
@@ -2438,7 +2396,7 @@ export class Api<
         },
         any
       >({
-        path: `/api/users/${userId}/requests`,
+        path: `/api/me/requests`,
         method: "GET",
         query: query,
         format: "json",
@@ -2450,15 +2408,11 @@ export class Api<
      *
      * @tags requests
      * @name GetMovieRequest
-     * @request GET:/api/users/{userId}/requests/movies/{tmdbId}
+     * @request GET:/api/me/requests/movies/{tmdbId}
      */
-    getMovieRequest: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getMovieRequest: (tmdbId: string, params: RequestParams = {}) =>
       this.request<MovieRequestStatusDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
+        path: `/api/me/requests/movies/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2469,15 +2423,11 @@ export class Api<
      *
      * @tags requests
      * @name CreateMovieRequest
-     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}
+     * @request PUT:/api/me/requests/movies/{tmdbId}
      */
-    createMovieRequest: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    createMovieRequest: (tmdbId: string, params: RequestParams = {}) =>
       this.request<MediaRequestDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
+        path: `/api/me/requests/movies/${tmdbId}`,
         method: "PUT",
         format: "json",
         ...params,
@@ -2488,15 +2438,11 @@ export class Api<
      *
      * @tags requests
      * @name DeleteMovieRequest
-     * @request DELETE:/api/users/{userId}/requests/movies/{tmdbId}
+     * @request DELETE:/api/me/requests/movies/{tmdbId}
      */
-    deleteMovieRequest: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    deleteMovieRequest: (tmdbId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}`,
+        path: `/api/me/requests/movies/${tmdbId}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2507,15 +2453,11 @@ export class Api<
      *
      * @tags requests
      * @name GetMovieRequestRule
-     * @request GET:/api/users/{userId}/requests/movies/{tmdbId}/rule
+     * @request GET:/api/me/requests/movies/{tmdbId}/rule
      */
-    getMovieRequestRule: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getMovieRequestRule: (tmdbId: string, params: RequestParams = {}) =>
       this.request<MovieRequestRuleDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}/rule`,
+        path: `/api/me/requests/movies/${tmdbId}/rule`,
         method: "GET",
         format: "json",
         ...params,
@@ -2526,16 +2468,15 @@ export class Api<
      *
      * @tags requests
      * @name UpdateMovieRequestRule
-     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}/rule
+     * @request PUT:/api/me/requests/movies/{tmdbId}/rule
      */
     updateMovieRequestRule: (
-      userId: string,
       tmdbId: string,
       data: MovieRequestRuleDto,
       params: RequestParams = {},
     ) =>
       this.request<MovieRequestRuleDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}/rule`,
+        path: `/api/me/requests/movies/${tmdbId}/rule`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2548,16 +2489,15 @@ export class Api<
      *
      * @tags requests
      * @name SetMoviePreference
-     * @request PUT:/api/users/{userId}/requests/movies/{tmdbId}/preference
+     * @request PUT:/api/me/requests/movies/{tmdbId}/preference
      */
     setMoviePreference: (
-      userId: string,
       tmdbId: string,
       data: SetPreferenceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}/preference`,
+        path: `/api/me/requests/movies/${tmdbId}/preference`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2570,15 +2510,11 @@ export class Api<
      *
      * @tags requests
      * @name ClearMoviePreference
-     * @request DELETE:/api/users/{userId}/requests/movies/{tmdbId}/preference
+     * @request DELETE:/api/me/requests/movies/{tmdbId}/preference
      */
-    clearMoviePreference: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    clearMoviePreference: (tmdbId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/movies/${tmdbId}/preference`,
+        path: `/api/me/requests/movies/${tmdbId}/preference`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2589,15 +2525,11 @@ export class Api<
      *
      * @tags requests
      * @name GetSeriesRequests
-     * @request GET:/api/users/{userId}/requests/series/{tmdbId}
+     * @request GET:/api/me/requests/series/{tmdbId}
      */
-    getSeriesRequests: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getSeriesRequests: (tmdbId: string, params: RequestParams = {}) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}`,
+        path: `/api/me/requests/series/${tmdbId}`,
         method: "GET",
         format: "json",
         ...params,
@@ -2608,16 +2540,15 @@ export class Api<
      *
      * @tags requests
      * @name SetSeriesRequests
-     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}
+     * @request PUT:/api/me/requests/series/{tmdbId}
      */
     setSeriesRequests: (
-      userId: string,
       tmdbId: string,
       data: UpdateSeriesRequestsDto,
       params: RequestParams = {},
     ) =>
       this.request<MediaRequestDto[], any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}`,
+        path: `/api/me/requests/series/${tmdbId}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2630,15 +2561,11 @@ export class Api<
      *
      * @tags requests
      * @name GetSeriesRequestRule
-     * @request GET:/api/users/{userId}/requests/series/{tmdbId}/rule
+     * @request GET:/api/me/requests/series/{tmdbId}/rule
      */
-    getSeriesRequestRule: (
-      userId: string,
-      tmdbId: string,
-      params: RequestParams = {},
-    ) =>
+    getSeriesRequestRule: (tmdbId: string, params: RequestParams = {}) =>
       this.request<RequestRuleDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/rule`,
+        path: `/api/me/requests/series/${tmdbId}/rule`,
         method: "GET",
         format: "json",
         ...params,
@@ -2649,16 +2576,15 @@ export class Api<
      *
      * @tags requests
      * @name UpdateSeriesRequestRule
-     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/rule
+     * @request PUT:/api/me/requests/series/{tmdbId}/rule
      */
     updateSeriesRequestRule: (
-      userId: string,
       tmdbId: string,
       data: RequestRuleDto,
       params: RequestParams = {},
     ) =>
       this.request<RequestRuleDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/rule`,
+        path: `/api/me/requests/series/${tmdbId}/rule`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2671,17 +2597,16 @@ export class Api<
      *
      * @tags requests
      * @name SetSeasonPreference
-     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}
+     * @request PUT:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}
      */
     setSeasonPreference: (
-      userId: string,
       tmdbId: string,
       season: number,
       data: SetPreferenceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}`,
+        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2694,16 +2619,15 @@ export class Api<
      *
      * @tags requests
      * @name ClearSeasonPreference
-     * @request DELETE:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}
+     * @request DELETE:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}
      */
     clearSeasonPreference: (
-      userId: string,
       tmdbId: string,
       season: number,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}`,
+        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2714,10 +2638,9 @@ export class Api<
      *
      * @tags requests
      * @name SetEpisodePreference
-     * @request PUT:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
+     * @request PUT:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
      */
     setEpisodePreference: (
-      userId: string,
       tmdbId: string,
       season: number,
       episode: number,
@@ -2725,7 +2648,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2738,17 +2661,16 @@ export class Api<
      *
      * @tags requests
      * @name ClearEpisodePreference
-     * @request DELETE:/api/users/{userId}/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
+     * @request DELETE:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
      */
     clearEpisodePreference: (
-      userId: string,
       tmdbId: string,
       season: number,
       episode: number,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2878,82 +2800,6 @@ export class Api<
      * No description
      *
      * @tags library
-     * @name GetUserStorage
-     * @request GET:/api/library/storage/users/{userId}
-     */
-    getUserStorage: (userId: string, params: RequestParams = {}) =>
-      this.request<StorageUsageDto, any>({
-        path: `/api/library/storage/users/${userId}`,
-        method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags library
-     * @name GetUserTitles
-     * @request GET:/api/library/storage/users/{userId}/titles
-     */
-    getUserTitles: (
-      userId: string,
-      query?: {
-        mediaType?: "movie" | "series";
-        sort?: "size" | "name" | "fulfilled";
-        /** Without it, the direction natural to the sort */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
-        /** Titles whose name starts with the letter; '#' for a name that starts with none */
-        letter?:
-          | "#"
-          | "A"
-          | "B"
-          | "C"
-          | "D"
-          | "E"
-          | "F"
-          | "G"
-          | "H"
-          | "I"
-          | "J"
-          | "K"
-          | "L"
-          | "M"
-          | "N"
-          | "O"
-          | "P"
-          | "Q"
-          | "R"
-          | "S"
-          | "T"
-          | "U"
-          | "V"
-          | "W"
-          | "X"
-          | "Y"
-          | "Z";
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: TitleUsageDto[];
-        },
-        any
-      >({
-        path: `/api/library/storage/users/${userId}/titles`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags library
      * @name GetMovieFiles
      * @request GET:/api/library/movies/{tmdbId}
      */
@@ -3055,6 +2901,81 @@ export class Api<
       this.request<void, any>({
         path: `/api/library/files/${id}/stream`,
         method: "GET",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetUserStorage
+     * @request GET:/api/me/storage
+     */
+    getUserStorage: (params: RequestParams = {}) =>
+      this.request<StorageUsageDto, any>({
+        path: `/api/me/storage`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags library
+     * @name GetUserTitles
+     * @request GET:/api/me/storage/titles
+     */
+    getUserTitles: (
+      query?: {
+        mediaType?: "movie" | "series";
+        /** Titles whose name starts with the letter; '#' for a name that starts with none */
+        letter?:
+          | "#"
+          | "A"
+          | "B"
+          | "C"
+          | "D"
+          | "E"
+          | "F"
+          | "G"
+          | "H"
+          | "I"
+          | "J"
+          | "K"
+          | "L"
+          | "M"
+          | "N"
+          | "O"
+          | "P"
+          | "Q"
+          | "R"
+          | "S"
+          | "T"
+          | "U"
+          | "V"
+          | "W"
+          | "X"
+          | "Y"
+          | "Z";
+        sort?: "size" | "name" | "fulfilled";
+        /** Without it, the direction natural to the sort */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: TitleUsageDto[];
+        },
+        any
+      >({
+        path: `/api/me/storage/titles`,
+        method: "GET",
+        query: query,
+        format: "json",
         ...params,
       }),
   };
@@ -3499,15 +3420,6 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "requested" | "unrequested";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3537,6 +3449,15 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3564,16 +3485,6 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "upcoming" | "unwatched" | "watched" | "continue-watching";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date"
-          | "last-played";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3603,6 +3514,16 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3625,10 +3546,9 @@ export class Api<
      *
      * @tags myList
      * @name SetMyListItem
-     * @request PUT:/api/users/{userId}/my-list/{tmdbId}
+     * @request PUT:/api/me/my-list/{tmdbId}
      */
     setMyListItem: (
-      userId: string,
       tmdbId: string,
       query: {
         inMyList: boolean;
@@ -3637,7 +3557,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/users/${userId}/my-list/${tmdbId}`,
+        path: `/api/me/my-list/${tmdbId}`,
         method: "PUT",
         query: query,
         format: "json",

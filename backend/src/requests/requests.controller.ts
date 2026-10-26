@@ -38,7 +38,7 @@ const isLimit = (value: unknown) =>
   value === null || (Number.isInteger(value) && (value as number) > 0);
 
 @ApiTags('requests')
-@Controller('users/:userId/requests')
+@Controller('me/requests')
 @UseGuards(UserAccessControl)
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
@@ -47,19 +47,22 @@ export class RequestsController {
   @PaginationApiQuery()
   @PaginatedApiOkResponse(MediaRequestDto)
   async getUserRequests(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @GetPaginationParams() pagination: PaginationDto,
   ): Promise<PaginatedResponseDto<MediaRequestDto>> {
-    return this.requestsService.findByUser(userId, pagination);
+    return this.requestsService.findByUser(user.id, pagination);
   }
 
   @Get('movies/:tmdbId')
   @ApiOkResponse({ type: MovieRequestStatusDto })
   async getMovieRequest(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieRequestStatusDto> {
-    const request = await this.requestsService.findMovieRequest(userId, tmdbId);
+    const request = await this.requestsService.findMovieRequest(
+      user.id,
+      tmdbId,
+    );
 
     return { tmdbId, request: request ?? undefined };
   }
@@ -68,11 +71,10 @@ export class RequestsController {
   @ApiOkResponse({ type: MediaRequestDto })
   async createMovieRequest(
     @GetAuthUser() user: User,
-    @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MediaRequestDto> {
     return this.requestsService.createMovieRequest(
-      userId,
+      user.id,
       tmdbId,
       user.isAdmin,
     );
@@ -81,11 +83,11 @@ export class RequestsController {
   @Delete('movies/:tmdbId')
   @ApiOkResponse({ type: SuccessResponseDto })
   async deleteMovieRequest(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SuccessResponseDto> {
     const result = await this.requestsService.deleteMovieRequest(
-      userId,
+      user.id,
       tmdbId,
     );
 
@@ -95,10 +97,10 @@ export class RequestsController {
   @Get('movies/:tmdbId/rule')
   @ApiOkResponse({ type: MovieRequestRuleDto })
   async getMovieRequestRule(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieRequestRuleDto> {
-    const rule = await this.requestsService.findMovieRule(userId, tmdbId);
+    const rule = await this.requestsService.findMovieRule(user.id, tmdbId);
 
     return { keepWatchedHours: rule?.keepWatchedHours ?? null };
   }
@@ -106,7 +108,7 @@ export class RequestsController {
   @Put('movies/:tmdbId/rule')
   @ApiOkResponse({ type: MovieRequestRuleDto })
   async updateMovieRequestRule(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Body() body: MovieRequestRuleDto,
   ): Promise<MovieRequestRuleDto> {
@@ -116,7 +118,7 @@ export class RequestsController {
       );
     }
 
-    return this.requestsService.setMovieRule(userId, tmdbId, body);
+    return this.requestsService.setMovieRule(user.id, tmdbId, body);
   }
 
   @Put('movies/:tmdbId/preference')
@@ -126,11 +128,11 @@ export class RequestsController {
       'Makes a release the torrent the request of the user for the movie downloads from, or a file in the library what it has',
   })
   async setMoviePreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Body() body: SetPreferenceDto,
   ): Promise<SuccessResponseDto> {
-    const target = movieTarget(userId, tmdbId);
+    const target = movieTarget(user.id, tmdbId);
     const hasRelease = typeof body?.releaseId === 'string';
     const hasFile = typeof body?.mediaFileId === 'string';
     if (hasRelease === hasFile) {
@@ -155,11 +157,11 @@ export class RequestsController {
       'Forgets the torrent or the file the user prefers for the movie',
   })
   async clearMoviePreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SuccessResponseDto> {
     const success = await this.requestsService.clearPreference(
-      movieTarget(userId, tmdbId),
+      movieTarget(user.id, tmdbId),
     );
 
     return { success };
@@ -168,17 +170,16 @@ export class RequestsController {
   @Get('series/:tmdbId')
   @ApiOkResponse({ type: [MediaRequestDto] })
   async getSeriesRequests(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MediaRequestDto[]> {
-    return this.requestsService.findSeriesRequests(userId, tmdbId);
+    return this.requestsService.findSeriesRequests(user.id, tmdbId);
   }
 
   @Put('series/:tmdbId')
   @ApiOkResponse({ type: [MediaRequestDto] })
   async setSeriesRequests(
     @GetAuthUser() user: User,
-    @Param('userId') userId: string,
     @Param('tmdbId') tmdbId: string,
     @Body() body: UpdateSeriesRequestsDto,
   ): Promise<MediaRequestDto[]> {
@@ -195,7 +196,7 @@ export class RequestsController {
     }
 
     return this.requestsService.setEpisodeRequests({
-      userId,
+      userId: user.id,
       tmdbId,
       episodes: body.episodes,
       requested: body.requested,
@@ -206,10 +207,10 @@ export class RequestsController {
   @Get('series/:tmdbId/rule')
   @ApiOkResponse({ type: RequestRuleDto })
   async getSeriesRequestRule(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<RequestRuleDto> {
-    const rule = await this.requestsService.findSeriesRule(userId, tmdbId);
+    const rule = await this.requestsService.findSeriesRule(user.id, tmdbId);
 
     return {
       keepNext: rule?.keepNext ?? null,
@@ -221,7 +222,7 @@ export class RequestsController {
   @Put('series/:tmdbId/rule')
   @ApiOkResponse({ type: RequestRuleDto })
   async updateSeriesRequestRule(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Body() body: RequestRuleDto,
   ): Promise<RequestRuleDto> {
@@ -235,7 +236,7 @@ export class RequestsController {
       );
     }
 
-    return this.requestsService.setSeriesRule(userId, tmdbId, body);
+    return this.requestsService.setSeriesRule(user.id, tmdbId, body);
   }
 
   @Put('series/:tmdbId/preferences/seasons/:season')
@@ -245,7 +246,7 @@ export class RequestsController {
       'Makes a release the torrent the requests of the user for the season download from',
   })
   async setSeasonPreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Body() body: SetPreferenceDto,
@@ -255,7 +256,7 @@ export class RequestsController {
     }
 
     await this.requestsService.preferRelease(
-      seriesTarget(userId, tmdbId, season, 0),
+      seriesTarget(user.id, tmdbId, season, 0),
       body.releaseId,
     );
 
@@ -268,12 +269,12 @@ export class RequestsController {
     description: 'Forgets the torrent the user prefers for the season',
   })
   async clearSeasonPreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
   ): Promise<SuccessResponseDto> {
     const success = await this.requestsService.clearPreference(
-      seriesTarget(userId, tmdbId, season, 0),
+      seriesTarget(user.id, tmdbId, season, 0),
     );
 
     return { success };
@@ -286,14 +287,14 @@ export class RequestsController {
       'Makes a release the torrent the requests of the user for the episode download from, or a file in the library what they have',
   })
   async setEpisodePreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
     @Body() body: SetPreferenceDto,
   ): Promise<SuccessResponseDto> {
     if (episode < 1) throw new BadRequestException('Invalid episode');
-    const target = seriesTarget(userId, tmdbId, season, episode);
+    const target = seriesTarget(user.id, tmdbId, season, episode);
     const hasRelease = typeof body?.releaseId === 'string';
     const hasFile = typeof body?.mediaFileId === 'string';
     if (hasRelease === hasFile) {
@@ -318,14 +319,14 @@ export class RequestsController {
       'Forgets the torrent or the file the user prefers for the episode',
   })
   async clearEpisodePreference(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<SuccessResponseDto> {
     if (episode < 1) throw new BadRequestException('Invalid episode');
     const success = await this.requestsService.clearPreference(
-      seriesTarget(userId, tmdbId, season, episode),
+      seriesTarget(user.id, tmdbId, season, episode),
     );
 
     return { success };

@@ -9,7 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { UserAccessControl } from '../../auth/auth.guard.js';
+import { GetAuthUser, UserAccessControl } from '../../auth/auth.guard.js';
+import { User } from '../../users/user.entity.js';
 import {
   BulkUpdatePlayStateDto,
   UpdatePlayStateDto,
@@ -17,22 +18,19 @@ import {
 import { PlayStatesService } from './play-states.service.js';
 
 @ApiTags('users')
-@Controller('users/:userId/play-states')
+@Controller('me/play-states')
 @UseGuards(UserAccessControl)
 export class PlayStatesController {
   constructor(private playStateService: PlayStatesService) {}
 
   @Put('movies/:tmdbId')
-  // @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   async updateMoviePlayState(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Body() playState: UpdatePlayStateDto,
-    // @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
-    // mediaType?: MediaType,
   ) {
     return this.playStateService.updateOrCreateMoviePlayState(
-      userId,
+      user.id,
       tmdbId,
       playState,
     );
@@ -40,22 +38,22 @@ export class PlayStatesController {
 
   @Delete('movies/:tmdbId')
   async deleteMoviePlayState(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ) {
-    return this.playStateService.deleteMoviePlayState(userId, tmdbId);
+    return this.playStateService.deleteMoviePlayState(user.id, tmdbId);
   }
 
   @Put('series/:tmdbId/seasons/:season/episodes/:episode')
   async updateEpisodePlayState(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
     @Body() playState: UpdatePlayStateDto,
   ) {
     return this.playStateService.updateOrCreateEpisodePlayState(
-      userId,
+      user.id,
       tmdbId,
       season,
       episode,
@@ -65,13 +63,13 @@ export class PlayStatesController {
 
   @Delete('series/:tmdbId/seasons/:season/episodes/:episode')
   async deleteEpisodePlayState(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ) {
     return this.playStateService.deleteEpisodePlayState(
-      userId,
+      user.id,
       tmdbId,
       season,
       episode,
@@ -80,7 +78,7 @@ export class PlayStatesController {
 
   @Put('series/:tmdbId')
   async updateSeriesPlayStates(
-    @Param('userId') userId: string,
+    @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Body() body: BulkUpdatePlayStateDto,
   ) {
@@ -96,7 +94,7 @@ export class PlayStatesController {
     }
 
     return this.playStateService.updateOrCreateSeriesPlayStates(
-      userId,
+      user.id,
       tmdbId,
       body.playStates,
     );

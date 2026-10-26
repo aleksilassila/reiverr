@@ -12,7 +12,7 @@ import type {
 	UpdatePlayStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { getStatusLabel, isErrorStatus } from './request-status';
-import { getUserId, reiverrApi } from '$lib/stores/user.store';
+import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions, skipToken } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
@@ -47,7 +47,7 @@ export const seriesQueries = {
 	userData: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.userData(tmdbId),
-			queryFn: () => reiverrApi.users.getSeriesUserData(getUserId(), tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.users.getSeriesUserData(tmdbId).then((r) => r.data)
 		}),
 	/** Where the requests of the user stand, by episode */
 	status: (tmdbId: string) =>
@@ -60,8 +60,7 @@ export const seriesQueries = {
 	rule: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.rule(tmdbId),
-			queryFn: () =>
-				reiverrApi.requests.getSeriesRequestRule(getUserId(), tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.requests.getSeriesRequestRule(tmdbId).then((r) => r.data)
 		}),
 	/** The files of the episode in the library, external or imported; nothing without an episode */
 	episodeFiles: (tmdbId: string, season: number, episode: number | undefined) =>
@@ -89,7 +88,7 @@ export async function saveEpisodePlayState(
 	episode: number,
 	playState: UpdatePlayStateDto
 ) {
-	await reiverrApi.users.updateEpisodePlayState(getUserId(), tmdbId, season, episode, playState);
+	await reiverrApi.users.updateEpisodePlayState(tmdbId, season, episode, playState);
 	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all);
 }
 
@@ -103,7 +102,7 @@ export async function setEpisodeWatched(
 	episode: number,
 	watched: boolean
 ) {
-	await reiverrApi.users.updateEpisodePlayState(getUserId(), tmdbId, season, episode, { watched });
+	await reiverrApi.users.updateEpisodePlayState(tmdbId, season, episode, { watched });
 	await seriesWatchedChanged(tmdbId);
 }
 
@@ -111,12 +110,12 @@ export async function setEpisodesWatched(
 	tmdbId: string,
 	playStates: { season: number; episode: number; watched: boolean }[]
 ) {
-	await reiverrApi.users.updateSeriesPlayStates(getUserId(), tmdbId, { playStates });
+	await reiverrApi.users.updateSeriesPlayStates(tmdbId, { playStates });
 	await seriesWatchedChanged(tmdbId);
 }
 
 export async function setSeriesInMyList(tmdbId: string, inMyList: boolean) {
-	await reiverrApi.myList.setMyListItem(getUserId(), tmdbId, { mediaType: 'series', inMyList });
+	await reiverrApi.myList.setMyListItem(tmdbId, { mediaType: 'series', inMyList });
 	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all);
 }
 
@@ -125,13 +124,13 @@ export async function setSeriesRequests(
 	episodes: EpisodeRefDto[],
 	requested: boolean
 ) {
-	await reiverrApi.requests.setSeriesRequests(getUserId(), tmdbId, { episodes, requested });
+	await reiverrApi.requests.setSeriesRequests(tmdbId, { episodes, requested });
 	// The lists show whether the user requested the title
 	await invalidate(seriesKeys.status(tmdbId), storageKeys.all, catalogKeys.all);
 }
 
 export async function updateSeriesRequestRule(tmdbId: string, rule: RequestRuleDto) {
-	await reiverrApi.requests.updateSeriesRequestRule(getUserId(), tmdbId, rule);
+	await reiverrApi.requests.updateSeriesRequestRule(tmdbId, rule);
 	await invalidate(seriesKeys.rule(tmdbId), seriesKeys.status(tmdbId));
 }
 
@@ -143,15 +142,15 @@ export async function setPreference(
 	preference: SetPreferenceDto
 ) {
 	await (episode === undefined
-		? reiverrApi.requests.setSeasonPreference(getUserId(), tmdbId, season, preference)
-		: reiverrApi.requests.setEpisodePreference(getUserId(), tmdbId, season, episode, preference));
+		? reiverrApi.requests.setSeasonPreference(tmdbId, season, preference)
+		: reiverrApi.requests.setEpisodePreference(tmdbId, season, episode, preference));
 	await invalidate(seriesKeys.status(tmdbId));
 }
 
 export async function clearPreference(tmdbId: string, season: number, episode: number | undefined) {
 	await (episode === undefined
-		? reiverrApi.requests.clearSeasonPreference(getUserId(), tmdbId, season)
-		: reiverrApi.requests.clearEpisodePreference(getUserId(), tmdbId, season, episode));
+		? reiverrApi.requests.clearSeasonPreference(tmdbId, season)
+		: reiverrApi.requests.clearEpisodePreference(tmdbId, season, episode));
 	await invalidate(seriesKeys.status(tmdbId));
 }
 

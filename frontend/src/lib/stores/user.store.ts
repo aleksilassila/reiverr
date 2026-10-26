@@ -69,9 +69,6 @@ function useUser() {
 
 export const user = useUser();
 
-/** The id of the user of the session, for the routes under their account; read by the queries, which run once there is one */
-export const getUserId = () => get(user)?.id as string;
-
 export const isAppInitialized = derived(user, ($user) => {
 	return $user !== undefined;
 });

@@ -182,8 +182,7 @@ describe('Series downloads (e2e)', () => {
       [method](url)
       .set('Authorization', `Bearer ${user.token}`);
 
-  const preferencesUrl = (user = admin) =>
-    `/users/${user.id}/requests/series/${TMDB_ID}/preferences`;
+  const preferencesUrl = `/me/requests/series/${TMDB_ID}/preferences`;
 
   const signIn = (name: string): Promise<TestUser> =>
     request(app.getHttpServer())
@@ -207,7 +206,7 @@ describe('Series downloads (e2e)', () => {
     requested: boolean,
     { season = 1, user = admin } = {},
   ) =>
-    api('put', `/users/${user.id}/requests/series/${TMDB_ID}`, user)
+    api('put', `/me/requests/series/${TMDB_ID}`, user)
       .send({
         episodes: episodes.map((episode) => ({ season, episode })),
         requested,
@@ -224,7 +223,7 @@ describe('Series downloads (e2e)', () => {
     );
     const target = episode ? `seasons/1/episodes/${episode}` : 'seasons/1';
 
-    return api('put', `${preferencesUrl(user)}/${target}`, user)
+    return api('put', `${preferencesUrl}/${target}`, user)
       .send({ releaseId: releases.find((r) => r.title === title).id })
       .expect(status);
   }
@@ -233,7 +232,7 @@ describe('Series downloads (e2e)', () => {
   const clearSelection = (season: number, episode = 0, user = admin) =>
     api(
       'delete',
-      `${preferencesUrl(user)}/seasons/${season}${episode ? `/episodes/${episode}` : ''}`,
+      `${preferencesUrl}/seasons/${season}${episode ? `/episodes/${episode}` : ''}`,
       user,
     );
 
@@ -644,9 +643,7 @@ describe('Series downloads (e2e)', () => {
 
   it('keeps the files of a season when another torrent is selected for the season', async () => {
     const selectForSeason = (releaseId: string) =>
-      api('put', `${preferencesUrl()}/seasons/1`)
-        .send({ releaseId })
-        .expect(200);
+      api('put', `${preferencesUrl}/seasons/1`).send({ releaseId }).expect(200);
     const releases = await search('season=1&episode=2');
 
     await selectForSeason(
@@ -901,7 +898,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('lets through what the rule of the user allows, and deletes the watched requests it does not keep', async () => {
-    const rulePath = `/users/${admin.id}/requests/series/${TMDB_ID}/rule`;
+    const rulePath = `/me/requests/series/${TMDB_ID}/rule`;
     const setRule = (rule: Partial<RequestRuleDto>) =>
       api('put', rulePath)
         .send({
@@ -914,7 +911,7 @@ describe('Series downloads (e2e)', () => {
     const setPlayState = (season: number, episode: number, playState: object) =>
       api(
         'put',
-        `/users/${admin.id}/play-states/series/${TMDB_ID}/seasons/${season}/episodes/${episode}`,
+        `/me/play-states/series/${TMDB_ID}/seasons/${season}/episodes/${episode}`,
       )
         .send(playState)
         .expect(200);
@@ -944,7 +941,7 @@ describe('Series downloads (e2e)', () => {
     await setPlayState(1, 3, { watched: true });
     await setPlayState(2, 1, { progress: 0.3 });
     const releases = await search('season=2');
-    await api('put', `${preferencesUrl()}/seasons/2`)
+    await api('put', `${preferencesUrl}/seasons/2`)
       .send({
         releaseId: releases.find((r) => r.title.includes('S02')).id,
       })
@@ -1013,11 +1010,10 @@ describe('Series downloads (e2e)', () => {
     await settle();
   });
 
-  it('accepts a rule only from its user and with positive limits', async () => {
-    const rulePath = `/users/${admin.id}/requests/series/${TMDB_ID}/rule`;
+  it('accepts a rule only with positive limits', async () => {
+    const rulePath = `/me/requests/series/${TMDB_ID}/rule`;
     const rule = { keepNext: 1, keepWatched: null, keepWatchedHours: null };
 
-    await api('put', rulePath, viewer).send(rule).expect(401);
     await api('put', rulePath)
       .send({ ...rule, keepNext: 0 })
       .expect(400);
@@ -1318,7 +1314,7 @@ describe('Series downloads (e2e)', () => {
         .send({ quotaBytes })
         .expect(status);
     const getUsage = () =>
-      api('get', `/library/storage/users/${limited.id}`, limited)
+      api('get', '/me/storage', limited)
         .expect(200)
         .then((res) => res.body);
     const setLimit = (maxDiskUsagePercent: number | null) =>
@@ -1409,9 +1405,6 @@ describe('Series downloads (e2e)', () => {
       pendingBytes: 0,
     });
     await api('get', '/library/storage', limited).expect(403);
-    await api('get', `/library/storage/users/${limited.id}`, viewer).expect(
-      401,
-    );
 
     await setLimit(null);
     await settle();
@@ -1438,7 +1431,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('rejects requests for episodes that do not exist', async () => {
-    await api('put', `/users/${admin.id}/requests/series/${TMDB_ID}`)
+    await api('put', `/me/requests/series/${TMDB_ID}`)
       .send({ episodes: [{ season: 1, episode: 9 }], requested: true })
       .expect(400);
   });
@@ -1450,7 +1443,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('downloads a movie from the release its user picks, plays it, and cleans it up when nothing holds it', async () => {
-    const moviePath = `/users/${admin.id}/requests/movies/${MOVIE_ID}`;
+    const moviePath = `/me/requests/movies/${MOVIE_ID}`;
     const getMovieStatus = (user = admin): Promise<MovieStatusDto> =>
       api('get', `/library/movies/${MOVIE_ID}/status`, user)
         .expect(200)
@@ -1498,9 +1491,6 @@ describe('Series downloads (e2e)', () => {
     ).toBe(true);
 
     await api('put', `${moviePath}/preference`).send({}).expect(400);
-    await api('put', `${moviePath}/preference`, viewer)
-      .send({ releaseId: releases[0].id })
-      .expect(401);
     await api('put', `${moviePath}/preference`)
       .send({ releaseId: releases[0].id })
       .expect(200);
@@ -1542,7 +1532,7 @@ describe('Series downloads (e2e)', () => {
     expect((await api('get', `${moviePath}/rule`).expect(200)).body).toEqual({
       keepWatchedHours: 1,
     });
-    await api('put', `/users/${admin.id}/play-states/movies/${MOVIE_ID}`)
+    await api('put', `/me/play-states/movies/${MOVIE_ID}`)
       .send({ watched: true })
       .expect(200);
     await settle();

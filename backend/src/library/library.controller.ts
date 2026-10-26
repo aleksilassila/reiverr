@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseEnumPipe,
   ParseIntPipe,
   Put,
   Query,
@@ -22,19 +21,6 @@ import {
   GetAuthUser,
   UserAccessControl,
 } from '../auth/auth.guard.js';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-  PaginationApiQuery,
-} from '../common/common.decorator.js';
-import {
-  LETTERS,
-  type Letter,
-  MediaType,
-  OrderDirection,
-  PaginatedResponseDto,
-  PaginationDto,
-} from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 import {
   LibraryEpisodeFileDto,
@@ -44,9 +30,6 @@ import {
   MovieStatusDto,
   SeriesStatusDto,
   StorageDto,
-  StorageUsageDto,
-  TitleUsageDto,
-  TitleUsageSort,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { PlaybackService } from './playback.service.js';
@@ -100,54 +83,6 @@ export class LibraryController {
   })
   getStorage(): Promise<StorageDto> {
     return this.storageService.describe();
-  }
-
-  @Get('storage/users/:userId')
-  @ApiOkResponse({
-    type: StorageUsageDto,
-    description: 'The quota of the user and what their requests take',
-  })
-  getUserStorage(@Param('userId') userId: string): Promise<StorageUsageDto> {
-    return this.storageService.describeUser(userId);
-  }
-
-  @Get('storage/users/:userId/titles')
-  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
-  @ApiQuery({
-    name: 'letter',
-    enum: LETTERS,
-    required: false,
-    description:
-      "Titles whose name starts with the letter; '#' for a name that starts with none",
-  })
-  @ApiQuery({ name: 'sort', enum: TitleUsageSort, required: false })
-  @ApiQuery({
-    name: 'direction',
-    enum: OrderDirection,
-    required: false,
-    description: 'Without it, the direction natural to the sort',
-  })
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(TitleUsageDto)
-  getUserTitles(
-    @Param('userId') userId: string,
-    @GetPaginationParams() pagination: PaginationDto,
-    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
-    mediaType?: MediaType,
-    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
-    letter?: Letter,
-    @Query('sort', new ParseEnumPipe(TitleUsageSort, { optional: true }))
-    sort?: TitleUsageSort,
-    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
-    direction?: OrderDirection,
-  ): Promise<PaginatedResponseDto<TitleUsageDto>> {
-    return this.storageService.describeUserTitles(userId, {
-      mediaType,
-      letter,
-      sort: sort ?? TitleUsageSort.Size,
-      direction,
-      pagination,
-    });
   }
 
   @Get('movies/:tmdbId')
