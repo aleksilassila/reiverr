@@ -91,6 +91,9 @@
 		}
 	}
 
+	// Admins set the passwords of other users without the old ones
+	$: oldPasswordNeeded = !createNew && user?.id === $userStore?.id;
+
 	$: stale =
 		(name !== user?.name && name !== '') ||
 		oldPassword !== newPassword ||
@@ -181,7 +184,7 @@
 			>
 				Profile Picture
 			</SelectField>
-			{#if !createNew}
+			{#if oldPasswordNeeded}
 				<Container direction="horizontal" class="flex space-x-4 items-end">
 					<TextField
 						variant="primary-dark"

@@ -83,19 +83,33 @@
 
 	<Container class="flex flex-col space-y-4">
 		{#if onDisk}
-			<Button icon={Play} action={play} focusOnMount>Play</Button>
+			<Button icon={Play} type="primary-dark" action={play} focusOnMount>Play</Button>
 		{/if}
 		{#if userData?.watched}
-			<Button icon={Check} action={() => setWatched(false)} focusOnMount={!onDisk}>
+			<Button
+				icon={Check}
+				type="primary-dark"
+				action={() => setWatched(false)}
+				focusOnMount={!onDisk}
+			>
 				Mark as Unwatched
 			</Button>
 		{:else}
-			<Button icon={Check} action={() => setWatched(true)} focusOnMount={!onDisk}>
+			<Button
+				icon={Check}
+				type="primary-dark"
+				action={() => setWatched(true)}
+				focusOnMount={!onDisk}
+			>
 				Mark as Watched
 			</Button>
 		{/if}
 		{#if seasonEpisodes.length}
-			<Button icon={Check} on:clickOrSelect={() => confirmSeasonWatched(!seasonWatched)}>
+			<Button
+				icon={Check}
+				type="primary-dark"
+				on:clickOrSelect={() => confirmSeasonWatched(!seasonWatched)}
+			>
 				Mark Season as {seasonWatched ? 'Unwatched' : 'Watched'}
 			</Button>
 		{/if}

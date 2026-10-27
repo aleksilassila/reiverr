@@ -274,11 +274,11 @@ async function createHub() {
   );
   const user = new User();
   user.name = 'user';
-  user.password = '';
+  user.passwordHash = '';
   await orm.em.fork().insert(user);
   const other = new User();
   other.name = 'other';
-  other.password = '';
+  other.passwordHash = '';
   await orm.em.fork().insert(other);
 
   return {

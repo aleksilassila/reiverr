@@ -30,7 +30,7 @@ describe('MyListService', () => {
 
     const user = new User();
     user.name = 'user';
-    user.password = '';
+    user.passwordHash = '';
     await orm.em.fork().insert(user);
     userId = user.id;
 

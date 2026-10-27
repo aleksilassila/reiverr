@@ -202,7 +202,7 @@ describe('describeUserTitles', () => {
 
     const user = new User();
     user.name = 'user';
-    user.password = '';
+    user.passwordHash = '';
     userId = (await insert(user)).id;
     await insert(SeriesMetadata.from(SERIES));
     await insert(SeriesMetadata.from(ANOTHER_SERIES));

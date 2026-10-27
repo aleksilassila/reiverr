@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service.js';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/user.entity.js';
+import { verifyPassword } from '../users/password.utils.js';
 
 export interface AccessTokenPayload {
   sub: string;
@@ -29,7 +30,7 @@ export class AuthService {
         isAdmin: true,
       });
 
-    if (!(user && user.password === password)) {
+    if (!(user && (await verifyPassword(password, user.passwordHash)))) {
       throw new UnauthorizedException();
     }
 

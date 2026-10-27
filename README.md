@@ -43,6 +43,7 @@ Playback:
 
 - Direct playback (see [your browser compatibility](https://cconcolato.github.io/media-mime-support/))
 - ~~Transcoding/HLS~~
+- ~~Streaming from torrents~~
 - Audio track selection (Tizen, or [audioTracks](https://caniuse.com/audiotracks))
 - Subtitles (VTT/SRT as sidecar files)
 
@@ -65,9 +66,9 @@ services:
       - 9494:9494
     environment:
       - SECRET=your_secret_here # optional, used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
-      - ADMIN_USERNAME=admin # optional
-      - ADMIN_PASSWORD=admin # optional
-      - TORRENT_PORT=51413 # optional, the port that peers connect to. Forward it to the container (or through your VPN). If not set, the torrent client only connects to peers.
+      # - ADMIN_USERNAME=admin # optional
+      # - ADMIN_PASSWORD=very_strong_password # optional
+      # - TORRENT_PORT=51413 # optional, the port that peers connect to. Forward it to the container (or through your VPN). If not set, the torrent client only connects to peers.
     volumes:
       - /path/to/appdata/config:/config
       - /path/to/data:/data
@@ -123,7 +124,7 @@ The roadmap includes plans to support the following platforms in the future:
 
 # Post Installation
 
-To create the first user account, you can log in with any credentials and an admin account will be created. Alternatively, you can define the admin username and password using environment variables, as seen in the Docker Compose example. A new admin account is only created if there are no previous accounts with the same name.
+To create the first user account, you can log in with any credentials and an admin account will be created. Alternatively, you can define the admin username and password using environment variables, as seen in the Docker Compose example. A new admin account is created on startup if there is no account with that name. If an admin account with that name exists, its password is reset to `ADMIN_PASSWORD` on every startup, which is also how you can recover a forgotten admin password. To change that admin's password in the app, remove `ADMIN_PASSWORD` first.
 
 To get most out of Reiverr, it is recommended to also connect to TMDB.
 

@@ -2728,8 +2728,8 @@
           "enumItems": [],
           "mappedType": "integer"
         },
-        "password": {
-          "name": "password",
+        "password_hash": {
+          "name": "password_hash",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,

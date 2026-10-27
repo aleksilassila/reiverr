@@ -3,6 +3,7 @@ import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { hashPassword, verifyPassword } from './password.utils.js';
 import { CreateUserDto, UpdateUserDto, UserDto } from './user.dto.js';
 import { User } from './user.entity.js';
 
@@ -60,8 +61,7 @@ export class UsersService {
 
     const user = new User();
     user.name = userCreateDto.name;
-    // TODO: Hash password
-    user.password = userCreateDto.password;
+    user.passwordHash = await hashPassword(userCreateDto.password);
     user.isAdmin = userCreateDto.isAdmin;
 
     try {
@@ -90,15 +90,19 @@ export class UsersService {
 
     if (updateUserDto.name) user.name = updateUserDto.name;
 
-    if (updateUserDto.oldPassword !== updateUserDto.password) {
+    const { password, oldPassword } = updateUserDto;
+    if (password !== undefined && password !== oldPassword) {
+      const setByAdmin = callerUser.isAdmin && callerUser.id !== userId;
       if (
-        updateUserDto.password !== undefined &&
-        updateUserDto.oldPassword !== user.password
-      ) {
+        !setByAdmin &&
+        !(
+          oldPassword !== undefined &&
+          (await verifyPassword(oldPassword, user.passwordHash))
+        )
+      )
         throw UserServiceError.PasswordMismatch;
-      } else if (updateUserDto.password !== undefined) {
-        user.password = updateUserDto.password;
-      }
+
+      user.passwordHash = await hashPassword(password);
     }
 
     if (updateUserDto.settings) user.settings = updateUserDto.settings;
@@ -136,6 +140,25 @@ export class UsersService {
     return this.findOne(user.id);
   }
 
+  /**
+   * The admin of ADMIN_USERNAME and ADMIN_PASSWORD: created when no user has
+   * the name, and its password set back when it was changed
+   */
+  async createOrResetAdmin(name: string, password: string) {
+    const user = await this.findOneByName(name);
+
+    if (!user) {
+      await this.create({ name, password, isAdmin: true });
+    } else if (
+      user.isAdmin &&
+      !(await verifyPassword(password, user.passwordHash))
+    ) {
+      user.passwordHash = await hashPassword(password);
+      await this.em.flush();
+      console.log(`Reset the password of ${name} to ADMIN_PASSWORD`);
+    }
+  }
+
   /** The requests and rules of the user go with it */
   async remove(id: string) {
     return this.em.transactional(async (tx) => {
@@ -164,12 +187,12 @@ export class UsersService {
       // isAdmin: entity.isAdmin,
       // settings: entity.settings,
       // onboardingDone: entity.onboardingDone,
-      password: '',
+      passwordHash: '',
       profilePicture:
         'data:image;base64,' + user.profilePicture?.toString('base64'),
     };
 
-    delete out.password;
+    delete out.passwordHash;
 
     return out;
   }

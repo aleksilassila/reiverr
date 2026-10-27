@@ -54,9 +54,9 @@ export class User {
   @Property({ unique: true })
   name: string;
 
-  @ApiProperty({ required: true })
-  @Property()
-  password: string;
+  /** `hashPassword` of password.utils.ts */
+  @Property({ hidden: true })
+  passwordHash: string;
 
   @ApiProperty({ required: false })
   @Property({ type: 'blob', nullable: true })

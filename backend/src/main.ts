@@ -13,15 +13,7 @@ import { json, urlencoded } from 'express';
 async function createAdminUser(userService: UsersService) {
   if (!ADMIN_USERNAME || ADMIN_PASSWORD === undefined) return;
 
-  const existingUser = await userService.findOneByName(ADMIN_USERNAME);
-
-  if (!existingUser) {
-    await userService.create({
-      name: ADMIN_USERNAME,
-      password: ADMIN_PASSWORD,
-      isAdmin: true,
-    });
-  }
+  await userService.createOrResetAdmin(ADMIN_USERNAME, ADMIN_PASSWORD);
 }
 
 async function bootstrap() {
