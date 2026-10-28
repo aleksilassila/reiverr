@@ -8,8 +8,8 @@ import { DownloadsService } from './downloads.service.js';
 import { TorrentItem } from './torrent-item.entity.js';
 import { TorrentRuntime } from './torrent-runtime.js';
 import { TORRENT_ENGINE } from './torrent-engine.js';
-import { TorrentStreamEngine } from './torrent-stream.engine.js';
 import { Torrent } from './torrent.entity.js';
+import { WebTorrentEngine } from './webtorrent.engine.js';
 
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { Torrent } from './torrent.entity.js';
   providers: [
     DownloadsService,
     TorrentRuntime,
-    { provide: TORRENT_ENGINE, useClass: TorrentStreamEngine },
+    { provide: TORRENT_ENGINE, useClass: WebTorrentEngine },
   ],
   exports: [DownloadsService],
 })

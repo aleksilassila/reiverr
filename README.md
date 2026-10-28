@@ -65,10 +65,15 @@ services:
     ports:
       - 9494:9494
     environment:
-      - SECRET=your_secret_here # optional, used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
-      # - ADMIN_USERNAME=admin # optional
-      # - ADMIN_PASSWORD=very_strong_password # optional
-      # - TORRENT_PORT=51413 # optional, the port that peers connect to. Forward it to the container (or through your VPN). If not set, the torrent client only connects to peers.
+      # Optional variables:
+      - SECRET=your_secret_here # used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
+      # - ADMIN_USERNAME=admin
+      # - ADMIN_PASSWORD=very_strong_password
+      # - TORRENT_PORT=51413 # The port that torrent client listens on. If not set, a random port is used. It's recommend to forward this in your VPN
+      # - TORRENT_DHT_PORT=51414 # DHT nodes UDP port. If not set, a random port is used. Forward as well
+      # - TORRENT_UPNP=true # Enable UPnP, off by default
+      # - TORRENT_NAT_PMP=true # Enable NAT-PMP, off by default
+      # - TORRENT_WEBRTC=false # Disable WebRTC peers. On by default
     volumes:
       - /path/to/appdata/config:/config
       - /path/to/data:/data

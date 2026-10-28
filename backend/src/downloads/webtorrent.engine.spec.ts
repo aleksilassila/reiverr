@@ -2,11 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import * as net from 'node:net';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import WebTorrent from 'webtorrent';
 import { createTorrent, PIECE_LENGTH } from '../../test/torrent-fixture.js';
-import { TorrentStreamHandle } from './torrent-stream.engine.js';
+import { WebTorrentHandle } from './webtorrent.engine.js';
 
-// Runs the real client without peer discovery, so nothing leaves the machine
-describe('TorrentStreamHandle', () => {
+// Runs real clients without peer discovery, so nothing leaves the machine
+describe('WebTorrentHandle', () => {
   const files = [
     { name: 'Show.S01E01.mkv', data: Buffer.alloc(PIECE_LENGTH * 3, 'a') },
     {
@@ -15,28 +16,27 @@ describe('TorrentStreamHandle', () => {
     },
   ];
   let directory: string;
-  let torrent: TorrentStreamHandle;
+  let client: WebTorrent;
+  let torrent: WebTorrentHandle | undefined;
 
   beforeEach(() => {
     directory = mkdtempSync(path.join(tmpdir(), 'reiverr-torrent-'));
+    client = createClient();
   });
 
   afterEach(async () => {
-    await torrent.destroy();
+    await torrent?.destroy();
+    torrent = undefined;
+    await destroyClient(client);
     rmSync(directory, { recursive: true, force: true });
   });
 
-  const add = () =>
-    new TorrentStreamHandle(createTorrent('Show.S01', files), directory, {
-      dht: false,
-      tracker: false,
-    });
+  const add = (source: string | Buffer = createTorrent('Show.S01', files)) =>
+    new WebTorrentHandle(client, source, directory);
 
   it('lists the files of a torrent and has no data at first', async () => {
     torrent = add();
 
-    // Known before any peer has been asked for the file list
-    expect(torrent.infoHash).toMatch(/^[a-f0-9]{40}$/);
     expect(await torrent.ready).toEqual([
       {
         index: 0,
@@ -94,7 +94,7 @@ describe('TorrentStreamHandle', () => {
     await torrent.ready;
 
     const completed = new Promise<number>((resolve) =>
-      torrent.onFileComplete(resolve),
+      torrent!.onFileComplete(resolve),
     );
     torrent.setWantedFiles([0, 1]);
     torrent.setWantedFiles([1]);
@@ -102,36 +102,90 @@ describe('TorrentStreamHandle', () => {
     expect(await completed).toBe(1);
   });
 
-  it('accepts peers on the given port, which every torrent shares', async () => {
-    const port = await findFreePort();
-    const options = { dht: false, tracker: false };
-    torrent = new TorrentStreamHandle(
-      createTorrent('Show.S01', files),
-      directory,
-      options,
-      port,
-    );
-    const other = new TorrentStreamHandle(
-      createTorrent('Show.S02', files),
-      directory,
-      options,
-      port,
-    );
+  it('downloads the wanted files from a peer, also when the next file is no longer wanted', async () => {
+    // The files share a piece
+    const shared = [
+      {
+        name: 'Show.S01E01.mkv',
+        data: Buffer.alloc(PIECE_LENGTH * 2 + 100, 'a'),
+      },
+      { name: 'Show.S01E02.mkv', data: Buffer.alloc(PIECE_LENGTH * 3, 'b') },
+    ];
+    const source = createTorrent('Show.S01', shared);
+    const seedDirectory = mkdtempSync(path.join(tmpdir(), 'reiverr-seed-'));
+    mkdirSync(path.join(seedDirectory, 'Show.S01'));
+    for (const file of shared) {
+      writeFileSync(path.join(seedDirectory, 'Show.S01', file.name), file.data);
+    }
+    const seeder = createClient();
 
     try {
-      await vi.waitFor(() => connect(port));
+      const seed = seeder.add(source, { path: seedDirectory });
+      await new Promise((resolve) => seed.once('ready', resolve));
+
+      torrent = add(source);
+      await torrent.ready;
+      const completed = new Promise<number>((resolve) =>
+        torrent!.onFileComplete(resolve),
+      );
+      torrent.setWantedFiles([0, 1]);
+      torrent.setWantedFiles([0]);
+      seed.addPeer(`127.0.0.1:${client.torrentPort}`);
+
+      expect(await completed).toBe(0);
+      expect(torrent.isFileComplete(1)).toBe(false);
+      expect(torrent.getStats().downloaded).toBeGreaterThan(0);
     } finally {
-      await other.destroy();
+      await destroyClient(seeder);
+      rmSync(seedDirectory, { recursive: true, force: true });
     }
   });
 
-  it('rejects a source that is not a torrent', () => {
-    expect(
-      () => new TorrentStreamHandle('not a magnet link', directory),
-    ).toThrow();
+  it('accepts peers on the port of the client', async () => {
+    const port = await findFreePort();
+    await destroyClient(client);
+    client = createClient(port);
+
     torrent = add();
+
+    await vi.waitFor(() => connect(port));
+  });
+
+  it('refuses a string that is not a magnet link and fails a source that is not a torrent', async () => {
+    expect(() => add('not a magnet link')).toThrow();
+
+    torrent = add(Buffer.from('not a torrent'));
+
+    await expect(torrent.ready).rejects.toThrow();
+  });
+
+  it('fails when the client stops', async () => {
+    torrent = add();
+    await torrent.ready;
+    const failed = new Promise<Error>((resolve) => torrent!.onError(resolve));
+
+    await destroyClient(client);
+
+    expect((await failed).message).toBe('The torrent client stopped');
   });
 });
+
+function createClient(torrentPort?: number): WebTorrent {
+  return new WebTorrent({
+    torrentPort,
+    dht: false,
+    tracker: false,
+    lsd: false,
+    natUpnp: false,
+    natPmp: false,
+  });
+}
+
+function destroyClient(client: WebTorrent): Promise<void> {
+  if (client.destroyed) return Promise.resolve();
+
+  return new Promise((resolve) => client.destroy(() => resolve()));
+}
 
 function findFreePort(): Promise<number> {
   return new Promise((resolve) => {

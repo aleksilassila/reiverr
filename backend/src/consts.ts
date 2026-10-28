@@ -21,13 +21,36 @@ export const DOWNLOADS_DIR = resolve(
     './downloads',
 );
 // The port that peers connect to, forwarded to the server. Without it the
-// torrent client only connects to peers.
-export const TORRENT_PORT = process.env.TORRENT_PORT
-  ? Number(process.env.TORRENT_PORT)
-  : undefined;
-if (
-  TORRENT_PORT !== undefined &&
-  !(Number.isInteger(TORRENT_PORT) && TORRENT_PORT > 0 && TORRENT_PORT < 65536)
-) {
-  throw new Error(`TORRENT_PORT is not a port: ${process.env.TORRENT_PORT}`);
+// torrent client listens on a random port.
+export const TORRENT_PORT = readPort('TORRENT_PORT');
+// The UDP port of the DHT node, a random one without it
+export const TORRENT_DHT_PORT = readPort('TORRENT_DHT_PORT');
+if (TORRENT_DHT_PORT !== undefined && TORRENT_DHT_PORT === TORRENT_PORT) {
+  throw new Error(
+    'TORRENT_DHT_PORT has to differ from TORRENT_PORT, which uTP uses over UDP',
+  );
+}
+// Whether the torrent client asks the router to forward its ports
+export const TORRENT_UPNP = readFlag('TORRENT_UPNP');
+export const TORRENT_NAT_PMP = readFlag('TORRENT_NAT_PMP');
+// Whether the torrent client connects to browser peers, through WebSocket trackers
+export const TORRENT_WEBRTC = readFlag('TORRENT_WEBRTC', true);
+
+function readPort(name: string): number | undefined {
+  const value = process.env[name];
+  if (!value) return undefined;
+
+  const port = Number(value);
+  if (!(Number.isInteger(port) && port > 0 && port < 65536)) {
+    throw new Error(`${name} is not a port: ${value}`);
+  }
+  return port;
+}
+
+function readFlag(name: string, defaultValue = false): boolean {
+  const value = process.env[name];
+  if (!value) return defaultValue;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${name} is not true or false: ${value}`);
 }
