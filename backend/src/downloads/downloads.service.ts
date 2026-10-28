@@ -28,10 +28,10 @@ import {
   DEFAULT_DOWNLOADS_SETTINGS,
   DOWNLOADS_SETTINGS_KEY,
 } from './downloads.settings.js';
-import { TorrentFileInfo } from './torrent-engine.js';
+import { TorrentFileInfo, TorrentState } from './torrent-engine.js';
 import { TorrentItem } from './torrent-item.entity.js';
 import { findItemFile, findSubtitleFiles } from './torrent-match.js';
-import { TorrentRuntime, TorrentSnapshot } from './torrent-runtime.js';
+import { TorrentRuntime } from './torrent-runtime.js';
 import { Torrent } from './torrent.entity.js';
 
 const READ = { disableIdentityMap: true };
@@ -368,6 +368,8 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     infoHash: string,
     context: JobContext,
   ): Promise<void> {
+    // The seed ratio is decided from the counters of the row
+    await this.runtime.flushTorrent(infoHash);
     const snapshot = this.runtime.snapshot(infoHash);
     const hasDirectory = await exists(this.getDirectory(infoHash));
     const { seedRatio, downloadSubtitles } = await this.getSettings();
@@ -410,7 +412,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
           item.fileIndex !== undefined &&
           !item.completedAt &&
           snapshot?.ready &&
-          itemFileIndexes(item).every((index) => snapshot.complete.has(index));
+          itemFileIndexes(item).every((index) =>
+            snapshot.complete.includes(index),
+          );
         if (isComplete) {
           item.completedAt = now;
           await tx.nativeUpdate(
@@ -443,7 +447,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         { infoHash },
         { error: snapshot.error },
       );
-      await this.runtime.stop(context, infoHash);
+      await this.runtime.stop(infoHash);
       return;
     }
 
@@ -455,21 +459,17 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     );
     const needsFiles =
       !hasFiles && wanted.some((item) => item.fileIndex == null);
-    const downloadedBytes =
-      torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0);
-    const uploadedBytes =
-      torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0);
     const hasData = snapshot?.ready ? snapshot.hasData : hasDirectory;
     // A failed torrent does not seed: its data goes once nothing wants it
     const isSeeding =
       !torrent.error &&
       hasData &&
-      downloadedBytes > 0 &&
-      uploadedBytes < seedRatio * downloadedBytes;
+      torrent.downloadedBytes > 0 &&
+      torrent.uploadedBytes < seedRatio * torrent.downloadedBytes;
 
     if (!isDownloading && !needsFiles && !isSeeding) {
       // Nothing downloads: an item that waits for its import keeps the data
-      if (wanted.length) await this.runtime.stop(context, infoHash);
+      if (wanted.length) await this.runtime.stop(infoHash);
       else await this.release(context, torrent);
       return;
     }
@@ -485,7 +485,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     if (torrent.error) {
       await context.em.nativeUpdate(Torrent, { infoHash }, { error: null });
     }
-    this.runtime.setWantedFiles(context, infoHash, [
+    this.runtime.setWantedFiles(infoHash, [
       ...new Set(wanted.flatMap(itemFileIndexes)),
     ]);
   }
@@ -500,7 +500,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     );
     try {
       this.runtime.start(
-        context,
         { infoHash, magnetUrl: torrent.magnetUrl, torrentFile },
         this.getDirectory(infoHash),
       );
@@ -515,7 +514,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   /** Stops a torrent that nothing wants and that seeds no more, and deletes what it downloaded */
   private async release(context: JobContext, torrent: Torrent) {
     const { infoHash } = torrent;
-    await this.runtime.stop(context, infoHash);
+    await this.runtime.stop(infoHash);
 
     const directory = this.getDirectory(infoHash);
     const hasData = await exists(directory);
@@ -552,7 +551,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   private toItemDto(
     item: TorrentItem,
     torrent: Torrent | undefined,
-    snapshot: TorrentSnapshot | undefined,
+    snapshot: TorrentState | undefined,
   ): TorrentItemDto {
     const files = torrent?.files ?? snapshot?.files;
     const file = fileOf(files, item.fileIndex);
@@ -584,47 +583,47 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     return {
       ...dto,
       status: TorrentItemStatus.Downloading,
-      progress: snapshot.progress(file.index),
+      progress: this.runtime.getFileProgress(item.torrentHash, file.index),
     };
   }
 
   private toTorrentDto(
     torrent: Torrent,
     items: TorrentItem[],
-    snapshot: TorrentSnapshot | undefined,
+    snapshot: TorrentState | undefined,
   ): TorrentDto {
     const error = snapshot ? snapshot.error : torrent.error;
-    const isWanted = items.some(
+    const wanted = items.filter(
       (item) => !item.releasedAt && !item.completedAt,
     );
-    const downloadedBytes =
-      torrent.downloadedBytes + (snapshot?.unflushed.downloaded ?? 0);
+    const isDownloading = wanted.some(
+      (item) => item.fileIndex !== null && item.fileIndex !== undefined,
+    );
 
     return {
       infoHash: torrent.infoHash,
       title: torrent.title,
       indexer: torrent.indexer,
       size: torrent.size,
-      downloadedBytes,
-      uploadedBytes:
-        torrent.uploadedBytes + (snapshot?.unflushed.uploaded ?? 0),
+      downloadedBytes: torrent.downloadedBytes,
+      uploadedBytes: torrent.uploadedBytes,
       status: error
         ? TorrentStatus.Failed
         : !snapshot
-          ? isWanted
+          ? wanted.length
             ? TorrentStatus.Starting
-            : downloadedBytes > 0
+            : torrent.downloadedBytes > 0
               ? TorrentStatus.Stopped
               : TorrentStatus.Idle
           : !snapshot.ready
             ? TorrentStatus.Starting
-            : snapshot.wanted.length
+            : isDownloading
               ? TorrentStatus.Downloading
               : TorrentStatus.Seeding,
       error: error ?? undefined,
-      peers: snapshot?.peers ?? 0,
-      downloadSpeed: snapshot?.downloadSpeed ?? 0,
-      uploadSpeed: snapshot?.uploadSpeed ?? 0,
+      peers: snapshot?.stats.peers ?? 0,
+      downloadSpeed: snapshot?.stats.downloadSpeed ?? 0,
+      uploadSpeed: snapshot?.stats.uploadSpeed ?? 0,
     };
   }
 

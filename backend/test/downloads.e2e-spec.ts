@@ -782,7 +782,7 @@ describe('Series downloads (e2e)', () => {
 
     pack.stats.uploaded = 150;
     // The counters are stored every 30 seconds
-    await app.get(TorrentRuntime).flush();
+    await app.get(TorrentRuntime).flushAll();
     await settle();
 
     expect(pack.destroyed).toBe(true);

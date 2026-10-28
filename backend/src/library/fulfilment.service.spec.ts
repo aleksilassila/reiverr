@@ -220,7 +220,7 @@ async function createHub() {
     jobs,
   );
   const engine = new FakeEngine();
-  const runtime = new TorrentRuntime(orm.em, jobs, settings, engine);
+  const runtime = new TorrentRuntime(orm.em, jobs, engine);
   const downloads = new DownloadsService(
     orm.em,
     settings,

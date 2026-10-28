@@ -12,25 +12,24 @@ import {
   TorrentEngine,
   TorrentFileInfo,
   TorrentHandle,
-  TorrentStats,
+  TorrentState,
 } from './torrent-engine.js';
 
 const COMPLETION_CHECK_INTERVAL = 1000;
 
 export class WebTorrentHandle implements TorrentHandle {
-  readonly ready: Promise<TorrentFileInfo[]>;
-
   private readonly logger = new Logger(WebTorrentHandle.name);
   // Untyped: @types/webtorrent types the parse-torrent 4 of the indexers as version 11
   private readonly torrent: any;
   // The torrent empties its file list when it closes
   private files: any[] = [];
+  private ready = false;
+  private error?: string;
   private readonly wanted = new Set<number>();
+  /** The wanted files found complete by the check */
   private readonly completed = new Set<number>();
-  private readonly listeners: ((index: number) => void)[] = [];
-  private readonly errorListeners: ((error: Error) => void)[] = [];
+  private readonly listeners: (() => void)[] = [];
   private readonly completionCheck: NodeJS.Timeout;
-  private failed = false;
   private closed = false;
   private destroying = false;
 
@@ -45,27 +44,50 @@ export class WebTorrentHandle implements TorrentHandle {
     }
 
     this.torrent = client.add(source, { path: directory, deselect: true });
-
-    this.ready = new Promise((resolve, reject) => {
-      this.torrent.once('ready', () => {
-        this.files = [...this.torrent.files];
-        resolve(this.getFiles());
-      });
-      this.onError(reject);
+    this.torrent.once('ready', () => {
+      this.files = [...this.torrent.files];
+      this.ready = true;
+      this.notify();
     });
     this.torrent.on('error', (error: Error | string) =>
-      this.fail(typeof error === 'string' ? new Error(error) : error),
+      this.fail(typeof error === 'string' ? error : error.message),
     );
     this.torrent.once('close', () => {
       this.closed = true;
-      if (!this.destroying) this.fail(new Error('The torrent client stopped'));
+      if (!this.destroying) this.fail('The torrent client stopped');
     });
 
     this.completionCheck = setInterval(
-      () => this.notifyCompleted(),
+      () => this.checkCompletion(),
       COMPLETION_CHECK_INTERVAL,
     );
     this.completionCheck.unref();
+  }
+
+  getState(): TorrentState {
+    return {
+      ready: this.ready,
+      files: this.ready ? this.getFiles() : undefined,
+      error: this.error,
+      wanted: [...this.wanted],
+      complete: this.ready
+        ? this.files.flatMap((_, index) =>
+            this.isFileComplete(index) ? [index] : [],
+          )
+        : [],
+      hasData:
+        this.ready &&
+        this.torrent.pieces.some((_: unknown, piece: number) =>
+          this.isPieceStored(piece),
+        ),
+      stats: {
+        peers: this.torrent.numPeers,
+        downloadSpeed: this.torrent.downloadSpeed,
+        uploadSpeed: this.torrent.uploadSpeed,
+        downloaded: this.torrent.received,
+        uploaded: this.torrent.uploaded,
+      },
+    };
   }
 
   setWantedFiles(indexes: number[]): void {
@@ -87,6 +109,8 @@ export class WebTorrentHandle implements TorrentHandle {
   }
 
   getFileProgress(index: number): number {
+    if (!this.ready) return 0;
+
     const [first, last] = this.getPieceRange(index);
     if (last < first) return 1;
 
@@ -98,36 +122,12 @@ export class WebTorrentHandle implements TorrentHandle {
     return pieces / (last - first + 1);
   }
 
-  isFileComplete(index: number): boolean {
-    return this.getFileProgress(index) === 1;
-  }
-
-  onFileComplete(listener: (index: number) => void): void {
-    this.listeners.push(listener);
-  }
-
-  onError(listener: (error: Error) => void): void {
-    this.errorListeners.push(listener);
-  }
-
   getFilePath(index: number): string {
     return path.join(this.directory, this.files[index].path);
   }
 
-  hasData(): boolean {
-    return this.torrent.pieces.some((_: unknown, piece: number) =>
-      this.isPieceStored(piece),
-    );
-  }
-
-  getStats(): TorrentStats {
-    return {
-      peers: this.torrent.numPeers,
-      downloadSpeed: this.torrent.downloadSpeed,
-      uploadSpeed: this.torrent.uploadSpeed,
-      downloaded: this.torrent.received,
-      uploaded: this.torrent.uploaded,
-    };
+  onChange(listener: () => void): void {
+    this.listeners.push(listener);
   }
 
   destroy(): Promise<void> {
@@ -138,19 +138,23 @@ export class WebTorrentHandle implements TorrentHandle {
     return new Promise((resolve) => this.torrent.destroy({}, () => resolve()));
   }
 
+  private isFileComplete(index: number): boolean {
+    return this.getFileProgress(index) === 1;
+  }
+
   // The torrent drops a piece once it is verified and written to disk
   private isPieceStored(piece: number): boolean {
     return this.torrent.pieces[piece] === null;
   }
 
-  private fail(error: Error) {
-    if (this.failed) return;
-    this.failed = true;
+  private fail(message: string) {
+    if (this.error) return;
+    this.error = message;
 
     // A source that does not parse has no info hash
     const name = this.torrent.infoHash ?? this.directory;
-    this.logger.error(`${name}: ${error.message}`);
-    this.errorListeners.forEach((listener) => listener(error));
+    this.logger.error(`${name}: ${message}`);
+    this.notify();
   }
 
   private getFiles(): TorrentFileInfo[] {
@@ -172,13 +176,19 @@ export class WebTorrentHandle implements TorrentHandle {
     ];
   }
 
-  private notifyCompleted() {
+  private checkCompletion() {
+    let changed = false;
     for (const index of this.wanted) {
       if (this.completed.has(index) || !this.isFileComplete(index)) continue;
 
       this.completed.add(index);
-      this.listeners.forEach((listener) => listener(index));
+      changed = true;
     }
+    if (changed) this.notify();
+  }
+
+  private notify() {
+    this.listeners.forEach((listener) => listener());
   }
 }
 

@@ -133,7 +133,7 @@ describe('DownloadsService', () => {
     jobs = new JobsService(orm.em);
     const settings = new SettingsService(orm.em);
     await request(() => settings.saveValue('downloads', { seedRatio }));
-    runtime = new TorrentRuntime(orm.em, jobs, settings, engine);
+    runtime = new TorrentRuntime(orm.em, jobs, engine);
     downloads = new DownloadsService(
       orm.em,
       settings,
@@ -334,7 +334,7 @@ describe('DownloadsService', () => {
     ]);
 
     pack.stats.uploaded = 200;
-    await runtime.flush();
+    await runtime.flushAll();
     await settle();
 
     expect(pack.destroyed).toBe(true);

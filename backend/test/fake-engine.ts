@@ -5,6 +5,7 @@ import {
   TorrentEngine,
   TorrentFileInfo,
   TorrentHandle,
+  TorrentState,
 } from '../src/downloads/torrent-engine.js';
 
 /**
@@ -18,8 +19,9 @@ export const magnetFiles: Record<string, { path: string; length: number }[]> =
 export class FakeTorrent implements TorrentHandle {
   readonly infoHash: string;
   readonly files: TorrentFileInfo[];
-  readonly ready: Promise<TorrentFileInfo[]>;
+  ready = false;
   wanted: number[] = [];
+  error?: string;
   destroyed = false;
   stats = {
     peers: 3,
@@ -28,8 +30,7 @@ export class FakeTorrent implements TorrentHandle {
     downloaded: 0,
     uploaded: 0,
   };
-  private listeners: ((index: number) => void)[] = [];
-  private errorListeners: ((error: Error) => void)[] = [];
+  private listeners: (() => void)[] = [];
 
   constructor(
     source: string | Buffer,
@@ -46,7 +47,29 @@ export class FakeTorrent implements TorrentHandle {
         length: file.length,
       }),
     );
-    this.ready = Promise.resolve(this.files);
+    // Ready once the engine's add has returned, as a real client is
+    queueMicrotask(() => {
+      this.ready = true;
+      this.notify();
+    });
+  }
+
+  getState(): TorrentState {
+    const complete = this.ready
+      ? this.files
+          .filter((file) => this.isFileComplete(file.index))
+          .map((file) => file.index)
+      : [];
+
+    return {
+      ready: this.ready,
+      files: this.ready ? this.files : undefined,
+      error: this.error,
+      wanted: this.wanted,
+      complete,
+      hasData: complete.length > 0,
+      stats: this.stats,
+    };
   }
 
   setWantedFiles(indexes: number[]) {
@@ -57,37 +80,22 @@ export class FakeTorrent implements TorrentHandle {
     return this.isFileComplete(index) ? 1 : 0.5;
   }
 
-  // Like a real client, data from an earlier run counts
-  isFileComplete(index: number) {
-    return existsSync(this.getFilePath(index));
-  }
-
-  onFileComplete(listener: (index: number) => void) {
-    this.listeners.push(listener);
-  }
-
-  onError(listener: (error: Error) => void) {
-    this.errorListeners.push(listener);
-  }
-
-  fail(error: Error) {
-    this.errorListeners.forEach((listener) => listener(error));
-  }
-
   getFilePath(index: number) {
     return path.join(this.directory, this.files[index].path);
   }
 
-  hasData() {
-    return this.files.some((file) => this.isFileComplete(file.index));
-  }
-
-  getStats() {
-    return this.stats;
+  onChange(listener: () => void) {
+    this.listeners.push(listener);
   }
 
   async destroy() {
     this.destroyed = true;
+  }
+
+  /** Fails the torrent, as the engine does on an error */
+  fail(error: Error) {
+    this.error = error.message;
+    this.notify();
   }
 
   /** Downloads a file: it appears on disk and the engine reports it complete */
@@ -96,7 +104,16 @@ export class FakeTorrent implements TorrentHandle {
     mkdirSync(path.dirname(filePath), { recursive: true });
     writeFileSync(filePath, `video ${index}`);
     this.stats.downloaded += this.files[index].length;
-    this.listeners.forEach((listener) => listener(index));
+    this.notify();
+  }
+
+  // Like a real client, data from an earlier run counts
+  private isFileComplete(index: number) {
+    return existsSync(this.getFilePath(index));
+  }
+
+  private notify() {
+    this.listeners.forEach((listener) => listener());
   }
 }
 

@@ -19,23 +19,32 @@ export interface TorrentStats {
   uploaded: number;
 }
 
+/** What the engine knows of a torrent at one moment */
+export interface TorrentState {
+  /** The file list is known and data from an earlier run is verified */
+  ready: boolean;
+  /** The files, once ready */
+  files?: TorrentFileInfo[];
+  /** Why the torrent failed, once it has */
+  error?: string;
+  /** The files that download, by index */
+  wanted: number[];
+  /** The files that are downloaded and written to disk, by index; none until ready */
+  complete: number[];
+  /** Whether any part of the torrent is on disk; false until ready */
+  hasData: boolean;
+  stats: TorrentStats;
+}
+
 export interface TorrentHandle {
-  /** Resolves once the file list is known and data from an earlier run is verified */
-  readonly ready: Promise<TorrentFileInfo[]>;
+  getState(): TorrentState;
   /** Downloads these files and nothing else */
   setWantedFiles(indexes: number[]): void;
-  /** Share of the file that is downloaded, from 0 to 1 */
+  /** Share of the file that is downloaded, from 0 to 1; 0 until ready */
   getFileProgress(index: number): number;
-  /** Whether the whole file is downloaded and written to disk */
-  isFileComplete(index: number): boolean;
-  /** Called when a wanted file becomes complete */
-  onFileComplete(listener: (index: number) => void): void;
-  /** Called when the torrent fails while it runs */
-  onError(listener: (error: Error) => void): void;
   getFilePath(index: number): string;
-  /** Whether any part of the torrent is on disk */
-  hasData(): boolean;
-  getStats(): TorrentStats;
+  /** Called when the torrent becomes ready, fails, or completes a wanted file */
+  onChange(listener: () => void): void;
   /** Stops all transfers. Downloaded data stays on disk. */
   destroy(): Promise<void>;
 }

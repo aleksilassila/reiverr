@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import WebTorrent from 'webtorrent';
 import { createTorrent, PIECE_LENGTH } from '../../test/torrent-fixture.js';
+import { TorrentFileInfo } from './torrent-engine.js';
 import { WebTorrentHandle } from './webtorrent.engine.js';
 
 // Runs real clients without peer discovery, so nothing leaves the machine
@@ -34,36 +35,51 @@ describe('WebTorrentHandle', () => {
   const add = (source: string | Buffer = createTorrent('Show.S01', files)) =>
     new WebTorrentHandle(client, source, directory);
 
-  it('lists the files of a torrent and has no data at first', async () => {
+  it('lists the files of a torrent once ready and has no data at first', async () => {
     torrent = add();
 
-    expect(await torrent.ready).toEqual([
-      {
-        index: 0,
-        name: 'Show.S01E01.mkv',
-        path: path.join('Show.S01', 'Show.S01E01.mkv'),
-        length: PIECE_LENGTH * 3,
-      },
-      {
-        index: 1,
-        name: 'Show.S01E02.mkv',
-        path: path.join('Show.S01', 'Show.S01E02.mkv'),
-        length: PIECE_LENGTH * 2 + 100,
-      },
-    ]);
-    expect(torrent.hasData()).toBe(false);
+    expect(torrent.getState()).toMatchObject({
+      ready: false,
+      files: undefined,
+      complete: [],
+      hasData: false,
+    });
     expect(torrent.getFileProgress(0)).toBe(0);
-    expect(torrent.isFileComplete(0)).toBe(false);
+
+    await ready(torrent);
+
+    expect(torrent.getState()).toEqual({
+      ready: true,
+      files: [
+        {
+          index: 0,
+          name: 'Show.S01E01.mkv',
+          path: path.join('Show.S01', 'Show.S01E01.mkv'),
+          length: PIECE_LENGTH * 3,
+        },
+        {
+          index: 1,
+          name: 'Show.S01E02.mkv',
+          path: path.join('Show.S01', 'Show.S01E02.mkv'),
+          length: PIECE_LENGTH * 2 + 100,
+        },
+      ],
+      error: undefined,
+      wanted: [],
+      complete: [],
+      hasData: false,
+      stats: {
+        peers: 0,
+        downloadSpeed: 0,
+        uploadSpeed: 0,
+        downloaded: 0,
+        uploaded: 0,
+      },
+    });
+    expect(torrent.getFileProgress(0)).toBe(0);
     expect(torrent.getFilePath(1)).toBe(
       path.join(directory, 'Show.S01', 'Show.S01E02.mkv'),
     );
-    expect(torrent.getStats()).toEqual({
-      peers: 0,
-      downloadSpeed: 0,
-      uploadSpeed: 0,
-      downloaded: 0,
-      uploaded: 0,
-    });
   });
 
   it('recognises data from an earlier run per file', async () => {
@@ -74,13 +90,11 @@ describe('WebTorrentHandle', () => {
     );
 
     torrent = add();
-    await torrent.ready;
+    await ready(torrent);
 
-    expect(torrent.hasData()).toBe(true);
+    expect(torrent.getState()).toMatchObject({ hasData: true, complete: [0] });
     expect(torrent.getFileProgress(0)).toBe(1);
-    expect(torrent.isFileComplete(0)).toBe(true);
     expect(torrent.getFileProgress(1)).toBe(0);
-    expect(torrent.isFileComplete(1)).toBe(false);
   });
 
   it('reports a wanted file that is complete and accepts changes to the wanted files', async () => {
@@ -91,15 +105,14 @@ describe('WebTorrentHandle', () => {
     );
 
     torrent = add();
-    await torrent.ready;
+    await ready(torrent);
 
-    const completed = new Promise<number>((resolve) =>
-      torrent!.onFileComplete(resolve),
-    );
+    const changed = nextChange(torrent);
     torrent.setWantedFiles([0, 1]);
     torrent.setWantedFiles([1]);
+    await changed;
 
-    expect(await completed).toBe(1);
+    expect(torrent.getState()).toMatchObject({ wanted: [1], complete: [1] });
   });
 
   it('downloads the wanted files from a peer, also when the next file is no longer wanted', async () => {
@@ -124,17 +137,16 @@ describe('WebTorrentHandle', () => {
       await new Promise((resolve) => seed.once('ready', resolve));
 
       torrent = add(source);
-      await torrent.ready;
-      const completed = new Promise<number>((resolve) =>
-        torrent!.onFileComplete(resolve),
-      );
+      await ready(torrent);
+      const changed = nextChange(torrent);
       torrent.setWantedFiles([0, 1]);
       torrent.setWantedFiles([0]);
       seed.addPeer(`127.0.0.1:${client.torrentPort}`);
+      await changed;
 
-      expect(await completed).toBe(0);
-      expect(torrent.isFileComplete(1)).toBe(false);
-      expect(torrent.getStats().downloaded).toBeGreaterThan(0);
+      const state = torrent.getState();
+      expect(state.complete).toEqual([0]);
+      expect(state.stats.downloaded).toBeGreaterThan(0);
     } finally {
       await destroyClient(seeder);
       rmSync(seedDirectory, { recursive: true, force: true });
@@ -156,19 +168,38 @@ describe('WebTorrentHandle', () => {
 
     torrent = add(Buffer.from('not a torrent'));
 
-    await expect(torrent.ready).rejects.toThrow();
+    await expect(ready(torrent)).rejects.toThrow();
   });
 
   it('fails when the client stops', async () => {
     torrent = add();
-    await torrent.ready;
-    const failed = new Promise<Error>((resolve) => torrent!.onError(resolve));
+    await ready(torrent);
+    const changed = nextChange(torrent);
 
     await destroyClient(client);
+    await changed;
 
-    expect((await failed).message).toBe('The torrent client stopped');
+    expect(torrent.getState().error).toBe('The torrent client stopped');
   });
 });
+
+/** Resolves with the files once the torrent is ready, rejects once it fails */
+function ready(torrent: WebTorrentHandle): Promise<TorrentFileInfo[]> {
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const state = torrent.getState();
+      if (state.error) reject(new Error(state.error));
+      else if (state.ready) resolve(state.files);
+    };
+    torrent.onChange(check);
+    check();
+  });
+}
+
+/** Resolves at the next change the torrent reports */
+function nextChange(torrent: WebTorrentHandle): Promise<void> {
+  return new Promise((resolve) => torrent.onChange(resolve));
+}
 
 function createClient(torrentPort?: number): WebTorrent {
   return new WebTorrent({

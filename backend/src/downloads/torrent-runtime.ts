@@ -6,17 +6,13 @@ import {
   Logger,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import { JobContext, JobsService } from '../jobs/jobs.service.js';
-import { SettingsService } from '../settings/settings.service.js';
-import {
-  DEFAULT_DOWNLOADS_SETTINGS,
-  DOWNLOADS_SETTINGS_KEY,
-} from './downloads.settings.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import {
   TORRENT_ENGINE,
   type TorrentEngine,
-  type TorrentFileInfo,
   type TorrentHandle,
+  type TorrentState,
+  type TorrentStats,
 } from './torrent-engine.js';
 import { Torrent } from './torrent.entity.js';
 
@@ -24,37 +20,15 @@ const FLUSH_INTERVAL = 30_000;
 
 /** A torrent in the engine */
 interface Entry {
-  infoHash: string;
   handle: TorrentHandle;
-  files?: TorrentFileInfo[];
-  ready: boolean;
-  error?: string;
-  wanted: number[];
   /** How much of the engine's transfer counters is stored in the torrent row */
   flushed: { downloaded: number; uploaded: number };
 }
 
-export interface TorrentSnapshot {
-  /** The engine knows the files and has verified the data of an earlier run */
-  ready: boolean;
-  files?: TorrentFileInfo[];
-  error?: string;
-  wanted: number[];
-  complete: Set<number>;
-  hasData: boolean;
-  /** Transfer counters that are not in the torrent row yet */
-  unflushed: { downloaded: number; uploaded: number };
-  peers: number;
-  downloadSpeed: number;
-  uploadSpeed: number;
-  progress: (fileIndex: number) => number;
-  filePath: (fileIndex: number) => string;
-}
-
 /**
  * The torrents that run in the engine. It decides nothing: only the job of a
- * torrent starts, changes or stops it, and what the engine reports is turned
- * into that job. It is the only one that adds to the transfer counters.
+ * torrent starts, changes or stops it, and a change the engine reports is
+ * turned into that job. It is the only one that adds to the transfer counters.
  */
 @Injectable()
 export class TorrentRuntime
@@ -68,70 +42,47 @@ export class TorrentRuntime
   constructor(
     private readonly em: EntityManager,
     private readonly jobs: JobsService,
-    private readonly settingsService: SettingsService,
     @Inject(TORRENT_ENGINE) private readonly engine: TorrentEngine,
   ) {}
 
   onApplicationBootstrap() {
     this.timer = setInterval(() => {
-      this.flush().catch((error) =>
+      this.flushAll().catch((error) =>
         this.logger.error(`Storing the counters failed: ${error.message}`),
       );
     }, FLUSH_INTERVAL);
     this.timer.unref();
   }
 
+  /** Stops every torrent, each storing what it transferred */
   async beforeApplicationShutdown(): Promise<void> {
     this.stopping = true;
     clearInterval(this.timer);
-    await this.flush().catch((error) =>
-      this.logger.error(`Storing the counters failed: ${error.message}`),
-    );
-    await Promise.allSettled(
-      [...this.entries.values()].map((entry) => this.remove(entry)),
+    await Promise.all(
+      [...this.entries].map(([infoHash, entry]) =>
+        this.remove(infoHash, entry).catch((error) =>
+          this.logger.error(`Stopping ${infoHash} failed: ${error.message}`),
+        ),
+      ),
     );
   }
 
-  /** Take what the engine currently knows about a torrent and copy it into a plain object (snapshot) */
-  snapshot(infoHash: string): TorrentSnapshot | undefined {
-    const entry = this.entries.get(infoHash);
-    if (!entry) return undefined;
+  /** What the engine knows of a torrent, if it runs */
+  snapshot(infoHash: string): TorrentState | undefined {
+    return this.entries.get(infoHash)?.handle.getState();
+  }
 
-    const { handle } = entry;
-    const stats = handle.getStats();
-    const files = entry.ready ? entry.files : undefined;
-
-    return {
-      ready: entry.ready,
-      files: entry.files,
-      error: entry.error,
-      wanted: entry.wanted,
-      complete: new Set(
-        (files ?? [])
-          .filter((file) => handle.isFileComplete(file.index))
-          .map((file) => file.index),
-      ),
-      hasData: entry.ready && handle.hasData(),
-      unflushed: {
-        downloaded: stats.downloaded - entry.flushed.downloaded,
-        uploaded: stats.uploaded - entry.flushed.uploaded,
-      },
-      peers: stats.peers,
-      downloadSpeed: stats.downloadSpeed,
-      uploadSpeed: stats.uploadSpeed,
-      progress: (index) => (entry.ready ? handle.getFileProgress(index) : 0),
-      filePath: (index) => handle.getFilePath(index),
-    };
+  /** Share of a file of a running torrent that is downloaded, from 0 to 1 */
+  getFileProgress(infoHash: string, index: number): number {
+    return this.entries.get(infoHash)?.handle.getFileProgress(index) ?? 0;
   }
 
   /** Starts a torrent in the engine. Throws when the engine refuses the source. */
   start(
-    context: JobContext,
     torrent: Pick<Torrent, 'infoHash' | 'magnetUrl' | 'torrentFile'>,
     directory: string,
   ): void {
     const { infoHash } = torrent;
-    this.assertHolds(context, infoHash);
     if (this.stopping) return;
     if (this.entries.has(infoHash)) {
       throw new Error(`Torrent ${infoHash} runs already`);
@@ -141,129 +92,83 @@ export class TorrentRuntime
       torrent.torrentFile ?? torrent.magnetUrl,
       directory,
     );
-    const entry: Entry = {
-      infoHash,
-      handle,
-      ready: false,
-      wanted: [],
-      flushed: { downloaded: 0, uploaded: 0 },
-    };
-    // A callback of a handle that was stopped since is about another run
-    const isCurrent = () => this.entries.get(infoHash) === entry;
+    const entry: Entry = { handle, flushed: { downloaded: 0, uploaded: 0 } };
     this.entries.set(infoHash, entry);
-
-    handle.ready.then(
-      (files) => {
-        if (!isCurrent()) return;
-        entry.files = files;
-        entry.ready = true;
-        this.reconcileLater(infoHash);
-      },
-      (error: Error) => {
-        if (!isCurrent()) return;
-        entry.error = error.message;
-        this.reconcileLater(infoHash);
-      },
-    );
-    handle.onError((error) => {
-      if (!isCurrent()) return;
-      entry.error = error.message;
-      this.reconcileLater(infoHash);
-    });
-    handle.onFileComplete(() => {
-      if (isCurrent()) this.reconcileLater(infoHash);
+    // A change of a handle that was stopped since is about another run
+    handle.onChange(() => {
+      if (this.entries.get(infoHash) === entry) this.reconcileLater(infoHash);
     });
   }
 
-  setWantedFiles(
-    context: JobContext,
-    infoHash: string,
-    indexes: number[],
-  ): void {
-    this.assertHolds(context, infoHash);
-    const entry = this.entries.get(infoHash);
-    if (!entry) return;
-
-    entry.wanted = indexes;
-    entry.handle.setWantedFiles(indexes);
+  setWantedFiles(infoHash: string, indexes: number[]): void {
+    this.entries.get(infoHash)?.handle.setWantedFiles(indexes);
   }
 
   /** Stops a torrent and stores what it transferred since the last flush */
-  async stop(context: JobContext, infoHash: string): Promise<void> {
-    this.assertHolds(context, infoHash);
+  async stop(infoHash: string): Promise<void> {
     const entry = this.entries.get(infoHash);
     if (!entry) return;
 
-    await this.remove(entry);
+    await this.remove(infoHash, entry);
+  }
+
+  /** Adds what a torrent transferred to its row, for its job to read current counters */
+  async flushTorrent(infoHash: string): Promise<void> {
+    const entry = this.entries.get(infoHash);
+    if (entry) await this.flushEntry(infoHash, entry);
   }
 
   /**
    * Adds what every torrent transferred to its row, and has a torrent that
-   * only seeds decide again once it reaches the seed ratio
+   * only seeds decide again, since it may have reached the seed ratio
    */
-  async flush(): Promise<void> {
-    const { seedRatio } = await this.settingsService.getOrCreateValue(
-      DOWNLOADS_SETTINGS_KEY,
-      DEFAULT_DOWNLOADS_SETTINGS,
-    );
-    const seeding = new Set(
-      [...this.entries.values()]
-        .filter((entry) => entry.ready && !entry.wanted.length)
-        .map((entry) => entry.infoHash),
-    );
-    const deltas = [...this.entries.values()].map((entry) =>
-      this.takeDelta(entry),
-    );
-    const changed = deltas.filter((d) => d.downloaded || d.uploaded);
+  async flushAll(): Promise<void> {
+    const changed = [...this.entries].flatMap(([infoHash, entry]) => {
+      const state = entry.handle.getState();
+      const delta = this.takeDelta(entry, state.stats);
+      if (!delta.downloaded && !delta.uploaded) return [];
+
+      return [
+        { infoHash, delta, seeding: state.ready && !state.wanted.length },
+      ];
+    });
     if (!changed.length) return;
 
-    const seeded = await this.em.fork().transactional(async (tx) => {
-      for (const delta of changed) await this.add(tx, delta);
-
-      return tx.find(
-        Torrent,
-        {
-          infoHash: {
-            $in: changed
-              .map((d) => d.infoHash)
-              .filter((hash) => seeding.has(hash)),
-          },
-        },
-        {
-          fields: ['infoHash', 'downloadedBytes', 'uploadedBytes'],
-          disableIdentityMap: true,
-        },
-      );
-    });
-
-    for (const torrent of seeded) {
-      if (torrent.uploadedBytes >= seedRatio * torrent.downloadedBytes) {
-        this.reconcileLater(torrent.infoHash);
+    await this.em.fork().transactional(async (tx) => {
+      for (const { infoHash, delta, seeding } of changed) {
+        await this.writeDelta(tx, infoHash, delta);
+        if (seeding) {
+          await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', {
+            infoHash,
+          });
+        }
       }
-    }
+    });
   }
 
-  private async remove(entry: Entry): Promise<void> {
-    if (this.entries.get(entry.infoHash) === entry) {
-      this.entries.delete(entry.infoHash);
-    }
+  private async remove(infoHash: string, entry: Entry): Promise<void> {
+    if (this.entries.get(infoHash) === entry) this.entries.delete(infoHash);
 
-    const delta = this.takeDelta(entry);
     try {
-      if (delta.downloaded || delta.uploaded) {
-        await this.em.fork().transactional((tx) => this.add(tx, delta));
-      }
+      await this.flushEntry(infoHash, entry);
     } finally {
       // Nothing refers to the engine any more, so it has to stop now
       await entry.handle.destroy();
     }
   }
 
+  private async flushEntry(infoHash: string, entry: Entry): Promise<void> {
+    const delta = this.takeDelta(entry, entry.handle.getState().stats);
+    if (!delta.downloaded && !delta.uploaded) return;
+
+    await this.em
+      .fork()
+      .transactional((tx) => this.writeDelta(tx, infoHash, delta));
+  }
+
   /** Takes what the counters of a torrent grew by, at once */
-  private takeDelta(entry: Entry) {
-    const stats = entry.handle.getStats();
+  private takeDelta(entry: Entry, stats: TorrentStats) {
     const delta = {
-      infoHash: entry.infoHash,
       downloaded: stats.downloaded - entry.flushed.downloaded,
       uploaded: stats.uploaded - entry.flushed.uploaded,
     };
@@ -272,13 +177,14 @@ export class TorrentRuntime
     return delta;
   }
 
-  private add(
+  private writeDelta(
     tx: EntityManager,
-    delta: { infoHash: string; downloaded: number; uploaded: number },
+    infoHash: string,
+    delta: { downloaded: number; uploaded: number },
   ) {
     return tx.nativeUpdate(
       Torrent,
-      { infoHash: delta.infoHash },
+      { infoHash },
       {
         downloadedBytes: raw(`downloaded_bytes + ${delta.downloaded}`),
         uploadedBytes: raw(`uploaded_bytes + ${delta.uploaded}`),
@@ -296,12 +202,5 @@ export class TorrentRuntime
           `Enqueueing the reconcile of ${infoHash} failed: ${error.message}`,
         ),
       );
-  }
-
-  /** Only the job of a torrent changes what it does */
-  private assertHolds(context: JobContext, infoHash: string) {
-    if (context.job.lockKey !== `torrent:${infoHash}`) {
-      throw new Error(`Job ${context.job.type} does not hold ${infoHash}`);
-    }
   }
 }
