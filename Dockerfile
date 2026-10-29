@@ -19,6 +19,11 @@ COPY frontend/package.json ./frontend/package.json
 
 RUN npm i
 
+# utp-native ships a glibc prebuild for linux-x64, which musl loads with
+# unresolved symbols: the process dies on the first uTP packet. Without a
+# prebuild its install script compiles the module, as it does on arm64.
+RUN rm -r node_modules/utp-native/prebuilds && npm rebuild utp-native
+
 COPY . .
 
 FROM base as development
