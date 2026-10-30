@@ -5,9 +5,11 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { vi } from 'vitest';
 import { MediaType } from '../src/common/common.dto.js';
+import { DownloadsService } from '../src/downloads/downloads.service.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import { DeletionService } from '../src/library/deletion.service.js';
-import { ImportService } from '../src/library/import.service.js';
+import { FulfilmentService } from '../src/library/fulfilment.service.js';
+import { ImportService, ImportTarget } from '../src/library/import.service.js';
 import { CleanupSchedule } from '../src/library/library.dto.js';
 import { LibraryService } from '../src/library/library.service.js';
 import { MediaFile } from '../src/library/media-file.entity.js';
@@ -68,6 +70,11 @@ export async function createLibraryFixture() {
   const requests = {
     deleteRequests: vi.fn(async (_em: EntityManager, _ids: string[]) => 0),
   };
+  const fulfilment = {
+    filesForgotten: vi.fn(
+      async (_em: EntityManager, _files: Pick<MediaFile, 'id'>[]) => {},
+    ),
+  };
 
   const settings = new SettingsService(orm.em);
   const serverLog = new ServerLogService(orm.em, settings);
@@ -76,6 +83,7 @@ export async function createLibraryFixture() {
     settings,
     metadata as unknown as MetadataService,
     jobs as unknown as JobsService,
+    fulfilment as unknown as FulfilmentService,
   );
   const scan = new ScanService(
     orm.em,
@@ -85,13 +93,20 @@ export async function createLibraryFixture() {
     serverLog,
   );
   const playback = new PlaybackService(libraryService, scan);
-  const importService = new ImportService(orm.em, libraryService);
+  const importService = new ImportService(
+    orm.em,
+    libraryService,
+    jobs as unknown as JobsService,
+    {} as DownloadsService,
+    {} as FulfilmentService,
+  );
   const deletion = new DeletionService(
     orm.em,
     jobs as unknown as JobsService,
     libraryService,
     requests as unknown as RequestsService,
     serverLog,
+    fulfilment as unknown as FulfilmentService,
   );
 
   // Every call gets its own entity manager, as every HTTP request does
@@ -118,6 +133,15 @@ export async function createLibraryFixture() {
   const indexed = () =>
     orm.em.fork().find(MediaFile, {}, { orderBy: { path: 'asc' } });
 
+  /** Places and indexes a file, as the import job does before it hands the file over */
+  const importFile = async (target: ImportTarget) => {
+    const placed = await importService.placeVersion(target);
+
+    return orm.em
+      .fork()
+      .transactional((tx) => importService.indexImportedFile(tx, placed));
+  };
+
   /** Imports a file as a version of the test torrent, as the import job does */
   const importEpisode = async (
     sourcePath: string,
@@ -125,7 +149,7 @@ export async function createLibraryFixture() {
     subtitles: string[] = [],
   ) => {
     const file = await request(() =>
-      importService.importFile({
+      importFile({
         sourcePath,
         infoHash: INFO_HASH,
         mediaType: MediaType.Series,
@@ -145,7 +169,7 @@ export async function createLibraryFixture() {
   /** Imports a file as the version of the test torrent of the test movie */
   const importMovie = async (sourcePath: string) => {
     const file = await request(() =>
-      importService.importFile({
+      importFile({
         sourcePath,
         infoHash: INFO_HASH,
         mediaType: MediaType.Movie,
@@ -188,11 +212,11 @@ export async function createLibraryFixture() {
       updatedAt: new Date(),
     });
 
-  /** The requests whose reconcile was queued */
-  const reconciled = () =>
-    jobs.enqueue.mock.calls
-      .filter((call) => call[1] === 'library.reconcileRequest')
-      .map((call) => (call[2] as { requestId: string }).requestId);
+  /** The files the fulfilment was told are forgotten, whose requests let go of them and download them again */
+  const unbound = () =>
+    fulfilment.filesForgotten.mock.calls.flatMap(([, files]) =>
+      files.map((file) => file.id),
+    );
 
   const close = async () => {
     await orm.close();
@@ -220,7 +244,7 @@ export async function createLibraryFixture() {
     scanSeries,
     saveFoldersAround,
     bind,
-    reconciled,
+    unbound,
     close,
   };
 }

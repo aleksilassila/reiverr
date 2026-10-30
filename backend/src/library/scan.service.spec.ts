@@ -82,8 +82,7 @@ describe('ScanService', () => {
     let indexed: LibraryFixture['indexed'];
     let importEpisode: LibraryFixture['importEpisode'];
     let scanSeries: LibraryFixture['scanSeries'];
-    let bind: LibraryFixture['bind'];
-    let reconciled: LibraryFixture['reconciled'];
+    let unbound: LibraryFixture['unbound'];
 
     beforeEach(async () => {
       fixture = await createLibraryFixture();
@@ -99,8 +98,7 @@ describe('ScanService', () => {
         indexed,
         importEpisode,
         scanSeries,
-        bind,
-        reconciled,
+        unbound,
       } = fixture);
     });
 
@@ -281,14 +279,13 @@ describe('ScanService', () => {
           [MediaType.Series, 'Unknown', 1999],
         ]);
         expect(tmdb.findByExternalId).not.toHaveBeenCalled();
-        expect(reconciled()).toEqual([]);
+        expect(unbound()).toEqual([]);
 
         // A changed file is updated, a deleted one forgotten, and the
-        // request that had it is looked at again
+        // requests that had it let go of it
         write('tv/Third {tvdb-456}/Season 2/Third - S02E03.mkv', 'longer');
-        await bind(
-          'request-a',
-          (await indexed()).find((file) => file.path === another).id,
+        const forgotten = (await indexed()).find(
+          (file) => file.path === another,
         );
         rmSync(another);
         expect(await scanFolder()).toMatchObject({
@@ -296,7 +293,7 @@ describe('ScanService', () => {
           updated: 1,
           forgotten: 1,
         });
-        expect(reconciled()).toEqual(['request-a']);
+        expect(unbound()).toEqual([forgotten.id]);
         expect(await preview()).toMatchObject({ available: true, missing: [] });
       });
 
@@ -374,8 +371,8 @@ describe('ScanService', () => {
           missing: [{ episode: 1 }, { episode: 2 }],
         });
         expect(await indexed()).toHaveLength(2);
-        expect(reconciled()).toEqual([]);
-        await bind('request-b', (await indexed())[0].id);
+        expect(unbound()).toEqual([]);
+        const forgotten = (await indexed()).map((file) => file.id);
 
         expect(await scanFolder({ evenIfUnavailable: true })).toEqual({
           added: 0,
@@ -385,8 +382,8 @@ describe('ScanService', () => {
           failed: [],
         });
         expect(await indexed()).toEqual([]);
-        // Their requests download them again
-        expect(reconciled()).toEqual(['request-b']);
+        // The requests that had them download them again
+        expect(unbound().sort()).toEqual(forgotten.sort());
         expect(await preview()).toMatchObject({ available: true, missing: [] });
       });
 

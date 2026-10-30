@@ -1,14 +1,19 @@
 import { EntityManager } from '@mikro-orm/sqlite';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
+import { DownloadsService } from '../downloads/downloads.service.js';
+import { JobPayloads } from '../jobs/job-types.js';
+import { JobContext, JobsService } from '../jobs/jobs.service.js';
+import { FulfilmentService } from './fulfilment.service.js';
 import { LibraryService } from './library.service.js';
 import {
   episodeFileName,
   libraryFolderPaths,
   movieFileName,
+  parseEpisodeNumbers,
   primaryLibraryFolder,
   seasonFolderName,
   subtitleFileName,
@@ -35,7 +40,7 @@ export interface ImportTarget {
 }
 
 /** A file that an import put into the library */
-interface PlacedFile {
+export interface PlacedFile {
   path: string;
   mediaType: MediaType;
   tmdbId: string;
@@ -46,31 +51,100 @@ interface PlacedFile {
   modifiedAt: Date;
 }
 
-/** Puts the files that downloads finish into the library, as versions of their movies and episodes */
+/**
+ * Puts the files that downloads finish into the library, as versions of
+ * their movies and episodes: the job `library.importItem`, which downloads
+ * enqueues for every complete item. What the file does for the requests
+ * that waited for the item is the fulfilment's.
+ */
 @Injectable()
-export class ImportService {
+export class ImportService implements OnModuleInit {
+  private readonly logger = new Logger(ImportService.name);
+
   constructor(
     private readonly em: EntityManager,
     private readonly libraryService: LibraryService,
+    private readonly jobs: JobsService,
+    private readonly downloadsService: DownloadsService,
+    private readonly fulfilment: FulfilmentService,
   ) {}
 
-  /**
-   * Places a complete file in the library and indexes it as a managed
-   * version. Importing the same file again changes nothing.
-   */
-  async importFile(target: ImportTarget): Promise<MediaFile> {
-    const placed = await this.placeVersion(target);
+  onModuleInit() {
+    this.jobs.define('library.importItem', {
+      concurrency: 2,
+      retry: true,
+      // A library that was not mounted is noticed soon after it is again
+      maxRetryDelay: 5 * 60 * 1000,
+      run: (payload, context) => this.importItem(payload, context),
+    });
+  }
 
-    return this.em.transactional((tx) => this.indexImportedFile(tx, placed));
+  /**
+   * Puts the complete file of an item into the library and hands it to the
+   * fulfilment, which gives it to the requests that waited for the item
+   * and lets the item go. An item that is released or not complete is
+   * skipped; a wanted item is always waited for, since the fulfilment
+   * releases an item in the transaction that lets go of it. A failure is
+   * kept on the requests and the job retries; the next reconcile of the
+   * torrent enqueues the import again.
+   */
+  private async importItem(
+    { infoHash, itemId }: JobPayloads['library.importItem'],
+    context: JobContext,
+  ): Promise<void> {
+    const [item] = await this.downloadsService.findItems(context.em, [itemId]);
+    if (!item || item.releasedAt || !item.completedAt) return;
+
+    const file = await this.downloadsService.getItemFile(context.em, itemId);
+    if (!file) throw new Error(`The file of item ${itemId} is not known`);
+
+    // The file is the episodes its name says when those include the wanted
+    // one, else the wanted one, so that the library always gets what was
+    // wanted; a movie is its own
+    const numbers =
+      item.mediaType === MediaType.Series
+        ? parseEpisodeNumbers(file.name)
+        : undefined;
+    const isNamed =
+      numbers?.season === item.season &&
+      numbers.episodes.includes(item.episode);
+    let placed: PlacedFile;
+    try {
+      placed = await this.placeVersion({
+        sourcePath: file.path,
+        infoHash,
+        mediaType: item.mediaType,
+        tmdbId: item.tmdbId,
+        season: item.season,
+        episodes: isNamed ? numbers.episodes : [item.episode],
+        subtitles: file.subtitles.map((subtitle) => ({
+          sourcePath: subtitle.path,
+          name: subtitle.name,
+        })),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Importing "${file.path}" failed: ${message}`);
+      await this.fulfilment.itemImportFailed(context.em, itemId, message);
+      throw error;
+    }
+
+    // Indexed and handed over at once: the row is never a managed file that
+    // nothing holds, which a cleanup would delete
+    await context.em.transactional(async (tx) => {
+      const imported = await this.indexImportedFile(tx, placed);
+      await this.fulfilment.itemImported(tx, itemId, imported.id);
+    });
   }
 
   /**
    * Puts a video file into the library as the version of the torrent it
    * comes from, of a movie or of the given episodes of a series, with its
-   * subtitles as sidecars named after it. A rerun puts the files where that
-   * version is already.
+   * subtitles as sidecars named after it. Outside any transaction, since a
+   * copy can take long. A rerun puts the files where that version is
+   * already.
    */
-  private async placeVersion(target: ImportTarget): Promise<PlacedFile> {
+  async placeVersion(target: ImportTarget): Promise<PlacedFile> {
     const { mediaType, tmdbId, season, episodes, sourcePath, infoHash } =
       target;
     const destination =
@@ -140,8 +214,8 @@ export class ImportService {
     });
   }
 
-  /** Indexes a file that was put into the library as a managed version */
-  private async indexImportedFile(
+  /** Indexes a file that was put into the library as a managed version; a rerun changes nothing */
+  async indexImportedFile(
     em: EntityManager,
     file: PlacedFile,
   ): Promise<MediaFile> {

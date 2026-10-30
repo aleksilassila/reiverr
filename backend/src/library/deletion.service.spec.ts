@@ -25,6 +25,7 @@ import { RequestsService } from '../requests/requests.service.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { DeletionService } from './deletion.service.js';
+import { FulfilmentService } from './fulfilment.service.js';
 import { CleanupSchedule } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
@@ -54,6 +55,7 @@ describe('DeletionService', () => {
         library as unknown as LibraryService,
         {} as RequestsService,
         {} as ServerLogService,
+        {} as FulfilmentService,
       );
     });
 

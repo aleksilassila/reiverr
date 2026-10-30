@@ -19,6 +19,11 @@ import {
   readDirectory,
   STAT_BATCH_SIZE,
 } from './disk.utils.js';
+import { FulfilmentService } from './fulfilment.service.js';
+import {
+  LIBRARY_SETTINGS_KEY,
+  readLibrarySettings,
+} from './library-settings.js';
 import {
   CleanupSchedule,
   LibraryEntryDto,
@@ -37,16 +42,6 @@ import {
   yearOf,
 } from './library.utils.js';
 import { INDEXED_FIELDS, MediaFile } from './media-file.entity.js';
-import { RequestBinding } from './request-binding.entity.js';
-
-const SETTINGS_KEY = 'library';
-
-const DEFAULT_SETTINGS: LibrarySettingsDto = {
-  movieFolders: {},
-  seriesFolders: {},
-  cleanup: CleanupSchedule.Daily,
-  maxDiskUsagePercent: null,
-};
 
 // SQLite limits the number of values in one statement
 const INDEX_BATCH_SIZE = 500;
@@ -83,13 +78,11 @@ export class LibraryService {
     private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
     private readonly jobs: JobsService,
+    private readonly fulfilment: FulfilmentService,
   ) {}
 
   getSettings(): Promise<LibrarySettingsDto> {
-    return this.settingsService.getOrCreateValue(
-      SETTINGS_KEY,
-      DEFAULT_SETTINGS,
-    );
+    return readLibrarySettings(this.settingsService);
   }
 
   /**
@@ -168,7 +161,10 @@ export class LibraryService {
     }
     await this.forgetFiles(forgotten);
 
-    const saved = await this.settingsService.saveValue(SETTINGS_KEY, value);
+    const saved = await this.settingsService.saveValue(
+      LIBRARY_SETTINGS_KEY,
+      value,
+    );
     // Imports that wait for a folder that was missing or unreadable
     await this.jobs.runNow(this.em, 'library.importItem');
     // Requests held back by the limit may fit the new one
@@ -428,8 +424,8 @@ export class LibraryService {
   }
 
   /**
-   * Forgets indexed files, and has the requests that had them looked at
-   * again in the same transaction, so that they download the files again
+   * Forgets indexed files: the requests that had them let go of them in
+   * the same transaction, and download the files again
    */
   async forgetFiles(files: MediaFile[]): Promise<void> {
     if (!files.length) return;
@@ -438,31 +434,8 @@ export class LibraryService {
       await tx.nativeDelete(MediaFile, {
         id: { $in: files.map((file) => file.id) },
       });
-      await this.filesForgotten(tx, files);
+      await this.fulfilment.filesForgotten(tx, files);
     });
-  }
-
-  /**
-   * Has the requests that had files whose rows are deleted looked at again,
-   * in the caller's transaction. Their bindings refer to the rows until the
-   * reconcile lets go of what is not in the library, which is how they
-   * download the files again.
-   */
-  async filesForgotten(
-    em: EntityManager,
-    files: Pick<MediaFile, 'id'>[],
-  ): Promise<void> {
-    const ids = files.map((file) => file.id);
-    if (!ids.length) return;
-
-    const bindings = await em.find(
-      RequestBinding,
-      { mediaFileId: { $in: ids } },
-      { disableIdentityMap: true, fields: ['requestId'] },
-    );
-    for (const { requestId } of bindings) {
-      await this.jobs.enqueue(em, 'library.reconcileRequest', { requestId });
-    }
   }
 
   /**

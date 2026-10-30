@@ -18,10 +18,10 @@ import mikroOrmConfig from '../mikro-orm.config.js';
 import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { CleanupSchedule, TitleUsageSort } from './library.dto.js';
-import { LibraryService } from './library.service.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
@@ -75,13 +75,13 @@ describe('StorageService', () => {
       { findRequests: async () => [] } as unknown as RequestsService,
       { findQuotas: async () => [] } as unknown as UsersService,
       {
-        getSettings: async () => ({
+        getOrCreateValue: async () => ({
           movieFolders: { [path.join(root, 'missing')]: { primary: true } },
           seriesFolders: { [root]: { primary: true } },
           cleanup: CleanupSchedule.Daily,
           maxDiskUsagePercent,
         }),
-      } as unknown as LibraryService,
+      } as unknown as SettingsService,
       {} as unknown as MetadataService,
     );
 
@@ -218,7 +218,7 @@ describe('describeUserTitles', () => {
       orm.em,
       requests,
       {} as unknown as UsersService,
-      {} as unknown as LibraryService,
+      {} as unknown as SettingsService,
       new MetadataService(
         orm.em.getRepository(MovieMetadata),
         orm.em.getRepository(SeriesMetadata),

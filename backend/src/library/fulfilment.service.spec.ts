@@ -193,20 +193,6 @@ async function createHub() {
       parseTorrentSource(release.magnetUrl ?? torrentFiles[release.id] ?? ''),
   };
 
-  const libraryService = new LibraryService(
-    orm.em,
-    settings,
-    metadata as unknown as MetadataService,
-    jobs,
-  );
-  const scan = new ScanService(
-    orm.em,
-    libraryService,
-    tmdb as unknown as TmdbService,
-    jobs,
-    serverLog,
-  );
-  const importService = new ImportService(orm.em, libraryService);
   const requests = new RequestsService(
     orm.em,
     metadata as unknown as MetadataService,
@@ -228,18 +214,11 @@ async function createHub() {
     jobs,
     runtime,
   );
-  const deletion = new DeletionService(
-    orm.em,
-    jobs,
-    libraryService,
-    requests,
-    serverLog,
-  );
   const storage = new StorageService(
     orm.em,
     requests,
     users,
-    libraryService,
+    settings,
     metadata as unknown as MetadataService,
   );
   const fulfilment = new FulfilmentService(
@@ -248,8 +227,36 @@ async function createHub() {
     requests,
     downloads,
     metadata as unknown as MetadataService,
-    importService,
     storage,
+  );
+  const libraryService = new LibraryService(
+    orm.em,
+    settings,
+    metadata as unknown as MetadataService,
+    jobs,
+    fulfilment,
+  );
+  const scan = new ScanService(
+    orm.em,
+    libraryService,
+    tmdb as unknown as TmdbService,
+    jobs,
+    serverLog,
+  );
+  const importService = new ImportService(
+    orm.em,
+    libraryService,
+    jobs,
+    downloads,
+    fulfilment,
+  );
+  const deletion = new DeletionService(
+    orm.em,
+    jobs,
+    libraryService,
+    requests,
+    serverLog,
+    fulfilment,
   );
   const status = new StatusService(
     orm.em,
@@ -260,7 +267,13 @@ async function createHub() {
     scan,
     storage,
   );
-  for (const service of [scan, downloads, deletion, fulfilment]) {
+  for (const service of [
+    scan,
+    downloads,
+    deletion,
+    fulfilment,
+    importService,
+  ]) {
     service.onModuleInit();
   }
   await request(() => settings.saveValue('downloads', { seedRatio: 0 }));

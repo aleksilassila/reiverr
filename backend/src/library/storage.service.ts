@@ -12,7 +12,9 @@ import { DOWNLOADS_DIR } from '../consts.js';
 import { measureDisk } from './disk.utils.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 import { UsersService } from '../users/users.service.js';
+import { readLibrarySettings } from './library-settings.js';
 import {
   DiskUsageDto,
   LibrarySettingsDto,
@@ -21,7 +23,6 @@ import {
   TitleUsageDto,
   TitleUsageSort,
 } from './library.dto.js';
-import { LibraryService } from './library.service.js';
 import { libraryFolderPaths } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
@@ -117,7 +118,7 @@ export class StorageService {
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
     private readonly usersService: UsersService,
-    private readonly libraryService: LibraryService,
+    private readonly settingsService: SettingsService,
     private readonly metadataService: MetadataService,
   ) {}
 
@@ -202,7 +203,7 @@ export class StorageService {
 
   /** Whether a disk is at the limit of the library settings */
   async isDiskFull(): Promise<boolean> {
-    const settings = await this.libraryService.getSettings();
+    const settings = await readLibrarySettings(this.settingsService);
     const { maxDiskUsagePercent } = settings;
     if (maxDiskUsagePercent === null) return false;
 
@@ -233,7 +234,7 @@ export class StorageService {
 
   /** The disks, the disk limit, and what the requests of every user take: for admins */
   async describe(): Promise<StorageDto> {
-    const settings = await this.libraryService.getSettings();
+    const settings = await readLibrarySettings(this.settingsService);
     const em = this.em.fork();
     const users = await this.usersService.findQuotas(em);
     const usages = await this.findUsages(em, {});

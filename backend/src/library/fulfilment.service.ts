@@ -1,20 +1,17 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import {
   Injectable,
-  Logger,
   OnApplicationBootstrap,
   OnModuleInit,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { MediaType } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
-import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { isNeeded, mediaOf } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
-import { ImportService } from './import.service.js';
-import { coversMedia, parseEpisodeNumbers } from './library.utils.js';
+import { coversMedia } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
@@ -40,25 +37,26 @@ const NOTHING: BindingChange = {
 
 /**
  * Fulfils requests: gives an active request the file it wants from the
- * library, or has downloads get it and imports it when it is complete, as
- * far as the quota of its user and the disk limit allow. The binding of a
- * request is what it waits for or has; the job `library.reconcileRequest`
- * brings it in line with the request, whatever changed, `library.importItem`
- * puts a complete item into the library, and `library.sweepRequests` has
- * every active request that is bound to nothing looked at again, which is
- * how a request that was held back gets what it wants once there is room.
+ * library, or has downloads get it, as far as the quota of its user and
+ * the disk limit allow. The binding of a request is what it waits for or
+ * has, and this service is its only writer. The job
+ * `library.reconcileRequest` decides what a request gets, whatever changed;
+ * the other writes react to one thing, in the transaction of what
+ * happened: `filesForgotten` lets the bindings go of files the library
+ * forgot, `itemImported` gives the file of an import to the bindings of
+ * its item, and `itemImportFailed` keeps the failure on them.
+ * `library.sweepRequests` has every active request
+ * that is bound to nothing looked at again, which is how a request that
+ * was held back gets what it wants once there is room.
  */
 @Injectable()
 export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
-  private readonly logger = new Logger(FulfilmentService.name);
-
   constructor(
     private readonly em: EntityManager,
     private readonly jobs: JobsService,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
     private readonly metadataService: MetadataService,
-    private readonly importService: ImportService,
     private readonly storage: StorageService,
   ) {}
 
@@ -67,13 +65,6 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       concurrency: 4,
       run: ({ requestId }, context) =>
         this.reconcileRequest(requestId, context),
-    });
-    this.jobs.define('library.importItem', {
-      concurrency: 2,
-      retry: true,
-      // A library that was not mounted is noticed soon after it is again
-      maxRetryDelay: 5 * 60 * 1000,
-      run: (payload, context) => this.importItem(payload, context),
     });
     this.jobs.define('library.sweepRequests', {
       run: (payload, context) => this.sweep(context.em),
@@ -152,14 +143,21 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Brings the binding of a request in line with the request: what its
-   * user wants it to have, and whether it is active at all. A request that
-   * is gone or not active lets go of the item it waited for; a file it has
-   * stays its own until its source says otherwise or the library forgets
-   * it. What the request keeps passes no gate; what it is to get, a file in
-   * the library or a download, it gets when it fits the quota of its user,
-   * and a download when no disk is at the limit. Else it lets go of what it
-   * had and is bound to nothing, until the sweep has it looked at again.
+   * Brings the binding of a request in line with the request and its source.
+   *
+   * 1. Clear binding if request does not exist
+   * 2. Clear torrent if request is not active
+   * 3. If requests a file
+   *      - record error and clear binding if file does not exist
+   *      - else bind if user has quota for the file, else clear binding
+   * 4. If requests a torrent
+   *      - keep the bound file if it is from the torrent, or any bound file
+   *        if the torrent is for the whole season
+   *      - else bind the torrent's file in the library if user has quota for
+   *        it, else clear binding
+   *      - else record error and clear binding if the release is not known
+   *      - else keep the download if it is under way, else start it if user
+   *        has quota and the disk is not full, else clear binding
    */
   private async reconcileRequest(
     requestId: string,
@@ -179,7 +177,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
 
       if (!request) {
         await this.releaseItemOf(tx, binding);
-        await this.write(tx, requestId, binding, NOTHING);
+        await this.writeBinding(tx, requestId, binding, NOTHING);
         return;
       }
 
@@ -189,7 +187,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         await this.releaseItemOf(tx, binding);
         // The file it has stays its own, unless the library forgot it
         const held = await this.heldFile(tx, binding);
-        await this.write(tx, requestId, binding, {
+        await this.writeBinding(tx, requestId, binding, {
           torrentItemId: null,
           mediaFileId: held?.id ?? null,
           error: null,
@@ -211,7 +209,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         );
         await this.releaseItemOf(tx, binding);
         if (!file || !coversMedia(file, media)) {
-          await this.write(tx, requestId, binding, {
+          await this.writeBinding(tx, requestId, binding, {
             torrentItemId: null,
             mediaFileId: null,
             error: !file
@@ -226,7 +224,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           binding?.mediaFileId === file.id
             ? 'ok'
             : roomFor(gate, { bytes: file.size, download: false });
-        await this.write(
+        await this.writeBinding(
           tx,
           requestId,
           binding,
@@ -248,7 +246,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         (held.infoHash === infoHash || !source.forEpisode);
       if (keepsHeld) {
         await this.releaseItemOf(tx, binding);
-        await this.write(tx, requestId, binding, {
+        await this.writeBinding(tx, requestId, binding, {
           torrentItemId: null,
           error: null,
         });
@@ -271,7 +269,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       if (version) {
         await this.releaseItemOf(tx, binding);
         const room = roomFor(gate, { bytes: version.size, download: false });
-        await this.write(
+        await this.writeBinding(
           tx,
           requestId,
           binding,
@@ -287,7 +285,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       ]);
       if (!release) {
         await this.releaseItemOf(tx, binding);
-        await this.write(tx, requestId, binding, {
+        await this.writeBinding(tx, requestId, binding, {
           torrentItemId: null,
           mediaFileId: null,
           error: 'The release is not known any more',
@@ -317,7 +315,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         const room = roomFor(gate, { bytes, download: true });
         if (room !== 'ok') {
           await this.releaseItemOf(tx, binding);
-          await this.write(tx, requestId, binding, NOTHING);
+          await this.writeBinding(tx, requestId, binding, NOTHING);
           return;
         }
         pendingBytes = bytes;
@@ -329,7 +327,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         onlyVideo: source.forEpisode,
       });
       await this.releaseItemOf(tx, binding, item.id);
-      await this.write(tx, requestId, binding, {
+      await this.writeBinding(tx, requestId, binding, {
         torrentItemId: item.id,
         pendingBytes,
         mediaFileId: null,
@@ -341,83 +339,72 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Puts the complete file of an item into the library and gives it to
-   * every request that waits for the item, then lets the item go. An item
-   * that no request waits for any more is let go without an import.
+   * Lets the bindings go of files whose rows the library deletes, in that
+   * transaction, and has their requests looked at again, so that they
+   * download the files again. So a bound file always has its row.
    */
-  private async importItem(
-    { infoHash, itemId }: JobPayloads['library.importItem'],
-    context: JobContext,
+  async filesForgotten(
+    tx: EntityManager,
+    files: Pick<MediaFile, 'id'>[],
   ): Promise<void> {
-    const [item] = await this.downloadsService.findItems(context.em, [itemId]);
-    if (!item || item.releasedAt || !item.completedAt) return;
+    const ids = files.map((file) => file.id);
+    if (!ids.length) return;
 
-    const bindings = await context.em.find(
+    const bindings = await tx.find(
       RequestBinding,
-      { torrentItemId: itemId },
+      { mediaFileId: { $in: ids } },
       READ,
     );
-    if (!bindings.length) {
-      await context.em.transactional((tx) =>
-        this.downloadsService.releaseItem(tx, itemId),
-      );
-      return;
-    }
-
-    const file = await this.downloadsService.getItemFile(context.em, itemId);
-    if (!file) throw new Error(`The file of item ${itemId} is not known`);
-
-    // The file is the episodes its name says when those include the wanted
-    // one, else the wanted one, so that the library always gets what was
-    // wanted; a movie is its own
-    const numbers =
-      item.mediaType === MediaType.Series
-        ? parseEpisodeNumbers(file.name)
-        : undefined;
-    const isNamed =
-      numbers?.season === item.season &&
-      numbers.episodes.includes(item.episode);
-    let imported: MediaFile;
-    try {
-      imported = await this.importService.importFile({
-        sourcePath: file.path,
-        infoHash,
-        mediaType: item.mediaType,
-        tmdbId: item.tmdbId,
-        season: item.season,
-        episodes: isNamed ? numbers.episodes : [item.episode],
-        subtitles: file.subtitles.map((subtitle) => ({
-          sourcePath: subtitle.path,
-          name: subtitle.name,
-        })),
+    for (const binding of bindings) {
+      await this.writeBinding(tx, binding.requestId, binding, {
+        torrentItemId: binding.torrentItemId ?? null,
+        pendingBytes: binding.pendingBytes,
+        mediaFileId: null,
+        error: binding.error ?? null,
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Importing "${file.path}" failed: ${message}`);
-      await context.em.nativeUpdate(
-        RequestBinding,
-        { torrentItemId: itemId },
-        { error: `Import failed: ${message}`, updatedAt: new Date() },
-      );
-      throw error;
+      await this.jobs.enqueue(tx, 'library.reconcileRequest', {
+        requestId: binding.requestId,
+      });
     }
+  }
 
-    await context.em.transactional(async (tx) => {
-      await tx.nativeUpdate(
-        RequestBinding,
-        { torrentItemId: itemId },
-        {
-          torrentItemId: null,
-          pendingBytes: null,
-          mediaFileId: imported.id,
-          error: null,
-          updatedAt: new Date(),
-        },
-      );
-      await this.downloadsService.releaseItem(tx, itemId);
-      // What the requests take is settled, which can be less than expected
-      await this.sweepLater(tx);
-    });
+  /**
+   * Gives the file an import placed to every request that waited for the
+   * item, and lets the item go, in the import's transaction. What the
+   * requests take is settled, which can be less than expected, so the
+   * sweep runs.
+   */
+  async itemImported(
+    tx: EntityManager,
+    itemId: string,
+    mediaFileId: string,
+  ): Promise<void> {
+    await tx.nativeUpdate(
+      RequestBinding,
+      { torrentItemId: itemId },
+      {
+        torrentItemId: null,
+        pendingBytes: null,
+        mediaFileId,
+        error: null,
+        updatedAt: new Date(),
+      },
+    );
+    await this.downloadsService.releaseItem(tx, itemId);
+    await this.sweepLater(tx);
+  }
+
+  /** Keeps the failure of an import on the requests that wait for the item, which the status shows */
+  async itemImportFailed(
+    em: EntityManager,
+    itemId: string,
+    message: string,
+  ): Promise<void> {
+    await em.nativeUpdate(
+      RequestBinding,
+      { torrentItemId: itemId },
+      { error: `Import failed: ${message}`, updatedAt: new Date() },
+    );
   }
 
   /** The file a binding has, as long as its row is in the index */
@@ -454,7 +441,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * binding that lets go of a file or an item may make room for a request
    * that was held back, so the sweep runs.
    */
-  private async write(
+  private async writeBinding(
     tx: EntityManager,
     requestId: string,
     current: RequestBinding | undefined,

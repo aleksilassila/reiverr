@@ -16,6 +16,7 @@ import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
 import { entryExists, readDirectory } from './disk.utils.js';
+import { FulfilmentService } from './fulfilment.service.js';
 import { DeleteLibraryEntriesResultDto } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import {
@@ -55,6 +56,7 @@ export class DeletionService implements OnModuleInit {
     private readonly libraryService: LibraryService,
     private readonly requestsService: RequestsService,
     private readonly serverLog: ServerLogService,
+    private readonly fulfilment: FulfilmentService,
   ) {}
 
   onModuleInit() {
@@ -140,7 +142,7 @@ export class DeletionService implements OnModuleInit {
           await tx.nativeDelete(MediaFile, {
             id: { $in: forgotten.map((file) => file.id) },
           });
-          await this.libraryService.filesForgotten(tx, forgotten);
+          await this.fulfilment.filesForgotten(tx, forgotten);
         }
         for (const file of forgotten) {
           await this.logDeleted(tx, file.path, reason, file);
