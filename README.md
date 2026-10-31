@@ -26,18 +26,15 @@ TMDB Discovery:
 
 Requests & downloads:
 
-- Media is automatically downloaded when requested
-- Can be configured to request episodes only as they are needed
-- Watched episodes can be automatically unrequested
-- Media that no user requests is automatically cleaned up
+- Built-in torrent client for downloading media using a requesting system
+- Can be configured to download episodes only as they are needed and automatically delete them after watching
 - Storage usage quotas per user
-- Built-in torrent client
 - ~~Discovery of new content via RSS~~
 
 Library:
 
-- Supports multiple library folders and is compatible with jellyfin libraries
 - External files are automatically discovered from disk
+- Supports multiple library folders and is compatible with jellyfin libraries
 
 Playback:
 
