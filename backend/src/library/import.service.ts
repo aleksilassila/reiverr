@@ -3,8 +3,9 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, titleOf } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
+import { EventsService } from '../events/events.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { FulfilmentService } from './fulfilment.service.js';
@@ -67,6 +68,7 @@ export class ImportService implements OnModuleInit {
     private readonly jobs: JobsService,
     private readonly downloadsService: DownloadsService,
     private readonly fulfilment: FulfilmentService,
+    private readonly events: EventsService,
   ) {}
 
   onModuleInit() {
@@ -86,7 +88,8 @@ export class ImportService implements OnModuleInit {
    * skipped; a wanted item is always waited for, since the fulfilment
    * releases an item in the transaction that lets go of it. A failure is
    * kept on the requests and the job retries; the next reconcile of the
-   * torrent enqueues the import again.
+   * torrent enqueues the import again. Either way the clients that show
+   * the title are told.
    */
   private async importItem(
     { infoHash, itemId }: JobPayloads['library.importItem'],
@@ -126,6 +129,7 @@ export class ImportService implements OnModuleInit {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Importing "${file.path}" failed: ${message}`);
       await this.fulfilment.itemImportFailed(context.em, itemId, message);
+      this.events.emit({ type: 'library', data: titleOf(item) });
       throw error;
     }
 
@@ -135,6 +139,7 @@ export class ImportService implements OnModuleInit {
       const imported = await this.indexImportedFile(tx, placed);
       await this.fulfilment.itemImported(tx, itemId, imported.id);
     });
+    this.events.emit({ type: 'library', data: titleOf(item) });
   }
 
   /**

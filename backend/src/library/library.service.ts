@@ -8,7 +8,8 @@ import {
 import { Dirent, promises as fs } from 'fs';
 import { randomUUID } from 'node:crypto';
 import * as path from 'path';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, Title } from '../common/common.dto.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -69,7 +70,8 @@ export class LibraryUnavailableError extends ServiceUnavailableException {}
  * The index of the library: its settings and folders, the rows of the
  * files that are on disk, and what an admin sees of a folder. The scans
  * bring the rows in line with the disk, the imports add to them, and the
- * playback serves them.
+ * playback serves them. Every change of the rows tells the clients that
+ * show the title.
  */
 @Injectable()
 export class LibraryService {
@@ -79,6 +81,7 @@ export class LibraryService {
     private readonly metadataService: MetadataService,
     private readonly jobs: JobsService,
     private readonly fulfilment: FulfilmentService,
+    private readonly events: EventsService,
   ) {}
 
   getSettings(): Promise<LibrarySettingsDto> {
@@ -418,6 +421,9 @@ export class LibraryService {
         .execute();
     }
 
+    this.filesChanged(
+      changed.map((file) => ({ mediaType, tmdbId: file.tmdbId })),
+    );
     const added = changed.filter((file) => !indexedByPath.has(file.path));
 
     return { added: added.length, updated: changed.length - added.length };
@@ -434,8 +440,22 @@ export class LibraryService {
       await tx.nativeDelete(MediaFile, {
         id: { $in: files.map((file) => file.id) },
       });
+      this.filesChanged(files);
       await this.fulfilment.filesForgotten(tx, files);
     });
+  }
+
+  /** Tells the clients that show the titles of files that the index of the titles changed */
+  private filesChanged(files: Title[]): void {
+    const titles = new Map(
+      files.map(({ mediaType, tmdbId }) => [
+        `${mediaType}:${tmdbId}`,
+        { mediaType, tmdbId },
+      ]),
+    );
+    for (const title of titles.values()) {
+      this.events.emit({ type: 'library', data: title });
+    }
   }
 
   /**
@@ -571,12 +591,17 @@ export class LibraryService {
     paths: string[],
     managed: boolean,
   ): Promise<{ changed: number }> {
-    const ids = (await this.findLibraryEntryFiles(folder, paths))
-      .filter((file) => file.managed !== managed)
-      .map((file) => file.id);
-    const changed = ids.length
-      ? await this.em.nativeUpdate(MediaFile, { id: { $in: ids } }, { managed })
+    const files = (await this.findLibraryEntryFiles(folder, paths)).filter(
+      (file) => file.managed !== managed,
+    );
+    const changed = files.length
+      ? await this.em.nativeUpdate(
+          MediaFile,
+          { id: { $in: files.map((file) => file.id) } },
+          { managed },
+        )
       : 0;
+    this.filesChanged(files);
 
     return { changed };
   }

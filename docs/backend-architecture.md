@@ -18,27 +18,21 @@ flowchart LR
   subgraph library["Library: the hub"]
     FS["FulfilmentService"]
     IS["ImportService"]
-    LS["LibraryService"]
-    SCN["ScanService"]
-    PB["PlaybackService"]
     DEL["DeletionService"]
-    STS["StatusService"]
-    STO["StorageService"]
     RB[("request_binding")]
     MF[("media_file")]
   end
 
   subgraph downloads["Downloads: torrents and what is wanted of them"]
     DS["DownloadsService"]
-    TR["TorrentRuntime"]
     T[("torrent")]
     TI[("torrent_item")]
   end
 
-  RS -.->|"library.reconcileRequest<br/>{requestId}"| FS
-  FS -->|"readRequest<br/>findSelectedReleases<br/>deleteRequests"| RS
-  FS -->|"ensureTorrent<br/>requestItem<br/>releaseItem"| DS
-  DS -.->|"library.importItem<br/>{infoHash, itemId}<br/>library.sweepRequests"| FS
+  requests -.->|"library.reconcileRequest<br/>{requestId}"| library
+  library -->|"deleteRequests"| requests
+  library -->|"ensureTorrent<br/>requestItem<br/>releaseItem"| downloads
+  downloads -.->|"library.importItem<br/>{infoHash, itemId}<br/>library.sweepRequests"| library
 ```
 
 ## Request creation to fulfillment overview

@@ -1,21 +1,29 @@
 import type {
-	EpisodePreferenceDto,
 	EpisodeRefDto,
 	EpisodeStatusDto,
-	PreferredFileDto,
+	MediaFileDto,
+	MediaRequestDto,
+	PreferenceDto,
 	RequestRuleDto,
+	SeriesRequestsDto,
 	SeriesStatusDto,
 	SeriesUserDataDto,
 	SetPreferenceDto,
 	TmdbSeriesFull,
-	TorrentDto,
 	UpdatePlayStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
-import { getStatusLabel, isErrorStatus } from './request-status';
 import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions, skipToken } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
+import {
+	getStatusLabel,
+	isErrorStatus,
+	itemOf,
+	liveRefetchInterval,
+	type TitleTorrents,
+	toTitleTorrents
+} from './request-status';
 import { storageKeys } from './storage.queries';
 
 const HOUR = 3_600_000;
@@ -27,8 +35,14 @@ export const seriesKeys = {
 	title: (tmdbId: string) => ['series', tmdbId] as const,
 	metadata: (tmdbId: string) => ['series', tmdbId, 'metadata'] as const,
 	userData: (tmdbId: string) => ['series', tmdbId, 'user-data'] as const,
+	/** The requests, the rule and the preferences of the user: what their actions change */
+	requests: (tmdbId: string) => ['series', tmdbId, 'requests'] as const,
+	/** The status of the requests and the files of the series: what the jobs of the server change */
 	status: (tmdbId: string) => ['series', tmdbId, 'status'] as const,
-	rule: (tmdbId: string) => ['series', tmdbId, 'rule'] as const,
+	/** The torrents of the series as the engine has them */
+	torrents: (tmdbId: string) => ['series', tmdbId, 'torrents'] as const,
+	/** Every file list of the series: what a change of its files invalidates */
+	files: (tmdbId: string) => ['series', tmdbId, 'files'] as const,
 	episodeFiles: (tmdbId: string, season: number, episode: number | undefined) =>
 		['series', tmdbId, 'files', season, episode ?? null] as const,
 	releases: (tmdbId: string, season: number, episode: number | undefined) =>
@@ -49,20 +63,29 @@ export const seriesQueries = {
 			queryKey: seriesKeys.userData(tmdbId),
 			queryFn: () => reiverrApi.users.getSeriesUserData(tmdbId).then((r) => r.data)
 		}),
-	/** Where the requests of the user stand, by episode */
+	/** The requests of the user for the series, with the rule and the preferences they are fulfilled by */
+	requests: (tmdbId: string) =>
+		queryOptions({
+			queryKey: seriesKeys.requests(tmdbId),
+			queryFn: () => reiverrApi.requests.getSeriesRequests(tmdbId).then((r) => r.data),
+			select: toSeriesRequests
+		}),
+	/** The status of the requests of the user, by episode, and the files of the series */
 	status: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.status(tmdbId),
 			queryFn: () => reiverrApi.library.getSeriesStatus(tmdbId).then((r) => r.data),
-			select: toSeriesRequests
+			select: toSeriesStatus
 		}),
-	/** The limits of the requests of the user for the series */
-	rule: (tmdbId: string) =>
+	/** The torrents of the series, live: polled while one runs, told by the server otherwise */
+	torrents: (tmdbId: string) =>
 		queryOptions({
-			queryKey: seriesKeys.rule(tmdbId),
-			queryFn: () => reiverrApi.requests.getSeriesRequestRule(tmdbId).then((r) => r.data)
+			queryKey: seriesKeys.torrents(tmdbId),
+			queryFn: () => reiverrApi.downloads.getSeriesTorrents(tmdbId).then((r) => r.data),
+			select: toTitleTorrents,
+			refetchInterval: liveRefetchInterval
 		}),
-	/** The files of the episode in the library, external or imported; nothing without an episode */
+	/** The files of the episode on disk, with their subtitles, for the player; nothing without an episode */
 	episodeFiles: (tmdbId: string, season: number, episode: number | undefined) =>
 		queryOptions({
 			queryKey: seriesKeys.episodeFiles(tmdbId, season, episode),
@@ -96,12 +119,13 @@ export async function saveEpisodePlayState(
 }
 
 /**
- * The rule of the series follows the watched state, so its status changes with it, and the usage
- * when the rule deletes watched requests
+ * The rule of the series follows the watched state, so its requests and their status change with
+ * it, and the usage when the rule deletes watched requests
  */
 const seriesWatchedChanged = (tmdbId: string) =>
 	invalidate(
 		seriesKeys.userData(tmdbId),
+		seriesKeys.requests(tmdbId),
 		seriesKeys.status(tmdbId),
 		catalogKeys.all,
 		storageKeys.all
@@ -130,20 +154,28 @@ export async function setSeriesInMyList(tmdbId: string, inMyList: boolean) {
 	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all);
 }
 
+/** The requests of the user and their status follow a change of them; the lists show whether the user requested the title */
+const seriesRequestsChanged = (tmdbId: string) =>
+	invalidate(
+		seriesKeys.requests(tmdbId),
+		seriesKeys.status(tmdbId),
+		storageKeys.all,
+		catalogKeys.all
+	);
+
 export async function setSeriesRequests(
 	tmdbId: string,
 	episodes: EpisodeRefDto[],
 	requested: boolean
 ) {
 	await reiverrApi.requests.setSeriesRequests(tmdbId, { episodes, requested });
-	// The lists show whether the user requested the title
-	await invalidate(seriesKeys.status(tmdbId), storageKeys.all, catalogKeys.all);
+	await seriesRequestsChanged(tmdbId);
 }
 
+/** The rule may let requests through or delete watched ones; the usage lists the rule of the title */
 export async function updateSeriesRequestRule(tmdbId: string, rule: RequestRuleDto) {
 	await reiverrApi.requests.updateSeriesRequestRule(tmdbId, rule);
-	// The usage lists the rule of the title, which may also delete watched requests
-	await invalidate(seriesKeys.rule(tmdbId), seriesKeys.status(tmdbId), storageKeys.all);
+	await seriesRequestsChanged(tmdbId);
 }
 
 /** Selects a release or a file for the episode, or a season pack without an episode */
@@ -157,33 +189,53 @@ export async function setPreference(
 		? reiverrApi.requests.setSeasonPreference(tmdbId, season, preference)
 		: reiverrApi.requests.setEpisodePreference(tmdbId, season, episode, preference));
 	// What the requests have and download, and so what they take, follows the source
-	await invalidate(seriesKeys.status(tmdbId), storageKeys.all);
+	await seriesRequestsChanged(tmdbId);
 }
 
 export async function clearPreference(tmdbId: string, season: number, episode: number | undefined) {
 	await (episode === undefined
 		? reiverrApi.requests.clearSeasonPreference(tmdbId, season)
 		: reiverrApi.requests.clearEpisodePreference(tmdbId, season, episode));
-	await invalidate(seriesKeys.status(tmdbId), storageKeys.all);
+	await seriesRequestsChanged(tmdbId);
 }
 
 export const episodeKey = (season: number, episode: number) => `${season}-${episode}`;
 
-/** Everything is keyed by {@link episodeKey}; a season pack selection has episode 0 */
+/** The requests document, keyed by {@link episodeKey}; a season pack selection has episode 0 */
 export type SeriesRequests = {
-	/** The episodes the current user requested or that are on disk */
-	episodes: Map<string, EpisodeStatusDto>;
-	/** The torrents the current user selected */
-	preferences: Map<string, EpisodePreferenceDto>;
-	/** Info hashes of the torrents the server has for the series */
-	onServer: Set<string>;
+	requests: Map<string, MediaRequestDto>;
+	rule: RequestRuleDto;
+	/** The releases and files the current user selected */
+	preferences: Map<string, PreferenceDto>;
 };
 
-function toSeriesRequests(status: SeriesStatusDto): SeriesRequests {
+/** The status document, keyed by {@link episodeKey} */
+export type SeriesStatus = {
+	/** The episodes the current user requested or that are on disk */
+	episodes: Map<string, EpisodeStatusDto>;
+	/** The files of the series in the index */
+	files: MediaFileDto[];
+};
+
+/** The three documents of a series the request views read, each as far as it has loaded */
+export type SeriesData = {
+	requests?: SeriesRequests;
+	status?: SeriesStatus;
+	torrents?: TitleTorrents;
+};
+
+function toSeriesRequests(requests: SeriesRequestsDto): SeriesRequests {
+	return {
+		requests: new Map(requests.requests.map((r) => [episodeKey(r.season, r.episode), r])),
+		rule: requests.rule,
+		preferences: new Map(requests.preferences.map((p) => [episodeKey(p.season, p.episode), p]))
+	};
+}
+
+function toSeriesStatus(status: SeriesStatusDto): SeriesStatus {
 	return {
 		episodes: new Map(status.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
-		preferences: new Map(status.preferences.map((s) => [episodeKey(s.season, s.episode), s])),
-		onServer: new Set(status.onServer)
+		files: status.files
 	};
 }
 
@@ -191,9 +243,9 @@ export type EpisodeRequestStatus = {
 	requested: boolean;
 	onDisk: boolean;
 	/** The torrent of the request, or else the selected one: the episode's own, or the season pack */
-	torrent?: TorrentDto;
-	/** The file in the library selected for the episode */
-	file?: PreferredFileDto;
+	infoHash?: string;
+	/** The name of that torrent, or of the file selected for the episode */
+	sourceName?: string;
 	/** The torrent is the season pack, which was not selected for this episode */
 	isSeasonPack: boolean;
 	label?: string;
@@ -201,24 +253,30 @@ export type EpisodeRequestStatus = {
 };
 
 export function getEpisodeRequestStatus(
-	data: SeriesRequests | undefined,
+	data: SeriesData,
 	season: number,
 	episode: number
 ): EpisodeRequestStatus {
 	const key = episodeKey(season, episode);
-	const status = data?.episodes.get(key);
-	const own = data?.preferences.get(key);
-	const seasonPack = data?.preferences.get(episodeKey(season, 0));
+	const status = data.status?.episodes.get(key);
+	const own = data.requests?.preferences.get(key);
+	const seasonPack = data.requests?.preferences.get(episodeKey(season, 0));
+	const selected = own ?? seasonPack;
 	// A request that has its file keeps its torrent when another one is selected
-	const torrent = status?.torrent ?? (own ?? seasonPack)?.torrent;
+	const infoHash = status?.infoHash ?? selected?.release?.infoHash;
+	const torrent = infoHash ? data.torrents?.get(infoHash) : undefined;
+	const release = selected?.release?.infoHash === infoHash ? selected?.release : undefined;
+	const file = own?.mediaFileId
+		? data.status?.files.find((file) => file.id === own.mediaFileId)
+		: undefined;
 
 	return {
 		requested: !!status?.requested,
 		onDisk: !!status?.onDisk,
-		torrent,
-		file: own?.file,
-		isSeasonPack: !own && !!torrent && torrent.infoHash === seasonPack?.torrent?.infoHash,
-		label: getStatusLabel(status),
+		infoHash,
+		sourceName: torrent?.title ?? release?.title ?? file?.fileName,
+		isSeasonPack: !own && !!infoHash && infoHash === seasonPack?.release?.infoHash,
+		label: getStatusLabel(status, { torrent, item: itemOf(torrent, season, episode) }),
 		isError: isErrorStatus(status)
 	};
 }

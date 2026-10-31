@@ -9,8 +9,9 @@ import {
 import { Cron } from '@nestjs/schedule';
 import { rm, stat } from 'node:fs/promises';
 import * as path from 'node:path';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, Title } from '../common/common.dto.js';
 import { DOWNLOADS_DIR } from '../consts.js';
+import { EventsService } from '../events/events.service.js';
 import { parseTorrentSource } from '../indexers/torrent-source.utils.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
@@ -85,6 +86,40 @@ const itemFileIndexes = (
     ? []
     : [item.fileIndex, ...(item.subtitleFileIndexes ?? [])];
 
+/** The titles that items are of, each once */
+const titlesOf = (items: TorrentItem[]): Title[] => [
+  ...new Map(
+    items.map(({ mediaType, tmdbId }) => [
+      `${mediaType}:${tmdbId}`,
+      { mediaType, tmdbId },
+    ]),
+  ).values(),
+];
+
+/**
+ * The status of an item by its rows: what the reconcile of its torrent wrote
+ * of the file list, the match, the completion and the failure. Whether the
+ * torrent is running is the engine's.
+ */
+function itemStatusOf(
+  item: TorrentItem,
+  files: TorrentFileInfo[] | undefined,
+  error: string | undefined,
+): Pick<TorrentItemDto, 'status' | 'error'> {
+  if (item.releasedAt) return { status: TorrentItemStatus.Released };
+  if (error) return { status: TorrentItemStatus.Failed, error };
+  if (item.completedAt) return { status: TorrentItemStatus.Complete };
+  if (!files) return { status: TorrentItemStatus.Resolving };
+  if (!fileOf(files, item.fileIndex)) {
+    return {
+      status: TorrentItemStatus.NoMatch,
+      error: 'The torrent has no file for this episode',
+    };
+  }
+
+  return { status: TorrentItemStatus.Downloading };
+}
+
 /**
  * Downloads the items that the library wants from torrents and seeds the
  * torrents up to the seed ratio. It knows torrents, their files and the
@@ -92,7 +127,7 @@ const itemFileIndexes = (
  * asks for items and releases them, and is told through
  * `library.importItem` when an item's file is complete. The job of a torrent
  * decides what the torrent does from its items, the engine and the settings,
- * and does it.
+ * does it, and tells the clients that show the titles of its items.
  */
 @Injectable()
 export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
@@ -104,6 +139,7 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     private readonly serverLog: ServerLogService,
     private readonly jobs: JobsService,
     private readonly runtime: TorrentRuntime,
+    private readonly events: EventsService,
   ) {}
 
   onModuleInit() {
@@ -265,7 +301,10 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     return em.find(TorrentItem, { id: { $in: ids } }, READ);
   }
 
-  /** Where items stand, with the progress of their files */
+  /**
+   * The status of items by their rows, without the engine: for the library's
+   * status, which goes by what was written and is told when that changes
+   */
   async describeItems(
     em: EntityManager,
     ids: string[],
@@ -273,25 +312,55 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     const items = await this.findItems(em, ids);
     const torrents = await this.findTorrentsOf(em, items);
 
-    return items.map((item) =>
-      this.toItemDto(
-        item,
-        torrents.get(item.torrentHash),
-        this.runtime.snapshot(item.torrentHash),
-      ),
-    );
+    return items.map((item) => {
+      const torrent = torrents.get(item.torrentHash);
+
+      return {
+        ...this.toItemRef(item, torrent?.files),
+        ...itemStatusOf(item, torrent?.files, torrent?.error ?? undefined),
+      };
+    });
   }
 
-  /** Where torrents stand, all of them or the given ones, with what is wanted of them */
-  async describeTorrents(
-    infoHashes?: string[],
-  ): Promise<TorrentWithItemsDto[]> {
+  /** Every torrent as the engine has it, with what is wanted of it: for admins */
+  async describeTorrents(): Promise<TorrentWithItemsDto[]> {
     const em = this.em.fork();
     const torrents = await em.find(
       Torrent,
-      infoHashes ? { infoHash: { $in: infoHashes } } : {},
+      {},
       { ...READ, orderBy: { createdAt: 'desc' } },
     );
+
+    return this.describe(em, torrents);
+  }
+
+  /**
+   * The torrents that something of a title is or was wanted from, as the
+   * engine has them, with the items of the title: what the title pages poll
+   * while a torrent runs
+   */
+  async describeTitleTorrents(title: Title): Promise<TorrentWithItemsDto[]> {
+    const em = this.em.fork();
+    const ofTitle = await em.find(TorrentItem, title, {
+      ...READ,
+      fields: ['torrentHash'],
+    });
+    const torrents = await em.find(
+      Torrent,
+      { infoHash: { $in: [...new Set(ofTitle.map((i) => i.torrentHash))] } },
+      { ...READ, orderBy: { createdAt: 'desc' } },
+    );
+
+    return this.describe(em, torrents, title);
+  }
+
+  /** Torrents as the engine has them, with their items, or only the items of a title */
+  private async describe(
+    em: EntityManager,
+    torrents: Torrent[],
+    ofTitle?: Title,
+  ): Promise<TorrentWithItemsDto[]> {
+    if (!torrents.length) return [];
     const items = await em.find(
       TorrentItem,
       { torrentHash: { $in: torrents.map((torrent) => torrent.infoHash) } },
@@ -306,7 +375,14 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
 
       return {
         ...this.toTorrentDto(torrent, ofTorrent, snapshot),
-        items: ofTorrent.map((item) => this.toItemDto(item, torrent, snapshot)),
+        items: ofTorrent
+          .filter(
+            (item) =>
+              !ofTitle ||
+              (item.mediaType === ofTitle.mediaType &&
+                item.tmdbId === ofTitle.tmdbId),
+          )
+          .map((item) => this.toItemDto(item, torrent, snapshot)),
       };
     });
   }
@@ -434,10 +510,15 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         });
       }
 
-      return { torrent, wanted, hasFiles: !!files };
+      return { torrent, items, wanted, hasFiles: !!files };
     });
     if (!state) return;
-    const { torrent, wanted, hasFiles } = state;
+    const { torrent, items, wanted, hasFiles } = state;
+
+    // Whatever the torrent does next, the pages of its titles show it
+    for (const title of titlesOf(items)) {
+      this.events.emit({ type: 'downloads', data: title });
+    }
 
     // Stopped with its error, until the torrent is picked or needed again
     if (snapshot?.error) {
@@ -548,42 +629,41 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     return new Map(torrents.map((torrent) => [torrent.infoHash, torrent]));
   }
 
-  private toItemDto(
+  /** An item and the file of the torrent it is, when matched */
+  private toItemRef(
     item: TorrentItem,
-    torrent: Torrent | undefined,
-    snapshot: TorrentState | undefined,
-  ): TorrentItemDto {
-    const files = torrent?.files ?? snapshot?.files;
-    const file = fileOf(files, item.fileIndex);
-    const dto: TorrentItemDto = {
+    files: TorrentFileInfo[] | undefined,
+  ): Omit<TorrentItemDto, 'status'> {
+    return {
       id: item.id,
       infoHash: item.torrentHash,
       mediaType: item.mediaType,
       tmdbId: item.tmdbId,
       season: item.season,
       episode: item.episode,
-      status: TorrentItemStatus.Resolving,
-      fileName: file?.name,
+      fileName: fileOf(files, item.fileIndex)?.name,
     };
-    const error = snapshot ? snapshot.error : torrent?.error;
+  }
 
-    if (item.releasedAt) return { ...dto, status: TorrentItemStatus.Released };
-    if (error) return { ...dto, status: TorrentItemStatus.Failed, error };
-    if (item.completedAt) return { ...dto, status: TorrentItemStatus.Complete };
-    if (!files) return dto;
-    if (!file) {
-      return {
-        ...dto,
-        status: TorrentItemStatus.NoMatch,
-        error: 'The torrent has no file for this episode',
-      };
-    }
-    if (!snapshot?.ready) return dto;
+  /** The status of an item as the engine has it: resolving until the torrent is ready, then with the progress of its file */
+  private toItemDto(
+    item: TorrentItem,
+    torrent: Torrent | undefined,
+    snapshot: TorrentState | undefined,
+  ): TorrentItemDto {
+    const files = torrent?.files ?? snapshot?.files;
+    const error = snapshot ? snapshot.error : torrent?.error;
+    const dto = {
+      ...this.toItemRef(item, files),
+      ...itemStatusOf(item, files, error ?? undefined),
+    };
+    if (dto.status !== TorrentItemStatus.Downloading) return dto;
+    if (!snapshot?.ready)
+      return { ...dto, status: TorrentItemStatus.Resolving };
 
     return {
       ...dto,
-      status: TorrentItemStatus.Downloading,
-      progress: this.runtime.getFileProgress(item.torrentHash, file.index),
+      progress: this.runtime.getFileProgress(item.torrentHash, item.fileIndex),
     };
   }
 

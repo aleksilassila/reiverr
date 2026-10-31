@@ -8,6 +8,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { EventsService } from '../events/events.service.js';
 import { Job, JobStatus } from './job.entity.js';
 import { JOB_KEYS, JobPayloads, JobType } from './job-types.js';
 
@@ -65,7 +66,10 @@ export class JobsService implements OnModuleDestroy {
   private changed = false;
   private wake?: () => void;
 
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly events: EventsService,
+  ) {}
 
   define<T extends JobType>(type: T, definition: JobDefinition<T>): void {
     if (this.definitions.has(type)) {
@@ -359,11 +363,14 @@ export class JobsService implements OnModuleDestroy {
     const definition = this.definitions.get(type);
     this.runningOfType.set(type, (this.runningOfType.get(type) ?? 0) + 1);
 
-    const run = RequestContext.create(this.em, async () =>
-      definition.run(job.payload, {
-        job,
-        em: RequestContext.getEntityManager() as EntityManager,
-      }),
+    // A job is a unit of work: the clients are told what it changed when it is done
+    const run = RequestContext.create(this.em, () =>
+      this.events.run(() =>
+        definition.run(job.payload, {
+          job,
+          em: RequestContext.getEntityManager() as EntityManager,
+        }),
+      ),
     );
     const settled = run
       .then(

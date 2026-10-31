@@ -13,6 +13,7 @@ import { FakeEngine, magnetFiles } from '../../test/fake-engine.js';
 import { createTorrent } from '../../test/torrent-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
+import { EventsService } from '../events/events.service.js';
 import { TorrentItem } from '../downloads/torrent-item.entity.js';
 import { TorrentRuntime } from '../downloads/torrent-runtime.js';
 import { IndexersService, Release } from '../indexers/indexers.service.js';
@@ -154,7 +155,8 @@ async function createHub() {
   const request = <T>(run: () => Promise<T>) =>
     RequestContext.create(orm.em, run);
 
-  const jobs = new JobsService(orm.em);
+  const events = new EventsService();
+  const jobs = new JobsService(orm.em, events);
   const settings = new SettingsService(orm.em);
   const serverLog = new ServerLogService(orm.em, settings);
   const metadata = {
@@ -198,12 +200,14 @@ async function createHub() {
     metadata as unknown as MetadataService,
     indexers as unknown as IndexersService,
     jobs,
+    events,
   );
   const users = new UsersService(
     orm.em.getRepository(User),
     orm.em,
     requests,
     jobs,
+    events,
   );
   const engine = new FakeEngine();
   const runtime = new TorrentRuntime(orm.em, jobs, engine);
@@ -213,6 +217,7 @@ async function createHub() {
     serverLog,
     jobs,
     runtime,
+    events,
   );
   const storage = new StorageService(
     orm.em,
@@ -228,6 +233,7 @@ async function createHub() {
     downloads,
     metadata as unknown as MetadataService,
     storage,
+    events,
   );
   const libraryService = new LibraryService(
     orm.em,
@@ -235,6 +241,7 @@ async function createHub() {
     metadata as unknown as MetadataService,
     jobs,
     fulfilment,
+    events,
   );
   const scan = new ScanService(
     orm.em,
@@ -249,6 +256,7 @@ async function createHub() {
     jobs,
     downloads,
     fulfilment,
+    events,
   );
   const deletion = new DeletionService(
     orm.em,
@@ -257,6 +265,7 @@ async function createHub() {
     requests,
     serverLog,
     fulfilment,
+    events,
   );
   const status = new StatusService(
     orm.em,
@@ -372,6 +381,8 @@ describe('FulfilmentService', () => {
     request(() => hub.requests.createMovieRequest(user, MOVIE_ID, true));
   const movieStatus = (user = userId) =>
     request(() => hub.status.getMovieStatus(user, MOVIE_ID));
+  const movieRequests = (user = userId) =>
+    request(() => hub.requests.describeMovieRequests(user, MOVIE_ID));
   const movieFiles = () =>
     existsSync(dirs.movies)
       ? (readdirSync(dirs.movies, { recursive: true }) as string[])
@@ -896,9 +907,13 @@ describe('FulfilmentService', () => {
     ).toEqual([[MediaType.Movie, MOVIE_ID, 0]]);
     expect(await movieStatus()).toMatchObject({
       status: 'downloading',
-      torrent: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
-      preference: { torrent: { infoHash: MOVIE } },
-      onServer: [MOVIE],
+      infoHash: MOVIE,
+      files: [],
+    });
+    expect(await movieRequests()).toMatchObject({
+      preference: {
+        release: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
+      },
     });
     // The whole release is expected for a movie
     expect(await usage()).toEqual({ heldBytes: 0, pendingBytes: 60 });
@@ -909,7 +924,8 @@ describe('FulfilmentService', () => {
     expect(await movieStatus()).toMatchObject({
       status: 'available',
       onDisk: true,
-      torrent: { infoHash: MOVIE },
+      infoHash: MOVIE,
+      files: [{ managed: true, infoHash: MOVIE, season: 0, episodes: [0] }],
     });
     // The file the fake engine writes settles what the request takes
     expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 0 });
@@ -951,7 +967,10 @@ describe('FulfilmentService', () => {
     expect(await movieStatus()).toMatchObject({
       status: 'available',
       onDisk: true,
-      preference: { file: { id: file.id, inLibrary: true, managed: false } },
+      files: [{ id: file.id, managed: false }],
+    });
+    expect(await movieRequests()).toMatchObject({
+      preference: { mediaFileId: file.id },
     });
     expect(await usage()).toEqual({ heldBytes: 8, pendingBytes: 0 });
 

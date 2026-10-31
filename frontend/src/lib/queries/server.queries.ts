@@ -10,6 +10,8 @@ import { storageKeys } from './storage.queries';
 
 export const serverKeys = {
 	all: ['server'] as const,
+	/** Every folder listing: what a change of the files on the server invalidates */
+	library: () => ['server', 'library'] as const,
 	libraryEntries: (folder: string) => ['server', 'library', folder] as const,
 	cleanupPreview: () => ['server', 'cleanup'] as const,
 	directories: (path: string) => ['server', 'directories', path] as const

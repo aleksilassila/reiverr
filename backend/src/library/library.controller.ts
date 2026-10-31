@@ -95,7 +95,7 @@ export class LibraryController {
   @ApiOkResponse({
     type: MovieStatusDto,
     description:
-      'Where the request and the preferred source of the user stand for the movie',
+      'The status of the request of the user for the movie, and the files of the movie',
   })
   getMovieStatus(
     @GetAuthUser() user: User,
@@ -116,7 +116,7 @@ export class LibraryController {
   @ApiOkResponse({
     type: SeriesStatusDto,
     description:
-      'Where the requests and the preferred sources of the user stand for the series',
+      'The status of the requests of the user for the series, by episode, and the files of the series',
   })
   getSeriesStatus(
     @GetAuthUser() user: User,

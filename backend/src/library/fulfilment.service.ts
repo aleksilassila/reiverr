@@ -5,8 +5,9 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, Title, titleOf } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
+import { EventsService } from '../events/events.service.js';
 import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { isNeeded, mediaOf } from '../requests/requests.utils.js';
@@ -47,7 +48,8 @@ const NOTHING: BindingChange = {
  * its item, and `itemImportFailed` keeps the failure on them.
  * `library.sweepRequests` has every active request
  * that is bound to nothing looked at again, which is how a request that
- * was held back gets what it wants once there is room.
+ * was held back gets what it wants once there is room. Every write of a
+ * binding tells the clients that show its title.
  */
 @Injectable()
 export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
@@ -58,6 +60,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     private readonly downloadsService: DownloadsService,
     private readonly metadataService: MetadataService,
     private readonly storage: StorageService,
+    private readonly events: EventsService,
   ) {}
 
   onModuleInit() {
@@ -174,10 +177,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       );
       const binding =
         (await tx.findOne(RequestBinding, { requestId }, READ)) ?? undefined;
+      const title = request
+        ? titleOf(mediaOf(request))
+        : await this.titleOfBinding(tx, binding);
+      const write = (change: BindingChange) =>
+        this.writeBinding(tx, requestId, binding, change, title);
 
       if (!request) {
         await this.releaseItemOf(tx, binding);
-        await this.writeBinding(tx, requestId, binding, NOTHING);
+        await write(NOTHING);
         return;
       }
 
@@ -187,7 +195,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         await this.releaseItemOf(tx, binding);
         // The file it has stays its own, unless the library forgot it
         const held = await this.heldFile(tx, binding);
-        await this.writeBinding(tx, requestId, binding, {
+        await write({
           torrentItemId: null,
           mediaFileId: held?.id ?? null,
           error: null,
@@ -209,7 +217,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         );
         await this.releaseItemOf(tx, binding);
         if (!file || !coversMedia(file, media)) {
-          await this.writeBinding(tx, requestId, binding, {
+          await write({
             torrentItemId: null,
             mediaFileId: null,
             error: !file
@@ -224,10 +232,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           binding?.mediaFileId === file.id
             ? 'ok'
             : roomFor(gate, { bytes: file.size, download: false });
-        await this.writeBinding(
-          tx,
-          requestId,
-          binding,
+        await write(
           room === 'ok'
             ? { torrentItemId: null, mediaFileId: file.id, error: null }
             : NOTHING,
@@ -246,7 +251,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         (held.infoHash === infoHash || !source.forEpisode);
       if (keepsHeld) {
         await this.releaseItemOf(tx, binding);
-        await this.writeBinding(tx, requestId, binding, {
+        await write({
           torrentItemId: null,
           error: null,
         });
@@ -269,10 +274,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       if (version) {
         await this.releaseItemOf(tx, binding);
         const room = roomFor(gate, { bytes: version.size, download: false });
-        await this.writeBinding(
-          tx,
-          requestId,
-          binding,
+        await write(
           room === 'ok'
             ? { torrentItemId: null, mediaFileId: version.id, error: null }
             : NOTHING,
@@ -285,7 +287,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       ]);
       if (!release) {
         await this.releaseItemOf(tx, binding);
-        await this.writeBinding(tx, requestId, binding, {
+        await write({
           torrentItemId: null,
           mediaFileId: null,
           error: 'The release is not known any more',
@@ -315,7 +317,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         const room = roomFor(gate, { bytes, download: true });
         if (room !== 'ok') {
           await this.releaseItemOf(tx, binding);
-          await this.writeBinding(tx, requestId, binding, NOTHING);
+          await write(NOTHING);
           return;
         }
         pendingBytes = bytes;
@@ -327,7 +329,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         onlyVideo: source.forEpisode,
       });
       await this.releaseItemOf(tx, binding, item.id);
-      await this.writeBinding(tx, requestId, binding, {
+      await write({
         torrentItemId: item.id,
         pendingBytes,
         mediaFileId: null,
@@ -345,23 +347,29 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    */
   async filesForgotten(
     tx: EntityManager,
-    files: Pick<MediaFile, 'id'>[],
+    files: Pick<MediaFile, 'id' | 'mediaType' | 'tmdbId'>[],
   ): Promise<void> {
-    const ids = files.map((file) => file.id);
-    if (!ids.length) return;
+    const byId = new Map(files.map((file) => [file.id, file]));
+    if (!byId.size) return;
 
     const bindings = await tx.find(
       RequestBinding,
-      { mediaFileId: { $in: ids } },
+      { mediaFileId: { $in: [...byId.keys()] } },
       READ,
     );
     for (const binding of bindings) {
-      await this.writeBinding(tx, binding.requestId, binding, {
-        torrentItemId: binding.torrentItemId ?? null,
-        pendingBytes: binding.pendingBytes,
-        mediaFileId: null,
-        error: binding.error ?? null,
-      });
+      await this.writeBinding(
+        tx,
+        binding.requestId,
+        binding,
+        {
+          torrentItemId: binding.torrentItemId ?? null,
+          pendingBytes: binding.pendingBytes,
+          mediaFileId: null,
+          error: binding.error ?? null,
+        },
+        titleOf(byId.get(binding.mediaFileId)),
+      );
       await this.jobs.enqueue(tx, 'library.reconcileRequest', {
         requestId: binding.requestId,
       });
@@ -407,6 +415,20 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     );
   }
 
+  /** The title of what a binding refers to, for a request that is gone */
+  private async titleOfBinding(
+    tx: EntityManager,
+    binding: RequestBinding | undefined,
+  ): Promise<Title | undefined> {
+    const file = await this.heldFile(tx, binding);
+    if (file) return titleOf(file);
+    const [item] = binding?.torrentItemId
+      ? await this.downloadsService.findItems(tx, [binding.torrentItemId])
+      : [];
+
+    return item && titleOf(item);
+  }
+
   /** The file a binding has, as long as its row is in the index */
   private async heldFile(
     tx: EntityManager,
@@ -437,15 +459,17 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Writes what a binding is to say, when that is not what it says. A
-   * binding that lets go of a file or an item may make room for a request
-   * that was held back, so the sweep runs.
+   * Writes what a binding is to say, when that is not what it says, and
+   * tells the clients that show the title. A binding that lets go of a
+   * file or an item may make room for a request that was held back, so
+   * the sweep runs.
    */
   private async writeBinding(
     tx: EntityManager,
     requestId: string,
     current: RequestBinding | undefined,
     change: BindingChange,
+    title: Title | undefined,
   ): Promise<void> {
     const next = {
       torrentItemId: change.torrentItemId,
@@ -469,10 +493,12 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         ...next,
         updatedAt: new Date(),
       });
+      this.bindingChanged(title);
       return;
     }
     if (isEmpty) {
       await tx.nativeDelete(RequestBinding, { requestId });
+      this.bindingChanged(title);
       if (letsGo) await this.sweepLater(tx);
       return;
     }
@@ -488,6 +514,12 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       { requestId },
       { ...next, updatedAt: new Date() },
     );
+    this.bindingChanged(title);
     if (letsGo) await this.sweepLater(tx);
+  }
+
+  /** What the requests of users have of the title changed, which the pages of the title show */
+  private bindingChanged(title: Title | undefined): void {
+    if (title) this.events.emit({ type: 'library', data: title });
   }
 }

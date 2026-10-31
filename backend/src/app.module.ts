@@ -15,6 +15,8 @@ import { DownloadsModule } from './downloads/downloads.module.js';
 import { ServerLogModule } from './server-log/server-log.module.js';
 import { ServerModule } from './server/server.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { EventsMiddleware } from './events/events.middleware.js';
+import { EventsModule } from './events/events.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -40,10 +42,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     ServerLogModule,
     ServerModule,
     CatalogModule,
+    EventsModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes('{*path}');
+    consumer.apply(EventsMiddleware, AuthMiddleware).forRoutes('{*path}');
   }
 }

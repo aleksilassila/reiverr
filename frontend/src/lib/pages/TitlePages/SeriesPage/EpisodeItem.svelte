@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { getEpisodeRequestStatus, type SeriesRequests } from '$lib/queries/series.queries';
+	import { getEpisodeRequestStatus, type SeriesData } from '$lib/queries/series.queries';
 	import RequestRow from './RequestRow.svelte';
 
 	export let seasonNumber: number;
 	export let episodeNumber: number;
 	export let episodeName: string;
-	export let requests: SeriesRequests | undefined = undefined;
+	export let data: SeriesData = {};
 
-	$: status = getEpisodeRequestStatus(requests, seasonNumber, episodeNumber);
+	$: status = getEpisodeRequestStatus(data, seasonNumber, episodeNumber);
 </script>
 
 <!-- The season pack is dimmed: it was not selected for this episode -->
 <RequestRow
-	subtitle={status.torrent?.title ?? status.file?.fileName}
+	subtitle={status.sourceName}
 	subtitleDimmed={status.isSeasonPack}
 	status={status.label}
 	isError={status.isError}

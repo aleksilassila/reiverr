@@ -2,6 +2,7 @@
 	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
 	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
+	import { connectEvents } from '$lib/queries/events';
 	import { queryClient } from '$lib/queries/query-client';
 	import { inputMode } from '$lib/stores/input-mode.store';
 	import { userActivity } from '$lib/stores/user-activity.store';
@@ -30,7 +31,10 @@
 			createModal(OnboardingDialog, {});
 		}
 	});
-	sessions.subscribe((s) => console.log('sessions', s));
+	sessions.subscribe((s) => {
+		console.log('sessions', s);
+		connectEvents(s.activeSession);
+	});
 
 	// onMount(() => {
 	// 	if (isTizen()) {

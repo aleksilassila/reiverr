@@ -23,6 +23,7 @@ import { TorrentItem } from '../src/downloads/torrent-item.entity.js';
 import { TorrentRuntime } from '../src/downloads/torrent-runtime.js';
 import { Torrent } from '../src/downloads/torrent.entity.js';
 import { ReleaseDto } from '../src/indexers/indexers.dto.js';
+import { TorrentWithItemsDto } from '../src/downloads/downloads.dto.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import { DeletionService } from '../src/library/deletion.service.js';
 import { MovieStatusDto, SeriesStatusDto } from '../src/library/library.dto.js';
@@ -35,7 +36,10 @@ import {
 } from '../src/metadata/metadata.entity.js';
 import mikroOrmConfig from '../src/mikro-orm.config.js';
 import { MediaRequest } from '../src/requests/request.entity.js';
-import { RequestRuleDto } from '../src/requests/requests.dto.js';
+import {
+  RequestRuleDto,
+  SeriesRequestsDto,
+} from '../src/requests/requests.dto.js';
 import { LogEntry, LogType } from '../src/server-log/log-entry.entity.js';
 import { FakeEngine, magnetFiles } from './fake-engine.js';
 import { createTorrent } from './torrent-fixture.js';
@@ -195,6 +199,24 @@ describe('Series downloads (e2e)', () => {
     api('get', `/library/series/${TMDB_ID}/status`, user)
       .expect(200)
       .then((res) => res.body);
+
+  const getRequests = (user = admin): Promise<SeriesRequestsDto> =>
+    api('get', `/me/requests/series/${TMDB_ID}`, user)
+      .expect(200)
+      .then((res) => res.body);
+
+  const getTorrents = (user = admin): Promise<TorrentWithItemsDto[]> =>
+    api('get', `/downloads/series/${TMDB_ID}`, user)
+      .expect(200)
+      .then((res) => res.body);
+
+  /** The torrents the files of the series came from, which the releases of the torrents view show as on the server */
+  const versions = async (user = admin) =>
+    [
+      ...new Set(
+        (await getStatus(user)).files.flatMap((file) => file.infoHash ?? []),
+      ),
+    ].sort();
 
   const search = (query: string): Promise<ReleaseDto[]> =>
     api('get', `/indexers/search/series/${TMDB_ID}?${query}`)
@@ -417,21 +439,23 @@ describe('Series downloads (e2e)', () => {
     // The release is kept, nothing knows the torrent yet
     expect(await em().count(Torrent, {})).toBe(0);
 
-    const status = await getStatus();
-    expect(status.preferences).toMatchObject([
+    expect((await getRequests()).preferences).toEqual([
       {
         season: 1,
         episode: 0,
-        torrent: {
+        release: {
           title: 'Test.Show.S01.1080p.WEB-GRP',
+          indexer: 'Fake',
+          size: 1000,
           infoHash: PACK,
-          status: 'idle',
         },
       },
     ]);
+    const status = await getStatus();
     expect(status.episodes).toEqual([]);
+    expect(status.files).toEqual([]);
     // A torrent that nothing downloads from is not on the server
-    expect(status.onServer).toEqual([]);
+    expect(await getTorrents()).toEqual([]);
   });
 
   it('does not download a requested episode without a torrent', async () => {
@@ -467,8 +491,7 @@ describe('Series downloads (e2e)', () => {
         requested: true,
         onDisk: false,
         status: 'downloading',
-        progress: 0.5,
-        torrent: { infoHash: PACK, status: 'downloading' },
+        infoHash: PACK,
       },
       {
         season: 1,
@@ -476,8 +499,7 @@ describe('Series downloads (e2e)', () => {
         requested: true,
         onDisk: false,
         status: 'downloading',
-        progress: 0.5,
-        torrent: { infoHash: PACK },
+        infoHash: PACK,
       },
     ]);
     // The requests wait for items of the torrent and have no file yet
@@ -485,11 +507,18 @@ describe('Series downloads (e2e)', () => {
       [1, 1, PACK, null],
       [1, 2, PACK, null],
     ]);
-    expect(status.preferences[0].torrent).toMatchObject({
-      status: 'downloading',
-      peers: 3,
-    });
-    expect(status.onServer).toEqual([PACK]);
+    // The progress is the torrent's, which any user may look at
+    expect(await getTorrents(viewer)).toMatchObject([
+      {
+        infoHash: PACK,
+        status: 'downloading',
+        peers: 3,
+        items: [
+          { season: 1, episode: 1, status: 'downloading', progress: 0.5 },
+          { season: 1, episode: 2, status: 'downloading', progress: 0.5 },
+        ],
+      },
+    ]);
   });
 
   it('moves a request that has no file yet to the torrent that is selected for its episode', async () => {
@@ -553,7 +582,7 @@ describe('Series downloads (e2e)', () => {
         requested: true,
         onDisk: true,
         status: 'available',
-        torrent: { infoHash: PACK },
+        infoHash: PACK,
       },
       {
         season: 1,
@@ -561,7 +590,7 @@ describe('Series downloads (e2e)', () => {
         requested: true,
         onDisk: true,
         status: 'available',
-        torrent: { infoHash: EPISODE },
+        infoHash: EPISODE,
       },
     ]);
     // The requests have the files, and wait for no item any more
@@ -569,12 +598,18 @@ describe('Series downloads (e2e)', () => {
       [1, 1, null, PACK],
       [1, 2, null, EPISODE],
     ]);
-    expect(status.preferences.map((s) => s.torrent)).toMatchObject([
-      { infoHash: PACK, status: 'idle', downloadedBytes: 0 },
-      { infoHash: EPISODE, status: 'idle', downloadedBytes: 0 },
-    ]);
+    expect(
+      (await getTorrents())
+        .map((t) => [t.infoHash, t.status, t.downloadedBytes])
+        .sort(),
+    ).toEqual(
+      [
+        [PACK, 'idle', 0],
+        [EPISODE, 'idle', 0],
+      ].sort(),
+    );
     // The torrents the files came from are on the server
-    expect(status.onServer.sort()).toEqual([PACK, EPISODE].sort());
+    expect(await versions()).toEqual([PACK, EPISODE].sort());
 
     const files = await api('get', `/library/series/${TMDB_ID}`).expect(200);
     expect(files.body.map((file) => [file.season, file.episodes])).toEqual([
@@ -636,9 +671,7 @@ describe('Series downloads (e2e)', () => {
 
     // Nothing holds the first version any more. Its file stays until a
     // cleanup and still tells search results that this release is on the server.
-    expect((await getStatus()).onServer.sort()).toEqual(
-      [PACK, REDIRECT, EPISODE].sort(),
-    );
+    expect(await versions()).toEqual([PACK, REDIRECT, EPISODE].sort());
   });
 
   it('keeps the files of a season when another torrent is selected for the season', async () => {
@@ -663,8 +696,8 @@ describe('Series downloads (e2e)', () => {
       [1, 1, 'available'],
       [1, 2, 'available'],
     ]);
-    expect(status.preferences[0].torrent.infoHash).toBe(EPISODE);
-    expect(status.episodes[0].torrent.infoHash).toBe(PACK);
+    expect((await getRequests()).preferences[0].release.infoHash).toBe(EPISODE);
+    expect(status.episodes[0].infoHash).toBe(PACK);
 
     await select('Test.Show.S01.1080p.WEB-GRP');
     await settle();
@@ -680,7 +713,7 @@ describe('Series downloads (e2e)', () => {
     expect(res.body.message).toContain(
       'Could not get the torrent of "Test.Show.S01E03.1080p.WEB-GRP"',
     );
-    expect((await getStatus()).preferences).toHaveLength(2);
+    expect((await getRequests()).preferences).toHaveLength(2);
   });
 
   it('stops downloading an episode that is no longer requested', async () => {
@@ -717,10 +750,10 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(PACK).wanted).toEqual([2]);
     expect(await em().count(Torrent, { infoHash: PACK })).toBe(1);
 
-    const status = await getStatus(viewer);
-    expect(status.preferences).toMatchObject([
-      { season: 1, episode: 0, torrent: { infoHash: PACK } },
+    expect((await getRequests(viewer)).preferences).toMatchObject([
+      { season: 1, episode: 0, release: { infoHash: PACK } },
     ]);
+    const status = await getStatus(viewer);
     expect(status.episodes).toMatchObject([
       { episode: 1, requested: false, onDisk: true },
       { episode: 2, requested: false, onDisk: true },
@@ -761,11 +794,14 @@ describe('Series downloads (e2e)', () => {
     expect(libraryFiles()).toContain(episodeFile(3, PACK));
     expect(pack.destroyed).toBe(false);
     expect(pack.wanted).toEqual([]);
-    expect((await getStatus(viewer)).preferences[0].torrent).toMatchObject({
-      status: 'seeding',
-      downloadedBytes: 100,
-      uploadedBytes: 50,
-    });
+    expect(await getTorrents(viewer)).toContainEqual(
+      expect.objectContaining({
+        infoHash: PACK,
+        status: 'seeding',
+        downloadedBytes: 100,
+        uploadedBytes: 50,
+      }),
+    );
 
     await app.close();
     expect(pack.destroyed).toBe(true);
@@ -774,11 +810,14 @@ describe('Series downloads (e2e)', () => {
 
     pack = engine.running(PACK);
     expect(pack).toBeDefined();
-    expect((await getStatus(viewer)).preferences[0].torrent).toMatchObject({
-      status: 'seeding',
-      downloadedBytes: 100,
-      uploadedBytes: 50,
-    });
+    expect(await getTorrents(viewer)).toContainEqual(
+      expect.objectContaining({
+        infoHash: PACK,
+        status: 'seeding',
+        downloadedBytes: 100,
+        uploadedBytes: 50,
+      }),
+    );
 
     pack.stats.uploaded = 150;
     // The counters are stored every 30 seconds
@@ -787,11 +826,14 @@ describe('Series downloads (e2e)', () => {
 
     expect(pack.destroyed).toBe(true);
     expect(existsSync(pack.directory)).toBe(false);
-    expect((await getStatus(viewer)).preferences[0].torrent).toMatchObject({
-      status: 'idle',
-      downloadedBytes: 0,
-      uploadedBytes: 0,
-    });
+    expect(await getTorrents(viewer)).toContainEqual(
+      expect.objectContaining({
+        infoHash: PACK,
+        status: 'idle',
+        downloadedBytes: 0,
+        uploadedBytes: 0,
+      }),
+    );
 
     await api('put', '/downloads/settings')
       .send({ seedRatio: 0, downloadSubtitles: true })
@@ -883,7 +925,7 @@ describe('Series downloads (e2e)', () => {
       [1, 1, null, null],
       [1, 2, null, REDIRECT],
     ]);
-    expect(status.onServer.sort()).toEqual([PACK, REDIRECT, EPISODE].sort());
+    expect(await versions()).toEqual([PACK, REDIRECT, EPISODE].sort());
   });
 
   it('answers a request before the library has looked at it', async () => {
@@ -924,7 +966,7 @@ describe('Series downloads (e2e)', () => {
     // of them has passed the gate
     await setRequested([1, 2, 3], true, { season: 2 });
     await setRule({ keepNext: 1 });
-    expect((await api('get', rulePath).expect(200)).body).toEqual({
+    expect((await getRequests()).rule).toEqual({
       keepNext: 1,
       keepWatched: null,
       keepWatchedHours: null,
@@ -1001,7 +1043,7 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(SEASON_2)).toBeUndefined();
 
     await setRule({});
-    expect((await api('get', rulePath).expect(200)).body).toEqual({
+    expect((await getRequests()).rule).toEqual({
       keepNext: null,
       keepWatched: null,
       keepWatchedHours: null,
@@ -1141,7 +1183,7 @@ describe('Series downloads (e2e)', () => {
     expect(await references()).toEqual([[1, 1, null, null]]);
     expect(await references(viewer)).toEqual([]);
     expect(engine.running(REDIRECT)).toBeUndefined();
-    expect((await getStatus(viewer)).preferences).toHaveLength(1);
+    expect((await getRequests(viewer)).preferences).toHaveLength(1);
     expect(
       await em().count(LogEntry, {
         message: `Deleted "${path.join(dirs.library, held)}": deleted by admin`,
@@ -1241,13 +1283,14 @@ describe('Series downloads (e2e)', () => {
 
     const status = await getStatus();
     expect(statuses(status)).toEqual([[1, 1, 'available']]);
-    expect(status.preferences).toContainEqual(
-      expect.objectContaining({
-        season: 1,
-        episode: 1,
-        file: expect.objectContaining({ inLibrary: true, managed: false }),
-      }),
-    );
+    expect(status.files).toEqual([
+      expect.objectContaining({ season: 1, episodes: [1], managed: false }),
+    ]);
+    expect((await getRequests()).preferences).toContainEqual({
+      season: 1,
+      episode: 1,
+      mediaFileId: status.files[0].id,
+    });
     expect(await references()).toEqual([[1, 1, null, null]]);
     expect(
       await em().count(RequestBinding, { mediaFileId: { $ne: null } }),
@@ -1418,7 +1461,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
   });
 
-  it('lists the torrents for admins', async () => {
+  it('lists every torrent for admins, and the torrents of a title for anyone', async () => {
     await api('get', '/downloads/torrents', viewer).expect(403);
     const { body } = await api('get', '/downloads/torrents').expect(200);
 
@@ -1428,6 +1471,16 @@ describe('Series downloads (e2e)', () => {
     expect(body.find((t) => t.infoHash === PACK).items).toContainEqual(
       expect.objectContaining({ season: 1, episode: 1, status: 'released' }),
     );
+
+    const ofSeries = await getTorrents(viewer);
+    expect(ofSeries.map((t) => t.infoHash).sort()).toEqual(
+      [PACK, EPISODE, REDIRECT, SEASON_2].sort(),
+    );
+    expect(
+      await api('get', `/downloads/series/999`, viewer).expect(200),
+    ).toMatchObject({
+      body: [],
+    });
   });
 
   it('rejects requests for episodes that do not exist', async () => {
@@ -1468,7 +1521,11 @@ describe('Series downloads (e2e)', () => {
       requested: true,
       onDisk: false,
       status: 'no-preference',
-      onServer: [],
+      files: [],
+    });
+    expect((await api('get', moviePath).expect(200)).body).toMatchObject({
+      request: { tmdbId: MOVIE_ID, approved: true },
+      rule: { keepWatchedHours: null },
     });
 
     // The releases of the movie, by its name and year, asked for by its TMDB id
@@ -1497,10 +1554,20 @@ describe('Series downloads (e2e)', () => {
     await settle();
     expect(await getMovieStatus()).toMatchObject({
       status: 'downloading',
-      preference: {
-        torrent: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
+      infoHash: MOVIE,
+    });
+    expect((await api('get', moviePath).expect(200)).body.preference).toEqual({
+      release: {
+        infoHash: MOVIE,
+        title: 'Test.Movie.2021.1080p.WEB-GRP',
+        indexer: 'Fake',
+        size: 1000,
       },
-      onServer: [MOVIE],
+    });
+    expect(
+      await api('get', `/downloads/movies/${MOVIE_ID}`).expect(200),
+    ).toMatchObject({
+      body: [{ infoHash: MOVIE, status: 'downloading' }],
     });
     expect(engine.running(MOVIE).wanted).toEqual([0]);
 
@@ -1510,7 +1577,8 @@ describe('Series downloads (e2e)', () => {
     expect(await getMovieStatus()).toMatchObject({
       status: 'available',
       onDisk: true,
-      torrent: { infoHash: MOVIE },
+      infoHash: MOVIE,
+      files: [{ infoHash: MOVIE, managed: true }],
     });
     const files = await api('get', `/library/movies/${MOVIE_ID}`).expect(200);
     expect(files.body.map((f) => f.fileName)).toEqual([
@@ -1529,7 +1597,7 @@ describe('Series downloads (e2e)', () => {
     await api('put', `${moviePath}/rule`)
       .send({ keepWatchedHours: 1 })
       .expect(200);
-    expect((await api('get', `${moviePath}/rule`).expect(200)).body).toEqual({
+    expect((await api('get', moviePath).expect(200)).body.rule).toEqual({
       keepWatchedHours: 1,
     });
     await api('put', `/me/play-states/movies/${MOVIE_ID}`)

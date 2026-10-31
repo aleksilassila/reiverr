@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { EpisodeRefDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbSeason } from '$lib/apis/tmdb/tmdb-api';
-	import { episodeKey, type SeriesRequests } from '$lib/queries/series.queries';
+	import { episodeKey, type SeriesData } from '$lib/queries/series.queries';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
@@ -10,7 +10,7 @@
 	import RequestRow from './RequestRow.svelte';
 
 	export let season: TmdbSeason;
-	export let requests: SeriesRequests | undefined = undefined;
+	export let data: SeriesData = {};
 
 	const dispatch = createEventDispatcher<{
 		request: { episodes: EpisodeRefDto[]; requested: boolean };
@@ -34,18 +34,19 @@
 		name: e.name ?? ''
 	}));
 	$: requestedCount = episodes.filter(
-		(e) => requests?.episodes.get(episodeKey(e.season, e.episode))?.requested
+		(e) => data.status?.episodes.get(episodeKey(e.season, e.episode))?.requested
 	).length;
 	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
 
-	$: seasonPack = requests?.preferences.get(episodeKey(seasonNumber, 0));
-	$: seasonPackTorrent = seasonPack?.torrent;
+	$: seasonPack = data.requests?.preferences.get(episodeKey(seasonNumber, 0))?.release;
+	// The season pack as the engine has it, once something was wanted of it
+	$: seasonPackTorrent = seasonPack && data.torrents?.get(seasonPack.infoHash);
 	$: seasonPackStatus =
 		seasonPackTorrent?.status === 'seeding'
 			? `Seeding, ${formatSize(seasonPackTorrent.uploadedBytes)} uploaded`
 			: seasonPackTorrent?.status === 'failed'
 				? seasonPackTorrent.error
-				: seasonPackTorrent && seasonPackTorrent.status !== 'stopped'
+				: seasonPackTorrent?.status === 'starting' || seasonPackTorrent?.status === 'downloading'
 					? `${seasonPackTorrent.peers} peers, ${formatSize(seasonPackTorrent.downloadSpeed)}/s`
 					: '';
 </script>
@@ -53,7 +54,7 @@
 <div class="mt-8 space-y-4">
 	<RequestRow
 		on:mount={({ detail }) => (heading = detail)}
-		subtitle={seasonPackTorrent ? `${seasonPackTorrent.title}` : 'No season pack selected'}
+		subtitle={seasonPack ? seasonPack.title : 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}
 		checked={allRequested}
@@ -71,13 +72,13 @@
 	</RequestRow>
 
 	{#each episodes as episode (episode.episode)}
-		{@const requested = !!requests?.episodes.get(episodeKey(episode.season, episode.episode))
+		{@const requested = !!data.status?.episodes.get(episodeKey(episode.season, episode.episode))
 			?.requested}
 		<EpisodeItem
 			seasonNumber={episode.season}
 			episodeNumber={episode.episode}
 			episodeName={episode.name}
-			{requests}
+			{data}
 			on:toggle={() =>
 				dispatch('request', {
 					episodes: [{ season: episode.season, episode: episode.episode }],

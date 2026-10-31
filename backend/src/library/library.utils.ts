@@ -353,6 +353,24 @@ export const relativePath = (folder: string, entryPath: string) =>
   path.relative(folder, entryPath).split(path.sep).join('/');
 
 /**
+ * The episodes a file of a series is, by its row; [0] for a movie
+ *
+ * @example
+ * // "Money Heist - S01E01-E03.mkv", { episode: 1, lastEpisode: 3 }
+ * [1, 2, 3]
+ * // A movie, { episode: 0, lastEpisode: 0 }
+ * [0]
+ */
+export function fileEpisodes(
+  file: Pick<MediaFile, 'episode' | 'lastEpisode'>,
+): number[] {
+  return Array.from(
+    { length: file.lastEpisode - file.episode + 1 },
+    (_, i) => file.episode + i,
+  );
+}
+
+/**
  * Whether a file is of a movie, or of an episode of a series: of its title
  * and season, and the episode is among the file's. A movie and its files
  * are season and episode 0.

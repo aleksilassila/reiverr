@@ -27,9 +27,6 @@
 
 	export let tmdbId: string;
 
-	/** Download progress and usage change without the user doing anything */
-	const REFRESH_INTERVAL = 5000;
-
 	type RuleField = {
 		key: keyof RequestRuleDto;
 		name: string;
@@ -78,14 +75,12 @@
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
 	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
-	const status = usePageQuery({
-		...seriesQueries.status(tmdbId),
-		refetchInterval: REFRESH_INTERVAL
-	});
-	const rule = usePageQuery(seriesQueries.rule(tmdbId));
-	const storage = usePageQuery({ ...storageQueries.user(), refetchInterval: REFRESH_INTERVAL });
-	$: requests = $status.data;
-	$: ruleData = $rule.data;
+	const requests = usePageQuery(seriesQueries.requests(tmdbId));
+	const status = usePageQuery(seriesQueries.status(tmdbId));
+	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
+	const storage = usePageQuery(storageQueries.user());
+	$: data = { requests: $requests.data, status: $status.data, torrents: $torrents.data };
+	$: ruleData = $requests.data?.rule;
 	$: usage = $storage.data;
 
 	const seasonItems: SeasonItem[] = [];
@@ -127,11 +122,13 @@
 
 	/** What a new request of the episode is expected to take from its source, if it has one */
 	function sourceBytes({ season, episode }: EpisodeRefDto): number {
-		const own = requests?.preferences.get(episodeKey(season, episode));
-		if (own?.torrent) return own.torrent.size;
-		if (own?.file) return own.file.size ?? 0;
+		const own = data.requests?.preferences.get(episodeKey(season, episode));
+		if (own?.release) return own.release.size;
+		if (own?.mediaFileId) {
+			return data.status?.files.find((file) => file.id === own.mediaFileId)?.size ?? 0;
+		}
 
-		const pack = requests?.preferences.get(episodeKey(season, 0))?.torrent;
+		const pack = data.requests?.preferences.get(episodeKey(season, 0))?.release;
 		const episodesInSeason = seasons.find((s) => s.season_number === season)?.episodes?.length;
 		return pack ? expectedBytes(pack.size, false, episodesInSeason) : 0;
 	}
@@ -140,7 +137,7 @@
 		const bytes = !requested
 			? 0
 			: episodes
-					.filter((e) => !requests?.episodes.get(episodeKey(e.season, e.episode))?.requested)
+					.filter((e) => !data.status?.episodes.get(episodeKey(e.season, e.episode))?.requested)
 					.reduce((sum, e) => sum + sourceBytes(e), 0);
 		if (!(await confirmQuota(bytes))) return;
 
@@ -231,7 +228,7 @@
 					bind:this={seasonItems[index]}
 					on:enter={() => (activeSeason = season.season_number)}
 					{season}
-					{requests}
+					{data}
 					on:request={({ detail }) =>
 						request(detail.episodes, detail.requested).catch((e) =>
 							createErrorNotification(

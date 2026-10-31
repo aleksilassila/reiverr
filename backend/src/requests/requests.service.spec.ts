@@ -4,6 +4,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MediaType, MediaTypeFull } from '../common/common.dto.js';
 import { IndexersService, Release } from '../indexers/indexers.service.js';
 import { Job, JobStatus } from '../jobs/job.entity.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
@@ -154,8 +155,8 @@ describe('RequestsService', () => {
         { orderBy: { episode: 'asc' } },
       );
 
-  /** Where each episode request stands */
-  const standings = async () =>
+  /** The gate each episode request has passed, and whether it is watched */
+  const gates = async () =>
     (await rows()).map((r) => [
       r.episode,
       !r.approved ? 'waiting' : !r.neededSince ? 'ahead' : 'needed',
@@ -224,11 +225,13 @@ describe('RequestsService', () => {
       getMovieByTmdbId: async () => ({ tmdbMovie: {} }),
     };
     indexers.resolveTorrent.mockClear();
+    const events = new EventsService();
     requests = new RequestsService(
       orm.em,
       metadata as unknown as MetadataService,
       indexers as unknown as IndexersService,
-      new JobsService(orm.em),
+      new JobsService(orm.em, events),
+      events,
     );
   });
 
@@ -236,14 +239,14 @@ describe('RequestsService', () => {
 
   it('lets new requests through once they have a source, and has the library look at them', async () => {
     await requestEpisodes([1, 2]);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'ahead', false],
       [2, 'ahead', false],
     ]);
     expect(await reconciled()).toEqual([]);
 
     await select(0, 'pack');
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'needed', false],
     ]);
@@ -252,7 +255,7 @@ describe('RequestsService', () => {
     // A request made with a source is let through at once
     await forgetJobs();
     await requestEpisodes([3]);
-    expect(await standings()).toContainEqual([3, 'needed', false]);
+    expect(await gates()).toContainEqual([3, 'needed', false]);
     expect(await reconciled()).toEqual([3]);
   });
 
@@ -319,7 +322,7 @@ describe('RequestsService', () => {
     await requestEpisodes([1, 2, 3]);
     await select(0, 'pack');
     await setRule({ keepNext: 1 });
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'needed', false],
       [3, 'needed', false],
@@ -328,7 +331,7 @@ describe('RequestsService', () => {
     // The rule set after the requests holds nothing back that passed already
     await unrequestEpisodes([2, 3]);
     await requestEpisodes([2, 3]);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'ahead', false],
       [3, 'ahead', false],
@@ -336,7 +339,7 @@ describe('RequestsService', () => {
 
     await forgetJobs();
     await watch(1);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', true],
       [2, 'needed', false],
       [3, 'ahead', false],
@@ -345,7 +348,7 @@ describe('RequestsService', () => {
 
     // Unwatching takes nothing back
     await unwatch(1);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'needed', false],
       [3, 'ahead', false],
@@ -357,7 +360,7 @@ describe('RequestsService', () => {
     await watch(1);
     await forgetJobs();
     await watch(2);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', true],
       [3, 'needed', false],
     ]);
@@ -368,7 +371,7 @@ describe('RequestsService', () => {
     await setRule({ keepNext: 1 });
     await select(0, 'pack');
     await requestEpisodes([1, 2, 3]);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'ahead', false],
       [3, 'ahead', false],
@@ -376,7 +379,7 @@ describe('RequestsService', () => {
 
     // An episode in progress is not watched yet: its request is the next one
     await unwatch(1);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'ahead', false],
       [3, 'ahead', false],
@@ -384,7 +387,7 @@ describe('RequestsService', () => {
 
     // A skipped episode stays wanted
     await watch(2);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'needed', true],
       [3, 'needed', false],
@@ -398,7 +401,7 @@ describe('RequestsService', () => {
     await requestEpisodes([2]);
 
     // A request that waits for approval takes no place in the window
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'waiting', false],
       [2, 'needed', false],
     ]);
@@ -409,7 +412,7 @@ describe('RequestsService', () => {
     await requestEpisodes([1, 2, 3]);
     await select(2, 'episode');
     await select(3, 'episode');
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'ahead', false],
       [2, 'needed', false],
       [3, 'ahead', false],
@@ -418,7 +421,7 @@ describe('RequestsService', () => {
     // The season's torrent gives the first its source; the third stays
     // past the window
     await select(0, 'pack');
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', false],
       [2, 'needed', false],
       [3, 'ahead', false],
@@ -447,14 +450,14 @@ describe('RequestsService', () => {
     await watch(1);
     await watch(2);
     await watch(3);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [3, 'needed', true],
       [4, 'needed', false],
     ]);
 
     // Nothing is kept once nothing is left to watch
     await watch(4);
-    expect(await standings()).toEqual([]);
+    expect(await gates()).toEqual([]);
   });
 
   it('keeps the last watched requests only while there is more to watch after them', async () => {
@@ -466,7 +469,7 @@ describe('RequestsService', () => {
     await watch(2);
     await watch(3);
     await watch(4);
-    expect(await standings()).toEqual([[1, 'needed', false]]);
+    expect(await gates()).toEqual([[1, 'needed', false]]);
   });
 
   it('deletes the watched requests that were not watched lately', async () => {
@@ -476,7 +479,7 @@ describe('RequestsService', () => {
 
     await watch(1, hoursAgo(30));
     await watch(3, hoursAgo(20));
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', false],
       [3, 'needed', true],
       [4, 'needed', false],
@@ -484,14 +487,14 @@ describe('RequestsService', () => {
 
     // The limit expires with time
     await setRule({ keepWatchedHours: 20 });
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', false],
       [4, 'needed', false],
     ]);
 
     // An episode watched before the time was stored was watched long ago
     await watch(2, null);
-    expect(await standings()).toEqual([[4, 'needed', false]]);
+    expect(await gates()).toEqual([[4, 'needed', false]]);
   });
 
   it('deletes with both limits only what neither of them keeps', async () => {
@@ -502,7 +505,7 @@ describe('RequestsService', () => {
     await watch(1, hoursAgo(30));
     await watch(2, hoursAgo(20));
     await watch(3, hoursAgo(25));
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', true],
       [3, 'needed', true],
       [4, 'needed', false],
@@ -510,7 +513,7 @@ describe('RequestsService', () => {
 
     // The time limit goes on keeping what was watched lately after the end
     await watch(4);
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', true],
       [4, 'needed', true],
     ]);
@@ -523,7 +526,7 @@ describe('RequestsService', () => {
 
     await watch(1, hoursAgo(100));
     await watch(2, hoursAgo(100));
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [1, 'needed', true],
       [2, 'needed', true],
     ]);
@@ -537,7 +540,7 @@ describe('RequestsService', () => {
       { season: 1, episode: 2, kind: 'file', mediaFileId: 'file-1' },
     ]);
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'file-1' });
-    expect(await standings()).toEqual([[2, 'needed', false]]);
+    expect(await gates()).toEqual([[2, 'needed', false]]);
     expect(await reconciled()).toEqual([2]);
   });
 
@@ -565,7 +568,7 @@ describe('RequestsService', () => {
     ).toEqual({ requests: 3, skipped: 1 });
 
     // The request that waited for approval is let through too
-    expect(await standings()).toEqual([
+    expect(await gates()).toEqual([
       [2, 'needed', false],
       [3, 'needed', false],
     ]);
@@ -587,13 +590,13 @@ describe('RequestsService', () => {
     await requestEpisodes([1], false);
     await select(0, 'pack');
     const [row] = await rows();
-    expect(await standings()).toEqual([[1, 'waiting', false]]);
+    expect(await gates()).toEqual([[1, 'waiting', false]]);
 
     await expect(
       request(() => requests.update(row.id, { approved: false })),
     ).rejects.toThrow(BadRequestException);
     await request(() => requests.update(row.id, { approved: true }));
-    expect(await standings()).toEqual([[1, 'needed', false]]);
+    expect(await gates()).toEqual([[1, 'needed', false]]);
     expect(await reconciled()).toEqual([1]);
   });
 
@@ -608,7 +611,7 @@ describe('RequestsService', () => {
         .fork()
         .transactional((tx) => requests.deleteRequests(tx, [first.id])),
     ).toBe(1);
-    expect(await standings()).toEqual([[2, 'needed', false]]);
+    expect(await gates()).toEqual([[2, 'needed', false]]);
     expect(await reconciled()).toEqual([`gone:${first.id}`]);
 
     await forgetJobs();

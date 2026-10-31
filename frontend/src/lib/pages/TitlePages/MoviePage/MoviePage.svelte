@@ -10,9 +10,13 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB } from '$lib/constants';
-	import { movieQueries, setMovieInMyList, setMovieWatched } from '$lib/queries/movie.queries';
+	import {
+		getMovieRequestStatus,
+		movieQueries,
+		setMovieInMyList,
+		setMovieWatched
+	} from '$lib/queries/movie.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { getStatusLabel } from '$lib/queries/request-status';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
@@ -32,13 +36,20 @@
 
 	const tmdbMovie = usePageQuery(movieQueries.metadata(id));
 	const userData = usePageQuery(movieQueries.userData(id));
+	const requests = usePageQuery(movieQueries.requests(id));
 	const statusQuery = usePageQuery(movieQueries.status(id));
+	const torrents = usePageQuery(movieQueries.torrents(id));
 	$: movie = $tmdbMovie.data;
 	$: status = $statusQuery.data;
+	$: requestStatus = getMovieRequestStatus({
+		requests: $requests.data,
+		status,
+		torrents: $torrents.data
+	});
 	$: inMyList = $userData.data?.inMyList ?? false;
 	$: watched = $userData.data?.playState?.watched ?? false;
 
-	// The requests view refreshes the status periodically, so a failure is reported once per failure streak
+	// A failure is reported once per failure streak
 	let statusFailed = false;
 	$: reportStatusFailure($statusQuery.isError, $statusQuery.error);
 	function reportStatusFailure(isError: boolean, error: any) {
@@ -117,8 +128,8 @@
 		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
 
-	// Where the request of the user stands, or what is on disk, first among the properties
-	$: statusLabel = getStatusLabel(status);
+	// The status of the request of the user, or what is on disk, first among the properties
+	$: statusLabel = requestStatus.label;
 	$: heroProperties = statusLabel ? [{ label: statusLabel }, ...titleProperties] : titleProperties;
 
 	async function play() {

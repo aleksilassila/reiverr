@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LibraryFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -12,6 +12,7 @@
 		setMoviePreference
 	} from '$lib/queries/movie.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
+	import { getOnServer } from '$lib/queries/request-status';
 	import { confirmQuota } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
@@ -24,48 +25,51 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
+	const requestsQuery = usePageQuery(movieQueries.requests(tmdbId));
 	const statusQuery = usePageQuery(movieQueries.status(tmdbId));
+	const torrents = usePageQuery(movieQueries.torrents(tmdbId));
 	const releases = usePageQuery(movieQueries.releases(tmdbId));
-	// The files of the movie in the library, external or imported, which the request can have instead
-	const files = usePageQuery(movieQueries.files(tmdbId));
 	$: status = $statusQuery.data;
 
-	$: selection = status?.preference;
+	$: selection = $requestsQuery.data?.preference;
 	// A torrent picked for the movie replaces the file the request has
-	$: kept =
-		status?.status === 'available' && status.torrent?.infoHash !== selection?.torrent?.infoHash;
+	$: kept = status?.status === 'available' && status.infoHash !== selection?.release?.infoHash;
+	$: keptTorrent = kept && status?.infoHash ? $torrents.data?.get(status.infoHash) : undefined;
 	$: keptHint = !kept
 		? ''
-		: status?.torrent
-			? `On disk from: ${status.torrent.title}. Select a torrent or a file to replace it.`
+		: keptTorrent
+			? `On disk from: ${keptTorrent.title}. Select a torrent or a file to replace it.`
 			: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
-	$: fileList = $files.data ?? [];
+	// The files of the movie in the library, external or imported, which the request can have instead
+	$: fileList = status?.files ?? [];
 	$: releaseList = $releases.data ?? [];
+	// The torrents that have the release already, which selecting downloads nothing anew from
+	$: onServer = getOnServer($torrents.data, status?.files);
 
 	$: hasFiles = fileList.length > 0;
-	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
+	$: selectedFile = fileList.find((file) => file.id === selection?.mediaFileId);
 	$: selectedRelease = releaseList.find(
-		(release) => !!release.infoHash && release.infoHash === selection?.torrent?.infoHash
+		(release) => !!release.infoHash && release.infoHash === selection?.release?.infoHash
 	);
 	$: otherFiles = fileList.filter((file) => file !== selectedFile);
 	$: otherReleases = releaseList.filter((release) => release !== selectedRelease);
 
 	const releaseDetails = (release: ReleaseDto) =>
 		`${release.seeders} seeders · ${release.peers} peers · ${formatSize(release.size)} · ${release.indexer}`;
-	const fileDetails = (file: LibraryFileDto) =>
+	const fileDetails = (file: MediaFileDto) =>
 		`${formatSize(file.size)} · ${file.infoHash ? 'On disk' : 'External'}`;
-	// The preference's own snapshot, until the list that has the selected item loads
+	// The selected release as it was picked, until the list that has it loads; a selected file that is gone says so
+	$: selectedTitle =
+		selection?.release?.title ?? selectedFile?.fileName ?? 'File not in the library';
 	$: selectedDetails = selectedRelease
 		? releaseDetails(selectedRelease)
 		: selectedFile
 			? fileDetails(selectedFile)
-			: selection?.torrent
-				? `${formatSize(selection.torrent.size)} · ${selection.torrent.indexer}`
-				: selection?.file
-					? `${selection.file.size === undefined ? 'File' : formatSize(selection.file.size)}${selection.file.managed ? ' · Managed' : ''}${selection.file.inLibrary ? '' : ' · Not in the library'}`
-					: '';
+			: selection?.release
+				? `${formatSize(selection.release.size)} · ${selection.release.indexer}`
+				: '';
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -85,7 +89,7 @@
 		}
 	}
 
-	async function selectFile(file: LibraryFileDto) {
+	async function selectFile(file: MediaFileDto) {
 		error = '';
 
 		try {
@@ -156,9 +160,7 @@
 					let:hasFocus
 				>
 					<div class="flex-1 min-w-0">
-						<div class="text-2xl font-semibold line-clamp-1">
-							{selection.torrent?.title ?? selection.file?.fileName}
-						</div>
+						<div class="text-2xl font-semibold line-clamp-1">{selectedTitle}</div>
 						<div class="text-lg font-medium text-secondary-400 mt-1">{selectedDetails}</div>
 					</div>
 					<!-- Focus and hover turn the marker into the action -->
@@ -222,7 +224,7 @@
 		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}
-					{@const onServer = !!release.infoHash && !!status?.onServer.includes(release.infoHash)}
+					{@const isOnServer = !!release.infoHash && onServer.has(release.infoHash)}
 					<ListRow
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
@@ -236,7 +238,7 @@
 							</div>
 						</div>
 						<div class="flex-shrink-0 ml-4 text-lg font-medium">
-							{#if onServer}
+							{#if isOnServer}
 								<span
 									class={classNames('text-secondary-300 group-hover:hidden', {
 										hidden: hasFocus

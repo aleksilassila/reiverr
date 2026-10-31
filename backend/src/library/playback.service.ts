@@ -10,18 +10,15 @@ import {
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import {
+  fileEpisodes,
   isInsideFolder,
   isSubtitleFile,
   libraryFolderPaths,
-  parseEpisodeNumbers,
   parseSubtitleName,
   srtToWebVtt,
 } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { ScanService } from './scan.service.js';
-
-const range = (from: number, to: number) =>
-  Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 /**
  * The files of a title as the title pages and the player see them: the
@@ -71,24 +68,16 @@ export class PlaybackService {
       now: isAnyMissing,
     });
 
-    return files.map(({ file, size, subtitles }) => {
-      const fileName = path.basename(file.path);
-      const numbers = parseEpisodeNumbers(fileName);
-
-      return {
-        id: file.id,
-        fileName,
-        size,
-        subtitles,
-        managed: file.managed,
-        infoHash: file.infoHash,
-        season: file.season,
-        episodes:
-          numbers?.season === file.season
-            ? numbers.episodes
-            : range(file.episode, file.lastEpisode),
-      };
-    });
+    return files.map(({ file, size, subtitles }) => ({
+      id: file.id,
+      fileName: path.basename(file.path),
+      size,
+      subtitles,
+      managed: file.managed,
+      infoHash: file.infoHash,
+      season: file.season,
+      episodes: fileEpisodes(file),
+    }));
   }
 
   async listEpisodeFiles(

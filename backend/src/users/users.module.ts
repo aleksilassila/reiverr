@@ -1,5 +1,6 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
+import { EventsModule } from '../events/events.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
@@ -14,6 +15,7 @@ import { UsersService } from './users.service.js';
     SettingsModule,
     RequestsModule,
     JobsModule,
+    EventsModule,
   ],
   providers: [UsersService, UserSettingsService],
   controllers: [UsersController],

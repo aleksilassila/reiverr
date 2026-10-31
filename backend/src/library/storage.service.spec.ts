@@ -10,6 +10,7 @@ import {
   OrderDirection,
 } from '../common/common.dto.js';
 import { IndexersService } from '../indexers/indexers.service.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MovieMetadata, SeriesMetadata } from '../metadata/metadata.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
@@ -208,11 +209,13 @@ describe('describeUserTitles', () => {
     await insert(SeriesMetadata.from(ANOTHER_SERIES));
     await insert(MovieMetadata.from(MOVIE));
 
+    const events = new EventsService();
     const requests = new RequestsService(
       orm.em,
       {} as unknown as MetadataService,
       {} as unknown as IndexersService,
-      new JobsService(orm.em),
+      new JobsService(orm.em, events),
+      events,
     );
     storage = new StorageService(
       orm.em,

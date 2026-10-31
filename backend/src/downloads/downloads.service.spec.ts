@@ -7,6 +7,7 @@ import { FakeEngine, magnetFiles } from '../../test/fake-engine.js';
 import { createTorrent } from '../../test/torrent-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { Job, JobStatus } from '../jobs/job.entity.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { LogEntry } from '../server-log/log-entry.entity.js';
@@ -102,11 +103,12 @@ describe('DownloadsService', () => {
     inTx((tx) => downloads.requestItem(tx, infoHash, wanted));
   const items = () =>
     orm.em.fork().find(TorrentItem, {}, { orderBy: { episode: 'asc' } });
+  /** Every item as the engine has it, by episode */
   const describeItems = async () => {
-    const ids = (await items()).map((row) => row.id);
-    const described = await request(() => downloads.describeItems(orm.em, ids));
+    const torrents = await downloads.describeTorrents();
 
-    return described
+    return torrents
+      .flatMap((torrent) => torrent.items)
       .sort((a, b) => a.episode - b.episode)
       .map((dto) => [
         dto.episode,
@@ -130,7 +132,8 @@ describe('DownloadsService', () => {
     rmSync(dirs.downloads, { recursive: true, force: true });
 
     engine = new FakeEngine();
-    jobs = new JobsService(orm.em);
+    const events = new EventsService();
+    jobs = new JobsService(orm.em, events);
     const settings = new SettingsService(orm.em);
     await request(() => settings.saveValue('downloads', { seedRatio }));
     runtime = new TorrentRuntime(orm.em, jobs, engine);
@@ -140,6 +143,7 @@ describe('DownloadsService', () => {
       new ServerLogService(orm.em, settings),
       jobs,
       runtime,
+      events,
     );
     downloads.onModuleInit();
   });

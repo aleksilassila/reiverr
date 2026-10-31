@@ -68,6 +68,18 @@ export enum MediaType {
   Series = 'series',
 }
 
+/** A movie or a series, as TMDB knows it */
+export interface Title {
+  mediaType: MediaType;
+  tmdbId: string;
+}
+
+/** The title of a row without its other fields, for data that is sent as it is, as that of a client event */
+export const titleOf = ({ mediaType, tmdbId }: Title): Title => ({
+  mediaType,
+  tmdbId,
+});
+
 export enum MediaTypeFull {
   Movie = 'movie',
   Series = 'series',

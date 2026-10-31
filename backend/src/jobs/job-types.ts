@@ -1,6 +1,4 @@
-import { MediaType } from '../common/common.dto.js';
-
-type Title = { mediaType: MediaType; tmdbId: string };
+import { Title } from '../common/common.dto.js';
 
 /**
  * Every job type with its payload. A type names the module that runs it and

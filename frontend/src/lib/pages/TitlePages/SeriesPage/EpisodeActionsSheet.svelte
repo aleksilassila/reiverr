@@ -27,13 +27,19 @@
 	const { playMedia } = backgroundContext.getContext();
 	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
 	const seriesUserData = usePageQuery(seriesQueries.userData(tmdbId));
+	const requests = usePageQuery(seriesQueries.requests(tmdbId));
 	const status = usePageQuery(seriesQueries.status(tmdbId));
+	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
 
 	$: episodesData = getEpisodeData($tmdbSeries.data, $seriesUserData.data);
 	$: userData = episodesData.episodes.find((e) => e.season === season && e.episode === episode);
 	$: seasonEpisodes = episodesData.episodes.filter((e) => e.season === season && !e.upcoming);
 	$: seasonWatched = seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched);
-	$: requestStatus = getEpisodeRequestStatus($status.data, season, episode);
+	$: requestStatus = getEpisodeRequestStatus(
+		{ requests: $requests.data, status: $status.data, torrents: $torrents.data },
+		season,
+		episode
+	);
 	$: onDisk = requestStatus.onDisk;
 
 	async function play() {

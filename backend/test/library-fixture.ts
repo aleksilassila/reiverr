@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { vi } from 'vitest';
 import { MediaType } from '../src/common/common.dto.js';
 import { DownloadsService } from '../src/downloads/downloads.service.js';
+import { EventsService } from '../src/events/events.service.js';
 import { JobsService } from '../src/jobs/jobs.service.js';
 import { DeletionService } from '../src/library/deletion.service.js';
 import { FulfilmentService } from '../src/library/fulfilment.service.js';
@@ -78,12 +79,14 @@ export async function createLibraryFixture() {
 
   const settings = new SettingsService(orm.em);
   const serverLog = new ServerLogService(orm.em, settings);
+  const events = new EventsService();
   const libraryService = new LibraryService(
     orm.em,
     settings,
     metadata as unknown as MetadataService,
     jobs as unknown as JobsService,
     fulfilment as unknown as FulfilmentService,
+    events,
   );
   const scan = new ScanService(
     orm.em,
@@ -99,6 +102,7 @@ export async function createLibraryFixture() {
     jobs as unknown as JobsService,
     {} as DownloadsService,
     {} as FulfilmentService,
+    events,
   );
   const deletion = new DeletionService(
     orm.em,
@@ -107,6 +111,7 @@ export async function createLibraryFixture() {
     requests as unknown as RequestsService,
     serverLog,
     fulfilment as unknown as FulfilmentService,
+    events,
   );
 
   // Every call gets its own entity manager, as every HTTP request does

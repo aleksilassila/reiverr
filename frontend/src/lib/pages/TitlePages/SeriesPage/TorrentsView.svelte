@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LibraryEpisodeFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type { MediaFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -7,6 +7,7 @@
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { usePageQuery } from '$lib/queries/page-query';
+	import { getOnServer } from '$lib/queries/request-status';
 	import {
 		clearPreference,
 		episodeKey,
@@ -28,68 +29,75 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
+	const requestsQuery = usePageQuery(seriesQueries.requests(tmdbId));
 	const status = usePageQuery(seriesQueries.status(tmdbId));
+	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
 	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
 	const releases = usePageQuery(seriesQueries.releases(tmdbId, season, episode));
-	// The files of the episode in the library, external or imported, which a request can have instead
-	const files = usePageQuery(seriesQueries.episodeFiles(tmdbId, season, episode));
-	$: requests = $status.data;
+	$: requests = $requestsQuery.data;
+	$: episodes = [...($status.data?.episodes.values() ?? [])];
 
 	$: selection = requests?.preferences.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
 	$: seasonPack =
 		episode === undefined ? undefined : requests?.preferences.get(episodeKey(season, 0));
 	// A request that has its file keeps it when another torrent is selected for the season
-	$: kept = [...(requests?.episodes.values() ?? [])].filter(
+	$: kept = episodes.filter(
 		(e) =>
 			e.season === season &&
 			(episode === undefined || e.episode === episode) &&
 			e.status === 'available' &&
-			e.torrent?.infoHash !==
+			e.infoHash !==
 				(
 					requests?.preferences.get(episodeKey(e.season, e.episode)) ??
 					requests?.preferences.get(episodeKey(e.season, 0))
-				)?.torrent?.infoHash
+				)?.release?.infoHash
 	);
+	$: keptTorrent = kept[0]?.infoHash ? $torrents.data?.get(kept[0].infoHash) : undefined;
 	$: keptHint = !kept.length
 		? ''
 		: episode === undefined
 			? `${kept.length} ${kept.length === 1 ? 'episode keeps its file' : 'episodes keep their files'}. Select a torrent for an episode to replace it.`
-			: kept[0]?.torrent
-				? `On disk from: ${kept[0].torrent.title}. Select a torrent or a file to replace it.`
+			: keptTorrent
+				? `On disk from: ${keptTorrent.title}. Select a torrent or a file to replace it.`
 				: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
-	$: fileList = $files.data ?? [];
+	// The files of the episode in the library, external or imported, which a request can have instead
+	$: fileList = ($status.data?.files ?? []).filter(
+		(file) => episode !== undefined && file.season === season && file.episodes.includes(episode)
+	);
 	$: releaseList = $releases.data ?? [];
+	// The torrents that have the release already, which selecting downloads nothing anew from
+	$: onServer = getOnServer($torrents.data, $status.data?.files);
 
 	$: hasFiles = fileList.length > 0;
-	$: selectedFile = fileList.find((file) => file.id === selection?.file?.id);
+	$: selectedFile = fileList.find((file) => file.id === selection?.mediaFileId);
 	$: selectedRelease = releaseList.find(
-		(release) => !!release.infoHash && release.infoHash === selection?.torrent?.infoHash
+		(release) => !!release.infoHash && release.infoHash === selection?.release?.infoHash
 	);
 	$: otherFiles = fileList.filter((file) => file !== selectedFile);
 	$: otherReleases = releaseList.filter((release) => release !== selectedRelease);
 
 	const releaseDetails = (release: ReleaseDto) =>
 		`${release.seeders} seeders · ${release.peers} peers · ${formatSize(release.size)} · ${release.indexer}`;
-	const fileDetails = (file: LibraryEpisodeFileDto) =>
+	const fileDetails = (file: MediaFileDto) =>
 		`${formatSize(file.size)} · ${file.infoHash ? 'On disk' : 'External'}`;
-	// The preference's own snapshot, until the list that has the selected item loads
+	// The selected release as it was picked, until the list that has it loads; a selected file that is gone says so
+	$: selectedTitle =
+		selection?.release?.title ?? selectedFile?.fileName ?? 'File not in the library';
 	$: selectedDetails = selectedRelease
 		? releaseDetails(selectedRelease)
 		: selectedFile
 			? fileDetails(selectedFile)
-			: selection?.torrent
-				? `${formatSize(selection.torrent.size)} · ${selection.torrent.indexer}`
-				: selection?.file
-					? `${selection.file.size === undefined ? 'File' : formatSize(selection.file.size)}${selection.file.managed ? ' · Managed' : ''}${selection.file.inLibrary ? '' : ' · Not in the library'}`
-					: '';
+			: selection?.release
+				? `${formatSize(selection.release.size)} · ${selection.release.indexer}`
+				: '';
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** The requests that would download from the release: the episode's, or those of the season without a torrent of their own that do not keep their file */
-	$: affected = [...(requests?.episodes.values() ?? [])].filter(
+	$: affected = episodes.filter(
 		(e) =>
 			e.requested &&
 			e.season === season &&
@@ -115,7 +123,7 @@
 		}
 	}
 
-	async function selectFile(file: LibraryEpisodeFileDto) {
+	async function selectFile(file: MediaFileDto) {
 		error = '';
 
 		try {
@@ -168,7 +176,7 @@
 		/>
 		{#if seasonPack && !selection}
 			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
-				From the season pack: {seasonPack.torrent?.title}
+				From the season pack: {seasonPack.release?.title}
 			</div>
 		{/if}
 		{#if keptHint}
@@ -195,9 +203,7 @@
 					let:hasFocus
 				>
 					<div class="flex-1 min-w-0">
-						<div class="text-2xl font-semibold line-clamp-1">
-							{selection.torrent?.title ?? selection.file?.fileName}
-						</div>
+						<div class="text-2xl font-semibold line-clamp-1">{selectedTitle}</div>
 						<div class="text-lg font-medium text-secondary-400 mt-1">{selectedDetails}</div>
 					</div>
 					<!-- Focus and hover turn the marker into the action -->
@@ -261,7 +267,7 @@
 		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}
-					{@const onServer = !!release.infoHash && !!requests?.onServer.has(release.infoHash)}
+					{@const isOnServer = !!release.infoHash && onServer.has(release.infoHash)}
 					<ListRow
 						on:enter={scrollIntoView({ vertical: 96 })}
 						on:clickOrSelect={() => select(release)}
@@ -275,7 +281,7 @@
 							</div>
 						</div>
 						<div class="flex-shrink-0 ml-4 text-lg font-medium">
-							{#if onServer}
+							{#if isOnServer}
 								<span
 									class={classNames('text-secondary-300 group-hover:hidden', {
 										hidden: hasFocus

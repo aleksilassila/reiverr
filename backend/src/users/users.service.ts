@@ -1,6 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { hashPassword, verifyPassword } from './password.utils.js';
@@ -21,6 +22,7 @@ export class UsersService {
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
     private readonly jobs: JobsService,
+    private readonly events: EventsService,
   ) {}
 
   // Finds
@@ -135,6 +137,7 @@ export class UsersService {
     // Requests held back by the quota may fit the new one
     if (quotaChanged) {
       await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
+      this.events.emit({ type: 'storage', userId, data: {} });
     }
 
     return this.findOne(user.id);

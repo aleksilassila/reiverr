@@ -41,12 +41,14 @@
 
 	const tmdbSeries = usePageQuery(seriesQueries.metadata(id));
 	const userData = usePageQuery(seriesQueries.userData(id));
+	const requests = usePageQuery(seriesQueries.requests(id));
 	const status = usePageQuery(seriesQueries.status(id));
+	const torrents = usePageQuery(seriesQueries.torrents(id));
 	const series = derived(tmdbSeries, ($tmdbSeries) => $tmdbSeries.data);
 	const episodesData = derived([tmdbSeries, userData], ([$tmdbSeries, $userData]) =>
 		getEpisodeData($tmdbSeries.data, $userData.data)
 	);
-	$: requests = $status.data;
+	$: requestsData = { requests: $requests.data, status: $status.data, torrents: $torrents.data };
 	$: inMyList = $userData.data?.inMyList ?? false;
 
 	// The labels of the episodes go missing while the status cannot be loaded; said once per failure
@@ -331,7 +333,7 @@
 							(e) => e.season === episode.season_number && e.episode === episode.episode_number
 						)}
 						{@const requestStatus = getEpisodeRequestStatus(
-							requests,
+							requestsData,
 							episode.season_number ?? 0,
 							episode.episode_number ?? 0
 						)}

@@ -2,6 +2,7 @@ import { MikroORM } from '@mikro-orm/sqlite';
 import { Logger } from '@nestjs/common';
 import { MediaType } from '../common/common.dto.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
+import { EventsService } from '../events/events.service.js';
 import { Job, JobStatus } from './job.entity.js';
 import { JobsService, retryDelay } from './jobs.service.js';
 
@@ -23,7 +24,7 @@ describe('JobsService', () => {
   beforeEach(async () => {
     orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
     await orm.migrator.up();
-    jobs = new JobsService(orm.em);
+    jobs = new JobsService(orm.em, new EventsService());
   });
 
   afterEach(async () => {

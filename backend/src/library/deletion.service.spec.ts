@@ -19,6 +19,7 @@ import {
 } from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { Job } from '../jobs/job.entity.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { RequestsService } from '../requests/requests.service.js';
@@ -49,13 +50,15 @@ describe('DeletionService', () => {
         getSettings: async () => ({ cleanup }),
         findTitlesWithManagedFiles: async () => ['1', '2'],
       };
+      const events = new EventsService();
       deletionService = new DeletionService(
         orm.em,
-        new JobsService(orm.em),
+        new JobsService(orm.em, events),
         library as unknown as LibraryService,
         {} as RequestsService,
         {} as ServerLogService,
         {} as FulfilmentService,
+        events,
       );
     });
 

@@ -15,6 +15,7 @@ import {
 } from '../../test/library-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { Job } from '../jobs/job.entity.js';
+import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
@@ -49,7 +50,7 @@ describe('ScanService', () => {
         orm.em,
         library as unknown as LibraryService,
         {} as TmdbService,
-        new JobsService(orm.em),
+        new JobsService(orm.em, new EventsService()),
         {} as ServerLogService,
       );
       const queued = async () =>

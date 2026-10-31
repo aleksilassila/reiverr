@@ -1,5 +1,6 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
+import { EventsModule } from '../events/events.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { ServerLogModule } from '../server-log/server-log.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
@@ -17,6 +18,7 @@ import { WebTorrentEngine } from './webtorrent.engine.js';
     SettingsModule,
     ServerLogModule,
     JobsModule,
+    EventsModule,
   ],
   controllers: [DownloadsController],
   providers: [

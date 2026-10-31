@@ -1,6 +1,7 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 import { DownloadsModule } from '../downloads/downloads.module.js';
+import { EventsModule } from '../events/events.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
 import { RequestsModule } from '../requests/requests.module.js';
@@ -30,6 +31,7 @@ import { UserStorageController } from './user-storage.controller.js';
     UsersModule,
     DownloadsModule,
     JobsModule,
+    EventsModule,
   ],
   controllers: [LibraryController, UserStorageController],
   providers: [

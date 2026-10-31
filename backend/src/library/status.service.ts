@@ -1,17 +1,15 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import * as path from 'node:path';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import {
-  TorrentDto,
   TorrentItemDto,
   TorrentItemStatus,
-  TorrentStatus,
-  TorrentWithItemsDto,
 } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import {
-  EpisodeSource,
+  Preferences,
   RequestSource,
   sourceOf,
 } from '../requests/request-source.js';
@@ -21,17 +19,15 @@ import { isNeeded } from '../requests/requests.utils.js';
 import { SelectedRelease } from '../requests/selected-release.entity.js';
 import { getNextCleanup } from './cleanup.utils.js';
 import {
-  EpisodePreferenceDto,
   EpisodeStatusDto,
+  MediaFileDto,
   MovieStatusDto,
-  PreferenceDto,
-  PreferredFileDto,
   RequestStatus,
   RequestStatusDto,
   SeriesStatusDto,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
-import { coversMedia } from './library.utils.js';
+import { coversMedia, fileEpisodes } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { ScanService } from './scan.service.js';
@@ -43,24 +39,10 @@ import {
   roomFor,
   StorageService,
 } from './storage.service.js';
-import * as path from 'node:path';
 
 const READ = { disableIdentityMap: true };
 
 const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
-
-/** Where the request of a user stands, as the request page shows it */
-type Standing = Pick<RequestStatusDto, 'status' | 'progress' | 'error'>;
-
-/** A torrent as the status describes it: as downloads has it, or as it was picked */
-type TorrentOf = (infoHash: string | undefined) => TorrentDto | undefined;
-
-/** The torrents a status refers to */
-interface Torrents {
-  /** The ones downloads knows */
-  known: Map<string, TorrentWithItemsDto>;
-  torrentOf: TorrentOf;
-}
 
 /** What describes the request of a user for an episode or a movie */
 interface RequestContext {
@@ -72,15 +54,18 @@ interface RequestContext {
   filesById: Map<string, MediaFile>;
   /** The files of the episode or the movie */
   ofMedia: MediaFile[];
-  torrentOf: TorrentOf;
+  /** The sizes of the releases the user picked, by info hash */
+  releaseSizes: Map<string, number>;
   gate: Gate;
   /** For an episode, how many episodes its season has, which a season's torrent is shared by */
   episodesInSeason: number | undefined;
 }
 
 /**
- * The status of a title for a user: where their requests and their
- * preferred sources stand, from what the three modules say of them
+ * The status of a title for a user: the status of each of their requests,
+ * from the rows the three modules wrote of them, and the files of the title. Nothing
+ * of the engine is in it: the clients have the live state of the torrents
+ * from downloads, and are told when a row changes.
  */
 @Injectable()
 export class StatusService {
@@ -116,18 +101,7 @@ export class StatusService {
     );
     const held = await this.heldOf(em, files);
     const items = await this.itemsOf(em, bindings);
-    const preferred = [
-      ...(rule?.seasonTorrents ?? []).map((t) => t.infoHash),
-      ...(rule?.episodeSources ?? []).flatMap((s) =>
-        s.kind === 'torrent' ? [s.infoHash] : [],
-      ),
-    ];
-    const { known, torrentOf } = await this.torrentsOf(
-      em,
-      preferred,
-      items,
-      files,
-    );
+    const releaseSizes = await this.releaseSizesOf(em, rule);
 
     // The index of the series is brought in line with the disk soon
     await this.scanService.requestScan(MediaType.Series, tmdbId);
@@ -164,23 +138,7 @@ export class StatusService {
       ...[...onDisk.values()].filter((e) => !requested.has(episodeKey(e))),
     ];
 
-    const preferences: EpisodePreferenceDto[] = [
-      ...(rule?.seasonTorrents ?? []).map((t) => ({
-        season: t.season,
-        episode: 0,
-        torrent: torrentOf(t.infoHash),
-      })),
-      ...(rule?.episodeSources ?? []).map(({ season, episode, ...source }) => ({
-        season,
-        episode,
-        ...describePreference(source, torrentOf, filesById),
-      })),
-    ];
-
     return {
-      preferences: preferences.sort(
-        (a, b) => a.season - b.season || a.episode - b.episode,
-      ),
       episodes: episodes
         .map((episode): EpisodeStatusDto => {
           const request = requested.get(episodeKey(episode));
@@ -198,7 +156,7 @@ export class StatusService {
               items,
               filesById,
               ofMedia,
-              torrentOf,
+              releaseSizes,
               gate,
               episodesInSeason: episodeCounts.get(episode.season),
             }),
@@ -207,7 +165,7 @@ export class StatusService {
           };
         })
         .sort((a, b) => a.season - b.season || a.episode - b.episode),
-      onServer: onServerOf(known, files),
+      files: files.map(toMediaFileDto),
     };
   }
 
@@ -229,41 +187,28 @@ export class StatusService {
       : undefined;
     const held = await this.heldOf(em, files);
     const items = await this.itemsOf(em, binding ? [binding] : []);
-    // The preference of a movie is the entry with season and episode 0
-    const preference = rule?.episodeSources?.find(
-      (s) => s.season === 0 && s.episode === 0,
-    );
-    const source = sourceOf(rule, 0, 0);
-    const { known, torrentOf } = await this.torrentsOf(
-      em,
-      source?.kind === 'torrent' ? [source.infoHash] : [],
-      items,
-      files,
-    );
+    const releaseSizes = await this.releaseSizesOf(em, rule);
 
     // The index of the movie is brought in line with the disk soon
     await this.scanService.requestScan(MediaType.Movie, tmdbId);
     const nextCleanup = await this.nextCleanup();
     const gate = await this.gateOf(em, userId);
-    const filesById = new Map(files.map((file) => [file.id, file]));
 
     return {
       ...describeRequest({
         request,
-        source,
+        source: sourceOf(rule, 0, 0),
         binding,
         items,
-        filesById,
+        filesById: new Map(files.map((file) => [file.id, file])),
         ofMedia: files,
-        torrentOf,
+        releaseSizes,
         gate,
         episodesInSeason: undefined,
       }),
       onDisk: files.length > 0,
       cleanupAt: isCleanedUp(files, held) ? nextCleanup : undefined,
-      preference:
-        preference && describePreference(preference, torrentOf, filesById),
-      onServer: onServerOf(known, files),
+      files: files.map(toMediaFileDto),
     };
   }
 
@@ -296,51 +241,26 @@ export class StatusService {
     return new Map(items.map((item) => [item.id, item]));
   }
 
-  /**
-   * The torrents the status refers to: the preferred ones, the ones the
-   * items are of and the ones the files came from, as downloads has them,
-   * or a preferred one as it was picked when downloads knows nothing of it
-   */
-  private async torrentsOf(
+  /** The sizes of the releases the user picked for the title, which a download of one is expected to take */
+  private async releaseSizesOf(
     em: EntityManager,
-    preferred: string[],
-    items: Map<string, TorrentItemDto>,
-    files: MediaFile[],
-  ): Promise<Torrents> {
-    const hashes = [
-      ...new Set([
-        ...preferred,
-        ...[...items.values()].map((item) => item.infoHash),
-        ...files.flatMap((file) => file.infoHash ?? []),
-      ]),
+    rule: Preferences | undefined,
+  ): Promise<Map<string, number>> {
+    const preferred = [
+      ...(rule?.seasonTorrents ?? []).map((t) => t.infoHash),
+      ...(rule?.episodeSources ?? []).flatMap((s) =>
+        s.kind === 'torrent' ? [s.infoHash] : [],
+      ),
     ];
-    const known = new Map(
-      (await this.downloadsService.describeTorrents(hashes)).map((torrent) => [
-        torrent.infoHash,
-        torrent,
-      ]),
-    );
-    const releases = new Map(
-      (
-        await em.find(
-          SelectedRelease,
-          { infoHash: { $in: preferred.filter((hash) => !known.has(hash)) } },
-          READ,
-        )
-      ).map((release) => [release.infoHash, release]),
+    if (!preferred.length) return new Map();
+
+    const releases = await em.find(
+      SelectedRelease,
+      { infoHash: { $in: preferred } },
+      { ...READ, fields: ['infoHash', 'size'] },
     );
 
-    return {
-      known,
-      torrentOf: (infoHash) => {
-        if (!infoHash) return undefined;
-        const torrent = known.get(infoHash);
-        if (torrent) return toTorrentDto(torrent);
-        const release = releases.get(infoHash);
-
-        return release && idleTorrent(release);
-      },
-    };
+    return new Map(releases.map((release) => [release.infoHash, release.size]));
   }
 
   private async nextCleanup(): Promise<Date | undefined> {
@@ -358,18 +278,14 @@ export class StatusService {
 }
 
 /**
- * Where the request of a user for an episode or a movie stands: what it is
+ * The status of the request of a user for an episode or a movie: what it is
  * bound to, whether what it is to get fits when it is bound to nothing,
  * and the torrent it downloads from or has its file from
  */
 function describeRequest(
   context: RequestContext,
-): Pick<
-  RequestStatusDto,
-  'requested' | 'status' | 'progress' | 'error' | 'torrent'
-> {
-  const { request, source, binding, items, filesById, torrentOf, gate } =
-    context;
+): Pick<RequestStatusDto, 'requested' | 'status' | 'error' | 'infoHash'> {
+  const { request, source, binding, items, filesById, gate } = context;
   const item = binding?.torrentItemId
     ? items.get(binding.torrentItemId)
     : undefined;
@@ -383,15 +299,15 @@ function describeRequest(
 
   return {
     requested: !!request,
-    ...(request && standingOf(request, source, binding, item, file, room)),
-    torrent: torrentOf(item?.infoHash ?? file?.infoHash),
+    ...(request && statusOf(request, source, binding, item, file, room)),
+    infoHash: item?.infoHash ?? file?.infoHash,
   };
 }
 
 /** What a request that is bound to nothing is to get, as the fulfilment would find it */
 function candidateOf(
   source: RequestSource,
-  { filesById, ofMedia, torrentOf, episodesInSeason }: RequestContext,
+  { filesById, ofMedia, releaseSizes, episodesInSeason }: RequestContext,
 ): Candidate {
   if (source.kind === 'file') {
     return {
@@ -404,7 +320,7 @@ function candidateOf(
 
   return {
     bytes: expectedBytes(
-      torrentOf(source.infoHash)?.size ?? 0,
+      releaseSizes.get(source.infoHash) ?? 0,
       source.forEpisode,
       episodesInSeason,
     ),
@@ -413,17 +329,18 @@ function candidateOf(
 }
 
 /**
- * Where the request of a user stands, from what the modules say of it. The
- * room is what holds back a request that is bound to nothing.
+ * The status of the request of a user and the error behind it, from what
+ * the modules wrote of it. The room is what holds back a request that is
+ * bound to nothing.
  */
-function standingOf(
+function statusOf(
   request: MediaRequest,
   source: RequestSource | undefined,
   binding: RequestBinding | undefined,
   item: TorrentItemDto | undefined,
   file: MediaFile | undefined,
   room: Room | undefined,
-): Standing {
+): Pick<RequestStatusDto, 'status' | 'error'> {
   if (!request.approved) {
     return { status: RequestStatus.WaitingForApproval };
   }
@@ -451,9 +368,8 @@ function standingOf(
     case TorrentItemStatus.NoMatch:
       return { status: RequestStatus.NoFileInTorrent, error: item.error };
     case TorrentItemStatus.Downloading:
-      return { status: RequestStatus.Downloading, progress: item.progress };
     case TorrentItemStatus.Complete:
-      return { status: RequestStatus.Downloading, progress: 1 };
+      return { status: RequestStatus.Downloading };
     default:
       return { status: RequestStatus.Resolving };
   }
@@ -464,68 +380,12 @@ const isCleanedUp = (ofMedia: MediaFile[], held: Set<string>) =>
   ofMedia.length > 0 &&
   ofMedia.every((file) => file.managed && !held.has(file.id));
 
-/** The torrents that have data on the server or that something is wanted of, and the ones files came from */
-const onServerOf = (
-  known: Map<string, TorrentWithItemsDto>,
-  files: MediaFile[],
-): string[] => [
-  ...new Set([
-    ...[...known.values()]
-      .filter((torrent) => isOnServer(torrent))
-      .map((torrent) => torrent.infoHash),
-    ...files.flatMap((file) => file.infoHash ?? []),
-  ]),
-];
-
-/** A torrent that has data on the server, or that something is wanted of */
-const isOnServer = (torrent: TorrentWithItemsDto) =>
-  torrent.downloadedBytes > 0 ||
-  torrent.items.some((item) => item.status !== TorrentItemStatus.Released);
-
-const toTorrentDto = ({ items, ...torrent }: TorrentWithItemsDto): TorrentDto =>
-  torrent;
-
-/** A preferred torrent that downloads knows nothing of yet: the release as it was picked */
-const idleTorrent = (release: SelectedRelease): TorrentDto => ({
-  infoHash: release.infoHash,
-  title: release.title,
-  indexer: release.indexer,
-  size: release.size,
-  downloadedBytes: 0,
-  uploadedBytes: 0,
-  status: TorrentStatus.Idle,
-  peers: 0,
-  downloadSpeed: 0,
-  uploadSpeed: 0,
-});
-
-/** A preference as the status describes it: the torrent, or the file */
-const describePreference = (
-  source: Pick<EpisodeSource, 'kind'> &
-    (
-      | { kind: 'torrent'; infoHash: string }
-      | { kind: 'file'; mediaFileId: string }
-    ),
-  torrentOf: TorrentOf,
-  filesById: Map<string, MediaFile>,
-): PreferenceDto =>
-  source.kind === 'torrent'
-    ? { torrent: torrentOf(source.infoHash) }
-    : {
-        file: describeFile(
-          source.mediaFileId,
-          filesById.get(source.mediaFileId),
-        ),
-      };
-
-/** A preferred file: as it is in the library, or only its id when it is gone */
-const describeFile = (
-  mediaFileId: string,
-  file: MediaFile | undefined,
-): PreferredFileDto => ({
-  id: mediaFileId,
-  inLibrary: !!file,
-  fileName: file && path.basename(file.path),
-  size: file?.size,
-  managed: file?.managed,
+const toMediaFileDto = (file: MediaFile): MediaFileDto => ({
+  id: file.id,
+  fileName: path.basename(file.path),
+  size: file.size,
+  managed: file.managed,
+  infoHash: file.infoHash,
+  season: file.season,
+  episodes: fileEpisodes(file),
 });

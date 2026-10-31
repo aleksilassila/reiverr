@@ -14,6 +14,7 @@ import {
   PaginatedResponseDto,
   PaginationDto,
 } from '../common/common.dto.js';
+import { EventsService } from '../events/events.service.js';
 import { IndexersService } from '../indexers/indexers.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
@@ -30,8 +31,13 @@ import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import {
   AdminMediaRequestDto,
+  EpisodePreferenceDto,
   MovieRequestRuleDto,
+  MovieRequestsDto,
+  PreferenceDto,
   RequestRuleDto,
+  SelectedReleaseDto,
+  SeriesRequestsDto,
   UpdateMediaRequestDto,
 } from './requests.dto.js';
 import {
@@ -83,12 +89,26 @@ const byEpisode = (
 const isSeason = (target: SelectionTarget) =>
   target.mediaType === MediaType.Series && target.episode === 0;
 
+/** A preference as the clients get it: the release as it was picked, or the id of the file */
+const toPreferenceDto = (
+  source: Pick<EpisodeSource, 'kind'> &
+    (
+      | { kind: 'torrent'; infoHash: string }
+      | { kind: 'file'; mediaFileId: string }
+    ),
+  releases: Map<string, SelectedReleaseDto>,
+): PreferenceDto =>
+  source.kind === 'torrent'
+    ? { release: releases.get(source.infoHash) }
+    : { mediaFileId: source.mediaFileId };
+
 /**
  * What users want on disk, and the gates a request passes before the
  * library acts on it: the admin's approval, a source picked by the user,
  * and the download-ahead window of the user's rule. Every change of a
  * request, or of what its source is, has the library look at the request
- * again, through the job `library.reconcileRequest`.
+ * again, through the job `library.reconcileRequest`, and tells the clients
+ * of the user that their requests of the title changed.
  */
 @Injectable()
 export class RequestsService implements OnApplicationBootstrap {
@@ -97,6 +117,7 @@ export class RequestsService implements OnApplicationBootstrap {
     private readonly metadataService: MetadataService,
     private readonly indexersService: IndexersService,
     private readonly jobs: JobsService,
+    private readonly events: EventsService,
   ) {}
 
   /** The rules can be behind after a restart or a migration */
@@ -132,6 +153,11 @@ export class RequestsService implements OnApplicationBootstrap {
    * for the episode: without one it has not passed the gate, and a rule set
    * later applies to it. It takes its place in the window all the same, so
    * that nothing downloads past it.
+   *
+   * Every writer of the requests, the rule, the preferences or the play
+   * states of the pair applies the rule, so this is where the clients of
+   * the user are told that their requests of the title changed, whether
+   * or not the rule changed anything.
    */
   async applyRule(em: EntityManager, pair: Pair): Promise<void> {
     const { userId, mediaType, tmdbId } = pair;
@@ -213,32 +239,36 @@ export class RequestsService implements OnApplicationBootstrap {
       );
     }
     await this.reconcileLater(em, [...needed, ...deleted]);
+    this.requestsChanged(pair);
   }
 
   /**
    * An hours limit expires with time, and whatever a writer missed is right
    * by the morning: before the cleanup hour. Every pair is its own
-   * transaction, as it is for the writers.
+   * transaction, as it is for the writers; the run is one unit of work,
+   * whose events go out when it is done.
    */
   @Cron('50 3 * * *')
-  async applyAllRules(): Promise<void> {
-    const rows: {
-      user_id: string;
-      media_type: MediaTypeFull;
-      tmdb_id: string;
-    }[] = await this.em
-      .fork()
-      .execute('select distinct user_id, media_type, tmdb_id from request');
+  applyAllRules(): Promise<void> {
+    return this.events.run(async () => {
+      const rows: {
+        user_id: string;
+        media_type: MediaTypeFull;
+        tmdb_id: string;
+      }[] = await this.em
+        .fork()
+        .execute('select distinct user_id, media_type, tmdb_id from request');
 
-    for (const row of rows) {
-      await this.em.fork().transactional((tx) =>
-        this.applyRule(tx, {
-          userId: row.user_id,
-          mediaType: titleTypeOf(row.media_type),
-          tmdbId: row.tmdb_id,
-        }),
-      );
-    }
+      for (const row of rows) {
+        await this.em.fork().transactional((tx) =>
+          this.applyRule(tx, {
+            userId: row.user_id,
+            mediaType: titleTypeOf(row.media_type),
+            tmdbId: row.tmdb_id,
+          }),
+        );
+      }
+    });
   }
 
   /** A request with the source its user prefers for it, for the library */
@@ -365,6 +395,87 @@ export class RequestsService implements OnApplicationBootstrap {
         READ,
       )
       .then((request) => request ?? undefined);
+  }
+
+  /** The request of a user for a movie with the rule and the preference it is fulfilled by: the document of the movie page */
+  async describeMovieRequests(
+    userId: string,
+    tmdbId: string,
+  ): Promise<MovieRequestsDto> {
+    const request = await this.findMovieRequest(userId, tmdbId);
+    const rule = await this.findMovieRule(userId, tmdbId);
+    // The preference of a movie is the entry with season and episode 0
+    const source = rule?.episodeSources?.find(
+      (s) => s.season === 0 && s.episode === 0,
+    );
+    const releases = await this.readReleases(
+      source?.kind === 'torrent' ? [source.infoHash] : [],
+    );
+
+    return {
+      request,
+      rule: { keepWatchedHours: rule?.keepWatchedHours ?? null },
+      preference: source && toPreferenceDto(source, releases),
+    };
+  }
+
+  /** The requests of a user for a series with the rule and the preferences they are fulfilled by: the document of the series page */
+  async describeSeriesRequests(
+    userId: string,
+    tmdbId: string,
+  ): Promise<SeriesRequestsDto> {
+    const requests = await this.findSeriesRequests(userId, tmdbId);
+    const rule = await this.findSeriesRule(userId, tmdbId);
+    const seasonTorrents = rule?.seasonTorrents ?? [];
+    const episodeSources = rule?.episodeSources ?? [];
+    const releases = await this.readReleases([
+      ...seasonTorrents.map((t) => t.infoHash),
+      ...episodeSources.flatMap((s) =>
+        s.kind === 'torrent' ? [s.infoHash] : [],
+      ),
+    ]);
+    const preferences: EpisodePreferenceDto[] = [
+      ...seasonTorrents.map((t) => ({
+        season: t.season,
+        episode: 0,
+        release: releases.get(t.infoHash),
+      })),
+      ...episodeSources.map((source) => ({
+        season: source.season,
+        episode: source.episode,
+        ...toPreferenceDto(source, releases),
+      })),
+    ];
+
+    return {
+      requests,
+      rule: {
+        keepNext: rule?.keepNext ?? null,
+        keepWatched: rule?.keepWatched ?? null,
+        keepWatchedHours: rule?.keepWatchedHours ?? null,
+      },
+      preferences: preferences.sort(byEpisode),
+    };
+  }
+
+  /** The releases users picked, as they were picked, by info hash */
+  private async readReleases(
+    infoHashes: string[],
+  ): Promise<Map<string, SelectedReleaseDto>> {
+    if (!infoHashes.length) return new Map();
+
+    const releases = await this.em.find(
+      SelectedRelease,
+      { infoHash: { $in: infoHashes } },
+      { ...READ, fields: ['infoHash', 'title', 'indexer', 'size'] },
+    );
+
+    return new Map(
+      releases.map(({ infoHash, title, indexer, size }) => [
+        infoHash,
+        { infoHash, title, indexer, size },
+      ]),
+    );
   }
 
   async createMovieRequest(
@@ -778,6 +889,7 @@ export class RequestsService implements OnApplicationBootstrap {
       requests.map((request) => request.id),
     );
     for (const pair of uniquePairs(requests.map(pairOf))) {
+      this.requestsChanged(pair);
       await this.applyRule(em, pair);
     }
 
@@ -906,15 +1018,27 @@ export class RequestsService implements OnApplicationBootstrap {
   ): Promise<number> {
     const requests = await tx.find(MediaRequest, where, {
       ...READ,
-      fields: ['id'],
+      fields: ['id', 'userId', 'mediaType', 'tmdbId'],
     });
     if (!requests.length) return 0;
 
     const ids = requests.map((request) => request.id);
     await tx.nativeDelete(MediaRequest, { id: { $in: ids } });
     await this.reconcileLater(tx, ids);
+    for (const pair of uniquePairs(requests.map(pairOf))) {
+      this.requestsChanged(pair);
+    }
 
     return ids.length;
+  }
+
+  /** Tells the clients of the user that their requests of the title changed */
+  private requestsChanged({ userId, mediaType, tmdbId }: Pair): void {
+    this.events.emit({
+      type: 'requests',
+      userId,
+      data: { mediaType, tmdbId },
+    });
   }
 
   /** Has the library look at the requests of the user in the scope of a preference: the movie's, the season's or the episode's */

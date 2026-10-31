@@ -26,8 +26,9 @@ import { User } from '../users/user.entity.js';
 import {
   MediaRequestDto,
   MovieRequestRuleDto,
-  MovieRequestStatusDto,
+  MovieRequestsDto,
   RequestRuleDto,
+  SeriesRequestsDto,
   SetPreferenceDto,
   UpdateSeriesRequestsDto,
 } from './requests.dto.js';
@@ -54,17 +55,16 @@ export class RequestsController {
   }
 
   @Get('movies/:tmdbId')
-  @ApiOkResponse({ type: MovieRequestStatusDto })
-  async getMovieRequest(
+  @ApiOkResponse({
+    type: MovieRequestsDto,
+    description:
+      'The request of the user for the movie, with the rule and the preference it is fulfilled by',
+  })
+  getMovieRequests(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<MovieRequestStatusDto> {
-    const request = await this.requestsService.findMovieRequest(
-      user.id,
-      tmdbId,
-    );
-
-    return { tmdbId, request: request ?? undefined };
+  ): Promise<MovieRequestsDto> {
+    return this.requestsService.describeMovieRequests(user.id, tmdbId);
   }
 
   @Put('movies/:tmdbId')
@@ -92,17 +92,6 @@ export class RequestsController {
     );
 
     return { success: result > 0 };
-  }
-
-  @Get('movies/:tmdbId/rule')
-  @ApiOkResponse({ type: MovieRequestRuleDto })
-  async getMovieRequestRule(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<MovieRequestRuleDto> {
-    const rule = await this.requestsService.findMovieRule(user.id, tmdbId);
-
-    return { keepWatchedHours: rule?.keepWatchedHours ?? null };
   }
 
   @Put('movies/:tmdbId/rule')
@@ -168,12 +157,16 @@ export class RequestsController {
   }
 
   @Get('series/:tmdbId')
-  @ApiOkResponse({ type: [MediaRequestDto] })
-  async getSeriesRequests(
+  @ApiOkResponse({
+    type: SeriesRequestsDto,
+    description:
+      'The requests of the user for the series, with the rule and the preferences they are fulfilled by',
+  })
+  getSeriesRequests(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
-  ): Promise<MediaRequestDto[]> {
-    return this.requestsService.findSeriesRequests(user.id, tmdbId);
+  ): Promise<SeriesRequestsDto> {
+    return this.requestsService.describeSeriesRequests(user.id, tmdbId);
   }
 
   @Put('series/:tmdbId')
@@ -202,21 +195,6 @@ export class RequestsController {
       requested: body.requested,
       approved: user.isAdmin,
     });
-  }
-
-  @Get('series/:tmdbId/rule')
-  @ApiOkResponse({ type: RequestRuleDto })
-  async getSeriesRequestRule(
-    @GetAuthUser() user: User,
-    @Param('tmdbId') tmdbId: string,
-  ): Promise<RequestRuleDto> {
-    const rule = await this.requestsService.findSeriesRule(user.id, tmdbId);
-
-    return {
-      keepNext: rule?.keepNext ?? null,
-      keepWatched: rule?.keepWatched ?? null,
-      keepWatchedHours: rule?.keepWatchedHours ?? null,
-    };
   }
 
   @Put('series/:tmdbId/rule')

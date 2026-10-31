@@ -1,5 +1,6 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
+import { EventsModule } from '../events/events.module.js';
 import { IndexersModule } from '../indexers/indexers.module.js';
 import { JobsModule } from '../jobs/jobs.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
@@ -16,6 +17,7 @@ import { SelectedRelease } from './selected-release.entity.js';
     MetadataModule,
     IndexersModule,
     JobsModule,
+    EventsModule,
   ],
   controllers: [RequestsController, AdminRequestsController],
   providers: [RequestsService],

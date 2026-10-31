@@ -9,12 +9,12 @@
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import {
+		getMovieRequestStatus,
 		movieQueries,
 		setMovieRequested,
 		updateMovieRequestRule
 	} from '$lib/queries/movie.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { getStatusLabel, isErrorStatus } from '$lib/queries/request-status';
 	import { storageQueries } from '$lib/queries/storage.queries';
 	import { confirmQuota } from '$lib/quota';
 	import classNames from 'classnames';
@@ -24,9 +24,6 @@
 	import TorrentsView from './TorrentsView.svelte';
 
 	export let tmdbId: string;
-
-	/** Download progress and usage change without the user doing anything */
-	const REFRESH_INTERVAL = 5000;
 
 	// The one setting of a movie: download ahead and keep last watched are for episodes
 	const KEEP_FIELD = {
@@ -43,23 +40,25 @@
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
 	const tmdbMovie = usePageQuery(movieQueries.metadata(tmdbId));
-	const statusQuery = usePageQuery({
-		...movieQueries.status(tmdbId),
-		refetchInterval: REFRESH_INTERVAL
-	});
-	const rule = usePageQuery(movieQueries.rule(tmdbId));
-	const storage = usePageQuery({ ...storageQueries.user(), refetchInterval: REFRESH_INTERVAL });
+	const requests = usePageQuery(movieQueries.requests(tmdbId));
+	const statusQuery = usePageQuery(movieQueries.status(tmdbId));
+	const torrents = usePageQuery(movieQueries.torrents(tmdbId));
+	const storage = usePageQuery(storageQueries.user());
 	$: movie = $tmdbMovie.data;
 	$: status = $statusQuery.data;
-	$: ruleData = $rule.data;
+	$: requestStatus = getMovieRequestStatus({
+		requests: $requests.data,
+		status,
+		torrents: $torrents.data
+	});
+	$: ruleData = $requests.data?.rule;
 	$: usage = $storage.data;
 
 	$: name = movie ? `${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})` : '';
 	$: keepLabel =
 		KEEP_FIELD.options.find((option) => option.value === (ruleData?.keepWatchedHours ?? null))
 			?.label ?? '';
-	$: source = status?.preference;
-	$: sourceTitle = source?.torrent?.title ?? source?.file?.fileName;
+	$: source = $requests.data?.preference;
 
 	function selectKeepOption() {
 		if (!ruleData) return;
@@ -86,7 +85,10 @@
 	}
 
 	/** What a new request is expected to take from its source, if it has one */
-	$: sourceBytes = source?.torrent?.size ?? source?.file?.size ?? 0;
+	$: sourceBytes =
+		source?.release?.size ??
+		status?.files.find((file) => file.id === source?.mediaFileId)?.size ??
+		0;
 
 	async function request(requested: boolean) {
 		if (requested && !(await confirmQuota(sourceBytes))) return;
@@ -158,10 +160,10 @@
 		<Container focusOnMount class="pb-16 mx-32 mt-8">
 			{#if movie}
 				<RequestRow
-					subtitle={sourceTitle ?? 'No torrent selected'}
-					status={getStatusLabel(status)}
-					isError={isErrorStatus(status)}
-					checked={!!status?.requested}
+					subtitle={requestStatus.sourceName ?? 'No torrent selected'}
+					status={requestStatus.label}
+					isError={requestStatus.isError}
+					checked={requestStatus.requested}
 					on:toggle={() =>
 						request(!status?.requested).catch((e) =>
 							createErrorNotification(

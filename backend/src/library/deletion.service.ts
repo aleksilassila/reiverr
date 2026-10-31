@@ -8,7 +8,8 @@ import {
 import { Cron } from '@nestjs/schedule';
 import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, Title } from '../common/common.dto.js';
+import { EventsService } from '../events/events.service.js';
 import { JobPayloads } from '../jobs/job-types.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
@@ -57,6 +58,7 @@ export class DeletionService implements OnModuleInit {
     private readonly requestsService: RequestsService,
     private readonly serverLog: ServerLogService,
     private readonly fulfilment: FulfilmentService,
+    private readonly events: EventsService,
   ) {}
 
   onModuleInit() {
@@ -142,6 +144,7 @@ export class DeletionService implements OnModuleInit {
           await tx.nativeDelete(MediaFile, {
             id: { $in: forgotten.map((file) => file.id) },
           });
+          this.filesChanged(forgotten);
           await this.fulfilment.filesForgotten(tx, forgotten);
         }
         for (const file of forgotten) {
@@ -214,6 +217,7 @@ export class DeletionService implements OnModuleInit {
     if (!libraryFolder || !isStillImported(file, stats)) {
       this.logger.warn(`"${file.path}" is not as imported, it is kept`);
       await this.em.nativeUpdate(MediaFile, { id }, { managed: false });
+      this.filesChanged([file]);
       return 'kept';
     }
 
@@ -351,8 +355,8 @@ export class DeletionService implements OnModuleInit {
   }
 
   /** Forgets the row of a file unless a request holds it, in one transaction */
-  private forget(file: MediaFile): Promise<boolean> {
-    return this.em.transactional(async (tx) => {
+  private async forget(file: MediaFile): Promise<boolean> {
+    const forgotten = await this.em.transactional(async (tx) => {
       const held = await tx.count(RequestBinding, { mediaFileId: file.id });
       if (held) return false;
 
@@ -363,6 +367,22 @@ export class DeletionService implements OnModuleInit {
 
       return deleted > 0;
     });
+    if (forgotten) this.filesChanged([file]);
+
+    return forgotten;
+  }
+
+  /** Tells the clients that show the titles of files that the index of the titles changed */
+  private filesChanged(files: Title[]): void {
+    const titles = new Map(
+      files.map(({ mediaType, tmdbId }) => [
+        `${mediaType}:${tmdbId}`,
+        { mediaType, tmdbId },
+      ]),
+    );
+    for (const title of titles.values()) {
+      this.events.emit({ type: 'library', data: title });
+    }
   }
 
   private logDeleted(

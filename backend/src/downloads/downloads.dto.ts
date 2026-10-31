@@ -80,7 +80,7 @@ export enum TorrentItemStatus {
   Released = 'released',
 }
 
-/** An item that is wanted from a torrent, and where it stands */
+/** An item that is wanted from a torrent, and its status */
 export class TorrentItemDto {
   @ApiProperty({ type: 'string' })
   id: string;
