@@ -30,8 +30,6 @@ import { User } from '../users/user.entity.js';
 import {
   DownloadsOrder,
   DownloadsStatus,
-  LibraryOrder,
-  LibraryStatus,
   MyListAvailability,
   MyListOrder,
   MyListStatus,
@@ -129,30 +127,6 @@ describe('CatalogService', () => {
     RequestContext.create(orm.em, () =>
       titleStates.addToMyList(userId, tmdbId, mediaType),
     );
-  const library = (
-    options: {
-      mediaType?: MediaType;
-      status?: LibraryStatus;
-      letter?: Letter;
-      order?: LibraryOrder;
-      direction?: OrderDirection;
-      page?: number;
-      itemsPerPage?: number;
-    } = {},
-  ) =>
-    RequestContext.create(orm.em, () =>
-      catalog.findLibraryTitles(userId, {
-        mediaType: options.mediaType,
-        status: options.status,
-        letter: options.letter,
-        order: options.order ?? LibraryOrder.DateAdded,
-        direction: options.direction,
-        pagination: {
-          page: options.page ?? 1,
-          itemsPerPage: options.itemsPerPage ?? 10,
-        },
-      }),
-    );
   const myList = (
     options: {
       mediaType?: MediaType;
@@ -161,6 +135,8 @@ describe('CatalogService', () => {
       letter?: Letter;
       order?: MyListOrder;
       direction?: OrderDirection;
+      page?: number;
+      itemsPerPage?: number;
     } = {},
   ) =>
     RequestContext.create(orm.em, () =>
@@ -171,7 +147,10 @@ describe('CatalogService', () => {
         letter: options.letter,
         order: options.order ?? MyListOrder.Name,
         direction: options.direction,
-        pagination: { page: 1, itemsPerPage: 10 },
+        pagination: {
+          page: options.page ?? 1,
+          itemsPerPage: options.itemsPerPage ?? 10,
+        },
       }),
     );
   const names = ({
@@ -248,118 +227,6 @@ describe('CatalogService', () => {
 
   afterEach(() => orm.close());
 
-  describe('the library', () => {
-    it('lists each title with files once, newest file first, with whether the user requested it', async () => {
-      const { items, total } = await library();
-
-      expect(total).toBe(3);
-      expect(names({ items })).toEqual(['Another', 'Series', 'Movie']);
-      expect(items.map((item) => item.requested)).toEqual([false, true, false]);
-      expect(items[1]).toMatchObject({
-        mediaType: MediaType.Series,
-        tmdbId: '1',
-      });
-    });
-
-    it('counts the episodes on disk, and dates the cleanup of a title nobody holds', async () => {
-      const { items } = await library({ order: LibraryOrder.Name });
-      const [another, movie, series] = items;
-
-      // A file of two episodes counts both
-      expect(series.available).toBe(3);
-      expect(movie.available).toBe(1);
-      expect(another.available).toBe(1);
-
-      // Managed and held, and external, stay; managed and unheld goes at 4 in the morning
-      expect(series.cleanupAt).toBeUndefined();
-      expect(movie.cleanupAt).toBeUndefined();
-      expect(new Date(another.cleanupAt).getHours()).toBe(4);
-      expect(Date.parse(another.cleanupAt)).toBeGreaterThan(Date.now());
-    });
-
-    it('separates the titles the user requested from the rest', async () => {
-      expect(names(await library({ status: LibraryStatus.Requested }))).toEqual(
-        ['Series'],
-      );
-      expect(
-        names(await library({ status: LibraryStatus.Unrequested })),
-      ).toEqual(['Another', 'Movie']);
-    });
-
-    it('orders by name and by release, in either direction, and filters by type', async () => {
-      expect(names(await library({ order: LibraryOrder.Name }))).toEqual([
-        'Another',
-        'Movie',
-        'Series',
-      ]);
-      expect(
-        names(
-          await library({
-            order: LibraryOrder.Name,
-            direction: OrderDirection.Desc,
-          }),
-        ),
-      ).toEqual(['Series', 'Movie', 'Another']);
-      expect(
-        names(await library({ order: LibraryOrder.FirstReleaseDate })),
-      ).toEqual(['Another', 'Movie', 'Series']);
-      expect(names(await library({ mediaType: MediaType.Movie }))).toEqual([
-        'Movie',
-      ]);
-    });
-
-    it('pages, and gives each title the play state played last', async () => {
-      await RequestContext.create(orm.em, () =>
-        playStates.updateOrCreateMoviePlayState(userId, '1', {
-          progress: 0.5,
-        }),
-      );
-      await RequestContext.create(orm.em, () =>
-        playStates.updateOrCreateEpisodePlayState(userId, '1', 1, 1, {
-          progress: 0.2,
-        }),
-      );
-
-      const page = await library({ page: 2, itemsPerPage: 2 });
-      expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
-      expect(names(page)).toEqual(['Movie']);
-      expect(page.items[0].lastPlayState).toMatchObject({
-        mediaType: MediaTypeFull.Movie,
-        progress: 0.5,
-      });
-
-      const { items } = await library();
-      expect(items[1].lastPlayState).toMatchObject({
-        mediaType: MediaTypeFull.Episode,
-        episode: 1,
-        progress: 0.2,
-      });
-      expect(items[0].lastPlayState).toBeUndefined();
-    });
-
-    it('filters by the first letter of the name, # for the names that start with none', async () => {
-      await insert(
-        SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
-      );
-      await insert(
-        MovieMetadata.from({
-          ...MOVIE,
-          id: 3,
-          title: 'zodiac',
-        } as TmdbMovieFull),
-      );
-      await file(MediaType.Series, '3', 1, new Date('2026-01-05T00:00:00Z'));
-      await file(MediaType.Movie, '3', 0, new Date('2026-01-06T00:00:00Z'));
-
-      const another = await library({ letter: 'A' });
-      expect(names(another)).toEqual(['Another']);
-      expect(another.total).toBe(1);
-      expect(names(await library({ letter: 'Z' }))).toEqual(['zodiac']);
-      expect(names(await library({ letter: '#' }))).toEqual(['24']);
-      expect(await library({ letter: 'B' })).toMatchObject({ total: 0 });
-    });
-  });
-
   describe('the my list', () => {
     beforeEach(async () => {
       await listed(MediaType.Series, '1');
@@ -378,6 +245,46 @@ describe('CatalogService', () => {
       // A title without files has nothing to clean up
       expect(anotherMovie).toMatchObject({ requested: false, available: 0 });
       expect(anotherMovie.cleanupAt).toBeUndefined();
+    });
+
+    it('dates the cleanup of a title whose files nobody holds', async () => {
+      await listed(MediaType.Series, '2');
+      const { items } = await myList({ mediaType: MediaType.Series });
+      const [another, series] = items;
+
+      // Managed and held, and external, stay; managed and unheld goes at 4 in the morning
+      expect(series.cleanupAt).toBeUndefined();
+      expect(new Date(another.cleanupAt).getHours()).toBe(4);
+      expect(Date.parse(another.cleanupAt)).toBeGreaterThan(Date.now());
+    });
+
+    it('pages, and gives each title the play state played last', async () => {
+      await RequestContext.create(orm.em, () =>
+        playStates.updateOrCreateMoviePlayState(userId, '1', {
+          progress: 0.5,
+        }),
+      );
+      await RequestContext.create(orm.em, () =>
+        playStates.updateOrCreateEpisodePlayState(userId, '1', 1, 1, {
+          progress: 0.2,
+        }),
+      );
+
+      const page = await myList({ page: 2, itemsPerPage: 2 });
+      expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
+      expect(names(page)).toEqual(['Series']);
+      expect(page.items[0].lastPlayState).toMatchObject({
+        mediaType: MediaTypeFull.Episode,
+        episode: 1,
+        progress: 0.2,
+      });
+
+      const { items } = await myList();
+      expect(items[1].lastPlayState).toMatchObject({
+        mediaType: MediaTypeFull.Movie,
+        progress: 0.5,
+      });
+      expect(items[0].lastPlayState).toBeUndefined();
     });
 
     it('does not count a watched episode as a watched movie', async () => {

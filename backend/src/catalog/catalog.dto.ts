@@ -72,21 +72,6 @@ export class CatalogDownloadDto {
   requested: boolean;
 }
 
-export enum LibraryOrder {
-  /** When the newest file of the title was indexed */
-  DateAdded = 'date-added',
-  Name = 'name',
-  FirstReleaseDate = 'first-release-date',
-  LastReleaseDate = 'last-release-date',
-}
-
-export enum LibraryStatus {
-  /** Titles the user has requests for */
-  Requested = 'requested',
-  /** Titles with files that the user has no request for */
-  Unrequested = 'unrequested',
-}
-
 export enum MyListOrder {
   /** When the title was added to the list */
   DateAdded = 'date-added',

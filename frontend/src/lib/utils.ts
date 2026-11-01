@@ -494,6 +494,6 @@ export function useInteractionObserver(
 
 /** The initials the title lists are filtered by: a letter, or '#' for the names that start with none */
 export type Letter = NonNullable<
-	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>['letter']
+	NonNullable<Parameters<typeof reiverrApi.catalog.getMyList>[0]>['letter']
 >;
 export const LETTERS = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') as Letter[];

@@ -29,8 +29,6 @@ import {
   CatalogTitleDto,
   DownloadsOrder,
   DownloadsStatus,
-  LibraryOrder,
-  LibraryStatus,
   MyListAvailability,
   MyListOrder,
   MyListStatus,
@@ -39,12 +37,6 @@ import {
 const READ = { disableIdentityMap: true };
 
 /** The direction each order reads in when none is asked for */
-const LIBRARY_NATURAL: Record<LibraryOrder, OrderDirection> = {
-  [LibraryOrder.DateAdded]: OrderDirection.Desc,
-  [LibraryOrder.Name]: OrderDirection.Asc,
-  [LibraryOrder.FirstReleaseDate]: OrderDirection.Desc,
-  [LibraryOrder.LastReleaseDate]: OrderDirection.Desc,
-};
 const MY_LIST_NATURAL: Record<MyListOrder, OrderDirection> = {
   [MyListOrder.DateAdded]: OrderDirection.Desc,
   [MyListOrder.Name]: OrderDirection.Asc,
@@ -53,7 +45,7 @@ const MY_LIST_NATURAL: Record<MyListOrder, OrderDirection> = {
   [MyListOrder.LastPlayed]: OrderDirection.Desc,
 };
 
-// The sort keys read from the metadata, which both catalogues join as mm and sm
+// The sort keys read from the metadata, which the my list joins as mm and sm
 const NAME = sql`coalesce(sm.name, mm.name)`;
 const FIRST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.first_release_date)`;
 const LAST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.last_release_date)`;
@@ -63,9 +55,9 @@ const INITIAL = sql`upper(substr(coalesce(sm.name, mm.name, ''), 1, 1))`;
 type Title = { mediaType: MediaType; tmdbId: string };
 
 /**
- * The catalogues of titles the pages list for a user: the titles that have
- * files in the library, and the titles of the user's list, each with what
- * the library and the user's requests have of it
+ * The lists the pages show a user: the titles of the user's list, each with
+ * what the library and the user's requests have of it, and the torrents
+ * that are downloading
  */
 @Injectable()
 export class CatalogService {
@@ -76,78 +68,6 @@ export class CatalogService {
     private readonly libraryService: LibraryService,
     private readonly downloadsService: DownloadsService,
   ) {}
-
-  /** The titles that have files in the library */
-  async findLibraryTitles(
-    userId: string,
-    options: {
-      mediaType?: MediaType;
-      status?: LibraryStatus;
-      letter?: Letter;
-      order: LibraryOrder;
-      direction?: OrderDirection;
-      pagination: PaginationDto;
-    },
-  ): Promise<PaginatedResponseDto<CatalogTitleDto>> {
-    const em = this.em.fork();
-    const { page, itemsPerPage } = options.pagination;
-
-    // Whether the user has a request for the title of the file
-    const requested = sql`exists (
-      select 1 from request r
-      where r.user_id = ${userId} and r.tmdb_id = mf.tmdb_id
-        and r.media_type = case mf.media_type when 'movie' then 'movie' else 'episode' end
-    )`;
-    const titles = () => {
-      const builder = em
-        .createQueryBuilder(MediaFile, 'mf')
-        .leftJoin(sql.ref('movie_metadata'), 'mm', {
-          'mm.tmdb_id': sql.ref('mf.tmdb_id'),
-          'mf.media_type': MediaType.Movie,
-        })
-        .leftJoin(sql.ref('series_metadata'), 'sm', {
-          'sm.tmdb_id': sql.ref('mf.tmdb_id'),
-          'mf.media_type': MediaType.Series,
-        });
-      if (options.mediaType) {
-        builder.andWhere({ mediaType: options.mediaType });
-      }
-      if (options.status === LibraryStatus.Requested) {
-        builder.andWhere(requested);
-      } else if (options.status === LibraryStatus.Unrequested) {
-        builder.andWhere(sql`not ${requested}`);
-      }
-      if (options.letter) builder.andWhere(letterFilter(options.letter));
-
-      return builder;
-    };
-
-    const { total } = await titles()
-      .select(sql`count(distinct mf.media_type || ':' || mf.tmdb_id) as total`)
-      .execute<{ total: number }>('get');
-
-    const direction = options.direction ?? LIBRARY_NATURAL[options.order];
-    const sortKey = {
-      [LibraryOrder.DateAdded]: sql`max(mf.created_at)`,
-      [LibraryOrder.Name]: NAME,
-      [LibraryOrder.FirstReleaseDate]: FIRST_RELEASE_DATE,
-      [LibraryOrder.LastReleaseDate]: LAST_RELEASE_DATE,
-    }[options.order];
-    const rows = await titles()
-      .select(['mf.mediaType', 'mf.tmdbId'])
-      .groupBy(['mf.mediaType', 'mf.tmdbId'])
-      .orderBy({ [sortKey]: direction, [sql`mf.tmdb_id`]: 'asc' })
-      .limit(itemsPerPage)
-      .offset(itemsPerPage * (page - 1))
-      .execute<Title[]>();
-
-    return {
-      items: await this.describeTitles(em, userId, rows),
-      total,
-      page,
-      itemsPerPage,
-    };
-  }
 
   /** The titles of the user's list */
   async findMyList(

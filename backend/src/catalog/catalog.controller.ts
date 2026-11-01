@@ -26,8 +26,6 @@ import {
   CatalogTitleDto,
   DownloadsOrder,
   DownloadsStatus,
-  LibraryOrder,
-  LibraryStatus,
   MyListAvailability,
   MyListOrder,
   MyListStatus,
@@ -39,49 +37,6 @@ import { CatalogService } from './catalog.service.js';
 @UseGuards(UserAccessControl)
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
-
-  @Get('library')
-  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
-  @ApiQuery({ name: 'status', enum: LibraryStatus, required: false })
-  @ApiQuery({
-    name: 'letter',
-    enum: LETTERS,
-    required: false,
-    description:
-      "Titles whose name starts with the letter; '#' for a name that starts with none",
-  })
-  @ApiQuery({ name: 'order', enum: LibraryOrder, required: false })
-  @ApiQuery({
-    name: 'direction',
-    enum: OrderDirection,
-    required: false,
-    description: 'Without it, the direction natural to the order',
-  })
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(CatalogTitleDto)
-  getLibrary(
-    @GetAuthUser() user: User,
-    @GetPaginationParams() pagination: PaginationDto,
-    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
-    mediaType?: MediaType,
-    @Query('status', new ParseEnumPipe(LibraryStatus, { optional: true }))
-    status?: LibraryStatus,
-    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
-    letter?: Letter,
-    @Query('order', new ParseEnumPipe(LibraryOrder, { optional: true }))
-    order?: LibraryOrder,
-    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
-    direction?: OrderDirection,
-  ): Promise<PaginatedResponseDto<CatalogTitleDto>> {
-    return this.catalogService.findLibraryTitles(user.id, {
-      mediaType,
-      status,
-      letter,
-      order: order ?? LibraryOrder.DateAdded,
-      direction,
-      pagination,
-    });
-  }
 
   @Get('my-list')
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })

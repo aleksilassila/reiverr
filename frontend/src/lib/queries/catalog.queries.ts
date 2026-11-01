@@ -7,15 +7,10 @@ type MyListParams = Omit<
 	NonNullable<Parameters<typeof reiverrApi.catalog.getMyList>[0]>,
 	'page' | 'itemsPerPage'
 >;
-type LibraryParams = Omit<
-	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>,
-	'page' | 'itemsPerPage'
->;
 type DownloadsParams = NonNullable<Parameters<typeof reiverrApi.catalog.getDownloads>[0]>;
 
-/** The orders the catalogues sort by; the my list also sorts by when the user last played */
-export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
-export type MyListOrder = CatalogOrder | 'last-played';
+export type MyListOrder =
+	'date-added' | 'name' | 'first-release-date' | 'last-release-date' | 'last-played';
 export type CatalogOrderDirection = 'asc' | 'desc';
 export type CatalogCategory = 'all' | 'series' | 'movies';
 /** Whether what the user would watch next of a title is on disk */
@@ -25,14 +20,13 @@ export type MyListAvailability = 'available' | 'unavailable';
 export const mediaTypeOf = (category: CatalogCategory) =>
 	category === 'all' ? undefined : category === 'movies' ? ('movie' as const) : ('series' as const);
 
-/** The lists of the catalog module of the backend: my list, the library and the downloads */
+/** The lists of the catalog module of the backend: my list and the downloads */
 export const catalogKeys = {
 	/** Every list: what the mutations of a title invalidate */
 	all: ['catalog'] as const,
 	myList: (params: MyListParams) => ['catalog', 'my-list', params] as const,
 	continueWatching: (mediaType: 'movie' | 'series') =>
 		['catalog', 'my-list', 'continue-watching', mediaType] as const,
-	library: (params: LibraryParams) => ['catalog', 'library', params] as const,
 	/** Every list of the downloads: what a change of a torrent invalidates */
 	downloads: () => ['catalog', 'downloads'] as const,
 	downloadsList: (params: DownloadsParams) => ['catalog', 'downloads', params] as const
@@ -58,13 +52,6 @@ export const catalogQueries = {
 						itemsPerPage: 10
 					})
 					.then((r) => r.data.items)
-		}),
-	/** The titles with files in the library */
-	library: (params: LibraryParams) =>
-		pagedQueryOptions({
-			queryKey: catalogKeys.library(params),
-			queryFn: (page) =>
-				reiverrApi.catalog.getLibrary({ ...params, page }).then((r) => r.data.items)
 		}),
 	/** The torrents that are downloading, live: polled while there are any, told by the server otherwise */
 	downloads: (params: DownloadsParams) =>
