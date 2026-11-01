@@ -56,6 +56,14 @@ export class WebTorrentHandle implements TorrentHandle {
       this.closed = true;
       if (!this.destroying) this.fail('The torrent client stopped');
     });
+    // A wire closed by its socket, as the ones of a destroyed torrent are,
+    // keeps its piece-request timer (bittorrent-protocol 5.0.9 clears it
+    // only when the wire ends), and the timer's 'timeout' event crashes
+    // the process in the handler of a destroyed torrent (webtorrent 3.0.21
+    // reads its client there, which is null by then). Disarmed on close
+    this.torrent.on('wire', (wire: any) =>
+      wire.once('close', () => wire.setTimeout(0)),
+    );
 
     this.completionCheck = setInterval(
       () => this.checkCompletion(),
