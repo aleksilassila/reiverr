@@ -106,9 +106,9 @@
 			{/if}
 		</GlobalBackgroundStack>
 	{/if}
-	{#if import.meta.env.DEV}
+	<!-- {#if import.meta.env.DEV}
 		<SvelteQueryDevtools buttonPosition="bottom-left" />
-	{/if}
+	{/if} -->
 </QueryClientProvider>
 
 <NotificationStack />

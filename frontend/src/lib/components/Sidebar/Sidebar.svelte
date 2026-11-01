@@ -27,7 +27,7 @@
 		Users: 0,
 		Series: 1,
 		Movies: 2,
-		Library: 3,
+		MyList: 3,
 		Requests: 4,
 		Search: 5,
 		Server: $user?.isAdmin ? 6 : -1,
@@ -64,7 +64,7 @@
 				[Tabs.Users]: '/users',
 				[Tabs.Series]: '/',
 				[Tabs.Movies]: '/movies',
-				[Tabs.Library]: '/library',
+				[Tabs.MyList]: '/my-list',
 				[Tabs.Requests]: '/requests',
 				[Tabs.Search]: '/search',
 				[Tabs.Server]: '/server',
@@ -88,7 +88,7 @@
 					'/': Tabs.Series,
 					'/series': Tabs.Series,
 					'/movies': Tabs.Movies,
-					'/library': Tabs.Library,
+					'/my-list': Tabs.MyList,
 					'/requests': Tabs.Requests,
 					'/search': Tabs.Search,
 					'/server': Tabs.Server,
@@ -243,33 +243,33 @@
 		</Container>
 		<Container
 			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Library)}
+			on:clickOrSelect={selectIndex(Tabs.MyList)}
 			let:hasFocus
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Library),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.MyList),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Library)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.MyList)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
 					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Library })}
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.MyList })}
 						size={19}
 					/>
 				</div>
 				<Bookmark class="w-8 h-8" />
 				<span
 					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 whitespace-nowrap',
 						{
 							'opacity-0 pointer-events-none': hasFocusWithin === false,
 							'group-hover:opacity-100 group-hover:pointer-events-auto': true
 						}
 					)}
 				>
-					Library
+					My List
 				</span>
 			</div>
 		</Container>

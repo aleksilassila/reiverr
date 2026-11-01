@@ -323,7 +323,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         pendingBytes = bytes;
       }
 
-      await this.downloadsService.ensureTorrent(tx, release);
+      await this.downloadsService.getOrCreateTorrent(tx, release);
       const item = await this.downloadsService.requestItem(tx, infoHash, {
         ...media,
         onlyVideo: source.forEpisode,

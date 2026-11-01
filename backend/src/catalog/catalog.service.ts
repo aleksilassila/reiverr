@@ -15,12 +15,13 @@ import { RequestBinding } from '../library/request-binding.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { titleTypeOf } from '../requests/requests.utils.js';
-import { MyListItem } from '../user-data/my-list/my-list-item.entity.js';
-import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
+import { PlayStatesService } from '../user-data/play-states.service.js';
+import { TitleState } from '../user-data/title-state.entity.js';
 import {
   CatalogTitleDto,
   LibraryOrder,
   LibraryStatus,
+  MyListAvailability,
   MyListOrder,
   MyListStatus,
 } from './catalog.dto.js';
@@ -143,6 +144,7 @@ export class CatalogService {
     options: {
       mediaType?: MediaType;
       status?: MyListStatus;
+      availability?: MyListAvailability;
       letter?: Letter;
       order: MyListOrder;
       direction?: OrderDirection;
@@ -152,50 +154,46 @@ export class CatalogService {
     const em = this.em.fork();
     const { page, itemsPerPage } = options.pagination;
     const status = myListStatusFilter(options.status);
+    const availability = myListAvailabilityFilter(options.availability);
 
-    // Each item is joined with its play states (ps), which the status filter reads
+    // The rows (ts) are the user's; the filters read the stamped next episode
     const titles = () => {
       const builder = em
-        .createQueryBuilder(MyListItem, 'li')
-        .leftJoin(sql.ref('play_state'), 'ps', {
-          'ps.tmdb_id': sql.ref('li.tmdb_id'),
-          'ps.user_id': sql.ref('li.user_id'),
-          'ps.media_type': sql`case li.media_type when 'movie' then 'movie' else 'episode' end`,
-        })
+        .createQueryBuilder(TitleState, 'ts')
         .leftJoin(sql.ref('movie_metadata'), 'mm', {
-          'mm.tmdb_id': sql.ref('li.tmdb_id'),
-          'li.media_type': MediaType.Movie,
+          'mm.tmdb_id': sql.ref('ts.tmdb_id'),
+          'ts.media_type': MediaType.Movie,
         })
         .leftJoin(sql.ref('series_metadata'), 'sm', {
-          'sm.tmdb_id': sql.ref('li.tmdb_id'),
-          'li.media_type': MediaType.Series,
+          'sm.tmdb_id': sql.ref('ts.tmdb_id'),
+          'ts.media_type': MediaType.Series,
         })
-        .where({ userId });
+        .where({ userId, addedToMyListAt: { $ne: null } });
       if (options.mediaType) {
         builder.andWhere({ mediaType: options.mediaType });
       }
       if (status) builder.andWhere(status);
+      if (availability) builder.andWhere(availability);
       if (options.letter) builder.andWhere(letterFilter(options.letter));
 
       return builder;
     };
 
     const { total } = await titles()
-      .select(sql`count(distinct li.id) as total`)
+      .select(sql`count(*) as total`)
       .execute<{ total: number }>('get');
 
     const direction = options.direction ?? MY_LIST_NATURAL[options.order];
     const sortKey = {
-      [MyListOrder.DateAdded]: sql`li.created_at`,
+      [MyListOrder.DateAdded]: sql`ts.added_to_my_list_at`,
       [MyListOrder.Name]: NAME,
       [MyListOrder.FirstReleaseDate]: FIRST_RELEASE_DATE,
       [MyListOrder.LastReleaseDate]: LAST_RELEASE_DATE,
-      [MyListOrder.LastPlayed]: sql`li.last_played_at`,
+      [MyListOrder.LastPlayed]: sql`ts.last_played_at`,
     }[options.order];
     const rows = await titles()
-      .select(['li.mediaType', 'li.tmdbId'])
-      .groupBy('li.id')
-      .orderBy({ [sortKey]: direction, [sql`li.id`]: 'asc' })
+      .select(['ts.mediaType', 'ts.tmdbId'])
+      .orderBy({ [sortKey]: direction, [sql`ts.id`]: 'asc' })
       .limit(itemsPerPage)
       .offset(itemsPerPage * (page - 1))
       .execute<Title[]>();
@@ -219,6 +217,7 @@ export class CatalogService {
       userId,
       titles,
     );
+    const next = await this.findNext(em, userId, titles);
     const files = await this.findFiles(em, titles);
     const { cleanup } = await this.libraryService.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
@@ -227,6 +226,7 @@ export class CatalogService {
     for (const title of titles) {
       const key = titleKey(title);
       const lastPlayState = lastPlayed.get(key);
+      const nextEpisode = next.get(key);
       const titleFiles = files.get(key) ?? [];
       const cleanedUp =
         !!nextCleanup &&
@@ -246,6 +246,21 @@ export class CatalogService {
             : countEpisodes(titleFiles),
         ...(cleanedUp && { cleanupAt: nextCleanup.toISOString() }),
         ...(lastPlayState && { lastPlayState }),
+        ...(nextEpisode && {
+          nextEpisode: {
+            season: nextEpisode.season,
+            episode: nextEpisode.episode,
+            ...(nextEpisode.airDate && {
+              airDate: nextEpisode.airDate.toISOString(),
+            }),
+            onDisk: titleFiles.some(
+              (file) =>
+                file.season === nextEpisode.season &&
+                file.episode <= nextEpisode.episode &&
+                nextEpisode.episode <= file.lastEpisode,
+            ),
+          },
+        }),
       });
     }
 
@@ -273,6 +288,43 @@ export class CatalogService {
           tmdbId: request.tmdbId,
         }),
       ),
+    );
+  }
+
+  /** The next episode the user's rows have stamped for the series, by key */
+  private async findNext(
+    em: EntityManager,
+    userId: string,
+    titles: Title[],
+  ): Promise<Map<string, NextEpisodeRow>> {
+    const series = titles.filter(
+      (title) => title.mediaType === MediaType.Series,
+    );
+    if (!series.length) return new Map();
+
+    const rows = await em.find(
+      TitleState,
+      {
+        userId,
+        mediaType: MediaType.Series,
+        tmdbId: { $in: series.map((title) => title.tmdbId) },
+        nextSeason: { $ne: null },
+      },
+      {
+        ...READ,
+        fields: ['tmdbId', 'nextSeason', 'nextEpisode', 'nextAirDate'],
+      },
+    );
+
+    return new Map(
+      rows.map((row) => [
+        titleKey({ mediaType: MediaType.Series, tmdbId: row.tmdbId }),
+        {
+          season: row.nextSeason as number,
+          episode: row.nextEpisode as number,
+          airDate: row.nextAirDate ?? null,
+        },
+      ]),
     );
   }
 
@@ -324,6 +376,8 @@ export class CatalogService {
 
 const titleKey = ({ mediaType, tmdbId }: Title) => `${mediaType}:${tmdbId}`;
 
+type NextEpisodeRow = { season: number; episode: number; airDate: Date | null };
+
 type TitleFile = Pick<
   MediaFile,
   'id' | 'season' | 'episode' | 'lastEpisode' | 'managed'
@@ -348,53 +402,50 @@ function letterFilter(letter: Letter) {
     : sql`${INITIAL} = ${letter}`;
 }
 
-/** The items (li) whose play states (ps) and metadata (mm, sm) give them the status */
-function myListStatusFilter(status?: MyListStatus) {
-  // Release dates are compared by UTC day, a release today counts as upcoming
-  const today = new Date().setUTCHours(0, 0, 0, 0);
+// The stamped air date is a day at UTC midnight, so an episode airing today has aired
+const unwatched = (now: number) => sql`ts.next_air_date <= ${now}`;
+// Nothing stamped, or the next episode not aired yet
+const nothingToWatch = (now: number) =>
+  sql`(ts.next_air_date is null or ts.next_air_date > ${now})`;
 
-  const watched = sql`(
-    (li.media_type = 'movie' and ps.watched = true)
-    or (li.media_type = 'series' and ps.watched = true
-      and ps.season = sm.last_season_number and ps.episode = sm.last_episode_number)
+/** The rows (ts) whose stamped next episode gives them the status */
+function myListStatusFilter(status?: MyListStatus) {
+  const now = Date.now();
+
+  if (status === MyListStatus.Unwatched) {
+    return unwatched(now);
+  } else if (status === MyListStatus.Watched) {
+    return nothingToWatch(now);
+  } else if (status === MyListStatus.ContinueWatching) {
+    const monthAgo = new Date();
+    monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+
+    return sql`(${unwatched(now)}
+      and ts.last_played_at >= ${monthAgo.setUTCHours(0, 0, 0, 0)})`;
+  }
+
+  return undefined;
+}
+
+/**
+ * The rows (ts) that have a file of what the user would watch next, or not:
+ * of the next episode while an aired one is left (a movie is at season 0,
+ * episode 0, as its file), else of anything of the title
+ */
+function myListAvailabilityFilter(availability?: MyListAvailability) {
+  const now = Date.now();
+  const available = sql`exists (
+    select 1 from media_file mf
+    where mf.media_type = ts.media_type and mf.tmdb_id = ts.tmdb_id
+      and (${nothingToWatch(now)}
+        or (mf.season = ts.next_season
+          and ts.next_episode between mf.episode and mf.last_episode))
   )`;
 
-  if (status === MyListStatus.Upcoming) {
-    return sql`(${watched}
-      and (sm.next_release_date >= ${today} or mm.release_date >= ${today}))`;
-  } else if (status === MyListStatus.Watched) {
-    return sql`(${watched} and (
-      sm.next_release_date < ${today} or mm.release_date < ${today}
-      or (sm.next_release_date is null and mm.release_date is null)
-    ))`;
-  } else if (
-    status === MyListStatus.Unwatched ||
-    status === MyListStatus.ContinueWatching
-  ) {
-    const unwatched = sql`(
-      (li.media_type = 'movie' and ps.watched = false)
-      or (li.media_type = 'movie' and ps.watched is null)
-      or (li.media_type = 'series' and ps.watched = false
-        and ps.season = sm.last_season_number and ps.episode = sm.last_episode_number)
-      or (li.media_type = 'series' and not exists (
-        select 1 from play_state last_episode
-        left join series_metadata series on series.tmdb_id = last_episode.tmdb_id
-        where last_episode.tmdb_id = li.tmdb_id and last_episode.user_id = li.user_id
-          and last_episode.media_type = 'episode'
-          and series.last_episode_number = last_episode.episode
-          and series.last_season_number = last_episode.season
-      ))
-    )`;
-
-    if (status === MyListStatus.ContinueWatching) {
-      const monthAgo = new Date();
-      monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
-
-      return sql`(${unwatched} and li.last_played_at is not null
-        and li.last_played_at >= ${monthAgo.setUTCHours(0, 0, 0, 0)})`;
-    }
-
-    return unwatched;
+  if (availability === MyListAvailability.Available) {
+    return available;
+  } else if (availability === MyListAvailability.Unavailable) {
+    return sql`not ${available}`;
   }
 
   return undefined;

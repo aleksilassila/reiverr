@@ -154,7 +154,7 @@ describe('DownloadsService', () => {
   });
 
   it('knows a torrent at once and downloads the files of the items wanted of it', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     expect(await orm.em.fork().find(Torrent, {})).toMatchObject([
       { infoHash: PACK, title: packRelease.title, files: null },
     ]);
@@ -193,7 +193,7 @@ describe('DownloadsService', () => {
   });
 
   it('matches the only video of a torrent picked for an episode, from a .torrent file at once', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, episodeRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, episodeRelease));
     expect(
       (await orm.em.fork().findOne(Torrent, { infoHash: EPISODE })).files,
     ).toHaveLength(2);
@@ -215,7 +215,7 @@ describe('DownloadsService', () => {
   });
 
   it('tells the library about a complete item and keeps the data until the item is released', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     const wanted = await wantItem(PACK, item(1));
     await settle();
     const pack = engine.running(PACK);
@@ -272,7 +272,7 @@ describe('DownloadsService', () => {
   });
 
   it('downloads the subtitles of an item with its file, while the setting is on', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, subsRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, subsRelease));
     const wanted = await wantItem(SUBS, item(1));
     await settle();
     const subs = engine.running(SUBS);
@@ -322,7 +322,7 @@ describe('DownloadsService', () => {
     await request(() =>
       new SettingsService(orm.em).saveValue('downloads', { seedRatio }),
     );
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     const wanted = await wantItem(PACK, item(1));
     await settle();
     const pack = engine.running(PACK);
@@ -346,7 +346,7 @@ describe('DownloadsService', () => {
   });
 
   it('keeps the error of a torrent that failed until it is picked or needed again', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     const wanted = await wantItem(PACK, item(1));
     await settle();
     const pack = engine.running(PACK);
@@ -365,7 +365,7 @@ describe('DownloadsService', () => {
     expect(engine.running(PACK)).toBeUndefined();
 
     // Picked again, the torrent has another go
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     await settle();
     expect(engine.running(PACK).wanted).toEqual([0, 1]);
     expect(await describeItems()).toEqual([
@@ -385,8 +385,8 @@ describe('DownloadsService', () => {
   });
 
   it('purges the torrents that nothing wants', async () => {
-    await inTx((tx) => downloads.ensureTorrent(tx, packRelease));
-    await inTx((tx) => downloads.ensureTorrent(tx, episodeRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
+    await inTx((tx) => downloads.getOrCreateTorrent(tx, episodeRelease));
     await wantItem(EPISODE, item(2, true));
 
     await downloads.purgeTorrents();

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MediaType } from '../common/common.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
-import { PlayStateDto } from '../user-data/play-state/play-state.dto.js';
+import { PlayStateDto } from '../user-data/user-data.dto.js';
 
 export enum LibraryOrder {
   /** When the newest file of the title was indexed */
@@ -29,13 +29,41 @@ export enum MyListOrder {
 }
 
 export enum MyListStatus {
-  /** Watched, with a release to come */
-  Upcoming = 'upcoming',
+  /** With an aired episode after the last watched one, or an unwatched movie */
   Unwatched = 'unwatched',
-  /** Watched, with nothing to come */
+  /** Everything aired watched */
   Watched = 'watched',
   /** Unwatched and played in the last month */
   ContinueWatching = 'continue-watching',
+}
+
+export enum MyListAvailability {
+  /** The next episode has a file; with nothing aired left to watch, anything of the title has */
+  Available = 'available',
+  Unavailable = 'unavailable',
+}
+
+/** What the user would watch next of a series */
+export class NextEpisodeDto {
+  @ApiProperty()
+  season: number;
+
+  @ApiProperty()
+  episode: number;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    required: false,
+    description:
+      'When the episode aired or airs; absent when it has no date yet',
+  })
+  airDate?: string;
+
+  @ApiProperty({
+    description: 'Whether a file of the library covers the episode',
+  })
+  onDisk: boolean;
 }
 
 /** A title of a catalogue of the user, with what the library and their requests have of it */
@@ -73,4 +101,12 @@ export class CatalogTitleDto {
     description: 'The play state of the title that the user played last',
   })
   lastPlayState?: PlayStateDto;
+
+  @ApiProperty({
+    type: NextEpisodeDto,
+    required: false,
+    description:
+      'The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet',
+  })
+  nextEpisode?: NextEpisodeDto;
 }

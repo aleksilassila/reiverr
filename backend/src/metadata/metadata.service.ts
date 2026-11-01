@@ -8,7 +8,7 @@ import {
   SeriesMetadata,
 } from './metadata.entity.js';
 import { TmdbService } from './tmdb/tmdb.service.js';
-import { TmdbItemDto } from './tmdb/tmdb.dto.js';
+import { TmdbItemDto, TmdbMovieFull, TmdbSeriesFull } from './tmdb/tmdb.dto.js';
 
 @Injectable()
 export class MetadataService {
@@ -190,6 +190,40 @@ export class MetadataService {
     } finally {
       unlock();
     }
+  }
+
+  /**
+   * The cached document of a movie; nothing is fetched. Read in the
+   * caller's entity manager, as getEpisodeCounts
+   */
+  async findCachedMovie(
+    em: EntityManager,
+    tmdbId: string,
+  ): Promise<TmdbMovieFull | undefined> {
+    const movie = await em.findOne(
+      MovieMetadata,
+      { tmdbId },
+      { disableIdentityMap: true, fields: ['tmdbMovie'] },
+    );
+
+    return movie?.tmdbMovie;
+  }
+
+  /**
+   * The cached document of a series; nothing is fetched. Read in the
+   * caller's entity manager, as getEpisodeCounts
+   */
+  async findCachedSeries(
+    em: EntityManager,
+    tmdbId: string,
+  ): Promise<TmdbSeriesFull | undefined> {
+    const series = await em.findOne(
+      SeriesMetadata,
+      { tmdbId },
+      { disableIdentityMap: true, fields: ['tmdbSeries'] },
+    );
+
+    return series?.tmdbSeries;
   }
 
   /**

@@ -2,11 +2,11 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { MediaType, MediaTypeFull } from '../../common/common.dto.js';
-import { UpdatePlayStateDto } from './play-state.dto.js';
+import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { UpdatePlayStateDto } from './user-data.dto.js';
 import { PlayState } from './play-state.entity.js';
-import { RequestsService } from '../../requests/requests.service.js';
-import { MyListItem } from '../my-list/my-list-item.entity.js';
+import { RequestsService } from '../requests/requests.service.js';
+import { TitleStateService } from './title-state.service.js';
 
 @Injectable()
 export class PlayStatesService {
@@ -15,6 +15,7 @@ export class PlayStatesService {
     private readonly playStateRepository: EntityRepository<PlayState>,
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
+    private readonly titleStateService: TitleStateService,
   ) {}
 
   async findMoviePlayState(userId: string, tmdbId: string) {
@@ -141,7 +142,7 @@ export class PlayStatesService {
       const changed = applyUpdate(state, playState);
 
       await tx.flush();
-      await this.touchMyListItem(tx, userId, tmdbId, MediaType.Movie);
+      await this.played(tx, userId, tmdbId, MediaType.Movie);
       if (changed) {
         await this.watchStatusChanged(tx, userId, MediaType.Movie, tmdbId);
       }
@@ -166,7 +167,7 @@ export class PlayStatesService {
       const changed = applyUpdate(state, playState);
 
       await tx.flush();
-      await this.touchMyListItem(tx, userId, tmdbId, MediaType.Series);
+      await this.played(tx, userId, tmdbId, MediaType.Series);
       if (changed) {
         await this.watchStatusChanged(tx, userId, MediaType.Series, tmdbId);
       }
@@ -243,29 +244,31 @@ export class PlayStatesService {
     });
   }
 
-  private async touchMyListItem(
+  private played(
     em: EntityManager,
     userId: string,
     tmdbId: string,
     mediaType: MediaType,
   ) {
-    const now = new Date();
-
-    await em.nativeUpdate(
-      MyListItem,
-      { userId, tmdbId, mediaType },
-      { lastPlayedAt: now, updatedAt: now },
+    return this.titleStateService.played(
+      em,
+      { userId, mediaType, tmdbId },
+      new Date(),
     );
   }
 
-  /** What the rule makes of the requests of the title changes with it */
-  private watchStatusChanged(
+  /**
+   * What the rule makes of the requests of the title changes with it, and
+   * what the user would watch next of it
+   */
+  private async watchStatusChanged(
     em: EntityManager,
     userId: string,
     mediaType: MediaType,
     tmdbId: string,
   ) {
-    return this.requestsService.applyRule(em, { userId, mediaType, tmdbId });
+    await this.requestsService.applyRule(em, { userId, mediaType, tmdbId });
+    await this.titleStateService.stamp(em, { userId, mediaType, tmdbId });
   }
 }
 

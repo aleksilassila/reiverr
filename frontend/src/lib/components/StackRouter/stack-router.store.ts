@@ -10,7 +10,7 @@ import {
 	type ComponentType
 } from 'svelte';
 import { writable, type Readable, type Writable } from 'svelte/store';
-import LibraryPage from '../../pages/LibraryPage/LibraryPage.svelte';
+import MyListPage from '../../pages/MyListPage/MyListPage.svelte';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
@@ -435,9 +435,9 @@ const personRoute: Route = {
 	component: PersonPage
 };
 
-const libraryRoute: Route = {
-	path: '/library',
-	component: LibraryPage,
+const myListRoute: Route = {
+	path: '/my-list',
+	component: MyListPage,
 	root: true
 };
 
@@ -489,7 +489,7 @@ export const stackRouter = useStackRouter({
 		collectionRoute,
 		companyRoute,
 		personRoute,
-		libraryRoute,
+		myListRoute,
 		requestsRoute,
 		searchRoute,
 		settingsRoute,

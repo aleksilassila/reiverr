@@ -11,10 +11,13 @@ type LibraryParams = Omit<
 	'page' | 'itemsPerPage'
 >;
 
-/** The orders the library page sorts both catalogues by; the my list also has 'last-played' */
+/** The orders the catalogues sort by; the my list also sorts by when the user last played */
 export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
+export type MyListOrder = CatalogOrder | 'last-played';
 export type CatalogOrderDirection = 'asc' | 'desc';
 export type CatalogCategory = 'all' | 'series' | 'movies';
+/** Whether what the user would watch next of a title is on disk */
+export type MyListAvailability = 'available' | 'unavailable';
 
 /** The media type a category of the pills asks the catalogue for */
 export const mediaTypeOf = (category: CatalogCategory) =>

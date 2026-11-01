@@ -7,15 +7,21 @@ import type { CardBadge } from './Card';
  * series, in red the hours until the cleanup deletes every file of the title,
  * and the marks the page asks for, since a page that lists only requested
  * titles or only titles on disk has no use for them: that the user requested
- * the title, and that a movie is on disk
+ * the title, that a movie is on disk, and, in place of the count, the next
+ * episode of a series (S2E1), with the film icon when it is on disk
  */
 export function titleBadges(
 	title: CatalogTitleDto,
-	mark: { requested?: boolean; movieOnDisk?: boolean } = {}
+	mark: { requested?: boolean; movieOnDisk?: boolean; nextEpisode?: boolean } = {}
 ): CardBadge[] {
 	const onDisk =
 		title.mediaType === 'series'
-			? title.available > 0 && { label: String(title.available), icon: Video }
+			? mark.nextEpisode && title.nextEpisode
+				? {
+						label: `S${title.nextEpisode.season}E${title.nextEpisode.episode}`,
+						...(title.nextEpisode.onDisk && { icon: Video })
+					}
+				: title.available > 0 && { label: String(title.available), icon: Video }
 			: mark.movieOnDisk && title.available > 0 && { icon: Video };
 
 	return [

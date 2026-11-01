@@ -50,7 +50,7 @@ export const movieQueries = {
 	userData: (tmdbId: string) =>
 		queryOptions({
 			queryKey: movieKeys.userData(tmdbId),
-			queryFn: () => reiverrApi.users.getMovieUserData(tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.userData.getMovieUserData(tmdbId).then((r) => r.data)
 		}),
 	/** The request of the user for the movie, with the rule and the preference it is fulfilled by */
 	requests: (tmdbId: string) =>
@@ -92,12 +92,12 @@ export const movieQueries = {
  * since a save past the end marks the movie watched
  */
 export async function saveMoviePlayState(tmdbId: string, playState: UpdatePlayStateDto) {
-	await reiverrApi.users.updateMoviePlayState(tmdbId, playState);
+	await reiverrApi.userData.updateMoviePlayState(tmdbId, playState);
 	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all, storageKeys.all);
 }
 
 export async function setMovieWatched(tmdbId: string, watched: boolean) {
-	await reiverrApi.users.updateMoviePlayState(tmdbId, { watched });
+	await reiverrApi.userData.updateMoviePlayState(tmdbId, { watched });
 	// The rule of the movie follows the watched state, so its request and the status change with
 	// it, and the usage when the rule deletes the watched request
 	await invalidate(
@@ -110,7 +110,9 @@ export async function setMovieWatched(tmdbId: string, watched: boolean) {
 }
 
 export async function setMovieInMyList(tmdbId: string, inMyList: boolean) {
-	await reiverrApi.myList.setMyListItem(tmdbId, { mediaType: 'movie', inMyList });
+	await (inMyList
+		? reiverrApi.userData.addMovieToMyList(tmdbId)
+		: reiverrApi.userData.removeMovieFromMyList(tmdbId));
 	await invalidate(movieKeys.userData(tmdbId), catalogKeys.all);
 }
 

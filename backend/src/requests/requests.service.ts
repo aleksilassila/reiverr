@@ -19,7 +19,7 @@ import { IndexersService } from '../indexers/indexers.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
-import { PlayState } from '../user-data/play-state/play-state.entity.js';
+import { PlayState } from '../user-data/play-state.entity.js';
 import { User } from '../users/user.entity.js';
 import {
   EpisodeSource,

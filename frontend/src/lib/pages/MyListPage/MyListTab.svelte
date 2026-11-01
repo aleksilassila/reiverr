@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingHeader from '$lib/components/FloatingHeader.svelte';
@@ -11,8 +10,9 @@
 		catalogQueries,
 		mediaTypeOf,
 		type CatalogCategory,
-		type CatalogOrder,
-		type CatalogOrderDirection
+		type CatalogOrderDirection,
+		type MyListAvailability,
+		type MyListOrder
 	} from '$lib/queries/catalog.queries';
 	import { usePageInfiniteQuery } from '$lib/queries/page-query';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
@@ -24,22 +24,31 @@
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 
+	/** The titles of the list with an aired episode left to watch, or with none */
+	export let status: 'unwatched' | 'watched';
+
 	type Category = 'series' | 'movies';
 
 	const CATEGORIES: { label: string; value: Category }[] = [
 		{ label: 'Series', value: 'series' },
 		{ label: 'Movies', value: 'movies' }
 	];
-	const SORTS: { label: string; value: CatalogOrder }[] = [
+	const AVAILABILITIES: { label: string; value: MyListAvailability }[] = [
+		{ label: 'Available', value: 'available' },
+		{ label: 'Unavailable', value: 'unavailable' }
+	];
+	const SORTS: { label: string; value: MyListOrder }[] = [
 		{ label: 'Last Release', value: 'last-release-date' },
 		{ label: 'First Release', value: 'first-release-date' },
+		{ label: 'Last Played', value: 'last-played' },
 		{ label: 'Date Added', value: 'date-added' },
 		{ label: 'Name', value: 'name' }
 	];
 	// The direction a sort starts in: newest, A to Z
-	const NATURAL: Record<CatalogOrder, CatalogOrderDirection> = {
+	const NATURAL: Record<MyListOrder, CatalogOrderDirection> = {
 		'last-release-date': 'desc',
 		'first-release-date': 'desc',
+		'last-played': 'desc',
 		'date-added': 'desc',
 		name: 'asc'
 	};
@@ -49,66 +58,44 @@
 	let didMount = false;
 
 	const category = writable<CatalogCategory>('all');
+	const availability = writable<MyListAvailability | null>(null);
 	const letter = writable<Letter | null>(null);
-	const libraryViewSettings = createLocalStorageStore<{
-		order: CatalogOrder;
+	const viewSettings = createLocalStorageStore<{
+		order: MyListOrder;
 		direction: CatalogOrderDirection;
-		separateWatched: boolean;
-	}>('library-view-settings', {
+	}>(`my-list-${status}-view-settings`, {
 		order: 'last-release-date',
-		direction: 'desc',
-		separateWatched: true
+		direction: 'desc'
 	});
 
-	const filters = derived(
-		[category, letter, libraryViewSettings],
-		([$category, $letter, $libraryViewSettings]) => ({
-			mediaType: mediaTypeOf($category),
-			letter: $letter ?? undefined,
-			order: $libraryViewSettings.order,
-			direction: $libraryViewSettings.direction
-		})
-	);
-
-	const upcoming = usePageInfiniteQuery(
-		derived(letter, ($letter) =>
-			catalogQueries.myList({
-				mediaType: 'series',
-				letter: $letter ?? undefined,
-				order: 'last-played',
-				status: 'continue-watching'
-			})
+	const titles = usePageInfiniteQuery(
+		derived(
+			[category, availability, letter, viewSettings],
+			([$category, $availability, $letter, $viewSettings]) =>
+				catalogQueries.myList({
+					status,
+					mediaType: mediaTypeOf($category),
+					availability: $availability ?? undefined,
+					letter: $letter ?? undefined,
+					order: $viewSettings.order,
+					direction: $viewSettings.direction
+				})
 		)
 	);
-	const unwatched = usePageInfiniteQuery(
-		derived([filters, libraryViewSettings], ([$filters, $libraryViewSettings]) =>
-			catalogQueries.myList({
-				...$filters,
-				...($libraryViewSettings.separateWatched ? { status: 'unwatched' as const } : {})
-			})
-		)
-	);
-	// Without grouping, the watched titles are in the list above
-	const watched = usePageInfiniteQuery(
-		derived([filters, libraryViewSettings], ([$filters, $libraryViewSettings]) => ({
-			...catalogQueries.myList({ ...$filters, status: 'watched' }),
-			enabled: $libraryViewSettings.separateWatched
-		}))
-	);
-	const { loadMore: loadMoreUpcoming } = upcoming;
-	const { loadMore: loadMoreUnwatched } = unwatched;
-	const { loadMore: loadMoreWatched } = watched;
+	const { loadMore } = titles;
 
-	$: upcomingItems = $upcoming.data ?? [];
-	$: unwatchedItems = $unwatched.data ?? [];
-	$: watchedItems = ($libraryViewSettings.separateWatched && $watched.data) || [];
-	$: error = $upcoming.error ?? $unwatched.error ?? $watched.error;
+	$: items = $titles.data ?? [];
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the category that is shown shows both again
 	function filter(selected: Category) {
 		$category = $category === selected ? 'all' : selected;
+	}
+
+	// Selecting the availability that is on turns the filter off
+	function filterAvailability(selected: MyListAvailability) {
+		$availability = $availability === selected ? null : selected;
 	}
 
 	// Selecting the letter that is on turns the filter off
@@ -118,25 +105,18 @@
 	}
 
 	// One sort is always on; selecting it again turns it around
-	function selectSort(order: CatalogOrder) {
-		libraryViewSettings.update((settings) =>
+	function selectSort(order: MyListOrder) {
+		viewSettings.update((settings) =>
 			settings.order === order
 				? { ...settings, direction: settings.direction === 'asc' ? 'desc' : 'asc' }
 				: { ...settings, order, direction: NATURAL[order] }
 		);
 	}
-
-	function toggleSeparateWatched() {
-		libraryViewSettings.update((settings) => ({
-			...settings,
-			separateWatched: !settings.separateWatched
-		}));
-	}
 </script>
 
 <FloatingHeader visible={$topVisible} class="px-32">
-	<h2 class="uppercase text-zinc-300 font-semibold tracking-wider text-base">Library</h2>
-	<TitleText title="My List" size="sm" />
+	<h2 class="uppercase text-zinc-300 font-semibold tracking-wider text-base">My List</h2>
+	<TitleText title={status === 'unwatched' ? 'Unwatched' : 'Watched'} size="sm" />
 </FloatingHeader>
 
 <Container direction="horizontal" class="min-h-full flex" focusOnMount>
@@ -161,16 +141,18 @@
 				</div>
 				<div class="flex-shrink-0">
 					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-						Display
+						On Disk
 					</div>
-					<Container direction="horizontal" class="flex">
-						<Pill
-							selected={$libraryViewSettings.separateWatched}
-							on:clickOrSelect={toggleSeparateWatched}
-							on:enter={scrollIntoView({ horizontal: 64 })}
-						>
-							Group Watched
-						</Pill>
+					<Container direction="horizontal" class="flex space-x-4">
+						{#each AVAILABILITIES as option (option.value)}
+							<Pill
+								selected={$availability === option.value}
+								on:clickOrSelect={() => filterAvailability(option.value)}
+								on:enter={scrollIntoView({ horizontal: 64 })}
+							>
+								{option.label}
+							</Pill>
+						{/each}
 					</Container>
 				</div>
 				<div class="flex-shrink-0">
@@ -180,15 +162,15 @@
 					<Container direction="horizontal" class="flex space-x-4">
 						{#each SORTS as option (option.value)}
 							<Pill
-								selected={$libraryViewSettings.order === option.value}
+								selected={$viewSettings.order === option.value}
 								on:clickOrSelect={() => selectSort(option.value)}
 								on:enter={scrollIntoView({ horizontal: 64 })}
 							>
 								<span class="flex items-center">
 									{option.label}
-									{#if $libraryViewSettings.order === option.value}
+									{#if $viewSettings.order === option.value}
 										<svelte:component
-											this={$libraryViewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
+											this={$viewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
 											size={20}
 											class="ml-2"
 										/>
@@ -201,88 +183,49 @@
 			</Scrollable>
 			<Container
 				focusOnMount={hasFocus || !didMount}
-				on:mount={(e) => {
+				on:mount={() => {
 					didMount = true;
-					// registrar(e);
 				}}
 				focusedChild
 				class="flex-1 flex flex-col"
 			>
-				{#if upcomingItems.length}
-					<div class="mt-6">
-						<Carousel
-							header="Upcoming"
-							scrollClass="px-32"
-							on:enter={scrollIntoView({ bottom: 0 })}
-						>
-							{#each upcomingItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
-								<TmdbCard
-									{index}
-									on:enter={scrollIntoView({ horizontal: 128 })}
-									size="lg"
-									item={item.tmdbItem}
-									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
-								/>
-							{/each}
-							<div use:loadMoreUpcoming />
-						</Carousel>
-					</div>
-				{/if}
-				{#if unwatchedItems.length}
+				{#if items.length}
 					<div class="my-6">
-						{#if $libraryViewSettings.separateWatched}
-							<div class="px-32 mb-6 h3">Unwatched</div>
-						{/if}
 						<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-							{#each unwatchedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
+							{#each items as item, index (`${item.mediaType}-${item.tmdbId}`)}
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
 									progress={item.lastPlayState?.progress || 0}
-									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
+									badges={titleBadges(item, {
+										requested: true,
+										movieOnDisk: true,
+										nextEpisode: true
+									})}
 									on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
 								/>
 							{/each}
 						</CardGrid>
-						<div use:loadMoreUnwatched />
+						<div use:loadMore />
 					</div>
-				{/if}
-				{#if watchedItems.length}
-					<div class="mt-6 px-32">
-						<div class="mb-6 h3">Watched</div>
-						<CardGrid let:columns>
-							{#each watchedItems as item, index (`${item.mediaType}-${item.tmdbId}`)}
-								<TmdbCard
-									{index}
-									item={item.tmdbItem}
-									progress={item.lastPlayState?.progress || 0}
-									badges={titleBadges(item, { requested: true, movieOnDisk: true })}
-									on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
-								/>
-							{/each}
-						</CardGrid>
-						<div use:loadMoreWatched />
-					</div>
-				{/if}
-
-				{#if !upcomingItems.length && !unwatchedItems.length && !watchedItems.length}
-					{#if $upcoming.isLoading || $unwatched.isLoading || $watched.isLoading}
-						<Container class="h-ghost m-auto px-32">Loading...</Container>
-					{:else if error}
-						<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
-							{errorMessage(error)}
-						</Container>
-					{:else}
-						<Container focusOnMount class="h-ghost m-auto px-32">
-							{#if $letter}
-								Nothing in your list under {$letter}.
-							{:else if $category !== 'all'}
-								No {$category} in your list.
-							{:else}
-								Add content to your list to see it here.
-							{/if}
-						</Container>
-					{/if}
+				{:else if $titles.isLoading}
+					<Container class="h-ghost m-auto px-32">Loading...</Container>
+				{:else if $titles.error}
+					<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
+						{errorMessage($titles.error)}
+					</Container>
+				{:else}
+					<Container focusOnMount class="h-ghost m-auto px-32">
+						{#if $letter}
+							Nothing {status} in your list under {$letter}.
+						{:else if $availability}
+							Nothing {status} and {$availability} in your list.
+						{:else if $category !== 'all'}
+							No {status} {$category} in your list.
+						{:else}
+							Nothing {status} in your list.
+						{/if}
+					</Container>
 				{/if}
 			</Container>
 		</div>

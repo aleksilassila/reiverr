@@ -1246,10 +1246,34 @@ export interface MovieUserDataDto {
   playState?: PlayStateDto;
 }
 
+export interface UpdatePlayStateDto {
+  season?: number;
+  episode?: number;
+  /**
+   * Whether the user has watched this media
+   * @default false
+   */
+  watched?: boolean;
+  /**
+   * A number between 0 and 1
+   * @default false
+   * @example 0.5
+   */
+  progress?: number;
+}
+
+export interface SuccessResponseDto {
+  success: boolean;
+}
+
 export interface SeriesUserDataDto {
   tmdbId: string;
   inMyList: boolean;
   playStates: PlayStateDto[];
+}
+
+export interface BulkUpdatePlayStateDto {
+  playStates: UpdatePlayStateDto[];
 }
 
 export interface PaginatedResponseDto {
@@ -1300,10 +1324,6 @@ export interface MovieRequestsDto {
   request?: MediaRequestDto;
   rule: MovieRequestRuleDto;
   preference?: PreferenceDto;
-}
-
-export interface SuccessResponseDto {
-  success: boolean;
 }
 
 export interface SetPreferenceDto {
@@ -1855,6 +1875,18 @@ export interface DeleteLibraryEntriesResultDto {
   failed: FailedLibraryEntryDto[];
 }
 
+export interface NextEpisodeDto {
+  season: number;
+  episode: number;
+  /**
+   * When the episode aired or airs; absent when it has no date yet
+   * @format date-time
+   */
+  airDate?: string;
+  /** Whether a file of the library covers the episode */
+  onDisk: boolean;
+}
+
 export interface CatalogTitleDto {
   mediaType: "movie" | "series";
   tmdbId: string;
@@ -1870,26 +1902,8 @@ export interface CatalogTitleDto {
   cleanupAt?: string;
   /** The play state of the title that the user played last */
   lastPlayState?: PlayStateDto;
-}
-
-export interface UpdatePlayStateDto {
-  season?: number;
-  episode?: number;
-  /**
-   * Whether the user has watched this media
-   * @default false
-   */
-  watched?: boolean;
-  /**
-   * A number between 0 and 1
-   * @default false
-   * @example 0.5
-   */
-  progress?: number;
-}
-
-export interface BulkUpdatePlayStateDto {
-  playStates: UpdatePlayStateDto[];
+  /** The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet */
+  nextEpisode?: NextEpisodeDto;
 }
 
 import type {
@@ -2153,151 +2167,6 @@ export class Api<
         method: "DELETE",
         ...params,
       }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name GetMovieUserData
-     * @request GET:/api/me/user-data/movies/{tmdbId}
-     */
-    getMovieUserData: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<MovieUserDataDto, any>({
-        path: `/api/me/user-data/movies/${tmdbId}`,
-        method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name GetSeriesUserData
-     * @request GET:/api/me/user-data/series/{tmdbId}
-     */
-    getSeriesUserData: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<SeriesUserDataDto, any>({
-        path: `/api/me/user-data/series/${tmdbId}`,
-        method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name GetEpisodeUserData
-     * @request GET:/api/me/user-data/series/{tmdbId}/seasons/{season}/episodes/{episode}
-     */
-    getEpisodeUserData: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<MovieUserDataDto, any>({
-        path: `/api/me/user-data/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
-        method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name UpdateMoviePlayState
-     * @request PUT:/api/me/play-states/movies/{tmdbId}
-     */
-    updateMoviePlayState: (
-      tmdbId: string,
-      data: UpdatePlayStateDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/me/play-states/movies/${tmdbId}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name DeleteMoviePlayState
-     * @request DELETE:/api/me/play-states/movies/{tmdbId}
-     */
-    deleteMoviePlayState: (tmdbId: string, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/api/me/play-states/movies/${tmdbId}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name UpdateEpisodePlayState
-     * @request PUT:/api/me/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
-     */
-    updateEpisodePlayState: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      data: UpdatePlayStateDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/me/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name DeleteEpisodePlayState
-     * @request DELETE:/api/me/play-states/series/{tmdbId}/seasons/{season}/episodes/{episode}
-     */
-    deleteEpisodePlayState: (
-      tmdbId: string,
-      season: number,
-      episode: number,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/me/play-states/series/${tmdbId}/seasons/${season}/episodes/${episode}`,
-        method: "DELETE",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags users
-     * @name UpdateSeriesPlayStates
-     * @request PUT:/api/me/play-states/series/{tmdbId}
-     */
-    updateSeriesPlayStates: (
-      tmdbId: string,
-      data: BulkUpdatePlayStateDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<void, any>({
-        path: `/api/me/play-states/series/${tmdbId}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
   };
   auth = {
     /**
@@ -2359,6 +2228,192 @@ export class Api<
       this.request<void, any>({
         path: `/api/metadata/clear-cache`,
         method: "POST",
+        ...params,
+      }),
+  };
+  userData = {
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name GetMovieUserData
+     * @request GET:/api/me/user-data/movies/{tmdbId}
+     */
+    getMovieUserData: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<MovieUserDataDto, any>({
+        path: `/api/me/user-data/movies/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name UpdateMoviePlayState
+     * @request PUT:/api/me/user-data/movies/{tmdbId}/play-state
+     */
+    updateMoviePlayState: (
+      tmdbId: string,
+      data: UpdatePlayStateDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/me/user-data/movies/${tmdbId}/play-state`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name DeleteMoviePlayState
+     * @request DELETE:/api/me/user-data/movies/{tmdbId}/play-state
+     */
+    deleteMoviePlayState: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/me/user-data/movies/${tmdbId}/play-state`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name AddMovieToMyList
+     * @request PUT:/api/me/user-data/movies/{tmdbId}/my-list
+     */
+    addMovieToMyList: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/movies/${tmdbId}/my-list`,
+        method: "PUT",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name RemoveMovieFromMyList
+     * @request DELETE:/api/me/user-data/movies/{tmdbId}/my-list
+     */
+    removeMovieFromMyList: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/movies/${tmdbId}/my-list`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name GetSeriesUserData
+     * @request GET:/api/me/user-data/series/{tmdbId}
+     */
+    getSeriesUserData: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SeriesUserDataDto, any>({
+        path: `/api/me/user-data/series/${tmdbId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name UpdateSeriesPlayStates
+     * @request PUT:/api/me/user-data/series/{tmdbId}/play-states
+     */
+    updateSeriesPlayStates: (
+      tmdbId: string,
+      data: BulkUpdatePlayStateDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/me/user-data/series/${tmdbId}/play-states`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name UpdateEpisodePlayState
+     * @request PUT:/api/me/user-data/series/{tmdbId}/play-states/seasons/{season}/episodes/{episode}
+     */
+    updateEpisodePlayState: (
+      tmdbId: string,
+      season: number,
+      episode: number,
+      data: UpdatePlayStateDto,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/me/user-data/series/${tmdbId}/play-states/seasons/${season}/episodes/${episode}`,
+        method: "PUT",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name DeleteEpisodePlayState
+     * @request DELETE:/api/me/user-data/series/{tmdbId}/play-states/seasons/{season}/episodes/{episode}
+     */
+    deleteEpisodePlayState: (
+      tmdbId: string,
+      season: number,
+      episode: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/me/user-data/series/${tmdbId}/play-states/seasons/${season}/episodes/${episode}`,
+        method: "DELETE",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name AddSeriesToMyList
+     * @request PUT:/api/me/user-data/series/{tmdbId}/my-list
+     */
+    addSeriesToMyList: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/series/${tmdbId}/my-list`,
+        method: "PUT",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name RemoveSeriesFromMyList
+     * @request DELETE:/api/me/user-data/series/{tmdbId}/my-list
+     */
+    removeSeriesFromMyList: (tmdbId: string, params: RequestParams = {}) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/series/${tmdbId}/my-list`,
+        method: "DELETE",
+        format: "json",
         ...params,
       }),
   };
@@ -3471,7 +3526,9 @@ export class Api<
     getMyList: (
       query?: {
         mediaType?: "movie" | "series";
-        status?: "upcoming" | "unwatched" | "watched" | "continue-watching";
+        status?: "unwatched" | "watched" | "continue-watching";
+        /** Whether what the user would watch next is on disk */
+        availability?: "available" | "unavailable";
         order?:
           | "date-added"
           | "name"
@@ -3539,30 +3596,6 @@ export class Api<
       this.request<void, any>({
         path: `/api/me/events`,
         method: "GET",
-        ...params,
-      }),
-  };
-  myList = {
-    /**
-     * No description
-     *
-     * @tags myList
-     * @name SetMyListItem
-     * @request PUT:/api/me/my-list/{tmdbId}
-     */
-    setMyListItem: (
-      tmdbId: string,
-      query: {
-        inMyList: boolean;
-        mediaType: "movie" | "series";
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/me/my-list/${tmdbId}`,
-        method: "PUT",
-        query: query,
-        format: "json",
         ...params,
       }),
   };

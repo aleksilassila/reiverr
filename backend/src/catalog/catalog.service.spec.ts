@@ -16,13 +16,15 @@ import { TmdbMovieFull, TmdbSeriesFull } from '../metadata/tmdb/tmdb.dto.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
-import { MyListItem } from '../user-data/my-list/my-list-item.entity.js';
-import { PlayState } from '../user-data/play-state/play-state.entity.js';
-import { PlayStatesService } from '../user-data/play-state/play-states.service.js';
+import { PlayState } from '../user-data/play-state.entity.js';
+import { PlayStatesService } from '../user-data/play-states.service.js';
+import { TitleState } from '../user-data/title-state.entity.js';
+import { TitleStateService } from '../user-data/title-state.service.js';
 import { User } from '../users/user.entity.js';
 import {
   LibraryOrder,
   LibraryStatus,
+  MyListAvailability,
   MyListOrder,
   MyListStatus,
 } from './catalog.dto.js';
@@ -32,6 +34,7 @@ describe('CatalogService', () => {
   let orm: MikroORM;
   let catalog: CatalogService;
   let playStates: PlayStatesService;
+  let titleStates: TitleStateService;
   let userId: string;
 
   // Movies and series have separate id ranges on TMDB that overlap
@@ -40,15 +43,32 @@ describe('CatalogService', () => {
     name: 'Series',
     first_air_date: '2020-01-01',
     last_air_date: '2020-01-08',
-    last_episode_to_air: { season_number: 1, episode_number: 2 },
-    seasons: [],
+    seasons: [
+      {
+        season_number: 1,
+        episodes: [
+          { episode_number: 1, air_date: '2020-01-01' },
+          { episode_number: 2, air_date: '2020-01-08' },
+        ],
+      },
+    ],
   } as TmdbSeriesFull;
+  // Its second episode has not aired
   const ANOTHER_SERIES = {
     ...SERIES,
     id: 2,
     name: 'Another',
     first_air_date: '2021-01-01',
-    last_air_date: '2021-01-08',
+    last_air_date: '2021-01-01',
+    seasons: [
+      {
+        season_number: 1,
+        episodes: [
+          { episode_number: 1, air_date: '2021-01-01' },
+          { episode_number: 2, air_date: '2999-01-01' },
+        ],
+      },
+    ],
   } as TmdbSeriesFull;
   const MOVIE = {
     id: 1,
@@ -95,13 +115,10 @@ describe('CatalogService', () => {
     row.episode = episode;
     return insert(row);
   };
-  const listed = (mediaType: MediaType, tmdbId: string) => {
-    const row = new MyListItem();
-    row.userId = userId;
-    row.tmdbId = tmdbId;
-    row.mediaType = mediaType;
-    return insert(row);
-  };
+  const listed = (mediaType: MediaType, tmdbId: string) =>
+    RequestContext.create(orm.em, () =>
+      titleStates.addToMyList(userId, tmdbId, mediaType),
+    );
   const library = (
     options: {
       mediaType?: MediaType;
@@ -130,6 +147,7 @@ describe('CatalogService', () => {
     options: {
       mediaType?: MediaType;
       status?: MyListStatus;
+      availability?: MyListAvailability;
       letter?: Letter;
       order?: MyListOrder;
       direction?: OrderDirection;
@@ -139,6 +157,7 @@ describe('CatalogService', () => {
       catalog.findMyList(userId, {
         mediaType: options.mediaType,
         status: options.status,
+        availability: options.availability,
         letter: options.letter,
         order: options.order ?? MyListOrder.Name,
         direction: options.direction,
@@ -164,24 +183,26 @@ describe('CatalogService', () => {
     await insert(MovieMetadata.from(MOVIE));
     await insert(MovieMetadata.from(ANOTHER_MOVIE));
 
+    const metadata = new MetadataService(
+      orm.em.getRepository(MovieMetadata),
+      orm.em.getRepository(SeriesMetadata),
+      orm.em,
+      undefined,
+    );
+    titleStates = new TitleStateService(
+      orm.em.getRepository(TitleState),
+      orm.em,
+      metadata,
+    );
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
       { applyRule: async () => {} } as unknown as RequestsService,
+      titleStates,
     );
-    catalog = new CatalogService(
-      orm.em,
-      new MetadataService(
-        orm.em.getRepository(MovieMetadata),
-        orm.em.getRepository(SeriesMetadata),
-        orm.em,
-        undefined,
-      ),
-      playStates,
-      {
-        getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
-      } as unknown as LibraryService,
-    );
+    catalog = new CatalogService(orm.em, metadata, playStates, {
+      getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
+    } as unknown as LibraryService);
 
     // The series: a managed file the user's request holds, and a file of two
     // episodes; the movie: an external file; the other series: a managed file
@@ -365,6 +386,83 @@ describe('CatalogService', () => {
         'Another Movie',
         'Movie',
       ]);
+    });
+
+    it('tells the next episode of a series and whether it is on disk', async () => {
+      const next = async () =>
+        (await myList({ mediaType: MediaType.Series })).items[0].nextEpisode;
+
+      expect(await next()).toEqual({
+        season: 1,
+        episode: 1,
+        airDate: '2020-01-01T00:00:00.000Z',
+        onDisk: true,
+      });
+
+      await RequestContext.create(orm.em, () =>
+        playStates.updateOrCreateEpisodePlayState(userId, '1', 1, 1, {
+          watched: true,
+        }),
+      );
+
+      expect(await next()).toMatchObject({
+        season: 1,
+        episode: 2,
+        onDisk: true,
+      });
+      // A movie has none
+      expect(
+        (await myList({ mediaType: MediaType.Movie })).items[0].nextEpisode,
+      ).toBeUndefined();
+    });
+
+    it('keeps a series whose next episode has not aired among the watched', async () => {
+      await listed(MediaType.Series, '2');
+      await RequestContext.create(orm.em, () =>
+        playStates.updateOrCreateEpisodePlayState(userId, '2', 1, 1, {
+          watched: true,
+        }),
+      );
+
+      expect(names(await myList({ status: MyListStatus.Unwatched }))).toEqual([
+        'Another Movie',
+        'Movie',
+        'Series',
+      ]);
+      const { items } = await myList({ status: MyListStatus.Watched });
+      expect(names({ items })).toEqual(['Another']);
+      expect(items[0].nextEpisode).toEqual({
+        season: 1,
+        episode: 2,
+        airDate: '2999-01-01T00:00:00.000Z',
+        onDisk: false,
+      });
+    });
+
+    it('filters by whether what the user would watch next is on disk', async () => {
+      // The next episode of the series and the movie have files; the other movie has none
+      expect(
+        names(await myList({ availability: MyListAvailability.Available })),
+      ).toEqual(['Movie', 'Series']);
+      expect(
+        names(await myList({ availability: MyListAvailability.Unavailable })),
+      ).toEqual(['Another Movie']);
+
+      // With everything watched, anything of the title on disk counts
+      await RequestContext.create(orm.em, () =>
+        playStates.updateOrCreateSeriesPlayStates(userId, '1', [
+          { season: 1, episode: 1, watched: true },
+          { season: 1, episode: 2, watched: true },
+        ]),
+      );
+      expect(
+        names(
+          await myList({
+            status: MyListStatus.Watched,
+            availability: MyListAvailability.Available,
+          }),
+        ),
+      ).toEqual(['Series']);
     });
 
     it('orders by when the user last played, and continues what was played lately', async () => {

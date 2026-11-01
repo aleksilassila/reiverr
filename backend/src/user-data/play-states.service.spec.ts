@@ -1,11 +1,15 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { MediaType } from '../../common/common.dto.js';
-import mikroOrmConfig from '../../mikro-orm.config.js';
-import { User } from '../../users/user.entity.js';
-import { MyListItem } from '../my-list/my-list-item.entity.js';
+import { MediaType } from '../common/common.dto.js';
+import mikroOrmConfig from '../mikro-orm.config.js';
+import { MovieMetadata, SeriesMetadata } from '../metadata/metadata.entity.js';
+import { MetadataService } from '../metadata/metadata.service.js';
+import { TmdbSeriesFull } from '../metadata/tmdb/tmdb.dto.js';
+import { User } from '../users/user.entity.js';
+import { TitleState } from './title-state.entity.js';
+import { TitleStateService } from './title-state.service.js';
 import { PlayState } from './play-state.entity.js';
-import { RequestsService } from '../../requests/requests.service.js';
+import { RequestsService } from '../requests/requests.service.js';
 import { PlayStatesService } from './play-states.service.js';
 
 // Movies and series have separate id ranges on TMDB that overlap
@@ -36,6 +40,16 @@ describe('PlayStatesService', () => {
       orm.em.getRepository(PlayState),
       orm.em,
       requests as unknown as RequestsService,
+      new TitleStateService(
+        orm.em.getRepository(TitleState),
+        orm.em,
+        new MetadataService(
+          orm.em.getRepository(MovieMetadata),
+          orm.em.getRepository(SeriesMetadata),
+          orm.em,
+          undefined,
+        ),
+      ),
     );
   });
 
@@ -72,14 +86,12 @@ describe('PlayStatesService', () => {
     ).toMatchObject({ mediaType: 'episode', progress: 0, watched: true });
   });
 
-  it('marks only the library item of the played title as played', async () => {
-    for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-      const item = new MyListItem();
-      item.userId = userId;
-      item.tmdbId = TMDB_ID;
-      item.mediaType = mediaType;
-      await orm.em.fork().insert(item);
-    }
+  it('marks only the state of the played title as played, creating it', async () => {
+    const series = new TitleState();
+    series.userId = userId;
+    series.tmdbId = TMDB_ID;
+    series.mediaType = MediaType.Series;
+    await orm.em.fork().insert(series);
 
     await request(() =>
       playStates.updateOrCreateMoviePlayState(userId, TMDB_ID, {
@@ -87,11 +99,52 @@ describe('PlayStatesService', () => {
       }),
     );
 
-    const items = await orm.em.fork().find(MyListItem, { userId });
-    const played = items
-      .filter((item) => item.lastPlayedAt)
-      .map((item) => item.mediaType);
+    const states = await orm.em.fork().find(TitleState, { userId });
+    const played = states
+      .filter((state) => state.lastPlayedAt)
+      .map((state) => state.mediaType);
     expect(played).toEqual([MediaType.Movie]);
+    expect(states).toHaveLength(2);
+  });
+
+  it('stamps what the user would watch next of the series when an episode becomes watched', async () => {
+    await orm.em.fork().insert(
+      SeriesMetadata.from({
+        id: 1,
+        seasons: [
+          {
+            season_number: 1,
+            episodes: [
+              { episode_number: 1, air_date: '2020-01-01' },
+              { episode_number: 2, air_date: '2020-01-08' },
+            ],
+          },
+        ],
+      } as TmdbSeriesFull),
+    );
+    const state = () =>
+      orm.em
+        .fork()
+        .findOneOrFail(TitleState, { userId, mediaType: MediaType.Series });
+
+    await request(() =>
+      playStates.updateOrCreateEpisodePlayState(userId, TMDB_ID, 1, 1, {
+        progress: 0.5,
+      }),
+    );
+    expect((await state()).nextSeason).toBeNull();
+
+    await request(() =>
+      playStates.updateOrCreateEpisodePlayState(userId, TMDB_ID, 1, 1, {
+        watched: true,
+      }),
+    );
+    expect(await state()).toMatchObject({ nextSeason: 1, nextEpisode: 2 });
+
+    await request(() =>
+      playStates.deleteEpisodePlayState(userId, TMDB_ID, 1, 1),
+    );
+    expect(await state()).toMatchObject({ nextSeason: 1, nextEpisode: 1 });
   });
 
   it('remembers when an episode became watched', async () => {

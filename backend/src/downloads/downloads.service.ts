@@ -183,11 +183,11 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Makes sure the torrent of a release exists, in the caller's
+   * The torrent of a release, created when missing, in the caller's
    * transaction. The row is there at once, idle; a torrent that failed is
    * given another go.
    */
-  async ensureTorrent(
+  async getOrCreateTorrent(
     em: EntityManager,
     release: TorrentRelease,
   ): Promise<void> {

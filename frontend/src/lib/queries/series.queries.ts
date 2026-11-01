@@ -61,7 +61,7 @@ export const seriesQueries = {
 	userData: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.userData(tmdbId),
-			queryFn: () => reiverrApi.users.getSeriesUserData(tmdbId).then((r) => r.data)
+			queryFn: () => reiverrApi.userData.getSeriesUserData(tmdbId).then((r) => r.data)
 		}),
 	/** The requests of the user for the series, with the rule and the preferences they are fulfilled by */
 	requests: (tmdbId: string) =>
@@ -114,7 +114,7 @@ export async function saveEpisodePlayState(
 	episode: number,
 	playState: UpdatePlayStateDto
 ) {
-	await reiverrApi.users.updateEpisodePlayState(tmdbId, season, episode, playState);
+	await reiverrApi.userData.updateEpisodePlayState(tmdbId, season, episode, playState);
 	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all, storageKeys.all);
 }
 
@@ -137,7 +137,7 @@ export async function setEpisodeWatched(
 	episode: number,
 	watched: boolean
 ) {
-	await reiverrApi.users.updateEpisodePlayState(tmdbId, season, episode, { watched });
+	await reiverrApi.userData.updateEpisodePlayState(tmdbId, season, episode, { watched });
 	await seriesWatchedChanged(tmdbId);
 }
 
@@ -145,12 +145,14 @@ export async function setEpisodesWatched(
 	tmdbId: string,
 	playStates: { season: number; episode: number; watched: boolean }[]
 ) {
-	await reiverrApi.users.updateSeriesPlayStates(tmdbId, { playStates });
+	await reiverrApi.userData.updateSeriesPlayStates(tmdbId, { playStates });
 	await seriesWatchedChanged(tmdbId);
 }
 
 export async function setSeriesInMyList(tmdbId: string, inMyList: boolean) {
-	await reiverrApi.myList.setMyListItem(tmdbId, { mediaType: 'series', inMyList });
+	await (inMyList
+		? reiverrApi.userData.addSeriesToMyList(tmdbId)
+		: reiverrApi.userData.removeSeriesFromMyList(tmdbId));
 	await invalidate(seriesKeys.userData(tmdbId), catalogKeys.all);
 }
 

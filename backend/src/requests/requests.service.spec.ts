@@ -8,7 +8,7 @@ import { EventsService } from '../events/events.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
-import { PlayState } from '../user-data/play-state/play-state.entity.js';
+import { PlayState } from '../user-data/play-state.entity.js';
 import { User } from '../users/user.entity.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';

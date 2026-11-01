@@ -25,6 +25,7 @@ import {
   CatalogTitleDto,
   LibraryOrder,
   LibraryStatus,
+  MyListAvailability,
   MyListOrder,
   MyListStatus,
 } from './catalog.dto.js';
@@ -83,6 +84,12 @@ export class CatalogController {
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   @ApiQuery({ name: 'status', enum: MyListStatus, required: false })
   @ApiQuery({
+    name: 'availability',
+    enum: MyListAvailability,
+    required: false,
+    description: 'Whether what the user would watch next is on disk',
+  })
+  @ApiQuery({
     name: 'letter',
     enum: LETTERS,
     required: false,
@@ -105,6 +112,11 @@ export class CatalogController {
     mediaType?: MediaType,
     @Query('status', new ParseEnumPipe(MyListStatus, { optional: true }))
     status?: MyListStatus,
+    @Query(
+      'availability',
+      new ParseEnumPipe(MyListAvailability, { optional: true }),
+    )
+    availability?: MyListAvailability,
     @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
     letter?: Letter,
     @Query('order', new ParseEnumPipe(MyListOrder, { optional: true }))
@@ -115,6 +127,7 @@ export class CatalogController {
     return this.catalogService.findMyList(user.id, {
       mediaType,
       status,
+      availability,
       letter,
       order: order ?? MyListOrder.DateAdded,
       direction,

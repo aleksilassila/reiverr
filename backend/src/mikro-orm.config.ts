@@ -13,15 +13,15 @@ import { MediaRequest } from './requests/request.entity.js';
 import { SelectedRelease } from './requests/selected-release.entity.js';
 import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
 import { Settings } from './settings/settings.entity.js';
-import { MyListItem } from './user-data/my-list/my-list-item.entity.js';
-import { PlayState } from './user-data/play-state/play-state.entity.js';
+import { TitleState } from './user-data/title-state.entity.js';
+import { PlayState } from './user-data/play-state.entity.js';
 import { User } from './users/user.entity.js';
 
 export default defineConfig({
   dbName: `./config/reiverr${DEV ? '.dev' : ''}.sqlite`,
   entities: [
     Job,
-    MyListItem,
+    TitleState,
     LogEntry,
     MediaFile,
     MediaRequest,
