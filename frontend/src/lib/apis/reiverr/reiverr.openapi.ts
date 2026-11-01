@@ -1624,21 +1624,18 @@ export interface TitleUsageDto {
   mediaType: "movie" | "series";
   tmdbId: string;
   tmdbItem: TmdbItemDto;
+  /** The files of the title in the library */
+  files: number;
+  /** Of the files, the managed ones that no request of anyone holds: what the next cleanup deletes */
+  unretained: number;
+  /** Bytes of every file of the title in the library, held by anyone or by nobody */
+  diskBytes: number;
   /** The requests of the user for the title */
   requests: number;
-  /** Requests that have their file */
-  withFile: number;
-  /** Requests that wait for a download */
-  downloading: number;
-  /** Bytes of the files that the requests hold, each file once */
+  /** Of them, those that have their file */
+  fulfilled: number;
+  /** Bytes of the files that the requests of the user hold, each file once */
   heldBytes: number;
-  /** Bytes that the downloads the requests wait for are expected to take */
-  pendingBytes: number;
-  /**
-   * When a request of the title last got its file; absent while none has one
-   * @format date-time
-   */
-  lastFulfilledAt?: string;
   /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
   rule?: RequestRuleDto;
 }
@@ -1732,6 +1729,10 @@ export interface TorrentWithItemsDto {
   downloadedBytes: number;
   /** Bytes uploaded for that data */
   uploadedBytes: number;
+  /** Bytes of the files the torrent downloads for the items wanted of it; the whole torrent until its file list is known */
+  wantedBytes: number;
+  /** The share of those bytes that is downloaded, from 0 to 1: the files of complete items whole, the rest as the engine has them */
+  progress: number;
   status:
     | "idle"
     | "starting"
@@ -1739,6 +1740,11 @@ export interface TorrentWithItemsDto {
     | "seeding"
     | "stopped"
     | "failed";
+  /**
+   * When the server got the torrent
+   * @format date-time
+   */
+  addedAt: string;
   error?: string;
   peers: number;
   /** Bytes per second */
@@ -1904,6 +1910,34 @@ export interface CatalogTitleDto {
   lastPlayState?: PlayStateDto;
   /** The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet */
   nextEpisode?: NextEpisodeDto;
+}
+
+export interface CatalogDownloadDto {
+  infoHash: string;
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** The name of the torrent */
+  name: string;
+  /** The episodes the torrent downloads, in order; a movie is one at season and episode 0 */
+  episodes: EpisodeRefDto[];
+  /** Starting, or downloading */
+  status:
+    | "idle"
+    | "starting"
+    | "downloading"
+    | "seeding"
+    | "stopped"
+    | "failed";
+  /** Bytes the torrent downloads for the episodes; the whole torrent until its file list is known */
+  size: number;
+  /** The share of them that is downloaded, from 0 to 1 */
+  progress: number;
+  peers: number;
+  /** Bytes per second */
+  downloadSpeed: number;
+  /** Whether a request of the user waits for the torrent */
+  requested: boolean;
 }
 
 import type {
@@ -2941,11 +2975,8 @@ export class Api<
     getUserTitles: (
       query?: {
         mediaType?: "movie" | "series";
-        sort?: "size" | "name" | "fulfilled";
-        /** Without it, the direction natural to the sort */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
+        /** Titles a request of the user has a file of; without it, every title with files */
+        status?: "requested";
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -2975,6 +3006,12 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        /** By what the user's requests hold with the requested status, by every file of the title without */
+        sort?: "size" | "name" | "added";
+        /** Without it, the direction natural to the sort */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3462,15 +3499,6 @@ export class Api<
       query?: {
         mediaType?: "movie" | "series";
         status?: "requested" | "unrequested";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3500,6 +3528,15 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3529,16 +3566,6 @@ export class Api<
         status?: "unwatched" | "watched" | "continue-watching";
         /** Whether what the user would watch next is on disk */
         availability?: "available" | "unavailable";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date"
-          | "last-played";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3568,6 +3595,16 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3578,6 +3615,61 @@ export class Api<
         any
       >({
         path: `/api/catalog/my-list`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags catalog
+     * @name GetDownloads
+     * @request GET:/api/catalog/downloads
+     */
+    getDownloads: (
+      query?: {
+        mediaType?: "movie" | "series";
+        /** Torrents a request of the user waits for; without it, every torrent that is downloading */
+        status?: "requested";
+        /** Titles whose name starts with the letter; '#' for a name that starts with none */
+        letter?:
+          | "#"
+          | "A"
+          | "B"
+          | "C"
+          | "D"
+          | "E"
+          | "F"
+          | "G"
+          | "H"
+          | "I"
+          | "J"
+          | "K"
+          | "L"
+          | "M"
+          | "N"
+          | "O"
+          | "P"
+          | "Q"
+          | "R"
+          | "S"
+          | "T"
+          | "U"
+          | "V"
+          | "W"
+          | "X"
+          | "Y"
+          | "Z";
+        order?: "size" | "name" | "added";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<CatalogDownloadDto[], any>({
+        path: `/api/catalog/downloads`,
         method: "GET",
         query: query,
         format: "json",

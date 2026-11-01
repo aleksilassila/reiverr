@@ -19,6 +19,8 @@ import { User } from './users/user.entity.js';
 
 export default defineConfig({
   dbName: `./config/reiverr${DEV ? '.dev' : ''}.sqlite`,
+  // Every query with its parameters, in development only (the tests run as 'test')
+  debug: DEV ? ['query', 'query-params'] : false,
   entities: [
     Job,
     TitleState,

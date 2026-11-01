@@ -371,6 +371,24 @@ export function fileEpisodes(
 }
 
 /**
+ * The episodes the files of a title cover, each once: a file may hold
+ * several, and an episode may have several versions. The files of a movie
+ * are all season and episode 0, so they count 1.
+ */
+export function countEpisodes(
+  files: Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>[],
+): number {
+  const episodes = new Set<string>();
+  for (const file of files) {
+    for (const episode of fileEpisodes(file)) {
+      episodes.add(`${file.season}:${episode}`);
+    }
+  }
+
+  return episodes.size;
+}
+
+/**
  * Whether a file is of a movie, or of an episode of a series: of its title
  * and season, and the episode is among the file's. A movie and its files
  * are season and episode 0.

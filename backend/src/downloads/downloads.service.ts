@@ -335,6 +335,31 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
+   * The torrents that are downloading, as the engine has them, with their
+   * items: those with an item wanted of them that are starting or
+   * downloading, newest first. What the downloads page polls
+   */
+  async describeDownloads(): Promise<TorrentWithItemsDto[]> {
+    const em = this.em.fork();
+    const wanted = await em.find(
+      TorrentItem,
+      { releasedAt: null },
+      { ...READ, fields: ['torrentHash'] },
+    );
+    const torrents = await em.find(
+      Torrent,
+      { infoHash: { $in: [...new Set(wanted.map((i) => i.torrentHash))] } },
+      { ...READ, orderBy: { createdAt: 'desc' } },
+    );
+
+    return (await this.describe(em, torrents)).filter(
+      (torrent) =>
+        torrent.status === TorrentStatus.Starting ||
+        torrent.status === TorrentStatus.Downloading,
+    );
+  }
+
+  /**
    * The torrents that something of a title is or was wanted from, as the
    * engine has them, with the items of the title: what the title pages poll
    * while a torrent runs
@@ -673,11 +698,37 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     snapshot: TorrentState | undefined,
   ): TorrentDto {
     const error = snapshot ? snapshot.error : torrent.error;
+    const files = torrent.files ?? snapshot?.files;
     const wanted = items.filter(
       (item) => !item.releasedAt && !item.completedAt,
     );
     const isDownloading = wanted.some(
       (item) => item.fileIndex !== null && item.fileIndex !== undefined,
+    );
+    // The files the torrent downloads, each once: those of the items not released, the complete ones whole
+    const notReleased = items.filter((item) => !item.releasedAt);
+    const wantedFiles = new Map(
+      notReleased.flatMap((item) => {
+        const file = fileOf(files, item.fileIndex);
+        return file ? [[file.index, file] as const] : [];
+      }),
+    );
+    const complete = new Set(
+      notReleased
+        .filter((item) => item.completedAt)
+        .map((item) => item.fileIndex),
+    );
+    const wantedBytes = files
+      ? [...wantedFiles.values()].reduce((sum, file) => sum + file.length, 0)
+      : torrent.size;
+    const downloaded = [...wantedFiles.values()].reduce(
+      (sum, file) =>
+        sum +
+        file.length *
+          (complete.has(file.index)
+            ? 1
+            : this.runtime.getFileProgress(torrent.infoHash, file.index)),
+      0,
     );
 
     return {
@@ -687,6 +738,9 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       size: torrent.size,
       downloadedBytes: torrent.downloadedBytes,
       uploadedBytes: torrent.uploadedBytes,
+      wantedBytes,
+      progress: wantedBytes ? downloaded / wantedBytes : 0,
+      addedAt: torrent.createdAt.toISOString(),
       status: error
         ? TorrentStatus.Failed
         : !snapshot

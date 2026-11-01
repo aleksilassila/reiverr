@@ -68,7 +68,7 @@ export function connectEvents(session: Session | undefined) {
 	});
 	events.addEventListener('downloads', (event) => {
 		const title = titleOf(event);
-		queue(keysOf(title).torrents(title.tmdbId));
+		queue(keysOf(title).torrents(title.tmdbId), catalogKeys.downloads());
 	});
 	events.addEventListener('storage', () => queue(storageKeys.all));
 	source = events;

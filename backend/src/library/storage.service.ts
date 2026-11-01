@@ -1,9 +1,9 @@
-import { EntityManager } from '@mikro-orm/sqlite';
+import { EntityManager, sql } from '@mikro-orm/sqlite';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  initialOf,
   Letter,
   MediaType,
-  MediaTypeFull,
   OrderDirection,
   PaginatedResponseDto,
   PaginationDto,
@@ -12,6 +12,7 @@ import { DOWNLOADS_DIR } from '../consts.js';
 import { measureDisk } from './disk.utils.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestsService } from '../requests/requests.service.js';
+import { titleTypeOf } from '../requests/requests.utils.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { UsersService } from '../users/users.service.js';
 import { readLibrarySettings } from './library-settings.js';
@@ -22,6 +23,7 @@ import {
   StorageUsageDto,
   TitleUsageDto,
   TitleUsageSort,
+  TitleUsageStatus,
 } from './library.dto.js';
 import { libraryFolderPaths } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
@@ -95,16 +97,47 @@ function filesOf(bindings: Pick<RequestBinding, 'mediaFileId'>[]): Set<string> {
 /** What bindings take: every file once, and what the downloads are expected to take */
 function usageOf(
   bindings: Pick<RequestBinding, 'pendingBytes' | 'mediaFileId'>[],
-  sizeOf: Map<string, number>,
+  fileOf: Map<string, Pick<MediaFile, 'size'>>,
 ): Usage {
   return {
     heldBytes: [...filesOf(bindings)].reduce(
-      (sum, id) => sum + (sizeOf.get(id) ?? 0),
+      (sum, id) => sum + (fileOf.get(id)?.size ?? 0),
       0,
     ),
     pendingBytes: bindings.reduce((sum, b) => sum + (b.pendingBytes ?? 0), 0),
   };
 }
+
+/** A title with files in the library: how many, how many of them the cleanup deletes, what they take, and when the newest was indexed */
+interface TitleOnDisk {
+  mediaType: MediaType;
+  tmdbId: string;
+  files: number;
+  unretained: number;
+  diskBytes: number;
+  addedAt: number;
+}
+
+/** What a user has of a title: their requests, those with their file, what the files take (as their usage counts it) and when the newest held file was indexed */
+interface TitleHeld {
+  requests: number;
+  fulfilled: number;
+  heldBytes: number;
+  addedAt: number;
+}
+
+const NOTHING_HELD: TitleHeld = {
+  requests: 0,
+  fulfilled: 0,
+  heldBytes: 0,
+  addedAt: 0,
+};
+
+/** A listed title, with what it is sorted by: the user's figures with the requested status, the title's without */
+type TitleRow = Omit<TitleUsageDto, 'tmdbItem' | 'rule'> & {
+  bytes: number;
+  addedAt: number;
+};
 
 /**
  * The capacity side of the library: what the requests of users take, the
@@ -168,7 +201,7 @@ export class StorageService {
       READ,
     );
     const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
-    const sizeOf = await this.findFileSizes(em, bindings);
+    const fileOf = await this.findHeldFiles(em, bindings);
 
     const byUser = new Map<string, RequestBinding[]>();
     for (const request of requests) {
@@ -181,24 +214,25 @@ export class StorageService {
     }
 
     return new Map(
-      [...byUser].map(([userId, of]) => [userId, usageOf(of, sizeOf)]),
+      [...byUser].map(([userId, of]) => [userId, usageOf(of, fileOf)]),
     );
   }
 
-  private async findFileSizes(
+  /** The files the bindings hold, by id: their size, and when they were indexed */
+  private async findHeldFiles(
     em: EntityManager,
     bindings: Pick<RequestBinding, 'mediaFileId'>[],
-  ): Promise<Map<string, number>> {
+  ): Promise<Map<string, Pick<MediaFile, 'size' | 'createdAt'>>> {
     const ids = [...filesOf(bindings)];
     if (!ids.length) return new Map();
 
     const files = await em.find(
       MediaFile,
       { id: { $in: ids } },
-      { ...READ, fields: ['id', 'size'] },
+      { ...READ, fields: ['id', 'size', 'createdAt'] },
     );
 
-    return new Map(files.map((file) => [file.id, file.size]));
+    return new Map(files.map((file) => [file.id, file]));
   }
 
   /** Whether a disk is at the limit of the library settings */
@@ -265,16 +299,20 @@ export class StorageService {
   }
 
   /**
-   * The titles a user has requests for, with what the requests take and
-   * the rule of the title: a page, of one type of title or both, under a
-   * letter or all, by size, by name or by when they last got a file, in
-   * the direction asked for or the one natural to the sort. Counted as
-   * the usage of the user is, so that the titles add up to it
+   * The titles that have files in the library, with what the files take
+   * and what the requests of a user hold of them: a page, of one type of
+   * title or both, every title or those a request of the user has a file
+   * of, under a letter or all, by size, by name or by when the newest file
+   * was indexed, in the direction asked for or the one natural to the sort.
+   * With the requested status the size and the date are of the files the
+   * user's requests hold, counted as the usage of the user is, so that the
+   * titles add up to what it holds; without it, of every file of the title
    */
   async describeUserTitles(
     userId: string,
     options: {
       mediaType?: MediaType;
+      status?: TitleUsageStatus;
       letter?: Letter;
       sort: TitleUsageSort;
       direction?: OrderDirection;
@@ -282,69 +320,34 @@ export class StorageService {
     },
   ): Promise<PaginatedResponseDto<TitleUsageDto>> {
     const em = this.em.fork();
-    const requests = (
-      await this.requestsService.findRequests(em, { userId })
-    ).filter(
-      (request) =>
-        !options.mediaType || titleTypeOf(request) === options.mediaType,
-    );
-    const bindings = requests.length
-      ? await em.find(
-          RequestBinding,
-          { requestId: { $in: requests.map((request) => request.id) } },
-          READ,
-        )
-      : [];
-    const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
-    const sizeOf = await this.findFileSizes(em, bindings);
+    const requested = options.status === TitleUsageStatus.Requested;
+    const onDisk = await this.findTitlesOnDisk(em, options.mediaType);
+    const held = await this.findHeldTitles(em, userId, options.mediaType);
 
-    // A binding is written when it gets its file and left alone while it keeps it
-    type Title = Omit<
-      TitleUsageDto,
-      'tmdbItem' | 'rule' | 'lastFulfilledAt'
-    > & {
-      lastFulfilledAt?: Date;
-    };
-    const titles = new Map<string, Title & { bindings: RequestBinding[] }>();
-    for (const request of requests) {
-      const mediaType = titleTypeOf(request);
-      const key = titleKey(mediaType, request.tmdbId);
-      const title = titles.get(key) ?? {
-        mediaType,
-        tmdbId: request.tmdbId,
-        requests: 0,
-        withFile: 0,
-        downloading: 0,
-        heldBytes: 0,
-        pendingBytes: 0,
-        bindings: [],
-      };
-      const binding = bindingOf.get(request.id);
-      title.requests++;
-      if (binding?.mediaFileId) {
-        title.withFile++;
-        if (
-          !title.lastFulfilledAt ||
-          binding.updatedAt > title.lastFulfilledAt
-        ) {
-          title.lastFulfilledAt = binding.updatedAt;
-        }
-      }
-      if (binding?.torrentItemId) title.downloading++;
-      if (binding) title.bindings.push(binding);
-      titles.set(key, title);
+    const rows: TitleRow[] = [];
+    for (const title of onDisk) {
+      const of =
+        held.get(titleKey(title.mediaType, title.tmdbId)) ?? NOTHING_HELD;
+      if (requested && !of.fulfilled) continue;
+      rows.push({
+        mediaType: title.mediaType,
+        tmdbId: title.tmdbId,
+        files: title.files,
+        unretained: title.unretained,
+        diskBytes: title.diskBytes,
+        requests: of.requests,
+        fulfilled: of.fulfilled,
+        heldBytes: of.heldBytes,
+        bytes: requested ? of.heldBytes : title.diskBytes,
+        addedAt: requested ? of.addedAt : title.addedAt,
+      });
     }
-    const grouped: Title[] = [...titles.values()].map(
-      ({ bindings, ...title }) => ({
-        ...title,
-        ...usageOf(bindings, sizeOf),
-      }),
-    );
+
     // The cached names, for the letter and the name sort; without one a title is '': first by name, under '#'
     const names = new Map<string, string>();
     if (options.letter || options.sort === TitleUsageSort.Name) {
       for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-        const ofType = grouped.filter((row) => row.mediaType === mediaType);
+        const ofType = rows.filter((row) => row.mediaType === mediaType);
         const found = await this.metadataService.findNames(
           em,
           mediaType,
@@ -355,43 +358,31 @@ export class StorageService {
         }
       }
     }
-    const nameOf = (row: Title) =>
+    const nameOf = (row: TitleRow) =>
       names.get(titleKey(row.mediaType, row.tmdbId)) ?? '';
-    const rows = options.letter
-      ? grouped.filter((row) => initialOf(nameOf(row)) === options.letter)
-      : grouped;
-    const takes = (row: Title) => row.heldBytes + row.pendingBytes;
+    const listed = options.letter
+      ? rows.filter((row) => initialOf(nameOf(row)) === options.letter)
+      : rows;
     // The sort's own order, reversed when the other direction is asked for
     const reversed =
       !!options.direction && options.direction !== NATURAL[options.sort];
     const sign = reversed ? -1 : 1;
+    const byId = (a: TitleRow, b: TitleRow) =>
+      a.tmdbId.localeCompare(b.tmdbId) ||
+      a.mediaType.localeCompare(b.mediaType);
 
-    if (options.sort === TitleUsageSort.Fulfilled) {
-      const hasFile = (row: Title) => (row.lastFulfilledAt ? 1 : 0);
-      const fulfilledAt = (row: Title) => row.lastFulfilledAt?.getTime() ?? 0;
-      // Titles without a file go last either way
-      rows.sort(
-        (a, b) =>
-          hasFile(b) - hasFile(a) ||
-          sign * (fulfilledAt(b) - fulfilledAt(a)) ||
-          takes(b) - takes(a) ||
-          a.tmdbId.localeCompare(b.tmdbId),
-      );
+    if (options.sort === TitleUsageSort.Added) {
+      listed.sort((a, b) => sign * (b.addedAt - a.addedAt) || byId(a, b));
     } else if (options.sort === TitleUsageSort.Name) {
-      rows.sort(
-        (a, b) =>
-          sign * nameOf(a).localeCompare(nameOf(b)) ||
-          a.tmdbId.localeCompare(b.tmdbId),
+      listed.sort(
+        (a, b) => sign * nameOf(a).localeCompare(nameOf(b)) || byId(a, b),
       );
     } else {
-      rows.sort(
-        (a, b) =>
-          sign * (takes(b) - takes(a)) || a.tmdbId.localeCompare(b.tmdbId),
-      );
+      listed.sort((a, b) => sign * (b.bytes - a.bytes) || byId(a, b));
     }
 
     const { page, itemsPerPage } = options.pagination;
-    const ofPage = rows.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const ofPage = listed.slice((page - 1) * itemsPerPage, page * itemsPerPage);
     const rules = new Map(
       (await this.requestsService.findRules(em, { userId })).map((rule) => [
         titleKey(rule.mediaType, rule.tmdbId),
@@ -399,17 +390,21 @@ export class StorageService {
       ]),
     );
     const items: TitleUsageDto[] = [];
-    for (const { lastFulfilledAt, ...row } of ofPage) {
+    for (const row of ofPage) {
       const rule = rules.get(titleKey(row.mediaType, row.tmdbId));
       items.push({
-        ...row,
+        mediaType: row.mediaType,
+        tmdbId: row.tmdbId,
         tmdbItem: await this.metadataService.getTmdbItem(
           row.tmdbId,
           row.mediaType,
         ),
-        ...(lastFulfilledAt && {
-          lastFulfilledAt: lastFulfilledAt.toISOString(),
-        }),
+        files: row.files,
+        unretained: row.unretained,
+        diskBytes: row.diskBytes,
+        requests: row.requests,
+        fulfilled: row.fulfilled,
+        heldBytes: row.heldBytes,
         ...(rule && {
           rule: {
             keepNext: rule.keepNext,
@@ -420,29 +415,120 @@ export class StorageService {
       });
     }
 
-    return { items, total: rows.length, page, itemsPerPage };
+    return { items, total: listed.length, page, itemsPerPage };
   }
-}
 
-/** The letter a name is listed under: its first character in upper case, '#' when that is no letter (as the catalogue's letter filter) */
-function initialOf(name: string): Letter {
-  const initial = name.charAt(0).toUpperCase();
-  return /^[A-Z]$/.test(initial) ? (initial as Letter) : '#';
+  /**
+   * Every title with files, of one type or both: how many, how many of
+   * them are managed and held by no request of anyone (what the cleanup
+   * deletes), what they take, and when the newest was indexed
+   */
+  private async findTitlesOnDisk(
+    em: EntityManager,
+    mediaType?: MediaType,
+  ): Promise<TitleOnDisk[]> {
+    const builder = em
+      .createQueryBuilder(MediaFile, 'mf')
+      .select([
+        'mf.mediaType',
+        'mf.tmdbId',
+        sql`count(*) as files`,
+        sql`sum(mf.managed and not exists (
+          select 1 from request_binding b where b.media_file_id = mf.id
+        )) as unretained`,
+        sql`sum(mf.size) as disk_bytes`,
+        sql`max(mf.created_at) as added_at`,
+      ])
+      .groupBy(['mf.mediaType', 'mf.tmdbId']);
+    if (mediaType) builder.andWhere({ mediaType });
+    const rows = await builder.execute<
+      {
+        mediaType: MediaType;
+        tmdbId: string;
+        files: number;
+        unretained: number;
+        disk_bytes: number;
+        added_at: number;
+      }[]
+    >();
+
+    return rows.map((row) => ({
+      mediaType: row.mediaType,
+      tmdbId: row.tmdbId,
+      files: row.files,
+      unretained: row.unretained,
+      diskBytes: row.disk_bytes,
+      addedAt: row.added_at,
+    }));
+  }
+
+  /**
+   * What a user has of each title, by key: their requests, those with
+   * their file, what the files take (as `findUsages` counts them, a file
+   * held by several requests once) and when the newest of them was indexed
+   */
+  private async findHeldTitles(
+    em: EntityManager,
+    userId: string,
+    mediaType?: MediaType,
+  ): Promise<Map<string, TitleHeld>> {
+    const requests = (
+      await this.requestsService.findRequests(em, { userId })
+    ).filter(
+      (request) => !mediaType || titleTypeOf(request.mediaType) === mediaType,
+    );
+    if (!requests.length) return new Map();
+
+    const bindings = await em.find(
+      RequestBinding,
+      { requestId: { $in: requests.map((request) => request.id) } },
+      READ,
+    );
+    const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
+    const fileOf = await this.findHeldFiles(em, bindings);
+
+    const byTitle = new Map<
+      string,
+      { requests: number; bindings: RequestBinding[] }
+    >();
+    for (const request of requests) {
+      const key = titleKey(titleTypeOf(request.mediaType), request.tmdbId);
+      const title = byTitle.get(key) ?? { requests: 0, bindings: [] };
+      title.requests++;
+      const binding = bindingOf.get(request.id);
+      if (binding) title.bindings.push(binding);
+      byTitle.set(key, title);
+    }
+
+    return new Map(
+      [...byTitle].map(([key, { requests, bindings }]) => {
+        const held = [...filesOf(bindings)].flatMap(
+          (id) => fileOf.get(id) ?? [],
+        );
+
+        return [
+          key,
+          {
+            requests,
+            fulfilled: bindings.filter((b) => b.mediaFileId).length,
+            heldBytes: usageOf(bindings, fileOf).heldBytes,
+            addedAt: Math.max(
+              0,
+              ...held.map((file) => file.createdAt.getTime()),
+            ),
+          },
+        ];
+      }),
+    );
+  }
 }
 
 /** The direction each sort of the titles reads in when none is asked for */
 const NATURAL: Record<TitleUsageSort, OrderDirection> = {
   [TitleUsageSort.Size]: OrderDirection.Desc,
   [TitleUsageSort.Name]: OrderDirection.Asc,
-  [TitleUsageSort.Fulfilled]: OrderDirection.Desc,
+  [TitleUsageSort.Added]: OrderDirection.Desc,
 };
-
-/** The title of a request: a movie, or the series of an episode */
-function titleTypeOf(request: { mediaType: MediaTypeFull }): MediaType {
-  return request.mediaType === MediaTypeFull.Movie
-    ? MediaType.Movie
-    : MediaType.Series;
-}
 
 function titleKey(mediaType: MediaType, tmdbId: string): string {
   return `${mediaType}:${tmdbId}`;

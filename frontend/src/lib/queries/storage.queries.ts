@@ -23,7 +23,7 @@ export const storageQueries = {
 			queryKey: storageKeys.user(),
 			queryFn: () => reiverrApi.library.getUserStorage().then((r) => r.data)
 		}),
-	/** The titles the user has requests for, with what they take */
+	/** The titles with files, what they take, and what the requests of the user hold of them */
 	titles: (params: TitlesParams) =>
 		pagedQueryOptions({
 			queryKey: storageKeys.titles(params),

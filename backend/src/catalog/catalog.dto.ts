@@ -1,7 +1,76 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MediaType } from '../common/common.dto.js';
+import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
+import { TorrentStatus } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 import { PlayStateDto } from '../user-data/user-data.dto.js';
+
+/** The sorts of the downloads, as the titles on disk sort on the downloads page */
+export enum DownloadsOrder {
+  /** What the torrent downloads, largest first */
+  Size = 'size',
+  Name = 'name',
+  /** When the torrent was added, newest first */
+  Added = 'added',
+}
+
+/** Which downloads are listed; every one without */
+export enum DownloadsStatus {
+  /** Torrents a request of the user waits for */
+  Requested = 'requested',
+}
+
+/** A torrent that is downloading, as the engine has it, with the title it downloads */
+export class CatalogDownloadDto {
+  @ApiProperty({ type: 'string' })
+  infoHash: string;
+
+  @ApiProperty({ enum: MediaType })
+  mediaType: MediaType;
+
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty({ type: TmdbItemDto })
+  tmdbItem: TmdbItemDto;
+
+  @ApiProperty({ description: 'The name of the torrent' })
+  name: string;
+
+  @ApiProperty({
+    type: [EpisodeRefDto],
+    description:
+      'The episodes the torrent downloads, in order; a movie is one at season and episode 0',
+  })
+  episodes: EpisodeRefDto[];
+
+  @ApiProperty({
+    enum: TorrentStatus,
+    description: 'Starting, or downloading',
+  })
+  status: TorrentStatus;
+
+  @ApiProperty({
+    description:
+      'Bytes the torrent downloads for the episodes; the whole torrent until its file list is known',
+  })
+  size: number;
+
+  @ApiProperty({
+    description: 'The share of them that is downloaded, from 0 to 1',
+  })
+  progress: number;
+
+  @ApiProperty()
+  peers: number;
+
+  @ApiProperty({ description: 'Bytes per second' })
+  downloadSpeed: number;
+
+  @ApiProperty({
+    description: 'Whether a request of the user waits for the torrent',
+  })
+  requested: boolean;
+}
 
 export enum LibraryOrder {
   /** When the newest file of the title was indexed */

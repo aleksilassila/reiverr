@@ -6,6 +6,12 @@ import {
   MediaTypeFull,
   OrderDirection,
 } from '../common/common.dto.js';
+import {
+  TorrentItemStatus,
+  TorrentStatus,
+  TorrentWithItemsDto,
+} from '../downloads/downloads.dto.js';
+import { DownloadsService } from '../downloads/downloads.service.js';
 import { CleanupSchedule } from '../library/library.dto.js';
 import { LibraryService } from '../library/library.service.js';
 import { MediaFile } from '../library/media-file.entity.js';
@@ -22,6 +28,8 @@ import { TitleState } from '../user-data/title-state.entity.js';
 import { TitleStateService } from '../user-data/title-state.service.js';
 import { User } from '../users/user.entity.js';
 import {
+  DownloadsOrder,
+  DownloadsStatus,
   LibraryOrder,
   LibraryStatus,
   MyListAvailability,
@@ -36,6 +44,8 @@ describe('CatalogService', () => {
   let playStates: PlayStatesService;
   let titleStates: TitleStateService;
   let userId: string;
+  /** What the engine is downloading, as the downloads service describes it */
+  let downloads: TorrentWithItemsDto[] = [];
 
   // Movies and series have separate id ranges on TMDB that overlap
   const SERIES = {
@@ -200,9 +210,17 @@ describe('CatalogService', () => {
       { applyRule: async () => {} } as unknown as RequestsService,
       titleStates,
     );
-    catalog = new CatalogService(orm.em, metadata, playStates, {
-      getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
-    } as unknown as LibraryService);
+    catalog = new CatalogService(
+      orm.em,
+      metadata,
+      playStates,
+      {
+        getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
+      } as unknown as LibraryService,
+      {
+        describeDownloads: async () => downloads,
+      } as unknown as DownloadsService,
+    );
 
     // The series: a managed file the user's request holds, and a file of two
     // episodes; the movie: an external file; the other series: a managed file
@@ -494,6 +512,215 @@ describe('CatalogService', () => {
       expect(names(await myList({ letter: 'M' }))).toEqual(['Movie']);
       expect(names(await myList({ letter: '#' }))).toEqual(['12 Angry Men']);
       expect(names(await myList({ letter: 'A' }))).toEqual(['Another Movie']);
+    });
+  });
+
+  describe('the downloads', () => {
+    const torrent = (
+      infoHash: string,
+      name: string,
+      addedAt: string,
+      items: {
+        id: string;
+        mediaType: MediaType;
+        tmdbId: string;
+        season: number;
+        episode: number;
+        released?: boolean;
+      }[],
+      live: Partial<
+        Pick<
+          TorrentWithItemsDto,
+          'status' | 'wantedBytes' | 'progress' | 'peers' | 'downloadSpeed'
+        >
+      > = {},
+    ): TorrentWithItemsDto => ({
+      infoHash,
+      title: name,
+      indexer: 'Fake',
+      size: 0,
+      downloadedBytes: 0,
+      uploadedBytes: 0,
+      wantedBytes: 0,
+      progress: 0,
+      addedAt,
+      status: TorrentStatus.Downloading,
+      peers: 0,
+      downloadSpeed: 0,
+      uploadSpeed: 0,
+      ...live,
+      items: items.map((item) => ({
+        id: item.id,
+        infoHash,
+        mediaType: item.mediaType,
+        tmdbId: item.tmdbId,
+        season: item.season,
+        episode: item.episode,
+        status: item.released
+          ? TorrentItemStatus.Released
+          : TorrentItemStatus.Downloading,
+      })),
+    });
+    const list = (
+      options: {
+        mediaType?: MediaType;
+        status?: DownloadsStatus;
+        letter?: Letter;
+        order?: DownloadsOrder;
+        direction?: OrderDirection;
+      } = {},
+    ) =>
+      RequestContext.create(orm.em, () =>
+        catalog.findDownloads(userId, {
+          mediaType: options.mediaType,
+          status: options.status,
+          letter: options.letter,
+          order: options.order ?? DownloadsOrder.Size,
+          direction: options.direction,
+        }),
+      );
+
+    beforeEach(async () => {
+      // A season pack of the series with a released episode, the movie's torrent not started yet, and one of the other series
+      downloads = [
+        torrent(
+          'pack',
+          'Series.S01.1080p',
+          '2026-02-01T00:00:00.000Z',
+          [
+            {
+              id: 'item-1',
+              mediaType: MediaType.Series,
+              tmdbId: '1',
+              season: 1,
+              episode: 1,
+            },
+            {
+              id: 'item-2',
+              mediaType: MediaType.Series,
+              tmdbId: '1',
+              season: 1,
+              episode: 2,
+            },
+            {
+              id: 'item-3',
+              mediaType: MediaType.Series,
+              tmdbId: '1',
+              season: 1,
+              episode: 3,
+              released: true,
+            },
+          ],
+          { wantedBytes: 1000, progress: 0.5, peers: 3, downloadSpeed: 100 },
+        ),
+        torrent(
+          'movie',
+          'Movie.2020.1080p',
+          '2026-02-03T00:00:00.000Z',
+          [
+            {
+              id: 'item-m',
+              mediaType: MediaType.Movie,
+              tmdbId: '1',
+              season: 0,
+              episode: 0,
+            },
+          ],
+          { status: TorrentStatus.Starting, wantedBytes: 2000 },
+        ),
+        torrent(
+          'another',
+          'Another.S01E01',
+          '2026-02-02T00:00:00.000Z',
+          [
+            {
+              id: 'item-a',
+              mediaType: MediaType.Series,
+              tmdbId: '2',
+              season: 1,
+              episode: 1,
+            },
+          ],
+          { wantedBytes: 500 },
+        ),
+      ];
+      // The user's request for the second episode waits for the pack
+      const { id } = await request('1', MediaTypeFull.Episode, 2);
+      const binding = new RequestBinding();
+      binding.requestId = id;
+      binding.torrentItemId = 'item-2';
+      await insert(binding);
+    });
+
+    afterEach(() => {
+      downloads = [];
+    });
+
+    it('lists every download with its title, its episodes and whether the user waits for it, largest first', async () => {
+      const items = await list();
+
+      expect(names({ items })).toEqual(['Movie', 'Series', 'Another']);
+      expect(items[0]).toMatchObject({
+        infoHash: 'movie',
+        mediaType: MediaType.Movie,
+        tmdbId: '1',
+        name: 'Movie.2020.1080p',
+        episodes: [{ season: 0, episode: 0 }],
+        status: TorrentStatus.Starting,
+        size: 2000,
+        progress: 0,
+        requested: false,
+      });
+      // The released episode is not downloaded
+      expect(items[1]).toMatchObject({
+        infoHash: 'pack',
+        mediaType: MediaType.Series,
+        tmdbId: '1',
+        episodes: [
+          { season: 1, episode: 1 },
+          { season: 1, episode: 2 },
+        ],
+        status: TorrentStatus.Downloading,
+        size: 1000,
+        progress: 0.5,
+        peers: 3,
+        downloadSpeed: 100,
+        requested: true,
+      });
+      expect(items[2].requested).toBe(false);
+    });
+
+    it('lists only the downloads the user waits for with the status', async () => {
+      expect(
+        names({ items: await list({ status: DownloadsStatus.Requested }) }),
+      ).toEqual(['Series']);
+    });
+
+    it('sorts by name and by when the torrent was added, in either direction, and filters by type and letter', async () => {
+      expect(
+        names({ items: await list({ order: DownloadsOrder.Name }) }),
+      ).toEqual(['Another', 'Movie', 'Series']);
+      expect(
+        names({ items: await list({ order: DownloadsOrder.Added }) }),
+      ).toEqual(['Movie', 'Another', 'Series']);
+      expect(
+        names({
+          items: await list({
+            order: DownloadsOrder.Added,
+            direction: OrderDirection.Asc,
+          }),
+        }),
+      ).toEqual(['Series', 'Another', 'Movie']);
+      expect(
+        names({ items: await list({ direction: OrderDirection.Asc }) }),
+      ).toEqual(['Another', 'Series', 'Movie']);
+      expect(
+        names({ items: await list({ mediaType: MediaType.Movie }) }),
+      ).toEqual(['Movie']);
+      expect(names({ items: await list({ letter: 'A' }) })).toEqual([
+        'Another',
+      ]);
+      expect(await list({ letter: 'B' })).toEqual([]);
     });
   });
 });

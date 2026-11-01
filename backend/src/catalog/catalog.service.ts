@@ -1,6 +1,7 @@
 import { EntityManager, sql } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import {
+  initialOf,
   Letter,
   MediaType,
   MediaTypeFull,
@@ -8,8 +9,14 @@ import {
   PaginatedResponseDto,
   PaginationDto,
 } from '../common/common.dto.js';
+import {
+  TorrentItemStatus,
+  TorrentWithItemsDto,
+} from '../downloads/downloads.dto.js';
+import { DownloadsService } from '../downloads/downloads.service.js';
 import { getNextCleanup } from '../library/cleanup.utils.js';
 import { LibraryService } from '../library/library.service.js';
+import { countEpisodes } from '../library/library.utils.js';
 import { MediaFile } from '../library/media-file.entity.js';
 import { RequestBinding } from '../library/request-binding.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
@@ -18,7 +25,10 @@ import { titleTypeOf } from '../requests/requests.utils.js';
 import { PlayStatesService } from '../user-data/play-states.service.js';
 import { TitleState } from '../user-data/title-state.entity.js';
 import {
+  CatalogDownloadDto,
   CatalogTitleDto,
+  DownloadsOrder,
+  DownloadsStatus,
   LibraryOrder,
   LibraryStatus,
   MyListAvailability,
@@ -64,6 +74,7 @@ export class CatalogService {
     private readonly metadataService: MetadataService,
     private readonly playStatesService: PlayStatesService,
     private readonly libraryService: LibraryService,
+    private readonly downloadsService: DownloadsService,
   ) {}
 
   /** The titles that have files in the library */
@@ -204,6 +215,148 @@ export class CatalogService {
       page,
       itemsPerPage,
     };
+  }
+
+  /**
+   * The torrents that are downloading, as the engine has them, each with
+   * the title it downloads: every one, or those a request of the user waits
+   * for; of one type of title or both, under a letter or all; by what they
+   * download, by the name of the title or by when they were added, in the
+   * direction asked for or the one natural to the order. Not paged: there
+   * are a handful at a time
+   */
+  async findDownloads(
+    userId: string,
+    options: {
+      mediaType?: MediaType;
+      status?: DownloadsStatus;
+      letter?: Letter;
+      order: DownloadsOrder;
+      direction?: OrderDirection;
+    },
+  ): Promise<CatalogDownloadDto[]> {
+    const em = this.em.fork();
+    const torrents = await this.downloadsService.describeDownloads();
+    const waitedFor = await this.findWaitedItems(em, userId);
+
+    // A torrent downloads the items of it that are not released, all of one title
+    type Download = Omit<CatalogDownloadDto, 'tmdbItem'> & { addedAt: number };
+    const downloads: Download[] = [];
+    for (const torrent of torrents) {
+      const items = torrent.items.filter(
+        (item) => item.status !== TorrentItemStatus.Released,
+      );
+      const [first] = items;
+      if (!first) continue;
+      if (options.mediaType && first.mediaType !== options.mediaType) continue;
+      const requested = items.some((item) => waitedFor.has(item.id));
+      if (options.status === DownloadsStatus.Requested && !requested) continue;
+      downloads.push({
+        infoHash: torrent.infoHash,
+        mediaType: first.mediaType,
+        tmdbId: first.tmdbId,
+        name: torrent.title,
+        episodes: items.map(({ season, episode }) => ({ season, episode })),
+        status: torrent.status,
+        size: torrent.wantedBytes,
+        progress: torrent.progress,
+        peers: torrent.peers,
+        downloadSpeed: torrent.downloadSpeed,
+        requested,
+        addedAt: Date.parse(torrent.addedAt),
+      });
+    }
+
+    // The cached names, for the letter and the name order; without one a title is '': first by name, under '#'
+    const names = new Map<string, string>();
+    if (options.letter || options.order === DownloadsOrder.Name) {
+      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
+        const found = await this.metadataService.findNames(
+          em,
+          mediaType,
+          downloads
+            .filter((download) => download.mediaType === mediaType)
+            .map((download) => download.tmdbId),
+        );
+        for (const [tmdbId, name] of found) {
+          names.set(titleKey({ mediaType, tmdbId }), name);
+        }
+      }
+    }
+    const nameOf = (download: Download) => names.get(titleKey(download)) ?? '';
+    const listed = options.letter
+      ? downloads.filter(
+          (download) => initialOf(nameOf(download)) === options.letter,
+        )
+      : downloads;
+    const natural = {
+      [DownloadsOrder.Size]: OrderDirection.Desc,
+      [DownloadsOrder.Name]: OrderDirection.Asc,
+      [DownloadsOrder.Added]: OrderDirection.Desc,
+    }[options.order];
+    // The order's own direction, reversed when the other is asked for
+    const sign = options.direction && options.direction !== natural ? -1 : 1;
+    const byHash = (a: Download, b: Download) =>
+      a.infoHash.localeCompare(b.infoHash);
+    if (options.order === DownloadsOrder.Name) {
+      listed.sort(
+        (a, b) =>
+          sign *
+            (nameOf(a).localeCompare(nameOf(b)) ||
+              a.name.localeCompare(b.name)) || byHash(a, b),
+      );
+    } else if (options.order === DownloadsOrder.Added) {
+      listed.sort((a, b) => sign * (b.addedAt - a.addedAt) || byHash(a, b));
+    } else {
+      listed.sort((a, b) => sign * (b.size - a.size) || byHash(a, b));
+    }
+
+    const items: CatalogDownloadDto[] = [];
+    for (const download of listed) {
+      items.push({
+        infoHash: download.infoHash,
+        mediaType: download.mediaType,
+        tmdbId: download.tmdbId,
+        tmdbItem: await this.metadataService.getTmdbItem(
+          download.tmdbId,
+          download.mediaType,
+        ),
+        name: download.name,
+        episodes: download.episodes,
+        status: download.status,
+        size: download.size,
+        progress: download.progress,
+        peers: download.peers,
+        downloadSpeed: download.downloadSpeed,
+        requested: download.requested,
+      });
+    }
+
+    return items;
+  }
+
+  /** The ids of the items that the requests of the user wait for */
+  private async findWaitedItems(
+    em: EntityManager,
+    userId: string,
+  ): Promise<Set<string>> {
+    const requests = await em.find(
+      MediaRequest,
+      { userId },
+      { ...READ, fields: ['id'] },
+    );
+    if (!requests.length) return new Set();
+
+    const bindings = await em.find(
+      RequestBinding,
+      {
+        requestId: { $in: requests.map((request) => request.id) },
+        torrentItemId: { $ne: null },
+      },
+      { ...READ, fields: ['torrentItemId'] },
+    );
+
+    return new Set(bindings.flatMap((binding) => binding.torrentItemId ?? []));
   }
 
   /** The titles as the pages show them, in the order given */
@@ -382,18 +535,6 @@ type TitleFile = Pick<
   MediaFile,
   'id' | 'season' | 'episode' | 'lastEpisode' | 'managed'
 > & { held: boolean };
-
-/** The episodes the files cover, each once; a file may hold several */
-function countEpisodes(files: TitleFile[]): number {
-  const episodes = new Set<string>();
-  for (const file of files) {
-    for (let episode = file.episode; episode <= file.lastEpisode; episode++) {
-      episodes.add(`${file.season}:${episode}`);
-    }
-  }
-
-  return episodes.size;
-}
 
 /** The titles whose name (from mm, sm) starts with the letter; '#' is those that start with none */
 function letterFilter(letter: Letter) {

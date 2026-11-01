@@ -380,15 +380,26 @@ export class StorageDto {
   users: UserStorageDto[];
 }
 
-export enum TitleUsageSort {
-  /** What the requests of the title take, largest first */
-  Size = 'size',
-  Name = 'name',
-  /** When a request of the title last got its file, newest first; titles without a file last */
-  Fulfilled = 'fulfilled',
+/** Which of the titles with files are listed; every one without */
+export enum TitleUsageStatus {
+  /** Titles a request of the user has a file of */
+  Requested = 'requested',
 }
 
-/** A title a user has requests for, and what they take */
+/**
+ * The sorts of the titles with files. The size and the date are of what the
+ * user's requests hold with the requested status, of every file of the
+ * title without
+ */
+export enum TitleUsageSort {
+  /** Largest first */
+  Size = 'size',
+  Name = 'name',
+  /** When the newest file was indexed, newest first */
+  Added = 'added',
+}
+
+/** A title with files in the library, what they take, and what the requests of a user hold of them */
 export class TitleUsageDto {
   @ApiProperty({ enum: MediaType })
   mediaType: MediaType;
@@ -399,34 +410,32 @@ export class TitleUsageDto {
   @ApiProperty({ type: TmdbItemDto })
   tmdbItem: TmdbItemDto;
 
+  @ApiProperty({ description: 'The files of the title in the library' })
+  files: number;
+
+  @ApiProperty({
+    description:
+      'Of the files, the managed ones that no request of anyone holds: what the next cleanup deletes',
+  })
+  unretained: number;
+
+  @ApiProperty({
+    description:
+      'Bytes of every file of the title in the library, held by anyone or by nobody',
+  })
+  diskBytes: number;
+
   @ApiProperty({ description: 'The requests of the user for the title' })
   requests: number;
 
-  @ApiProperty({ description: 'Requests that have their file' })
-  withFile: number;
-
-  @ApiProperty({ description: 'Requests that wait for a download' })
-  downloading: number;
+  @ApiProperty({ description: 'Of them, those that have their file' })
+  fulfilled: number;
 
   @ApiProperty({
-    description: 'Bytes of the files that the requests hold, each file once',
+    description:
+      'Bytes of the files that the requests of the user hold, each file once',
   })
   heldBytes: number;
-
-  @ApiProperty({
-    description:
-      'Bytes that the downloads the requests wait for are expected to take',
-  })
-  pendingBytes: number;
-
-  @ApiProperty({
-    type: 'string',
-    format: 'date-time',
-    required: false,
-    description:
-      'When a request of the title last got its file; absent while none has one',
-  })
-  lastFulfilledAt?: string;
 
   @ApiProperty({
     type: RequestRuleDto,

@@ -50,8 +50,29 @@ export class TorrentDto {
   @ApiProperty({ type: 'number', description: 'Bytes uploaded for that data' })
   uploadedBytes: number;
 
+  @ApiProperty({
+    type: 'number',
+    description:
+      'Bytes of the files the torrent downloads for the items wanted of it; the whole torrent until its file list is known',
+  })
+  wantedBytes: number;
+
+  @ApiProperty({
+    type: 'number',
+    description:
+      'The share of those bytes that is downloaded, from 0 to 1: the files of complete items whole, the rest as the engine has them',
+  })
+  progress: number;
+
   @ApiProperty({ enum: TorrentStatus })
   status: TorrentStatus;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    description: 'When the server got the torrent',
+  })
+  addedAt: string;
 
   @ApiProperty({ required: false })
   error?: string;

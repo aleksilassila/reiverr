@@ -22,7 +22,11 @@ import { RequestsService } from '../requests/requests.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { CleanupSchedule, TitleUsageSort } from './library.dto.js';
+import {
+  CleanupSchedule,
+  TitleUsageSort,
+  TitleUsageStatus,
+} from './library.dto.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
@@ -153,21 +157,31 @@ describe('describeUserTitles', () => {
     row.episode = episode;
     return insert(row);
   };
-  const file = (mediaType: MediaType, tmdbId: string, size: number) => {
+  /** A file indexed on the day, of the episodes of season 1, or of a movie; external unless managed */
+  const file = (
+    mediaType: MediaType,
+    tmdbId: string,
+    size: number,
+    createdAt: string,
+    episodes: [number, number] = [0, 0],
+    managed = false,
+  ) => {
     const row = new MediaFile();
     row.path = `/tv/${mediaType}-${tmdbId}-${size}.mkv`;
     row.mediaType = mediaType;
     row.tmdbId = tmdbId;
+    row.season = episodes[0] ? 1 : 0;
+    row.episode = episodes[0];
+    row.lastEpisode = episodes[1];
     row.size = size;
     row.modifiedAt = new Date();
+    row.createdAt = new Date(createdAt);
+    row.managed = managed;
     return insert(row);
   };
   const bind = (
     requestId: string,
-    to: Pick<
-      RequestBinding,
-      'mediaFileId' | 'torrentItemId' | 'pendingBytes' | 'updatedAt'
-    >,
+    to: Pick<RequestBinding, 'mediaFileId' | 'torrentItemId' | 'pendingBytes'>,
   ) => {
     const row = new RequestBinding();
     row.requestId = requestId;
@@ -177,6 +191,7 @@ describe('describeUserTitles', () => {
   const titles = (
     options: {
       mediaType?: MediaType;
+      status?: TitleUsageStatus;
       letter?: Letter;
       sort?: TitleUsageSort;
       direction?: OrderDirection;
@@ -187,6 +202,7 @@ describe('describeUserTitles', () => {
     RequestContext.create(orm.em, () =>
       storage.describeUserTitles(userId, {
         mediaType: options.mediaType,
+        status: options.status,
         letter: options.letter,
         sort: options.sort ?? TitleUsageSort.Size,
         direction: options.direction,
@@ -196,6 +212,9 @@ describe('describeUserTitles', () => {
         },
       }),
     );
+  const names = (result: {
+    items: { tmdbItem: { name?: string; title?: string } }[];
+  }) => result.items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title);
 
   beforeEach(async () => {
     orm = await MikroORM.init({ ...mikroOrmConfig, dbName: ':memory:' });
@@ -230,92 +249,108 @@ describe('describeUserTitles', () => {
       ),
     );
 
-    // The series: two requests hold one file, one waits for a download
-    const shared = await file(MediaType.Series, '1', 100);
-    for (const [episode, day] of [
-      [1, 1],
-      [2, 3],
-    ]) {
+    // The series: two requests hold one file of two episodes, a third waits
+    // for a download, and a managed second version of the second episode is
+    // held by nobody, so the cleanup deletes it
+    const shared = await file(MediaType.Series, '1', 100, '2026-01-01', [1, 2]);
+    for (const episode of [1, 2]) {
       const { id } = await request('1', MediaTypeFull.Episode, episode);
-      await bind(id, {
-        mediaFileId: shared.id,
-        updatedAt: new Date(`2026-01-0${day}T00:00:00Z`),
-      });
+      await bind(id, { mediaFileId: shared.id });
     }
     const { id: third } = await request('1', MediaTypeFull.Episode, 3);
     await bind(third, { torrentItemId: 'item', pendingBytes: 50 });
+    await file(MediaType.Series, '1', 200, '2026-01-05', [2, 2], true);
     const rule = new RequestRule();
     rule.userId = userId;
     rule.tmdbId = '1';
     rule.keepNext = 2;
     await insert(rule);
 
-    // The other series: a request bound to nothing
-    await request('2', MediaTypeFull.Episode, 1);
+    // The other series: a file, and no request of the user
+    await file(MediaType.Series, '2', 50, '2026-01-04', [1, 1]);
 
-    // The movie: its file
+    // The movie: its file, held by the request
     const { id: movie } = await request('1', MediaTypeFull.Movie);
     await bind(movie, {
-      mediaFileId: (await file(MediaType.Movie, '1', 120)).id,
-      updatedAt: new Date('2026-01-02T00:00:00Z'),
+      mediaFileId: (await file(MediaType.Movie, '1', 120, '2026-01-02')).id,
     });
-  });
-
-  it('sorts by when a request of the title last got its file, titles without one last', async () => {
-    const { items } = await titles({ sort: TitleUsageSort.Fulfilled });
-
-    expect(
-      items.map((item) => [
-        item.tmdbItem.name ?? item.tmdbItem.title,
-        item.lastFulfilledAt,
-      ]),
-    ).toEqual([
-      ['Series', '2026-01-03T00:00:00.000Z'],
-      ['Movie', '2026-01-02T00:00:00.000Z'],
-      ['Another', undefined],
-    ]);
   });
 
   afterEach(() => orm.close());
 
-  it('counts what the requests of each title take, as the usage of the user does, largest first', async () => {
-    const { items, total } = await titles();
+  it('lists the titles a request of the user has a file of by what they hold, largest first', async () => {
+    const result = await titles({ status: TitleUsageStatus.Requested });
 
-    expect(total).toBe(3);
-    expect(
-      items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title),
-    ).toEqual(['Series', 'Movie', 'Another']);
-    expect(items[0]).toMatchObject({
+    expect(result.total).toBe(2);
+    expect(names(result)).toEqual(['Movie', 'Series']);
+    expect(result.items[0]).toMatchObject({
+      mediaType: MediaType.Movie,
+      tmdbId: '1',
+      files: 1,
+      unretained: 0,
+      diskBytes: 120,
+      requests: 1,
+      fulfilled: 1,
+      heldBytes: 120,
+    });
+    expect(result.items[0].rule).toBeUndefined();
+    // The file two requests hold counts once, as the usage of the user does; the version nobody holds is on disk only
+    expect(result.items[1]).toMatchObject({
       mediaType: MediaType.Series,
       tmdbId: '1',
+      files: 2,
+      unretained: 1,
+      diskBytes: 300,
       requests: 3,
-      withFile: 2,
-      downloading: 1,
+      fulfilled: 2,
       heldBytes: 100,
-      pendingBytes: 50,
       rule: { keepNext: 2, keepWatched: null, keepWatchedHours: null },
     });
-    expect(items[1]).toMatchObject({
-      mediaType: MediaType.Movie,
-      requests: 1,
-      withFile: 1,
-      heldBytes: 120,
-      pendingBytes: 0,
+  });
+
+  it('lists every title with files by what they take on disk without the status', async () => {
+    const result = await titles();
+
+    expect(result.total).toBe(3);
+    expect(names(result)).toEqual(['Series', 'Movie', 'Another']);
+    expect(result.items[2]).toMatchObject({
+      tmdbId: '2',
+      files: 1,
+      unretained: 0,
+      diskBytes: 50,
+      requests: 0,
+      fulfilled: 0,
+      heldBytes: 0,
     });
-    expect(items[1].rule).toBeUndefined();
-    expect(items[2]).toMatchObject({ tmdbId: '2', requests: 1, heldBytes: 0 });
-    expect(items[2].rule).toBeUndefined();
+    expect(result.items[2].rule).toBeUndefined();
+  });
+
+  it('sorts by when the newest file was indexed: of those the user holds with the status, of all without', async () => {
+    expect(
+      names(
+        await titles({
+          status: TitleUsageStatus.Requested,
+          sort: TitleUsageSort.Added,
+        }),
+      ),
+    ).toEqual(['Movie', 'Series']);
+    expect(names(await titles({ sort: TitleUsageSort.Added }))).toEqual([
+      'Series',
+      'Another',
+      'Movie',
+    ]);
   });
 
   it('sorts by name, filters by the type of title, and pages', async () => {
-    const byName = await titles({ sort: TitleUsageSort.Name });
-    expect(
-      byName.items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title),
-    ).toEqual(['Another', 'Movie', 'Series']);
+    expect(names(await titles({ sort: TitleUsageSort.Name }))).toEqual([
+      'Another',
+      'Movie',
+      'Series',
+    ]);
 
     const movies = await titles({ mediaType: MediaType.Movie });
     expect(movies.total).toBe(1);
-    expect(movies.items.map((item) => item.tmdbItem.title)).toEqual(['Movie']);
+    expect(names(movies)).toEqual(['Movie']);
 
     const page = await titles({ page: 2, itemsPerPage: 2 });
     expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
@@ -326,26 +361,24 @@ describe('describeUserTitles', () => {
     await insert(
       SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
     );
-    await request('3', MediaTypeFull.Episode, 1);
-    const names = (result: {
-      items: { tmdbItem: { name?: string; title?: string } }[];
-    }) => result.items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title);
+    const { id } = await request('3', MediaTypeFull.Episode, 1);
+    await bind(id, {
+      mediaFileId: (await file(MediaType.Series, '3', 10, '2026-01-03', [1, 1]))
+        .id,
+    });
 
     const under = await titles({ letter: 'A' });
     expect(names(under)).toEqual(['Another']);
     expect(under.total).toBe(1);
+    expect(
+      (await titles({ letter: 'A', status: TitleUsageStatus.Requested })).total,
+    ).toBe(0);
     expect(names(await titles({ letter: 'S' }))).toEqual(['Series']);
     expect(names(await titles({ letter: '#' }))).toEqual(['24']);
     expect((await titles({ letter: 'B' })).total).toBe(0);
   });
 
-  it('reads each sort in the other direction when asked, titles without a file still last', async () => {
-    const names = ({
-      items,
-    }: {
-      items: { tmdbItem: { name?: string; title?: string } }[];
-    }) => items.map((item) => item.tmdbItem.name ?? item.tmdbItem.title);
-
+  it('reads each sort in the other direction when asked', async () => {
     expect(names(await titles({ direction: OrderDirection.Asc }))).toEqual([
       'Another',
       'Movie',
@@ -367,10 +400,10 @@ describe('describeUserTitles', () => {
     expect(
       names(
         await titles({
-          sort: TitleUsageSort.Fulfilled,
+          sort: TitleUsageSort.Added,
           direction: OrderDirection.Asc,
         }),
       ),
-    ).toEqual(['Movie', 'Series', 'Another']);
+    ).toEqual(['Movie', 'Another', 'Series']);
   });
 });

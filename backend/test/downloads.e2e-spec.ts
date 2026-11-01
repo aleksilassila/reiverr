@@ -953,7 +953,7 @@ describe('Series downloads (e2e)', () => {
     const setPlayState = (season: number, episode: number, playState: object) =>
       api(
         'put',
-        `/me/play-states/series/${TMDB_ID}/seasons/${season}/episodes/${episode}`,
+        `/me/user-data/series/${TMDB_ID}/play-states/seasons/${season}/episodes/${episode}`,
       )
         .send(playState)
         .expect(200);
@@ -1600,7 +1600,7 @@ describe('Series downloads (e2e)', () => {
     expect((await api('get', moviePath).expect(200)).body.rule).toEqual({
       keepWatchedHours: 1,
     });
-    await api('put', `/me/play-states/movies/${MOVIE_ID}`)
+    await api('put', `/me/user-data/movies/${MOVIE_ID}/play-state`)
       .send({ watched: true })
       .expect(200);
     await settle();

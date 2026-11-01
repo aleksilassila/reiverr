@@ -122,3 +122,9 @@ export const LETTERS = [
   'Z',
 ] as const;
 export type Letter = (typeof LETTERS)[number];
+
+/** The letter a name is listed under: its first character in upper case, '#' when that is no letter (as the catalogue's SQL filter) */
+export function initialOf(name: string): Letter {
+  const initial = name.charAt(0).toUpperCase();
+  return /^[A-Z]$/.test(initial) ? (initial as Letter) : '#';
+}

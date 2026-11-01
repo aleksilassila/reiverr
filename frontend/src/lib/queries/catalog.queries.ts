@@ -1,6 +1,7 @@
 import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
 import { pagedQueryOptions } from './query-client';
+import { LIVE_REFRESH_INTERVAL } from './request-status';
 
 type MyListParams = Omit<
 	NonNullable<Parameters<typeof reiverrApi.catalog.getMyList>[0]>,
@@ -10,6 +11,7 @@ type LibraryParams = Omit<
 	NonNullable<Parameters<typeof reiverrApi.catalog.getLibrary>[0]>,
 	'page' | 'itemsPerPage'
 >;
+type DownloadsParams = NonNullable<Parameters<typeof reiverrApi.catalog.getDownloads>[0]>;
 
 /** The orders the catalogues sort by; the my list also sorts by when the user last played */
 export type CatalogOrder = 'date-added' | 'name' | 'first-release-date' | 'last-release-date';
@@ -23,14 +25,17 @@ export type MyListAvailability = 'available' | 'unavailable';
 export const mediaTypeOf = (category: CatalogCategory) =>
 	category === 'all' ? undefined : category === 'movies' ? ('movie' as const) : ('series' as const);
 
-/** The lists of titles of the catalog module of the backend: my list and the library */
+/** The lists of the catalog module of the backend: my list, the library and the downloads */
 export const catalogKeys = {
 	/** Every list: what the mutations of a title invalidate */
 	all: ['catalog'] as const,
 	myList: (params: MyListParams) => ['catalog', 'my-list', params] as const,
 	continueWatching: (mediaType: 'movie' | 'series') =>
 		['catalog', 'my-list', 'continue-watching', mediaType] as const,
-	library: (params: LibraryParams) => ['catalog', 'library', params] as const
+	library: (params: LibraryParams) => ['catalog', 'library', params] as const,
+	/** Every list of the downloads: what a change of a torrent invalidates */
+	downloads: () => ['catalog', 'downloads'] as const,
+	downloadsList: (params: DownloadsParams) => ['catalog', 'downloads', params] as const
 };
 
 export const catalogQueries = {
@@ -60,5 +65,12 @@ export const catalogQueries = {
 			queryKey: catalogKeys.library(params),
 			queryFn: (page) =>
 				reiverrApi.catalog.getLibrary({ ...params, page }).then((r) => r.data.items)
+		}),
+	/** The torrents that are downloading, live: polled while there are any, told by the server otherwise */
+	downloads: (params: DownloadsParams) =>
+		queryOptions({
+			queryKey: catalogKeys.downloadsList(params),
+			queryFn: () => reiverrApi.catalog.getDownloads(params).then((r) => r.data),
+			refetchInterval: (query) => (query.state.data?.length ? LIVE_REFRESH_INTERVAL : false)
 		})
 };

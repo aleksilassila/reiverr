@@ -25,6 +25,7 @@ import {
   StorageUsageDto,
   TitleUsageDto,
   TitleUsageSort,
+  TitleUsageStatus,
 } from './library.dto.js';
 import { StorageService } from './storage.service.js';
 
@@ -47,13 +48,26 @@ export class UserStorageController {
   @Get('titles')
   @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
   @ApiQuery({
+    name: 'status',
+    enum: TitleUsageStatus,
+    required: false,
+    description:
+      'Titles a request of the user has a file of; without it, every title with files',
+  })
+  @ApiQuery({
     name: 'letter',
     enum: LETTERS,
     required: false,
     description:
       "Titles whose name starts with the letter; '#' for a name that starts with none",
   })
-  @ApiQuery({ name: 'sort', enum: TitleUsageSort, required: false })
+  @ApiQuery({
+    name: 'sort',
+    enum: TitleUsageSort,
+    required: false,
+    description:
+      "By what the user's requests hold with the requested status, by every file of the title without",
+  })
   @ApiQuery({
     name: 'direction',
     enum: OrderDirection,
@@ -67,6 +81,8 @@ export class UserStorageController {
     @GetPaginationParams() pagination: PaginationDto,
     @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
     mediaType?: MediaType,
+    @Query('status', new ParseEnumPipe(TitleUsageStatus, { optional: true }))
+    status?: TitleUsageStatus,
     @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
     letter?: Letter,
     @Query('sort', new ParseEnumPipe(TitleUsageSort, { optional: true }))
@@ -76,6 +92,7 @@ export class UserStorageController {
   ): Promise<PaginatedResponseDto<TitleUsageDto>> {
     return this.storageService.describeUserTitles(user.id, {
       mediaType,
+      status,
       letter,
       sort: sort ?? TitleUsageSort.Size,
       direction,

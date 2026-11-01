@@ -28,7 +28,7 @@
 		Series: 1,
 		Movies: 2,
 		MyList: 3,
-		Requests: 4,
+		Downloads: 4,
 		Search: 5,
 		Server: $user?.isAdmin ? 6 : -1,
 		Settings: $user?.isAdmin ? 7 : 6
@@ -65,7 +65,7 @@
 				[Tabs.Series]: '/',
 				[Tabs.Movies]: '/movies',
 				[Tabs.MyList]: '/my-list',
-				[Tabs.Requests]: '/requests',
+				[Tabs.Downloads]: '/downloads',
 				[Tabs.Search]: '/search',
 				[Tabs.Server]: '/server',
 				[Tabs.Settings]: '/settings'
@@ -89,7 +89,7 @@
 					'/series': Tabs.Series,
 					'/movies': Tabs.Movies,
 					'/my-list': Tabs.MyList,
-					'/requests': Tabs.Requests,
+					'/downloads': Tabs.Downloads,
 					'/search': Tabs.Search,
 					'/server': Tabs.Server,
 					'/settings': Tabs.Settings
@@ -275,19 +275,19 @@
 		</Container>
 		<Container
 			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Requests)}
+			on:clickOrSelect={selectIndex(Tabs.Downloads)}
 			let:hasFocus
 		>
 			<div
 				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Requests),
+					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Downloads),
 					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Requests)
+						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Downloads)
 				})}
 			>
 				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
 					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Requests })}
+						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Downloads })}
 						size={19}
 					/>
 				</div>
@@ -301,7 +301,7 @@
 						}
 					)}
 				>
-					Requests
+					Downloads
 				</span>
 			</div>
 		</Container>

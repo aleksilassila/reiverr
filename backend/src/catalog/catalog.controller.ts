@@ -5,7 +5,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
 import {
   GetPaginationParams,
@@ -22,7 +22,10 @@ import {
 } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 import {
+  CatalogDownloadDto,
   CatalogTitleDto,
+  DownloadsOrder,
+  DownloadsStatus,
   LibraryOrder,
   LibraryStatus,
   MyListAvailability,
@@ -132,6 +135,56 @@ export class CatalogController {
       order: order ?? MyListOrder.DateAdded,
       direction,
       pagination,
+    });
+  }
+
+  @Get('downloads')
+  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
+  @ApiQuery({
+    name: 'status',
+    enum: DownloadsStatus,
+    required: false,
+    description:
+      'Torrents a request of the user waits for; without it, every torrent that is downloading',
+  })
+  @ApiQuery({
+    name: 'letter',
+    enum: LETTERS,
+    required: false,
+    description:
+      "Titles whose name starts with the letter; '#' for a name that starts with none",
+  })
+  @ApiQuery({ name: 'order', enum: DownloadsOrder, required: false })
+  @ApiQuery({
+    name: 'direction',
+    enum: OrderDirection,
+    required: false,
+    description: 'Without it, the direction natural to the order',
+  })
+  @ApiOkResponse({
+    type: [CatalogDownloadDto],
+    description:
+      'The torrents that are downloading, as the engine has them, each with the title it downloads; polled while there are any',
+  })
+  getDownloads(
+    @GetAuthUser() user: User,
+    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
+    mediaType?: MediaType,
+    @Query('status', new ParseEnumPipe(DownloadsStatus, { optional: true }))
+    status?: DownloadsStatus,
+    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
+    letter?: Letter,
+    @Query('order', new ParseEnumPipe(DownloadsOrder, { optional: true }))
+    order?: DownloadsOrder,
+    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
+    direction?: OrderDirection,
+  ): Promise<CatalogDownloadDto[]> {
+    return this.catalogService.findDownloads(user.id, {
+      mediaType,
+      status,
+      letter,
+      order: order ?? DownloadsOrder.Size,
+      direction,
     });
   }
 }

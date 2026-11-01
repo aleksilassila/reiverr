@@ -14,7 +14,7 @@ import MyListPage from '../../pages/MyListPage/MyListPage.svelte';
 import MoviesHomePage from '../../pages/MoviesHomePage.svelte';
 import PageNotFound from '../../pages/PageNotFound.svelte';
 import PersonPage from '../../pages/PersonPage.svelte';
-import RequestsPage from '../../pages/RequestsPage/RequestsPage.svelte';
+import DownloadsPage from '../../pages/DownloadsPage/DownloadsPage.svelte';
 import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
 import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
@@ -441,9 +441,9 @@ const myListRoute: Route = {
 	root: true
 };
 
-const requestsRoute: Route = {
-	path: '/requests',
-	component: RequestsPage,
+const downloadsRoute: Route = {
+	path: '/downloads',
+	component: DownloadsPage,
 	root: true
 };
 
@@ -490,7 +490,7 @@ export const stackRouter = useStackRouter({
 		companyRoute,
 		personRoute,
 		myListRoute,
-		requestsRoute,
+		downloadsRoute,
 		searchRoute,
 		settingsRoute,
 		serverRoute,
