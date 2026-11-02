@@ -1850,15 +1850,9 @@ export interface SeasonDto {
 export interface TmdbItemDto {
   id?: number;
   poster_path?: string;
-  vote_average?: number;
   title?: string;
-  release_date?: string;
   runtime?: number;
   name?: string;
-  first_air_date?: string;
-  last_air_date?: string;
-  next_episode_to_air?: NextEpisodeToAir;
-  seasons?: SeasonDto[];
 }
 
 export interface NextEpisodeDto {

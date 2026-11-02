@@ -1,7 +1,7 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable, Logger } from '@nestjs/common';
-import { MediaType } from '../common/common.dto.js';
+import { MediaType, Title } from '../common/common.dto.js';
 import {
   EpisodeMetadata,
   MovieMetadata,
@@ -254,28 +254,82 @@ export class MetadataService {
   }
 
   /**
-   * The names of the titles of a type the cache has, by TMDB id; nothing
-   * is fetched. Read in the caller's entity manager
+   * The items of the titles for the cards of the pages, by
+   * `<media type>:<TMDB id>`, read off the columns of the cache in one
+   * query per type. A title whose document is not cached is fetched
+   * first, as its title page would. Read in the caller's entity manager
    */
-  async findNames(
+  async findTmdbItems(
     em: EntityManager,
-    mediaType: MediaType,
-    tmdbIds: string[],
-  ): Promise<Map<string, string>> {
-    if (!tmdbIds.length) return new Map();
+    titles: Title[],
+  ): Promise<Map<string, TmdbItemDto>> {
+    const cachedItems = await this.findCachedTmdbItems(em, titles);
 
-    const options = {
-      disableIdentityMap: true,
-      fields: ['tmdbId', 'name'] as const,
-    };
-    const rows: Pick<MovieMetadata | SeriesMetadata, 'tmdbId' | 'name'>[] =
-      mediaType === MediaType.Movie
-        ? await em.find(MovieMetadata, { tmdbId: { $in: tmdbIds } }, options)
-        : await em.find(SeriesMetadata, { tmdbId: { $in: tmdbIds } }, options);
+    const missing = titles.filter((title) => !cachedItems.has(titleKey(title)));
+    for (const { mediaType, tmdbId } of missing) {
+      if (mediaType === MediaType.Movie) await this.getMovieByTmdbId(tmdbId);
+      else await this.getSeriesByTmdbId(tmdbId);
+    }
+    for (const [key, item] of await this.findCachedTmdbItems(em, missing)) {
+      cachedItems.set(key, item);
+    }
+    for (const title of missing) {
+      if (!cachedItems.has(titleKey(title))) {
+        throw new Error(`No document for ${title.mediaType} ${title.tmdbId}`);
+      }
+    }
 
-    return new Map(
-      rows.flatMap((row) => (row.name ? [[row.tmdbId, row.name]] : [])),
-    );
+    return cachedItems;
+  }
+
+  /** The items of the titles the cache has, by key */
+  private async findCachedTmdbItems(
+    em: EntityManager,
+    titles: Title[],
+  ): Promise<Map<string, TmdbItemDto>> {
+    const items = new Map<string, TmdbItemDto>();
+    const idsOf = (mediaType: MediaType) =>
+      titles
+        .filter((title) => title.mediaType === mediaType)
+        .map((title) => title.tmdbId);
+
+    const movieIds = idsOf(MediaType.Movie);
+    if (movieIds.length) {
+      const movies = await em.find(
+        MovieMetadata,
+        { tmdbId: { $in: movieIds } },
+        {
+          disableIdentityMap: true,
+          fields: ['tmdbId', 'name', 'posterPath', 'runtime'],
+        },
+      );
+      for (const movie of movies) {
+        items.set(`${MediaType.Movie}:${movie.tmdbId}`, {
+          id: Number(movie.tmdbId),
+          poster_path: movie.posterPath,
+          title: movie.name,
+          runtime: movie.runtime,
+        });
+      }
+    }
+
+    const seriesIds = idsOf(MediaType.Series);
+    if (seriesIds.length) {
+      const series = await em.find(
+        SeriesMetadata,
+        { tmdbId: { $in: seriesIds } },
+        { disableIdentityMap: true, fields: ['tmdbId', 'name', 'posterPath'] },
+      );
+      for (const row of series) {
+        items.set(`${MediaType.Series}:${row.tmdbId}`, {
+          id: Number(row.tmdbId),
+          poster_path: row.posterPath,
+          name: row.name,
+        });
+      }
+    }
+
+    return items;
   }
 
   async getEpisodeByTmdbId(options: {
@@ -289,40 +343,9 @@ export class MetadataService {
       tmdbEpisode,
     };
   }
-
-  async getBulkMoviesByTmdbIds(tmdbIds: string[]): Promise<any[]> {
-    return [];
-  }
-
-  async getTmdbItem(tmdbId: string, mediaType: string): Promise<TmdbItemDto> {
-    const movieMetadata =
-      mediaType === 'movie'
-        ? await this.getMovieByTmdbId(tmdbId, false)
-        : undefined;
-    const seriesMetadata =
-      mediaType === 'series'
-        ? await this.getSeriesByTmdbId(tmdbId, false)
-        : undefined;
-
-    return {
-      id: movieMetadata?.tmdbMovie.id ?? seriesMetadata?.tmdbSeries.id,
-      poster_path:
-        movieMetadata?.tmdbMovie.poster_path ??
-        seriesMetadata?.tmdbSeries.poster_path,
-      vote_average:
-        movieMetadata?.tmdbMovie.vote_average ??
-        seriesMetadata?.tmdbSeries.vote_average,
-      title: movieMetadata?.tmdbMovie.title,
-      release_date: movieMetadata?.tmdbMovie.release_date,
-      runtime: movieMetadata?.tmdbMovie.runtime,
-      name: seriesMetadata?.tmdbSeries.name,
-      first_air_date: seriesMetadata?.tmdbSeries.first_air_date,
-      last_air_date: seriesMetadata?.tmdbSeries.last_air_date,
-      next_episode_to_air: seriesMetadata?.tmdbSeries.next_episode_to_air,
-      // seasons: seriesMetadata?.tmdbSeries.seasons,
-    };
-  }
 }
+
+const titleKey = ({ mediaType, tmdbId }: Title) => `${mediaType}:${tmdbId}`;
 
 /** One holder per key at a time, the others wait in the order they came */
 export class MetadataUpdateLock {

@@ -33,6 +33,14 @@ export class MovieMetadata {
   @Property({ nullable: true })
   releaseDate?: Date;
 
+  @ApiProperty({ required: false, type: 'string' })
+  @Property({ nullable: true })
+  posterPath?: string;
+
+  @ApiProperty({ required: false, type: 'number' })
+  @Property({ nullable: true })
+  runtime?: number;
+
   //
 
   @ApiProperty({ type: 'string' })
@@ -53,6 +61,8 @@ export class MovieMetadata {
     this.releaseDate = tmdbMovie.release_date
       ? new Date(tmdbMovie.release_date)
       : undefined;
+    this.posterPath = tmdbMovie.poster_path ?? undefined;
+    this.runtime = tmdbMovie.runtime ?? undefined;
     return this;
   }
 
@@ -118,6 +128,10 @@ export class SeriesMetadata {
   @Property({ nullable: true })
   lastEpisodeNumber?: number;
 
+  @ApiProperty({ required: false, type: 'string' })
+  @Property({ nullable: true })
+  posterPath?: string;
+
   //
 
   @ApiProperty({ type: 'string' })
@@ -146,6 +160,7 @@ export class SeriesMetadata {
     this.lastEpisodeNumber = tmdbSeries.last_episode_to_air?.episode_number;
     this.lastSeasonNumber = tmdbSeries.last_episode_to_air?.season_number;
     this.name = tmdbSeries.name;
+    this.posterPath = tmdbSeries.poster_path ?? undefined;
     return this;
   }
 

@@ -668,6 +668,23 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "poster_path": {
+          "name": "poster_path",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "release_date": {
           "name": "release_date",
           "type": "datetime",
@@ -684,6 +701,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "runtime": {
+          "name": "runtime",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
         },
         "tmdb_id": {
           "name": "tmdb_id",
@@ -1850,6 +1884,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "poster_path": {
+          "name": "poster_path",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         },
         "tmdb_id": {
           "name": "tmdb_id",

@@ -1,5 +1,6 @@
 import { MikroORM } from '@mikro-orm/sqlite';
 import { Logger } from '@nestjs/common';
+import { MediaType } from '../common/common.dto.js';
 import { TMDB_CACHE_TTL } from '../consts.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { MovieMetadata, SeriesMetadata } from './metadata.entity.js';
@@ -95,6 +96,60 @@ describe('MetadataService', () => {
     expect((await metadata.getSeriesByTmdbId('1')).name).toBe('New series');
     expect(tmdb.getFullMovie).toHaveBeenCalledTimes(1);
     expect(tmdb.getFullSeries).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the items of the cached titles in one go and fetches the uncached first', async () => {
+    await orm.em.fork().insert(
+      MovieMetadata.from({
+        ...movie('Cached movie'),
+        poster_path: '/movie.jpg',
+        runtime: 90,
+      } as TmdbMovieFull),
+    );
+    await orm.em.fork().insert(
+      SeriesMetadata.from({
+        ...series('Cached series'),
+        poster_path: '/series.jpg',
+      } as TmdbSeriesFull),
+    );
+    tmdb.getFullMovie.mockResolvedValueOnce({
+      ...movie('Fetched movie'),
+      id: 2,
+    } as TmdbMovieFull);
+
+    const items = await metadata.findTmdbItems(orm.em.fork(), [
+      { mediaType: MediaType.Movie, tmdbId: '1' },
+      { mediaType: MediaType.Series, tmdbId: '1' },
+      { mediaType: MediaType.Movie, tmdbId: '2' },
+    ]);
+
+    expect(items.get('movie:1')).toMatchObject({
+      id: 1,
+      poster_path: '/movie.jpg',
+      title: 'Cached movie',
+      runtime: 90,
+    });
+    expect(items.get('series:1')).toMatchObject({
+      id: 1,
+      name: 'Cached series',
+      poster_path: '/series.jpg',
+    });
+    expect(items.get('movie:2')).toMatchObject({
+      id: 2,
+      title: 'Fetched movie',
+    });
+    expect(tmdb.getFullMovie).toHaveBeenCalledTimes(1);
+    expect(tmdb.getFullSeries).not.toHaveBeenCalled();
+  });
+
+  it('fails for a title whose document cannot be had', async () => {
+    tmdb.getFullSeries.mockRejectedValueOnce(new Error('TMDB is down'));
+
+    await expect(
+      metadata.findTmdbItems(orm.em.fork(), [
+        { mediaType: MediaType.Series, tmdbId: '1' },
+      ]),
+    ).rejects.toThrow('TMDB is down');
   });
 });
 

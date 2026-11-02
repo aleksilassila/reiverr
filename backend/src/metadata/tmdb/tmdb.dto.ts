@@ -6,7 +6,6 @@ import {
   MovieExternalIdsDto,
   MovieImagesDto,
   MovieVideosDto,
-  SeasonDto,
   TvSeasonDetailsDto,
   TvSeriesAggregateCreditsDto,
   TvSeriesDetailsDto,
@@ -138,7 +137,9 @@ export type TmdbEpisodeFull = TmdbEpisode;
 // }
 
 /**
- * Basically TmdbSeriesSmall + TmdbMovieSmall, used to render cards in catalogues
+ * What a card of a catalogue shows of a title, as TMDB names it: the id,
+ * the poster, a movie's title and runtime, a series' name. Read off the
+ * columns of the metadata cache, not the documents
  */
 export class TmdbItemDto implements MovieDetailsDto, TvSeriesDetailsDto {
   // TmdbMovie & TmdbSeries
@@ -149,16 +150,10 @@ export class TmdbItemDto implements MovieDetailsDto, TvSeriesDetailsDto {
   @ApiProperty({ required: false })
   poster_path?: string;
 
-  @ApiProperty({ required: false })
-  vote_average?: number;
-
   // TmdbMovie only, therefore optional
 
   @ApiProperty({ required: false })
   title?: string;
-
-  @ApiProperty({ required: false })
-  release_date?: string;
 
   @ApiProperty({ required: false })
   runtime?: number;
@@ -167,16 +162,4 @@ export class TmdbItemDto implements MovieDetailsDto, TvSeriesDetailsDto {
 
   @ApiProperty({ required: false })
   name?: string;
-
-  @ApiProperty({ required: false })
-  first_air_date?: string;
-
-  @ApiProperty({ required: false })
-  last_air_date?: string;
-
-  @ApiProperty({ required: false, type: NextEpisodeToAir })
-  next_episode_to_air?: NextEpisodeToAir;
-
-  @ApiProperty({ required: false, type: [SeasonDto] })
-  seasons?: SeasonDto[];
 }

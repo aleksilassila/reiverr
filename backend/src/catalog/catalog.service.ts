@@ -161,6 +161,7 @@ export class CatalogService {
       >();
 
     const files = await this.findFiles(em, rows);
+    const tmdbItems = await this.metadataService.findTmdbItems(em, rows);
     const { cleanup } = await this.libraryService.getSettings();
     const nextCleanup = getNextCleanup(new Date(), cleanup);
 
@@ -171,10 +172,7 @@ export class CatalogService {
       items.push({
         mediaType: row.mediaType,
         tmdbId: row.tmdbId,
-        tmdbItem: await this.metadataService.getTmdbItem(
-          row.tmdbId,
-          row.mediaType,
-        ),
+        tmdbItem: tmdbItems.get(titleKey(row))!,
         available:
           row.mediaType === MediaType.Movie
             ? Math.min(titleFiles.length, 1)
@@ -249,23 +247,12 @@ export class CatalogService {
       });
     }
 
-    // The cached names, for the letter and the name order; without one a title is '': first by name, under '#'
-    const names = new Map<string, string>();
-    if (options.letter || options.order === DownloadsOrder.Name) {
-      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-        const found = await this.metadataService.findNames(
-          em,
-          mediaType,
-          downloads
-            .filter((download) => download.mediaType === mediaType)
-            .map((download) => download.tmdbId),
-        );
-        for (const [tmdbId, name] of found) {
-          names.set(titleKey({ mediaType, tmdbId }), name);
-        }
-      }
-    }
-    const nameOf = (download: Download) => names.get(titleKey(download)) ?? '';
+    const tmdbItems = await this.metadataService.findTmdbItems(em, downloads);
+    // The name of the title, for the letter and the name order; without one a title is '': first by name, under '#'
+    const nameOf = (download: Download) => {
+      const item = tmdbItems.get(titleKey(download))!;
+      return item.name ?? item.title ?? '';
+    };
     const listed = options.letter
       ? downloads.filter(
           (download) => initialOf(nameOf(download)) === options.letter,
@@ -299,10 +286,7 @@ export class CatalogService {
         infoHash: download.infoHash,
         mediaType: download.mediaType,
         tmdbId: download.tmdbId,
-        tmdbItem: await this.metadataService.getTmdbItem(
-          download.tmdbId,
-          download.mediaType,
-        ),
+        tmdbItem: tmdbItems.get(titleKey(download))!,
         name: download.name,
         episodes: download.episodes,
         status: download.status,
@@ -463,15 +447,13 @@ export class CatalogService {
         })[]
       >();
 
+    const tmdbItems = await this.metadataService.findTmdbItems(em, rows);
     const items: CatalogTitleOnDiskDto[] = [];
     for (const row of rows) {
       items.push({
         mediaType: row.mediaType,
         tmdbId: row.tmdbId,
-        tmdbItem: await this.metadataService.getTmdbItem(
-          row.tmdbId,
-          row.mediaType,
-        ),
+        tmdbItem: tmdbItems.get(titleKey(row))!,
         files: row.file_count,
         unretained: row.unretained_count,
         diskBytes: row.disk_bytes,
