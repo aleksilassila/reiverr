@@ -1563,83 +1563,6 @@ export interface StorageUsageDto {
   pendingBytes: number;
 }
 
-export interface SeasonDto {
-  /**
-   * Season air date
-   * @example "2010-12-05"
-   */
-  air_date?: string;
-  /**
-   * Episode count
-   * @example 272
-   */
-  episode_count?: number;
-  /**
-   * Season ID
-   * @example 3627
-   */
-  id?: number;
-  /**
-   * Season name
-   * @example "Specials"
-   */
-  name?: string;
-  /**
-   * Season overview
-   * @example ""
-   */
-  overview?: string;
-  /**
-   * Poster path
-   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
-   */
-  poster_path?: string;
-  /**
-   * Season number
-   * @example 0
-   */
-  season_number?: number;
-  /**
-   * Vote average
-   * @example 0
-   */
-  vote_average?: number;
-}
-
-export interface TmdbItemDto {
-  id?: number;
-  poster_path?: string;
-  vote_average?: number;
-  title?: string;
-  release_date?: string;
-  runtime?: number;
-  name?: string;
-  first_air_date?: string;
-  last_air_date?: string;
-  next_episode_to_air?: NextEpisodeToAir;
-  seasons?: SeasonDto[];
-}
-
-export interface TitleUsageDto {
-  mediaType: "movie" | "series";
-  tmdbId: string;
-  tmdbItem: TmdbItemDto;
-  /** The files of the title in the library */
-  files: number;
-  /** Of the files, the managed ones that no request of anyone holds: what the next cleanup deletes */
-  unretained: number;
-  /** Bytes of every file of the title in the library, held by anyone or by nobody */
-  diskBytes: number;
-  /** The requests of the user for the title */
-  requests: number;
-  /** Of them, those that have their file */
-  fulfilled: number;
-  /** Bytes of the files that the requests of the user hold, each file once */
-  heldBytes: number;
-  /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
-  rule?: RequestRuleDto;
-}
-
 export interface JobDto {
   id: string;
   type: string;
@@ -1881,6 +1804,63 @@ export interface DeleteLibraryEntriesResultDto {
   failed: FailedLibraryEntryDto[];
 }
 
+export interface SeasonDto {
+  /**
+   * Season air date
+   * @example "2010-12-05"
+   */
+  air_date?: string;
+  /**
+   * Episode count
+   * @example 272
+   */
+  episode_count?: number;
+  /**
+   * Season ID
+   * @example 3627
+   */
+  id?: number;
+  /**
+   * Season name
+   * @example "Specials"
+   */
+  name?: string;
+  /**
+   * Season overview
+   * @example ""
+   */
+  overview?: string;
+  /**
+   * Poster path
+   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
+   */
+  poster_path?: string;
+  /**
+   * Season number
+   * @example 0
+   */
+  season_number?: number;
+  /**
+   * Vote average
+   * @example 0
+   */
+  vote_average?: number;
+}
+
+export interface TmdbItemDto {
+  id?: number;
+  poster_path?: string;
+  vote_average?: number;
+  title?: string;
+  release_date?: string;
+  runtime?: number;
+  name?: string;
+  first_air_date?: string;
+  last_air_date?: string;
+  next_episode_to_air?: NextEpisodeToAir;
+  seasons?: SeasonDto[];
+}
+
 export interface NextEpisodeDto {
   season: number;
   episode: number;
@@ -1938,6 +1918,26 @@ export interface CatalogDownloadDto {
   downloadSpeed: number;
   /** Whether a request of the user waits for the torrent */
   requested: boolean;
+}
+
+export interface CatalogTitleOnDiskDto {
+  mediaType: "movie" | "series";
+  tmdbId: string;
+  tmdbItem: TmdbItemDto;
+  /** The files of the title in the library */
+  files: number;
+  /** Of the files, the managed ones that no request of anyone holds: what the next cleanup deletes */
+  unretained: number;
+  /** Bytes of every file of the title in the library, held by anyone or by nobody */
+  diskBytes: number;
+  /** The requests of the user for the title */
+  requests: number;
+  /** Of them, those that have their file */
+  fulfilled: number;
+  /** Bytes of the files that the requests of the user hold, each file once */
+  heldBytes: number;
+  /** The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only */
+  rule?: RequestRuleDto;
 }
 
 import type {
@@ -2964,69 +2964,6 @@ export class Api<
         format: "json",
         ...params,
       }),
-
-    /**
-     * No description
-     *
-     * @tags library
-     * @name GetUserTitles
-     * @request GET:/api/me/storage/titles
-     */
-    getUserTitles: (
-      query?: {
-        mediaType?: "movie" | "series";
-        /** Titles a request of the user has a file of; without it, every title with files */
-        status?: "requested";
-        /** Titles whose name starts with the letter; '#' for a name that starts with none */
-        letter?:
-          | "#"
-          | "A"
-          | "B"
-          | "C"
-          | "D"
-          | "E"
-          | "F"
-          | "G"
-          | "H"
-          | "I"
-          | "J"
-          | "K"
-          | "L"
-          | "M"
-          | "N"
-          | "O"
-          | "P"
-          | "Q"
-          | "R"
-          | "S"
-          | "T"
-          | "U"
-          | "V"
-          | "W"
-          | "X"
-          | "Y"
-          | "Z";
-        /** By what the user's requests hold with the requested status, by every file of the title without */
-        sort?: "size" | "name" | "added";
-        /** Without it, the direction natural to the sort */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: TitleUsageDto[];
-        },
-        any
-      >({
-        path: `/api/me/storage/titles`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
   };
   server = {
     /**
@@ -3501,6 +3438,16 @@ export class Api<
         status?: "unwatched" | "watched" | "continue-watching";
         /** Whether what the user would watch next is on disk */
         availability?: "available" | "unavailable";
+        order?:
+          | "date-added"
+          | "name"
+          | "first-release-date"
+          | "last-release-date"
+          | "last-played";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3530,16 +3477,6 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
-        order?:
-          | "date-added"
-          | "name"
-          | "first-release-date"
-          | "last-release-date"
-          | "last-played";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
-        page?: number;
-        itemsPerPage?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -3568,6 +3505,9 @@ export class Api<
         mediaType?: "movie" | "series";
         /** Torrents a request of the user waits for; without it, every torrent that is downloading */
         status?: "requested";
+        order?: "size" | "name" | "added";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
         /** Titles whose name starts with the letter; '#' for a name that starts with none */
         letter?:
           | "#"
@@ -3597,14 +3537,74 @@ export class Api<
           | "X"
           | "Y"
           | "Z";
-        order?: "size" | "name" | "added";
-        /** Without it, the direction natural to the order */
-        direction?: "asc" | "desc";
       },
       params: RequestParams = {},
     ) =>
       this.request<CatalogDownloadDto[], any>({
         path: `/api/catalog/downloads`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags catalog
+     * @name GetOnDisk
+     * @request GET:/api/catalog/on-disk
+     */
+    getOnDisk: (
+      query?: {
+        mediaType?: "movie" | "series";
+        /** Titles a request of the user has a file of; without it, every title with files */
+        status?: "requested";
+        /** By what the user's requests hold with the requested status, by every file of the title without */
+        order?: "size" | "name" | "added";
+        /** Without it, the direction natural to the order */
+        direction?: "asc" | "desc";
+        page?: number;
+        itemsPerPage?: number;
+        /** Titles whose name starts with the letter; '#' for a name that starts with none */
+        letter?:
+          | "#"
+          | "A"
+          | "B"
+          | "C"
+          | "D"
+          | "E"
+          | "F"
+          | "G"
+          | "H"
+          | "I"
+          | "J"
+          | "K"
+          | "L"
+          | "M"
+          | "N"
+          | "O"
+          | "P"
+          | "Q"
+          | "R"
+          | "S"
+          | "T"
+          | "U"
+          | "V"
+          | "W"
+          | "X"
+          | "Y"
+          | "Z";
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        PaginatedResponseDto & {
+          items: CatalogTitleOnDiskDto[];
+        },
+        any
+      >({
+        path: `/api/catalog/on-disk`,
         method: "GET",
         query: query,
         format: "json",

@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
 import { TorrentStatus } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
+import { RequestRuleDto } from '../requests/requests.dto.js';
 import { PlayStateDto } from '../user-data/user-data.dto.js';
 
 /** The sorts of the downloads, as the titles on disk sort on the downloads page */
@@ -70,6 +71,72 @@ export class CatalogDownloadDto {
     description: 'Whether a request of the user waits for the torrent',
   })
   requested: boolean;
+}
+
+/**
+ * The orders of the titles on disk. The size and the date are of what the
+ * user's requests hold with the requested status, of every file of the
+ * title without
+ */
+export enum OnDiskOrder {
+  /** Largest first */
+  Size = 'size',
+  Name = 'name',
+  /** When the newest file was indexed, newest first */
+  Added = 'added',
+}
+
+/** Which of the titles on disk are listed; every one without */
+export enum OnDiskStatus {
+  /** Titles a request of the user has a file of */
+  Requested = 'requested',
+}
+
+/** A title with files in the library: what they take, and what the requests of the user hold of them */
+export class CatalogTitleOnDiskDto {
+  @ApiProperty({ enum: MediaType })
+  mediaType: MediaType;
+
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty({ type: TmdbItemDto })
+  tmdbItem: TmdbItemDto;
+
+  @ApiProperty({ description: 'The files of the title in the library' })
+  files: number;
+
+  @ApiProperty({
+    description:
+      'Of the files, the managed ones that no request of anyone holds: what the next cleanup deletes',
+  })
+  unretained: number;
+
+  @ApiProperty({
+    description:
+      'Bytes of every file of the title in the library, held by anyone or by nobody',
+  })
+  diskBytes: number;
+
+  @ApiProperty({ description: 'The requests of the user for the title' })
+  requests: number;
+
+  @ApiProperty({ description: 'Of them, those that have their file' })
+  fulfilled: number;
+
+  @ApiProperty({
+    description:
+      'Bytes of the files that the requests of the user hold, each file once',
+  })
+  heldBytes: number;
+
+  @ApiProperty({
+    type: RequestRuleDto,
+    required: false,
+    description:
+      'The limits of the rule of the title; absent without a rule. A movie has keepWatchedHours only',
+  })
+  rule?: RequestRuleDto;
 }
 
 export enum MyListOrder {

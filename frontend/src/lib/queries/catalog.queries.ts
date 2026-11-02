@@ -8,6 +8,12 @@ type MyListParams = Omit<
 	'page' | 'itemsPerPage'
 >;
 type DownloadsParams = NonNullable<Parameters<typeof reiverrApi.catalog.getDownloads>[0]>;
+type OnDiskParams = Omit<
+	NonNullable<Parameters<typeof reiverrApi.catalog.getOnDisk>[0]>,
+	'page' | 'itemsPerPage'
+>;
+
+const ON_DISK_PAGE_SIZE = 50;
 
 export type MyListOrder =
 	'date-added' | 'name' | 'first-release-date' | 'last-release-date' | 'last-played';
@@ -20,7 +26,7 @@ export type MyListAvailability = 'available' | 'unavailable';
 export const mediaTypeOf = (category: CatalogCategory) =>
 	category === 'all' ? undefined : category === 'movies' ? ('movie' as const) : ('series' as const);
 
-/** The lists of the catalog module of the backend: my list and the downloads */
+/** The lists of the catalog module of the backend: my list, the downloads and the titles on disk */
 export const catalogKeys = {
 	/** Every list: what the mutations of a title invalidate */
 	all: ['catalog'] as const,
@@ -29,7 +35,8 @@ export const catalogKeys = {
 		['catalog', 'my-list', 'continue-watching', mediaType] as const,
 	/** Every list of the downloads: what a change of a torrent invalidates */
 	downloads: () => ['catalog', 'downloads'] as const,
-	downloadsList: (params: DownloadsParams) => ['catalog', 'downloads', params] as const
+	downloadsList: (params: DownloadsParams) => ['catalog', 'downloads', params] as const,
+	onDisk: (params: OnDiskParams) => ['catalog', 'on-disk', params] as const
 };
 
 export const catalogQueries = {
@@ -59,5 +66,14 @@ export const catalogQueries = {
 			queryKey: catalogKeys.downloadsList(params),
 			queryFn: () => reiverrApi.catalog.getDownloads(params).then((r) => r.data),
 			refetchInterval: (query) => (query.state.data?.length ? LIVE_REFRESH_INTERVAL : false)
+		}),
+	/** The titles with files in the library, what they take, and what the requests of the user hold of them */
+	onDisk: (params: OnDiskParams) =>
+		pagedQueryOptions({
+			queryKey: catalogKeys.onDisk(params),
+			queryFn: (page) =>
+				reiverrApi.catalog
+					.getOnDisk({ ...params, page, itemsPerPage: ON_DISK_PAGE_SIZE })
+					.then((r) => r.data.items)
 		})
 };

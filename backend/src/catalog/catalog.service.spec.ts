@@ -20,6 +20,7 @@ import { MovieMetadata, SeriesMetadata } from '../metadata/metadata.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { TmdbMovieFull, TmdbSeriesFull } from '../metadata/tmdb/tmdb.dto.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
+import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { PlayState } from '../user-data/play-state.entity.js';
@@ -33,6 +34,8 @@ import {
   MyListAvailability,
   MyListOrder,
   MyListStatus,
+  OnDiskOrder,
+  OnDiskStatus,
 } from './catalog.dto.js';
 import { CatalogService } from './catalog.service.js';
 
@@ -99,16 +102,16 @@ describe('CatalogService', () => {
     tmdbId: string,
     episode: number,
     createdAt: Date,
-    options: { managed?: boolean; lastEpisode?: number } = {},
+    options: { managed?: boolean; lastEpisode?: number; size?: number } = {},
   ) => {
     const row = new MediaFile();
-    row.path = `/tv/${mediaType}-${tmdbId}-${episode}.mkv`;
+    row.path = `/tv/${mediaType}-${tmdbId}-${episode}-${options.size ?? 1}.mkv`;
     row.mediaType = mediaType;
     row.tmdbId = tmdbId;
     row.season = episode ? 1 : 0;
     row.episode = episode;
     row.lastEpisode = options.lastEpisode ?? episode;
-    row.size = 1;
+    row.size = options.size ?? 1;
     row.modifiedAt = createdAt;
     row.createdAt = createdAt;
     row.managed = options.managed ?? false;
@@ -121,6 +124,15 @@ describe('CatalogService', () => {
     row.mediaType = mediaType;
     row.season = episode ? 1 : 0;
     row.episode = episode;
+    return insert(row);
+  };
+  const bind = (
+    requestId: string,
+    to: Pick<RequestBinding, 'mediaFileId' | 'torrentItemId' | 'pendingBytes'>,
+  ) => {
+    const row = new RequestBinding();
+    row.requestId = requestId;
+    Object.assign(row, to);
     return insert(row);
   };
   const listed = (mediaType: MediaType, tmdbId: string) =>
@@ -209,19 +221,20 @@ describe('CatalogService', () => {
       '1',
       1,
       new Date('2026-01-01T00:00:00Z'),
-      { managed: true },
+      { managed: true, size: 100 },
     );
-    await file(MediaType.Series, '1', 2, new Date('2026-01-03T00:00:00Z'), {
+    await file(MediaType.Series, '1', 2, new Date('2026-01-02T00:00:00Z'), {
       lastEpisode: 3,
+      size: 200,
     });
     const { id } = await request('1', MediaTypeFull.Episode, 1);
-    const binding = new RequestBinding();
-    binding.requestId = id;
-    binding.mediaFileId = held.id;
-    await insert(binding);
-    await file(MediaType.Movie, '1', 0, new Date('2026-01-02T00:00:00Z'));
+    await bind(id, { mediaFileId: held.id });
+    await file(MediaType.Movie, '1', 0, new Date('2026-01-03T00:00:00Z'), {
+      size: 400,
+    });
     await file(MediaType.Series, '2', 1, new Date('2026-01-04T00:00:00Z'), {
       managed: true,
+      size: 50,
     });
   });
 
@@ -628,6 +641,203 @@ describe('CatalogService', () => {
         'Another',
       ]);
       expect(await list({ letter: 'B' })).toEqual([]);
+    });
+  });
+
+  describe('the titles on disk', () => {
+    const onDisk = (
+      options: {
+        mediaType?: MediaType;
+        status?: OnDiskStatus;
+        letter?: Letter;
+        order?: OnDiskOrder;
+        direction?: OrderDirection;
+        page?: number;
+        itemsPerPage?: number;
+      } = {},
+    ) =>
+      RequestContext.create(orm.em, () =>
+        catalog.findOnDisk(userId, {
+          mediaType: options.mediaType,
+          status: options.status,
+          letter: options.letter,
+          order: options.order ?? OnDiskOrder.Size,
+          direction: options.direction,
+          pagination: {
+            page: options.page ?? 1,
+            itemsPerPage: options.itemsPerPage ?? 10,
+          },
+        }),
+      );
+
+    beforeEach(async () => {
+      // The series: two more requests hold the file of two episodes, a fourth
+      // waits for a download, and a managed second version of the first
+      // episode is held by nobody, so the cleanup deletes it; the movie: its
+      // file, held by a request
+      const shared = await RequestContext.create(orm.em, () =>
+        orm.em.findOneOrFail(MediaFile, {
+          mediaType: MediaType.Series,
+          tmdbId: '1',
+          episode: 2,
+        }),
+      );
+      for (const episode of [2, 3]) {
+        const { id } = await request('1', MediaTypeFull.Episode, episode);
+        await bind(id, { mediaFileId: shared.id });
+      }
+      const { id: fourth } = await request('1', MediaTypeFull.Episode, 4);
+      await bind(fourth, { torrentItemId: 'item', pendingBytes: 50 });
+      await file(MediaType.Series, '1', 1, new Date('2026-01-05T00:00:00Z'), {
+        managed: true,
+        size: 200,
+      });
+      const rule = new RequestRule();
+      rule.userId = userId;
+      rule.tmdbId = '1';
+      rule.keepNext = 2;
+      await insert(rule);
+
+      const movieFile = await RequestContext.create(orm.em, () =>
+        orm.em.findOneOrFail(MediaFile, {
+          mediaType: MediaType.Movie,
+          tmdbId: '1',
+        }),
+      );
+      const { id: movie } = await request('1', MediaTypeFull.Movie);
+      await bind(movie, { mediaFileId: movieFile.id });
+    });
+
+    it('lists the titles a request of the user has a file of by what they hold, largest first', async () => {
+      const result = await onDisk({ status: OnDiskStatus.Requested });
+
+      expect(result.total).toBe(2);
+      expect(names(result)).toEqual(['Movie', 'Series']);
+      expect(result.items[0]).toMatchObject({
+        mediaType: MediaType.Movie,
+        tmdbId: '1',
+        files: 1,
+        unretained: 0,
+        diskBytes: 400,
+        requests: 1,
+        fulfilled: 1,
+        heldBytes: 400,
+      });
+      expect(result.items[0].rule).toBeUndefined();
+      // The file two requests hold counts once, as the usage of the user does; the version nobody holds is on disk only
+      expect(result.items[1]).toMatchObject({
+        mediaType: MediaType.Series,
+        tmdbId: '1',
+        files: 3,
+        unretained: 1,
+        diskBytes: 500,
+        requests: 4,
+        fulfilled: 3,
+        heldBytes: 300,
+        rule: { keepNext: 2, keepWatched: null, keepWatchedHours: null },
+      });
+    });
+
+    it('lists every title with files by what they take on disk without the status', async () => {
+      const result = await onDisk();
+
+      expect(result.total).toBe(3);
+      expect(names(result)).toEqual(['Series', 'Movie', 'Another']);
+      // Managed and held by nobody: what the cleanup deletes
+      expect(result.items[2]).toMatchObject({
+        tmdbId: '2',
+        files: 1,
+        unretained: 1,
+        diskBytes: 50,
+        requests: 0,
+        fulfilled: 0,
+        heldBytes: 0,
+      });
+      expect(result.items[2].rule).toBeUndefined();
+    });
+
+    it('orders by when the newest file was indexed: of those the user holds with the status, of all without', async () => {
+      expect(
+        names(
+          await onDisk({
+            status: OnDiskStatus.Requested,
+            order: OnDiskOrder.Added,
+          }),
+        ),
+      ).toEqual(['Movie', 'Series']);
+      expect(names(await onDisk({ order: OnDiskOrder.Added }))).toEqual([
+        'Series',
+        'Another',
+        'Movie',
+      ]);
+    });
+
+    it('orders by name, filters by the type of title, and pages', async () => {
+      expect(names(await onDisk({ order: OnDiskOrder.Name }))).toEqual([
+        'Another',
+        'Movie',
+        'Series',
+      ]);
+
+      const movies = await onDisk({ mediaType: MediaType.Movie });
+      expect(movies.total).toBe(1);
+      expect(names(movies)).toEqual(['Movie']);
+      expect(movies.items[0]).toMatchObject({ requests: 1, heldBytes: 400 });
+
+      const page = await onDisk({ page: 2, itemsPerPage: 2 });
+      expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
+      expect(page.items.map((item) => item.tmdbId)).toEqual(['2']);
+    });
+
+    it('lists the titles under a letter, # for the names that start with none', async () => {
+      await insert(
+        SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
+      );
+      const { id } = await request('3', MediaTypeFull.Episode, 1);
+      await bind(id, {
+        mediaFileId: (
+          await file(MediaType.Series, '3', 1, new Date('2026-01-06T00:00:00Z'))
+        ).id,
+      });
+
+      const under = await onDisk({ letter: 'A' });
+      expect(names(under)).toEqual(['Another']);
+      expect(under.total).toBe(1);
+      expect(
+        (await onDisk({ letter: 'A', status: OnDiskStatus.Requested })).total,
+      ).toBe(0);
+      expect(names(await onDisk({ letter: 'S' }))).toEqual(['Series']);
+      expect(names(await onDisk({ letter: '#' }))).toEqual(['24']);
+      expect((await onDisk({ letter: 'B' })).total).toBe(0);
+    });
+
+    it('reads each order in the other direction when asked', async () => {
+      expect(names(await onDisk({ direction: OrderDirection.Asc }))).toEqual([
+        'Another',
+        'Movie',
+        'Series',
+      ]);
+      expect(names(await onDisk({ direction: OrderDirection.Desc }))).toEqual([
+        'Series',
+        'Movie',
+        'Another',
+      ]);
+      expect(
+        names(
+          await onDisk({
+            order: OnDiskOrder.Name,
+            direction: OrderDirection.Desc,
+          }),
+        ),
+      ).toEqual(['Series', 'Movie', 'Another']);
+      expect(
+        names(
+          await onDisk({
+            order: OnDiskOrder.Added,
+            direction: OrderDirection.Asc,
+          }),
+        ),
+      ).toEqual(['Movie', 'Another', 'Series']);
     });
   });
 });

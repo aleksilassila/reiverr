@@ -325,28 +325,6 @@ export class RequestsService implements OnApplicationBootstrap {
     );
   }
 
-  /** The limits of the rules of a user, by title: for the library's view of the user's titles */
-  findRules(
-    em: EntityManager,
-    filter: { userId: string },
-  ): Promise<
-    Pick<
-      RequestRule,
-      'mediaType' | 'tmdbId' | 'keepNext' | 'keepWatched' | 'keepWatchedHours'
-    >[]
-  > {
-    return em.find(RequestRule, filter, {
-      ...READ,
-      fields: [
-        'mediaType',
-        'tmdbId',
-        'keepNext',
-        'keepWatched',
-        'keepWatchedHours',
-      ],
-    });
-  }
-
   /** The releases users picked, with their .torrent files, for the library to hand to downloads */
   findSelectedReleases(
     em: EntityManager,

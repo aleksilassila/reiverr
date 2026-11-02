@@ -24,11 +24,14 @@ import { User } from '../users/user.entity.js';
 import {
   CatalogDownloadDto,
   CatalogTitleDto,
+  CatalogTitleOnDiskDto,
   DownloadsOrder,
   DownloadsStatus,
   MyListAvailability,
   MyListOrder,
   MyListStatus,
+  OnDiskOrder,
+  OnDiskStatus,
 } from './catalog.dto.js';
 import { CatalogService } from './catalog.service.js';
 
@@ -140,6 +143,61 @@ export class CatalogController {
       letter,
       order: order ?? DownloadsOrder.Size,
       direction,
+    });
+  }
+
+  @Get('on-disk')
+  @ApiQuery({ name: 'mediaType', enum: MediaType, required: false })
+  @ApiQuery({
+    name: 'status',
+    enum: OnDiskStatus,
+    required: false,
+    description:
+      'Titles a request of the user has a file of; without it, every title with files',
+  })
+  @ApiQuery({
+    name: 'letter',
+    enum: LETTERS,
+    required: false,
+    description:
+      "Titles whose name starts with the letter; '#' for a name that starts with none",
+  })
+  @ApiQuery({
+    name: 'order',
+    enum: OnDiskOrder,
+    required: false,
+    description:
+      "By what the user's requests hold with the requested status, by every file of the title without",
+  })
+  @ApiQuery({
+    name: 'direction',
+    enum: OrderDirection,
+    required: false,
+    description: 'Without it, the direction natural to the order',
+  })
+  @PaginationApiQuery()
+  @PaginatedApiOkResponse(CatalogTitleOnDiskDto)
+  getOnDisk(
+    @GetAuthUser() user: User,
+    @GetPaginationParams() pagination: PaginationDto,
+    @Query('mediaType', new ParseEnumPipe(MediaType, { optional: true }))
+    mediaType?: MediaType,
+    @Query('status', new ParseEnumPipe(OnDiskStatus, { optional: true }))
+    status?: OnDiskStatus,
+    @Query('letter', new ParseEnumPipe(LETTERS, { optional: true }))
+    letter?: Letter,
+    @Query('order', new ParseEnumPipe(OnDiskOrder, { optional: true }))
+    order?: OnDiskOrder,
+    @Query('direction', new ParseEnumPipe(OrderDirection, { optional: true }))
+    direction?: OrderDirection,
+  ): Promise<PaginatedResponseDto<CatalogTitleOnDiskDto>> {
+    return this.catalogService.findOnDisk(user.id, {
+      mediaType,
+      status,
+      letter,
+      order: order ?? OnDiskOrder.Size,
+      direction,
+      pagination,
     });
   }
 }

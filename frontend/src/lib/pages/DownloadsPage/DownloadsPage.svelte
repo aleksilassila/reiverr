@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { CatalogDownloadDto, TitleUsageDto } from '$lib/apis/reiverr/reiverr.openapi';
+	import type {
+		CatalogDownloadDto,
+		CatalogTitleOnDiskDto
+	} from '$lib/apis/reiverr/reiverr.openapi';
 	import Scrollable from '$lib/components/Carousel/Scrollable.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import LazyImg from '$lib/components/LazyImg.svelte';
@@ -19,11 +22,11 @@
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
 	import { derived, writable } from 'svelte/store';
 
-	type MediaType = TitleUsageDto['mediaType'];
+	type MediaType = CatalogTitleOnDiskDto['mediaType'];
 	type Sort = 'size' | 'name' | 'added';
 	type Direction = 'asc' | 'desc';
 	/** A row of the list: a title with files, or a torrent that is downloading */
-	type Title = Pick<TitleUsageDto, 'mediaType' | 'tmdbId' | 'tmdbItem'>;
+	type Title = Pick<CatalogTitleOnDiskDto, 'mediaType' | 'tmdbId' | 'tmdbItem'>;
 
 	const MEDIA_TYPES: { label: string; value: MediaType }[] = [
 		{ label: 'Series', value: 'series' },
@@ -64,11 +67,11 @@
 		derived(
 			[mediaType, requestedOnly, letter, order],
 			([$mediaType, $requestedOnly, $letter, $order]) =>
-				storageQueries.titles({
+				catalogQueries.onDisk({
 					mediaType: $mediaType,
 					status: $requestedOnly ? 'requested' : undefined,
 					letter: $letter ?? undefined,
-					sort: $order.sort,
+					order: $order.sort,
 					direction: $order.direction
 				})
 		)
@@ -104,14 +107,14 @@
 
 	const nameOf = (title: Title) =>
 		title.tmdbItem.name ?? title.tmdbItem.title ?? `#${title.tmdbId}`;
-	const sizeOf = (title: TitleUsageDto, requested: boolean) =>
+	const sizeOf = (title: CatalogTitleOnDiskDto, requested: boolean) =>
 		requested ? title.heldBytes : title.diskBytes;
 	// The user's requests and their rule with the filter on; without it, the files of the title that stay, and those the cleanup deletes
-	const retainedOf = ({ files, unretained }: TitleUsageDto) => {
+	const retainedOf = ({ files, unretained }: CatalogTitleOnDiskDto) => {
 		const retained = files - unretained;
 		return `${retained} ${retained === 1 ? 'file' : 'files'}`;
 	};
-	const detailsOf = (title: TitleUsageDto, requested: boolean) =>
+	const detailsOf = (title: CatalogTitleOnDiskDto, requested: boolean) =>
 		(requested
 			? [
 					`${title.fulfilled}/${title.requests} fulfilled`,
