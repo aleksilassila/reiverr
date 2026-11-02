@@ -1,18 +1,18 @@
 import type { CatalogTitleDto } from '$lib/apis/reiverr/reiverr.openapi';
-import { Download, Trash, Video } from 'radix-icons-svelte';
+import { Trash, Video } from 'radix-icons-svelte';
 import type { CardBadge } from './Card';
 
 /**
  * The marks on the card of a title of a catalogue: the episodes on disk of a
  * series, in red the hours until the cleanup deletes every file of the title,
- * and the marks the page asks for, since a page that lists only requested
- * titles or only titles on disk has no use for them: that the user requested
- * the title, that a movie is on disk, and, in place of the count, the next
- * episode of a series (S2E1), with the film icon when it is on disk
+ * and the marks the page asks for, since a page that lists only titles on
+ * disk has no use for them: that a movie is on disk, and, in place of the
+ * count, the next episode of a series (S2E1), with the film icon when it is
+ * on disk
  */
 export function titleBadges(
 	title: CatalogTitleDto,
-	mark: { requested?: boolean; movieOnDisk?: boolean; nextEpisode?: boolean } = {}
+	mark: { movieOnDisk?: boolean; nextEpisode?: boolean } = {}
 ): CardBadge[] {
 	const onDisk =
 		title.mediaType === 'series'
@@ -25,7 +25,6 @@ export function titleBadges(
 			: mark.movieOnDisk && title.available > 0 && { icon: Video };
 
 	return [
-		...(mark.requested && title.requested ? [{ icon: Download }] : []),
 		...(onDisk ? [onDisk] : []),
 		...(title.cleanupAt
 			? [

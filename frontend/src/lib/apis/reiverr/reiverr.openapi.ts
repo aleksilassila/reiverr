@@ -1877,8 +1877,6 @@ export interface CatalogTitleDto {
   mediaType: "movie" | "series";
   tmdbId: string;
   tmdbItem: TmdbItemDto;
-  /** Whether the user has a request for the title */
-  requested: boolean;
   /** The episodes of the title that have a file; 1 for a movie with a file */
   available: number;
   /**
@@ -1886,8 +1884,8 @@ export interface CatalogTitleDto {
    * @format date-time
    */
   cleanupAt?: string;
-  /** The play state of the title that the user played last */
-  lastPlayState?: PlayStateDto;
+  /** The progress, from 0 to 1, of what the user played last of the title; absent when they played nothing of it */
+  progress?: number;
   /** The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet */
   nextEpisode?: NextEpisodeDto;
 }

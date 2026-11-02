@@ -21,7 +21,6 @@ import { MediaFile } from '../library/media-file.entity.js';
 import { RequestBinding } from '../library/request-binding.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { MediaRequest } from '../requests/request.entity.js';
-import { PlayStatesService } from '../user-data/play-states.service.js';
 import { TitleState } from '../user-data/title-state.entity.js';
 import {
   CatalogDownloadDto,
@@ -62,7 +61,7 @@ const INITIAL = sql`upper(substr(coalesce(sm.name, mm.name, ''), 1, 1))`;
 
 /**
  * The lists the pages show a user: the titles of the user's list, each with
- * what the library and the user's requests have of it, the torrents that
+ * what the library and their play states have of it, the torrents that
  * are downloading, and the titles on disk with what the user's requests
  * hold of them
  */
@@ -71,7 +70,6 @@ export class CatalogService {
   constructor(
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
-    private readonly playStatesService: PlayStatesService,
     private readonly libraryService: LibraryService,
     private readonly downloadsService: DownloadsService,
   ) {}
@@ -130,18 +128,75 @@ export class CatalogService {
       [MyListOrder.LastPlayed]: sql`ts.last_played_at`,
     }[options.order];
     const rows = await titles()
-      .select(['ts.mediaType', 'ts.tmdbId'])
+      .select([
+        'ts.mediaType',
+        'ts.tmdbId',
+        'ts.nextSeason',
+        'ts.nextEpisode',
+        'ts.nextAirDate',
+        // Of what the user played last of the title
+        sql`(select ps.progress from play_state ps
+          where ps.user_id = ${userId}
+            and ps.media_type = ts.media_type and ps.tmdb_id = ts.tmdb_id
+          order by ps.last_played_at desc limit 1) as progress`,
+        sql`exists (select 1 ${FILES_OF_TITLE} and ${OF_NEXT_EPISODE}) as next_on_disk`,
+        // Files, every one managed and held by no request of anyone: what the cleanup deletes
+        sql`(exists (select 1 ${FILES_OF_TITLE}) and not exists (select 1 ${FILES_OF_TITLE}
+          and (not mf.managed or exists (
+            select 1 from request_binding b where b.media_file_id = mf.id
+          )))) as unretained`,
+      ])
       .orderBy({ [sortKey]: direction, [sql`ts.id`]: 'asc' })
       .limit(itemsPerPage)
       .offset(itemsPerPage * (page - 1))
-      .execute<Title[]>();
+      .execute<
+        (Title & {
+          nextSeason: number | null;
+          nextEpisode: number | null;
+          nextAirDate: Date | null;
+          progress: number | null;
+          next_on_disk: number;
+          unretained: number;
+        })[]
+      >();
 
-    return {
-      items: await this.describeTitles(em, userId, rows),
-      total,
-      page,
-      itemsPerPage,
-    };
+    const files = await this.findFiles(em, rows);
+    const { cleanup } = await this.libraryService.getSettings();
+    const nextCleanup = getNextCleanup(new Date(), cleanup);
+
+    const items: CatalogTitleDto[] = [];
+    for (const row of rows) {
+      const titleFiles = files.get(titleKey(row)) ?? [];
+      const cleanedUp = !!nextCleanup && !!row.unretained;
+      items.push({
+        mediaType: row.mediaType,
+        tmdbId: row.tmdbId,
+        tmdbItem: await this.metadataService.getTmdbItem(
+          row.tmdbId,
+          row.mediaType,
+        ),
+        available:
+          row.mediaType === MediaType.Movie
+            ? Math.min(titleFiles.length, 1)
+            : countEpisodes(titleFiles),
+        ...(cleanedUp && { cleanupAt: nextCleanup.toISOString() }),
+        ...(row.progress != null && { progress: row.progress }),
+        ...(row.mediaType === MediaType.Series &&
+          row.nextSeason != null &&
+          row.nextEpisode != null && {
+            nextEpisode: {
+              season: row.nextSeason,
+              episode: row.nextEpisode,
+              ...(row.nextAirDate && {
+                airDate: row.nextAirDate.toISOString(),
+              }),
+              onDisk: !!row.next_on_disk,
+            },
+          }),
+      });
+    }
+
+    return { items, total, page, itemsPerPage };
   }
 
   /**
@@ -436,122 +491,7 @@ export class CatalogService {
     return { items, total, page, itemsPerPage };
   }
 
-  /** The titles as the pages show them, in the order given */
-  private async describeTitles(
-    em: EntityManager,
-    userId: string,
-    titles: Title[],
-  ): Promise<CatalogTitleDto[]> {
-    const requested = await this.findRequested(em, userId, titles);
-    const lastPlayed = await this.playStatesService.findLastPlayed(
-      userId,
-      titles,
-    );
-    const next = await this.findNext(em, userId, titles);
-    const files = await this.findFiles(em, titles);
-    const { cleanup } = await this.libraryService.getSettings();
-    const nextCleanup = getNextCleanup(new Date(), cleanup);
-
-    const items: CatalogTitleDto[] = [];
-    for (const title of titles) {
-      const key = titleKey(title);
-      const lastPlayState = lastPlayed.get(key);
-      const nextEpisode = next.get(key);
-      const titleFiles = files.get(key) ?? [];
-      const cleanedUp =
-        !!nextCleanup &&
-        titleFiles.length > 0 &&
-        titleFiles.every((file) => file.managed && !file.held);
-      items.push({
-        mediaType: title.mediaType,
-        tmdbId: title.tmdbId,
-        tmdbItem: await this.metadataService.getTmdbItem(
-          title.tmdbId,
-          title.mediaType,
-        ),
-        requested: requested.has(key),
-        available:
-          title.mediaType === MediaType.Movie
-            ? Math.min(titleFiles.length, 1)
-            : countEpisodes(titleFiles),
-        ...(cleanedUp && { cleanupAt: nextCleanup.toISOString() }),
-        ...(lastPlayState && { lastPlayState }),
-        ...(nextEpisode && {
-          nextEpisode: {
-            season: nextEpisode.season,
-            episode: nextEpisode.episode,
-            ...(nextEpisode.airDate && {
-              airDate: nextEpisode.airDate.toISOString(),
-            }),
-            onDisk: titleFiles.some(
-              (file) =>
-                file.season === nextEpisode.season &&
-                file.episode <= nextEpisode.episode &&
-                nextEpisode.episode <= file.lastEpisode,
-            ),
-          },
-        }),
-      });
-    }
-
-    return items;
-  }
-
-  /** The keys of the titles the user has a request for */
-  private async findRequested(
-    em: EntityManager,
-    userId: string,
-    titles: Title[],
-  ): Promise<Set<string>> {
-    if (!titles.length) return new Set();
-
-    const requests = await em
-      .createQueryBuilder(MediaRequest, 'r')
-      .select(['r.mediaType', 'r.tmdbId'], true)
-      .where({ userId, tmdbId: { $in: titles.map((title) => title.tmdbId) } })
-      .execute<Title[]>();
-
-    return new Set(requests.map(titleKey));
-  }
-
-  /** The next episode the user's rows have stamped for the series, by key */
-  private async findNext(
-    em: EntityManager,
-    userId: string,
-    titles: Title[],
-  ): Promise<Map<string, NextEpisodeRow>> {
-    const series = titles.filter(
-      (title) => title.mediaType === MediaType.Series,
-    );
-    if (!series.length) return new Map();
-
-    const rows = await em.find(
-      TitleState,
-      {
-        userId,
-        mediaType: MediaType.Series,
-        tmdbId: { $in: series.map((title) => title.tmdbId) },
-        nextSeason: { $ne: null },
-      },
-      {
-        ...READ,
-        fields: ['tmdbId', 'nextSeason', 'nextEpisode', 'nextAirDate'],
-      },
-    );
-
-    return new Map(
-      rows.map((row) => [
-        titleKey({ mediaType: MediaType.Series, tmdbId: row.tmdbId }),
-        {
-          season: row.nextSeason as number,
-          episode: row.nextEpisode as number,
-          airDate: row.nextAirDate ?? null,
-        },
-      ]),
-    );
-  }
-
-  /** The files of the titles, by key, with whether a request of anyone holds them */
+  /** The files of the titles in the library, by key, for the count of episodes on disk */
   private async findFiles(
     em: EntityManager,
     titles: Title[],
@@ -563,34 +503,14 @@ export class CatalogService {
       { $or: titles.map(({ mediaType, tmdbId }) => ({ mediaType, tmdbId })) },
       {
         ...READ,
-        fields: [
-          'id',
-          'mediaType',
-          'tmdbId',
-          'season',
-          'episode',
-          'lastEpisode',
-          'managed',
-        ],
+        fields: ['mediaType', 'tmdbId', 'season', 'episode', 'lastEpisode'],
       },
-    );
-    const held = new Set(
-      (
-        await em.find(
-          RequestBinding,
-          { mediaFileId: { $in: files.map((file) => file.id) } },
-          { ...READ, fields: ['mediaFileId'] },
-        )
-      ).map((binding) => binding.mediaFileId),
     );
 
     const byTitle = new Map<string, TitleFile[]>();
     for (const file of files) {
       const key = titleKey(file);
-      byTitle.set(key, [
-        ...(byTitle.get(key) ?? []),
-        { ...file, held: held.has(file.id) },
-      ]);
+      byTitle.set(key, [...(byTitle.get(key) ?? []), file]);
     }
 
     return byTitle;
@@ -599,12 +519,7 @@ export class CatalogService {
 
 const titleKey = ({ mediaType, tmdbId }: Title) => `${mediaType}:${tmdbId}`;
 
-type NextEpisodeRow = { season: number; episode: number; airDate: Date | null };
-
-type TitleFile = Pick<
-  MediaFile,
-  'id' | 'season' | 'episode' | 'lastEpisode' | 'managed'
-> & { held: boolean };
+type TitleFile = Pick<MediaFile, 'season' | 'episode' | 'lastEpisode'>;
 
 /** The titles whose name (from mm, sm) starts with the letter; '#' is those that start with none */
 function letterFilter(letter: Letter) {
@@ -612,6 +527,12 @@ function letterFilter(letter: Letter) {
     ? sql`${INITIAL} not between 'A' and 'Z'`
     : sql`${INITIAL} = ${letter}`;
 }
+
+// The files (mf) of the title of a row (ts), and a file covering the stamped next episode
+const FILES_OF_TITLE = sql`from media_file mf
+  where mf.media_type = ts.media_type and mf.tmdb_id = ts.tmdb_id`;
+const OF_NEXT_EPISODE = sql`(mf.season = ts.next_season
+  and ts.next_episode between mf.episode and mf.last_episode)`;
 
 // The stamped air date is a day at UTC midnight, so an episode airing today has aired
 const unwatched = (now: number) => sql`ts.next_air_date <= ${now}`;
@@ -646,11 +567,8 @@ function myListStatusFilter(status?: MyListStatus) {
 function myListAvailabilityFilter(availability?: MyListAvailability) {
   const now = Date.now();
   const available = sql`exists (
-    select 1 from media_file mf
-    where mf.media_type = ts.media_type and mf.tmdb_id = ts.tmdb_id
-      and (${nothingToWatch(now)}
-        or (mf.season = ts.next_season
-          and ts.next_episode between mf.episode and mf.last_episode))
+    select 1 ${FILES_OF_TITLE}
+      and (${nothingToWatch(now)} or ${OF_NEXT_EPISODE})
   )`;
 
   if (availability === MyListAvailability.Available) {

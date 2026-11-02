@@ -3,7 +3,6 @@ import { EpisodeRefDto, MediaType, Title } from '../common/common.dto.js';
 import { TorrentStatus } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 import { RequestRuleDto } from '../requests/requests.dto.js';
-import { PlayStateDto } from '../user-data/user-data.dto.js';
 
 /** A title of a catalogue, with its TMDB item */
 export class CatalogItemDto implements Title {
@@ -181,11 +180,8 @@ export class NextEpisodeDto {
   onDisk: boolean;
 }
 
-/** A title of a catalogue of the user, with what the library and their requests have of it */
+/** A title of the user's list, with what the library and their play states have of it */
 export class CatalogTitleDto extends CatalogItemDto {
-  @ApiProperty({ description: 'Whether the user has a request for the title' })
-  requested: boolean;
-
   @ApiProperty({
     description:
       'The episodes of the title that have a file; 1 for a movie with a file',
@@ -202,11 +198,11 @@ export class CatalogTitleDto extends CatalogItemDto {
   cleanupAt?: string;
 
   @ApiProperty({
-    type: PlayStateDto,
     required: false,
-    description: 'The play state of the title that the user played last',
+    description:
+      'The progress, from 0 to 1, of what the user played last of the title; absent when they played nothing of it',
   })
-  lastPlayState?: PlayStateDto;
+  progress?: number;
 
   @ApiProperty({
     type: NextEpisodeDto,

@@ -64,7 +64,7 @@
 						on:enter={scrollIntoView({ left: 128 })}
 						size="lg"
 						item={item.tmdbItem}
-						progress={item.lastPlayState?.progress ?? 0}
+						progress={item.progress ?? 0}
 					/>
 				{/each}
 			</Carousel>

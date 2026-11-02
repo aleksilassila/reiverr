@@ -199,7 +199,6 @@ describe('CatalogService', () => {
     catalog = new CatalogService(
       orm.em,
       metadata,
-      playStates,
       {
         getSettings: async () => ({ cleanup: CleanupSchedule.Daily }),
       } as unknown as LibraryService,
@@ -242,16 +241,16 @@ describe('CatalogService', () => {
       await listed(MediaType.Movie, '2');
     });
 
-    it('lists the titles of the list with what the library and the requests have of them', async () => {
+    it('lists the titles of the list with what the library has of them', async () => {
       const { items, total } = await myList();
 
       expect(total).toBe(3);
       expect(names({ items })).toEqual(['Another Movie', 'Movie', 'Series']);
       const [anotherMovie, movie, series] = items;
-      expect(series).toMatchObject({ requested: true, available: 3 });
-      expect(movie).toMatchObject({ requested: false, available: 1 });
+      expect(series.available).toBe(3);
+      expect(movie.available).toBe(1);
       // A title without files has nothing to clean up
-      expect(anotherMovie).toMatchObject({ requested: false, available: 0 });
+      expect(anotherMovie.available).toBe(0);
       expect(anotherMovie.cleanupAt).toBeUndefined();
     });
 
@@ -266,7 +265,7 @@ describe('CatalogService', () => {
       expect(Date.parse(another.cleanupAt)).toBeGreaterThan(Date.now());
     });
 
-    it('pages, and gives each title the play state played last', async () => {
+    it('pages, and gives each title the progress of what was played last', async () => {
       await RequestContext.create(orm.em, () =>
         playStates.updateOrCreateMoviePlayState(userId, '1', {
           progress: 0.5,
@@ -281,18 +280,11 @@ describe('CatalogService', () => {
       const page = await myList({ page: 2, itemsPerPage: 2 });
       expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
       expect(names(page)).toEqual(['Series']);
-      expect(page.items[0].lastPlayState).toMatchObject({
-        mediaType: MediaType.Series,
-        episode: 1,
-        progress: 0.2,
-      });
+      expect(page.items[0].progress).toBe(0.2);
 
       const { items } = await myList();
-      expect(items[1].lastPlayState).toMatchObject({
-        mediaType: MediaType.Movie,
-        progress: 0.5,
-      });
-      expect(items[0].lastPlayState).toBeUndefined();
+      expect(items[1].progress).toBe(0.5);
+      expect(items[0].progress).toBeUndefined();
     });
 
     it('does not count a watched episode as a watched movie', async () => {
@@ -407,7 +399,7 @@ describe('CatalogService', () => {
 
       const { items } = await myList({ order: MyListOrder.LastPlayed });
       expect(names({ items })[0]).toBe('Movie');
-      expect(items[0].lastPlayState).toMatchObject({ progress: 0.5 });
+      expect(items[0].progress).toBe(0.5);
 
       expect(
         names(await myList({ status: MyListStatus.ContinueWatching })),

@@ -196,9 +196,8 @@
 								<TmdbCard
 									{index}
 									item={item.tmdbItem}
-									progress={item.lastPlayState?.progress || 0}
+									progress={item.progress ?? 0}
 									badges={titleBadges(item, {
-										requested: true,
 										movieOnDisk: true,
 										nextEpisode: true
 									})}
