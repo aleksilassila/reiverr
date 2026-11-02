@@ -1893,10 +1893,10 @@ export interface CatalogTitleDto {
 }
 
 export interface CatalogDownloadDto {
-  infoHash: string;
   mediaType: "movie" | "series";
   tmdbId: string;
   tmdbItem: TmdbItemDto;
+  infoHash: string;
   /** The name of the torrent */
   name: string;
   /** The episodes the torrent downloads, in order; a movie is one at season and episode 0 */

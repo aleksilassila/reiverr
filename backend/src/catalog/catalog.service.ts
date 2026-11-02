@@ -20,9 +20,7 @@ import { countEpisodes } from '../library/library.utils.js';
 import { MediaFile } from '../library/media-file.entity.js';
 import { RequestBinding } from '../library/request-binding.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
-import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
-import { RequestRuleDto } from '../requests/requests.dto.js';
 import { PlayStatesService } from '../user-data/play-states.service.js';
 import { TitleState } from '../user-data/title-state.entity.js';
 import {
@@ -49,7 +47,13 @@ const MY_LIST_NATURAL: Record<MyListOrder, OrderDirection> = {
   [MyListOrder.LastPlayed]: OrderDirection.Desc,
 };
 
-// The sort keys read from the metadata, which the my list joins as mm and sm
+const ON_DISK_NATURAL: Record<OnDiskOrder, OrderDirection> = {
+  [OnDiskOrder.Size]: OrderDirection.Desc,
+  [OnDiskOrder.Name]: OrderDirection.Asc,
+  [OnDiskOrder.Added]: OrderDirection.Desc,
+};
+
+// The sort keys read from the metadata, which the my list and the titles on disk join as mm and sm
 const NAME = sql`coalesce(sm.name, mm.name)`;
 const FIRST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.first_release_date)`;
 const LAST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.last_release_date)`;
@@ -305,98 +309,107 @@ export class CatalogService {
     },
   ): Promise<PaginatedResponseDto<CatalogTitleOnDiskDto>> {
     const em = this.em.fork();
-    const requestedOnly = options.status === OnDiskStatus.Requested;
-    const titlesOnDisk = await this.findFilesByTitle(em, options.mediaType);
-    const heldByTitle = await this.findHeldByTitle(
-      em,
-      userId,
-      options.mediaType,
-    );
-
-    // A title on disk as listed, with the figures it is ordered by: the user's with the requested status, the title's without
-    type TitleRow = Omit<CatalogTitleOnDiskDto, 'tmdbItem' | 'rule'> & {
-      bytesForOrder: number;
-      addedAtForOrder: number;
-    };
-    const titleRows: TitleRow[] = [];
-    for (const files of titlesOnDisk) {
-      const held = heldByTitle.get(titleKey(files)) ?? NOTHING_HELD;
-      if (requestedOnly && !held.fulfilledCount) continue;
-      titleRows.push({
-        mediaType: files.mediaType,
-        tmdbId: files.tmdbId,
-        files: files.fileCount,
-        unretained: files.unretainedCount,
-        diskBytes: files.diskBytes,
-        requests: held.requestCount,
-        fulfilled: held.fulfilledCount,
-        heldBytes: held.heldBytes,
-        bytesForOrder: requestedOnly ? held.heldBytes : files.diskBytes,
-        addedAtForOrder: requestedOnly
-          ? held.newestHeldFileAt
-          : files.newestFileAt,
-      });
-    }
-
-    // The cached names, for the letter and the name order; without one a title is '': first by name, under '#'
-    const nameByKey = new Map<string, string>();
-    if (options.letter || options.order === OnDiskOrder.Name) {
-      for (const mediaType of [MediaType.Movie, MediaType.Series]) {
-        const namesOfType = await this.metadataService.findNames(
-          em,
-          mediaType,
-          titleRows
-            .filter((row) => row.mediaType === mediaType)
-            .map((row) => row.tmdbId),
-        );
-        for (const [tmdbId, name] of namesOfType) {
-          nameByKey.set(titleKey({ mediaType, tmdbId }), name);
-        }
-      }
-    }
-    const nameOf = (row: TitleRow) => nameByKey.get(titleKey(row)) ?? '';
-    const matchingRows = options.letter
-      ? titleRows.filter((row) => initialOf(nameOf(row)) === options.letter)
-      : titleRows;
-    const naturalDirection = {
-      [OnDiskOrder.Size]: OrderDirection.Desc,
-      [OnDiskOrder.Name]: OrderDirection.Asc,
-      [OnDiskOrder.Added]: OrderDirection.Desc,
-    }[options.order];
-    // The order's own direction, reversed when the other is asked for
-    const directionSign =
-      options.direction && options.direction !== naturalDirection ? -1 : 1;
-    const byTitleId = (a: TitleRow, b: TitleRow) =>
-      a.tmdbId.localeCompare(b.tmdbId) ||
-      a.mediaType.localeCompare(b.mediaType);
-    if (options.order === OnDiskOrder.Name) {
-      matchingRows.sort(
-        (a, b) =>
-          directionSign * nameOf(a).localeCompare(nameOf(b)) || byTitleId(a, b),
-      );
-    } else if (options.order === OnDiskOrder.Added) {
-      matchingRows.sort(
-        (a, b) =>
-          directionSign * (b.addedAtForOrder - a.addedAtForOrder) ||
-          byTitleId(a, b),
-      );
-    } else {
-      matchingRows.sort(
-        (a, b) =>
-          directionSign * (b.bytesForOrder - a.bytesForOrder) ||
-          byTitleId(a, b),
-      );
-    }
-
     const { page, itemsPerPage } = options.pagination;
-    const pageRows = matchingRows.slice(
-      (page - 1) * itemsPerPage,
-      page * itemsPerPage,
-    );
-    const ruleByKey = await this.findRules(em, userId, pageRows);
+    const requestedOnly = options.status === OnDiskStatus.Requested;
+
+    // The user's requests for the title of the file (mf), those with their file, and the files they hold, each once however many hold it
+    const requestsOfTitle = sql`from request r
+      where r.user_id = ${userId}
+        and r.media_type = mf.media_type and r.tmdb_id = mf.tmdb_id`;
+    const fulfilledOfTitle = sql`from request r
+      join request_binding b on b.request_id = r.id and b.media_file_id is not null
+      where r.user_id = ${userId}
+        and r.media_type = mf.media_type and r.tmdb_id = mf.tmdb_id`;
+    const heldFilesOfTitle = sql`from media_file f
+      where f.id in (select b.media_file_id ${fulfilledOfTitle})`;
+
+    // The rows are the files (mf), grouped by title below; the filters hold for every file of a title
+    const titles = () => {
+      const builder = em
+        .createQueryBuilder(MediaFile, 'mf')
+        .leftJoin(sql.ref('movie_metadata'), 'mm', {
+          'mm.tmdb_id': sql.ref('mf.tmdb_id'),
+          'mf.media_type': MediaType.Movie,
+        })
+        .leftJoin(sql.ref('series_metadata'), 'sm', {
+          'sm.tmdb_id': sql.ref('mf.tmdb_id'),
+          'mf.media_type': MediaType.Series,
+        });
+      if (options.mediaType) {
+        builder.andWhere({ mediaType: options.mediaType });
+      }
+      if (requestedOnly) {
+        builder.andWhere(sql`exists (select 1 ${fulfilledOfTitle})`);
+      }
+      if (options.letter) builder.andWhere(letterFilter(options.letter));
+
+      return builder;
+    };
+
+    const { total } = await titles()
+      .select(sql`count(distinct mf.media_type || ':' || mf.tmdb_id) as total`)
+      .execute<{ total: number }>('get');
+
+    const direction = options.direction ?? ON_DISK_NATURAL[options.order];
+    const sortKey = {
+      [OnDiskOrder.Size]: requestedOnly ? sql`held_bytes` : sql`disk_bytes`,
+      [OnDiskOrder.Name]: NAME,
+      [OnDiskOrder.Added]: requestedOnly
+        ? sql`newest_held_file_at`
+        : sql`newest_file_at`,
+    }[options.order];
+    const rows = await titles()
+      .select([
+        'mf.mediaType',
+        'mf.tmdbId',
+        sql`count(*) as file_count`,
+        // Managed and held by no request of anyone: what the cleanup deletes
+        sql`sum(mf.managed and not exists (
+          select 1 from request_binding b where b.media_file_id = mf.id
+        )) as unretained_count`,
+        sql`sum(mf.size) as disk_bytes`,
+        sql`max(mf.created_at) as newest_file_at`,
+        sql`(select count(*) ${requestsOfTitle}) as request_count`,
+        sql`(select count(*) ${fulfilledOfTitle}) as fulfilled_count`,
+        sql`(select coalesce(sum(f.size), 0) ${heldFilesOfTitle}) as held_bytes`,
+        sql`(select coalesce(max(f.created_at), 0) ${heldFilesOfTitle}) as newest_held_file_at`,
+        sql`rr.id as rule_id`,
+        sql`rr.keep_next`,
+        sql`rr.keep_watched`,
+        sql`rr.keep_watched_hours`,
+      ])
+      .leftJoin(sql.ref('request_rule'), 'rr', {
+        'rr.user_id': userId,
+        'rr.media_type': sql.ref('mf.media_type'),
+        'rr.tmdb_id': sql.ref('mf.tmdb_id'),
+      })
+      .groupBy(['mf.mediaType', 'mf.tmdbId'])
+      .orderBy({
+        [sortKey]: direction,
+        [sql`mf.tmdb_id`]: 'asc',
+        [sql`mf.media_type`]: 'asc',
+      })
+      .limit(itemsPerPage)
+      .offset(itemsPerPage * (page - 1))
+      .execute<
+        (Title & {
+          file_count: number;
+          unretained_count: number;
+          disk_bytes: number;
+          newest_file_at: number;
+          request_count: number;
+          fulfilled_count: number;
+          held_bytes: number;
+          newest_held_file_at: number;
+          rule_id: string | null;
+          keep_next: number | null;
+          keep_watched: number | null;
+          keep_watched_hours: number | null;
+        })[]
+      >();
+
     const items: CatalogTitleOnDiskDto[] = [];
-    for (const row of pageRows) {
-      const rule = ruleByKey.get(titleKey(row));
+    for (const row of rows) {
       items.push({
         mediaType: row.mediaType,
         tmdbId: row.tmdbId,
@@ -404,183 +417,23 @@ export class CatalogService {
           row.tmdbId,
           row.mediaType,
         ),
-        files: row.files,
-        unretained: row.unretained,
-        diskBytes: row.diskBytes,
-        requests: row.requests,
-        fulfilled: row.fulfilled,
-        heldBytes: row.heldBytes,
-        ...(rule && { rule }),
+        files: row.file_count,
+        unretained: row.unretained_count,
+        diskBytes: row.disk_bytes,
+        requests: row.request_count,
+        fulfilled: row.fulfilled_count,
+        heldBytes: row.held_bytes,
+        ...(row.rule_id && {
+          rule: {
+            keepNext: row.keep_next,
+            keepWatched: row.keep_watched,
+            keepWatchedHours: row.keep_watched_hours,
+          },
+        }),
       });
     }
 
-    return { items, total: matchingRows.length, page, itemsPerPage };
-  }
-
-  /**
-   * Every title with files, of one type or both: how many, how many of
-   * them are managed and held by no request of anyone (what the cleanup
-   * deletes), what they take, and when the newest was indexed
-   */
-  private async findFilesByTitle(
-    em: EntityManager,
-    mediaType?: MediaType,
-  ): Promise<TitleFiles[]> {
-    const builder = em
-      .createQueryBuilder(MediaFile, 'mf')
-      .select([
-        'mf.mediaType',
-        'mf.tmdbId',
-        sql`count(*) as file_count`,
-        sql`sum(mf.managed and not exists (
-          select 1 from request_binding b where b.media_file_id = mf.id
-        )) as unretained_count`,
-        sql`sum(mf.size) as disk_bytes`,
-        sql`max(mf.created_at) as newest_file_at`,
-      ])
-      .groupBy(['mf.mediaType', 'mf.tmdbId']);
-    if (mediaType) builder.andWhere({ mediaType });
-    const rows = await builder.execute<
-      {
-        mediaType: MediaType;
-        tmdbId: string;
-        file_count: number;
-        unretained_count: number;
-        disk_bytes: number;
-        newest_file_at: number;
-      }[]
-    >();
-
-    return rows.map((row) => ({
-      mediaType: row.mediaType,
-      tmdbId: row.tmdbId,
-      fileCount: row.file_count,
-      unretainedCount: row.unretained_count,
-      diskBytes: row.disk_bytes,
-      newestFileAt: row.newest_file_at,
-    }));
-  }
-
-  /**
-   * What the user has of each title, by key: their requests, those with
-   * their file, what the files take (as the usage of the user counts them,
-   * a file held by several requests once) and when the newest of them was
-   * indexed
-   */
-  private async findHeldByTitle(
-    em: EntityManager,
-    userId: string,
-    mediaType?: MediaType,
-  ): Promise<Map<string, TitleHeld>> {
-    const requests = await em.find(
-      MediaRequest,
-      { userId, ...(mediaType && { mediaType }) },
-      { ...READ, fields: ['id', 'mediaType', 'tmdbId'] },
-    );
-    if (!requests.length) return new Map();
-
-    const bindings = await em.find(
-      RequestBinding,
-      { requestId: { $in: requests.map((request) => request.id) } },
-      { ...READ, fields: ['requestId', 'mediaFileId'] },
-    );
-    const bindingByRequestId = new Map(
-      bindings.map((binding) => [binding.requestId, binding]),
-    );
-    const heldFileIds = bindings.flatMap(
-      (binding) => binding.mediaFileId ?? [],
-    );
-    const fileById = new Map(
-      heldFileIds.length
-        ? (
-            await em.find(
-              MediaFile,
-              { id: { $in: heldFileIds } },
-              { ...READ, fields: ['id', 'size', 'createdAt'] },
-            )
-          ).map((file) => [file.id, file])
-        : [],
-    );
-
-    // The requests of each title, those with their file, and the files, each once
-    const tallyByKey = new Map<
-      string,
-      { requestCount: number; fulfilledCount: number; heldFileIds: Set<string> }
-    >();
-    for (const request of requests) {
-      const key = titleKey(request);
-      const tally = tallyByKey.get(key) ?? {
-        requestCount: 0,
-        fulfilledCount: 0,
-        heldFileIds: new Set(),
-      };
-      tally.requestCount++;
-      const heldFileId = bindingByRequestId.get(request.id)?.mediaFileId;
-      if (heldFileId) {
-        tally.fulfilledCount++;
-        tally.heldFileIds.add(heldFileId);
-      }
-      tallyByKey.set(key, tally);
-    }
-
-    return new Map(
-      [...tallyByKey].map(([key, tally]) => {
-        const heldFiles = [...tally.heldFileIds].flatMap(
-          (id) => fileById.get(id) ?? [],
-        );
-
-        return [
-          key,
-          {
-            requestCount: tally.requestCount,
-            fulfilledCount: tally.fulfilledCount,
-            heldBytes: heldFiles.reduce((sum, file) => sum + file.size, 0),
-            newestHeldFileAt: Math.max(
-              0,
-              ...heldFiles.map((file) => file.createdAt.getTime()),
-            ),
-          },
-        ];
-      }),
-    );
-  }
-
-  /** The limits of the rules of the user for the titles, by key */
-  private async findRules(
-    em: EntityManager,
-    userId: string,
-    titles: Title[],
-  ): Promise<Map<string, RequestRuleDto>> {
-    if (!titles.length) return new Map();
-
-    const rules = await em.find(
-      RequestRule,
-      {
-        userId,
-        $or: titles.map(({ mediaType, tmdbId }) => ({ mediaType, tmdbId })),
-      },
-      {
-        ...READ,
-        fields: [
-          'mediaType',
-          'tmdbId',
-          'keepNext',
-          'keepWatched',
-          'keepWatchedHours',
-        ],
-      },
-    );
-
-    return new Map(
-      rules.map((rule) => [
-        titleKey(rule),
-        {
-          keepNext: rule.keepNext,
-          keepWatched: rule.keepWatched,
-          keepWatchedHours: rule.keepWatchedHours,
-        },
-      ]),
-    );
+    return { items, total, page, itemsPerPage };
   }
 
   /** The titles as the pages show them, in the order given */
@@ -747,29 +600,6 @@ export class CatalogService {
 const titleKey = ({ mediaType, tmdbId }: Title) => `${mediaType}:${tmdbId}`;
 
 type NextEpisodeRow = { season: number; episode: number; airDate: Date | null };
-
-/** A title with files in the library: how many, how many of them the cleanup deletes, what they take, and when the newest was indexed */
-interface TitleFiles extends Title {
-  fileCount: number;
-  unretainedCount: number;
-  diskBytes: number;
-  newestFileAt: number;
-}
-
-/** What the user has of a title: their requests, those with their file, what the files take (as their usage counts it) and when the newest held file was indexed */
-interface TitleHeld {
-  requestCount: number;
-  fulfilledCount: number;
-  heldBytes: number;
-  newestHeldFileAt: number;
-}
-
-const NOTHING_HELD: TitleHeld = {
-  requestCount: 0,
-  fulfilledCount: 0,
-  heldBytes: 0,
-  newestHeldFileAt: 0,
-};
 
 type TitleFile = Pick<
   MediaFile,

@@ -1,9 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
+import { EpisodeRefDto, MediaType, Title } from '../common/common.dto.js';
 import { TorrentStatus } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 import { RequestRuleDto } from '../requests/requests.dto.js';
 import { PlayStateDto } from '../user-data/user-data.dto.js';
+
+/** A title of a catalogue, with its TMDB item */
+export class CatalogItemDto implements Title {
+  @ApiProperty({ enum: MediaType })
+  mediaType: MediaType;
+
+  @ApiProperty()
+  tmdbId: string;
+
+  @ApiProperty({ type: TmdbItemDto })
+  tmdbItem: TmdbItemDto;
+}
 
 /** The sorts of the downloads, as the titles on disk sort on the downloads page */
 export enum DownloadsOrder {
@@ -21,18 +33,9 @@ export enum DownloadsStatus {
 }
 
 /** A torrent that is downloading, as the engine has it, with the title it downloads */
-export class CatalogDownloadDto {
+export class CatalogDownloadDto extends CatalogItemDto {
   @ApiProperty({ type: 'string' })
   infoHash: string;
-
-  @ApiProperty({ enum: MediaType })
-  mediaType: MediaType;
-
-  @ApiProperty()
-  tmdbId: string;
-
-  @ApiProperty({ type: TmdbItemDto })
-  tmdbItem: TmdbItemDto;
 
   @ApiProperty({ description: 'The name of the torrent' })
   name: string;
@@ -93,16 +96,7 @@ export enum OnDiskStatus {
 }
 
 /** A title with files in the library: what they take, and what the requests of the user hold of them */
-export class CatalogTitleOnDiskDto {
-  @ApiProperty({ enum: MediaType })
-  mediaType: MediaType;
-
-  @ApiProperty()
-  tmdbId: string;
-
-  @ApiProperty({ type: TmdbItemDto })
-  tmdbItem: TmdbItemDto;
-
+export class CatalogTitleOnDiskDto extends CatalogItemDto {
   @ApiProperty({ description: 'The files of the title in the library' })
   files: number;
 
@@ -188,16 +182,7 @@ export class NextEpisodeDto {
 }
 
 /** A title of a catalogue of the user, with what the library and their requests have of it */
-export class CatalogTitleDto {
-  @ApiProperty({ enum: MediaType })
-  mediaType: MediaType;
-
-  @ApiProperty()
-  tmdbId: string;
-
-  @ApiProperty({ type: TmdbItemDto })
-  tmdbItem: TmdbItemDto;
-
+export class CatalogTitleDto extends CatalogItemDto {
   @ApiProperty({ description: 'Whether the user has a request for the title' })
   requested: boolean;
 
