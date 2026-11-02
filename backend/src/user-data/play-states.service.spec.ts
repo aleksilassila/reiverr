@@ -77,13 +77,13 @@ describe('PlayStatesService', () => {
     expect(
       await request(() => playStates.findSeriesPlayStates(userId, TMDB_ID)),
     ).toMatchObject([
-      { mediaType: 'episode', season: 1, episode: 1, watched: true },
+      { mediaType: 'series', season: 1, episode: 1, watched: true },
     ]);
     expect(
       await request(() =>
         playStates.findEpisodePlayState(userId, TMDB_ID, 1, 1),
       ),
-    ).toMatchObject({ mediaType: 'episode', progress: 0, watched: true });
+    ).toMatchObject({ mediaType: 'series', progress: 0, watched: true });
   });
 
   it('marks only the state of the played title as played, creating it', async () => {

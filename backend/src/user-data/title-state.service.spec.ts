@@ -1,6 +1,6 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { MovieMetadata, SeriesMetadata } from '../metadata/metadata.entity.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { TmdbMovieFull, TmdbSeriesFull } from '../metadata/tmdb/tmdb.dto.js';
@@ -48,7 +48,7 @@ describe('TitleStateService', () => {
     const state = new PlayState();
     state.userId = userId;
     state.tmdbId = TMDB_ID;
-    state.mediaType = MediaTypeFull.Episode;
+    state.mediaType = MediaType.Series;
     state.season = season;
     state.episode = episode;
     state.watched = true;

@@ -1,11 +1,6 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
-import {
-  Letter,
-  MediaType,
-  MediaTypeFull,
-  OrderDirection,
-} from '../common/common.dto.js';
+import { Letter, MediaType, OrderDirection } from '../common/common.dto.js';
 import {
   TorrentItemStatus,
   TorrentStatus,
@@ -117,7 +112,7 @@ describe('CatalogService', () => {
     row.managed = options.managed ?? false;
     return insert(row);
   };
-  const request = (tmdbId: string, mediaType: MediaTypeFull, episode = 0) => {
+  const request = (tmdbId: string, mediaType: MediaType, episode = 0) => {
     const row = new MediaRequest();
     row.userId = userId;
     row.tmdbId = tmdbId;
@@ -227,7 +222,7 @@ describe('CatalogService', () => {
       lastEpisode: 3,
       size: 200,
     });
-    const { id } = await request('1', MediaTypeFull.Episode, 1);
+    const { id } = await request('1', MediaType.Series, 1);
     await bind(id, { mediaFileId: held.id });
     await file(MediaType.Movie, '1', 0, new Date('2026-01-03T00:00:00Z'), {
       size: 400,
@@ -287,14 +282,14 @@ describe('CatalogService', () => {
       expect(page).toMatchObject({ total: 3, page: 2, itemsPerPage: 2 });
       expect(names(page)).toEqual(['Series']);
       expect(page.items[0].lastPlayState).toMatchObject({
-        mediaType: MediaTypeFull.Episode,
+        mediaType: MediaType.Series,
         episode: 1,
         progress: 0.2,
       });
 
       const { items } = await myList();
       expect(items[1].lastPlayState).toMatchObject({
-        mediaType: MediaTypeFull.Movie,
+        mediaType: MediaType.Movie,
         progress: 0.5,
       });
       expect(items[0].lastPlayState).toBeUndefined();
@@ -565,7 +560,7 @@ describe('CatalogService', () => {
         ),
       ];
       // The user's request for the second episode waits for the pack
-      const { id } = await request('1', MediaTypeFull.Episode, 2);
+      const { id } = await request('1', MediaType.Series, 2);
       const binding = new RequestBinding();
       binding.requestId = id;
       binding.torrentItemId = 'item-2';
@@ -683,10 +678,10 @@ describe('CatalogService', () => {
         }),
       );
       for (const episode of [2, 3]) {
-        const { id } = await request('1', MediaTypeFull.Episode, episode);
+        const { id } = await request('1', MediaType.Series, episode);
         await bind(id, { mediaFileId: shared.id });
       }
-      const { id: fourth } = await request('1', MediaTypeFull.Episode, 4);
+      const { id: fourth } = await request('1', MediaType.Series, 4);
       await bind(fourth, { torrentItemId: 'item', pendingBytes: 50 });
       await file(MediaType.Series, '1', 1, new Date('2026-01-05T00:00:00Z'), {
         managed: true,
@@ -704,7 +699,7 @@ describe('CatalogService', () => {
           tmdbId: '1',
         }),
       );
-      const { id: movie } = await request('1', MediaTypeFull.Movie);
+      const { id: movie } = await request('1', MediaType.Movie);
       await bind(movie, { mediaFileId: movieFile.id });
     });
 
@@ -793,7 +788,7 @@ describe('CatalogService', () => {
       await insert(
         SeriesMetadata.from({ ...SERIES, id: 3, name: '24' } as TmdbSeriesFull),
       );
-      const { id } = await request('3', MediaTypeFull.Episode, 1);
+      const { id } = await request('3', MediaType.Series, 1);
       await bind(id, {
         mediaFileId: (
           await file(MediaType.Series, '3', 1, new Date('2026-01-06T00:00:00Z'))

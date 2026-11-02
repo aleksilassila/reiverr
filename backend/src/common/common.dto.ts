@@ -80,11 +80,34 @@ export const titleOf = ({ mediaType, tmdbId }: Title): Title => ({
   tmdbId,
 });
 
-export enum MediaTypeFull {
-  Movie = 'movie',
-  Series = 'series',
-  Episode = 'episode',
+/** A user and a title, which the rules and the title states are kept per */
+export interface Pair extends Title {
+  userId: string;
 }
+
+export const pairKey = ({ userId, mediaType, tmdbId }: Pair) =>
+  `${userId}/${mediaType}/${tmdbId}`;
+
+export const uniquePairs = (pairs: Pair[]): Pair[] => [
+  ...new Map(
+    pairs.map(({ userId, mediaType, tmdbId }) => [
+      pairKey({ userId, mediaType, tmdbId }),
+      { userId, mediaType, tmdbId },
+    ]),
+  ).values(),
+];
+
+export const seriesPair = (userId: string, tmdbId: string): Pair => ({
+  userId,
+  mediaType: MediaType.Series,
+  tmdbId,
+});
+
+export const moviePair = (userId: string, tmdbId: string): Pair => ({
+  userId,
+  mediaType: MediaType.Movie,
+  tmdbId,
+});
 
 export enum OrderDirection {
   Asc = 'asc',

@@ -1219,7 +1219,7 @@ export interface SeriesMetadataDto {
 export interface PlayStateDto {
   id: string;
   tmdbId: number;
-  mediaType: "movie" | "series" | "episode";
+  mediaType: "movie" | "series";
   userId: string;
   season?: number;
   episode?: number;
@@ -1286,7 +1286,7 @@ export interface MediaRequestDto {
   id: string;
   userId: string;
   tmdbId: string;
-  mediaType: "movie" | "series" | "episode";
+  mediaType: "movie" | "series";
   /** 0 for movies */
   season: number;
   /** 0 for movies */
@@ -1379,7 +1379,7 @@ export interface AdminMediaRequestDto {
   id: string;
   userId: string;
   tmdbId: string;
-  mediaType: "movie" | "series" | "episode";
+  mediaType: "movie" | "series";
   /** 0 for movies */
   season: number;
   /** 0 for movies */

@@ -7,7 +7,7 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
-import { MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 
 @Entity()
@@ -23,9 +23,9 @@ export class PlayState {
   @Property()
   tmdbId: string;
 
-  @ApiProperty({ enum: MediaTypeFull })
+  @ApiProperty({ required: true, enum: MediaType })
   @Property({ type: 'string' })
-  mediaType: MediaTypeFull;
+  mediaType: MediaType;
 
   @ApiProperty({ required: true, type: 'string' })
   @ManyToOne(() => User, {

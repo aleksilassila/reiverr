@@ -7,7 +7,7 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
-import { MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 
 /**
@@ -36,9 +36,9 @@ export class MediaRequest {
   @Property()
   tmdbId: string;
 
-  @ApiProperty({ enum: MediaTypeFull })
+  @ApiProperty({ enum: MediaType })
   @Property({ type: 'string' })
-  mediaType: MediaTypeFull;
+  mediaType: MediaType;
 
   @ApiProperty({ type: 'number', description: '0 for movies' })
   @Property({ default: 0 })

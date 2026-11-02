@@ -4,16 +4,13 @@ import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
-import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { MediaType, Pair, Title } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { PlayState } from './play-state.entity.js';
 import { nextOf, TitleDocument } from './next-episode.js';
 import { TitleState } from './title-state.entity.js';
 
 const READ = { disableIdentityMap: true };
-
-type Title = { mediaType: MediaType; tmdbId: string };
-type Pair = Title & { userId: string };
 
 /**
  * The rows of what users have with titles: the list, the last play, and
@@ -162,11 +159,7 @@ export class TitleStateService implements OnApplicationBootstrap {
   ): Promise<void> {
     const playStates = await em.find(
       PlayState,
-      {
-        userId: pair.userId,
-        tmdbId: pair.tmdbId,
-        mediaType: fullTypeOf(pair.mediaType),
-      },
+      { userId: pair.userId, mediaType: pair.mediaType, tmdbId: pair.tmdbId },
       READ,
     );
     const next = nextOf(document, playStates);
@@ -209,11 +202,4 @@ export class TitleStateService implements OnApplicationBootstrap {
     const series = await this.metadataService.getSeriesByTmdbId(tmdbId, eager);
     return series && { mediaType, series: series.tmdbSeries };
   }
-}
-
-// The play states of a series are those of its episodes
-function fullTypeOf(mediaType: MediaType): MediaTypeFull {
-  return mediaType === MediaType.Movie
-    ? MediaTypeFull.Movie
-    : MediaTypeFull.Episode;
 }

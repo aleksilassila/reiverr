@@ -178,7 +178,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       const binding =
         (await tx.findOne(RequestBinding, { requestId }, READ)) ?? undefined;
       const title = request
-        ? titleOf(mediaOf(request))
+        ? titleOf(request)
         : await this.titleOfBinding(tx, binding);
       const write = (change: BindingChange) =>
         this.writeBinding(tx, requestId, binding, change, title);

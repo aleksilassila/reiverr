@@ -1,7 +1,7 @@
 import { RequestContext } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/sqlite';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { IndexersService, Release } from '../indexers/indexers.service.js';
 import { Job, JobStatus } from '../jobs/job.entity.js';
 import { EventsService } from '../events/events.service.js';
@@ -95,7 +95,7 @@ describe('RequestsService', () => {
     const em = orm.em.fork();
     const where = {
       userId,
-      mediaType: MediaTypeFull.Episode,
+      mediaType: MediaType.Series,
       tmdbId: SERIES,
       season: 1,
       episode,
@@ -151,7 +151,7 @@ describe('RequestsService', () => {
       .fork()
       .find(
         MediaRequest,
-        { mediaType: MediaTypeFull.Episode },
+        { mediaType: MediaType.Series },
         { orderBy: { episode: 'asc' } },
       );
 
@@ -649,7 +649,7 @@ describe('RequestsService', () => {
       requests.createMovieRequest(userId, MOVIE, true),
     );
     expect(created).toMatchObject({
-      mediaType: MediaTypeFull.Movie,
+      mediaType: MediaType.Movie,
       season: 0,
       episode: 0,
       approved: true,
@@ -700,7 +700,7 @@ describe('RequestsService', () => {
       await em.insert(PlayState, {
         ...new PlayState(),
         userId,
-        mediaType: MediaTypeFull.Movie,
+        mediaType: MediaType.Movie,
         tmdbId: MOVIE,
         season: 0,
         episode: 0,

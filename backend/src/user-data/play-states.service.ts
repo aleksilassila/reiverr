@@ -2,7 +2,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { MediaType, MediaTypeFull } from '../common/common.dto.js';
+import { MediaType } from '../common/common.dto.js';
 import { UpdatePlayStateDto } from './user-data.dto.js';
 import { PlayState } from './play-state.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
@@ -22,7 +22,7 @@ export class PlayStatesService {
     return this.playStateRepository.findOne({
       userId,
       tmdbId,
-      mediaType: MediaTypeFull.Movie,
+      mediaType: MediaType.Movie,
     });
   }
 
@@ -36,7 +36,7 @@ export class PlayStatesService {
       (await this.playStateRepository.find({
         userId,
         tmdbId,
-        mediaType: MediaTypeFull.Episode,
+        mediaType: MediaType.Series,
         ...(season ? { season } : {}),
         ...(episode ? { episode } : {}),
       })) ?? [];
@@ -69,11 +69,7 @@ export class PlayStatesService {
     );
     const last = new Map<string, PlayState>();
     for (const playState of playStates) {
-      const mediaType =
-        playState.mediaType === MediaTypeFull.Movie
-          ? MediaType.Movie
-          : MediaType.Series;
-      last.set(`${mediaType}:${playState.tmdbId}`, playState);
+      last.set(`${playState.mediaType}:${playState.tmdbId}`, playState);
     }
 
     return last;
@@ -88,7 +84,7 @@ export class PlayStatesService {
     return this.playStateRepository.findOne({
       userId,
       tmdbId,
-      mediaType: MediaTypeFull.Episode,
+      mediaType: MediaType.Series,
       season,
       episode,
     });
@@ -101,7 +97,7 @@ export class PlayStatesService {
     options: {
       season?: number;
       episode?: number;
-      mediaType: MediaTypeFull;
+      mediaType: MediaType;
     },
   ): Promise<PlayState> {
     const key = {
@@ -137,7 +133,7 @@ export class PlayStatesService {
   ) {
     return this.em.transactional(async (tx) => {
       const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
-        mediaType: MediaTypeFull.Movie,
+        mediaType: MediaType.Movie,
       });
       const changed = applyUpdate(state, playState);
 
@@ -162,7 +158,7 @@ export class PlayStatesService {
       const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
         season,
         episode,
-        mediaType: MediaTypeFull.Episode,
+        mediaType: MediaType.Series,
       });
       const changed = applyUpdate(state, playState);
 
@@ -229,7 +225,7 @@ export class PlayStatesService {
         const state = await this.getOrCreatePlayState(tx, userId, tmdbId, {
           season: updatedState.season,
           episode: updatedState.episode,
-          mediaType: MediaTypeFull.Episode,
+          mediaType: MediaType.Series,
         });
         if (applyUpdate(state, updatedState)) changed = true;
         states.push(state);

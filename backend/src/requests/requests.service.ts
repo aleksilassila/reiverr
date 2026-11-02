@@ -10,9 +10,13 @@ import { randomUUID } from 'node:crypto';
 import {
   EpisodeRefDto,
   MediaType,
-  MediaTypeFull,
+  moviePair,
   PaginatedResponseDto,
   PaginationDto,
+  Pair,
+  pairKey,
+  seriesPair,
+  uniquePairs,
 } from '../common/common.dto.js';
 import { EventsService } from '../events/events.service.js';
 import { IndexersService } from '../indexers/indexers.service.js';
@@ -40,16 +44,7 @@ import {
   SeriesRequestsDto,
   UpdateMediaRequestDto,
 } from './requests.dto.js';
-import {
-  fullTypeOf,
-  moviePair,
-  Pair,
-  pairKey,
-  pairOf,
-  seriesPair,
-  titleTypeOf,
-  uniquePairs,
-} from './requests.utils.js';
+import { pairOf } from './requests.utils.js';
 import { SelectedRelease } from './selected-release.entity.js';
 
 /** What a user picks a source for: a season (episode 0) or an episode of a series, or a movie (season and episode 0) */
@@ -161,14 +156,10 @@ export class RequestsService implements OnApplicationBootstrap {
    */
   async applyRule(em: EntityManager, pair: Pair): Promise<void> {
     const { userId, mediaType, tmdbId } = pair;
-    const ofTitle = { userId, tmdbId, mediaType: fullTypeOf(mediaType) };
+    const ofTitle = { userId, mediaType, tmdbId };
     const requests = await em.find(MediaRequest, ofTitle, READ);
     if (!requests.length) return;
-    const rule = await em.findOne(
-      RequestRule,
-      { userId, mediaType, tmdbId },
-      READ,
-    );
+    const rule = await em.findOne(RequestRule, ofTitle, READ);
     const playStates = await em.find(PlayState, ofTitle, READ);
 
     const now = new Date();
@@ -253,7 +244,7 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.events.run(async () => {
       const rows: {
         user_id: string;
-        media_type: MediaTypeFull;
+        media_type: MediaType;
         tmdb_id: string;
       }[] = await this.em
         .fork()
@@ -263,7 +254,7 @@ export class RequestsService implements OnApplicationBootstrap {
         await this.em.fork().transactional((tx) =>
           this.applyRule(tx, {
             userId: row.user_id,
-            mediaType: titleTypeOf(row.media_type),
+            mediaType: row.media_type,
             tmdbId: row.tmdb_id,
           }),
         );
@@ -369,7 +360,7 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.em
       .findOne(
         MediaRequest,
-        { userId, tmdbId, mediaType: MediaTypeFull.Movie },
+        { userId, tmdbId, mediaType: MediaType.Movie },
         READ,
       )
       .then((request) => request ?? undefined);
@@ -469,7 +460,7 @@ export class RequestsService implements OnApplicationBootstrap {
         {
           userId,
           tmdbId,
-          mediaType: MediaTypeFull.Movie,
+          mediaType: MediaType.Movie,
           season: 0,
           episode: 0,
           approved,
@@ -483,14 +474,14 @@ export class RequestsService implements OnApplicationBootstrap {
 
   deleteMovieRequest(userId: string, tmdbId: string): Promise<number> {
     return this.em.transactional((tx) =>
-      this.deleteWhere(tx, { userId, tmdbId, mediaType: MediaTypeFull.Movie }),
+      this.deleteWhere(tx, { userId, tmdbId, mediaType: MediaType.Movie }),
     );
   }
 
   findSeriesRequests(userId: string, tmdbId: string): Promise<MediaRequest[]> {
     return this.em.find(
       MediaRequest,
-      { userId, tmdbId, mediaType: MediaTypeFull.Episode },
+      { userId, tmdbId, mediaType: MediaType.Series },
       { ...READ, orderBy: { season: 'asc', episode: 'asc' } },
     );
   }
@@ -524,7 +515,7 @@ export class RequestsService implements OnApplicationBootstrap {
             episodes.map(({ season, episode }) => ({
               userId,
               tmdbId,
-              mediaType: MediaTypeFull.Episode,
+              mediaType: MediaType.Series,
               season,
               episode,
               approved,
@@ -534,7 +525,7 @@ export class RequestsService implements OnApplicationBootstrap {
           await this.deleteWhere(tx, {
             userId,
             tmdbId,
-            mediaType: MediaTypeFull.Episode,
+            mediaType: MediaType.Series,
             $or: episodes.map(({ season, episode }) => ({ season, episode })),
           });
         }
@@ -792,7 +783,7 @@ export class RequestsService implements OnApplicationBootstrap {
           [...episodes.values()].map(({ season, episode }) => ({
             userId,
             tmdbId,
-            mediaType: fullTypeOf(mediaType),
+            mediaType,
             season,
             episode,
             approved: true,
@@ -802,7 +793,7 @@ export class RequestsService implements OnApplicationBootstrap {
         const where = {
           userId,
           tmdbId,
-          mediaType: fullTypeOf(mediaType),
+          mediaType,
           $or: [...episodes.values()].map(({ season, episode }) => ({
             season,
             episode,
@@ -1030,7 +1021,7 @@ export class RequestsService implements OnApplicationBootstrap {
       {
         userId,
         tmdbId,
-        mediaType: fullTypeOf(mediaType),
+        mediaType,
         season,
         ...(!isSeason(target) && { episode }),
       },

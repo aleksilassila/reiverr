@@ -4,10 +4,10 @@ import {
   initialOf,
   Letter,
   MediaType,
-  MediaTypeFull,
   OrderDirection,
   PaginatedResponseDto,
   PaginationDto,
+  Title,
 } from '../common/common.dto.js';
 import {
   TorrentItemStatus,
@@ -23,7 +23,6 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { RequestRule } from '../requests/request-rule.entity.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestRuleDto } from '../requests/requests.dto.js';
-import { fullTypeOf, titleTypeOf } from '../requests/requests.utils.js';
 import { PlayStatesService } from '../user-data/play-states.service.js';
 import { TitleState } from '../user-data/title-state.entity.js';
 import {
@@ -56,8 +55,6 @@ const FIRST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.first_release_date)`
 const LAST_RELEASE_DATE = sql`coalesce(mm.release_date, sm.last_release_date)`;
 // The initial of the name, in upper case; empty without a cached name
 const INITIAL = sql`upper(substr(coalesce(sm.name, mm.name, ''), 1, 1))`;
-
-type Title = { mediaType: MediaType; tmdbId: string };
 
 /**
  * The lists the pages show a user: the titles of the user's list, each with
@@ -477,7 +474,7 @@ export class CatalogService {
   ): Promise<Map<string, TitleHeld>> {
     const requests = await em.find(
       MediaRequest,
-      { userId, ...(mediaType && { mediaType: fullTypeOf(mediaType) }) },
+      { userId, ...(mediaType && { mediaType }) },
       { ...READ, fields: ['id', 'mediaType', 'tmdbId'] },
     );
     if (!requests.length) return new Map();
@@ -511,10 +508,7 @@ export class CatalogService {
       { requestCount: number; fulfilledCount: number; heldFileIds: Set<string> }
     >();
     for (const request of requests) {
-      const key = titleKey({
-        mediaType: titleTypeOf(request.mediaType),
-        tmdbId: request.tmdbId,
-      });
+      const key = titleKey(request);
       const tally = tallyByKey.get(key) ?? {
         requestCount: 0,
         fulfilledCount: 0,
@@ -662,16 +656,9 @@ export class CatalogService {
       .createQueryBuilder(MediaRequest, 'r')
       .select(['r.mediaType', 'r.tmdbId'], true)
       .where({ userId, tmdbId: { $in: titles.map((title) => title.tmdbId) } })
-      .execute<{ mediaType: MediaTypeFull; tmdbId: string }[]>();
+      .execute<Title[]>();
 
-    return new Set(
-      requests.map((request) =>
-        titleKey({
-          mediaType: titleTypeOf(request.mediaType),
-          tmdbId: request.tmdbId,
-        }),
-      ),
-    );
+    return new Set(requests.map(titleKey));
   }
 
   /** The next episode the user's rows have stamped for the series, by key */
