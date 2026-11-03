@@ -2,6 +2,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
 import { Injectable, Logger } from '@nestjs/common';
 import { MediaType, Title } from '../common/common.dto.js';
+import { assertOutsideTransaction } from '../common/transaction.utils.js';
 import {
   EpisodeMetadata,
   MovieMetadata,
@@ -34,10 +35,17 @@ export class MetadataService {
     await this.seriesRepository.nativeDelete({});
   }
 
+  /**
+   * The cached document of a movie, fetched when it is missing and
+   * refreshed in the background when it is stale (at once when eager). Not
+   * inside a transaction: a fetch it joins writes outside the transaction,
+   * which would wait on it
+   */
   async getMovieByTmdbId(
     tmdbId: string,
     eager = false,
   ): Promise<MovieMetadata | undefined> {
+    assertOutsideTransaction(`Reading movie ${tmdbId}`);
     if (!tmdbId) return undefined;
 
     const movie = await this.findCachedMovie(this.em, tmdbId);
@@ -92,10 +100,12 @@ export class MetadataService {
     return movie;
   }
 
+  /** As getMovieByTmdbId, of a series */
   async getSeriesByTmdbId(
     tmdbId: string,
     eager = false,
   ): Promise<SeriesMetadata | undefined> {
+    assertOutsideTransaction(`Reading series ${tmdbId}`);
     if (!tmdbId) return undefined;
 
     const series = await this.findCachedSeries(this.em, tmdbId);
@@ -201,12 +211,14 @@ export class MetadataService {
    * The items of the titles for the cards of the pages, by
    * `<media type>:<TMDB id>`, read off the columns of the cache in one
    * query per type. A title whose document is not cached is fetched
-   * first, as its title page would. Read in the caller's entity manager
+   * first, as its title page would. Read in the caller's entity manager,
+   * and not inside a transaction, as getMovieByTmdbId
    */
   async findTmdbItems(
     em: EntityManager,
     titles: Title[],
   ): Promise<Map<string, TmdbItemDto>> {
+    assertOutsideTransaction('Reading the items of titles');
     const cachedItems = await this.findCachedTmdbItems(em, titles);
 
     const missing = titles.filter((title) => !cachedItems.has(titleKey(title)));

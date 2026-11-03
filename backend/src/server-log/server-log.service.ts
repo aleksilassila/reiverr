@@ -6,6 +6,7 @@ import { EntityManager } from '@mikro-orm/sqlite';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PaginatedResponseDto, PaginationDto } from '../common/common.dto.js';
+import { assertOutsideTransaction } from '../common/transaction.utils.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { LogEntry, LogType } from './log-entry.entity.js';
 import { ServerLogSettingsDto } from './server-log.dto.js';
@@ -75,13 +76,17 @@ export class ServerLogService {
     });
   }
 
-  /** Keeps a record of something the server did, and prints it */
+  /**
+   * Keeps a record of something the server did, and prints it. Outside
+   * transactions, as the settings; inside one, writeIn
+   */
   @EnsureRequestContext()
   async write(
     type: LogType,
     message: string,
     data?: Record<string, unknown>,
   ): Promise<void> {
+    assertOutsideTransaction(`Writing "${type}" to the server log`);
     await this.writeIn(this.em, type, message, data);
   }
 

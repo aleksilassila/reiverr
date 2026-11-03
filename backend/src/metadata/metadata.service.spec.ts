@@ -135,6 +135,23 @@ describe('MetadataService', () => {
     expect(tmdb.getFullSeries).toHaveBeenCalledTimes(1);
   });
 
+  it('refuses to read inside a transaction, whether the title is cached or not', async () => {
+    await orm.em.fork().insert(SeriesMetadata.from(series('Cached series')));
+    const inTransaction = (read: () => Promise<unknown>) =>
+      expect(orm.em.fork().transactional(read)).rejects.toThrow(
+        'inside a transaction',
+      );
+
+    await inTransaction(() => metadata.getSeriesByTmdbId('1'));
+    await inTransaction(() => metadata.getMovieByTmdbId('1'));
+    await inTransaction(() =>
+      metadata.findTmdbItems(orm.em.fork(), [
+        { mediaType: MediaType.Series, tmdbId: '1' },
+      ]),
+    );
+    expect(tmdb.getFullMovie).not.toHaveBeenCalled();
+  });
+
   it('reads the items of the cached titles in one go and fetches the uncached first', async () => {
     await orm.em.fork().insert(
       MovieMetadata.from({

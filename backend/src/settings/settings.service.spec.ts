@@ -34,6 +34,15 @@ describe('SettingsService', () => {
     ).toEqual({ seedRatio: 2, maxDiskUsage: 0.9 });
   });
 
+  it('refuses to read or save inside a transaction', async () => {
+    await expect(
+      orm.em.fork().transactional(() => settings.getValue('downloads')),
+    ).rejects.toThrow('inside a transaction');
+    await expect(
+      orm.em.fork().transactional(() => settings.saveValue('downloads', {})),
+    ).rejects.toThrow('inside a transaction');
+  });
+
   it('returns stored lists as they are', async () => {
     await settings.saveValue('indexers', [{ id: '1' }]);
 

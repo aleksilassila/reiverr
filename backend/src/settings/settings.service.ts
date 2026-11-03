@@ -1,8 +1,14 @@
 import { EnsureRequestContext } from '@mikro-orm/decorators/legacy';
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
+import { assertOutsideTransaction } from '../common/transaction.utils.js';
 import { Settings } from './settings.entity.js';
 
+/**
+ * The settings are read and saved outside transactions: without a request
+ * context, as at boot or in a cron job, EnsureRequestContext gives a method
+ * an entity manager of its own, which would wait on the transaction
+ */
 @Injectable()
 export class SettingsService {
   constructor(private readonly em: EntityManager) {}
@@ -14,6 +20,7 @@ export class SettingsService {
    */
   @EnsureRequestContext()
   async getValue<TReturn = any>(key: string): Promise<TReturn | undefined> {
+    assertOutsideTransaction(`Reading the setting "${key}"`);
     const setting = await this.em.findOne(
       Settings,
       { key },
@@ -33,6 +40,7 @@ export class SettingsService {
     key: string,
     value: TReturn,
   ): Promise<TReturn> {
+    assertOutsideTransaction(`Saving the setting "${key}"`);
     await this.em
       .createQueryBuilder(Settings)
       .insert({ key, value, updatedAt: new Date() })
@@ -63,6 +71,7 @@ export class SettingsService {
    */
   @EnsureRequestContext()
   async deleteValue(key: string): Promise<void> {
+    assertOutsideTransaction(`Deleting the setting "${key}"`);
     await this.em.nativeDelete(Settings, { key });
   }
 
@@ -72,6 +81,7 @@ export class SettingsService {
    */
   @EnsureRequestContext()
   async getAllSettings(): Promise<Settings[]> {
+    assertOutsideTransaction('Reading the settings');
     return this.em.findAll(Settings, { disableIdentityMap: true });
   }
 }

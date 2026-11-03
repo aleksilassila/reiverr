@@ -44,6 +44,25 @@ describe('ServerLogService', () => {
     ).toMatchObject({ type: 'file.deleted', data: { size: 5 } });
   });
 
+  it('refuses to write inside a transaction, where writeIn writes', async () => {
+    await expect(
+      orm.em
+        .fork()
+        .transactional(() =>
+          serverLog.write(LogType.FileDeleted, 'Deleted a file'),
+        ),
+    ).rejects.toThrow('inside a transaction');
+
+    await orm.em
+      .fork()
+      .transactional((tx) =>
+        serverLog.writeIn(tx, LogType.FileDeleted, 'Deleted a file'),
+      );
+    expect(
+      await orm.em.fork().count(LogEntry, { message: 'Deleted a file' }),
+    ).toBe(1);
+  });
+
   it('purges the entries that are older than 30 days unless set otherwise', async () => {
     expect(await serverLog.getSettings()).toEqual({
       maxEntries: 0,
