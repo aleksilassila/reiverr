@@ -182,11 +182,11 @@ export class TitleStateService implements OnApplicationBootstrap {
   ): Promise<TitleDocument | undefined> {
     if (mediaType === MediaType.Movie) {
       const movie = await this.metadataService.findCachedMovie(em, tmdbId);
-      return movie && { mediaType, movie };
+      return movie && { mediaType, movie: movie.tmdbMovie };
     }
 
     const series = await this.metadataService.findCachedSeries(em, tmdbId);
-    return series && { mediaType, series };
+    return series && { mediaType, series: series.tmdbSeries };
   }
 
   /** The document of the title, cached on the way; fresh when eager */
