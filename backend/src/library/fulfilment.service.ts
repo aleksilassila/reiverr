@@ -12,15 +12,10 @@ import { JobContext, JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
 import { isNeeded, mediaOf } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
-import { coversMedia } from './library.utils.js';
+import { coversMedia, expectedBytes } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { FulfilmentError, RequestBinding } from './request-binding.entity.js';
-import {
-  expectedBytes,
-  Room,
-  roomFor,
-  StorageService,
-} from './storage.service.js';
+import { StorageService } from './storage.service.js';
 
 const READ = { disableIdentityMap: true };
 
@@ -43,20 +38,20 @@ const NOTHING: BindingChange = {
   error: null,
 };
 
-/** What a binding says of a request that its gate holds back, which keeps nothing */
-const HELD_BACK: Record<Exclude<Room, 'ok'>, BindingChange> = {
-  'over-quota': {
-    torrentItemId: null,
-    mediaFileId: null,
-    error: FulfilmentError.OverQuota,
-    errorMessage: 'Over quota',
-  },
-  'disk-full': {
-    torrentItemId: null,
-    mediaFileId: null,
-    error: FulfilmentError.DiskFull,
-    errorMessage: 'Disk full',
-  },
+/** What a binding says of a request that does not fit the quota of its user, which keeps nothing */
+const OVER_QUOTA: BindingChange = {
+  torrentItemId: null,
+  mediaFileId: null,
+  error: FulfilmentError.OverQuota,
+  errorMessage: 'Over quota',
+};
+
+/** What a binding says of a download that waits for room on a disk, which keeps nothing */
+const DISK_FULL: BindingChange = {
+  torrentItemId: null,
+  mediaFileId: null,
+  error: FulfilmentError.DiskFull,
+  errorMessage: 'Disk full',
 };
 
 /**
@@ -224,10 +219,6 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         });
         return;
       }
-      const gate = await this.storage.gateOf(tx, request.userId, {
-        diskFull,
-        except: request.id,
-      });
       // The movie or the episode the request is for, as the files are keyed
       const media = mediaOf(request);
 
@@ -253,15 +244,14 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           });
           return;
         }
-        const room =
-          binding?.mediaFileId === file.id
-            ? 'ok'
-            : roomFor(gate, { bytes: file.size, download: false });
-        await write(
-          room === 'ok'
-            ? { torrentItemId: null, mediaFileId: file.id, error: null }
-            : HELD_BACK[room],
-        );
+        if (
+          binding?.mediaFileId !== file.id &&
+          !(await this.storage.fitsQuota(tx, request, file.size))
+        ) {
+          await write(OVER_QUOTA);
+          return;
+        }
+        await write({ torrentItemId: null, mediaFileId: file.id, error: null });
         return;
       }
 
@@ -299,12 +289,15 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       );
       if (version) {
         await this.releaseTorrentItemOf(tx, binding);
-        const room = roomFor(gate, { bytes: version.size, download: false });
-        await write(
-          room === 'ok'
-            ? { torrentItemId: null, mediaFileId: version.id, error: null }
-            : HELD_BACK[room],
-        );
+        if (!(await this.storage.fitsQuota(tx, request, version.size))) {
+          await write(OVER_QUOTA);
+          return;
+        }
+        await write({
+          torrentItemId: null,
+          mediaFileId: version.id,
+          error: null,
+        });
         return;
       }
 
@@ -330,10 +323,14 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           source.forEpisode,
           counts?.get(media.season),
         );
-        const room = roomFor(gate, { bytes, download: true });
-        if (room !== 'ok') {
+        if (!(await this.storage.fitsQuota(tx, request, bytes))) {
           await this.releaseTorrentItemOf(tx, binding);
-          await write(HELD_BACK[room]);
+          await write(OVER_QUOTA);
+          return;
+        }
+        if (diskFull) {
+          await this.releaseTorrentItemOf(tx, binding);
+          await write(DISK_FULL);
           return;
         }
         pendingBytes = bytes;

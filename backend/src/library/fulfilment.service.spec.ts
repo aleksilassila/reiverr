@@ -931,8 +931,8 @@ describe('FulfilmentService', () => {
     await settle();
     const [file] = await orm.em.fork().find(MediaFile, {});
 
-    // The version of 7 bytes does not fit a quota of 5
-    await setQuota(5);
+    // The version of 7 bytes does not fit a quota of 6, and fits one of 7
+    await setQuota(6);
     await select(0, 'pack');
     await setRequested([1]);
     await settle();

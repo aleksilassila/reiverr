@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import { DOWNLOADS_DIR } from '../consts.js';
 import { measureDisk } from './disk.utils.js';
+import type { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -12,49 +13,6 @@ import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 
 const READ = { disableIdentityMap: true };
-
-/** Whether a request can get what it is to get, and what holds it back when not */
-export type Room = 'ok' | 'over-quota' | 'disk-full';
-
-/** What a request of a user is gated by: the bytes the other requests of the user take, the quota, and whether a disk is at the limit */
-export interface Gate {
-  usage: number;
-  quota: number | null;
-  diskFull: boolean;
-}
-
-/**
- * Whether a request can get what it is to get through its gate, a file of
- * the size or a download expected to take as much: when what the other
- * requests of its user take plus it is within the quota, and, for a
- * download, while no disk is at the limit
- */
-export function roomFor(
-  gate: Gate,
-  candidate: { bytes: number; download: boolean },
-): Room {
-  const { usage, quota, diskFull } = gate;
-  if (quota !== null && usage + candidate.bytes > quota) return 'over-quota';
-  if (candidate.download && diskFull) return 'disk-full';
-
-  return 'ok';
-}
-
-/**
- * What the download of an episode from a release is expected to take: the
- * whole release for a torrent picked for the episode, its share of the
- * season for a season torrent, and the whole release again when the number
- * of episodes of the season is not known
- */
-export function expectedBytes(
-  releaseSize: number,
-  forEpisode: boolean,
-  episodesInSeason: number | undefined,
-): number {
-  return forEpisode || !episodesInSeason
-    ? releaseSize
-    : Math.ceil(releaseSize / episodesInSeason);
-}
 
 /**
  * The capacity side of the library: what the requests of users take, the
@@ -72,29 +30,24 @@ export class StorageService {
   ) {}
 
   /**
-   * The gate of the requests of a user, in the caller's entity manager:
-   * what their requests take, leaving out the binding of one request, and
-   * the quota. The disk is the caller's to measure, outside its
-   * transaction: the settings are read outside it, and the disk is not
-   * what a transaction keeps consistent.
+   * Whether bytes more fit the quota of the user of a request, beside what
+   * their other requests take, in the caller's entity manager
    */
-  async gateOf(
+  async fitsQuota(
     em: EntityManager,
-    userId: string,
-    options: { diskFull: boolean; except?: string },
-  ): Promise<Gate> {
+    request: Pick<MediaRequest, 'id' | 'userId'>,
+    bytes: number,
+  ): Promise<boolean> {
+    const quota = await this.usersService.getQuota(em, request.userId);
+    if (quota === null) return true;
+
     const { heldBytes, pendingBytes } = await this.findUsage(
       em,
-      userId,
-      options.except,
+      request.userId,
+      request.id,
     );
-    const quota = await this.usersService.getQuota(em, userId);
 
-    return {
-      usage: heldBytes + pendingBytes,
-      quota,
-      diskFull: options.diskFull,
-    };
+    return heldBytes + pendingBytes + bytes <= quota;
   }
 
   /**

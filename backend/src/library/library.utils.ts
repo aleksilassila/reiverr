@@ -413,3 +413,19 @@ export function coversMedia(
     media.episode <= file.lastEpisode
   );
 }
+
+/**
+ * What the download of an episode from a release is expected to take: the
+ * whole release for a torrent picked for the episode, its share of the
+ * season for a season torrent, and the whole release again when the number
+ * of episodes of the season is not known
+ */
+export function expectedBytes(
+  releaseSize: number,
+  forEpisode: boolean,
+  episodesInSeason: number | undefined,
+): number {
+  return forEpisode || !episodesInSeason
+    ? releaseSize
+    : Math.ceil(releaseSize / episodesInSeason);
+}

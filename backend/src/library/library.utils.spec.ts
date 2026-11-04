@@ -1,5 +1,6 @@
 import {
   episodeFileName,
+  expectedBytes,
   folderMatchesTitle,
   isInsideFolder,
   libraryFolderPaths,
@@ -284,5 +285,14 @@ describe('srtToWebVtt', () => {
     expect(srtToWebVtt(srt)).toBe(
       'WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.500\nHello <i>there</i>\n\n2\n00:00:03.000 --> 00:00:04.000\nBye\n',
     );
+  });
+});
+
+describe('expectedBytes', () => {
+  it('is the release for a torrent picked for the episode, else its share of the season', () => {
+    expect(expectedBytes(200, true, 3)).toBe(200);
+    expect(expectedBytes(200, false, 3)).toBe(67);
+    expect(expectedBytes(200, false, undefined)).toBe(200);
+    expect(expectedBytes(200, false, 0)).toBe(200);
   });
 });
