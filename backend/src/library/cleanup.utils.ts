@@ -1,6 +1,6 @@
 import { CleanupSchedule } from './library.dto.js';
 
-export const CLEANUP_HOUR = 4;
+const CLEANUP_HOUR = 4;
 
 /** Whether the schedule has a cleanup on the day of the date */
 export function isCleanupDay(date: Date, schedule: CleanupSchedule): boolean {

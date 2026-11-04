@@ -7,7 +7,6 @@ import {
   NotFoundException,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventsService } from '../events/events.service.js';
 import { Job, JobStatus } from './job.entity.js';
 import { JOB_KEYS, JobPayloads, JobType } from './job-types.js';
@@ -269,7 +268,6 @@ export class JobsService implements OnModuleDestroy {
     });
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async purge(): Promise<void> {
     await this.em.fork().nativeDelete(Job, {
       status: { $in: [JobStatus.Failed, JobStatus.Completed] },

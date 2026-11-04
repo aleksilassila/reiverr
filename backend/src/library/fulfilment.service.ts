@@ -1,10 +1,5 @@
 import { EntityManager } from '@mikro-orm/sqlite';
-import {
-  Injectable,
-  OnApplicationBootstrap,
-  OnModuleInit,
-} from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { MediaType, Title, titleOf } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { EventsService } from '../events/events.service.js';
@@ -70,7 +65,7 @@ const DISK_FULL: BindingChange = {
  * binding tells the clients that show its title.
  */
 @Injectable()
-export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
+export class FulfilmentService implements OnModuleInit {
   constructor(
     private readonly em: EntityManager,
     private readonly jobs: JobsService,
@@ -84,23 +79,13 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   onModuleInit() {
     this.jobs.define('library.reconcileBinding', {
       concurrency: 4,
+      retry: true,
       run: ({ requestId }, context) =>
         this.reconcileBinding(requestId, context),
     });
     this.jobs.define('library.sweepRequests', {
       run: (payload, context) => this.sweep(context.em),
     });
-  }
-
-  /** A change that was made while the server was down has no job */
-  onApplicationBootstrap(): Promise<void> {
-    return this.sweepLater(this.em.fork());
-  }
-
-  /** Before the requests are reconciled at 03:50 */
-  @Cron('40 3 * * *')
-  sweepNightly(): Promise<void> {
-    return this.sweepLater(this.em.fork());
   }
 
   /**
@@ -121,27 +106,29 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * disk limit has only that error on its binding, so this is how it gets
    * what it wants once there is room.
    */
-  async sweep(em: EntityManager = this.em.fork()): Promise<void> {
+  async sweep(em: EntityManager): Promise<void> {
     await em.transactional(async (tx) => {
       const requests = await this.requestsService.findRequests(tx);
-      const all = new Set(requests.map((request) => request.id));
-      const bindings = await tx.find(RequestBinding, {}, READ);
+      const bindings = await tx.find(
+        RequestBinding,
+        {},
+        { ...READ, fields: ['requestId', 'torrentItemId', 'mediaFileId'] },
+      );
+      const exists = new Set(requests.map((request) => request.id));
       const attached = new Set(
         bindings
-          .filter((binding) => !!binding.torrentItemId || !!binding.mediaFileId)
+          .filter((binding) => binding.torrentItemId || binding.mediaFileId)
           .map((binding) => binding.requestId),
       );
 
-      const toReconcile = new Set([
-        ...requests
-          .filter(isNeeded)
-          .map((request) => request.id)
-          .filter((requestId) => !attached.has(requestId)),
-        ...bindings
-          .map((binding) => binding.requestId)
-          .filter((requestId) => !all.has(requestId)),
-      ]);
-      for (const requestId of toReconcile) {
+      const unbound = requests
+        .filter((request) => isNeeded(request) && !attached.has(request.id))
+        .map((request) => request.id);
+      const orphaned = bindings
+        .map((binding) => binding.requestId)
+        .filter((requestId) => !exists.has(requestId));
+
+      for (const requestId of [...unbound, ...orphaned]) {
         await this.jobs.enqueue(tx, 'library.reconcileBinding', { requestId });
       }
     });

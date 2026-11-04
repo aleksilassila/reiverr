@@ -3,9 +3,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  OnApplicationBootstrap,
 } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
 import {
   EpisodeRefDto,
@@ -87,7 +85,7 @@ const toPreferenceDto = (source: RequestSource): PreferenceDto => {
  * of the user that their requests of the title changed.
  */
 @Injectable()
-export class RequestsService implements OnApplicationBootstrap {
+export class RequestsService {
   constructor(
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
@@ -95,11 +93,6 @@ export class RequestsService implements OnApplicationBootstrap {
     private readonly jobs: JobsService,
     private readonly events: EventsService,
   ) {}
-
-  /** The requests can be behind after a restart or a migration */
-  onApplicationBootstrap(): Promise<void> {
-    return this.reconcileAllRequests();
-  }
 
   /**
    * Brings the requests of a user for a title in line with what they go by,
@@ -222,7 +215,6 @@ export class RequestsService implements OnApplicationBootstrap {
    * transaction, as it is for the writers; the run is one unit of work,
    * whose events go out when it is done.
    */
-  @Cron('50 3 * * *')
   reconcileAllRequests(): Promise<void> {
     return this.events.run(async () => {
       const rows: {

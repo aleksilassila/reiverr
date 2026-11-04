@@ -1,6 +1,5 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
 import { MediaType } from '../common/common.dto.js';
@@ -8,7 +7,6 @@ import { JobsService } from '../jobs/jobs.service.js';
 import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
-import { CLEANUP_HOUR } from './cleanup.utils.js';
 import {
   filterGone,
   isDirectory,
@@ -84,7 +82,6 @@ export class ScanService implements OnModuleInit {
   }
 
   /** The nightly scans of every library folder, at the hour of the cleanup, which does not wait for them */
-  @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async scanNightly(): Promise<void> {
     const { movieFolders, seriesFolders } =
       await this.libraryService.getSettings();

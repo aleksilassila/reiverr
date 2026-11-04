@@ -20,8 +20,10 @@ import { EventsModule } from './events/events.module.js';
 import { DEV } from './consts.js';
 import mikroOrmConfig from './mikro-orm.config.js';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AppService } from './app.service.js';
 
 @Module({
+  providers: [AppService],
   imports: [
     ScheduleModule.forRoot(),
     MikroOrmModule.forRoot(mikroOrmConfig),

@@ -1,8 +1,7 @@
 import { CreateRequestContext } from '@mikro-orm/decorators/legacy';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/sqlite';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MediaType, Pair, Title } from '../common/common.dto.js';
 import { MetadataService } from '../metadata/metadata.service.js';
@@ -18,7 +17,7 @@ const READ = { disableIdentityMap: true };
  * which the my list page filters by
  */
 @Injectable()
-export class TitleStateService implements OnApplicationBootstrap {
+export class TitleStateService {
   private readonly logger = new Logger(TitleStateService.name);
 
   constructor(
@@ -27,13 +26,6 @@ export class TitleStateService implements OnApplicationBootstrap {
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
   ) {}
-
-  onApplicationBootstrap() {
-    // Not awaited: the documents are refreshed on the way, which takes a while
-    this.stampAll().catch((e) =>
-      this.logger.error(`Failed to stamp the next episodes: ${e.message}`),
-    );
-  }
 
   async findByTmdbId(
     userId: string,
@@ -105,7 +97,6 @@ export class TitleStateService implements OnApplicationBootstrap {
    * version have no stamp. The documents are refreshed on the way, each
    * read once for the rows of its title
    */
-  @Cron('30 3 * * *')
   @CreateRequestContext()
   async stampAll(): Promise<void> {
     const rows = await this.repository.findAll({

@@ -5,7 +5,6 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
 import { MediaType, Title } from '../common/common.dto.js';
@@ -15,7 +14,7 @@ import { JobsService } from '../jobs/jobs.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { LogType } from '../server-log/log-entry.entity.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
-import { CLEANUP_HOUR, isCleanupDay } from './cleanup.utils.js';
+import { isCleanupDay } from './cleanup.utils.js';
 import { entryExists, readDirectory } from './disk.utils.js';
 import { FulfilmentService } from './fulfilment.service.js';
 import { DeleteLibraryEntriesResultDto } from './library.dto.js';
@@ -72,7 +71,6 @@ export class DeletionService implements OnModuleInit {
   }
 
   /** The nightly cleanup, on a cleanup day. It does not wait for the scans of the same hour. */
-  @Cron(`0 ${CLEANUP_HOUR} * * *`)
   async onCleanupHour(): Promise<void> {
     const { cleanup } = await this.libraryService.getSettings();
     if (!isCleanupDay(new Date(), cleanup)) return;

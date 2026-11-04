@@ -4,7 +4,6 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { EntityManager } from '@mikro-orm/sqlite';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PaginatedResponseDto, PaginationDto } from '../common/common.dto.js';
 import { assertOutsideTransaction } from '../common/transaction.utils.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -107,7 +106,6 @@ export class ServerLogService {
   }
 
   /** Deletes the entries that are older or more than the settings keep */
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
   @CreateRequestContext()
   async purge(): Promise<void> {
     const { maxEntries, maxAgeDays } = await this.getSettings();

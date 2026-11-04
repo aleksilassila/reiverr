@@ -555,15 +555,39 @@ describe('FulfilmentService', () => {
     ]);
 
     // Looking at it again with nothing changed writes nothing
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
     await settle();
     expect((await row()).updatedAt).toEqual(updatedAt);
 
     await setQuota(null);
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
     await settle();
     expect(await fulfilments()).toEqual([{ requestId, status: 'downloading' }]);
     expect(await row()).toMatchObject({ error: null, errorMessage: null });
+  });
+
+  it('tries a reconcile that failed again, which the sweep would not for a request that is bound', async () => {
+    await setRequested([1]);
+    await select(0, 'pack');
+    await settle();
+    expect(await bindings()).toEqual([[1, 'torrentItem:1111', null, null]]);
+
+    vi.spyOn(hub.downloads, 'requestTorrentItem').mockRejectedValueOnce(
+      new Error('no'),
+    );
+    await select(1, 'episode');
+    await settle();
+    expect(await bindings()).toEqual([[1, 'torrentItem:1111', null, null]]);
+    expect(await queued('library.reconcileBinding')).toMatchObject([
+      { error: 'no', attempts: 1 },
+    ]);
+
+    await hub.jobs.runNow(orm.em.fork(), 'library.reconcileBinding');
+    await settle();
+    expect(await bindings()).toEqual([
+      [1, `torrentItem:${EPISODE.slice(0, 4)}`, null, null],
+    ]);
+    expect(await queued('library.reconcileBinding')).toEqual([]);
   });
 
   it('has downloads get the files of active requests and imports them as they complete', async () => {
@@ -854,7 +878,7 @@ describe('FulfilmentService', () => {
       updatedAt: new Date(),
     });
 
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
 
     expect(
       (await queued('library.reconcileBinding'))
@@ -913,7 +937,7 @@ describe('FulfilmentService', () => {
 
     // Nothing is taken back for being over a quota that is lowered
     await setQuota(1);
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
@@ -939,7 +963,7 @@ describe('FulfilmentService', () => {
     expect(await statuses()).toEqual([[1, 'over-quota', true]]);
 
     await setQuota(7);
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
     await settle();
     expect(await bindings()).toEqual([[1, null, 'file:1111', null]]);
     expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 0 });
@@ -956,7 +980,7 @@ describe('FulfilmentService', () => {
     );
 
     await setQuota(50);
-    await hub.fulfilment.sweep();
+    await hub.fulfilment.sweep(orm.em.fork());
     await settle();
     expect(await bindings()).toEqual([
       [1, `torrentItem:${EPISODE.slice(0, 4)}`, null, null],

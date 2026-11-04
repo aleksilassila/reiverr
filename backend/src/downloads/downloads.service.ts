@@ -3,10 +3,8 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  OnApplicationBootstrap,
   OnModuleInit,
 } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { rm, stat } from 'node:fs/promises';
 import * as path from 'node:path';
 import { MediaType, Title } from '../common/common.dto.js';
@@ -131,7 +129,7 @@ function torrentItemStatusOf(
  * torrent items.
  */
 @Injectable()
-export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
+export class DownloadsService implements OnModuleInit {
   private readonly logger = new Logger(DownloadsService.name);
 
   constructor(
@@ -150,9 +148,18 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     });
   }
 
-  /** Engine handles live in memory, so every torrent decides again */
-  async onApplicationBootstrap() {
-    await this.enqueueEveryTorrent(this.em.fork());
+  /** Has every torrent decide again */
+  async enqueueEveryTorrent(em: EntityManager) {
+    await em.transactional(async (tx) => {
+      const torrents = await tx.find(
+        Torrent,
+        {},
+        { ...READ, fields: ['infoHash'] },
+      );
+      for (const { infoHash } of torrents) {
+        await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', { infoHash });
+      }
+    });
   }
 
   getSettings(): Promise<DownloadSettingsDto> {
@@ -436,7 +443,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /** Torrent rows that nothing ever wanted, or that were picked and never needed, go */
-  @Cron('10 4 * * *')
   async purgeTorrents(): Promise<void> {
     const em = this.em.fork();
     const unwanted: { info_hash: string }[] = await em.execute(
@@ -756,19 +762,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
       downloadSpeed: snapshot?.stats.downloadSpeed ?? 0,
       uploadSpeed: snapshot?.stats.uploadSpeed ?? 0,
     };
-  }
-
-  private async enqueueEveryTorrent(em: EntityManager) {
-    await em.transactional(async (tx) => {
-      const torrents = await tx.find(
-        Torrent,
-        {},
-        { ...READ, fields: ['infoHash'] },
-      );
-      for (const { infoHash } of torrents) {
-        await this.jobs.enqueue(tx, 'downloads.reconcileTorrent', { infoHash });
-      }
-    });
   }
 
   private getDirectory(infoHash: string): string {
