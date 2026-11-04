@@ -1417,23 +1417,6 @@
     {
       "name": "request_rule",
       "columns": {
-        "episode_sources": {
-          "name": "episode_sources",
-          "type": "json",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
         "id": {
           "name": "id",
           "type": "text",
@@ -1518,23 +1501,6 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "text"
-        },
-        "season_torrents": {
-          "name": "season_torrents",
-          "type": "json",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "json"
         },
         "tmdb_id": {
           "name": "tmdb_id",
@@ -1624,7 +1590,7 @@
       "comment": null
     },
     {
-      "name": "selected_release",
+      "name": "request_source",
       "columns": {
         "created_at": {
           "name": "created_at",
@@ -1643,13 +1609,47 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "episode": {
+          "name": "episode",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "indexer": {
           "name": "indexer",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
@@ -1665,7 +1665,24 @@
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
-          "primary": true,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
           "unique": false,
           "length": null,
@@ -1694,8 +1711,42 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "size": {
-          "name": "size",
+        "media_file_id": {
+          "name": "media_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "media_type": {
+          "name": "media_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "season": {
+          "name": "season",
           "type": "integer",
           "unsigned": false,
           "autoincrement": false,
@@ -1711,8 +1762,42 @@
           "enumItems": [],
           "mappedType": "integer"
         },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "title": {
           "name": "title",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "tmdb_id": {
+          "name": "tmdb_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -1744,23 +1829,77 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "blob"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         }
       },
       "indexes": [
         {
           "columnNames": [
-            "info_hash"
+            "id"
           ],
           "composite": false,
           "constraint": true,
           "keyName": "primary",
           "primary": true,
           "unique": true
+        },
+        {
+          "columnNames": [
+            "user_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "request_source_user_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "user_id",
+            "media_type",
+            "tmdb_id",
+            "season",
+            "episode"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "request_source_user_id_media_type_tmdb_id_season_episode_unique",
+          "primary": false,
+          "unique": true
         }
       ],
       "checks": [],
       "triggers": [],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "request_source_user_id_foreign": {
+          "columnNames": [
+            "user_id"
+          ],
+          "constraintName": "request_source_user_id_foreign",
+          "localTableName": "request_source",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "user",
+          "deleteRule": "cascade"
+        }
+      },
       "comment": null
     },
     {

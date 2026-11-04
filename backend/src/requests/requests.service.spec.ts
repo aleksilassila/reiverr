@@ -10,10 +10,10 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { PlayState } from '../user-data/play-state.entity.js';
 import { User } from '../users/user.entity.js';
+import { RequestSource } from './request-source.entity.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import { RequestsService, SelectionTarget } from './requests.service.js';
-import { SelectedRelease } from './selected-release.entity.js';
 
 const SERIES = '100';
 const MOVIE = '200';
@@ -181,6 +181,15 @@ describe('RequestsService', () => {
   const rule = () =>
     orm.em.fork().findOne(RequestRule, { userId, tmdbId: SERIES });
 
+  const sources = () =>
+    orm.em
+      .fork()
+      .find(
+        RequestSource,
+        { userId, tmdbId: SERIES },
+        { orderBy: { season: 'asc', episode: 'asc' } },
+      );
+
   /** The episodes of the requests the library is to look at, and the ids of requests that are gone */
   const reconciled = async () => {
     const jobs = await orm.em.fork().find(Job, {
@@ -259,57 +268,61 @@ describe('RequestsService', () => {
     expect(await reconciled()).toEqual([3]);
   });
 
-  it('keeps the release a user picks, resolved, and refers to it by its info hash', async () => {
+  it('keeps the release a user picks as the source of the season, resolved', async () => {
     await requestEpisodes([1, 2]);
     await select(0, 'pack');
     expect(indexers.resolveTorrent).toHaveBeenCalledTimes(1);
 
-    expect(await orm.em.fork().find(SelectedRelease, {})).toMatchObject([
-      {
-        infoHash: PACK,
-        title: 'pack',
-        indexer: 'test',
-        size: 1,
-        magnetUrl: `magnet:?xt=urn:btih:${PACK}`,
-      },
+    const pack = {
+      infoHash: PACK,
+      title: 'pack',
+      indexer: 'test',
+      size: 1,
+      magnetUrl: `magnet:?xt=urn:btih:${PACK}`,
+    };
+    expect(await sources()).toMatchObject([
+      { season: 1, episode: 0, kind: 'torrent', ...pack },
     ]);
-    expect((await rule()).seasonTorrents).toEqual([
-      { season: 1, infoHash: PACK },
-    ]);
+    // A selection makes no rule row
+    expect(await rule()).toBeNull();
     expect(await sourceOf(1)).toEqual({
       kind: 'torrent',
-      infoHash: PACK,
+      release: pack,
       forEpisode: false,
     });
 
     // An episode's own torrent wins over the season's, as its only video
     await forgetJobs();
     await select(2, 'episode');
-    expect((await rule()).episodeSources).toEqual([
+    expect(await sources()).toMatchObject([
+      { season: 1, episode: 0, infoHash: PACK },
       { season: 1, episode: 2, kind: 'torrent', infoHash: EPISODE },
     ]);
-    expect(await sourceOf(2)).toEqual({
+    expect(await sourceOf(2)).toMatchObject({
       kind: 'torrent',
-      infoHash: EPISODE,
+      release: { infoHash: EPISODE },
       forEpisode: true,
     });
-    expect(await sourceOf(1)).toMatchObject({ infoHash: PACK });
+    expect(await sourceOf(1)).toMatchObject({ release: { infoHash: PACK } });
     // Only the requests in scope are looked at
     expect(await reconciled()).toEqual([2]);
 
-    // Clearing the episode's torrent falls back to the season's; the rule
-    // row goes with its last preference
+    // Clearing the episode's torrent falls back to the season's
     await forgetJobs();
     expect(await clear(2)).toBe(true);
-    expect(await sourceOf(2)).toMatchObject({ infoHash: PACK });
+    expect(await sourceOf(2)).toMatchObject({ release: { infoHash: PACK } });
     expect(await reconciled()).toEqual([2]);
     expect(await clear(2)).toBe(false);
     expect(await clear(0)).toBe(true);
     expect(await sourceOf(2)).toBeUndefined();
-    expect(await rule()).toBeNull();
-    // Picked again, the release is known already
+    expect(await sources()).toEqual([]);
+
+    // A pick replaces the one before it
     await select(0, 'pack');
-    expect(await orm.em.fork().count(SelectedRelease, {})).toBe(2);
+    await select(0, 'episode');
+    expect(await sources()).toMatchObject([
+      { season: 1, episode: 0, infoHash: EPISODE },
+    ]);
   });
 
   it('refuses a release that is not in the search cache any more, and an episode the series does not have', async () => {
@@ -536,7 +549,7 @@ describe('RequestsService', () => {
     await requestEpisodes([2]);
     await request(() => requests.preferFile(target(2), 'file-1'));
 
-    expect((await rule()).episodeSources).toEqual([
+    expect(await sources()).toMatchObject([
       { season: 1, episode: 2, kind: 'file', mediaFileId: 'file-1' },
     ]);
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'file-1' });
@@ -661,20 +674,17 @@ describe('RequestsService', () => {
     // A torrent picked for the movie is wanted for the movie itself
     await request(() => requests.preferRelease(movieTarget(), 'episode'));
     expect((await readMovie()).neededSince).toBeTruthy();
-    expect((await readMovie()).source).toEqual({
+    expect((await readMovie()).source).toMatchObject({
       kind: 'torrent',
-      infoHash: EPISODE,
+      release: { infoHash: EPISODE },
       forEpisode: true,
     });
-    expect(await movieRule()).toMatchObject({
-      keepNext: null,
-      keepWatched: null,
-      keepWatchedHours: null,
-      seasonTorrents: null,
-      episodeSources: [
-        { season: 0, episode: 0, kind: 'torrent', infoHash: EPISODE },
-      ],
-    });
+    expect(
+      await orm.em.fork().find(RequestSource, { mediaType: MediaType.Movie }),
+    ).toMatchObject([
+      { season: 0, episode: 0, kind: 'torrent', infoHash: EPISODE },
+    ]);
+    expect(await movieRule()).toBeNull();
     expect(await reconciled()).toEqual([`gone:${created.id}`]);
 
     // A file instead, then nothing: the request stays needed without a source

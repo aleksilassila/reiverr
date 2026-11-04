@@ -8,9 +8,9 @@ import { Job } from './jobs/job.entity.js';
 import { MediaFile } from './library/media-file.entity.js';
 import { RequestBinding } from './library/request-binding.entity.js';
 import { LogEntry } from './server-log/log-entry.entity.js';
+import { RequestSource } from './requests/request-source.entity.js';
 import { RequestRule } from './requests/request-rule.entity.js';
 import { MediaRequest } from './requests/request.entity.js';
-import { SelectedRelease } from './requests/selected-release.entity.js';
 import { MovieMetadata, SeriesMetadata } from './metadata/metadata.entity.js';
 import { Settings } from './settings/settings.entity.js';
 import { TitleState } from './user-data/title-state.entity.js';
@@ -31,7 +31,7 @@ export default defineConfig({
     PlayState,
     RequestBinding,
     RequestRule,
-    SelectedRelease,
+    RequestSource,
     SeriesMetadata,
     Settings,
     Torrent,

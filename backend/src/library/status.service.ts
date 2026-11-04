@@ -1,22 +1,22 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import * as path from 'node:path';
-import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
+import {
+  EpisodeRefDto,
+  MediaType,
+  moviePair,
+  seriesPair,
+} from '../common/common.dto.js';
 import {
   TorrentItemDto,
   TorrentItemStatus,
 } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
-import {
-  Preferences,
-  RequestSource,
-  sourceOf,
-} from '../requests/request-source.js';
+import { ResolvedSource, sourceOf } from '../requests/request-source.js';
 import { MediaRequest } from '../requests/request.entity.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { isNeeded } from '../requests/requests.utils.js';
-import { SelectedRelease } from '../requests/selected-release.entity.js';
 import { getNextCleanup } from './cleanup.utils.js';
 import {
   EpisodeStatusDto,
@@ -47,15 +47,13 @@ const episodeKey = (e: EpisodeRefDto) => `${e.season}-${e.episode}`;
 /** What describes the request of a user for an episode or a movie */
 interface RequestContext {
   request: MediaRequest | undefined;
-  source: RequestSource | undefined;
+  source: ResolvedSource | undefined;
   binding: RequestBinding | undefined;
   items: Map<string, TorrentItemDto>;
   /** The files of the title */
   filesById: Map<string, MediaFile>;
   /** The files of the episode or the movie */
   ofMedia: MediaFile[];
-  /** The sizes of the releases the user picked, by info hash */
-  releaseSizes: Map<string, number>;
   gate: Gate;
   /** For an episode, how many episodes its season has, which a season's torrent is shared by */
   episodesInSeason: number | undefined;
@@ -88,7 +86,9 @@ export class StatusService {
       userId,
       tmdbId,
     );
-    const rule = await this.requestsService.findSeriesRule(userId, tmdbId);
+    const sources = await this.requestsService.findSources(
+      seriesPair(userId, tmdbId),
+    );
     const files = await em.find(
       MediaFile,
       { mediaType: MediaType.Series, tmdbId },
@@ -101,7 +101,6 @@ export class StatusService {
     );
     const held = await this.heldOf(em, files);
     const items = await this.itemsOf(em, bindings);
-    const releaseSizes = await this.releaseSizesOf(em, rule);
 
     // The index of the series is brought in line with the disk soon
     await this.scanService.requestScan(MediaType.Series, tmdbId);
@@ -150,13 +149,12 @@ export class StatusService {
             ...describeRequest({
               request,
               source:
-                request && sourceOf(rule, request.season, request.episode),
+                request && sourceOf(sources, request.season, request.episode),
               binding:
                 request && bindings.find((b) => b.requestId === request.id),
               items,
               filesById,
               ofMedia,
-              releaseSizes,
               gate,
               episodesInSeason: episodeCounts.get(episode.season),
             }),
@@ -175,7 +173,9 @@ export class StatusService {
   ): Promise<MovieStatusDto> {
     const em = this.em.fork();
     const request = await this.requestsService.findMovieRequest(userId, tmdbId);
-    const rule = await this.requestsService.findMovieRule(userId, tmdbId);
+    const sources = await this.requestsService.findSources(
+      moviePair(userId, tmdbId),
+    );
     const files = await em.find(
       MediaFile,
       { mediaType: MediaType.Movie, tmdbId },
@@ -187,7 +187,6 @@ export class StatusService {
       : undefined;
     const held = await this.heldOf(em, files);
     const items = await this.itemsOf(em, binding ? [binding] : []);
-    const releaseSizes = await this.releaseSizesOf(em, rule);
 
     // The index of the movie is brought in line with the disk soon
     await this.scanService.requestScan(MediaType.Movie, tmdbId);
@@ -197,12 +196,11 @@ export class StatusService {
     return {
       ...describeRequest({
         request,
-        source: sourceOf(rule, 0, 0),
+        source: sourceOf(sources, 0, 0),
         binding,
         items,
         filesById: new Map(files.map((file) => [file.id, file])),
         ofMedia: files,
-        releaseSizes,
         gate,
         episodesInSeason: undefined,
       }),
@@ -239,28 +237,6 @@ export class StatusService {
     );
 
     return new Map(items.map((item) => [item.id, item]));
-  }
-
-  /** The sizes of the releases the user picked for the title, which a download of one is expected to take */
-  private async releaseSizesOf(
-    em: EntityManager,
-    rule: Preferences | undefined,
-  ): Promise<Map<string, number>> {
-    const preferred = [
-      ...(rule?.seasonTorrents ?? []).map((t) => t.infoHash),
-      ...(rule?.episodeSources ?? []).flatMap((s) =>
-        s.kind === 'torrent' ? [s.infoHash] : [],
-      ),
-    ];
-    if (!preferred.length) return new Map();
-
-    const releases = await em.find(
-      SelectedRelease,
-      { infoHash: { $in: preferred } },
-      { ...READ, fields: ['infoHash', 'size'] },
-    );
-
-    return new Map(releases.map((release) => [release.infoHash, release.size]));
   }
 
   private async nextCleanup(): Promise<Date | undefined> {
@@ -306,8 +282,8 @@ function describeRequest(
 
 /** What a request that is bound to nothing is to get, as the fulfilment would find it */
 function candidateOf(
-  source: RequestSource,
-  { filesById, ofMedia, releaseSizes, episodesInSeason }: RequestContext,
+  source: ResolvedSource,
+  { filesById, ofMedia, episodesInSeason }: RequestContext,
 ): Candidate {
   if (source.kind === 'file') {
     return {
@@ -315,15 +291,12 @@ function candidateOf(
       download: false,
     };
   }
-  const version = ofMedia.find((file) => file.infoHash === source.infoHash);
+  const { infoHash, size } = source.release;
+  const version = ofMedia.find((file) => file.infoHash === infoHash);
   if (version) return { bytes: version.size, download: false };
 
   return {
-    bytes: expectedBytes(
-      releaseSizes.get(source.infoHash) ?? 0,
-      source.forEpisode,
-      episodesInSeason,
-    ),
+    bytes: expectedBytes(size, source.forEpisode, episodesInSeason),
     download: true,
   };
 }
@@ -335,7 +308,7 @@ function candidateOf(
  */
 function statusOf(
   request: MediaRequest,
-  source: RequestSource | undefined,
+  source: ResolvedSource | undefined,
   binding: RequestBinding | undefined,
   item: TorrentItemDto | undefined,
   file: MediaFile | undefined,

@@ -1,28 +1,24 @@
-import type { RequestRule } from './request-rule.entity.js';
+import { MediaType } from '../common/common.dto.js';
+import type { RequestSource } from './request-source.entity.js';
 
-/** The torrent a user prefers for every episode of a season */
-export interface SeasonTorrent {
-  season: number;
+/** A release as a user picked it, resolved: what downloads needs to get the torrent */
+export interface SelectedRelease {
   infoHash: string;
+  title: string;
+  indexer: string;
+  size: number;
+  magnetUrl?: string;
+  torrentFile?: Buffer;
 }
 
 /**
- * What a user prefers for an episode, over the season's torrent: a torrent,
- * or a file in the library. The preference for a movie is the entry with
- * season and episode 0 on the rule of the movie.
- */
-export type EpisodeSource = { season: number; episode: number } & (
-  { kind: 'torrent'; infoHash: string } | { kind: 'file'; mediaFileId: string }
-);
-
-/**
  * Where the request of a user for an episode or a movie gets its file: the
- * torrent the user prefers, or a file in the library
+ * release the user picked, or a file in the library
  */
-export type RequestSource =
+export type ResolvedSource =
   | {
       kind: 'torrent';
-      infoHash: string;
+      release: SelectedRelease;
       /**
        * The torrent was picked for this episode alone, or for the movie, so
        * its only video is the episode, whatever the file is called
@@ -31,28 +27,42 @@ export type RequestSource =
     }
   | { kind: 'file'; mediaFileId: string };
 
-export type Preferences = Pick<
-  RequestRule,
-  'seasonTorrents' | 'episodeSources'
->;
+/** What a source row gives the requests of its target: nothing while a torrent source has no release */
+export function resolvedOf(source: RequestSource): ResolvedSource | undefined {
+  if (source.kind === 'file') {
+    return source.mediaFileId == null
+      ? undefined
+      : { kind: 'file', mediaFileId: source.mediaFileId };
+  }
 
-/** The source of an episode: the episode's own preference, else the season's torrent. A movie is episode 0 of season 0. */
+  const { infoHash, title, indexer, size, magnetUrl, torrentFile } = source;
+  if (infoHash == null || title == null || indexer == null || size == null) {
+    return undefined;
+  }
+
+  return {
+    kind: 'torrent',
+    release: {
+      infoHash,
+      title,
+      indexer,
+      size,
+      magnetUrl: magnetUrl ?? undefined,
+      torrentFile: torrentFile ?? undefined,
+    },
+    forEpisode: source.mediaType === MediaType.Movie || source.episode !== 0,
+  };
+}
+
+/** The source of an episode among the sources of its title: the episode's own, else its season's (episode 0). A movie is episode 0 of season 0. */
 export function sourceOf(
-  rule: Preferences | undefined,
+  sources: RequestSource[],
   season: number,
   episode: number,
-): RequestSource | undefined {
-  const own = rule?.episodeSources?.find(
-    (source) => source.season === season && source.episode === episode,
-  );
-  if (own?.kind === 'file') {
-    return { kind: 'file', mediaFileId: own.mediaFileId };
-  }
-  if (own) return { kind: 'torrent', infoHash: own.infoHash, forEpisode: true };
+): ResolvedSource | undefined {
+  const source =
+    sources.find((s) => s.season === season && s.episode === episode) ??
+    sources.find((s) => s.season === season && s.episode === 0);
 
-  const pack = rule?.seasonTorrents?.find((t) => t.season === season);
-
-  return pack
-    ? { kind: 'torrent', infoHash: pack.infoHash, forEpisode: false }
-    : undefined;
+  return source && resolvedOf(source);
 }

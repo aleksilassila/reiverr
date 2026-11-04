@@ -158,7 +158,6 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    *        if the torrent is for the whole season
    *      - else bind the torrent's file in the library if user has quota for
    *        it, else clear binding
-   *      - else record error and clear binding if the release is not known
    *      - else keep the download if it is under way, else start it if user
    *        has quota and the disk is not full, else clear binding
    */
@@ -243,7 +242,8 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       // A file it has from this torrent is what it wants; a season's torrent
       // picked later replaces nothing that is on disk, an episode's or a
       // movie's does
-      const { infoHash } = source;
+      const { release } = source;
+      const { infoHash } = release;
       const held = await this.heldFile(tx, binding);
       const keepsHeld =
         !!held &&
@@ -279,19 +279,6 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
             ? { torrentItemId: null, mediaFileId: version.id, error: null }
             : NOTHING,
         );
-        return;
-      }
-
-      const [release] = await this.requestsService.findSelectedReleases(tx, [
-        infoHash,
-      ]);
-      if (!release) {
-        await this.releaseItemOf(tx, binding);
-        await write({
-          torrentItemId: null,
-          mediaFileId: null,
-          error: 'The release is not known any more',
-        });
         return;
       }
 

@@ -9,13 +9,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
-import type { EpisodeSource, SeasonTorrent } from './request-source.js';
 
 /**
  * What a user wants of the requests of a title: which of them are needed,
- * going by what the user has watched, and which torrents or files they get
- * their files from. A limit that is null does not apply. The rule of a
- * movie has only keepWatchedHours and the source of the movie.
+ * going by what the user has watched. A limit that is null does not apply.
+ * The rule of a movie has only keepWatchedHours. Where the requests get
+ * their files is their sources (`RequestSource`).
  */
 @Entity()
 @Unique({ properties: ['userId', 'mediaType', 'tmdbId'] })
@@ -62,12 +61,4 @@ export class RequestRule {
   })
   @Property({ type: 'integer', nullable: true })
   keepWatchedHours: number | null = null;
-
-  /** The torrent the user prefers for the episodes of a season */
-  @Property({ type: 'json', nullable: true })
-  seasonTorrents: SeasonTorrent[] | null = null;
-
-  /** The torrent or the file the user prefers for an episode, over the season's torrent */
-  @Property({ type: 'json', nullable: true })
-  episodeSources: EpisodeSource[] | null = null;
 }
