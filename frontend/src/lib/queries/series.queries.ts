@@ -271,9 +271,7 @@ export function getEpisodeRequestStatus(
 	const selected = own ?? seasonPack;
 	// A request that has its file keeps its torrent when another one is selected
 	const infoHash =
-		fulfilment?.infoHash ??
-		heldFileOf(fulfilment, data.status?.files)?.infoHash ??
-		selected?.release?.infoHash;
+		heldFileOf(fulfilment, data.status?.files)?.infoHash ?? selected?.release?.infoHash;
 	const torrent = infoHash ? data.torrents?.get(infoHash) : undefined;
 	const release = selected?.release?.infoHash === infoHash ? selected?.release : undefined;
 	const file = own?.mediaFileId

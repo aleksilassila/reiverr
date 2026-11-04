@@ -178,8 +178,7 @@ export function getMovieRequestStatus({
 	const fulfilment = status?.fulfilment;
 	const files = status?.files ?? [];
 	// A request that has its file keeps its torrent when another one is selected
-	const infoHash =
-		fulfilment?.infoHash ?? heldFileOf(fulfilment, files)?.infoHash ?? selected?.release?.infoHash;
+	const infoHash = heldFileOf(fulfilment, files)?.infoHash ?? selected?.release?.infoHash;
 	const torrent = infoHash ? torrents?.get(infoHash) : undefined;
 	const release = selected?.release?.infoHash === infoHash ? selected?.release : undefined;
 	const file = selected?.mediaFileId

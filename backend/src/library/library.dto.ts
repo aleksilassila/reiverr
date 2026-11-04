@@ -262,13 +262,6 @@ export class FulfilmentStatusDto {
   mediaFileId?: string;
 
   @ApiProperty({
-    required: false,
-    description:
-      'The torrent of the torrent item the request waits for, or whose import failed',
-  })
-  infoHash?: string;
-
-  @ApiProperty({
     enum: FulfilmentError,
     required: false,
     description: 'Why the request has no file',

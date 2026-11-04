@@ -262,13 +262,7 @@ async function createHub() {
     fulfilment,
     events,
   );
-  const status = new StatusService(
-    orm.em,
-    requests,
-    downloads,
-    libraryService,
-    scan,
-  );
+  const status = new StatusService(orm.em, requests, libraryService, scan);
   for (const service of [
     scan,
     downloads,
@@ -378,7 +372,7 @@ describe('FulfilmentService', () => {
   const movieStatus = async (user = userId) =>
     movieView(
       await movieRequests(user),
-      await request(() => hub.status.getMovieStatus(user, MOVIE_ID)),
+      await request(() => hub.status.describeMovieStatus(user, MOVIE_ID)),
       await hub.downloads.describeTitleTorrents({
         mediaType: MediaType.Movie,
         tmdbId: MOVIE_ID,
@@ -432,7 +426,13 @@ describe('FulfilmentService', () => {
   const seriesStatus = async (user = userId) =>
     seriesView(
       await request(() => hub.requests.describeSeriesRequests(user, TMDB_ID)),
-      await request(() => hub.status.getSeriesStatus(user, TMDB_ID)),
+      await request(() =>
+        hub.status.describeTitleStatus({
+          userId: user,
+          mediaType: MediaType.Series,
+          tmdbId: TMDB_ID,
+        }),
+      ),
       await hub.downloads.describeTitleTorrents({
         mediaType: MediaType.Series,
         tmdbId: TMDB_ID,
@@ -475,7 +475,13 @@ describe('FulfilmentService', () => {
 
   it('describes the bindings of the requests of a user and the files of the title', async () => {
     const document = () =>
-      request(() => hub.status.getSeriesStatus(userId, TMDB_ID));
+      request(() =>
+        hub.status.describeTitleStatus({
+          userId,
+          mediaType: MediaType.Series,
+          tmdbId: TMDB_ID,
+        }),
+      );
     const requestIdOf = async (episode: number) =>
       (
         await orm.em
@@ -496,7 +502,7 @@ describe('FulfilmentService', () => {
 
     await settle();
     expect((await document()).fulfilments).toEqual([
-      { requestId, status: 'downloading', infoHash: PACK },
+      { requestId, status: 'downloading' },
     ]);
 
     hub.engine.running(PACK).download(0);
@@ -520,8 +526,15 @@ describe('FulfilmentService', () => {
 
   it('says on the binding what holds a request back, and takes it back when there is room', async () => {
     const fulfilments = async () =>
-      (await request(() => hub.status.getSeriesStatus(userId, TMDB_ID)))
-        .fulfilments;
+      (
+        await request(() =>
+          hub.status.describeTitleStatus({
+            userId,
+            mediaType: MediaType.Series,
+            tmdbId: TMDB_ID,
+          }),
+        )
+      ).fulfilments;
     const row = async () => {
       const [binding] = await orm.em.fork().find(RequestBinding, {});
 
@@ -550,9 +563,7 @@ describe('FulfilmentService', () => {
     await setQuota(null);
     await hub.fulfilment.sweep();
     await settle();
-    expect(await fulfilments()).toEqual([
-      { requestId, status: 'downloading', infoHash: PACK },
-    ]);
+    expect(await fulfilments()).toEqual([{ requestId, status: 'downloading' }]);
     expect(await row()).toMatchObject({ error: null, errorMessage: null });
   });
 
@@ -1094,7 +1105,7 @@ describe('FulfilmentService', () => {
       error: 'The file is not of this movie',
     });
     expect(
-      (await request(() => hub.status.getMovieStatus(userId, MOVIE_ID)))
+      (await request(() => hub.status.describeMovieStatus(userId, MOVIE_ID)))
         .fulfilment,
     ).toMatchObject({
       status: 'failed',

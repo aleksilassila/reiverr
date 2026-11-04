@@ -1,9 +1,7 @@
 import { EntityManager } from '@mikro-orm/sqlite';
 import { Injectable } from '@nestjs/common';
 import * as path from 'node:path';
-import { MediaType } from '../common/common.dto.js';
-import { DownloadsService } from '../downloads/downloads.service.js';
-import { TorrentItem } from '../downloads/torrent-item.entity.js';
+import { MediaType, Pair } from '../common/common.dto.js';
 import {
   RequestsService,
   RequestWithSource,
@@ -37,32 +35,15 @@ export class StatusService {
   constructor(
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
-    private readonly downloadsService: DownloadsService,
     private readonly libraryService: LibraryService,
     private readonly scanService: ScanService,
   ) {}
 
-  getSeriesStatus(userId: string, tmdbId: string): Promise<SeriesStatusDto> {
-    return this.describeTitle(userId, MediaType.Series, tmdbId);
-  }
-
-  async getMovieStatus(
-    userId: string,
-    tmdbId: string,
-  ): Promise<MovieStatusDto> {
-    const {
-      fulfilments: [fulfilment],
-      files,
-    } = await this.describeTitle(userId, MediaType.Movie, tmdbId);
-
-    return { fulfilment, files };
-  }
-
-  private async describeTitle(
-    userId: string,
-    mediaType: MediaType,
-    tmdbId: string,
-  ): Promise<SeriesStatusDto> {
+  async describeTitleStatus({
+    userId,
+    mediaType,
+    tmdbId,
+  }: Pair): Promise<SeriesStatusDto> {
     const em = this.em.fork();
     const requests = await this.requestsService.findRequestsWithSources({
       userId,
@@ -84,6 +65,23 @@ export class StatusService {
     };
   }
 
+  /** The status of a title with the one request a user can have for a movie */
+  async describeMovieStatus(
+    userId: string,
+    tmdbId: string,
+  ): Promise<MovieStatusDto> {
+    const {
+      fulfilments: [fulfilment],
+      files,
+    } = await this.describeTitleStatus({
+      userId,
+      mediaType: MediaType.Movie,
+      tmdbId,
+    });
+
+    return { fulfilment, files };
+  }
+
   /** The requests that have a binding, and the active ones without one */
   private async describeFulfilments(
     em: EntityManager,
@@ -94,26 +92,11 @@ export class StatusService {
       { requestId: { $in: requests.map((request) => request.id) } },
       READ,
     );
-    const torrentItems = await this.downloadsService.findTorrentItems(
-      em,
-      bindings.flatMap((binding) => binding.torrentItemId ?? []),
-    );
     const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
-    const torrentItemOf = new Map(
-      torrentItems.map((torrentItem) => [torrentItem.id, torrentItem]),
+
+    return requests.flatMap(
+      (request) => describeFulfilment(request, bindingOf.get(request.id)) ?? [],
     );
-
-    return requests.flatMap((request) => {
-      const binding = bindingOf.get(request.id);
-
-      return (
-        describeFulfilment(
-          request,
-          binding,
-          torrentItemOf.get(binding?.torrentItemId),
-        ) ?? []
-      );
-    });
   }
 
   /** The files of a title, with when the next cleanup deletes the managed ones no request of anyone holds */
@@ -152,10 +135,8 @@ export class StatusService {
 function describeFulfilment(
   request: RequestWithSource,
   binding: RequestBinding | undefined,
-  torrentItem: TorrentItem | undefined,
 ): FulfilmentStatusDto | undefined {
   const requestId = request.id;
-  const infoHash = torrentItem?.torrentHash;
 
   if (binding?.mediaFileId) {
     return {
@@ -168,13 +149,12 @@ function describeFulfilment(
     return {
       requestId,
       status: FulfilmentStatus.Failed,
-      infoHash,
       error: binding.error,
       errorMessage: binding.errorMessage,
     };
   }
   if (binding) {
-    return { requestId, status: FulfilmentStatus.Downloading, infoHash };
+    return { requestId, status: FulfilmentStatus.Downloading };
   }
   if (!request.source || !isNeeded(request)) return undefined;
 

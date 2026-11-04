@@ -1446,8 +1446,6 @@ export interface FulfilmentStatusDto {
   status: "pending" | "downloading" | "fulfilled" | "failed";
   /** The file the request has, one of the files of the title */
   mediaFileId?: string;
-  /** The torrent of the torrent item the request waits for, or whose import failed */
-  infoHash?: string;
   /** Why the request has no file */
   error?:
     | "import-failed"

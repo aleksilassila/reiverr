@@ -70,10 +70,11 @@ function viewOf(
     (file) => file.season === season && file.episodes.includes(episode),
   );
   const file = files.find((file) => file.id === fulfilment?.mediaFileId);
+  const infoHash = file?.infoHash ?? preference?.release?.infoHash;
   const torrentItem =
     fulfilment?.status === FulfilmentStatus.Downloading
       ? torrents
-          .find((torrent) => torrent.infoHash === fulfilment.infoHash)
+          .find((torrent) => torrent.infoHash === infoHash)
           ?.torrentItems.find(
             (i) => i.season === season && i.episode === episode,
           )
@@ -86,7 +87,7 @@ function viewOf(
     onDisk: ofMedia.length > 0,
     status: statusOf(request, preference, fulfilment, torrentItem?.status),
     error: fulfilment?.errorMessage ?? torrentItem?.error,
-    infoHash: fulfilment?.infoHash ?? file?.infoHash,
+    infoHash,
     cleanupAt: ofMedia.every((file) => file.cleanupAt)
       ? ofMedia[0]?.cleanupAt
       : undefined,

@@ -21,6 +21,7 @@ import {
   GetAuthUser,
   UserAccessControl,
 } from '../auth/auth.guard.js';
+import { MediaType } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 import {
   LibraryEpisodeFileDto,
@@ -81,13 +82,13 @@ export class LibraryController {
   @ApiOkResponse({
     type: MovieStatusDto,
     description:
-      'The status of the request of the user for the movie, and the files of the movie',
+      'How the library fulfils the request of the user for the movie, and the files of the movie',
   })
   getMovieStatus(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MovieStatusDto> {
-    return this.statusService.getMovieStatus(user.id, tmdbId);
+    return this.statusService.describeMovieStatus(user.id, tmdbId);
   }
 
   @Get('series/:tmdbId')
@@ -102,13 +103,17 @@ export class LibraryController {
   @ApiOkResponse({
     type: SeriesStatusDto,
     description:
-      'The status of the requests of the user for the series, by episode, and the files of the series',
+      'How the library fulfils the requests of the user for the series, and the files of the series',
   })
   getSeriesStatus(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SeriesStatusDto> {
-    return this.statusService.getSeriesStatus(user.id, tmdbId);
+    return this.statusService.describeTitleStatus({
+      userId: user.id,
+      mediaType: MediaType.Series,
+      tmdbId,
+    });
   }
 
   @Get('series/:tmdbId/seasons/:season/episodes/:episode')
