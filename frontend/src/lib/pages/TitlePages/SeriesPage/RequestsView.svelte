@@ -137,7 +137,7 @@
 		const bytes = !requested
 			? 0
 			: episodes
-					.filter((e) => !data.status?.episodes.get(episodeKey(e.season, e.episode))?.requested)
+					.filter((e) => !data.requests?.requests.has(episodeKey(e.season, e.episode)))
 					.reduce((sum, e) => sum + sourceBytes(e), 0);
 		if (!(await confirmQuota(bytes))) return;
 

@@ -97,18 +97,6 @@ export const uniquePairs = (pairs: Pair[]): Pair[] => [
   ).values(),
 ];
 
-export const seriesPair = (userId: string, tmdbId: string): Pair => ({
-  userId,
-  mediaType: MediaType.Series,
-  tmdbId,
-});
-
-export const moviePair = (userId: string, tmdbId: string): Pair => ({
-  userId,
-  mediaType: MediaType.Movie,
-  tmdbId,
-});
-
 export enum OrderDirection {
   Asc = 'asc',
   Desc = 'desc',

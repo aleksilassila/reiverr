@@ -1,6 +1,6 @@
 import type {
 	EpisodeRefDto,
-	EpisodeStatusDto,
+	FulfilmentStatusDto,
 	MediaFileDto,
 	MediaRequestDto,
 	PreferenceDto,
@@ -18,6 +18,7 @@ import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
 import {
 	getStatusLabel,
+	heldFileOf,
 	isErrorStatus,
 	itemOf,
 	liveRefetchInterval,
@@ -70,7 +71,7 @@ export const seriesQueries = {
 			queryFn: () => reiverrApi.requests.getSeriesRequests(tmdbId).then((r) => r.data),
 			select: toSeriesRequests
 		}),
-	/** The status of the requests of the user, by episode, and the files of the series */
+	/** How the library fulfils the requests of the user, and the files of the series */
 	status: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.status(tmdbId),
@@ -211,10 +212,10 @@ export type SeriesRequests = {
 	preferences: Map<string, PreferenceDto>;
 };
 
-/** The status document, keyed by {@link episodeKey} */
+/** The status document */
 export type SeriesStatus = {
-	/** The episodes the current user requested or that are on disk */
-	episodes: Map<string, EpisodeStatusDto>;
+	/** How the library fulfils the requests of the current user, by the id of the request */
+	fulfilments: Map<string, FulfilmentStatusDto>;
 	/** The files of the series in the index */
 	files: MediaFileDto[];
 };
@@ -236,7 +237,7 @@ function toSeriesRequests(requests: SeriesRequestsDto): SeriesRequests {
 
 function toSeriesStatus(status: SeriesStatusDto): SeriesStatus {
 	return {
-		episodes: new Map(status.episodes.map((e) => [episodeKey(e.season, e.episode), e])),
+		fulfilments: new Map(status.fulfilments.map((f) => [f.requestId, f])),
 		files: status.files
 	};
 }
@@ -260,25 +261,41 @@ export function getEpisodeRequestStatus(
 	episode: number
 ): EpisodeRequestStatus {
 	const key = episodeKey(season, episode);
-	const status = data.status?.episodes.get(key);
+	const request = data.requests?.requests.get(key);
+	const fulfilment = request && data.status?.fulfilments.get(request.id);
+	const files = (data.status?.files ?? []).filter(
+		(file) => file.season === season && file.episodes.includes(episode)
+	);
 	const own = data.requests?.preferences.get(key);
 	const seasonPack = data.requests?.preferences.get(episodeKey(season, 0));
 	const selected = own ?? seasonPack;
 	// A request that has its file keeps its torrent when another one is selected
-	const infoHash = status?.infoHash ?? selected?.release?.infoHash;
+	const infoHash =
+		fulfilment?.infoHash ??
+		heldFileOf(fulfilment, data.status?.files)?.infoHash ??
+		selected?.release?.infoHash;
 	const torrent = infoHash ? data.torrents?.get(infoHash) : undefined;
 	const release = selected?.release?.infoHash === infoHash ? selected?.release : undefined;
 	const file = own?.mediaFileId
 		? data.status?.files.find((file) => file.id === own.mediaFileId)
 		: undefined;
 
+	const status = {
+		request,
+		preference: selected,
+		fulfilment,
+		files,
+		torrent,
+		item: itemOf(torrent, season, episode)
+	};
+
 	return {
-		requested: !!status?.requested,
-		onDisk: !!status?.onDisk,
+		requested: !!request,
+		onDisk: files.length > 0,
 		infoHash,
 		sourceName: torrent?.title ?? release?.title ?? file?.fileName,
 		isSeasonPack: !own && !!infoHash && infoHash === seasonPack?.release?.infoHash,
-		label: getStatusLabel(status, { torrent, item: itemOf(torrent, season, episode) }),
+		label: getStatusLabel(status),
 		isError: isErrorStatus(status)
 	};
 }

@@ -4,7 +4,13 @@ import { User } from '../users/user.entity.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 
-export class MediaRequestDto extends MediaRequest {}
+export class MediaRequestDto extends MediaRequest {
+  @ApiProperty({
+    description:
+      'Whether the download-ahead window of the rule of the user holds the request back until they have watched up to it',
+  })
+  ahead: boolean;
+}
 
 export class RequesterDto extends PickType(User, ['id', 'name']) {}
 

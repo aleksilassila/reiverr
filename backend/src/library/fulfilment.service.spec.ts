@@ -10,6 +10,7 @@ import {
 import * as path from 'node:path';
 import parseTorrent from 'parse-torrent';
 import { FakeEngine, magnetFiles } from '../../test/fake-engine.js';
+import { movieView, seriesView } from '../../test/title-view.js';
 import { createTorrent } from '../../test/torrent-fixture.js';
 import { MediaType } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
@@ -373,10 +374,18 @@ describe('FulfilmentService', () => {
   });
   const requestMovie = (user = userId) =>
     request(() => hub.requests.createMovieRequest(user, MOVIE_ID, true));
-  const movieStatus = (user = userId) =>
-    request(() => hub.status.getMovieStatus(user, MOVIE_ID));
   const movieRequests = (user = userId) =>
     request(() => hub.requests.describeMovieRequests(user, MOVIE_ID));
+  /** The movie as its page reads it */
+  const movieStatus = async (user = userId) =>
+    movieView(
+      await movieRequests(user),
+      await request(() => hub.status.getMovieStatus(user, MOVIE_ID)),
+      await hub.downloads.describeTitleTorrents({
+        mediaType: MediaType.Movie,
+        tmdbId: MOVIE_ID,
+      }),
+    );
   const movieFiles = () =>
     existsSync(dirs.movies)
       ? (readdirSync(dirs.movies, { recursive: true }) as string[])
@@ -419,10 +428,22 @@ describe('FulfilmentService', () => {
       ];
     });
   };
+  /** The episodes as the page of the series reads them */
+  const seriesStatus = async (user = userId) =>
+    seriesView(
+      await request(() => hub.requests.describeSeriesRequests(user, TMDB_ID)),
+      await request(() => hub.status.getSeriesStatus(user, TMDB_ID)),
+      await hub.downloads.describeTitleTorrents({
+        mediaType: MediaType.Series,
+        tmdbId: TMDB_ID,
+      }),
+    );
   const statuses = async (user = userId) =>
-    (
-      await request(() => hub.status.getSeriesStatus(user, TMDB_ID))
-    ).episodes.map((e) => [e.episode, e.status ?? null, e.onDisk]);
+    (await seriesStatus(user)).episodes.map((e) => [
+      e.episode,
+      e.status ?? null,
+      e.onDisk,
+    ]);
   const libraryFiles = () =>
     existsSync(dirs.library)
       ? (readdirSync(dirs.library, { recursive: true }) as string[])
@@ -450,6 +471,51 @@ describe('FulfilmentService', () => {
   afterEach(async () => {
     await orm.close();
     rmSync(dirs.root, { recursive: true, force: true });
+  });
+
+  it('describes the bindings of the requests of a user and the files of the title', async () => {
+    const document = () =>
+      request(() => hub.status.getSeriesStatus(userId, TMDB_ID));
+    const requestIdOf = async (episode: number) =>
+      (
+        await orm.em
+          .fork()
+          .findOne(MediaRequest, { userId, tmdbId: TMDB_ID, episode })
+      ).id;
+
+    // Not active: the requests say why, the library has nothing to say
+    await setRequested([1]);
+    expect(await document()).toEqual({ fulfilments: [], files: [] });
+
+    // Active and nothing bound yet: the reconcile is queued
+    await select(0, 'pack');
+    const requestId = await requestIdOf(1);
+    expect((await document()).fulfilments).toEqual([
+      { requestId, status: 'pending' },
+    ]);
+
+    await settle();
+    expect((await document()).fulfilments).toEqual([
+      { requestId, status: 'downloading', infoHash: PACK },
+    ]);
+
+    hub.engine.running(PACK).download(0);
+    await settle();
+    const fulfilled = await document();
+    expect(fulfilled.fulfilments).toEqual([
+      { requestId, status: 'fulfilled', mediaFileId: fulfilled.files[0].id },
+    ]);
+    expect(fulfilled.files).toMatchObject([
+      { season: 1, episodes: [1], infoHash: PACK, managed: true },
+    ]);
+    expect(fulfilled.files[0].cleanupAt).toBeUndefined();
+
+    // Nothing holds the file any more, so the next cleanup deletes it
+    await setRequested([1], false);
+    await settle();
+    const unrequested = await document();
+    expect(unrequested.fulfilments).toEqual([]);
+    expect(unrequested.files[0].cleanupAt).toEqual(expect.any(Date));
   });
 
   it('has downloads get the files of active requests and imports them as they complete', async () => {
@@ -483,7 +549,7 @@ describe('FulfilmentService', () => {
       [2, false, false],
     ]);
     expect(await statuses()).toEqual([
-      [1, 'available', true],
+      [1, 'fulfilled', true],
       [2, 'downloading', false],
     ]);
     expect(pack.wanted).toEqual([1]);
@@ -584,7 +650,7 @@ describe('FulfilmentService', () => {
       [episodeFile(1, EPISODE), episodeFile(1, PACK)].sort(),
     );
     expect(await statuses()).toEqual([
-      [1, 'available', true],
+      [1, 'fulfilled', true],
       [2, 'downloading', false],
     ]);
   });
@@ -617,7 +683,7 @@ describe('FulfilmentService', () => {
     );
     await settle();
     expect(await bindings()).toEqual([[1, null, 'file:1111', null]]);
-    expect(await statuses()).toEqual([[1, 'available', true]]);
+    expect(await statuses()).toEqual([[1, 'fulfilled', true]]);
 
     // Deleted: the binding goes, and nothing holds the file
     await setRequested([1], false);
@@ -670,7 +736,7 @@ describe('FulfilmentService', () => {
     await selectFile(3, file.id);
     await settle();
     expect(await bindings()).toEqual([[3, null, 'file:external', null]]);
-    expect(await statuses()).toEqual([[3, 'available', true]]);
+    expect(await statuses()).toEqual([[3, 'fulfilled', true]]);
 
     // A file of another episode is refused
     await selectFile(2, file.id);
@@ -781,7 +847,7 @@ describe('FulfilmentService', () => {
     await setRequested([3]);
     await settle();
     expect(await statuses()).toEqual([
-      [1, 'available', true],
+      [1, 'fulfilled', true],
       [2, 'downloading', false],
       [3, 'over-quota', false],
     ]);
@@ -872,7 +938,7 @@ describe('FulfilmentService', () => {
       [2, null, null, null],
     ]);
     expect(await statuses()).toEqual([
-      [1, 'available', true],
+      [1, 'fulfilled', true],
       [2, 'disk-full', false],
     ]);
 
@@ -891,7 +957,7 @@ describe('FulfilmentService', () => {
     expect(await movieStatus()).toMatchObject({
       requested: true,
       onDisk: false,
-      status: 'no-preference',
+      status: 'no-source',
     });
 
     await request(() => hub.requests.preferRelease(movieTarget(), 'movie'));
@@ -918,7 +984,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(movieFiles()).toEqual([movieFile(MOVIE)]);
     expect(await movieStatus()).toMatchObject({
-      status: 'available',
+      status: 'fulfilled',
       onDisk: true,
       infoHash: MOVIE,
       files: [{ managed: true, infoHash: MOVIE, season: 0, episodes: [0] }],
@@ -961,7 +1027,7 @@ describe('FulfilmentService', () => {
     await request(() => hub.requests.preferFile(movieTarget(), file.id));
     await settle();
     expect(await movieStatus()).toMatchObject({
-      status: 'available',
+      status: 'fulfilled',
       onDisk: true,
       files: [{ id: file.id, managed: false }],
     });

@@ -246,6 +246,49 @@ describe('RequestsService', () => {
 
   afterEach(() => orm.close());
 
+  it('says which requests the download-ahead window holds back, once they have a source', async () => {
+    const ahead = async () => {
+      const document = await request(() =>
+        requests.describeSeriesRequests(userId, SERIES),
+      );
+
+      return document.requests.map((r) => [r.episode, r.ahead]);
+    };
+
+    await requestEpisodes([1, 2, 3]);
+    await setRule({ keepNext: 1 });
+    expect(await ahead()).toEqual([
+      [1, false],
+      [2, false],
+      [3, false],
+    ]);
+
+    await select(0, 'pack');
+    expect(await ahead()).toEqual([
+      [1, false],
+      [2, true],
+      [3, true],
+    ]);
+
+    // The routes that return requests say the same
+    const returned = await requestEpisodes([]);
+    expect(returned.map((r) => [r.episode, r.ahead])).toEqual(await ahead());
+    const { items } = await request(() =>
+      requests.findByUser(userId, { page: 1, itemsPerPage: 10 }),
+    );
+    expect(
+      items.map((r) => [r.episode, r.ahead]).sort((a, b) => +a[0] - +b[0]),
+    ).toEqual(await ahead());
+    const admin = await request(() =>
+      requests.findAll({ page: 1, itemsPerPage: 10 }),
+    );
+    expect(
+      admin.items
+        .map((r) => [r.episode, r.ahead])
+        .sort((a, b) => +a[0] - +b[0]),
+    ).toEqual(await ahead());
+  });
+
   it('lets new requests through once they have a source, and has the library look at them', async () => {
     await requestEpisodes([1, 2]);
     expect(await gates()).toEqual([

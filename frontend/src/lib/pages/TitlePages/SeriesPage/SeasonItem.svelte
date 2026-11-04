@@ -33,8 +33,8 @@
 		episode: e.episode_number ?? 0,
 		name: e.name ?? ''
 	}));
-	$: requestedCount = episodes.filter(
-		(e) => data.status?.episodes.get(episodeKey(e.season, e.episode))?.requested
+	$: requestedCount = episodes.filter((e) =>
+		data.requests?.requests.has(episodeKey(e.season, e.episode))
 	).length;
 	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
 
@@ -72,8 +72,7 @@
 	</RequestRow>
 
 	{#each episodes as episode (episode.episode)}
-		{@const requested = !!data.status?.episodes.get(episodeKey(episode.season, episode.episode))
-			?.requested}
+		{@const requested = !!data.requests?.requests.has(episodeKey(episode.season, episode.episode))}
 		<EpisodeItem
 			seasonNumber={episode.season}
 			episodeNumber={episode.episode}

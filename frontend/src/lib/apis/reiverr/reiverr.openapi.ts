@@ -1301,6 +1301,8 @@ export interface MediaRequestDto {
   watchedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Whether the download-ahead window of the rule of the user holds the request back until they have watched up to it */
+  ahead: boolean;
 }
 
 export interface MovieRequestRuleDto {
@@ -1394,6 +1396,8 @@ export interface AdminMediaRequestDto {
   watchedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Whether the download-ahead window of the rule of the user holds the request back until they have watched up to it */
+  ahead: boolean;
   user: RequesterDto;
 }
 
@@ -1437,6 +1441,22 @@ export interface LibraryFileDto {
   infoHash?: string;
 }
 
+export interface FulfilmentStatusDto {
+  requestId: string;
+  status:
+    | "pending"
+    | "downloading"
+    | "fulfilled"
+    | "failed"
+    | "over-quota"
+    | "disk-full";
+  /** The file the request has, one of the files of the title */
+  mediaFileId?: string;
+  /** The torrent of the torrent item the request waits for, or whose import failed */
+  infoHash?: string;
+  error?: string;
+}
+
 export interface MediaFileDto {
   id: string;
   fileName: string;
@@ -1447,34 +1467,17 @@ export interface MediaFileDto {
   infoHash?: string;
   season: number;
   episodes: number[];
-}
-
-export interface MovieStatusDto {
-  /** Whether the user has requested it */
-  requested: boolean;
-  /** Whether a file of it is in the library, from any torrent or found on disk */
-  onDisk: boolean;
-  /** The status of the request of the user */
-  status?:
-    | "waiting-for-approval"
-    | "inactive-ahead"
-    | "no-preference"
-    | "resolving"
-    | "over-quota"
-    | "disk-full"
-    | "no-file-in-torrent"
-    | "downloading"
-    | "failed"
-    | "available";
-  error?: string;
-  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
-  infoHash?: string;
   /**
-   * When the next cleanup deletes the files of it, if no request of anyone keeps one of them
+   * When the next cleanup deletes the file: a managed file that no request of anyone holds
    * @format date-time
    */
   cleanupAt?: string;
-  /** The files of the movie in the index */
+}
+
+export interface MovieStatusDto {
+  /** Of the request of the user, when it has a file or the library acts on it */
+  fulfilment?: FulfilmentStatusDto;
+  /** The files of the movie in the index, by path */
   files: MediaFileDto[];
 }
 
@@ -1492,38 +1495,9 @@ export interface LibraryEpisodeFileDto {
   episodes: number[];
 }
 
-export interface EpisodeStatusDto {
-  season: number;
-  episode: number;
-  /** Whether the user has requested it */
-  requested: boolean;
-  /** Whether a file of it is in the library, from any torrent or found on disk */
-  onDisk: boolean;
-  /** The status of the request of the user */
-  status?:
-    | "waiting-for-approval"
-    | "inactive-ahead"
-    | "no-preference"
-    | "resolving"
-    | "over-quota"
-    | "disk-full"
-    | "no-file-in-torrent"
-    | "downloading"
-    | "failed"
-    | "available";
-  error?: string;
-  /** The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season */
-  infoHash?: string;
-  /**
-   * When the next cleanup deletes the files of it, if no request of anyone keeps one of them
-   * @format date-time
-   */
-  cleanupAt?: string;
-}
-
 export interface SeriesStatusDto {
-  /** The episodes that the user requested or that are on disk, in season and episode order */
-  episodes: EpisodeStatusDto[];
+  /** Of the requests of the user that have a file or that the library acts on */
+  fulfilments: FulfilmentStatusDto[];
   /** The files of the series in the index, by path */
   files: MediaFileDto[];
 }

@@ -159,7 +159,7 @@
 				/>
 			{/if}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				{#if status?.onDisk}
+				{#if requestStatus.onDisk}
 					<Button action={play} icon={Play}>Play</Button>
 				{/if}
 

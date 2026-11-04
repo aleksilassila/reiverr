@@ -42,6 +42,7 @@ import {
 } from '../src/requests/requests.dto.js';
 import { LogEntry, LogType } from '../src/server-log/log-entry.entity.js';
 import { FakeEngine, magnetFiles } from './fake-engine.js';
+import { MediaView, movieView, seriesView } from './title-view.js';
 import { createTorrent } from './torrent-fixture.js';
 
 // The downloads directory is read from the environment when the app is imported
@@ -195,10 +196,18 @@ describe('Series downloads (e2e)', () => {
       .expect(200)
       .then((res) => ({ id: res.body.user.id, token: res.body.accessToken }));
 
-  const getStatus = (user = admin): Promise<SeriesStatusDto> =>
+  const getSeriesStatus = (user = admin): Promise<SeriesStatusDto> =>
     api('get', `/library/series/${TMDB_ID}/status`, user)
       .expect(200)
       .then((res) => res.body);
+
+  /** The episodes as the page of the series reads them */
+  const getStatus = async (user = admin) =>
+    seriesView(
+      await getRequests(user),
+      await getSeriesStatus(user),
+      await getTorrents(user),
+    );
 
   const getRequests = (user = admin): Promise<SeriesRequestsDto> =>
     api('get', `/me/requests/series/${TMDB_ID}`, user)
@@ -258,7 +267,7 @@ describe('Series downloads (e2e)', () => {
       user,
     );
 
-  const statuses = (status: SeriesStatusDto) =>
+  const statuses = (status: { episodes: MediaView[] }) =>
     status.episodes.map((e) => [e.season, e.episode, e.status ?? null]);
 
   const em = () => app.get(MikroORM).em.fork();
@@ -469,7 +478,7 @@ describe('Series downloads (e2e)', () => {
         episode: 1,
         requested: true,
         onDisk: false,
-        status: 'no-preference',
+        status: 'no-source',
       },
     ]);
 
@@ -581,7 +590,7 @@ describe('Series downloads (e2e)', () => {
         episode: 1,
         requested: true,
         onDisk: true,
-        status: 'available',
+        status: 'fulfilled',
         infoHash: PACK,
       },
       {
@@ -589,7 +598,7 @@ describe('Series downloads (e2e)', () => {
         episode: 2,
         requested: true,
         onDisk: true,
-        status: 'available',
+        status: 'fulfilled',
         infoHash: EPISODE,
       },
     ]);
@@ -641,7 +650,7 @@ describe('Series downloads (e2e)', () => {
     const other = engine.running(REDIRECT);
     expect(other.wanted).toEqual([0]);
     expect(statuses(await getStatus())).toEqual([
-      [1, 1, 'available'],
+      [1, 1, 'fulfilled'],
       [1, 2, 'downloading'],
     ]);
     // The request let go of the file it had
@@ -661,8 +670,8 @@ describe('Series downloads (e2e)', () => {
       ].sort(),
     );
     expect(statuses(await getStatus())).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
     ]);
     expect(await references()).toEqual([
       [1, 1, null, PACK],
@@ -693,8 +702,8 @@ describe('Series downloads (e2e)', () => {
     // The request shows the torrent it has its file from, not the selected one
     const status = await getStatus();
     expect(statuses(status)).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
     ]);
     expect((await getRequests()).preferences[0].release.infoHash).toBe(EPISODE);
     expect(status.episodes[0].infoHash).toBe(PACK);
@@ -761,8 +770,8 @@ describe('Series downloads (e2e)', () => {
     ]);
     // The request of the viewer is not the admin's
     expect(statuses(await getStatus())).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
     ]);
 
     // Without the viewer's selection the request, which has no file yet,
@@ -774,7 +783,7 @@ describe('Series downloads (e2e)', () => {
     expect(statuses(await getStatus(viewer))).toEqual([
       [1, 1, null],
       [1, 2, null],
-      [1, 3, 'no-preference'],
+      [1, 3, 'no-source'],
     ]);
     expect(await references(viewer)).toEqual([[1, 3, null, null]]);
   });
@@ -905,8 +914,8 @@ describe('Series downloads (e2e)', () => {
 
     // The admin's request for episode 1 has its file from the torrent
     expect(statuses(await getStatus())).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
     ]);
 
     await setRequested([1], false);
@@ -917,8 +926,8 @@ describe('Series downloads (e2e)', () => {
     // the file of the torrent is still on disk
     const status = await getStatus();
     expect(statuses(status)).toEqual([
-      [1, 1, 'no-preference'],
-      [1, 2, 'available'],
+      [1, 1, 'no-source'],
+      [1, 2, 'fulfilled'],
     ]);
     expect(status.episodes[0].onDisk).toBe(true);
     expect(await references()).toEqual([
@@ -932,7 +941,7 @@ describe('Series downloads (e2e)', () => {
     const resume = app.get(JobsService).pause('library.reconcileRequest');
 
     await setRequested([1], true, { season: 2 });
-    expect(statuses(await getStatus())).toContainEqual([2, 1, 'no-preference']);
+    expect(statuses(await getStatus())).toContainEqual([2, 1, 'no-source']);
 
     resume();
     await setRequested([1], false, { season: 2 });
@@ -972,9 +981,9 @@ describe('Series downloads (e2e)', () => {
       keepWatchedHours: null,
     });
     expect(await season2()).toEqual([
-      [1, true, 'no-preference'],
-      [2, true, 'no-preference'],
-      [3, true, 'no-preference'],
+      [1, true, 'no-source'],
+      [2, true, 'no-source'],
+      [3, true, 'no-source'],
     ]);
 
     // Picking a source lets the next request through, counted from the last
@@ -993,9 +1002,9 @@ describe('Series downloads (e2e)', () => {
     engine.running(SEASON_2).download(0);
     await settle();
     expect(await season2()).toEqual([
-      [1, true, 'available'],
-      [2, true, 'inactive-ahead'],
-      [3, true, 'inactive-ahead'],
+      [1, true, 'fulfilled'],
+      [2, true, 'ahead'],
+      [3, true, 'ahead'],
     ]);
 
     // Watching an episode lets the next one through. Without a keep setting
@@ -1003,27 +1012,27 @@ describe('Series downloads (e2e)', () => {
     await setPlayState(2, 1, { watched: true });
     await settle();
     expect(await season2()).toEqual([
-      [1, true, 'available'],
-      [2, true, 'no-file-in-torrent'],
-      [3, true, 'inactive-ahead'],
+      [1, true, 'fulfilled'],
+      [2, true, 'no-match'],
+      [3, true, 'ahead'],
     ]);
 
     // Marking it unwatched holds nothing back again
     await setPlayState(2, 1, { watched: false });
     await settle();
     expect(await season2()).toEqual([
-      [1, true, 'available'],
-      [2, true, 'no-file-in-torrent'],
-      [3, true, 'inactive-ahead'],
+      [1, true, 'fulfilled'],
+      [2, true, 'no-match'],
+      [3, true, 'ahead'],
     ]);
 
     // A watched request that the rule keeps holds on to its file
     await setPlayState(2, 1, { watched: true });
     await setRule({ keepNext: 1, keepWatched: 1 });
     expect(await season2()).toEqual([
-      [1, true, 'available'],
-      [2, true, 'no-file-in-torrent'],
-      [3, true, 'inactive-ahead'],
+      [1, true, 'fulfilled'],
+      [2, true, 'no-match'],
+      [3, true, 'ahead'],
     ]);
 
     // The one watched before the last is deleted, and nothing holds its
@@ -1032,8 +1041,8 @@ describe('Series downloads (e2e)', () => {
     await settle();
     expect(await season2()).toEqual([
       [1, false, null],
-      [2, true, 'no-file-in-torrent'],
-      [3, true, 'no-file-in-torrent'],
+      [2, true, 'no-match'],
+      [3, true, 'no-match'],
     ]);
 
     // The last watched ones are not kept once nothing is left to watch
@@ -1113,8 +1122,8 @@ describe('Series downloads (e2e)', () => {
       readdirSync(path.join(dirs.library, 'Test Show (2020) [tmdbid-100]')),
     ).toEqual(['Season 1']);
     expect(statuses(await getStatus())).toEqual([
-      [1, 1, 'no-preference'],
-      [1, 2, 'available'],
+      [1, 1, 'no-source'],
+      [1, 2, 'fulfilled'],
     ]);
     expect(await em().count(MediaFile, { managed: true })).toBe(1);
 
@@ -1236,7 +1245,7 @@ describe('Series downloads (e2e)', () => {
     // The file is external: it plays, but fulfils no request
     expect(
       (await getStatus()).episodes.map((e) => [e.episode, e.onDisk, e.status]),
-    ).toEqual([[1, true, 'no-preference']]);
+    ).toEqual([[1, true, 'no-source']]);
 
     // Not mounted: the nightly scan leaves the index alone and logs it, the
     // admin is warned and can force it
@@ -1282,7 +1291,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
 
     const status = await getStatus();
-    expect(statuses(status)).toEqual([[1, 1, 'available']]);
+    expect(statuses(status)).toEqual([[1, 1, 'fulfilled']]);
     expect(status.files).toEqual([
       expect.objectContaining({ season: 1, episodes: [1], managed: false }),
     ]);
@@ -1396,7 +1405,7 @@ describe('Series downloads (e2e)', () => {
     await approveAll();
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
-      [1, 1, 'available'],
+      [1, 1, 'fulfilled'],
       [1, 2, 'over-quota'],
     ]);
     expect(await getUsage()).toEqual({
@@ -1409,7 +1418,7 @@ describe('Series downloads (e2e)', () => {
     await setQuota(400);
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
-      [1, 1, 'available'],
+      [1, 1, 'fulfilled'],
       [1, 2, 'downloading'],
     ]);
     expect(await getUsage()).toEqual({
@@ -1431,16 +1440,16 @@ describe('Series downloads (e2e)', () => {
     await approveAll();
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
       [1, 3, 'disk-full'],
     ]);
 
     await setLimit(null);
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
-      [1, 1, 'available'],
-      [1, 2, 'available'],
+      [1, 1, 'fulfilled'],
+      [1, 2, 'fulfilled'],
       [1, 3, 'downloading'],
     ]);
 
@@ -1484,10 +1493,18 @@ describe('Series downloads (e2e)', () => {
 
   it('downloads a movie from the release its user picks, plays it, and cleans it up when nothing holds it', async () => {
     const moviePath = `/me/requests/movies/${MOVIE_ID}`;
-    const getMovieStatus = (user = admin): Promise<MovieStatusDto> =>
-      api('get', `/library/movies/${MOVIE_ID}/status`, user)
-        .expect(200)
-        .then((res) => res.body);
+    const getMovieStatus = async (user = admin) => {
+      const read = (url: string) =>
+        api('get', url, user)
+          .expect(200)
+          .then((res) => res.body);
+
+      return movieView(
+        await read(`/me/requests/movies/${MOVIE_ID}`),
+        (await read(`/library/movies/${MOVIE_ID}/status`)) as MovieStatusDto,
+        await read(`/downloads/movies/${MOVIE_ID}`),
+      );
+    };
     const movieFiles = () =>
       (readdirSync(dirs.movies, { recursive: true }) as string[])
         .filter((file) => file.endsWith('.mkv'))
@@ -1507,7 +1524,7 @@ describe('Series downloads (e2e)', () => {
     expect(await getMovieStatus()).toMatchObject({
       requested: true,
       onDisk: false,
-      status: 'no-preference',
+      status: 'no-source',
       files: [],
     });
     expect((await api('get', moviePath).expect(200)).body).toMatchObject({
@@ -1562,7 +1579,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
     expect(movieFiles()).toEqual([movieFile]);
     expect(await getMovieStatus()).toMatchObject({
-      status: 'available',
+      status: 'fulfilled',
       onDisk: true,
       infoHash: MOVIE,
       files: [{ infoHash: MOVIE, managed: true }],
@@ -1593,7 +1610,7 @@ describe('Series downloads (e2e)', () => {
     await settle();
     expect(await getMovieStatus()).toMatchObject({
       requested: true,
-      status: 'available',
+      status: 'fulfilled',
     });
     expect(
       (await em().findOne(MediaRequest, { tmdbId: MOVIE_ID })).watchedAt,

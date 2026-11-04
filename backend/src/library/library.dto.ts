@@ -1,10 +1,4 @@
-import {
-  ApiProperty,
-  getSchemaPath,
-  IntersectionType,
-  OmitType,
-} from '@nestjs/swagger';
-import { EpisodeRefDto, MediaType } from '../common/common.dto.js';
+import { ApiProperty, getSchemaPath, OmitType } from '@nestjs/swagger';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -224,92 +218,86 @@ export class DeleteLibraryEntriesResultDto {
 /** A file of a title in the index, as of its last scan, whether or not it is on disk now */
 export class MediaFileDto extends OmitType(LibraryEpisodeFileDto, [
   'subtitles',
-]) {}
-
-/** The status of the request of a user for an episode or a movie */
-export enum RequestStatus {
-  WaitingForApproval = 'waiting-for-approval',
-  /** The rule of the user holds the request back until they have watched up to it */
-  InactiveAhead = 'inactive-ahead',
-  /** The user has picked no source for the episode or the movie; a request passes the gate with one */
-  NoPreference = 'no-preference',
-  /** The library is looking at the request, or the files of its torrent are not known yet */
-  Resolving = 'resolving',
-  /** The file or the download the request is to get does not fit the quota of the user; it is looked at again when room is made */
-  OverQuota = 'over-quota',
-  /** A disk is at the limit of the library settings, so nothing more is downloaded for anyone */
-  DiskFull = 'disk-full',
-  NoFileInTorrent = 'no-file-in-torrent',
-  /** The request waits for the file of its torrent; how far it is, the torrents of the title say */
-  Downloading = 'downloading',
-  Failed = 'failed',
-  /** The request has its file in the library */
-  Available = 'available',
-}
-
-/**
- * The status of the request of a user for an episode or a movie, and what
- * is on disk of it, by what the modules wrote. The clients are told when
- * that changes; what the engine is doing they have from the torrents of
- * the title.
- */
-export class RequestStatusDto {
-  @ApiProperty({ description: 'Whether the user has requested it' })
-  requested: boolean;
-
-  @ApiProperty({
-    description:
-      'Whether a file of it is in the library, from any torrent or found on disk',
-  })
-  onDisk: boolean;
-
-  @ApiProperty({
-    enum: RequestStatus,
-    required: false,
-    description: 'The status of the request of the user',
-  })
-  status?: RequestStatus;
-
-  @ApiProperty({ required: false })
-  error?: string;
-
-  @ApiProperty({
-    required: false,
-    description:
-      'The torrent that the request of the user downloads from or has its file from. A request that has its file keeps it when the user selects another torrent for the season',
-  })
-  infoHash?: string;
-
+]) {
   @ApiProperty({
     type: 'string',
     format: 'date-time',
     required: false,
     description:
-      'When the next cleanup deletes the files of it, if no request of anyone keeps one of them',
+      'When the next cleanup deletes the file: a managed file that no request of anyone holds',
   })
   cleanupAt?: Date;
 }
 
-export class EpisodeStatusDto extends IntersectionType(
-  EpisodeRefDto,
-  RequestStatusDto,
-) {}
+/** How the library fulfils a request of the user */
+export enum FulfilmentStatus {
+  /** The request is active and nothing is bound to it yet: the library is about to look at it */
+  Pending = 'pending',
+  /** The request waits for its torrent item; how that goes, the torrents of the title say */
+  Downloading = 'downloading',
+  /** The request has its file in the library */
+  Fulfilled = 'fulfilled',
+  /** The request cannot get its file: the import of its torrent item failed, or the file it prefers is not in the library or not of it */
+  Failed = 'failed',
+  /** What the request is to get does not fit the quota of the user; it is looked at again when room is made */
+  OverQuota = 'over-quota',
+  /** A disk is at the limit of the library settings, so nothing more is downloaded for anyone */
+  DiskFull = 'disk-full',
+}
 
-export class MovieStatusDto extends RequestStatusDto {
+/**
+ * How the library fulfils a request of the user, by what the library
+ * wrote of it. Whether the request is approved, ahead or has a source, the
+ * requests of the title say; what the engine is doing, the torrents of the
+ * title.
+ */
+export class FulfilmentStatusDto {
+  @ApiProperty()
+  requestId: string;
+
+  @ApiProperty({ enum: FulfilmentStatus })
+  status: FulfilmentStatus;
+
+  @ApiProperty({
+    required: false,
+    description: 'The file the request has, one of the files of the title',
+  })
+  mediaFileId?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'The torrent of the torrent item the request waits for, or whose import failed',
+  })
+  infoHash?: string;
+
+  @ApiProperty({ required: false })
+  error?: string;
+}
+
+export class MovieStatusDto {
+  @ApiProperty({
+    type: FulfilmentStatusDto,
+    required: false,
+    description:
+      'Of the request of the user, when it has a file or the library acts on it',
+  })
+  fulfilment?: FulfilmentStatusDto;
+
   @ApiProperty({
     type: [MediaFileDto],
-    description: 'The files of the movie in the index',
+    description: 'The files of the movie in the index, by path',
   })
   files: MediaFileDto[];
 }
 
 export class SeriesStatusDto {
   @ApiProperty({
-    type: [EpisodeStatusDto],
+    type: [FulfilmentStatusDto],
     description:
-      'The episodes that the user requested or that are on disk, in season and episode order',
+      'Of the requests of the user that have a file or that the library acts on',
   })
-  episodes: EpisodeStatusDto[];
+  fulfilments: FulfilmentStatusDto[];
 
   @ApiProperty({
     type: [MediaFileDto],

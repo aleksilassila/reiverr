@@ -301,27 +301,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
     return em.find(TorrentItem, { id: { $in: ids } }, READ);
   }
 
-  /**
-   * The status of items by their rows, without the engine: for the library's
-   * status, which goes by what was written and is told when that changes
-   */
-  async describeItems(
-    em: EntityManager,
-    ids: string[],
-  ): Promise<TorrentItemDto[]> {
-    const items = await this.findItems(em, ids);
-    const torrents = await this.findTorrentsOf(em, items);
-
-    return items.map((item) => {
-      const torrent = torrents.get(item.torrentHash);
-
-      return {
-        ...this.toItemRef(item, torrent?.files),
-        ...itemStatusOf(item, torrent?.files, torrent?.error ?? undefined),
-      };
-    });
-  }
-
   /** Every torrent as the engine has it, with what is wanted of it: for admins */
   async describeTorrents(): Promise<TorrentWithItemsDto[]> {
     const em = this.em.fork();
@@ -643,15 +622,6 @@ export class DownloadsService implements OnModuleInit, OnApplicationBootstrap {
         { downloadedBytes: 0, uploadedBytes: 0 },
       );
     });
-  }
-
-  private async findTorrentsOf(em: EntityManager, items: TorrentItem[]) {
-    const hashes = [...new Set(items.map((item) => item.torrentHash))];
-    const torrents = hashes.length
-      ? await em.find(Torrent, { infoHash: { $in: hashes } }, READ)
-      : [];
-
-    return new Map(torrents.map((torrent) => [torrent.infoHash, torrent]));
   }
 
   /** An item and the file of the torrent it is, when matched */

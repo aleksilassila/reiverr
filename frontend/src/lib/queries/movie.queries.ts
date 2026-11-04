@@ -11,6 +11,7 @@ import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
 import {
 	getStatusLabel,
+	heldFileOf,
 	isErrorStatus,
 	itemOf,
 	liveRefetchInterval,
@@ -58,7 +59,7 @@ export const movieQueries = {
 			queryKey: movieKeys.requests(tmdbId),
 			queryFn: () => reiverrApi.requests.getMovieRequests(tmdbId).then((r) => r.data)
 		}),
-	/** The status of the request of the user, and the files of the movie */
+	/** How the library fulfils the request of the user, and the files of the movie */
 	status: (tmdbId: string) =>
 		queryOptions({
 			queryKey: movieKeys.status(tmdbId),
@@ -174,20 +175,31 @@ export function getMovieRequestStatus({
 	torrents
 }: MovieData): MovieRequestStatus {
 	const selected = requests?.preference;
+	const fulfilment = status?.fulfilment;
+	const files = status?.files ?? [];
 	// A request that has its file keeps its torrent when another one is selected
-	const infoHash = status?.infoHash ?? selected?.release?.infoHash;
+	const infoHash =
+		fulfilment?.infoHash ?? heldFileOf(fulfilment, files)?.infoHash ?? selected?.release?.infoHash;
 	const torrent = infoHash ? torrents?.get(infoHash) : undefined;
 	const release = selected?.release?.infoHash === infoHash ? selected?.release : undefined;
 	const file = selected?.mediaFileId
-		? status?.files.find((file) => file.id === selected.mediaFileId)
+		? files.find((file) => file.id === selected.mediaFileId)
 		: undefined;
+	const mediaStatus = {
+		request: requests?.request,
+		preference: selected,
+		fulfilment,
+		files,
+		torrent,
+		item: itemOf(torrent, 0, 0)
+	};
 
 	return {
-		requested: !!status?.requested,
-		onDisk: !!status?.onDisk,
+		requested: !!requests?.request,
+		onDisk: files.length > 0,
 		infoHash,
 		sourceName: torrent?.title ?? release?.title ?? file?.fileName,
-		label: getStatusLabel(status, { torrent, item: itemOf(torrent, 0, 0) }),
-		isError: isErrorStatus(status)
+		label: getStatusLabel(mediaStatus),
+		isError: isErrorStatus(mediaStatus)
 	};
 }

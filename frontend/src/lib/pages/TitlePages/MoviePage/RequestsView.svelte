@@ -165,7 +165,7 @@
 					isError={requestStatus.isError}
 					checked={requestStatus.requested}
 					on:toggle={() =>
-						request(!status?.requested).catch((e) =>
+						request(!requestStatus.requested).catch((e) =>
 							createErrorNotification(
 								'Could not update the request',
 								e?.response?.data?.message ?? e?.message

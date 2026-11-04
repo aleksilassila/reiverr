@@ -209,9 +209,10 @@ describe('DownloadsService', () => {
     await settle();
     expect(await describeItems()).toEqual([[3, 'downloading', 0.5, null]]);
     expect(engine.running(EPISODE).wanted).toEqual([0]);
-    expect(
-      await downloads.describeItems(orm.em, [(await items())[0].id]),
-    ).toMatchObject([{ fileName: 'release-group-1080p.mkv' }]);
+    const [torrent] = await downloads.describeTorrents();
+    expect(torrent.items).toMatchObject([
+      { fileName: 'release-group-1080p.mkv' },
+    ]);
   });
 
   it('tells the library about a complete item and keeps the data until the item is released', async () => {

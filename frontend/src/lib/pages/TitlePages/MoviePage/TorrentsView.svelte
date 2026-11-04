@@ -12,7 +12,7 @@
 		setMoviePreference
 	} from '$lib/queries/movie.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { getOnServer } from '$lib/queries/request-status';
+	import { getOnServer, heldFileOf } from '$lib/queries/request-status';
 	import { confirmQuota } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
@@ -33,8 +33,9 @@
 
 	$: selection = $requestsQuery.data?.preference;
 	// A torrent picked for the movie replaces the file the request has
-	$: kept = status?.status === 'available' && status.infoHash !== selection?.release?.infoHash;
-	$: keptTorrent = kept && status?.infoHash ? $torrents.data?.get(status.infoHash) : undefined;
+	$: heldFile = heldFileOf(status?.fulfilment, status?.files);
+	$: kept = !!heldFile && heldFile.infoHash !== selection?.release?.infoHash;
+	$: keptTorrent = kept && heldFile?.infoHash ? $torrents.data?.get(heldFile.infoHash) : undefined;
 	$: keptHint = !kept
 		? ''
 		: keptTorrent
@@ -74,7 +75,7 @@
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** Whether the request downloads from the release: there is one, and a new torrent replaces its file */
-	$: affected = status?.requested ? 1 : 0;
+	$: affected = $requestsQuery.data?.request ? 1 : 0;
 
 	async function select(release: ReleaseDto) {
 		error = '';

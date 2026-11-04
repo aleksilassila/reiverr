@@ -7,7 +7,7 @@
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { getOnServer } from '$lib/queries/request-status';
+	import { getOnServer, heldFileOf } from '$lib/queries/request-status';
 	import {
 		clearPreference,
 		episodeKey,
@@ -35,24 +35,24 @@
 	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
 	const releases = usePageQuery(seriesQueries.releases(tmdbId, season, episode));
 	$: requests = $requestsQuery.data;
-	$: episodes = [...($status.data?.episodes.values() ?? [])];
+	// The requests of the season or the episode
+	$: requestList = [...(requests?.requests.values() ?? [])].filter(
+		(r) => r.season === season && (episode === undefined || r.episode === episode)
+	);
 
 	$: selection = requests?.preferences.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
 	$: seasonPack =
 		episode === undefined ? undefined : requests?.preferences.get(episodeKey(season, 0));
 	// A request that has its file keeps it when another torrent is selected for the season
-	$: kept = episodes.filter(
-		(e) =>
-			e.season === season &&
-			(episode === undefined || e.episode === episode) &&
-			e.status === 'available' &&
-			e.infoHash !==
-				(
-					requests?.preferences.get(episodeKey(e.season, e.episode)) ??
-					requests?.preferences.get(episodeKey(e.season, 0))
-				)?.release?.infoHash
-	);
+	$: kept = requestList.flatMap((r) => {
+		const file = heldFileOf($status.data?.fulfilments.get(r.id), $status.data?.files);
+		const selected =
+			requests?.preferences.get(episodeKey(r.season, r.episode)) ??
+			requests?.preferences.get(episodeKey(r.season, 0));
+
+		return file && file.infoHash !== selected?.release?.infoHash ? [file] : [];
+	});
 	$: keptTorrent = kept[0]?.infoHash ? $torrents.data?.get(kept[0].infoHash) : undefined;
 	$: keptHint = !kept.length
 		? ''
@@ -97,13 +97,11 @@
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** The requests that would download from the release: the episode's, or those of the season without a torrent of their own that do not keep their file */
-	$: affected = episodes.filter(
-		(e) =>
-			e.requested &&
-			e.season === season &&
-			(episode === undefined
-				? !requests?.preferences.has(episodeKey(e.season, e.episode)) && e.status !== 'available'
-				: e.episode === episode)
+	$: affected = requestList.filter(
+		(r) =>
+			episode !== undefined ||
+			(!requests?.preferences.has(episodeKey(r.season, r.episode)) &&
+				$status.data?.fulfilments.get(r.id)?.status !== 'fulfilled')
 	);
 	$: episodesInSeason = $tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes
 		?.length;
