@@ -76,25 +76,6 @@ export function expectedBytes(
     : Math.ceil(releaseSize / episodesInSeason);
 }
 
-/** The files the bindings have, each once */
-function filesOf(bindings: Pick<RequestBinding, 'mediaFileId'>[]): Set<string> {
-  return new Set(bindings.flatMap((b) => b.mediaFileId ?? []));
-}
-
-/** What bindings take: every file once, and what the downloads are expected to take */
-function usageOf(
-  bindings: Pick<RequestBinding, 'pendingBytes' | 'mediaFileId'>[],
-  fileOf: Map<string, Pick<MediaFile, 'size'>>,
-): Usage {
-  return {
-    heldBytes: [...filesOf(bindings)].reduce(
-      (sum, id) => sum + (fileOf.get(id)?.size ?? 0),
-      0,
-    ),
-    pendingBytes: bindings.reduce((sum, b) => sum + (b.pendingBytes ?? 0), 0),
-  };
-}
-
 /**
  * The capacity side of the library: what the requests of users take, the
  * quotas of the users and the disk limit of the server. The fulfilment asks
@@ -155,39 +136,32 @@ export class StorageService {
       { requestId: { $in: requests.map((request) => request.id) } },
       READ,
     );
+    const files = await em.find(
+      MediaFile,
+      { id: { $in: bindings.flatMap((b) => b.mediaFileId ?? []) } },
+      { ...READ, fields: ['id', 'size'] },
+    );
     const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
-    const fileOf = await this.findHeldFiles(em, bindings);
+    const sizeOf = new Map(files.map((file) => [file.id, file.size]));
 
-    const byUser = new Map<string, RequestBinding[]>();
+    const usages = new Map<string, Usage>();
+    const counted = new Set<string>();
     for (const request of requests) {
       const binding = bindingOf.get(request.id);
       if (!binding) continue;
-      byUser.set(request.userId, [
-        ...(byUser.get(request.userId) ?? []),
-        binding,
-      ]);
+
+      const usage = usages.get(request.userId) ?? { ...NO_USAGE };
+      usages.set(request.userId, usage);
+      usage.pendingBytes += binding.pendingBytes ?? 0;
+
+      const held = `${request.userId}:${binding.mediaFileId}`;
+      if (binding.mediaFileId && !counted.has(held)) {
+        counted.add(held);
+        usage.heldBytes += sizeOf.get(binding.mediaFileId) ?? 0;
+      }
     }
 
-    return new Map(
-      [...byUser].map(([userId, of]) => [userId, usageOf(of, fileOf)]),
-    );
-  }
-
-  /** The sizes of the files the bindings hold, by id */
-  private async findHeldFiles(
-    em: EntityManager,
-    bindings: Pick<RequestBinding, 'mediaFileId'>[],
-  ): Promise<Map<string, Pick<MediaFile, 'size'>>> {
-    const ids = [...filesOf(bindings)];
-    if (!ids.length) return new Map();
-
-    const files = await em.find(
-      MediaFile,
-      { id: { $in: ids } },
-      { ...READ, fields: ['id', 'size'] },
-    );
-
-    return new Map(files.map((file) => [file.id, file]));
+    return usages;
   }
 
   /** Whether a disk is at the limit of the library settings */
