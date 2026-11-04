@@ -38,21 +38,13 @@ export class UsersService {
     return this.userRepository.findOne({ name });
   }
 
-  /** Every user, or one, with their quota, by name, in the caller's entity manager: what the library's storage goes by */
-  findQuotas(
-    em: EntityManager,
-    filter: { userId?: string } = {},
-  ): Promise<Pick<User, 'id' | 'name' | 'quotaBytes'>[]> {
-    return em.find(User, filter.userId ? { id: filter.userId } : {}, {
-      disableIdentityMap: true,
-      fields: ['id', 'name', 'quotaBytes'],
-      orderBy: { name: 'asc' },
-    });
-  }
-
   /** The quota of a user, in the caller's entity manager: null for no quota */
   async getQuota(em: EntityManager, userId: string): Promise<number | null> {
-    const [user] = await this.findQuotas(em, { userId });
+    const user = await em.findOne(
+      User,
+      { id: userId },
+      { disableIdentityMap: true, fields: ['quotaBytes'] },
+    );
 
     return user?.quotaBytes ?? null;
   }

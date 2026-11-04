@@ -536,6 +536,8 @@ export interface MovieMetadataDto {
   tmdbMovie?: TmdbMovieFull;
   name?: string;
   releaseDate?: string;
+  posterPath?: string;
+  runtime?: number;
   updatedAt: string;
 }
 
@@ -1213,6 +1215,7 @@ export interface SeriesMetadataDto {
   nextReleaseDate?: string;
   lastSeasonNumber?: number;
   lastEpisodeNumber?: number;
+  posterPath?: string;
   updatedAt: string;
 }
 
@@ -1412,35 +1415,6 @@ export interface LibrarySettingsDto {
   cleanup: "off" | "daily" | "weekly" | "monthly";
   /** The share of a disk, in percent, at which nothing more is downloaded for anyone, measured over the download directory and the library folders. Null for no limit */
   maxDiskUsagePercent: number | null;
-}
-
-export interface DiskUsageDto {
-  /** The download directory or a library folder */
-  path: string;
-  totalBytes: number;
-  /** Bytes available to the server */
-  freeBytes: number;
-  /** From 0 to 100 */
-  usedPercent: number;
-}
-
-export interface UserStorageDto {
-  /** Bytes; null for no quota */
-  quotaBytes: number | null;
-  /** Bytes of the files that the requests of the user hold */
-  heldBytes: number;
-  /** Bytes that the downloads the requests of the user wait for are expected to take */
-  pendingBytes: number;
-  userId: string;
-  name: string;
-}
-
-export interface StorageDto {
-  /** The disks the files go to, as far as they can be measured */
-  disks: DiskUsageDto[];
-  /** The disk limit of the library settings */
-  maxDiskUsagePercent: number | null;
-  users: UserStorageDto[];
 }
 
 export interface SubtitleFileDto {
@@ -1693,6 +1667,16 @@ export interface ServerLogSettingsDto {
   maxAgeDays: number;
 }
 
+export interface DiskUsageDto {
+  /** The download directory or a library folder */
+  path: string;
+  totalBytes: number;
+  /** Bytes available to the server */
+  freeBytes: number;
+  /** From 0 to 100 */
+  usedPercent: number;
+}
+
 export interface DirectoryEntryDto {
   name: string;
   /** The absolute path */
@@ -1802,49 +1786,6 @@ export interface DeleteLibraryEntriesResultDto {
   deleted: number;
   /** The entries that could not be deleted, or not completely, and why */
   failed: FailedLibraryEntryDto[];
-}
-
-export interface SeasonDto {
-  /**
-   * Season air date
-   * @example "2010-12-05"
-   */
-  air_date?: string;
-  /**
-   * Episode count
-   * @example 272
-   */
-  episode_count?: number;
-  /**
-   * Season ID
-   * @example 3627
-   */
-  id?: number;
-  /**
-   * Season name
-   * @example "Specials"
-   */
-  name?: string;
-  /**
-   * Season overview
-   * @example ""
-   */
-  overview?: string;
-  /**
-   * Poster path
-   * @example "/kMTcwNRfFKCZ0O2OaBZS0nZ2AIe.jpg"
-   */
-  poster_path?: string;
-  /**
-   * Season number
-   * @example 0
-   */
-  season_number?: number;
-  /**
-   * Vote average
-   * @example 0
-   */
-  vote_average?: number;
 }
 
 export interface TmdbItemDto {
@@ -2815,21 +2756,6 @@ export class Api<
         query: query,
         body: data,
         type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags library
-     * @name GetStorage
-     * @request GET:/api/library/storage
-     */
-    getStorage: (params: RequestParams = {}) =>
-      this.request<StorageDto, any>({
-        path: `/api/library/storage`,
-        method: "GET",
         format: "json",
         ...params,
       }),

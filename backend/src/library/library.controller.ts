@@ -29,12 +29,10 @@ import {
   LibrarySettingsDto,
   MovieStatusDto,
   SeriesStatusDto,
-  StorageDto,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
 import { PlaybackService } from './playback.service.js';
 import { StatusService } from './status.service.js';
-import { StorageService } from './storage.service.js';
 
 @ApiTags('library')
 @ApiExtraModels(LibraryFolderDto)
@@ -45,7 +43,6 @@ export class LibraryController {
     private readonly libraryService: LibraryService,
     private readonly playbackService: PlaybackService,
     private readonly statusService: StatusService,
-    private readonly storageService: StorageService,
   ) {}
 
   @Get('settings')
@@ -72,17 +69,6 @@ export class LibraryController {
     return this.libraryService.updateSettings(settings, {
       forgetFiles: force === 'true',
     });
-  }
-
-  @Get('storage')
-  @UseGuards(AdminAccessControl)
-  @ApiOkResponse({
-    type: StorageDto,
-    description:
-      'The disks the files go to, the disk limit, and what the requests of every user take',
-  })
-  getStorage(): Promise<StorageDto> {
-    return this.storageService.describe();
   }
 
   @Get('movies/:tmdbId')

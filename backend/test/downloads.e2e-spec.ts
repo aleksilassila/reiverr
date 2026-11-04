@@ -1435,19 +1435,6 @@ describe('Series downloads (e2e)', () => {
       [1, 2, 'available'],
       [1, 3, 'disk-full'],
     ]);
-    const storage = await api('get', '/library/storage').expect(200);
-    expect(storage.body.maxDiskUsagePercent).toBe(0);
-    expect(storage.body.disks).toContainEqual(
-      expect.objectContaining({ path: dirs.library }),
-    );
-    expect(storage.body.users).toContainEqual({
-      userId: limited.id,
-      name: 'limited',
-      quotaBytes: 400,
-      heldBytes: 14,
-      pendingBytes: 0,
-    });
-    await api('get', '/library/storage', limited).expect(403);
 
     await setLimit(null);
     await settle();

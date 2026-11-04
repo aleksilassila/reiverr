@@ -219,13 +219,7 @@ async function createHub() {
     runtime,
     events,
   );
-  const storage = new StorageService(
-    orm.em,
-    requests,
-    users,
-    settings,
-    metadata as unknown as MetadataService,
-  );
+  const storage = new StorageService(orm.em, requests, users, settings);
   const fulfilment = new FulfilmentService(
     orm.em,
     jobs,
@@ -443,8 +437,10 @@ describe('FulfilmentService', () => {
     orm.em.fork().find(Job, { type, status: JobStatus.Queued });
   const setQuota = (quotaBytes: number | null, user = userId) =>
     orm.em.fork().nativeUpdate(User, { id: user }, { quotaBytes });
-  const usage = async (user = userId) =>
-    (await hub.storage.gateOf(orm.em.fork(), user, { diskFull: false })).usage;
+  const usage = async (user = userId) => {
+    const { heldBytes, pendingBytes } = await hub.storage.describeUser(user);
+    return { heldBytes, pendingBytes };
+  };
 
   beforeEach(async () => {
     hub = await createHub();

@@ -9,7 +9,7 @@ import { CleanupSchedule } from './library.dto.js';
 import { expectedBytes, roomFor, StorageService } from './storage.service.js';
 
 describe('roomFor', () => {
-  const usage = { heldBytes: 60, pendingBytes: 30 };
+  const usage = 90;
   const gate = (quota: number | null, diskFull = false) => ({
     usage,
     quota,
@@ -50,12 +50,12 @@ describe('expectedBytes', () => {
 describe('StorageService', () => {
   let root: string;
 
-  /** The service with a library folder that is there and a movie folder that is not, and no users or requests */
+  /** The service with a library folder that is there and a movie folder that is not */
   const service = (maxDiskUsagePercent: number | null) =>
     new StorageService(
-      { fork: () => ({}) } as unknown as EntityManager,
-      { findRequests: async () => [] } as unknown as RequestsService,
-      { findQuotas: async () => [] } as unknown as UsersService,
+      {} as EntityManager,
+      {} as RequestsService,
+      {} as UsersService,
       {
         getOrCreateValue: async () => ({
           movieFolders: { [path.join(root, 'missing')]: { primary: true } },
@@ -74,20 +74,7 @@ describe('StorageService', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('measures the disks of the folders that are there', async () => {
-    const { disks } = await service(null).describe();
-    const disk = disks.find((d) => d.path === root);
-
-    expect(disk.totalBytes).toBeGreaterThan(0);
-    expect(disk.freeBytes).toBeGreaterThan(0);
-    expect(disk.usedPercent).toBeGreaterThanOrEqual(0);
-    expect(disk.usedPercent).toBeLessThanOrEqual(100);
-    expect(disks.some((d) => d.path === path.join(root, 'missing'))).toBe(
-      false,
-    );
-  });
-
-  it('is full at the limit, and never without one', async () => {
+  it('is full at the limit, and never without one, leaving out a folder that is not there', async () => {
     expect(await service(null).isDiskFull()).toBe(false);
     expect(await service(100).isDiskFull()).toBe(false);
     expect(await service(0).isDiskFull()).toBe(true);

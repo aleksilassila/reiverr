@@ -32,7 +32,6 @@ import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { ScanService } from './scan.service.js';
 import {
-  Candidate,
   expectedBytes,
   Gate,
   Room,
@@ -261,7 +260,7 @@ export class StatusService {
 function describeRequest(
   context: RequestContext,
 ): Pick<RequestStatusDto, 'requested' | 'status' | 'error' | 'infoHash'> {
-  const { request, source, binding, items, filesById, gate } = context;
+  const { request, source, binding, items, filesById } = context;
   const item = binding?.torrentItemId
     ? items.get(binding.torrentItemId)
     : undefined;
@@ -270,7 +269,7 @@ function describeRequest(
     : undefined;
   const room =
     request && source && isNeeded(request) && !binding
-      ? roomFor(gate, candidateOf(source, context))
+      ? roomOf(source, context)
       : undefined;
 
   return {
@@ -280,25 +279,25 @@ function describeRequest(
   };
 }
 
-/** What a request that is bound to nothing is to get, as the fulfilment would find it */
-function candidateOf(
+/** Whether a request that is bound to nothing can get what it is to get, as the fulfilment would find it */
+function roomOf(
   source: ResolvedSource,
-  { filesById, ofMedia, episodesInSeason }: RequestContext,
-): Candidate {
+  { filesById, ofMedia, gate, episodesInSeason }: RequestContext,
+): Room {
   if (source.kind === 'file') {
-    return {
+    return roomFor(gate, {
       bytes: filesById.get(source.mediaFileId)?.size ?? 0,
       download: false,
-    };
+    });
   }
   const { infoHash, size } = source.release;
   const version = ofMedia.find((file) => file.infoHash === infoHash);
-  if (version) return { bytes: version.size, download: false };
+  if (version) return roomFor(gate, { bytes: version.size, download: false });
 
-  return {
+  return roomFor(gate, {
     bytes: expectedBytes(size, source.forEpisode, episodesInSeason),
     download: true,
-  };
+  });
 }
 
 /**

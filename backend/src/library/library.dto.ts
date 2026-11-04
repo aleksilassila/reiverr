@@ -338,14 +338,6 @@ export class StorageUsageDto {
   pendingBytes: number;
 }
 
-export class UserStorageDto extends StorageUsageDto {
-  @ApiProperty()
-  userId: string;
-
-  @ApiProperty()
-  name: string;
-}
-
 export class DiskUsageDto {
   @ApiProperty({ description: 'The download directory or a library folder' })
   path: string;
@@ -358,22 +350,4 @@ export class DiskUsageDto {
 
   @ApiProperty({ description: 'From 0 to 100' })
   usedPercent: number;
-}
-
-export class StorageDto {
-  @ApiProperty({
-    type: [DiskUsageDto],
-    description: 'The disks the files go to, as far as they can be measured',
-  })
-  disks: DiskUsageDto[];
-
-  @ApiProperty({
-    type: 'number',
-    nullable: true,
-    description: 'The disk limit of the library settings',
-  })
-  maxDiskUsagePercent: number | null;
-
-  @ApiProperty({ type: [UserStorageDto] })
-  users: UserStorageDto[];
 }
