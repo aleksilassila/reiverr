@@ -1443,18 +1443,20 @@ export interface LibraryFileDto {
 
 export interface FulfilmentStatusDto {
   requestId: string;
-  status:
-    | "pending"
-    | "downloading"
-    | "fulfilled"
-    | "failed"
-    | "over-quota"
-    | "disk-full";
+  status: "pending" | "downloading" | "fulfilled" | "failed";
   /** The file the request has, one of the files of the title */
   mediaFileId?: string;
   /** The torrent of the torrent item the request waits for, or whose import failed */
   infoHash?: string;
-  error?: string;
+  /** Why the request has no file */
+  error?:
+    | "import-failed"
+    | "file-not-in-library"
+    | "file-not-of-media"
+    | "over-quota"
+    | "disk-full";
+  /** The same, to show to the user */
+  errorMessage?: string;
 }
 
 export interface MediaFileDto {

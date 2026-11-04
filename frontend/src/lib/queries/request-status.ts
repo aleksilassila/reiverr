@@ -106,12 +106,8 @@ export function getStatusLabel(status: MediaStatus): string | undefined {
 			return `Downloading ${Math.floor(progressOf(torrentItem) * 100)}%`;
 		case 'pending':
 			return 'Starting';
-		case 'over-quota':
-			return 'Over quota';
-		case 'disk-full':
-			return 'Disk full';
 		case 'failed':
-			return fulfilment.error;
+			return fulfilment.errorMessage;
 	}
 
 	// The rule of the series holds the request back until the user has watched up to it
@@ -130,12 +126,5 @@ export function getStatusLabel(status: MediaStatus): string | undefined {
 
 /** Whether the status is a failure, which the pages show in red */
 export function isErrorStatus(status: MediaStatus): boolean {
-	const { fulfilment } = status;
-
-	return (
-		isTorrentItemFailed(status) ||
-		fulfilment?.status === 'failed' ||
-		fulfilment?.status === 'over-quota' ||
-		fulfilment?.status === 'disk-full'
-	);
+	return isTorrentItemFailed(status) || status.fulfilment?.status === 'failed';
 }

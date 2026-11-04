@@ -4,14 +4,11 @@ import * as path from 'node:path';
 import { MediaType } from '../common/common.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { TorrentItem } from '../downloads/torrent-item.entity.js';
-import { MetadataService } from '../metadata/metadata.service.js';
-import { ResolvedSource } from '../requests/request-source.js';
-import { MediaRequest } from '../requests/request.entity.js';
 import {
   RequestsService,
   RequestWithSource,
 } from '../requests/requests.service.js';
-import { isNeeded, mediaOf } from '../requests/requests.utils.js';
+import { isNeeded } from '../requests/requests.utils.js';
 import { getNextCleanup } from './cleanup.utils.js';
 import {
   FulfilmentStatus,
@@ -21,26 +18,12 @@ import {
   SeriesStatusDto,
 } from './library.dto.js';
 import { LibraryService } from './library.service.js';
-import { coversMedia, fileEpisodes } from './library.utils.js';
+import { fileEpisodes } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
 import { RequestBinding } from './request-binding.entity.js';
 import { ScanService } from './scan.service.js';
-import {
-  expectedBytes,
-  Gate,
-  Room,
-  roomFor,
-  StorageService,
-} from './storage.service.js';
 
 const READ = { disableIdentityMap: true };
-
-/** The status of an active request that is bound to nothing, by whether what it is to get fits */
-const STATUS_OF_ROOM: Record<Room, FulfilmentStatus> = {
-  ok: FulfilmentStatus.Pending,
-  'over-quota': FulfilmentStatus.OverQuota,
-  'disk-full': FulfilmentStatus.DiskFull,
-};
 
 /**
  * How the library fulfils the requests of a user for a title, and the files
@@ -55,83 +38,56 @@ export class StatusService {
     private readonly em: EntityManager,
     private readonly requestsService: RequestsService,
     private readonly downloadsService: DownloadsService,
-    private readonly metadataService: MetadataService,
     private readonly libraryService: LibraryService,
     private readonly scanService: ScanService,
-    private readonly storage: StorageService,
   ) {}
 
-  async getSeriesStatus(
-    userId: string,
-    tmdbId: string,
-  ): Promise<SeriesStatusDto> {
-    const em = this.em.fork();
-    const requests = await this.requestsService.findRequestsWithSources({
-      userId,
-      mediaType: MediaType.Series,
-      tmdbId,
-    });
-    const files = await this.findFiles(em, MediaType.Series, tmdbId);
-    const episodeCounts = await this.metadataService.getEpisodeCounts(
-      em,
-      tmdbId,
-    );
-
-    // The index of the series is brought in line with the disk soon
-    await this.scanService.requestScan(MediaType.Series, tmdbId);
-
-    return {
-      fulfilments: await this.describeFulfilments(em, userId, requests, {
-        files,
-        episodeCounts,
-      }),
-      files: await this.describeFiles(em, files),
-    };
+  getSeriesStatus(userId: string, tmdbId: string): Promise<SeriesStatusDto> {
+    return this.describeTitle(userId, MediaType.Series, tmdbId);
   }
 
   async getMovieStatus(
     userId: string,
     tmdbId: string,
   ): Promise<MovieStatusDto> {
+    const {
+      fulfilments: [fulfilment],
+      files,
+    } = await this.describeTitle(userId, MediaType.Movie, tmdbId);
+
+    return { fulfilment, files };
+  }
+
+  private async describeTitle(
+    userId: string,
+    mediaType: MediaType,
+    tmdbId: string,
+  ): Promise<SeriesStatusDto> {
     const em = this.em.fork();
     const requests = await this.requestsService.findRequestsWithSources({
       userId,
-      mediaType: MediaType.Movie,
+      mediaType,
       tmdbId,
     });
-    const files = await this.findFiles(em, MediaType.Movie, tmdbId);
-
-    // The index of the movie is brought in line with the disk soon
-    await this.scanService.requestScan(MediaType.Movie, tmdbId);
-
-    const [fulfilment] = await this.describeFulfilments(em, userId, requests, {
-      files,
-    });
-
-    return {
-      fulfilment,
-      files: await this.describeFiles(em, files),
-    };
-  }
-
-  private findFiles(
-    em: EntityManager,
-    mediaType: MediaType,
-    tmdbId: string,
-  ): Promise<MediaFile[]> {
-    return em.find(
+    const files = await em.find(
       MediaFile,
       { mediaType, tmdbId },
       { ...READ, orderBy: { path: 'asc' } },
     );
+
+    // The index of the title is brought in line with the disk soon
+    await this.scanService.requestScan(mediaType, tmdbId);
+
+    return {
+      fulfilments: await this.describeFulfilments(em, requests),
+      files: await this.describeFiles(em, files),
+    };
   }
 
   /** The requests that have a binding, and the active ones without one */
   private async describeFulfilments(
     em: EntityManager,
-    userId: string,
     requests: RequestWithSource[],
-    context: Pick<FulfilmentContext, 'files' | 'episodeCounts'>,
   ): Promise<FulfilmentStatusDto[]> {
     const bindings = await em.find(
       RequestBinding,
@@ -146,17 +102,16 @@ export class StatusService {
     const torrentItemOf = new Map(
       torrentItems.map((torrentItem) => [torrentItem.id, torrentItem]),
     );
-    const gate = await this.gateOf(em, userId);
 
     return requests.flatMap((request) => {
       const binding = bindingOf.get(request.id);
 
       return (
-        describeFulfilment(request, binding, {
-          ...context,
-          gate,
-          torrentItem: torrentItemOf.get(binding?.torrentItemId),
-        }) ?? []
+        describeFulfilment(
+          request,
+          binding,
+          torrentItemOf.get(binding?.torrentItemId),
+        ) ?? []
       );
     });
   }
@@ -186,38 +141,21 @@ export class StatusService {
       cleanupAt: file.managed && !held.has(file.id) ? nextCleanup : undefined,
     }));
   }
-
-  /** What holds back a request of the user that is bound to nothing */
-  private async gateOf(em: EntityManager, userId: string): Promise<Gate> {
-    const diskFull = await this.storage.isDiskFull();
-
-    return this.storage.gateOf(em, userId, { diskFull });
-  }
-}
-
-/** What the fulfilment of a request is read from, beside its binding */
-interface FulfilmentContext {
-  files: MediaFile[];
-  /** For a series, how many episodes its seasons have, which a season's torrent is shared by */
-  episodeCounts?: Map<number, number>;
-  gate: Gate;
-  /** The torrent item of the binding */
-  torrentItem: TorrentItem | undefined;
 }
 
 /**
  * How the library fulfils a request, if it has anything to say of it: what
  * the binding of the request says, as a binding has a file, a torrent item
- * or an error, or for an active request bound to nothing whether what it is
- * to get fits
+ * or an error, or that an active request bound to nothing is yet to be
+ * looked at
  */
 function describeFulfilment(
   request: RequestWithSource,
   binding: RequestBinding | undefined,
-  context: FulfilmentContext,
+  torrentItem: TorrentItem | undefined,
 ): FulfilmentStatusDto | undefined {
   const requestId = request.id;
-  const infoHash = context.torrentItem?.torrentHash;
+  const infoHash = torrentItem?.torrentHash;
 
   if (binding?.mediaFileId) {
     return {
@@ -232,44 +170,13 @@ function describeFulfilment(
       status: FulfilmentStatus.Failed,
       infoHash,
       error: binding.error,
+      errorMessage: binding.errorMessage,
     };
   }
   if (binding) {
     return { requestId, status: FulfilmentStatus.Downloading, infoHash };
   }
+  if (!request.source || !isNeeded(request)) return undefined;
 
-  const { source } = request;
-  if (!source || !isNeeded(request)) return undefined;
-
-  return {
-    requestId,
-    status: STATUS_OF_ROOM[roomOf(request, source, context)],
-  };
-}
-
-/** Whether a request that is bound to nothing can get what it is to get, as the fulfilment would find it */
-function roomOf(
-  request: MediaRequest,
-  source: ResolvedSource,
-  { files, gate, episodeCounts }: FulfilmentContext,
-): Room {
-  if (source.kind === 'file') {
-    const file = files.find((file) => file.id === source.mediaFileId);
-
-    return roomFor(gate, { bytes: file?.size ?? 0, download: false });
-  }
-  const { infoHash, size } = source.release;
-  const version = files.find(
-    (file) => file.infoHash === infoHash && coversMedia(file, mediaOf(request)),
-  );
-  if (version) return roomFor(gate, { bytes: version.size, download: false });
-
-  return roomFor(gate, {
-    bytes: expectedBytes(
-      size,
-      source.forEpisode,
-      episodeCounts?.get(request.season),
-    ),
-    download: true,
-  });
+  return { requestId, status: FulfilmentStatus.Pending };
 }

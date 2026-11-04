@@ -9,6 +9,7 @@ import {
   MovieStatusDto,
   SeriesStatusDto,
 } from '../src/library/library.dto.js';
+import { FulfilmentError } from '../src/library/request-binding.entity.js';
 import {
   MediaRequestDto,
   MovieRequestsDto,
@@ -46,6 +47,12 @@ function statusOf(
     if (torrentItemStatus === TorrentItemStatus.NoMatch) return 'no-match';
     if (torrentItemStatus === TorrentItemStatus.Failed) return 'failed';
   }
+  if (
+    fulfilment?.error === FulfilmentError.OverQuota ||
+    fulfilment?.error === FulfilmentError.DiskFull
+  ) {
+    return fulfilment.error;
+  }
 
   return fulfilment?.status;
 }
@@ -78,7 +85,7 @@ function viewOf(
     requested: !!request,
     onDisk: ofMedia.length > 0,
     status: statusOf(request, preference, fulfilment, torrentItem?.status),
-    error: fulfilment?.error ?? torrentItem?.error,
+    error: fulfilment?.errorMessage ?? torrentItem?.error,
     infoHash: fulfilment?.infoHash ?? file?.infoHash,
     cleanupAt: ofMedia.every((file) => file.cleanupAt)
       ? ofMedia[0]?.cleanupAt

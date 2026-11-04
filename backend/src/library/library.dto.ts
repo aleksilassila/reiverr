@@ -1,4 +1,5 @@
 import { ApiProperty, getSchemaPath, OmitType } from '@nestjs/swagger';
+import { FulfilmentError } from './request-binding.entity.js';
 
 /** A cleanup runs at 4 in the morning, in the time zone of the server */
 export enum CleanupSchedule {
@@ -237,12 +238,8 @@ export enum FulfilmentStatus {
   Downloading = 'downloading',
   /** The request has its file in the library */
   Fulfilled = 'fulfilled',
-  /** The request cannot get its file: the import of its torrent item failed, or the file it prefers is not in the library or not of it */
+  /** Something keeps the request from its file, which the error says */
   Failed = 'failed',
-  /** What the request is to get does not fit the quota of the user; it is looked at again when room is made */
-  OverQuota = 'over-quota',
-  /** A disk is at the limit of the library settings, so nothing more is downloaded for anyone */
-  DiskFull = 'disk-full',
 }
 
 /**
@@ -271,8 +268,18 @@ export class FulfilmentStatusDto {
   })
   infoHash?: string;
 
-  @ApiProperty({ required: false })
-  error?: string;
+  @ApiProperty({
+    enum: FulfilmentError,
+    required: false,
+    description: 'Why the request has no file',
+  })
+  error?: FulfilmentError;
+
+  @ApiProperty({
+    required: false,
+    description: 'The same, to show to the user',
+  })
+  errorMessage?: string;
 }
 
 export class MovieStatusDto {

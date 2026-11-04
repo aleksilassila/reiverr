@@ -14,8 +14,13 @@ import { isNeeded, mediaOf } from '../requests/requests.utils.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { coversMedia } from './library.utils.js';
 import { MediaFile } from './media-file.entity.js';
-import { RequestBinding } from './request-binding.entity.js';
-import { expectedBytes, roomFor, StorageService } from './storage.service.js';
+import { FulfilmentError, RequestBinding } from './request-binding.entity.js';
+import {
+  expectedBytes,
+  Room,
+  roomFor,
+  StorageService,
+} from './storage.service.js';
 
 const READ = { disableIdentityMap: true };
 
@@ -26,7 +31,9 @@ interface BindingChange {
   pendingBytes?: number | null;
   /** Unchanged when left out */
   mediaFileId?: string | null;
-  error: string | null;
+  error: FulfilmentError | null;
+  /** With an error: the same for people to read */
+  errorMessage?: string | null;
 }
 
 /** Bound to nothing, which is no binding at all */
@@ -34,6 +41,22 @@ const NOTHING: BindingChange = {
   torrentItemId: null,
   mediaFileId: null,
   error: null,
+};
+
+/** What a binding says of a request that its gate holds back, which keeps nothing */
+const HELD_BACK: Record<Exclude<Room, 'ok'>, BindingChange> = {
+  'over-quota': {
+    torrentItemId: null,
+    mediaFileId: null,
+    error: FulfilmentError.OverQuota,
+    errorMessage: 'Over quota',
+  },
+  'disk-full': {
+    torrentItemId: null,
+    mediaFileId: null,
+    error: FulfilmentError.DiskFull,
+    errorMessage: 'Disk full',
+  },
 };
 
 /**
@@ -100,8 +123,8 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * Has every request that wants a file and is bound to nothing looked at,
    * in user, title and episode order, and every binding whose request is
    * gone. A request that was held back by the quota of its user or by the
-   * disk limit is bound to nothing, so this is how it gets what it wants
-   * once there is room.
+   * disk limit has only that error on its binding, so this is how it gets
+   * what it wants once there is room.
    */
   async sweep(em: EntityManager = this.em.fork()): Promise<void> {
     await em.transactional(async (tx) => {
@@ -152,14 +175,14 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    * 2. Clear torrent if request is not active
    * 3. If requests a file
    *      - record error and clear binding if file does not exist
-   *      - else bind if user has quota for the file, else clear binding
+   *      - else bind if user has quota for the file, else record why
    * 4. If requests a torrent
    *      - keep the bound file if it is from the torrent, or any bound file
    *        if the torrent is for the whole season
    *      - else bind the torrent's file in the library if user has quota for
-   *        it, else clear binding
+   *        it, else record why
    *      - else keep the download if it is under way, else start it if user
-   *        has quota and the disk is not full, else clear binding
+   *        has quota and the disk is not full, else record why
    */
   private async reconcileRequest(
     requestId: string,
@@ -219,7 +242,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           await write({
             torrentItemId: null,
             mediaFileId: null,
-            error: !file
+            error: file
+              ? FulfilmentError.FileNotOfMedia
+              : FulfilmentError.FileNotInLibrary,
+            errorMessage: !file
               ? 'The file is not in the library'
               : media.mediaType === MediaType.Movie
                 ? 'The file is not of this movie'
@@ -234,7 +260,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         await write(
           room === 'ok'
             ? { torrentItemId: null, mediaFileId: file.id, error: null }
-            : NOTHING,
+            : HELD_BACK[room],
         );
         return;
       }
@@ -277,7 +303,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         await write(
           room === 'ok'
             ? { torrentItemId: null, mediaFileId: version.id, error: null }
-            : NOTHING,
+            : HELD_BACK[room],
         );
         return;
       }
@@ -307,7 +333,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         const room = roomFor(gate, { bytes, download: true });
         if (room !== 'ok') {
           await this.releaseTorrentItemOf(tx, binding);
-          await write(NOTHING);
+          await write(HELD_BACK[room]);
           return;
         }
         pendingBytes = bytes;
@@ -328,10 +354,9 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         pendingBytes,
         mediaFileId: null,
         // An import that failed is tried again by the torrent, not here
-        error:
-          binding?.torrentItemId === torrentItem.id
-            ? (binding.error ?? null)
-            : null,
+        ...(binding?.torrentItemId === torrentItem.id
+          ? { error: binding.error ?? null, errorMessage: binding.errorMessage }
+          : { error: null }),
       });
     });
   }
@@ -363,6 +388,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           pendingBytes: binding.pendingBytes,
           mediaFileId: null,
           error: binding.error ?? null,
+          errorMessage: binding.errorMessage,
         },
         titleOf(byId.get(binding.mediaFileId)),
       );
@@ -391,6 +417,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         pendingBytes: null,
         mediaFileId,
         error: null,
+        errorMessage: null,
         updatedAt: new Date(),
       },
     );
@@ -407,7 +434,11 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     await em.nativeUpdate(
       RequestBinding,
       { torrentItemId },
-      { error: `Import failed: ${message}`, updatedAt: new Date() },
+      {
+        error: FulfilmentError.ImportFailed,
+        errorMessage: `Import failed: ${message}`,
+        updatedAt: new Date(),
+      },
     );
   }
 
@@ -478,6 +509,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           ? (current?.mediaFileId ?? null)
           : change.mediaFileId,
       error: change.error,
+      errorMessage: change.error ? (change.errorMessage ?? null) : null,
     };
     const isEmpty = !next.torrentItemId && !next.mediaFileId && !next.error;
     const letsGo =
@@ -505,7 +537,8 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
       (current.torrentItemId ?? null) === next.torrentItemId &&
       (current.pendingBytes ?? null) === next.pendingBytes &&
       (current.mediaFileId ?? null) === next.mediaFileId &&
-      (current.error ?? null) === next.error;
+      (current.error ?? null) === next.error &&
+      (current.errorMessage ?? null) === next.errorMessage;
     if (isSame) return;
 
     await tx.nativeUpdate(

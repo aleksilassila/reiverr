@@ -266,10 +266,8 @@ async function createHub() {
     orm.em,
     requests,
     downloads,
-    metadata as unknown as MetadataService,
     libraryService,
     scan,
-    storage,
   );
   for (const service of [
     scan,
@@ -426,7 +424,7 @@ describe('FulfilmentService', () => {
             ? `file:${file.infoHash?.slice(0, 4) ?? 'external'}`
             : 'file:gone'
           : null,
-        binding?.error ?? null,
+        binding?.errorMessage ?? null,
       ];
     });
   };
@@ -518,6 +516,44 @@ describe('FulfilmentService', () => {
     const unrequested = await document();
     expect(unrequested.fulfilments).toEqual([]);
     expect(unrequested.files[0].cleanupAt).toEqual(expect.any(Date));
+  });
+
+  it('says on the binding what holds a request back, and takes it back when there is room', async () => {
+    const fulfilments = async () =>
+      (await request(() => hub.status.getSeriesStatus(userId, TMDB_ID)))
+        .fulfilments;
+    const row = async () => {
+      const [binding] = await orm.em.fork().find(RequestBinding, {});
+
+      return binding;
+    };
+
+    await setQuota(1);
+    await setRequested([1]);
+    await select(0, 'pack');
+    await settle();
+    const { requestId, updatedAt } = await row();
+    expect(await fulfilments()).toEqual([
+      {
+        requestId,
+        status: 'failed',
+        error: 'over-quota',
+        errorMessage: 'Over quota',
+      },
+    ]);
+
+    // Looking at it again with nothing changed writes nothing
+    await hub.fulfilment.sweep();
+    await settle();
+    expect((await row()).updatedAt).toEqual(updatedAt);
+
+    await setQuota(null);
+    await hub.fulfilment.sweep();
+    await settle();
+    expect(await fulfilments()).toEqual([
+      { requestId, status: 'downloading', infoHash: PACK },
+    ]);
+    expect(await row()).toMatchObject({ error: null, errorMessage: null });
   });
 
   it('has downloads get the files of active requests and imports them as they complete', async () => {
@@ -831,7 +867,7 @@ describe('FulfilmentService', () => {
 
     expect(await bindings()).toEqual([
       [1, 'torrentItem:1111', null, null],
-      [2, null, null, null],
+      [2, null, null, 'Over quota'],
     ]);
     expect(await statuses()).toEqual([
       [1, 'downloading', false],
@@ -889,7 +925,7 @@ describe('FulfilmentService', () => {
     await select(0, 'pack');
     await setRequested([1]);
     await settle();
-    expect(await bindings()).toEqual([[1, null, null, null]]);
+    expect(await bindings()).toEqual([[1, null, null, 'Over quota']]);
     expect(await statuses()).toEqual([[1, 'over-quota', true]]);
 
     await setQuota(7);
@@ -903,7 +939,7 @@ describe('FulfilmentService', () => {
     // request lets go of the file and holds nothing
     await select(1, 'episode');
     await settle();
-    expect(await bindings()).toEqual([[1, null, null, null]]);
+    expect(await bindings()).toEqual([[1, null, null, 'Over quota']]);
     expect(await statuses()).toEqual([[1, 'over-quota', true]]);
     expect(await hub.fulfilment.countByMediaFile()).toEqual(
       new Map([[file.id, 1]]),
@@ -941,7 +977,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, null, null, null],
+      [2, null, null, 'Disk full'],
     ]);
     expect(await statuses()).toEqual([
       [1, 'fulfilled', true],
@@ -1056,6 +1092,14 @@ describe('FulfilmentService', () => {
     expect(await movieStatus()).toMatchObject({
       status: 'failed',
       error: 'The file is not of this movie',
+    });
+    expect(
+      (await request(() => hub.status.getMovieStatus(userId, MOVIE_ID)))
+        .fulfilment,
+    ).toMatchObject({
+      status: 'failed',
+      error: 'file-not-of-media',
+      errorMessage: 'The file is not of this movie',
     });
   });
 });
