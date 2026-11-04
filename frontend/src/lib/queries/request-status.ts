@@ -7,8 +7,8 @@ import type {
 	TorrentWithItemsDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 
-/** A torrent as the engine has it, without its items */
-export type TorrentDto = Omit<TorrentWithItemsDto, 'items'>;
+/** A torrent as the engine has it, without its torrent items */
+export type TorrentDto = Omit<TorrentWithItemsDto, 'torrentItems'>;
 
 /** The torrents of a title as the engine has them, by info hash */
 export type TitleTorrents = Map<string, TorrentWithItemsDto>;
@@ -24,7 +24,7 @@ export type MediaStatus = {
 	/** The torrent the request downloads from */
 	torrent?: TorrentDto;
 	/** The torrent item of the episode or the movie */
-	item?: TorrentItemDto;
+	torrentItem?: TorrentItemDto;
 };
 
 /** How often the torrents of a title are fetched: while one runs, else only when the server says they changed */
@@ -42,13 +42,15 @@ export function liveRefetchInterval(query: {
 	return query.state.data?.some(isRunning) ? LIVE_REFRESH_INTERVAL : false;
 }
 
-/** The item of a torrent for an episode, or for a movie with season and episode 0 */
-export function itemOf(
+/** The torrent item a torrent has for an episode, or for a movie with season and episode 0 */
+export function torrentItemOf(
 	torrent: TorrentWithItemsDto | undefined,
 	season: number,
 	episode: number
 ): TorrentItemDto | undefined {
-	return torrent?.items.find((item) => item.season === season && item.episode === episode);
+	return torrent?.torrentItems.find(
+		(torrentItem) => torrentItem.season === season && torrentItem.episode === episode
+	);
 }
 
 /** A torrent that has data on the server, or that something is wanted of: selecting it downloads nothing anew */
@@ -74,8 +76,8 @@ function formatTimeUntil(date: string): string {
 	return `in ${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-const progressOf = (item?: TorrentItemDto) =>
-	item?.status === 'complete' ? 1 : (item?.progress ?? 0);
+const progressOf = (torrentItem?: TorrentItemDto) =>
+	torrentItem?.status === 'complete' ? 1 : (torrentItem?.progress ?? 0);
 
 /** The file a request has */
 export function heldFileOf(
@@ -88,20 +90,20 @@ export function heldFileOf(
 }
 
 /** Whether the torrent item the request waits for cannot give it the file */
-const isItemFailed = ({ fulfilment, item }: MediaStatus) =>
+const isTorrentItemFailed = ({ fulfilment, torrentItem }: MediaStatus) =>
 	fulfilment?.status === 'downloading' &&
-	(item?.status === 'failed' || item?.status === 'no-match');
+	(torrentItem?.status === 'failed' || torrentItem?.status === 'no-match');
 
 /** The line the pages show of the status of a request, if there is anything to say */
 export function getStatusLabel(status: MediaStatus): string | undefined {
-	const { request, preference, fulfilment, files, torrent, item } = status;
+	const { request, preference, fulfilment, files, torrent, torrentItem } = status;
 
-	if (isItemFailed(status)) return item?.error;
+	if (isTorrentItemFailed(status)) return torrentItem?.error;
 	switch (fulfilment?.status) {
 		case 'downloading':
 			// The rows say the file is wanted; how far it is, the engine says
-			if (torrent?.status === 'starting' || item?.status === 'resolving') return 'Starting';
-			return `Downloading ${Math.floor(progressOf(item) * 100)}%`;
+			if (torrent?.status === 'starting' || torrentItem?.status === 'resolving') return 'Starting';
+			return `Downloading ${Math.floor(progressOf(torrentItem) * 100)}%`;
 		case 'pending':
 			return 'Starting';
 		case 'over-quota':
@@ -131,7 +133,7 @@ export function isErrorStatus(status: MediaStatus): boolean {
 	const { fulfilment } = status;
 
 	return (
-		isItemFailed(status) ||
+		isTorrentItemFailed(status) ||
 		fulfilment?.status === 'failed' ||
 		fulfilment?.status === 'over-quota' ||
 		fulfilment?.status === 'disk-full'

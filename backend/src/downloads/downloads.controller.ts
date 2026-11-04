@@ -41,7 +41,7 @@ export class DownloadsController {
   @ApiOkResponse({
     type: [TorrentWithItemsDto],
     description:
-      'The torrents the movie is or was wanted from, as the engine has them, with the items of the movie',
+      'The torrents the movie is or was wanted from, as the engine has them, with the torrent items of the movie',
   })
   getMovieTorrents(
     @Param('tmdbId') tmdbId: string,
@@ -56,7 +56,7 @@ export class DownloadsController {
   @ApiOkResponse({
     type: [TorrentWithItemsDto],
     description:
-      'The torrents episodes of the series are or were wanted from, as the engine has them, with the items of the series',
+      'The torrents episodes of the series are or were wanted from, as the engine has them, with the torrent items of the series',
   })
   getSeriesTorrents(
     @Param('tmdbId') tmdbId: string,

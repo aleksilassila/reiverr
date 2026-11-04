@@ -217,26 +217,31 @@ export class CatalogService {
   ): Promise<CatalogDownloadDto[]> {
     const em = this.em.fork();
     const torrents = await this.downloadsService.describeDownloads();
-    const waitedFor = await this.findWaitedItems(em, userId);
+    const waitedFor = await this.findWaitedTorrentItems(em, userId);
 
-    // A torrent downloads the items of it that are not released, all of one title
+    // A torrent downloads the torrent items of it that are not released, all of one title
     type Download = Omit<CatalogDownloadDto, 'tmdbItem'> & { addedAt: number };
     const downloads: Download[] = [];
     for (const torrent of torrents) {
-      const items = torrent.items.filter(
-        (item) => item.status !== TorrentItemStatus.Released,
+      const torrentItems = torrent.torrentItems.filter(
+        (torrentItem) => torrentItem.status !== TorrentItemStatus.Released,
       );
-      const [first] = items;
+      const [first] = torrentItems;
       if (!first) continue;
       if (options.mediaType && first.mediaType !== options.mediaType) continue;
-      const requested = items.some((item) => waitedFor.has(item.id));
+      const requested = torrentItems.some((torrentItem) =>
+        waitedFor.has(torrentItem.id),
+      );
       if (options.status === DownloadsStatus.Requested && !requested) continue;
       downloads.push({
         infoHash: torrent.infoHash,
         mediaType: first.mediaType,
         tmdbId: first.tmdbId,
         name: torrent.title,
-        episodes: items.map(({ season, episode }) => ({ season, episode })),
+        episodes: torrentItems.map(({ season, episode }) => ({
+          season,
+          episode,
+        })),
         status: torrent.status,
         size: torrent.wantedBytes,
         progress: torrent.progress,
@@ -301,8 +306,8 @@ export class CatalogService {
     return items;
   }
 
-  /** The ids of the items that the requests of the user wait for */
-  private async findWaitedItems(
+  /** The ids of the torrent items that the requests of the user wait for */
+  private async findWaitedTorrentItems(
     em: EntityManager,
     userId: string,
   ): Promise<Set<string>> {

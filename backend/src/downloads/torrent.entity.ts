@@ -4,7 +4,7 @@ import type { TorrentFileInfo } from './torrent-engine.js';
 
 /**
  * A torrent the server knows, by its info hash. The library creates it from
- * a release a user picked, and asks for items of it; downloads does the
+ * a release a user picked, and asks for torrent items of it; downloads does the
  * rest.
  */
 @Entity()

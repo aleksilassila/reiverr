@@ -11,10 +11,10 @@ import { MediaType } from '../common/common.dto.js';
 import { Torrent } from './torrent.entity.js';
 
 /**
- * A claim on a torrent for one item: an episode of a series, or a movie
- * with season and episode 0. The library asks for it and releases it;
- * downloads matches it to a file of the torrent once the file list is known
- * and downloads that file. The data of a torrent stays while an item is
+ * A claim on a torrent for one episode of a series, or for a movie with
+ * season and episode 0. The library asks for it and releases it; downloads
+ * matches it to a file of the torrent once the file list is known and
+ * downloads that file. The data of a torrent stays while a torrent item is
  * wanted, which is until the library has imported the file or lets it go.
  */
 @Entity({ tableName: 'torrent_item' })
@@ -52,13 +52,13 @@ export class TorrentItem {
   @Property({ default: false })
   onlyVideo: boolean = false;
 
-  /** The file of the torrent that is the item, once the file list is known and a file matches */
+  /** The file of the torrent that the torrent item is, once the file list is known and a file matches */
   @Property({ nullable: true })
   fileIndex?: number;
 
   /**
    * The subtitle files of the torrent that belong to the file, matched with
-   * it and downloaded with it; null for an item matched before subtitles
+   * it and downloaded with it; null for a torrent item matched before subtitles
    * were downloaded
    */
   @Property({ type: 'json', nullable: true })
@@ -68,7 +68,7 @@ export class TorrentItem {
   @Property({ nullable: true })
   completedAt?: Date;
 
-  /** When the library let the item go: imported, or no longer needed */
+  /** When the library let the torrent item go: imported, or no longer needed */
   @Property({ nullable: true })
   releasedAt?: Date;
 

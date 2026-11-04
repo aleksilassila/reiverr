@@ -58,27 +58,30 @@ export function findMovieFile(
   );
 }
 
-/** The file of a torrent that is an item, or nothing when the torrent has none for it */
-export function findItemFile(
-  item: Pick<TorrentItem, 'mediaType' | 'season' | 'episode' | 'onlyVideo'>,
+/** The file of a torrent that a torrent item is, or nothing when the torrent has none for it */
+export function findTorrentItemFile(
+  torrentItem: Pick<
+    TorrentItem,
+    'mediaType' | 'season' | 'episode' | 'onlyVideo'
+  >,
   files: TorrentFileInfo[],
 ): TorrentFileInfo | undefined {
-  if (item.mediaType === MediaType.Movie) return findMovieFile(files);
+  if (torrentItem.mediaType === MediaType.Movie) return findMovieFile(files);
 
   return (
-    findEpisodeFile(files, item.season, item.episode) ??
-    (item.onlyVideo ? findOnlyVideoFile(files) : undefined)
+    findEpisodeFile(files, torrentItem.season, torrentItem.episode) ??
+    (torrentItem.onlyVideo ? findOnlyVideoFile(files) : undefined)
   );
 }
 
 /**
- * The subtitle files of a torrent that belong to the video of an item, as
- * torrents place them: named after the video ("<video>.en.srt"), in a
- * folder named after it ("Subs/<video>/2_English.srt"), named after the
- * same episode, or anywhere in a torrent whose only video it is.
+ * The subtitle files of a torrent that belong to the video of a torrent item,
+ * as torrents place them: named after the video ("<video>.en.srt"), in a folder
+ * named after it ("Subs/<video>/2_English.srt"), named after the same episode,
+ * or anywhere in a torrent whose only video it is.
  */
 export function findSubtitleFiles(
-  item: Pick<TorrentItem, 'mediaType' | 'season' | 'episode'>,
+  torrentItem: Pick<TorrentItem, 'mediaType' | 'season' | 'episode'>,
   video: TorrentFileInfo,
   files: TorrentFileInfo[],
 ): TorrentFileInfo[] {
@@ -92,11 +95,12 @@ export function findSubtitleFiles(
     const base = baseName(file.name);
     if (base === videoBase || base.startsWith(`${videoBase}.`)) return true;
     if (path.basename(path.dirname(file.path)) === videoBase) return true;
-    if (item.mediaType !== MediaType.Series) return false;
+    if (torrentItem.mediaType !== MediaType.Series) return false;
 
     const numbers = parseEpisodeNumbers(file.name);
     return (
-      numbers?.season === item.season && numbers.episodes.includes(item.episode)
+      numbers?.season === torrentItem.season &&
+      numbers.episodes.includes(torrentItem.episode)
     );
   });
 }

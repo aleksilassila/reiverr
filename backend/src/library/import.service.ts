@@ -53,10 +53,10 @@ export interface PlacedFile {
 }
 
 /**
- * Puts the files that downloads finish into the library, as versions of
- * their movies and episodes: the job `library.importItem`, which downloads
- * enqueues for every complete item. What the file does for the requests
- * that waited for the item is the fulfilment's.
+ * Puts the files that downloads finish into the library, as versions of their
+ * movies and episodes: the job `library.importTorrentItem`, which downloads
+ * enqueues for every complete torrent item. What the file does for the requests
+ * that waited for the torrent item is the fulfilment's.
  */
 @Injectable()
 export class ImportService implements OnModuleInit {
@@ -72,54 +72,62 @@ export class ImportService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.jobs.define('library.importItem', {
+    this.jobs.define('library.importTorrentItem', {
       concurrency: 2,
       retry: true,
       // A library that was not mounted is noticed soon after it is again
       maxRetryDelay: 5 * 60 * 1000,
-      run: (payload, context) => this.importItem(payload, context),
+      run: (payload, context) => this.importTorrentItem(payload, context),
     });
   }
 
   /**
-   * Puts the complete file of an item into the library and hands it to the
-   * fulfilment, which gives it to the requests that waited for the item
-   * and lets the item go. An item that is released or not complete is
-   * skipped; a wanted item is always waited for, since the fulfilment
-   * releases an item in the transaction that lets go of it. A failure is
-   * kept on the requests and the job retries; the next reconcile of the
-   * torrent enqueues the import again. Either way the clients that show
-   * the title are told.
+   * Puts the complete file of a torrent item into the library and hands it to
+   * the fulfilment, which gives it to the requests that waited for the torrent
+   * item and lets the torrent item go. A torrent item that is released or not
+   * complete is skipped; a wanted torrent item is always waited for, since the
+   * fulfilment releases a torrent item in the transaction that lets go of it. A
+   * failure is kept on the requests and the job retries; the next reconcile of
+   * the torrent enqueues the import again. Either way the clients that show the
+   * title are told.
    */
-  private async importItem(
-    { infoHash, itemId }: JobPayloads['library.importItem'],
+  private async importTorrentItem(
+    { infoHash, torrentItemId }: JobPayloads['library.importTorrentItem'],
     context: JobContext,
   ): Promise<void> {
-    const [item] = await this.downloadsService.findItems(context.em, [itemId]);
-    if (!item || item.releasedAt || !item.completedAt) return;
+    const [torrentItem] = await this.downloadsService.findTorrentItems(
+      context.em,
+      [torrentItemId],
+    );
+    if (!torrentItem || torrentItem.releasedAt || !torrentItem.completedAt)
+      return;
 
-    const file = await this.downloadsService.getItemFile(context.em, itemId);
-    if (!file) throw new Error(`The file of item ${itemId} is not known`);
+    const file = await this.downloadsService.getTorrentItemFile(
+      context.em,
+      torrentItemId,
+    );
+    if (!file)
+      throw new Error(`The file of torrent item ${torrentItemId} is not known`);
 
     // The file is the episodes its name says when those include the wanted
     // one, else the wanted one, so that the library always gets what was
     // wanted; a movie is its own
     const numbers =
-      item.mediaType === MediaType.Series
+      torrentItem.mediaType === MediaType.Series
         ? parseEpisodeNumbers(file.name)
         : undefined;
     const isNamed =
-      numbers?.season === item.season &&
-      numbers.episodes.includes(item.episode);
+      numbers?.season === torrentItem.season &&
+      numbers.episodes.includes(torrentItem.episode);
     let placed: PlacedFile;
     try {
       placed = await this.placeVersion({
         sourcePath: file.path,
         infoHash,
-        mediaType: item.mediaType,
-        tmdbId: item.tmdbId,
-        season: item.season,
-        episodes: isNamed ? numbers.episodes : [item.episode],
+        mediaType: torrentItem.mediaType,
+        tmdbId: torrentItem.tmdbId,
+        season: torrentItem.season,
+        episodes: isNamed ? numbers.episodes : [torrentItem.episode],
         subtitles: file.subtitles.map((subtitle) => ({
           sourcePath: subtitle.path,
           name: subtitle.name,
@@ -128,8 +136,12 @@ export class ImportService implements OnModuleInit {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Importing "${file.path}" failed: ${message}`);
-      await this.fulfilment.itemImportFailed(context.em, itemId, message);
-      this.events.emit({ type: 'library', data: titleOf(item) });
+      await this.fulfilment.torrentItemImportFailed(
+        context.em,
+        torrentItemId,
+        message,
+      );
+      this.events.emit({ type: 'library', data: titleOf(torrentItem) });
       throw error;
     }
 
@@ -137,9 +149,9 @@ export class ImportService implements OnModuleInit {
     // nothing holds, which a cleanup would delete
     await context.em.transactional(async (tx) => {
       const imported = await this.indexImportedFile(tx, placed);
-      await this.fulfilment.itemImported(tx, itemId, imported.id);
+      await this.fulfilment.torrentItemImported(tx, torrentItemId, imported.id);
     });
-    this.events.emit({ type: 'library', data: titleOf(item) });
+    this.events.emit({ type: 'library', data: titleOf(torrentItem) });
   }
 
   /**

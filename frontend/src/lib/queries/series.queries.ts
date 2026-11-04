@@ -20,7 +20,7 @@ import {
 	getStatusLabel,
 	heldFileOf,
 	isErrorStatus,
-	itemOf,
+	torrentItemOf,
 	liveRefetchInterval,
 	type TitleTorrents,
 	toTitleTorrents
@@ -286,7 +286,7 @@ export function getEpisodeRequestStatus(
 		fulfilment,
 		files,
 		torrent,
-		item: itemOf(torrent, season, episode)
+		torrentItem: torrentItemOf(torrent, season, episode)
 	};
 
 	return {

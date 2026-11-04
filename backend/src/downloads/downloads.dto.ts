@@ -22,7 +22,7 @@ export enum TorrentStatus {
   Starting = 'starting',
   Downloading = 'downloading',
   Seeding = 'seeding',
-  /** Stopped with its data, which an item that waits for its import keeps */
+  /** Stopped with its data, which a torrent item that waits for its import keeps */
   Stopped = 'stopped',
   Failed = 'failed',
 }
@@ -53,14 +53,14 @@ export class TorrentDto {
   @ApiProperty({
     type: 'number',
     description:
-      'Bytes of the files the torrent downloads for the items wanted of it; the whole torrent until its file list is known',
+      'Bytes of the files the torrent downloads for the torrent items wanted of it; the whole torrent until its file list is known',
   })
   wantedBytes: number;
 
   @ApiProperty({
     type: 'number',
     description:
-      'The share of those bytes that is downloaded, from 0 to 1: the files of complete items whole, the rest as the engine has them',
+      'The share of those bytes that is downloaded, from 0 to 1: the files of complete torrent items whole, the rest as the engine has them',
   })
   progress: number;
 
@@ -90,18 +90,18 @@ export class TorrentDto {
 export enum TorrentItemStatus {
   /** The file list of the torrent is not known yet */
   Resolving = 'resolving',
-  /** The torrent has no file for the item */
+  /** The torrent has no file for the torrent item */
   NoMatch = 'no-match',
   Downloading = 'downloading',
   /** The file is downloaded and waits for its import */
   Complete = 'complete',
   /** The torrent failed */
   Failed = 'failed',
-  /** The library let the item go */
+  /** The library let the torrent item go */
   Released = 'released',
 }
 
-/** An item that is wanted from a torrent, and its status */
+/** A torrent item that is wanted from a torrent, and its status */
 export class TorrentItemDto {
   @ApiProperty({ type: 'string' })
   id: string;
@@ -132,12 +132,12 @@ export class TorrentItemDto {
 
   @ApiProperty({
     required: false,
-    description: 'The name of the file of the torrent that is the item',
+    description: 'The name of the file of the torrent that the torrent item is',
   })
   fileName?: string;
 }
 
 export class TorrentWithItemsDto extends TorrentDto {
   @ApiProperty({ type: [TorrentItemDto] })
-  items: TorrentItemDto[];
+  torrentItems: TorrentItemDto[];
 }

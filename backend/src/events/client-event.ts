@@ -11,7 +11,7 @@ export type ClientEvent =
   | { type: 'requests'; userId: string; data: Title }
   /** What the library has of the title, or what the requests of users have of it, changed */
   | { type: 'library'; userId?: never; data: Title }
-  /** A torrent of the title changed: its items, its state, or its data */
+  /** A torrent of the title changed: its torrent items, its state, or its data */
   | { type: 'downloads'; userId?: never; data: Title }
   /** The quota of the user changed */
   | { type: 'storage'; userId: string; data: Record<string, never> };

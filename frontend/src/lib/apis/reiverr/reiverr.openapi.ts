@@ -1586,7 +1586,7 @@ export interface TorrentItemDto {
   /** From 0 to 1 */
   progress?: number;
   error?: string;
-  /** The name of the file of the torrent that is the item */
+  /** The name of the file of the torrent that the torrent item is */
   fileName?: string;
 }
 
@@ -1600,9 +1600,9 @@ export interface TorrentWithItemsDto {
   downloadedBytes: number;
   /** Bytes uploaded for that data */
   uploadedBytes: number;
-  /** Bytes of the files the torrent downloads for the items wanted of it; the whole torrent until its file list is known */
+  /** Bytes of the files the torrent downloads for the torrent items wanted of it; the whole torrent until its file list is known */
   wantedBytes: number;
-  /** The share of those bytes that is downloaded, from 0 to 1: the files of complete items whole, the rest as the engine has them */
+  /** The share of those bytes that is downloaded, from 0 to 1: the files of complete torrent items whole, the rest as the engine has them */
   progress: number;
   status:
     | "idle"
@@ -1622,7 +1622,7 @@ export interface TorrentWithItemsDto {
   downloadSpeed: number;
   /** Bytes per second */
   uploadSpeed: number;
-  items: TorrentItemDto[];
+  torrentItems: TorrentItemDto[];
 }
 
 export interface LogEntryDto {

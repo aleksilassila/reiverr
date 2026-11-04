@@ -4,7 +4,7 @@ import { Letter, MediaType, OrderDirection } from '../common/common.dto.js';
 import {
   TorrentItemStatus,
   TorrentStatus,
-  TorrentWithItemsDto,
+  TorrentWithItemsDto as TorrentWithItemsDto,
 } from '../downloads/downloads.dto.js';
 import { DownloadsService } from '../downloads/downloads.service.js';
 import { CleanupSchedule } from '../library/library.dto.js';
@@ -427,7 +427,7 @@ describe('CatalogService', () => {
       infoHash: string,
       name: string,
       addedAt: string,
-      items: {
+      torrentItems: {
         id: string;
         mediaType: MediaType;
         tmdbId: string;
@@ -456,14 +456,14 @@ describe('CatalogService', () => {
       downloadSpeed: 0,
       uploadSpeed: 0,
       ...live,
-      items: items.map((item) => ({
-        id: item.id,
+      torrentItems: torrentItems.map((torrentItem) => ({
+        id: torrentItem.id,
         infoHash,
-        mediaType: item.mediaType,
-        tmdbId: item.tmdbId,
-        season: item.season,
-        episode: item.episode,
-        status: item.released
+        mediaType: torrentItem.mediaType,
+        tmdbId: torrentItem.tmdbId,
+        season: torrentItem.season,
+        episode: torrentItem.episode,
+        status: torrentItem.released
           ? TorrentItemStatus.Released
           : TorrentItemStatus.Downloading,
       })),
@@ -496,21 +496,21 @@ describe('CatalogService', () => {
           '2026-02-01T00:00:00.000Z',
           [
             {
-              id: 'item-1',
+              id: 'torrent-item-1',
               mediaType: MediaType.Series,
               tmdbId: '1',
               season: 1,
               episode: 1,
             },
             {
-              id: 'item-2',
+              id: 'torrent-item-2',
               mediaType: MediaType.Series,
               tmdbId: '1',
               season: 1,
               episode: 2,
             },
             {
-              id: 'item-3',
+              id: 'torrent-item-3',
               mediaType: MediaType.Series,
               tmdbId: '1',
               season: 1,
@@ -526,7 +526,7 @@ describe('CatalogService', () => {
           '2026-02-03T00:00:00.000Z',
           [
             {
-              id: 'item-m',
+              id: 'torrent-item-m',
               mediaType: MediaType.Movie,
               tmdbId: '1',
               season: 0,
@@ -541,7 +541,7 @@ describe('CatalogService', () => {
           '2026-02-02T00:00:00.000Z',
           [
             {
-              id: 'item-a',
+              id: 'torrent-item-a',
               mediaType: MediaType.Series,
               tmdbId: '2',
               season: 1,
@@ -555,7 +555,7 @@ describe('CatalogService', () => {
       const { id } = await request('1', MediaType.Series, 2);
       const binding = new RequestBinding();
       binding.requestId = id;
-      binding.torrentItemId = 'item-2';
+      binding.torrentItemId = 'torrent-item-2';
       await insert(binding);
     });
 
@@ -674,7 +674,7 @@ describe('CatalogService', () => {
         await bind(id, { mediaFileId: shared.id });
       }
       const { id: fourth } = await request('1', MediaType.Series, 4);
-      await bind(fourth, { torrentItemId: 'item', pendingBytes: 50 });
+      await bind(fourth, { torrentItemId: 'torrent-item', pendingBytes: 50 });
       await file(MediaType.Series, '1', 1, new Date('2026-01-05T00:00:00Z'), {
         managed: true,
         size: 200,

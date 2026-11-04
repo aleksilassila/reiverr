@@ -77,7 +77,7 @@ const episodeRelease = {
   torrentFile: EPISODE_TORRENT,
 };
 
-const item = (episode: number, onlyVideo = false) => ({
+const torrentItem = (episode: number, onlyVideo = false) => ({
   mediaType: MediaType.Series,
   tmdbId: '100',
   season: 1,
@@ -99,16 +99,18 @@ describe('DownloadsService', () => {
   const inTx = <T>(run: (tx: MikroORM['em']) => Promise<T>) =>
     request(() => orm.em.transactional(run));
 
-  const wantItem = (infoHash: string, wanted: ReturnType<typeof item>) =>
-    inTx((tx) => downloads.requestItem(tx, infoHash, wanted));
-  const items = () =>
+  const wantTorrentItem = (
+    infoHash: string,
+    wanted: ReturnType<typeof torrentItem>,
+  ) => inTx((tx) => downloads.requestTorrentItem(tx, infoHash, wanted));
+  const torrentItems = () =>
     orm.em.fork().find(TorrentItem, {}, { orderBy: { episode: 'asc' } });
-  /** Every item as the engine has it, by episode */
-  const describeItems = async () => {
+  /** Every torrent item as the engine has it, by episode */
+  const describeTorrentItems = async () => {
     const torrents = await downloads.describeTorrents();
 
     return torrents
-      .flatMap((torrent) => torrent.items)
+      .flatMap((torrent) => torrent.torrentItems)
       .sort((a, b) => a.episode - b.episode)
       .map((dto) => [
         dto.episode,
@@ -120,10 +122,10 @@ describe('DownloadsService', () => {
   const imports = async () =>
     (
       await orm.em.fork().find(Job, {
-        type: 'library.importItem',
+        type: 'library.importTorrentItem',
         status: JobStatus.Queued,
       })
-    ).map((job) => job.payload.itemId);
+    ).map((job) => job.payload.torrentItemId);
   const directory = (infoHash: string) => path.join(dirs.downloads, infoHash);
 
   beforeEach(async () => {
@@ -153,7 +155,7 @@ describe('DownloadsService', () => {
     await orm.close();
   });
 
-  it('knows a torrent at once and downloads the files of the items wanted of it', async () => {
+  it('knows a torrent at once and downloads the files of the torrent items wanted of it', async () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     expect(await orm.em.fork().find(Torrent, {})).toMatchObject([
       { infoHash: PACK, title: packRelease.title, files: null },
@@ -161,35 +163,41 @@ describe('DownloadsService', () => {
     expect(engine.torrents).toEqual([]);
 
     // The files of a magnet link are known once the torrent runs
-    const first = await wantItem(PACK, item(1));
+    const first = await wantTorrentItem(PACK, torrentItem(1));
     expect(first).toMatchObject({ torrentHash: PACK, episode: 1 });
     expect(first.fileIndex).toBeFalsy();
-    expect(await describeItems()).toEqual([[1, 'resolving', null, null]]);
+    expect(await describeTorrentItems()).toEqual([
+      [1, 'resolving', null, null],
+    ]);
     await settle();
 
     expect(engine.running(PACK).wanted).toEqual([0]);
-    expect(await describeItems()).toEqual([[1, 'downloading', 0.5, null]]);
+    expect(await describeTorrentItems()).toEqual([
+      [1, 'downloading', 0.5, null],
+    ]);
     expect(await downloads.describeTorrents()).toMatchObject([
       {
         infoHash: PACK,
         status: 'downloading',
         peers: 3,
-        items: [{ episode: 1 }],
+        torrentItems: [{ episode: 1 }],
       },
     ]);
 
-    // Another item of the same torrent, and one the torrent has no file for
-    await wantItem(PACK, item(2));
-    await wantItem(PACK, item(3));
+    // Another torrent item of the same torrent, and one the torrent has no file for
+    await wantTorrentItem(PACK, torrentItem(2));
+    await wantTorrentItem(PACK, torrentItem(3));
     await settle();
     expect(engine.running(PACK).wanted).toEqual([0, 1]);
-    expect(await describeItems()).toEqual([
+    expect(await describeTorrentItems()).toEqual([
       [1, 'downloading', 0.5, null],
       [2, 'downloading', 0.5, null],
       [3, 'no-match', null, 'The torrent has no file for this episode'],
     ]);
-    // Wanted again, an item is the one there is
-    expect((await wantItem(PACK, item(2))).id).toBe((await items())[1].id);
+    // Wanted again, a torrent item is the one there is
+    expect((await wantTorrentItem(PACK, torrentItem(2))).id).toBe(
+      (await torrentItems())[1].id,
+    );
   });
 
   it('matches the only video of a torrent picked for an episode, from a .torrent file at once', async () => {
@@ -198,36 +206,38 @@ describe('DownloadsService', () => {
       (await orm.em.fork().findOne(Torrent, { infoHash: EPISODE })).files,
     ).toHaveLength(2);
 
-    await wantItem(EPISODE, item(3));
+    await wantTorrentItem(EPISODE, torrentItem(3));
     await settle();
-    expect(await describeItems()).toEqual([
+    expect(await describeTorrentItems()).toEqual([
       [3, 'no-match', null, 'The torrent has no file for this episode'],
     ]);
     expect(engine.running(EPISODE)).toBeUndefined();
 
-    await wantItem(EPISODE, item(3, true));
+    await wantTorrentItem(EPISODE, torrentItem(3, true));
     await settle();
-    expect(await describeItems()).toEqual([[3, 'downloading', 0.5, null]]);
+    expect(await describeTorrentItems()).toEqual([
+      [3, 'downloading', 0.5, null],
+    ]);
     expect(engine.running(EPISODE).wanted).toEqual([0]);
     const [torrent] = await downloads.describeTorrents();
-    expect(torrent.items).toMatchObject([
+    expect(torrent.torrentItems).toMatchObject([
       { fileName: 'release-group-1080p.mkv' },
     ]);
   });
 
-  it('tells the library about a complete item and keeps the data until the item is released', async () => {
+  it('tells the library about a complete torrent item and keeps the data until the torrent item is released', async () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
-    const wanted = await wantItem(PACK, item(1));
+    const wanted = await wantTorrentItem(PACK, torrentItem(1));
     await settle();
     const pack = engine.running(PACK);
 
     pack.download(0);
     await settle();
 
-    expect(await describeItems()).toEqual([[1, 'complete', null, null]]);
+    expect(await describeTorrentItems()).toEqual([[1, 'complete', null, null]]);
     expect(await imports()).toEqual([wanted.id]);
     expect(
-      await request(() => downloads.getItemFile(orm.em, wanted.id)),
+      await request(() => downloads.getTorrentItemFile(orm.em, wanted.id)),
     ).toEqual({
       path: path.join(
         directory(PACK),
@@ -243,10 +253,10 @@ describe('DownloadsService', () => {
       { status: 'stopped', downloadedBytes: 100 },
     ]);
 
-    await inTx((tx) => downloads.releaseItem(tx, wanted.id));
+    await inTx((tx) => downloads.releaseTorrentItem(tx, wanted.id));
     await settle();
 
-    expect(await describeItems()).toEqual([[1, 'released', null, null]]);
+    expect(await describeTorrentItems()).toEqual([[1, 'released', null, null]]);
     expect(existsSync(directory(PACK))).toBe(false);
     expect(await downloads.describeTorrents()).toMatchObject([
       { status: 'idle', downloadedBytes: 0 },
@@ -259,9 +269,9 @@ describe('DownloadsService', () => {
       },
     ]);
 
-    // Wanted again, the item starts over
+    // Wanted again, the torrent item starts over
     await orm.em.fork().nativeDelete(Job, {});
-    const again = await wantItem(PACK, item(1));
+    const again = await wantTorrentItem(PACK, torrentItem(1));
     expect(again).toMatchObject({
       id: wanted.id,
       releasedAt: null,
@@ -269,29 +279,31 @@ describe('DownloadsService', () => {
     });
     await settle();
     expect(engine.running(PACK).wanted).toEqual([0]);
-    expect(await describeItems()).toEqual([[1, 'downloading', 0.5, null]]);
+    expect(await describeTorrentItems()).toEqual([
+      [1, 'downloading', 0.5, null],
+    ]);
   });
 
-  it('downloads the subtitles of an item with its file, while the setting is on', async () => {
+  it('downloads the subtitles of a torrent item with its file, while the setting is on', async () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, subsRelease));
-    const wanted = await wantItem(SUBS, item(1));
+    const wanted = await wantTorrentItem(SUBS, torrentItem(1));
     await settle();
     const subs = engine.running(SUBS);
     expect(subs.wanted).toEqual([0, 1]);
-    expect((await items())[0].subtitleFileIndexes).toEqual([1]);
+    expect((await torrentItems())[0].subtitleFileIndexes).toEqual([1]);
 
     // Complete with its subtitles only
     subs.download(0);
     await settle();
-    expect(await describeItems()).toEqual([[1, 'downloading', 1, null]]);
+    expect(await describeTorrentItems()).toEqual([[1, 'downloading', 1, null]]);
     expect(await imports()).toEqual([]);
 
     subs.download(1);
     await settle();
-    expect(await describeItems()).toEqual([[1, 'complete', null, null]]);
+    expect(await describeTorrentItems()).toEqual([[1, 'complete', null, null]]);
     expect(await imports()).toEqual([wanted.id]);
     expect(
-      await request(() => downloads.getItemFile(orm.em, wanted.id)),
+      await request(() => downloads.getTorrentItemFile(orm.em, wanted.id)),
     ).toEqual({
       path: path.join(directory(SUBS), 'Test.Show.S01/Test.Show.S01E01.mkv'),
       name: 'Test.Show.S01E01.mkv',
@@ -306,15 +318,15 @@ describe('DownloadsService', () => {
       ],
     });
 
-    // An item matched while the setting is off downloads its file alone
+    // A torrent item matched while the setting is off downloads its file alone
     await downloads.updateSettings({ seedRatio: 0, downloadSubtitles: false });
-    await wantItem(SUBS, item(2));
+    await wantTorrentItem(SUBS, torrentItem(2));
     await settle();
-    const second = (await items())[1];
+    const second = (await torrentItems())[1];
     expect(engine.running(SUBS).wanted).toEqual([0, 1, 2]);
     expect(second.subtitleFileIndexes).toEqual([]);
     expect(
-      await request(() => downloads.getItemFile(orm.em, second.id)),
+      await request(() => downloads.getTorrentItemFile(orm.em, second.id)),
     ).toMatchObject({ name: 'Test.Show.S01E02.mkv', subtitles: [] });
   });
 
@@ -324,12 +336,12 @@ describe('DownloadsService', () => {
       new SettingsService(orm.em).saveValue('downloads', { seedRatio }),
     );
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
-    const wanted = await wantItem(PACK, item(1));
+    const wanted = await wantTorrentItem(PACK, torrentItem(1));
     await settle();
     const pack = engine.running(PACK);
     pack.download(0);
     pack.stats.uploaded = 50;
-    await inTx((tx) => downloads.releaseItem(tx, wanted.id));
+    await inTx((tx) => downloads.releaseTorrentItem(tx, wanted.id));
     await settle();
 
     expect(pack.destroyed).toBe(false);
@@ -348,7 +360,7 @@ describe('DownloadsService', () => {
 
   it('keeps the error of a torrent that failed until it is picked or needed again', async () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
-    const wanted = await wantItem(PACK, item(1));
+    const wanted = await wantTorrentItem(PACK, torrentItem(1));
     await settle();
     const pack = engine.running(PACK);
 
@@ -356,12 +368,14 @@ describe('DownloadsService', () => {
     await settle();
 
     expect(pack.destroyed).toBe(true);
-    expect(await describeItems()).toEqual([[1, 'failed', null, 'no peers']]);
+    expect(await describeTorrentItems()).toEqual([
+      [1, 'failed', null, 'no peers'],
+    ]);
     expect(await downloads.describeTorrents()).toMatchObject([
       { status: 'failed', error: 'no peers' },
     ]);
-    // Another item changes nothing
-    await wantItem(PACK, item(2));
+    // Another torrent item changes nothing
+    await wantTorrentItem(PACK, torrentItem(2));
     await settle();
     expect(engine.running(PACK)).toBeUndefined();
 
@@ -369,15 +383,15 @@ describe('DownloadsService', () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     await settle();
     expect(engine.running(PACK).wanted).toEqual([0, 1]);
-    expect(await describeItems()).toEqual([
+    expect(await describeTorrentItems()).toEqual([
       [1, 'downloading', 0.5, null],
       [2, 'downloading', 0.5, null],
     ]);
 
-    // So does an item that is wanted again after it was released
+    // So does a torrent item that is wanted again after it was released
     engine.running(PACK).fail(new Error('no peers'));
     await settle();
-    await inTx((tx) => downloads.releaseItem(tx, wanted.id));
+    await inTx((tx) => downloads.releaseTorrentItem(tx, wanted.id));
     await settle();
     expect(engine.running(PACK)).toBeUndefined();
     expect(
@@ -388,7 +402,7 @@ describe('DownloadsService', () => {
   it('purges the torrents that nothing wants', async () => {
     await inTx((tx) => downloads.getOrCreateTorrent(tx, packRelease));
     await inTx((tx) => downloads.getOrCreateTorrent(tx, episodeRelease));
-    await wantItem(EPISODE, item(2, true));
+    await wantTorrentItem(EPISODE, torrentItem(2, true));
 
     await downloads.purgeTorrents();
 

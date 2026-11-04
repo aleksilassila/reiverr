@@ -138,12 +138,14 @@ export class StatusService {
       { requestId: { $in: requests.map((request) => request.id) } },
       READ,
     );
-    const items = await this.downloadsService.findItems(
+    const torrentItems = await this.downloadsService.findTorrentItems(
       em,
       bindings.flatMap((binding) => binding.torrentItemId ?? []),
     );
     const bindingOf = new Map(bindings.map((b) => [b.requestId, b]));
-    const itemOf = new Map(items.map((item) => [item.id, item]));
+    const torrentItemOf = new Map(
+      torrentItems.map((torrentItem) => [torrentItem.id, torrentItem]),
+    );
     const gate = await this.gateOf(em, userId);
 
     return requests.flatMap((request) => {
@@ -153,7 +155,7 @@ export class StatusService {
         describeFulfilment(request, binding, {
           ...context,
           gate,
-          item: itemOf.get(binding?.torrentItemId),
+          torrentItem: torrentItemOf.get(binding?.torrentItemId),
         }) ?? []
       );
     });
@@ -200,7 +202,7 @@ interface FulfilmentContext {
   episodeCounts?: Map<number, number>;
   gate: Gate;
   /** The torrent item of the binding */
-  item: TorrentItem | undefined;
+  torrentItem: TorrentItem | undefined;
 }
 
 /**
@@ -215,7 +217,7 @@ function describeFulfilment(
   context: FulfilmentContext,
 ): FulfilmentStatusDto | undefined {
   const requestId = request.id;
-  const infoHash = context.item?.torrentHash;
+  const infoHash = context.torrentItem?.torrentHash;
 
   if (binding?.mediaFileId) {
     return {

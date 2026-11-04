@@ -6,11 +6,11 @@ import {
 } from '@mikro-orm/decorators/legacy';
 
 /**
- * How the library fulfils a request: the item of a torrent it waits for, or
+ * How the library fulfils a request: the torrent item it waits for, or
  * the file in the library it has, and what keeps it from its file. A request
  * holds its file through its binding; a managed file no binding refers to
- * is the cleanup's. The request lives in the requests module, the item in
- * downloads: nothing cascades, the library keeps the rows in line.
+ * is the cleanup's. The request lives in the requests module, the torrent
+ * item in downloads: nothing cascades, the library keeps the rows in line.
  */
 @Entity({ tableName: 'request_binding' })
 @Index({ properties: ['torrentItemId'] })

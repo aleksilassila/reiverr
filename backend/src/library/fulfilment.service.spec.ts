@@ -404,13 +404,13 @@ describe('FulfilmentService', () => {
       { orderBy: { episode: 'asc' } },
     );
     const all = await em.find(RequestBinding, {});
-    const items = await em.find(TorrentItem, {});
+    const torrentItems = await em.find(TorrentItem, {});
     const files = await em.find(MediaFile, {});
 
     return rows.map((row) => {
       const binding = all.find((b) => b.requestId === row.id);
-      const item = binding?.torrentItemId
-        ? items.find((i) => i.id === binding.torrentItemId)
+      const torrentItem = binding?.torrentItemId
+        ? torrentItems.find((i) => i.id === binding.torrentItemId)
         : undefined;
       const file = binding?.mediaFileId
         ? files.find((f) => f.id === binding.mediaFileId)
@@ -418,7 +418,9 @@ describe('FulfilmentService', () => {
 
       return [
         row.episode,
-        item ? `item:${item.torrentHash.slice(0, 4)}` : null,
+        torrentItem
+          ? `torrentItem:${torrentItem.torrentHash.slice(0, 4)}`
+          : null,
         binding?.mediaFileId
           ? file
             ? `file:${file.infoHash?.slice(0, 4) ?? 'external'}`
@@ -452,7 +454,7 @@ describe('FulfilmentService', () => {
       : [];
   const episodeFile = (episode: number, hash: string) =>
     `Test Show (2020) [tmdbid-100]/Season 1/Test Show - S01E0${episode} - ${version(hash)}.mkv`;
-  const items = () =>
+  const torrentItems = () =>
     orm.em.fork().find(TorrentItem, {}, { orderBy: { episode: 'asc' } });
   const queued = (type: string) =>
     orm.em.fork().find(Job, { type, status: JobStatus.Queued });
@@ -526,8 +528,8 @@ describe('FulfilmentService', () => {
     const pack = hub.engine.running(PACK);
     expect(pack.wanted).toEqual([0, 1]);
     expect(await bindings()).toEqual([
-      [1, 'item:1111', null, null],
-      [2, 'item:1111', null, null],
+      [1, 'torrentItem:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
     expect(await statuses()).toEqual([
       [1, 'downloading', false],
@@ -540,10 +542,14 @@ describe('FulfilmentService', () => {
     expect(libraryFiles()).toEqual([episodeFile(1, PACK)]);
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
     expect(
-      (await items()).map((i) => [i.episode, !!i.completedAt, !!i.releasedAt]),
+      (await torrentItems()).map((i) => [
+        i.episode,
+        !!i.completedAt,
+        !!i.releasedAt,
+      ]),
     ).toEqual([
       [1, true, true],
       [2, false, false],
@@ -559,7 +565,7 @@ describe('FulfilmentService', () => {
     );
   });
 
-  it('gives a request the version the library has, and shares an item between users', async () => {
+  it('gives a request the version the library has, and shares a torrent item between users', async () => {
     await setRequested([1, 2]);
     await select(0, 'pack');
     await settle();
@@ -573,9 +579,9 @@ describe('FulfilmentService', () => {
 
     expect(await bindings(hub.otherId)).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
-    expect(await items()).toHaveLength(2);
+    expect(await torrentItems()).toHaveLength(2);
     expect(await hub.fulfilment.countByMediaFile()).toEqual(
       new Map([[(await orm.em.fork().find(MediaFile, {}))[0].id, 2]]),
     );
@@ -611,7 +617,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
 
     // Another torrent for the season: the file on disk stays, the download changes
@@ -619,12 +625,12 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:2222', null, null],
+      [2, 'torrentItem:2222', null, null],
     ]);
     expect(hub.engine.running(PACK)).toBeUndefined();
     expect(hub.engine.running(OTHER_PACK).wanted).toEqual([1]);
     expect(
-      (await items()).map((i) => [
+      (await torrentItems()).map((i) => [
         i.torrentHash.slice(0, 4),
         i.episode,
         !!i.releasedAt,
@@ -639,8 +645,8 @@ describe('FulfilmentService', () => {
     await select(1, 'episode');
     await settle();
     expect(await bindings()).toEqual([
-      [1, 'item:' + EPISODE.slice(0, 4), null, null],
-      [2, 'item:2222', null, null],
+      [1, 'torrentItem:' + EPISODE.slice(0, 4), null, null],
+      [2, 'torrentItem:2222', null, null],
     ]);
     expect(await hub.fulfilment.countByMediaFile()).toEqual(new Map());
     expect(libraryFiles()).toEqual([episodeFile(1, PACK)]);
@@ -663,7 +669,7 @@ describe('FulfilmentService', () => {
     pack.download(0);
     await settle();
 
-    // Unrequested: the item goes, the torrent stops and its data goes
+    // Unrequested: the torrent item goes, the torrent stops and its data goes
     await setRequested([2], false);
     await settle();
     expect(await bindings()).toEqual([[1, null, 'file:1111', null]]);
@@ -705,7 +711,7 @@ describe('FulfilmentService', () => {
     await request(() => hub.scan.scanTitle(MediaType.Series, TMDB_ID));
     await settle();
 
-    expect(await bindings()).toEqual([[1, 'item:1111', null, null]]);
+    expect(await bindings()).toEqual([[1, 'torrentItem:1111', null, null]]);
     expect(hub.engine.running(PACK).wanted).toEqual([0]);
     hub.engine.running(PACK).download(0);
     await settle();
@@ -762,7 +768,7 @@ describe('FulfilmentService', () => {
     await settle();
 
     expect(await bindings()).toEqual([
-      [1, 'item:1111', null, expect.stringMatching(/^Import failed: /)],
+      [1, 'torrentItem:1111', null, expect.stringMatching(/^Import failed: /)],
     ]);
     expect(await statuses()).toEqual([[1, 'failed', false]]);
     // The data stays for the import
@@ -793,7 +799,7 @@ describe('FulfilmentService', () => {
     );
     await em.insert(RequestBinding, {
       requestId: 'gone',
-      torrentItemId: 'item',
+      torrentItemId: 'torrent-item',
       updatedAt: new Date(),
     });
     await em.insert(RequestBinding, {
@@ -824,7 +830,7 @@ describe('FulfilmentService', () => {
     await settle();
 
     expect(await bindings()).toEqual([
-      [1, 'item:1111', null, null],
+      [1, 'torrentItem:1111', null, null],
       [2, null, null, null],
     ]);
     expect(await statuses()).toEqual([
@@ -839,7 +845,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
     expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 67 });
 
@@ -855,7 +861,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [3, 'item:1111', null, null],
+      [3, 'torrentItem:1111', null, null],
     ]);
     expect(await usage()).toEqual({ heldBytes: 7, pendingBytes: 67 });
 
@@ -865,7 +871,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [3, 'item:1111', null, null],
+      [3, 'torrentItem:1111', null, null],
     ]);
   });
 
@@ -907,7 +913,7 @@ describe('FulfilmentService', () => {
     await hub.fulfilment.sweep();
     await settle();
     expect(await bindings()).toEqual([
-      [1, `item:${EPISODE.slice(0, 4)}`, null, null],
+      [1, `torrentItem:${EPISODE.slice(0, 4)}`, null, null],
     ]);
     expect(await usage()).toEqual({ heldBytes: 0, pendingBytes: 50 });
   });
@@ -947,7 +953,7 @@ describe('FulfilmentService', () => {
     await settle();
     expect(await bindings()).toEqual([
       [1, null, 'file:1111', null],
-      [2, 'item:1111', null, null],
+      [2, 'torrentItem:1111', null, null],
     ]);
   });
 
@@ -965,7 +971,7 @@ describe('FulfilmentService', () => {
     const torrent = hub.engine.running(MOVIE);
     expect(torrent.wanted).toEqual([0]);
     expect(
-      (await items()).map((i) => [i.mediaType, i.tmdbId, i.season]),
+      (await torrentItems()).map((i) => [i.mediaType, i.tmdbId, i.season]),
     ).toEqual([[MediaType.Movie, MOVIE_ID, 0]]);
     expect(await movieStatus()).toMatchObject({
       status: 'downloading',

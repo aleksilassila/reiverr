@@ -35,7 +35,7 @@ function statusOf(
   request: MediaRequestDto | undefined,
   preference: PreferenceDto | undefined,
   fulfilment: FulfilmentStatusDto | undefined,
-  itemStatus: TorrentItemStatus | undefined,
+  torrentItemStatus: TorrentItemStatus | undefined,
 ): string | undefined {
   if (!request) return undefined;
   if (!request.approved) return 'waiting-for-approval';
@@ -43,8 +43,8 @@ function statusOf(
   if (request.ahead) return 'ahead';
   if (!hasSource(preference)) return 'no-source';
   if (fulfilment?.status === FulfilmentStatus.Downloading) {
-    if (itemStatus === TorrentItemStatus.NoMatch) return 'no-match';
-    if (itemStatus === TorrentItemStatus.Failed) return 'failed';
+    if (torrentItemStatus === TorrentItemStatus.NoMatch) return 'no-match';
+    if (torrentItemStatus === TorrentItemStatus.Failed) return 'failed';
   }
 
   return fulfilment?.status;
@@ -63,11 +63,13 @@ function viewOf(
     (file) => file.season === season && file.episodes.includes(episode),
   );
   const file = files.find((file) => file.id === fulfilment?.mediaFileId);
-  const item =
+  const torrentItem =
     fulfilment?.status === FulfilmentStatus.Downloading
       ? torrents
           .find((torrent) => torrent.infoHash === fulfilment.infoHash)
-          ?.items.find((i) => i.season === season && i.episode === episode)
+          ?.torrentItems.find(
+            (i) => i.season === season && i.episode === episode,
+          )
       : undefined;
 
   return {
@@ -75,8 +77,8 @@ function viewOf(
     episode,
     requested: !!request,
     onDisk: ofMedia.length > 0,
-    status: statusOf(request, preference, fulfilment, item?.status),
-    error: fulfilment?.error ?? item?.error,
+    status: statusOf(request, preference, fulfilment, torrentItem?.status),
+    error: fulfilment?.error ?? torrentItem?.error,
     infoHash: fulfilment?.infoHash ?? file?.infoHash,
     cleanupAt: ofMedia.every((file) => file.cleanupAt)
       ? ofMedia[0]?.cleanupAt

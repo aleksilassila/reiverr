@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { MediaType } from '../common/common.dto.js';
-import { findItemFile, findSubtitleFiles } from './torrent-match.js';
+import { findTorrentItemFile, findSubtitleFiles } from './torrent-match.js';
 
 const files = [
   {
@@ -24,7 +24,7 @@ const files = [
   { index: 3, name: 'info.nfo', path: 'Show.S01/info.nfo', length: 1 },
 ];
 
-const item = (
+const torrentItem = (
   episode: number,
   options: { onlyVideo?: boolean; mediaType?: MediaType } = {},
 ) => ({
@@ -36,8 +36,8 @@ const item = (
 
 describe('findItemFile', () => {
   it('finds the video named after the episode, the full one before a sample', () => {
-    expect(findItemFile(item(2), files)?.index).toBe(1);
-    expect(findItemFile(item(3), files)).toBeUndefined();
+    expect(findTorrentItemFile(torrentItem(2), files)?.index).toBe(1);
+    expect(findTorrentItemFile(torrentItem(3), files)).toBeUndefined();
   });
 
   it('takes the only video of a torrent picked for the episode itself, whatever its name', () => {
@@ -52,15 +52,19 @@ describe('findItemFile', () => {
       { index: 2, name: 'readme.txt', path: 'readme.txt', length: 1 },
     ];
 
-    expect(findItemFile(item(2), single)).toBeUndefined();
-    expect(findItemFile(item(2, { onlyVideo: true }), single)?.index).toBe(0);
+    expect(findTorrentItemFile(torrentItem(2), single)).toBeUndefined();
+    expect(
+      findTorrentItemFile(torrentItem(2, { onlyVideo: true }), single)?.index,
+    ).toBe(0);
     // Two videos tell nothing
-    expect(findItemFile(item(5, { onlyVideo: true }), files)).toBeUndefined();
+    expect(
+      findTorrentItemFile(torrentItem(5, { onlyVideo: true }), files),
+    ).toBeUndefined();
   });
 
   it('takes the largest video for a movie', () => {
     expect(
-      findItemFile(
+      findTorrentItemFile(
         { mediaType: MediaType.Movie, season: 0, episode: 0, onlyVideo: false },
         files,
       )?.index,
@@ -79,7 +83,7 @@ describe('findSubtitleFiles', () => {
     episode: number,
     video: ReturnType<typeof file>,
     all: ReturnType<typeof file>[],
-  ) => findSubtitleFiles(item(episode), video, all).map((f) => f.index);
+  ) => findSubtitleFiles(torrentItem(episode), video, all).map((f) => f.index);
 
   it('finds the subtitles named after the video, in its folder, or after its episode', () => {
     const pack = [

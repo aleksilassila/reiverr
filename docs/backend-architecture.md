@@ -31,8 +31,8 @@ flowchart LR
 
   requests -.->|"library.reconcileRequest<br/>{requestId}"| library
   library -->|"deleteRequests"| requests
-  library -->|"ensureTorrent<br/>requestItem<br/>releaseItem"| downloads
-  downloads -.->|"library.importItem<br/>{infoHash, itemId}<br/>library.sweepRequests"| library
+  library -->|"ensureTorrent<br/>requestTorrentItem<br/>releaseTorrentItem"| downloads
+  downloads -.->|"library.importTorrentItem<br/>{infoHash, torrentItemId}<br/>library.sweepRequests"| library
 ```
 
 ## Request creation to fulfillment overview
@@ -52,19 +52,19 @@ sequenceDiagram
   Requests-->>Library: library.reconcileRequest {requestId}
   Library->>Requests: readRequest, findSelectedReleases
   Library->>Library: the expected size of the download fits the quota of the user, and no disk is at the limit
-  Library->>Downloads: ensureTorrent, requestItem
-  Library->>Library: binds the request to the item
+  Library->>Downloads: ensureTorrent, requestTorrentItem
+  Library->>Library: binds the request to the torrent item
   Downloads-->>Downloads: downloads.reconcileTorrent {infoHash}
   Downloads->>Engine: start
   Engine-->>Downloads: downloads.reconcileTorrent, the files are known
-  Downloads->>Downloads: matches the item to its file
+  Downloads->>Downloads: matches the torrent item to its file
   Downloads->>Engine: setWantedFiles
   Engine-->>Downloads: downloads.reconcileTorrent, the file is complete
-  Downloads->>Downloads: stamps the item complete
-  Downloads-->>Library: library.importItem {infoHash, itemId}
-  Library->>Downloads: getItemFile
+  Downloads->>Downloads: stamps the torrent item complete
+  Downloads-->>Library: library.importTorrentItem {infoHash, torrentItemId}
+  Library->>Downloads: getTorrentItemFile
   Library->>Library: imports the file, hard link else copy, as a managed version, and binds the request to it
-  Library->>Downloads: releaseItem
+  Library->>Downloads: releaseTorrentItem
   Downloads-->>Downloads: downloads.reconcileTorrent {infoHash}
   Downloads->>Engine: seeds up to the ratio, then stops and deletes the data
   User->>Library: plays the file
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 ## The torrent lifecycle
 
-The lifecycle of a torrent in downloads, from the library ensuring it for a selected release until its data goes: the reconcile job decides every transition from what is wanted of the torrent, what the engine reports and the seed ratio, and the row, keyed by info hash, stays until no item refers to it.
+The lifecycle of a torrent in downloads, from the library ensuring it for a selected release until its data goes: the reconcile job decides every transition from what is wanted of the torrent, what the engine reports and the seed ratio, and the row, keyed by info hash, stays until no torrent item refers to it.
 
 ```mermaid
 stateDiagram-v2
@@ -125,22 +125,22 @@ stateDiagram-v2
   state "Stopped, with data" as stopped
 
   [*] --> idle: the library ensures the torrent of a selected release
-  idle --> Starting: an item is wanted
-  Starting --> Downloading: the engine knows the files, and a wanted item has one
-  Starting --> stopped: the files are known, and no wanted item has one
-  Downloading --> stopped: every wanted file is complete, the items wait for their import
-  Downloading --> Seeding: every item is released (imported, or let go), and the ratio is not reached
-  stopped --> Seeding: every item is released, but the ratio is not reached
-  stopped --> Starting: an item is wanted again
-  stopped --> idle: every item is released, and seeding is done, so its data is deleted
-  Seeding --> Downloading: an item is wanted again
+  idle --> Starting: a torrent item is wanted
+  Starting --> Downloading: the engine knows the files, and a wanted torrent item has one
+  Starting --> stopped: the files are known, and no wanted torrent item has one
+  Downloading --> stopped: every wanted file is complete, the torrent items wait for their import
+  Downloading --> Seeding: every torrent item is released (imported, or let go), and the ratio is not reached
+  stopped --> Seeding: every torrent item is released, but the ratio is not reached
+  stopped --> Starting: a torrent item is wanted again
+  stopped --> idle: every torrent item is released, and seeding is done, so its data is deleted
+  Seeding --> Downloading: a torrent item is wanted again
   Seeding --> idle: the seed ratio is reached, so its data is deleted
   Starting --> Failed: the engine refuses the source, or reports an error
   Downloading --> Failed: the engine reports an error
   Seeding --> Failed: the engine reports an error
   Failed --> Starting: the library ensures it again, when the release is picked again or a request of it becomes active again
   Failed --> idle: nothing wants it any more, so its data is deleted
-  idle --> [*]: purged at night, when no item refers to it
+  idle --> [*]: purged at night, when no torrent item refers to it
 ```
 
 ## The library file lifecycle

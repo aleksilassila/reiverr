@@ -274,7 +274,7 @@ describe('Series downloads (e2e)', () => {
 
   /**
    * What the requests of a user wait for or have: the info hash of the
-   * torrent of their item and of the torrent that their file came from
+   * torrent of their torrent item and of the torrent that their file came from
    */
   async function references(user = admin) {
     const requests = await em().find(
@@ -283,7 +283,7 @@ describe('Series downloads (e2e)', () => {
       { orderBy: { season: 'asc', episode: 'asc' } },
     );
     const bindings = await em().find(RequestBinding, {});
-    const items = await em().find(TorrentItem, {});
+    const torrentItems = await em().find(TorrentItem, {});
     const files = await em().find(MediaFile, {});
 
     // A reference to a row that is gone would show as undefined
@@ -294,7 +294,8 @@ describe('Series downloads (e2e)', () => {
         request.season,
         request.episode,
         binding?.torrentItemId
-          ? items.find((i) => i.id === binding.torrentItemId)?.torrentHash
+          ? torrentItems.find((i) => i.id === binding.torrentItemId)
+              ?.torrentHash
           : null,
         binding?.mediaFileId
           ? files.find((f) => f.id === binding.mediaFileId)?.infoHash
@@ -511,7 +512,7 @@ describe('Series downloads (e2e)', () => {
         infoHash: PACK,
       },
     ]);
-    // The requests wait for items of the torrent and have no file yet
+    // The requests wait for torrent items and have no file yet
     expect(await references()).toEqual([
       [1, 1, PACK, null],
       [1, 2, PACK, null],
@@ -522,7 +523,7 @@ describe('Series downloads (e2e)', () => {
         infoHash: PACK,
         status: 'downloading',
         peers: 3,
-        items: [
+        torrentItems: [
           { season: 1, episode: 1, status: 'downloading', progress: 0.5 },
           { season: 1, episode: 2, status: 'downloading', progress: 0.5 },
         ],
@@ -602,7 +603,7 @@ describe('Series downloads (e2e)', () => {
         infoHash: EPISODE,
       },
     ]);
-    // The requests have the files, and wait for no item any more
+    // The requests have the files, and wait for no torrent item any more
     expect(await references()).toEqual([
       [1, 1, null, PACK],
       [1, 2, null, EPISODE],
@@ -1464,7 +1465,7 @@ describe('Series downloads (e2e)', () => {
     expect(body.map((t) => t.infoHash).sort()).toEqual(
       [PACK, EPISODE, REDIRECT, SEASON_2].sort(),
     );
-    expect(body.find((t) => t.infoHash === PACK).items).toContainEqual(
+    expect(body.find((t) => t.infoHash === PACK).torrentItems).toContainEqual(
       expect.objectContaining({ season: 1, episode: 1, status: 'released' }),
     );
 

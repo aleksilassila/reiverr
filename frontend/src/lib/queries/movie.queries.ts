@@ -13,7 +13,7 @@ import {
 	getStatusLabel,
 	heldFileOf,
 	isErrorStatus,
-	itemOf,
+	torrentItemOf,
 	liveRefetchInterval,
 	type TitleTorrents,
 	toTitleTorrents
@@ -191,7 +191,7 @@ export function getMovieRequestStatus({
 		fulfilment,
 		files,
 		torrent,
-		item: itemOf(torrent, 0, 0)
+		torrentItem: torrentItemOf(torrent, 0, 0)
 	};
 
 	return {

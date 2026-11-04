@@ -169,7 +169,7 @@ export class LibraryService {
       value,
     );
     // Imports that wait for a folder that was missing or unreadable
-    await this.jobs.runNow(this.em, 'library.importItem');
+    await this.jobs.runNow(this.em, 'library.importTorrentItem');
     // Requests held back by the limit may fit the new one
     if (current.maxDiskUsagePercent !== maxDiskUsagePercent) {
       await this.jobs.enqueue(this.em, 'library.sweepRequests', {});
