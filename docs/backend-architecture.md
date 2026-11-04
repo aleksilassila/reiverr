@@ -29,7 +29,7 @@ flowchart LR
     TI[("torrent_item")]
   end
 
-  requests -.->|"library.reconcileRequest<br/>{requestId}"| library
+  requests -.->|"library.reconcileBinding<br/>{requestId}"| library
   library -->|"deleteRequests"| requests
   library -->|"ensureTorrent<br/>requestTorrentItem<br/>releaseTorrentItem"| downloads
   downloads -.->|"library.importTorrentItem<br/>{infoHash, torrentItemId}<br/>library.sweepRequests"| library
@@ -48,8 +48,8 @@ sequenceDiagram
   participant Engine as Torrent engine
 
   User->>Requests: requests an episode, picks a release for its season
-  Requests->>Requests: resolves the release into selected_release, applies the rules, the request is needed
-  Requests-->>Library: library.reconcileRequest {requestId}
+  Requests->>Requests: resolves the release into selected_release, reconciles the requests, the request is needed
+  Requests-->>Library: library.reconcileBinding {requestId}
   Library->>Requests: readRequest, findSelectedReleases
   Library->>Library: the expected size of the download fits the quota of the user, and no disk is at the limit
   Library->>Downloads: ensureTorrent, requestTorrentItem
@@ -72,18 +72,14 @@ sequenceDiagram
 
 ## The request lifecycle
 
-The life of a request row, from a user's wish to its deletion: a request is inactive until it's approved and passes gates, such as user has picked a source and the episode is needed. An active request gets what it wants when it fits the quota of its user, and a download only while no disk is at the limit; else it is held back, which is to say bound to nothing, until the sweep has it looked at again once room may have been made.
+The life of a request row, from a user's wish to its deletion: a request is inactive until it passes gates, such as user has picked a source and the episode is needed. An active request gets what it wants when it fits the quota of its user, and a download only while no disk is at the limit; else it is held back, which is to say bound to nothing, until the sweep has it looked at again once room may have been made.
 
 ```mermaid
 stateDiagram-v2
-  state "Waiting for approval" as waiting
   state "No preference (no source)" as nopref
   state "Deleted, the row is gone" as deleted
 
-  [*] --> waiting: a user requests an episode
-  [*] --> Approved: an admin requests an episode
-  waiting --> Approved: an admin approves, one-way
-  waiting --> deleted: unrequested
+  [*] --> Approved: a user requests an episode
 
   state Approved {
     [*] --> nopref
@@ -172,4 +168,4 @@ stateDiagram-v2
 
 ## Quotas
 
-Quotas and storage limits are enforced server side only when a request is binding (FulfilmentService.reconcileRequest), not in any route or request creation time. The frontend has a separate client side check to enforce quotas in the UI.
+Quotas and storage limits are enforced server side only when a request is binding (FulfilmentService.reconcileBinding), not in any route or request creation time. The frontend has a separate client side check to enforce quotas in the UI.

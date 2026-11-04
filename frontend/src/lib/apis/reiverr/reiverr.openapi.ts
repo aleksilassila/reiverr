@@ -1279,12 +1279,6 @@ export interface BulkUpdatePlayStateDto {
   playStates: UpdatePlayStateDto[];
 }
 
-export interface PaginatedResponseDto {
-  total: number;
-  page: number;
-  itemsPerPage: number;
-}
-
 export interface MediaRequestDto {
   id: string;
   userId: string;
@@ -1373,36 +1367,6 @@ export interface UpdateSeriesRequestsDto {
   episodes: EpisodeRefDto[];
   /** Whether the episodes are requested */
   requested: boolean;
-}
-
-export interface RequesterDto {
-  id: string;
-  name: string;
-}
-
-export interface AdminMediaRequestDto {
-  id: string;
-  userId: string;
-  tmdbId: string;
-  mediaType: "movie" | "series";
-  /** 0 for movies */
-  season: number;
-  /** 0 for movies */
-  episode: number;
-  approved: boolean;
-  /** @format date-time */
-  neededSince?: string;
-  /** @format date-time */
-  watchedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  /** Whether the download-ahead window of the rule of the user holds the request back until they have watched up to it */
-  ahead: boolean;
-  user: RequesterDto;
-}
-
-export interface UpdateMediaRequestDto {
-  approved: boolean;
 }
 
 export interface LibraryFolderDto {
@@ -1623,6 +1587,12 @@ export interface TorrentWithItemsDto {
   /** Bytes per second */
   uploadSpeed: number;
   torrentItems: TorrentItemDto[];
+}
+
+export interface PaginatedResponseDto {
+  total: number;
+  page: number;
+  itemsPerPage: number;
 }
 
 export interface LogEntryDto {
@@ -2363,33 +2333,6 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name GetUserRequests
-     * @request GET:/api/me/requests
-     */
-    getUserRequests: (
-      query?: {
-        page?: number;
-        itemsPerPage?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: MediaRequestDto[];
-        },
-        any
-      >({
-        path: `/api/me/requests`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
      * @name GetMovieRequests
      * @request GET:/api/me/requests/movies/{tmdbId}
      */
@@ -2624,70 +2567,6 @@ export class Api<
     ) =>
       this.request<SuccessResponseDto, any>({
         path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
-        method: "DELETE",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
-     * @name GetRequests
-     * @request GET:/api/requests
-     */
-    getRequests: (
-      query?: {
-        approved?: boolean;
-        page?: number;
-        itemsPerPage?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<
-        PaginatedResponseDto & {
-          items: AdminMediaRequestDto[];
-        },
-        any
-      >({
-        path: `/api/requests`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
-     * @name UpdateRequest
-     * @request PUT:/api/requests/{id}
-     */
-    updateRequest: (
-      id: string,
-      data: UpdateMediaRequestDto,
-      params: RequestParams = {},
-    ) =>
-      this.request<AdminMediaRequestDto, any>({
-        path: `/api/requests/${id}`,
-        method: "PUT",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags requests
-     * @name DeleteRequest
-     * @request DELETE:/api/requests/{id}
-     */
-    deleteRequest: (id: string, params: RequestParams = {}) =>
-      this.request<SuccessResponseDto, any>({
-        path: `/api/requests/${id}`,
         method: "DELETE",
         format: "json",
         ...params,

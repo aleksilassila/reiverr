@@ -240,7 +240,11 @@ export class PlayStatesService {
     mediaType: MediaType,
     tmdbId: string,
   ) {
-    await this.requestsService.applyRule(em, { userId, mediaType, tmdbId });
+    await this.requestsService.reconcileRequests(em, {
+      userId,
+      mediaType,
+      tmdbId,
+    });
     await this.titleStateService.stamp(em, { userId, mediaType, tmdbId });
   }
 }

@@ -320,7 +320,7 @@ describe('FulfilmentService', () => {
   const setRequested = (
     episodes: number[],
     requested = true,
-    { user = userId, approved = true } = {},
+    { user = userId } = {},
   ) =>
     request(() =>
       hub.requests.setEpisodeRequests({
@@ -328,7 +328,6 @@ describe('FulfilmentService', () => {
         tmdbId: TMDB_ID,
         episodes: episodes.map((episode) => ({ season: 1, episode })),
         requested,
-        approved,
       }),
     );
   const select = (episode: number, releaseId: string, user = userId) =>
@@ -365,7 +364,7 @@ describe('FulfilmentService', () => {
     episode: 0,
   });
   const requestMovie = (user = userId) =>
-    request(() => hub.requests.createMovieRequest(user, MOVIE_ID, true));
+    request(() => hub.requests.createMovieRequest(user, MOVIE_ID));
   const movieRequests = (user = userId) =>
     request(() => hub.requests.describeMovieRequests(user, MOVIE_ID));
   /** The movie as its page reads it */
@@ -858,7 +857,7 @@ describe('FulfilmentService', () => {
     await hub.fulfilment.sweep();
 
     expect(
-      (await queued('library.reconcileRequest'))
+      (await queued('library.reconcileBinding'))
         .map((job) => job.payload.requestId)
         .sort(),
     ).toEqual([first.id, 'gone'].sort());

@@ -7,14 +7,14 @@ import { Title } from '../common/common.dto.js';
  * whole payload, so a job that is merged into a queued one loses nothing.
  *
  * The jobs table is also how a module tells another one what happened, in
- * the transaction of the change: requests enqueues `library.reconcileRequest`
+ * the transaction of the change: requests enqueues `library.reconcileBinding`
  * for every request whose inputs changed, and downloads enqueues
  * `library.importTorrentItem` for every torrent item that is complete and
  * `library.sweepRequests` when it deleted the data of a torrent.
  */
 export interface JobPayloads {
   'downloads.reconcileTorrent': { infoHash: string };
-  'library.reconcileRequest': { requestId: string };
+  'library.reconcileBinding': { requestId: string };
   'library.importTorrentItem': { infoHash: string; torrentItemId: string };
   'library.sweepRequests': Record<string, never>;
   'library.scanTitle': Title;
@@ -39,8 +39,8 @@ export const JOB_KEYS: {
     dedupe: `downloads.reconcileTorrent:${infoHash}`,
     lock: `torrent:${infoHash}`,
   }),
-  'library.reconcileRequest': ({ requestId }) => ({
-    dedupe: `library.reconcileRequest:${requestId}`,
+  'library.reconcileBinding': ({ requestId }) => ({
+    dedupe: `library.reconcileBinding:${requestId}`,
     lock: `request:${requestId}`,
   }),
   // An import never overlaps a start, stop or release of its torrent

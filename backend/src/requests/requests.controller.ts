@@ -11,17 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { GetAuthUser, UserAccessControl } from '../auth/auth.guard.js';
-import {
-  GetPaginationParams,
-  PaginatedApiOkResponse,
-  PaginationApiQuery,
-} from '../common/common.decorator.js';
-import {
-  MediaType,
-  PaginatedResponseDto,
-  PaginationDto,
-  SuccessResponseDto,
-} from '../common/common.dto.js';
+import { MediaType, SuccessResponseDto } from '../common/common.dto.js';
 import { User } from '../users/user.entity.js';
 import {
   MediaRequestDto,
@@ -44,16 +34,6 @@ const isLimit = (value: unknown) =>
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
-  @Get()
-  @PaginationApiQuery()
-  @PaginatedApiOkResponse(MediaRequestDto)
-  async getUserRequests(
-    @GetAuthUser() user: User,
-    @GetPaginationParams() pagination: PaginationDto,
-  ): Promise<PaginatedResponseDto<MediaRequestDto>> {
-    return this.requestsService.findByUser(user.id, pagination);
-  }
-
   @Get('movies/:tmdbId')
   @ApiOkResponse({
     type: MovieRequestsDto,
@@ -73,11 +53,7 @@ export class RequestsController {
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<MediaRequestDto> {
-    return this.requestsService.createMovieRequest(
-      user.id,
-      tmdbId,
-      user.isAdmin,
-    );
+    return this.requestsService.createMovieRequest(user.id, tmdbId);
   }
 
   @Delete('movies/:tmdbId')
@@ -107,7 +83,16 @@ export class RequestsController {
       );
     }
 
-    return this.requestsService.setMovieRule(user.id, tmdbId, body);
+    const { keepWatchedHours } = await this.requestsService.setRule(
+      { userId: user.id, mediaType: MediaType.Movie, tmdbId },
+      {
+        keepNext: null,
+        keepWatched: null,
+        keepWatchedHours: body.keepWatchedHours,
+      },
+    );
+
+    return { keepWatchedHours };
   }
 
   @Put('movies/:tmdbId/preference')
@@ -193,7 +178,6 @@ export class RequestsController {
       tmdbId,
       episodes: body.episodes,
       requested: body.requested,
-      approved: user.isAdmin,
     });
   }
 
@@ -214,7 +198,10 @@ export class RequestsController {
       );
     }
 
-    return this.requestsService.setSeriesRule(user.id, tmdbId, body);
+    return this.requestsService.setRule(
+      { userId: user.id, mediaType: MediaType.Series, tmdbId },
+      body,
+    );
   }
 
   @Put('series/:tmdbId/preferences/seasons/:season')

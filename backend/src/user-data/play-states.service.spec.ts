@@ -18,7 +18,7 @@ const TMDB_ID = '1';
 describe('PlayStatesService', () => {
   let orm: MikroORM;
   let playStates: PlayStatesService;
-  const requests = { applyRule: vi.fn(async () => {}) };
+  const requests = { reconcileRequests: vi.fn(async () => {}) };
   let userId: string;
 
   // Every call gets its own entity manager, as every HTTP request does
@@ -35,7 +35,7 @@ describe('PlayStatesService', () => {
     await orm.em.fork().insert(user);
     userId = user.id;
 
-    requests.applyRule.mockClear();
+    requests.reconcileRequests.mockClear();
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
@@ -211,7 +211,7 @@ describe('PlayStatesService', () => {
   });
 
   it('has the rule applied to the requests of the series when something becomes watched or unwatched, not on progress', async () => {
-    const changes = requests.applyRule;
+    const changes = requests.reconcileRequests;
     const update = (playState: { watched?: boolean; progress?: number }) =>
       request(() =>
         playStates.updateOrCreateEpisodePlayState(

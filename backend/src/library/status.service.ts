@@ -45,7 +45,7 @@ export class StatusService {
     tmdbId,
   }: Pair): Promise<SeriesStatusDto> {
     const em = this.em.fork();
-    const requests = await this.requestsService.findRequestsWithSources({
+    const requests = await this.requestsService.findRequestsWithSources(em, {
       userId,
       mediaType,
       tmdbId,

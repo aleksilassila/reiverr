@@ -742,20 +742,6 @@ describe('Series downloads (e2e)', () => {
     await setRequested([3], true, { user: viewer });
     await settle();
 
-    // Requests of other users than admins wait for approval
-    expect(engine.running(PACK)).toBeUndefined();
-    expect(statuses(await getStatus(viewer))).toEqual([
-      [1, 1, null],
-      [1, 2, null],
-      [1, 3, 'waiting-for-approval'],
-    ]);
-
-    const pending = await api('get', '/requests?approved=false').expect(200);
-    await api('put', `/requests/${pending.body.items[0].id}`)
-      .send({ approved: true })
-      .expect(200);
-    await settle();
-
     // Both users selected the same release, which is one torrent
     expect(engine.running(PACK).wanted).toEqual([2]);
     expect(await em().count(Torrent, { infoHash: PACK })).toBe(1);
@@ -939,7 +925,7 @@ describe('Series downloads (e2e)', () => {
   });
 
   it('answers a request before the library has looked at it', async () => {
-    const resume = app.get(JobsService).pause('library.reconcileRequest');
+    const resume = app.get(JobsService).pause('library.reconcileBinding');
 
     await setRequested([1], true, { season: 2 });
     expect(statuses(await getStatus())).toContainEqual([2, 1, 'no-source']);
@@ -1156,10 +1142,6 @@ describe('Series downloads (e2e)', () => {
     // The viewer gets the file that the admin has
     await select('Test.Show.S01E02.720p.WEB-GRP', { episode: 2, user: viewer });
     await setRequested([2], true, { user: viewer });
-    const pending = await api('get', '/requests?approved=false').expect(200);
-    await api('put', `/requests/${pending.body.items[0].id}`)
-      .send({ approved: true })
-      .expect(200);
     await settle();
     expect(await references(viewer)).toEqual([[1, 2, null, REDIRECT]]);
 
@@ -1379,14 +1361,6 @@ describe('Series downloads (e2e)', () => {
           maxDiskUsagePercent,
         })
         .expect(200);
-    const approveAll = async () => {
-      const pending = await api('get', '/requests?approved=false').expect(200);
-      for (const request of pending.body.items) {
-        await api('put', `/requests/${request.id}`)
-          .send({ approved: true })
-          .expect(200);
-      }
-    };
 
     // Only admins set quotas, in whole bytes
     await setQuota(10, limited);
@@ -1403,7 +1377,6 @@ describe('Series downloads (e2e)', () => {
     // to take 334, which does not
     await select('Test.Show.S01.1080p.WEB-GRP', { user: limited });
     await setRequested([1, 2], true, { user: limited });
-    await approveAll();
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
       [1, 1, 'fulfilled'],
@@ -1438,7 +1411,6 @@ describe('Series downloads (e2e)', () => {
     // At the disk limit nothing more is downloaded, for anyone
     await setLimit(0);
     await setRequested([3], true, { user: limited });
-    await approveAll();
     await settle();
     expect(statuses(await getStatus(limited))).toEqual([
       [1, 1, 'fulfilled'],

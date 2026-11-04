@@ -59,7 +59,7 @@ const DISK_FULL: BindingChange = {
  * library, or has downloads get it, as far as the quota of its user and
  * the disk limit allow. The binding of a request is what it waits for or
  * has, and this service is its only writer. The job
- * `library.reconcileRequest` decides what a request gets, whatever changed;
+ * `library.reconcileBinding` decides what a request gets, whatever changed;
  * the other writes react to one thing, in the transaction of what
  * happened: `filesForgotten` lets the bindings go of files the library
  * forgot, `itemImported` gives the file of an import to the bindings of
@@ -82,10 +82,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
   ) {}
 
   onModuleInit() {
-    this.jobs.define('library.reconcileRequest', {
+    this.jobs.define('library.reconcileBinding', {
       concurrency: 4,
       run: ({ requestId }, context) =>
-        this.reconcileRequest(requestId, context),
+        this.reconcileBinding(requestId, context),
     });
     this.jobs.define('library.sweepRequests', {
       run: (payload, context) => this.sweep(context.em),
@@ -97,7 +97,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
     return this.sweepLater(this.em.fork());
   }
 
-  /** Before the rules are applied to everything at 03:50 */
+  /** Before the requests are reconciled at 03:50 */
   @Cron('40 3 * * *')
   sweepNightly(): Promise<void> {
     return this.sweepLater(this.em.fork());
@@ -142,7 +142,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
           .filter((requestId) => !all.has(requestId)),
       ]);
       for (const requestId of toReconcile) {
-        await this.jobs.enqueue(tx, 'library.reconcileRequest', { requestId });
+        await this.jobs.enqueue(tx, 'library.reconcileBinding', { requestId });
       }
     });
   }
@@ -179,7 +179,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
    *      - else keep the download if it is under way, else start it if user
    *        has quota and the disk is not full, else record why
    */
-  private async reconcileRequest(
+  private async reconcileBinding(
     requestId: string,
     context: JobContext,
   ): Promise<void> {
@@ -313,11 +313,10 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         !!waited && waited.torrentHash === infoHash && !waited.releasedAt;
       let pendingBytes = binding?.pendingBytes ?? null;
       if (!keepsTorrentItem) {
-        // A season's torrent is shared by its episodes; a movie's is the movie
-        const counts =
-          media.mediaType === MediaType.Series
-            ? await this.metadataService.getEpisodeCounts(tx, media.tmdbId)
-            : undefined;
+        // A season's torrent is shared by its episodes
+        const counts = source.forEpisode
+          ? undefined
+          : await this.metadataService.getEpisodeCounts(tx, media.tmdbId);
         const bytes = expectedBytes(
           release.size,
           source.forEpisode,
@@ -389,7 +388,7 @@ export class FulfilmentService implements OnModuleInit, OnApplicationBootstrap {
         },
         titleOf(byId.get(binding.mediaFileId)),
       );
-      await this.jobs.enqueue(tx, 'library.reconcileRequest', {
+      await this.jobs.enqueue(tx, 'library.reconcileBinding', {
         requestId: binding.requestId,
       });
     }

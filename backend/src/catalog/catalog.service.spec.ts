@@ -193,7 +193,7 @@ describe('CatalogService', () => {
     playStates = new PlayStatesService(
       orm.em.getRepository(PlayState),
       orm.em,
-      { applyRule: async () => {} } as unknown as RequestsService,
+      { reconcileRequests: async () => {} } as unknown as RequestsService,
       titleStates,
     );
     catalog = new CatalogService(

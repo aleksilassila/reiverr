@@ -24,6 +24,7 @@ const HOUR = 60 * 60 * 1000;
 describe('RequestsService', () => {
   let orm: MikroORM;
   let requests: RequestsService;
+  let events: EventsService;
   let userId: string;
 
   const request = <T>(run: () => Promise<T>) =>
@@ -54,16 +55,27 @@ describe('RequestsService', () => {
     })),
   };
 
-  const requestEpisodes = (episodes: number[], approved = true) =>
+  const requestEpisodes = (episodes: number[]) =>
     request(() =>
       requests.setEpisodeRequests({
         userId,
         tmdbId: SERIES,
         episodes: episodes.map((episode) => ({ season: 1, episode })),
         requested: true,
-        approved,
       }),
     );
+
+  /** A request that is not approved, which nothing creates any more but the gates still go by */
+  const insertUnapproved = (episode: number) => {
+    const row = new MediaRequest();
+    row.userId = userId;
+    row.tmdbId = SERIES;
+    row.mediaType = MediaType.Series;
+    row.season = 1;
+    row.episode = episode;
+
+    return orm.em.fork().insert(row);
+  };
 
   const unrequestEpisodes = (episodes: number[]) =>
     request(() =>
@@ -72,21 +84,23 @@ describe('RequestsService', () => {
         tmdbId: SERIES,
         episodes: episodes.map((episode) => ({ season: 1, episode })),
         requested: false,
-        approved: true,
       }),
     );
 
   const setRule = (limits: Partial<RequestRule>) =>
     request(() =>
-      requests.setSeriesRule(userId, SERIES, {
-        keepNext: null,
-        keepWatched: null,
-        keepWatchedHours: null,
-        ...limits,
-      }),
+      requests.setRule(
+        { userId, mediaType: MediaType.Series, tmdbId: SERIES },
+        {
+          keepNext: null,
+          keepWatched: null,
+          keepWatchedHours: null,
+          ...limits,
+        },
+      ),
     );
 
-  /** Writes the play state of an episode, as the play states service does, and applies the rule */
+  /** Writes the play state of an episode, as the play states service does, and reconciles the requests */
   const setPlayState = async (
     episode: number,
     watched: boolean,
@@ -112,7 +126,7 @@ describe('RequestsService', () => {
       });
     }
     await em.transactional((tx) =>
-      requests.applyRule(tx, {
+      requests.reconcileRequests(tx, {
         userId,
         mediaType: MediaType.Series,
         tmdbId: SERIES,
@@ -193,7 +207,7 @@ describe('RequestsService', () => {
   /** The episodes of the requests the library is to look at, and the ids of requests that are gone */
   const reconciled = async () => {
     const jobs = await orm.em.fork().find(Job, {
-      type: 'library.reconcileRequest',
+      type: 'library.reconcileBinding',
       status: JobStatus.Queued,
     });
     const requests = await rows();
@@ -234,7 +248,7 @@ describe('RequestsService', () => {
       getMovieByTmdbId: async () => ({ tmdbMovie: {} }),
     };
     indexers.resolveTorrent.mockClear();
-    const events = new EventsService();
+    events = new EventsService();
     requests = new RequestsService(
       orm.em,
       metadata as unknown as MetadataService,
@@ -273,20 +287,43 @@ describe('RequestsService', () => {
     // The routes that return requests say the same
     const returned = await requestEpisodes([]);
     expect(returned.map((r) => [r.episode, r.ahead])).toEqual(await ahead());
-    const { items } = await request(() =>
-      requests.findByUser(userId, { page: 1, itemsPerPage: 10 }),
+  });
+
+  it('tells the clients of the user about a change of a title, with or without requests of it', async () => {
+    const emit = vi.spyOn(events, 'emit');
+    const told = {
+      type: 'requests',
+      userId,
+      data: { mediaType: MediaType.Series, tmdbId: SERIES },
+    };
+
+    await select(0, 'pack');
+    expect(emit).toHaveBeenCalledWith(told);
+
+    emit.mockClear();
+    await setRule({ keepNext: 1 });
+    expect(emit).toHaveBeenCalledWith(told);
+
+    emit.mockClear();
+    await requestEpisodes([1]);
+    expect(emit).toHaveBeenCalledWith(told);
+
+    // The last request of the title goes
+    emit.mockClear();
+    await unrequestEpisodes([1]);
+    expect(emit).toHaveBeenCalledWith(told);
+
+    emit.mockClear();
+    await request(() =>
+      requests.clearPreference({
+        userId,
+        mediaType: MediaType.Series,
+        tmdbId: SERIES,
+        season: 1,
+        episode: 0,
+      }),
     );
-    expect(
-      items.map((r) => [r.episode, r.ahead]).sort((a, b) => +a[0] - +b[0]),
-    ).toEqual(await ahead());
-    const admin = await request(() =>
-      requests.findAll({ page: 1, itemsPerPage: 10 }),
-    );
-    expect(
-      admin.items
-        .map((r) => [r.episode, r.ahead])
-        .sort((a, b) => +a[0] - +b[0]),
-    ).toEqual(await ahead());
+    expect(emit).toHaveBeenCalledWith(told);
   });
 
   it('lets new requests through once they have a source, and has the library look at them', async () => {
@@ -453,7 +490,7 @@ describe('RequestsService', () => {
   it('counts the approved requests only', async () => {
     await setRule({ keepNext: 1 });
     await select(0, 'pack');
-    await requestEpisodes([1], false);
+    await insertUnapproved(1);
     await requestEpisodes([2]);
 
     // A request that waits for approval takes no place in the window
@@ -486,7 +523,7 @@ describe('RequestsService', () => {
 
   it('stamps a request with the time its episode was watched, as the play state has it', async () => {
     await requestEpisodes([1, 2]);
-    await requestEpisodes([3], false);
+    await insertUnapproved(3);
 
     const at = hoursAgo(2);
     await watch(1, at);
@@ -601,7 +638,7 @@ describe('RequestsService', () => {
   });
 
   it('requests the episodes of files for a user, needed and pointed at the files', async () => {
-    await requestEpisodes([2], false);
+    await insertUnapproved(2);
     const file = (id: string, mediaType: MediaType, episode = 1) => ({
       id,
       mediaType,
@@ -640,20 +677,6 @@ describe('RequestsService', () => {
         .source,
     ).toEqual({ kind: 'file', mediaFileId: 'f3' });
     expect(await reconciled()).toEqual([2, 3, `gone:${movie.id}`]);
-  });
-
-  it('approves a request and takes no approval back', async () => {
-    await requestEpisodes([1], false);
-    await select(0, 'pack');
-    const [row] = await rows();
-    expect(await gates()).toEqual([[1, 'waiting', false]]);
-
-    await expect(
-      request(() => requests.update(row.id, { approved: false })),
-    ).rejects.toThrow(BadRequestException);
-    await request(() => requests.update(row.id, { approved: true }));
-    expect(await gates()).toEqual([[1, 'needed', false]]);
-    expect(await reconciled()).toEqual([1]);
   });
 
   it('deletes requests and has the library let go of what they had', async () => {
@@ -702,7 +725,7 @@ describe('RequestsService', () => {
       });
 
     const created = await request(() =>
-      requests.createMovieRequest(userId, MOVIE, true),
+      requests.createMovieRequest(userId, MOVIE),
     );
     expect(created).toMatchObject({
       mediaType: MediaType.Movie,
@@ -745,7 +768,10 @@ describe('RequestsService', () => {
 
     // The rule of a movie keeps a watched one for a time
     await request(() =>
-      requests.setMovieRule(userId, MOVIE, { keepWatchedHours: 12 }),
+      requests.setRule(
+        { userId, mediaType: MediaType.Movie, tmdbId: MOVIE },
+        { keepNext: null, keepWatched: null, keepWatchedHours: 12 },
+      ),
     );
     expect(await movieRule()).toMatchObject({ keepWatchedHours: 12 });
     const watch = async (watchedAt: Date) => {
@@ -761,7 +787,7 @@ describe('RequestsService', () => {
         watchedAt,
       });
       await em.transactional((tx) =>
-        requests.applyRule(tx, {
+        requests.reconcileRequests(tx, {
           userId,
           mediaType: MediaType.Movie,
           tmdbId: MOVIE,
@@ -778,7 +804,7 @@ describe('RequestsService', () => {
 
     // Deleting a request
     await orm.em.fork().nativeDelete(PlayState, {});
-    await request(() => requests.createMovieRequest(userId, MOVIE, true));
+    await request(() => requests.createMovieRequest(userId, MOVIE));
     expect(
       await request(() => requests.deleteMovieRequest(userId, MOVIE)),
     ).toBe(1);

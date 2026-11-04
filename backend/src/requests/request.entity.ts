@@ -48,7 +48,7 @@ export class MediaRequest {
   @Property({ default: 0 })
   episode: number = 0;
 
-  /** The admin's gate. Once approved, a request stays approved. */
+  /** Every request is approved when it is created: there is no approval, the gate stays for now */
   @ApiProperty({ type: 'boolean' })
   @Property({ default: false })
   approved: boolean = false;
