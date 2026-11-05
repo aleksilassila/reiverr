@@ -169,19 +169,12 @@ describe('RequestsService', () => {
         { orderBy: { episode: 'asc' } },
       );
 
-  /** The gate each episode request has passed, and whether it is watched */
+  /** The gate each episode request has passed */
   const gates = async () =>
     (await rows()).map((r) => [
       r.episode,
       !r.approved ? 'waiting' : !r.neededSince ? 'ahead' : 'needed',
-      !!r.watchedAt,
     ]);
-
-  /** The watch stamp of each episode's request, as a time */
-  const stamps = async () =>
-    Object.fromEntries(
-      (await rows()).map((r) => [r.episode, r.watchedAt?.getTime() ?? null]),
-    );
 
   const sourceOf = async (episode: number) => {
     const row = (await rows()).find((r) => r.episode === episode);
@@ -329,22 +322,22 @@ describe('RequestsService', () => {
   it('lets new requests through once they have a source, and has the library look at them', async () => {
     await requestEpisodes([1, 2]);
     expect(await gates()).toEqual([
-      [1, 'ahead', false],
-      [2, 'ahead', false],
+      [1, 'ahead'],
+      [2, 'ahead'],
     ]);
     expect(await reconciled()).toEqual([]);
 
     await select(0, 'pack');
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'needed', false],
+      [1, 'needed'],
+      [2, 'needed'],
     ]);
     expect(await reconciled()).toEqual([1, 2]);
 
     // A request made with a source is let through at once
     await forgetJobs();
     await requestEpisodes([3]);
-    expect(await gates()).toContainEqual([3, 'needed', false]);
+    expect(await gates()).toContainEqual([3, 'needed']);
     expect(await reconciled()).toEqual([3]);
   });
 
@@ -416,35 +409,35 @@ describe('RequestsService', () => {
     await select(0, 'pack');
     await setRule({ keepNext: 1 });
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'needed', false],
-      [3, 'needed', false],
+      [1, 'needed'],
+      [2, 'needed'],
+      [3, 'needed'],
     ]);
 
     // The rule set after the requests holds nothing back that passed already
     await unrequestEpisodes([2, 3]);
     await requestEpisodes([2, 3]);
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'ahead', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'ahead'],
+      [3, 'ahead'],
     ]);
 
     await forgetJobs();
     await watch(1);
     expect(await gates()).toEqual([
-      [1, 'needed', true],
-      [2, 'needed', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'needed'],
+      [3, 'ahead'],
     ]);
     expect(await reconciled()).toEqual([2]);
 
     // Unwatching takes nothing back
     await unwatch(1);
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'needed', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'needed'],
+      [3, 'ahead'],
     ]);
 
     // A watched request the keep setting does not retain is deleted, and
@@ -454,8 +447,8 @@ describe('RequestsService', () => {
     await forgetJobs();
     await watch(2);
     expect(await gates()).toEqual([
-      [2, 'needed', true],
-      [3, 'needed', false],
+      [2, 'needed'],
+      [3, 'needed'],
     ]);
     expect(await reconciled()).toEqual([3, expect.stringMatching(/^gone:/)]);
   });
@@ -465,25 +458,25 @@ describe('RequestsService', () => {
     await select(0, 'pack');
     await requestEpisodes([1, 2, 3]);
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'ahead', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'ahead'],
+      [3, 'ahead'],
     ]);
 
     // An episode in progress is not watched yet: its request is the next one
     await unwatch(1);
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'ahead', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'ahead'],
+      [3, 'ahead'],
     ]);
 
     // A skipped episode stays wanted
     await watch(2);
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'needed', true],
-      [3, 'needed', false],
+      [1, 'needed'],
+      [2, 'needed'],
+      [3, 'needed'],
     ]);
   });
 
@@ -495,8 +488,8 @@ describe('RequestsService', () => {
 
     // A request that waits for approval takes no place in the window
     expect(await gates()).toEqual([
-      [1, 'waiting', false],
-      [2, 'needed', false],
+      [1, 'waiting'],
+      [2, 'needed'],
     ]);
   });
 
@@ -506,33 +499,19 @@ describe('RequestsService', () => {
     await select(2, 'episode');
     await select(3, 'episode');
     expect(await gates()).toEqual([
-      [1, 'ahead', false],
-      [2, 'needed', false],
-      [3, 'ahead', false],
+      [1, 'ahead'],
+      [2, 'needed'],
+      [3, 'ahead'],
     ]);
 
     // The season's torrent gives the first its source; the third stays
     // past the window
     await select(0, 'pack');
     expect(await gates()).toEqual([
-      [1, 'needed', false],
-      [2, 'needed', false],
-      [3, 'ahead', false],
+      [1, 'needed'],
+      [2, 'needed'],
+      [3, 'ahead'],
     ]);
-  });
-
-  it('stamps a request with the time its episode was watched, as the play state has it', async () => {
-    await requestEpisodes([1, 2]);
-    await insertUnapproved(3);
-
-    const at = hoursAgo(2);
-    await watch(1, at);
-    expect(await stamps()).toEqual({ 1: at.getTime(), 2: null, 3: null });
-
-    await unwatch(1);
-    // Marked watched before the time was stored: long ago, approved or not
-    await watch(3, null);
-    expect(await stamps()).toEqual({ 1: null, 2: null, 3: 0 });
   });
 
   it('deletes the watched requests that are not among the last ones', async () => {
@@ -544,8 +523,8 @@ describe('RequestsService', () => {
     await watch(2);
     await watch(3);
     expect(await gates()).toEqual([
-      [3, 'needed', true],
-      [4, 'needed', false],
+      [3, 'needed'],
+      [4, 'needed'],
     ]);
 
     // Nothing is kept once nothing is left to watch
@@ -562,7 +541,7 @@ describe('RequestsService', () => {
     await watch(2);
     await watch(3);
     await watch(4);
-    expect(await gates()).toEqual([[1, 'needed', false]]);
+    expect(await gates()).toEqual([[1, 'needed']]);
   });
 
   it('deletes the watched requests that were not watched lately', async () => {
@@ -573,21 +552,21 @@ describe('RequestsService', () => {
     await watch(1, hoursAgo(30));
     await watch(3, hoursAgo(20));
     expect(await gates()).toEqual([
-      [2, 'needed', false],
-      [3, 'needed', true],
-      [4, 'needed', false],
+      [2, 'needed'],
+      [3, 'needed'],
+      [4, 'needed'],
     ]);
 
     // The limit expires with time
     await setRule({ keepWatchedHours: 20 });
     expect(await gates()).toEqual([
-      [2, 'needed', false],
-      [4, 'needed', false],
+      [2, 'needed'],
+      [4, 'needed'],
     ]);
 
     // An episode watched before the time was stored was watched long ago
     await watch(2, null);
-    expect(await gates()).toEqual([[4, 'needed', false]]);
+    expect(await gates()).toEqual([[4, 'needed']]);
   });
 
   it('deletes with both limits only what neither of them keeps', async () => {
@@ -599,16 +578,16 @@ describe('RequestsService', () => {
     await watch(2, hoursAgo(20));
     await watch(3, hoursAgo(25));
     expect(await gates()).toEqual([
-      [2, 'needed', true],
-      [3, 'needed', true],
-      [4, 'needed', false],
+      [2, 'needed'],
+      [3, 'needed'],
+      [4, 'needed'],
     ]);
 
     // The time limit goes on keeping what was watched lately after the end
     await watch(4);
     expect(await gates()).toEqual([
-      [2, 'needed', true],
-      [4, 'needed', true],
+      [2, 'needed'],
+      [4, 'needed'],
     ]);
   });
 
@@ -620,8 +599,8 @@ describe('RequestsService', () => {
     await watch(1, hoursAgo(100));
     await watch(2, hoursAgo(100));
     expect(await gates()).toEqual([
-      [1, 'needed', true],
-      [2, 'needed', true],
+      [1, 'needed'],
+      [2, 'needed'],
     ]);
   });
 
@@ -633,7 +612,7 @@ describe('RequestsService', () => {
       { season: 1, episode: 2, kind: 'file', mediaFileId: 'file-1' },
     ]);
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'file-1' });
-    expect(await gates()).toEqual([[2, 'needed', false]]);
+    expect(await gates()).toEqual([[2, 'needed']]);
     expect(await reconciled()).toEqual([2]);
   });
 
@@ -662,8 +641,8 @@ describe('RequestsService', () => {
 
     // The request that waited for approval is let through too
     expect(await gates()).toEqual([
-      [2, 'needed', false],
-      [3, 'needed', false],
+      [2, 'needed'],
+      [3, 'needed'],
     ]);
     // The first file of an episode gets it
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'f1' });
@@ -690,7 +669,7 @@ describe('RequestsService', () => {
         .fork()
         .transactional((tx) => requests.deleteRequests(tx, [first.id])),
     ).toBe(1);
-    expect(await gates()).toEqual([[2, 'needed', false]]);
+    expect(await gates()).toEqual([[2, 'needed']]);
     expect(await reconciled()).toEqual([`gone:${first.id}`]);
 
     await forgetJobs();
@@ -796,7 +775,7 @@ describe('RequestsService', () => {
     };
     const recently = hoursAgo(6);
     await watch(recently);
-    expect(await readMovie()).toMatchObject({ watchedAt: recently });
+    expect(await readMovie()).toBeDefined();
 
     await orm.em.fork().nativeDelete(PlayState, {});
     await watch(hoursAgo(24));

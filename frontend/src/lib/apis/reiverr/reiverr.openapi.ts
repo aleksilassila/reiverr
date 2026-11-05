@@ -1291,8 +1291,6 @@ export interface MediaRequestDto {
   approved: boolean;
   /** @format date-time */
   neededSince?: string;
-  /** @format date-time */
-  watchedAt?: string;
   createdAt: string;
   updatedAt: string;
   /** Whether the download-ahead window of the rule of the user holds the request back until they have watched up to it */

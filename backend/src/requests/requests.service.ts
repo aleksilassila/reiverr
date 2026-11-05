@@ -103,26 +103,6 @@ export class RequestsService {
    * it; the requests that become needed or are deleted are looked at by the
    * library.
    *
-   * A request's `watchedAt` mirrors the play state of its episode. An
-   * episode that was marked watched before the time was stored counts as
-   * watched long ago.
-   *
-   * The rule looks at the approved requests in episode order. With
-   * keepWatched or keepWatchedHours, the request for a watched episode is
-   * deleted unless it is among the last keepWatched watched requests while
-   * there is more to watch (a request after the last watched episode), or
-   * it was watched within keepWatchedHours.
-   *
-   * Of the requests after the last watched episode, only the next keepNext
-   * are needed, and a needed request stays so. An episode in progress is
-   * not watched, so its request is one of the next ones. The requests for
-   * the episodes up to the last watched one, skipped or watched, are
-   * needed. Without a rule, or without keepNext, every approved request is.
-   * A request only becomes needed with a source, the preference of its user
-   * for the episode: without one it has not passed the gate, and a rule set
-   * later applies to it. It takes its place in the window all the same, so
-   * that nothing downloads past it.
-   *
    * Every writer of the requests, the rule, the preferences or the play
    * states of the pair calls this, so this is where the clients of
    * the user are told that their requests of the title changed, whether
@@ -132,70 +112,67 @@ export class RequestsService {
     const { userId, mediaType, tmdbId } = pair;
     this.events.emit({ type: 'requests', userId, data: { mediaType, tmdbId } });
 
-    const ofTitle = { userId, mediaType, tmdbId };
-    const requests = await em.find(MediaRequest, ofTitle, READ);
+    const requests = await this.findRequestsWithSources(em, pair);
     if (!requests.length) return;
+    const ofTitle = { userId, mediaType, tmdbId };
     const rule = await em.findOne(RequestRule, ofTitle, READ);
-    const sources = await em.find(RequestSource, ofTitle, READ);
     const playStates = await em.find(PlayState, ofTitle, READ);
 
     const now = new Date();
-    const stamps = new Map<string, Date | null>();
-    const watchedAt = new Map<string, Date | null>();
-    for (const request of requests) {
-      const playState = playStates.find(
-        (p) => p.season === request.season && p.episode === request.episode,
-      );
-      const at = playState?.watched
-        ? (playState.watchedAt ?? new Date(0))
-        : null;
-      watchedAt.set(request.id, at);
-      if (at?.getTime() !== request.watchedAt?.getTime()) {
-        stamps.set(request.id, at);
-      }
-    }
-
-    const ordered = requests
-      .filter((request) => request.approved)
-      .sort(byEpisode);
-    const lastWatched = playStates
-      .filter((p) => p.watched)
-      .sort(byEpisode)
-      .pop();
-    const ahead = ordered.filter(
-      (request) => !lastWatched || byEpisode(request, lastWatched) > 0,
+    const orderedRequests = requests.filter((r) => r.approved);
+    const watchedStates = playStates.filter((p) => p.watched).sort(byEpisode);
+    const lastWatched = watchedStates.at(-1);
+    const upcoming = orderedRequests.filter(
+      (r) => !lastWatched || byEpisode(r, lastWatched) > 0,
     );
 
+    // Autodelete requests of watched episodes
     const deleted = new Set<string>();
     if (rule && (rule.keepWatched !== null || rule.keepWatchedHours !== null)) {
-      const watched = ordered.filter((request) => watchedAt.get(request.id));
-      watched.forEach((request, index) => {
-        const at = (watchedAt.get(request.id) as Date).getTime();
+      const watched = orderedRequests.flatMap((request) => {
+        const state = watchedStates.find(
+          (p) => p.season === request.season && p.episode === request.episode,
+        );
+        // Marked watched before the time was stored: watched long ago
+        return state
+          ? [{ id: request.id, at: state.watchedAt?.getTime() ?? 0 }]
+          : [];
+      });
+      watched.forEach(({ id, at }, index) => {
+        // keepWatched: the last watched ones, while there is more to watch
         const isAmongLast =
           rule.keepWatched !== null &&
-          ahead.length > 0 &&
+          upcoming.length > 0 &&
           index >= watched.length - rule.keepWatched;
+        // keepWatchedHours: the ones watched within the limit
         const isRecent =
           rule.keepWatchedHours !== null &&
           now.getTime() - at < rule.keepWatchedHours * HOUR;
-        if (!isAmongLast && !isRecent) deleted.add(request.id);
+        if (!isAmongLast && !isRecent) deleted.add(id);
       });
     }
 
-    const next =
-      rule && rule.keepNext !== null ? ahead.slice(0, rule.keepNext) : ahead;
-    const needed: string[] = [];
-    for (const request of ordered) {
-      if (request.neededSince || deleted.has(request.id)) continue;
+    // Download ahead: of the requests after the last watched episode, only the
+    // next keepNext are needed, and a needed request stays so. An episode in
+    // progress is not watched, so its request is one of the next ones. The
+    // requests up to the last watched episode, skipped or watched, are needed.
+    // Without a rule, or without keepNext, every approved request is.
+    //
+    // A request only becomes needed with a source, the preference of its user
+    // for the episode: without one it has not passed the gate, and a rule set
+    // later applies to it. It takes its place in the window all the same, so
+    // that nothing downloads past it.
+    const pastWindow = upcoming.slice(rule?.keepNext ?? upcoming.length);
+    const needed = orderedRequests
+      .filter(
+        (r) =>
+          !r.neededSince &&
+          !deleted.has(r.id) &&
+          !pastWindow.includes(r) &&
+          r.source,
+      )
+      .map((r) => r.id);
 
-      const isInWindow = !ahead.includes(request) || next.includes(request);
-      const hasSource = !!sourceOf(sources, request.season, request.episode);
-      if (isInWindow && hasSource) needed.push(request.id);
-    }
-
-    for (const [id, at] of stamps) {
-      await em.nativeUpdate(MediaRequest, { id }, { watchedAt: at });
-    }
     if (deleted.size) {
       await em.nativeDelete(MediaRequest, { id: { $in: [...deleted] } });
     }
@@ -263,8 +240,9 @@ export class RequestsService {
 
   /**
    * The requests of a user for a title with their sources, in season and
-   * episode order, without the .torrent files: for what the library says of
-   * them. The fulfilment reads the one it acts on with readRequestWithSource.
+   * episode order, without the .torrent files: for reconciling them and for
+   * what the library says of them. The fulfilment reads the one it acts on
+   * with readRequestWithSource.
    */
   async findRequestsWithSources(
     em: EntityManager,

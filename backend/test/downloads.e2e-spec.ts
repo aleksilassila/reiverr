@@ -1585,9 +1585,6 @@ describe('Series downloads (e2e)', () => {
       requested: true,
       status: 'fulfilled',
     });
-    expect(
-      (await em().findOne(MediaRequest, { tmdbId: MOVIE_ID })).watchedAt,
-    ).toBeTruthy();
 
     // Unrequested, nothing holds the version, and the cleanup deletes it
     await api('delete', `${moviePath}/preference`).expect(200);

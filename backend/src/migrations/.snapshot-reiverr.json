@@ -1198,23 +1198,6 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "text"
-        },
-        "watched_at": {
-          "name": "watched_at",
-          "type": "datetime",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         }
       },
       "indexes": [

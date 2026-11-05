@@ -61,14 +61,6 @@ export class MediaRequest {
   @Property({ nullable: true })
   neededSince?: Date;
 
-  /**
-   * When the episode was watched, as the play state of the user has it. What
-   * the keep settings of the rule go by.
-   */
-  @ApiProperty({ required: false, type: 'string', format: 'date-time' })
-  @Property({ nullable: true })
-  watchedAt?: Date;
-
   @ApiProperty({ type: 'string' })
   @Property()
   createdAt: Date = new Date();
