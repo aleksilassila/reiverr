@@ -13,30 +13,28 @@ import {
   uniquePairs,
 } from '../common/common.dto.js';
 import { EventsService } from '../events/events.service.js';
-import { IndexersService } from '../indexers/indexers.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { MetadataService } from '../metadata/metadata.service.js';
-import { hasEpisode, hasSeason } from '../metadata/metadata.utils.js';
+import { hasEpisode } from '../metadata/metadata.utils.js';
 import { PlayState } from '../user-data/play-state.entity.js';
 import { RequestSource } from './request-source.entity.js';
-import { ResolvedSource, resolvedOf, sourceOf } from './request-source.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import {
-  EpisodePreferenceDto,
   MediaRequestDto,
   MovieRequestsDto,
-  PreferenceDto,
   RequestRuleDto,
+  RequestSourceDto,
   SeriesRequestsDto,
 } from './requests.dto.js';
-import { isAhead, pairOf } from './requests.utils.js';
-
-/** What a user picks a source for: a season (episode 0) or an episode of a series, or a movie (season and episode 0) */
-export interface SelectionTarget extends Pair {
-  season: number;
-  episode: number;
-}
+import {
+  isAhead,
+  pairOf,
+  ResolvedSource,
+  resolvedOf,
+  sourceOf,
+  writeSource,
+} from './requests.utils.js';
 
 /** A request and where its user wants its file from, when they picked one */
 export type RequestWithSource = MediaRequest & { source?: ResolvedSource };
@@ -65,8 +63,8 @@ const byEpisode = (
   b: { season: number; episode: number },
 ) => a.season - b.season || a.episode - b.episode;
 
-/** A preference as the clients get it: the release as it was picked, or the id of the file */
-const toPreferenceDto = (source: RequestSource): PreferenceDto => {
+/** A source as the clients get it: the release as it was picked, or the id of the file */
+const toRequestSourceDto = (source: RequestSource): RequestSourceDto => {
   const resolved = resolvedOf(source);
   if (!resolved) return {};
   if (resolved.kind === 'file') return { mediaFileId: resolved.mediaFileId };
@@ -89,7 +87,6 @@ export class RequestsService {
   constructor(
     private readonly em: EntityManager,
     private readonly metadataService: MetadataService,
-    private readonly indexersService: IndexersService,
     private readonly jobs: JobsService,
     private readonly events: EventsService,
   ) {}
@@ -103,7 +100,7 @@ export class RequestsService {
    * it; the requests that become needed or are deleted are looked at by the
    * library.
    *
-   * Every writer of the requests, the rule, the preferences or the play
+   * Every writer of the requests, the rule, the sources or the play
    * states of the pair calls this, so this is where the clients of
    * the user are told that their requests of the title changed, whether
    * or not the rule changed anything.
@@ -158,7 +155,7 @@ export class RequestsService {
     // requests up to the last watched episode, skipped or watched, are needed.
     // Without a rule, or without keepNext, every approved request is.
     //
-    // A request only becomes needed with a source, the preference of its user
+    // A request only becomes needed with a source, what its user selected
     // for the episode: without one it has not passed the gate, and a rule set
     // later applies to it. It takes its place in the window all the same, so
     // that nothing downloads past it.
@@ -214,7 +211,17 @@ export class RequestsService {
     });
   }
 
-  /** A request with the source its user prefers for it, for the library */
+  /** Tells the library that requests changed, in the caller's transaction */
+  async reconcileBindingsLater(
+    em: EntityManager,
+    ids: string[],
+  ): Promise<void> {
+    for (const requestId of new Set(ids)) {
+      await this.jobs.enqueue(em, 'library.reconcileBinding', { requestId });
+    }
+  }
+
+  /** A request with the source its user selected for it, for the library */
   async readRequestWithSource(
     em: EntityManager,
     id: string,
@@ -286,65 +293,46 @@ export class RequestsService {
     );
   }
 
-  findMovieRequest(
-    userId: string,
-    tmdbId: string,
-  ): Promise<MediaRequest | undefined> {
-    return this.em
-      .findOne(
-        MediaRequest,
-        { userId, tmdbId, mediaType: MediaType.Movie },
-        READ,
-      )
-      .then((request) => request ?? undefined);
-  }
-
-  /** The request of a user for a movie with the rule and the preference it is fulfilled by: the document of the movie page */
+  /** The request of a user for a movie with the rule and the source it is fulfilled by: the document of the movie page */
   async describeMovieRequests(
     userId: string,
     tmdbId: string,
   ): Promise<MovieRequestsDto> {
     const pair = { userId, mediaType: MediaType.Movie, tmdbId };
-    const request = await this.findMovieRequest(userId, tmdbId);
+    const {
+      requests: [request],
+      sources: [source],
+    } = await this.readRequestDtos(pair);
     const rule = await this.findRule(pair);
-    const [source] = await this.findSources(this.em, pair);
 
     return {
-      request: request && {
-        ...request,
-        ahead: isAhead(request, source ? [source] : []),
-      },
+      request,
       rule: { keepWatchedHours: rule?.keepWatchedHours ?? null },
-      preference: source && toPreferenceDto(source),
+      source: source && toRequestSourceDto(source),
     };
   }
 
-  /** The requests of a user for a series with the rule and the preferences they are fulfilled by: the document of the series page */
+  /** The requests of a user for a series with the rule and the sources they are fulfilled by: the document of the series page */
   async describeSeriesRequests(
     userId: string,
     tmdbId: string,
   ): Promise<SeriesRequestsDto> {
     const pair = { userId, mediaType: MediaType.Series, tmdbId };
-    const requests = await this.findSeriesRequests(userId, tmdbId);
+    const { requests, sources } = await this.readRequestDtos(pair);
     const rule = await this.findRule(pair);
-    const sources = await this.findSources(this.em, pair);
-    const preferences: EpisodePreferenceDto[] = sources.map((source) => ({
-      season: source.season,
-      episode: source.episode,
-      ...toPreferenceDto(source),
-    }));
 
     return {
-      requests: requests.map((request) => ({
-        ...request,
-        ahead: isAhead(request, sources),
-      })),
+      requests,
       rule: {
         keepNext: rule?.keepNext ?? null,
         keepWatched: rule?.keepWatched ?? null,
         keepWatchedHours: rule?.keepWatchedHours ?? null,
       },
-      preferences,
+      sources: sources.map((source) => ({
+        season: source.season,
+        episode: source.episode,
+        ...toRequestSourceDto(source),
+      })),
     };
   }
 
@@ -353,27 +341,16 @@ export class RequestsService {
     tmdbId: string,
   ): Promise<MediaRequestDto> {
     await this.assertMovieExists(tmdbId);
+    const pair = { userId, mediaType: MediaType.Movie, tmdbId };
 
     await this.em.transactional(async (tx) => {
-      await this.insertRequests(tx, [
-        {
-          userId,
-          tmdbId,
-          mediaType: MediaType.Movie,
-          season: 0,
-          episode: 0,
-        },
-      ]);
-      await this.reconcileRequests(tx, {
-        userId,
-        mediaType: MediaType.Movie,
-        tmdbId,
-      });
+      await this.insertRequests(tx, [{ ...pair, season: 0, episode: 0 }]);
+      await this.reconcileRequests(tx, pair);
     });
 
-    const [request] = await this.toRequestDtos([
-      await this.findMovieRequest(userId, tmdbId),
-    ]);
+    const {
+      requests: [request],
+    } = await this.readRequestDtos(pair);
 
     return request;
   }
@@ -391,6 +368,7 @@ export class RequestsService {
     requested: boolean;
   }): Promise<MediaRequestDto[]> {
     const { userId, tmdbId, episodes, requested } = options;
+    const pair = { userId, mediaType: MediaType.Series, tmdbId };
 
     const series = await this.assertSeriesExists(tmdbId);
 
@@ -409,30 +387,24 @@ export class RequestsService {
           await this.insertRequests(
             tx,
             episodes.map(({ season, episode }) => ({
-              userId,
-              tmdbId,
-              mediaType: MediaType.Series,
+              ...pair,
               season,
               episode,
             })),
           );
-          await this.reconcileRequests(tx, {
-            userId,
-            mediaType: MediaType.Series,
-            tmdbId,
-          });
+          await this.reconcileRequests(tx, pair);
         } else {
           await this.deleteWhere(tx, {
-            userId,
-            tmdbId,
-            mediaType: MediaType.Series,
+            ...pair,
             $or: episodes.map(({ season, episode }) => ({ season, episode })),
           });
         }
       });
     }
 
-    return this.toRequestDtos(await this.findSeriesRequests(userId, tmdbId));
+    const { requests } = await this.readRequestDtos(pair);
+
+    return requests;
   }
 
   /** Sets the limits of the rule of a user for a title */
@@ -455,84 +427,6 @@ export class RequestsService {
     });
 
     return { keepNext, keepWatched, keepWatchedHours };
-  }
-
-  /**
-   * Makes a release the torrent that the requests of a user for an episode,
-   * with episode 0 for a season, or for a movie get their files from. The
-   * release is resolved now, so that a link that leads nowhere fails here,
-   * and kept with its magnet link or .torrent file so that it can be
-   * downloaded long after the search result has expired. A source is what
-   * lets a request through the download-ahead gate, so the requests are
-   * reconciled, and the library looks at the requests in scope.
-   */
-  async preferRelease(
-    target: SelectionTarget,
-    releaseId: string,
-  ): Promise<void> {
-    await this.assertTarget(target);
-
-    const release = this.indexersService.getRelease(releaseId);
-    if (!release) {
-      throw new NotFoundException('Release not found, search again');
-    }
-    // Fetches the .torrent file, outside any transaction
-    const torrent = await this.indexersService.resolveTorrent(release);
-
-    await this.em.transactional(async (tx) => {
-      await this.writeSource(tx, {
-        ...target,
-        kind: 'torrent',
-        infoHash: torrent.infoHash,
-        title: release.title,
-        indexer: release.indexer,
-        size: release.size,
-        magnetUrl: release.magnetUrl ?? torrent.magnetUrl,
-        torrentFile: torrent.torrentFile,
-      });
-      await this.sourceChanged(tx, target);
-    });
-  }
-
-  /**
-   * Makes a file in the library what the requests of a user for an episode
-   * or a movie have. Whether the file is of the episode and in the library
-   * is the library's to tell, when it looks at the request.
-   */
-  async preferFile(
-    target: SelectionTarget,
-    mediaFileId: string,
-  ): Promise<void> {
-    await this.assertTarget(target);
-
-    await this.em.transactional(async (tx) => {
-      await this.writeSource(tx, { ...target, kind: 'file', mediaFileId });
-      await this.sourceChanged(tx, target);
-    });
-  }
-
-  /**
-   * Forgets the torrent a user prefers for a season, or the torrent or the
-   * file for an episode or a movie. An episode falls back to its season's
-   * torrent.
-   */
-  async clearPreference(target: SelectionTarget): Promise<boolean> {
-    const { userId, mediaType, tmdbId, season, episode } = target;
-
-    return this.em.transactional(async (tx) => {
-      const deleted = await tx.nativeDelete(RequestSource, {
-        userId,
-        mediaType,
-        tmdbId,
-        season,
-        episode,
-      });
-      if (!deleted) return false;
-
-      await this.sourceChanged(tx, target);
-
-      return true;
-    });
   }
 
   /**
@@ -575,31 +469,11 @@ export class RequestsService {
 
   /** For a user that is deleted, before the rows go: the library lets go of what their requests had */
   async userDeleting(em: EntityManager, userId: string): Promise<void> {
-    const requests = await em.find(
-      MediaRequest,
-      { userId },
-      { ...READ, fields: ['id'] },
-    );
+    const requests = await this.findRequests(em, { userId });
     await this.reconcileBindingsLater(
       em,
       requests.map((request) => request.id),
     );
-  }
-
-  /** The movie, or the season or episode of the series, has to exist */
-  private async assertTarget(target: SelectionTarget): Promise<void> {
-    const { mediaType, tmdbId, season, episode } = target;
-    if (mediaType === MediaType.Movie) {
-      await this.assertMovieExists(tmdbId);
-      return;
-    }
-
-    const series = await this.assertSeriesExists(tmdbId);
-    const exists =
-      episode === 0
-        ? hasSeason(series.tmdbSeries, season)
-        : hasEpisode(series.tmdbSeries, season, episode);
-    if (!exists) throw new NotFoundException('Season or episode not found');
   }
 
   private async assertMovieExists(tmdbId: string): Promise<void> {
@@ -683,7 +557,7 @@ export class RequestsService {
     });
 
     for (const { season, episode, file } of fileRequests) {
-      await this.writeSource(tx, {
+      await writeSource(tx, {
         ...pair,
         season,
         episode,
@@ -752,57 +626,6 @@ export class RequestsService {
     return ids.length;
   }
 
-  /** Reconciles the requests of the pair, and has the library look at the requests of the user in the scope of a source: the movie's, the season's or the episode's */
-  private async sourceChanged(tx: EntityManager, target: SelectionTarget) {
-    const { userId, mediaType, tmdbId, season, episode } = target;
-    await this.reconcileRequests(tx, target);
-    const requests = await tx.find(
-      MediaRequest,
-      {
-        userId,
-        tmdbId,
-        mediaType,
-        season,
-        ...(episode !== 0 && { episode }),
-      },
-      { ...READ, fields: ['id'] },
-    );
-    await this.reconcileBindingsLater(
-      tx,
-      requests.map((request) => request.id),
-    );
-  }
-
-  /** Tells the library that requests changed, in the caller's transaction */
-  private async reconcileBindingsLater(
-    em: EntityManager,
-    ids: string[],
-  ): Promise<void> {
-    for (const requestId of new Set(ids)) {
-      await this.jobs.enqueue(em, 'library.reconcileBinding', { requestId });
-    }
-  }
-
-  /** Makes a source what the requests of its target get their files from, in place of the one they had */
-  private async writeSource(
-    tx: EntityManager,
-    source: Omit<RequestSource, 'id' | 'createdAt'>,
-  ): Promise<void> {
-    const { userId, mediaType, tmdbId, season, episode } = source;
-    await tx.nativeDelete(RequestSource, {
-      userId,
-      mediaType,
-      tmdbId,
-      season,
-      episode,
-    });
-    await tx.insert(RequestSource, {
-      ...source,
-      id: randomUUID(),
-      createdAt: new Date(),
-    });
-  }
-
   /** A rule row exists while it has a limit */
   private async writeRule(tx: EntityManager, rule: RuleRow): Promise<void> {
     const { userId, mediaType, tmdbId } = rule;
@@ -846,33 +669,24 @@ export class RequestsService {
     );
   }
 
-  private findSeriesRequests(
-    userId: string,
-    tmdbId: string,
-  ): Promise<MediaRequest[]> {
-    return this.em.find(
+  /** The requests of a title as the clients get them, in episode order, with the sources they go by */
+  private async readRequestDtos(
+    pair: Pair,
+  ): Promise<{ requests: MediaRequestDto[]; sources: RequestSource[] }> {
+    const { userId, mediaType, tmdbId } = pair;
+    const requests = await this.em.find(
       MediaRequest,
-      { userId, tmdbId, mediaType: MediaType.Series },
+      { userId, mediaType, tmdbId },
       { ...READ, orderBy: { season: 'asc', episode: 'asc' } },
     );
-  }
+    const sources = await this.findSources(this.em, pair);
 
-  /** Requests as the clients get them, from the sources of their pairs */
-  private async toRequestDtos(
-    requests: MediaRequest[],
-  ): Promise<MediaRequestDto[]> {
-    const sources = await this.em.find(
-      RequestSource,
-      { $or: uniquePairs(requests.map(pairOf)) },
-      READ,
-    );
-
-    return requests.map((request) => ({
-      ...request,
-      ahead: isAhead(
-        request,
-        sources.filter((source) => pairKey(source) === pairKey(request)),
-      ),
-    }));
+    return {
+      requests: requests.map((request) => ({
+        ...request,
+        ahead: isAhead(request, sources),
+      })),
+      sources,
+    };
   }
 }

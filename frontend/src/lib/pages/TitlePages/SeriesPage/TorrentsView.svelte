@@ -8,12 +8,7 @@
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { getOnServer, heldFileOf } from '$lib/queries/request-status';
-	import {
-		clearPreference,
-		episodeKey,
-		seriesQueries,
-		setPreference
-	} from '$lib/queries/series.queries';
+	import { clearSource, episodeKey, seriesQueries, setSource } from '$lib/queries/series.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
@@ -40,16 +35,15 @@
 		(r) => r.season === season && (episode === undefined || r.episode === episode)
 	);
 
-	$: selection = requests?.preferences.get(episodeKey(season, episode ?? 0));
+	$: selection = requests?.sources.get(episodeKey(season, episode ?? 0));
 	// An episode without a torrent of its own downloads from the season pack
-	$: seasonPack =
-		episode === undefined ? undefined : requests?.preferences.get(episodeKey(season, 0));
+	$: seasonPack = episode === undefined ? undefined : requests?.sources.get(episodeKey(season, 0));
 	// A request that has its file keeps it when another torrent is selected for the season
 	$: kept = requestList.flatMap((r) => {
 		const file = heldFileOf($status.data?.fulfilments.get(r.id), $status.data?.files);
 		const selected =
-			requests?.preferences.get(episodeKey(r.season, r.episode)) ??
-			requests?.preferences.get(episodeKey(r.season, 0));
+			requests?.sources.get(episodeKey(r.season, r.episode)) ??
+			requests?.sources.get(episodeKey(r.season, 0));
 
 		return file && file.infoHash !== selected?.release?.infoHash ? [file] : [];
 	});
@@ -100,7 +94,7 @@
 	$: affected = requestList.filter(
 		(r) =>
 			episode !== undefined ||
-			(!requests?.preferences.has(episodeKey(r.season, r.episode)) &&
+			(!requests?.sources.has(episodeKey(r.season, r.episode)) &&
 				$status.data?.fulfilments.get(r.id)?.status !== 'fulfilled')
 	);
 	$: episodesInSeason = $tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes
@@ -114,7 +108,7 @@
 				affected.length * expectedBytes(release.size, episode !== undefined, episodesInSeason);
 			if (!(await confirmQuota(bytes))) return;
 
-			await setPreference(tmdbId, season, episode, { releaseId: release.id });
+			await setSource(tmdbId, season, episode, { releaseId: release.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -127,7 +121,7 @@
 		try {
 			if (!(await confirmQuota(affected.length * file.size))) return;
 
-			await setPreference(tmdbId, season, episode, { mediaFileId: file.id });
+			await setSource(tmdbId, season, episode, { mediaFileId: file.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -137,7 +131,7 @@
 	async function clear() {
 		error = '';
 
-		await clearPreference(tmdbId, season, episode)
+		await clearSource(tmdbId, season, episode)
 			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}

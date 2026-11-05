@@ -187,7 +187,7 @@ describe('Series downloads (e2e)', () => {
       [method](url)
       .set('Authorization', `Bearer ${user.token}`);
 
-  const preferencesUrl = `/me/requests/series/${TMDB_ID}/preferences`;
+  const sourcesUrl = `/me/requests/series/${TMDB_ID}/sources`;
 
   const signIn = (name: string): Promise<TestUser> =>
     request(app.getHttpServer())
@@ -254,7 +254,7 @@ describe('Series downloads (e2e)', () => {
     );
     const target = episode ? `seasons/1/episodes/${episode}` : 'seasons/1';
 
-    return api('put', `${preferencesUrl}/${target}`, user)
+    return api('put', `${sourcesUrl}/${target}`, user)
       .send({ releaseId: releases.find((r) => r.title === title).id })
       .expect(status);
   }
@@ -263,7 +263,7 @@ describe('Series downloads (e2e)', () => {
   const clearSelection = (season: number, episode = 0, user = admin) =>
     api(
       'delete',
-      `${preferencesUrl}/seasons/${season}${episode ? `/episodes/${episode}` : ''}`,
+      `${sourcesUrl}/seasons/${season}${episode ? `/episodes/${episode}` : ''}`,
       user,
     );
 
@@ -449,7 +449,7 @@ describe('Series downloads (e2e)', () => {
     // The release is kept, nothing knows the torrent yet
     expect(await em().count(Torrent, {})).toBe(0);
 
-    expect((await getRequests()).preferences).toEqual([
+    expect((await getRequests()).sources).toEqual([
       {
         season: 1,
         episode: 0,
@@ -686,7 +686,7 @@ describe('Series downloads (e2e)', () => {
 
   it('keeps the files of a season when another torrent is selected for the season', async () => {
     const selectForSeason = (releaseId: string) =>
-      api('put', `${preferencesUrl}/seasons/1`).send({ releaseId }).expect(200);
+      api('put', `${sourcesUrl}/seasons/1`).send({ releaseId }).expect(200);
     const releases = await search('season=1&episode=2');
 
     await selectForSeason(
@@ -706,7 +706,7 @@ describe('Series downloads (e2e)', () => {
       [1, 1, 'fulfilled'],
       [1, 2, 'fulfilled'],
     ]);
-    expect((await getRequests()).preferences[0].release.infoHash).toBe(EPISODE);
+    expect((await getRequests()).sources[0].release.infoHash).toBe(EPISODE);
     expect(status.episodes[0].infoHash).toBe(PACK);
 
     await select('Test.Show.S01.1080p.WEB-GRP');
@@ -723,7 +723,7 @@ describe('Series downloads (e2e)', () => {
     expect(res.body.message).toContain(
       'Could not get the torrent of "Test.Show.S01E03.1080p.WEB-GRP"',
     );
-    expect((await getRequests()).preferences).toHaveLength(2);
+    expect((await getRequests()).sources).toHaveLength(2);
   });
 
   it('stops downloading an episode that is no longer requested', async () => {
@@ -737,7 +737,7 @@ describe('Series downloads (e2e)', () => {
     expect(existsSync(path.join(dirs.downloads, PACK))).toBe(false);
   });
 
-  it('gives every user their own preferences and shares a torrent between them', async () => {
+  it('gives every user their own sources and shares a torrent between them', async () => {
     await select('Test.Show.S01.1080p.WEB-GRP', { user: viewer });
     await setRequested([3], true, { user: viewer });
     await settle();
@@ -746,7 +746,7 @@ describe('Series downloads (e2e)', () => {
     expect(engine.running(PACK).wanted).toEqual([2]);
     expect(await em().count(Torrent, { infoHash: PACK })).toBe(1);
 
-    expect((await getRequests(viewer)).preferences).toMatchObject([
+    expect((await getRequests(viewer)).sources).toMatchObject([
       { season: 1, episode: 0, release: { infoHash: PACK } },
     ]);
     const status = await getStatus(viewer);
@@ -979,7 +979,7 @@ describe('Series downloads (e2e)', () => {
     await setPlayState(1, 3, { watched: true });
     await setPlayState(2, 1, { progress: 0.3 });
     const releases = await search('season=2');
-    await api('put', `${preferencesUrl}/seasons/2`)
+    await api('put', `${sourcesUrl}/seasons/2`)
       .send({
         releaseId: releases.find((r) => r.title.includes('S02')).id,
       })
@@ -1170,12 +1170,12 @@ describe('Series downloads (e2e)', () => {
     await settle();
 
     // Nothing downloads the file again: the requests for it are gone, the
-    // preferences are not
+    // sources are not
     expect(libraryFiles()).toEqual([]);
     expect(await references()).toEqual([[1, 1, null, null]]);
     expect(await references(viewer)).toEqual([]);
     expect(engine.running(REDIRECT)).toBeUndefined();
-    expect((await getRequests(viewer)).preferences).toHaveLength(1);
+    expect((await getRequests(viewer)).sources).toHaveLength(1);
     expect(
       await em().count(LogEntry, {
         message: `Deleted "${path.join(dirs.library, held)}": deleted by admin`,
@@ -1278,7 +1278,7 @@ describe('Series downloads (e2e)', () => {
     expect(status.files).toEqual([
       expect.objectContaining({ season: 1, episodes: [1], managed: false }),
     ]);
-    expect((await getRequests()).preferences).toContainEqual({
+    expect((await getRequests()).sources).toContainEqual({
       season: 1,
       episode: 1,
       mediaFileId: status.files[0].id,
@@ -1524,8 +1524,8 @@ describe('Series downloads (e2e)', () => {
       ),
     ).toBe(true);
 
-    await api('put', `${moviePath}/preference`).send({}).expect(400);
-    await api('put', `${moviePath}/preference`)
+    await api('put', `${moviePath}/source`).send({}).expect(400);
+    await api('put', `${moviePath}/source`)
       .send({ releaseId: releases[0].id })
       .expect(200);
     await settle();
@@ -1533,7 +1533,7 @@ describe('Series downloads (e2e)', () => {
       status: 'downloading',
       infoHash: MOVIE,
     });
-    expect((await api('get', moviePath).expect(200)).body.preference).toEqual({
+    expect((await api('get', moviePath).expect(200)).body.source).toEqual({
       release: {
         infoHash: MOVIE,
         title: 'Test.Movie.2021.1080p.WEB-GRP',
@@ -1587,7 +1587,7 @@ describe('Series downloads (e2e)', () => {
     });
 
     // Unrequested, nothing holds the version, and the cleanup deletes it
-    await api('delete', `${moviePath}/preference`).expect(200);
+    await api('delete', `${moviePath}/source`).expect(200);
     await api('delete', moviePath).expect(200);
     await settle();
     expect(await getMovieStatus()).toMatchObject({

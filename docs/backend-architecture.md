@@ -76,17 +76,17 @@ The life of a request row, from a user's wish to its deletion: a request is inac
 
 ```mermaid
 stateDiagram-v2
-  state "No preference (no source)" as nopref
+  state "No source" as nosource
   state "Deleted, the row is gone" as deleted
 
   [*] --> Approved: a user requests an episode
 
   state Approved {
-    [*] --> nopref
-    nopref --> Ahead: a release or a file is picked, outside the download-ahead window (not needed yet)
-    nopref --> Active: a release or a file is picked, within the window
+    [*] --> nosource
+    nosource --> Ahead: a release or a file is picked, outside the download-ahead window (not needed yet)
+    nosource --> Active: a release or a file is picked, within the window
     Ahead --> Active: the window reaches it (needed, one-way)
-    Active --> nopref: the preference is cleared, unless the request has its file
+    Active --> nosource: the source is cleared, unless the request has its file
 
     state Active {
       state "No file in torrent" as nofile
@@ -95,7 +95,7 @@ stateDiagram-v2
       [*] --> Resolving
       Resolving --> Downloading: the torrent has a file for the episode
       Resolving --> nofile: the torrent has no file for it
-      Resolving --> Failed: the torrent failed, or the preferred file is not in the library
+      Resolving --> Failed: the torrent failed, or the selected file is not in the library
       Resolving --> Available: its file is in the library already
       Resolving --> heldback: what it is to get does not fit the quota of the user, or it is a download and a disk is at the limit
       heldback --> Resolving: room may have been made, so the sweep has it looked at again
@@ -150,7 +150,7 @@ stateDiagram-v2
   state "Managed" as managed {
     state "Held by a request" as held
     state "Unretained" as unretained
-    unretained --> held: a request is bound to it, as the version of its torrent, as a preferred file, or from the server page
+    unretained --> held: a request is bound to it, as the version of its torrent, as a selected file, or from the server page
     held --> unretained: the last request that had it is deleted, or lets go of it for another source
   }
 

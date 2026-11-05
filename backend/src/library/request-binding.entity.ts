@@ -9,9 +9,9 @@ import {
 export enum FulfilmentError {
   /** The import of its torrent item failed; the torrent tries again */
   ImportFailed = 'import-failed',
-  /** The file its user prefers is not in the library */
+  /** The file its user selected is not in the library */
   FileNotInLibrary = 'file-not-in-library',
-  /** The file its user prefers is not of its movie or episode */
+  /** The file its user selected is not of its movie or episode */
   FileNotOfMedia = 'file-not-of-media',
   /** What it is to get does not fit the quota of its user; it is looked at again when room is made */
   OverQuota = 'over-quota',

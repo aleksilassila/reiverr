@@ -38,10 +38,10 @@ export class SelectedReleaseDto {
 }
 
 /**
- * What a user prefers for a movie, a season or an episode: a release, or
+ * What a user selected for a movie, a season or an episode: a release, or
  * for a movie or an episode a file in the library
  */
-export class PreferenceDto {
+export class RequestSourceDto {
   @ApiProperty({
     type: SelectedReleaseDto,
     required: false,
@@ -57,13 +57,13 @@ export class PreferenceDto {
   mediaFileId?: string;
 }
 
-/** A preference of a series: for a season (episode 0) or an episode */
-export class EpisodePreferenceDto extends IntersectionType(
+/** A source of a series: for a season (episode 0) or an episode */
+export class EpisodeRequestSourceDto extends IntersectionType(
   EpisodeRefDto,
-  PreferenceDto,
+  RequestSourceDto,
 ) {}
 
-/** The requests of the user for a series, with the rule and the preferences they are fulfilled by */
+/** The requests of the user for a series, with the rule and the sources they are fulfilled by */
 export class SeriesRequestsDto {
   @ApiProperty({
     type: [MediaRequestDto],
@@ -75,14 +75,14 @@ export class SeriesRequestsDto {
   rule: RequestRuleDto;
 
   @ApiProperty({
-    type: [EpisodePreferenceDto],
+    type: [EpisodeRequestSourceDto],
     description:
       'For seasons (episode 0) and episodes, in season and episode order',
   })
-  preferences: EpisodePreferenceDto[];
+  sources: EpisodeRequestSourceDto[];
 }
 
-/** The request of the user for a movie, with the rule and the preference it is fulfilled by */
+/** The request of the user for a movie, with the rule and the source it is fulfilled by */
 export class MovieRequestsDto {
   @ApiProperty({ type: MediaRequestDto, required: false })
   request?: MediaRequestDto;
@@ -90,8 +90,8 @@ export class MovieRequestsDto {
   @ApiProperty({ type: MovieRequestRuleDto })
   rule: MovieRequestRuleDto;
 
-  @ApiProperty({ type: PreferenceDto, required: false })
-  preference?: PreferenceDto;
+  @ApiProperty({ type: RequestSourceDto, required: false })
+  source?: RequestSourceDto;
 }
 
 export class UpdateSeriesRequestsDto {
@@ -103,7 +103,7 @@ export class UpdateSeriesRequestsDto {
 }
 
 /** A release from an indexer search, or for an episode or a movie a file of it in the library */
-export class SetPreferenceDto {
+export class SetRequestSourceDto {
   @ApiProperty({
     required: false,
     description: 'Id of a release from an indexer search',

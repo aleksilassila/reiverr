@@ -3,12 +3,12 @@ import type {
 	FulfilmentStatusDto,
 	MediaFileDto,
 	MediaRequestDto,
-	PreferenceDto,
 	RequestRuleDto,
+	RequestSourceDto,
 	SeriesRequestsDto,
 	SeriesStatusDto,
 	SeriesUserDataDto,
-	SetPreferenceDto,
+	SetRequestSourceDto,
 	TmdbSeriesFull,
 	UpdatePlayStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
@@ -36,7 +36,7 @@ export const seriesKeys = {
 	title: (tmdbId: string) => ['series', tmdbId] as const,
 	metadata: (tmdbId: string) => ['series', tmdbId, 'metadata'] as const,
 	userData: (tmdbId: string) => ['series', tmdbId, 'user-data'] as const,
-	/** The requests, the rule and the preferences of the user: what their actions change */
+	/** The requests, the rule and the sources of the user: what their actions change */
 	requests: (tmdbId: string) => ['series', tmdbId, 'requests'] as const,
 	/** The status of the requests and the files of the series: what the jobs of the server change */
 	status: (tmdbId: string) => ['series', tmdbId, 'status'] as const,
@@ -64,7 +64,7 @@ export const seriesQueries = {
 			queryKey: seriesKeys.userData(tmdbId),
 			queryFn: () => reiverrApi.userData.getSeriesUserData(tmdbId).then((r) => r.data)
 		}),
-	/** The requests of the user for the series, with the rule and the preferences they are fulfilled by */
+	/** The requests of the user for the series, with the rule and the sources they are fulfilled by */
 	requests: (tmdbId: string) =>
 		queryOptions({
 			queryKey: seriesKeys.requests(tmdbId),
@@ -182,23 +182,23 @@ export async function updateSeriesRequestRule(tmdbId: string, rule: RequestRuleD
 }
 
 /** Selects a release or a file for the episode, or a season pack without an episode */
-export async function setPreference(
+export async function setSource(
 	tmdbId: string,
 	season: number,
 	episode: number | undefined,
-	preference: SetPreferenceDto
+	source: SetRequestSourceDto
 ) {
 	await (episode === undefined
-		? reiverrApi.requests.setSeasonPreference(tmdbId, season, preference)
-		: reiverrApi.requests.setEpisodePreference(tmdbId, season, episode, preference));
+		? reiverrApi.requests.setSeasonSource(tmdbId, season, source)
+		: reiverrApi.requests.setEpisodeSource(tmdbId, season, episode, source));
 	// What the requests have and download, and so what they take, follows the source
 	await seriesRequestsChanged(tmdbId);
 }
 
-export async function clearPreference(tmdbId: string, season: number, episode: number | undefined) {
+export async function clearSource(tmdbId: string, season: number, episode: number | undefined) {
 	await (episode === undefined
-		? reiverrApi.requests.clearSeasonPreference(tmdbId, season)
-		: reiverrApi.requests.clearEpisodePreference(tmdbId, season, episode));
+		? reiverrApi.requests.clearSeasonSource(tmdbId, season)
+		: reiverrApi.requests.clearEpisodeSource(tmdbId, season, episode));
 	await seriesRequestsChanged(tmdbId);
 }
 
@@ -209,7 +209,7 @@ export type SeriesRequests = {
 	requests: Map<string, MediaRequestDto>;
 	rule: RequestRuleDto;
 	/** The releases and files the current user selected */
-	preferences: Map<string, PreferenceDto>;
+	sources: Map<string, RequestSourceDto>;
 };
 
 /** The status document */
@@ -231,7 +231,7 @@ function toSeriesRequests(requests: SeriesRequestsDto): SeriesRequests {
 	return {
 		requests: new Map(requests.requests.map((r) => [episodeKey(r.season, r.episode), r])),
 		rule: requests.rule,
-		preferences: new Map(requests.preferences.map((p) => [episodeKey(p.season, p.episode), p]))
+		sources: new Map(requests.sources.map((p) => [episodeKey(p.season, p.episode), p]))
 	};
 }
 
@@ -266,8 +266,8 @@ export function getEpisodeRequestStatus(
 	const files = (data.status?.files ?? []).filter(
 		(file) => file.season === season && file.episodes.includes(episode)
 	);
-	const own = data.requests?.preferences.get(key);
-	const seasonPack = data.requests?.preferences.get(episodeKey(season, 0));
+	const own = data.requests?.sources.get(key);
+	const seasonPack = data.requests?.sources.get(episodeKey(season, 0));
 	const selected = own ?? seasonPack;
 	// A request that has its file keeps its torrent when another one is selected
 	const infoHash =
@@ -280,7 +280,7 @@ export function getEpisodeRequestStatus(
 
 	const status = {
 		request,
-		preference: selected,
+		source: selected,
 		fulfilment,
 		files,
 		torrent,

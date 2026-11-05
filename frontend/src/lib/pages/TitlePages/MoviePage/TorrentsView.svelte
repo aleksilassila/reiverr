@@ -6,11 +6,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
-	import {
-		clearMoviePreference,
-		movieQueries,
-		setMoviePreference
-	} from '$lib/queries/movie.queries';
+	import { clearMovieSource, movieQueries, setMovieSource } from '$lib/queries/movie.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { getOnServer, heldFileOf } from '$lib/queries/request-status';
 	import { confirmQuota } from '$lib/quota';
@@ -31,7 +27,7 @@
 	const releases = usePageQuery(movieQueries.releases(tmdbId));
 	$: status = $statusQuery.data;
 
-	$: selection = $requestsQuery.data?.preference;
+	$: selection = $requestsQuery.data?.source;
 	// A torrent picked for the movie replaces the file the request has
 	$: heldFile = heldFileOf(status?.fulfilment, status?.files);
 	$: kept = !!heldFile && heldFile.infoHash !== selection?.release?.infoHash;
@@ -83,7 +79,7 @@
 		try {
 			if (!(await confirmQuota(affected * release.size))) return;
 
-			await setMoviePreference(tmdbId, { releaseId: release.id });
+			await setMovieSource(tmdbId, { releaseId: release.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -96,7 +92,7 @@
 		try {
 			if (!(await confirmQuota(affected * file.size))) return;
 
-			await setMoviePreference(tmdbId, { mediaFileId: file.id });
+			await setMovieSource(tmdbId, { mediaFileId: file.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -106,7 +102,7 @@
 	async function clear() {
 		error = '';
 
-		await clearMoviePreference(tmdbId)
+		await clearMovieSource(tmdbId)
 			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}

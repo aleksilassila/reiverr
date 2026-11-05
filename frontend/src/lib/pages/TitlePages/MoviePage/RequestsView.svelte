@@ -58,7 +58,7 @@
 	$: keepLabel =
 		KEEP_FIELD.options.find((option) => option.value === (ruleData?.keepWatchedHours ?? null))
 			?.label ?? '';
-	$: source = $requests.data?.preference;
+	$: source = $requests.data?.source;
 
 	function selectKeepOption() {
 		if (!ruleData) return;

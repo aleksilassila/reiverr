@@ -122,13 +122,13 @@
 
 	/** What a new request of the episode is expected to take from its source, if it has one */
 	function sourceBytes({ season, episode }: EpisodeRefDto): number {
-		const own = data.requests?.preferences.get(episodeKey(season, episode));
+		const own = data.requests?.sources.get(episodeKey(season, episode));
 		if (own?.release) return own.release.size;
 		if (own?.mediaFileId) {
 			return data.status?.files.find((file) => file.id === own.mediaFileId)?.size ?? 0;
 		}
 
-		const pack = data.requests?.preferences.get(episodeKey(season, 0))?.release;
+		const pack = data.requests?.sources.get(episodeKey(season, 0))?.release;
 		const episodesInSeason = seasons.find((s) => s.season_number === season)?.episodes?.length;
 		return pack ? expectedBytes(pack.size, false, episodesInSeason) : 0;
 	}

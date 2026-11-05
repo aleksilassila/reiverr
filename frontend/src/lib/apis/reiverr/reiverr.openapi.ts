@@ -1310,7 +1310,7 @@ export interface SelectedReleaseDto {
   size: number;
 }
 
-export interface PreferenceDto {
+export interface RequestSourceDto {
   /** The release the user picked, as it was picked */
   release?: SelectedReleaseDto;
   /** The id of the file in the library the user picked. The library tells whether it is still there */
@@ -1320,10 +1320,10 @@ export interface PreferenceDto {
 export interface MovieRequestsDto {
   request?: MediaRequestDto;
   rule: MovieRequestRuleDto;
-  preference?: PreferenceDto;
+  source?: RequestSourceDto;
 }
 
-export interface SetPreferenceDto {
+export interface SetRequestSourceDto {
   /** Id of a release from an indexer search */
   releaseId?: string;
   /** Id of a file of the episode or the movie in the library */
@@ -1339,7 +1339,7 @@ export interface RequestRuleDto {
   keepWatchedHours: number | null;
 }
 
-export interface EpisodePreferenceDto {
+export interface EpisodeRequestSourceDto {
   season: number;
   episode: number;
   /** The release the user picked, as it was picked */
@@ -1353,7 +1353,7 @@ export interface SeriesRequestsDto {
   requests: MediaRequestDto[];
   rule: RequestRuleDto;
   /** For seasons (episode 0) and episodes, in season and episode order */
-  preferences: EpisodePreferenceDto[];
+  sources: EpisodeRequestSourceDto[];
 }
 
 export interface EpisodeRefDto {
@@ -2397,16 +2397,16 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SetMoviePreference
-     * @request PUT:/api/me/requests/movies/{tmdbId}/preference
+     * @name SetMovieSource
+     * @request PUT:/api/me/requests/movies/{tmdbId}/source
      */
-    setMoviePreference: (
+    setMovieSource: (
       tmdbId: string,
-      data: SetPreferenceDto,
+      data: SetRequestSourceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/movies/${tmdbId}/preference`,
+        path: `/api/me/requests/movies/${tmdbId}/source`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2418,12 +2418,12 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name ClearMoviePreference
-     * @request DELETE:/api/me/requests/movies/{tmdbId}/preference
+     * @name ClearMovieSource
+     * @request DELETE:/api/me/requests/movies/{tmdbId}/source
      */
-    clearMoviePreference: (tmdbId: string, params: RequestParams = {}) =>
+    clearMovieSource: (tmdbId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/movies/${tmdbId}/preference`,
+        path: `/api/me/requests/movies/${tmdbId}/source`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2490,17 +2490,17 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SetSeasonPreference
-     * @request PUT:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}
+     * @name SetSeasonSource
+     * @request PUT:/api/me/requests/series/{tmdbId}/sources/seasons/{season}
      */
-    setSeasonPreference: (
+    setSeasonSource: (
       tmdbId: string,
       season: number,
-      data: SetPreferenceDto,
+      data: SetRequestSourceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}`,
+        path: `/api/me/requests/series/${tmdbId}/sources/seasons/${season}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2512,16 +2512,16 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name ClearSeasonPreference
-     * @request DELETE:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}
+     * @name ClearSeasonSource
+     * @request DELETE:/api/me/requests/series/{tmdbId}/sources/seasons/{season}
      */
-    clearSeasonPreference: (
+    clearSeasonSource: (
       tmdbId: string,
       season: number,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}`,
+        path: `/api/me/requests/series/${tmdbId}/sources/seasons/${season}`,
         method: "DELETE",
         format: "json",
         ...params,
@@ -2531,18 +2531,18 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name SetEpisodePreference
-     * @request PUT:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
+     * @name SetEpisodeSource
+     * @request PUT:/api/me/requests/series/{tmdbId}/sources/seasons/{season}/episodes/{episode}
      */
-    setEpisodePreference: (
+    setEpisodeSource: (
       tmdbId: string,
       season: number,
       episode: number,
-      data: SetPreferenceDto,
+      data: SetRequestSourceDto,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/requests/series/${tmdbId}/sources/seasons/${season}/episodes/${episode}`,
         method: "PUT",
         body: data,
         type: ContentType.Json,
@@ -2554,17 +2554,17 @@ export class Api<
      * No description
      *
      * @tags requests
-     * @name ClearEpisodePreference
-     * @request DELETE:/api/me/requests/series/{tmdbId}/preferences/seasons/{season}/episodes/{episode}
+     * @name ClearEpisodeSource
+     * @request DELETE:/api/me/requests/series/{tmdbId}/sources/seasons/{season}/episodes/{episode}
      */
-    clearEpisodePreference: (
+    clearEpisodeSource: (
       tmdbId: string,
       season: number,
       episode: number,
       params: RequestParams = {},
     ) =>
       this.request<SuccessResponseDto, any>({
-        path: `/api/me/requests/series/${tmdbId}/preferences/seasons/${season}/episodes/${episode}`,
+        path: `/api/me/requests/series/${tmdbId}/sources/seasons/${season}/episodes/${episode}`,
         method: "DELETE",
         format: "json",
         ...params,

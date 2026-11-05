@@ -13,7 +13,11 @@ import { User } from '../users/user.entity.js';
 import { RequestSource } from './request-source.entity.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
-import { RequestsService, SelectionTarget } from './requests.service.js';
+import {
+  RequestSourcesService,
+  SelectionTarget,
+} from './request-sources.service.js';
+import { RequestsService } from './requests.service.js';
 
 const SERIES = '100';
 const MOVIE = '200';
@@ -24,6 +28,7 @@ const HOUR = 60 * 60 * 1000;
 describe('RequestsService', () => {
   let orm: MikroORM;
   let requests: RequestsService;
+  let requestSources: RequestSourcesService;
   let events: EventsService;
   let userId: string;
 
@@ -156,9 +161,9 @@ describe('RequestsService', () => {
     episode: 0,
   });
   const select = (episode: number, releaseId: string) =>
-    request(() => requests.preferRelease(target(episode), releaseId));
+    request(() => requestSources.selectRelease(target(episode), releaseId));
   const clear = (episode: number) =>
-    request(() => requests.clearPreference(target(episode)));
+    request(() => requestSources.clearSelection(target(episode)));
 
   const rows = () =>
     orm.em
@@ -245,9 +250,14 @@ describe('RequestsService', () => {
     requests = new RequestsService(
       orm.em,
       metadata as unknown as MetadataService,
-      indexers as unknown as IndexersService,
       new JobsService(orm.em, events),
       events,
+    );
+    requestSources = new RequestSourcesService(
+      orm.em,
+      metadata as unknown as MetadataService,
+      indexers as unknown as IndexersService,
+      requests,
     );
   });
 
@@ -308,7 +318,7 @@ describe('RequestsService', () => {
 
     emit.mockClear();
     await request(() =>
-      requests.clearPreference({
+      requestSources.clearSelection({
         userId,
         mediaType: MediaType.Series,
         tmdbId: SERIES,
@@ -604,9 +614,9 @@ describe('RequestsService', () => {
     ]);
   });
 
-  it('makes a file the preference of an episode', async () => {
+  it('makes a file the source of an episode', async () => {
     await requestEpisodes([2]);
-    await request(() => requests.preferFile(target(2), 'file-1'));
+    await request(() => requestSources.selectFile(target(2), 'file-1'));
 
     expect(await sources()).toMatchObject([
       { season: 1, episode: 2, kind: 'file', mediaFileId: 'file-1' },
@@ -648,7 +658,9 @@ describe('RequestsService', () => {
     expect(await sourceOf(2)).toEqual({ kind: 'file', mediaFileId: 'f1' });
     expect(await sourceOf(3)).toEqual({ kind: 'file', mediaFileId: 'f1' });
     // The movie likewise, with its first file
-    const movie = await request(() => requests.findMovieRequest(userId, MOVIE));
+    const { request: movie } = await request(() =>
+      requests.describeMovieRequests(userId, MOVIE),
+    );
     expect(movie).toMatchObject({ approved: true });
     expect(movie.neededSince).toBeTruthy();
     expect(
@@ -691,7 +703,9 @@ describe('RequestsService', () => {
 
   it('requests a movie, which is needed once it has a source, and keeps it as long as its rule says', async () => {
     const readMovie = async () => {
-      const row = await request(() => requests.findMovieRequest(userId, MOVIE));
+      const { request: row } = await request(() =>
+        requests.describeMovieRequests(userId, MOVIE),
+      );
       return (
         row && request(() => requests.readRequestWithSource(orm.em, row.id))
       );
@@ -717,7 +731,7 @@ describe('RequestsService', () => {
     expect(await reconciled()).toEqual([]);
 
     // A torrent picked for the movie is wanted for the movie itself
-    await request(() => requests.preferRelease(movieTarget(), 'episode'));
+    await request(() => requestSources.selectRelease(movieTarget(), 'episode'));
     expect((await readMovie()).neededSince).toBeTruthy();
     expect((await readMovie()).source).toMatchObject({
       kind: 'torrent',
@@ -733,14 +747,14 @@ describe('RequestsService', () => {
     expect(await reconciled()).toEqual([`gone:${created.id}`]);
 
     // A file instead, then nothing: the request stays needed without a source
-    await request(() => requests.preferFile(movieTarget(), 'f1'));
+    await request(() => requestSources.selectFile(movieTarget(), 'f1'));
     expect((await readMovie()).source).toEqual({
       kind: 'file',
       mediaFileId: 'f1',
     });
-    expect(await request(() => requests.clearPreference(movieTarget()))).toBe(
-      true,
-    );
+    expect(
+      await request(() => requestSources.clearSelection(movieTarget())),
+    ).toBe(true);
     expect((await readMovie()).source).toBeUndefined();
     expect((await readMovie()).neededSince).toBeTruthy();
     expect(await movieRule()).toBeNull();

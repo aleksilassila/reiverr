@@ -6,6 +6,7 @@ import { JobsModule } from '../jobs/jobs.module.js';
 import { MetadataModule } from '../metadata/metadata.module.js';
 import { RequestsController } from './requests.controller.js';
 import { RequestSource } from './request-source.entity.js';
+import { RequestSourcesService } from './request-sources.service.js';
 import { RequestRule } from './request-rule.entity.js';
 import { MediaRequest } from './request.entity.js';
 import { RequestsService } from './requests.service.js';
@@ -19,7 +20,7 @@ import { RequestsService } from './requests.service.js';
     EventsModule,
   ],
   controllers: [RequestsController],
-  providers: [RequestsService],
+  providers: [RequestsService, RequestSourcesService],
   exports: [RequestsService],
 })
 export class RequestsModule {}

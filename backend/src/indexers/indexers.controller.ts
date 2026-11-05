@@ -51,7 +51,7 @@ export class IndexersController {
     @Query('season', ParseIntPipe) season: number,
     @Query('episode', new ParseIntPipe({ optional: true })) episode?: number,
   ): Promise<ReleaseDto[]> {
-    const releases = await this.indexersService.searchSeries(
+    const releases = await this.indexersService.searchSeriesReleases(
       tmdbId,
       season,
       episode,
@@ -65,7 +65,7 @@ export class IndexersController {
   async searchMovieReleases(
     @Param('tmdbId') tmdbId: string,
   ): Promise<ReleaseDto[]> {
-    const releases = await this.indexersService.searchMovies(tmdbId);
+    const releases = await this.indexersService.searchMovieReleases(tmdbId);
 
     return releases.map(toReleaseDto);
   }

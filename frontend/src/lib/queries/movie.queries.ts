@@ -2,7 +2,7 @@ import type {
 	MovieRequestRuleDto,
 	MovieRequestsDto,
 	MovieStatusDto,
-	SetPreferenceDto,
+	SetRequestSourceDto,
 	UpdatePlayStateDto
 } from '$lib/apis/reiverr/reiverr.openapi';
 import { reiverrApi } from '$lib/stores/user.store';
@@ -29,7 +29,7 @@ export const movieKeys = {
 	title: (tmdbId: string) => ['movie', tmdbId] as const,
 	metadata: (tmdbId: string) => ['movie', tmdbId, 'metadata'] as const,
 	userData: (tmdbId: string) => ['movie', tmdbId, 'user-data'] as const,
-	/** The request, the rule and the preference of the user: what their actions change */
+	/** The request, the rule and the source of the user: what their actions change */
 	requests: (tmdbId: string) => ['movie', tmdbId, 'requests'] as const,
 	/** The status of the request and the files of the movie: what the jobs of the server change */
 	status: (tmdbId: string) => ['movie', tmdbId, 'status'] as const,
@@ -53,7 +53,7 @@ export const movieQueries = {
 			queryKey: movieKeys.userData(tmdbId),
 			queryFn: () => reiverrApi.userData.getMovieUserData(tmdbId).then((r) => r.data)
 		}),
-	/** The request of the user for the movie, with the rule and the preference it is fulfilled by */
+	/** The request of the user for the movie, with the rule and the source it is fulfilled by */
 	requests: (tmdbId: string) =>
 		queryOptions({
 			queryKey: movieKeys.requests(tmdbId),
@@ -140,14 +140,14 @@ export async function updateMovieRequestRule(tmdbId: string, rule: MovieRequestR
 }
 
 /** Selects a release or a file for the movie */
-export async function setMoviePreference(tmdbId: string, preference: SetPreferenceDto) {
-	await reiverrApi.requests.setMoviePreference(tmdbId, preference);
+export async function setMovieSource(tmdbId: string, source: SetRequestSourceDto) {
+	await reiverrApi.requests.setMovieSource(tmdbId, source);
 	// What the request has and downloads, and so what it takes, follows the source
 	await movieRequestsChanged(tmdbId);
 }
 
-export async function clearMoviePreference(tmdbId: string) {
-	await reiverrApi.requests.clearMoviePreference(tmdbId);
+export async function clearMovieSource(tmdbId: string) {
+	await reiverrApi.requests.clearMovieSource(tmdbId);
 	await movieRequestsChanged(tmdbId);
 }
 
@@ -174,7 +174,7 @@ export function getMovieRequestStatus({
 	status,
 	torrents
 }: MovieData): MovieRequestStatus {
-	const selected = requests?.preference;
+	const selected = requests?.source;
 	const fulfilment = status?.fulfilment;
 	const files = status?.files ?? [];
 	// A request that has its file keeps its torrent when another one is selected
@@ -186,7 +186,7 @@ export function getMovieRequestStatus({
 		: undefined;
 	const mediaStatus = {
 		request: requests?.request,
-		preference: selected,
+		source: selected,
 		fulfilment,
 		files,
 		torrent,

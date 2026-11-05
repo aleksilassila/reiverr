@@ -13,7 +13,7 @@ import { FulfilmentError } from '../src/library/request-binding.entity.js';
 import {
   MediaRequestDto,
   MovieRequestsDto,
-  PreferenceDto,
+  RequestSourceDto,
   SeriesRequestsDto,
 } from '../src/requests/requests.dto.js';
 
@@ -29,12 +29,12 @@ export interface MediaView {
   cleanupAt?: Date | string;
 }
 
-const hasSource = (preference: PreferenceDto | undefined) =>
-  !!preference?.release || !!preference?.mediaFileId;
+const hasSource = (source: RequestSourceDto | undefined) =>
+  !!source?.release || !!source?.mediaFileId;
 
 function statusOf(
   request: MediaRequestDto | undefined,
-  preference: PreferenceDto | undefined,
+  source: RequestSourceDto | undefined,
   fulfilment: FulfilmentStatusDto | undefined,
   torrentItemStatus: TorrentItemStatus | undefined,
 ): string | undefined {
@@ -42,7 +42,7 @@ function statusOf(
   if (!request.approved) return 'waiting-for-approval';
   if (fulfilment?.status === FulfilmentStatus.Fulfilled) return 'fulfilled';
   if (request.ahead) return 'ahead';
-  if (!hasSource(preference)) return 'no-source';
+  if (!hasSource(source)) return 'no-source';
   if (fulfilment?.status === FulfilmentStatus.Downloading) {
     if (torrentItemStatus === TorrentItemStatus.NoMatch) return 'no-match';
     if (torrentItemStatus === TorrentItemStatus.Failed) return 'failed';
@@ -61,7 +61,7 @@ function viewOf(
   season: number,
   episode: number,
   request: MediaRequestDto | undefined,
-  preference: PreferenceDto | undefined,
+  source: RequestSourceDto | undefined,
   fulfilment: FulfilmentStatusDto | undefined,
   files: MediaFileDto[],
   torrents: TorrentWithItemsDto[],
@@ -70,7 +70,7 @@ function viewOf(
     (file) => file.season === season && file.episodes.includes(episode),
   );
   const file = files.find((file) => file.id === fulfilment?.mediaFileId);
-  const infoHash = file?.infoHash ?? preference?.release?.infoHash;
+  const infoHash = file?.infoHash ?? source?.release?.infoHash;
   const torrentItem =
     fulfilment?.status === FulfilmentStatus.Downloading
       ? torrents
@@ -85,7 +85,7 @@ function viewOf(
     episode,
     requested: !!request,
     onDisk: ofMedia.length > 0,
-    status: statusOf(request, preference, fulfilment, torrentItem?.status),
+    status: statusOf(request, source, fulfilment, torrentItem?.status),
     error: fulfilment?.errorMessage ?? torrentItem?.error,
     infoHash,
     cleanupAt: ofMedia.every((file) => file.cleanupAt)
@@ -96,7 +96,7 @@ function viewOf(
 
 /** The episodes that the user requested or that are on disk, in season and episode order, and the files of the series */
 export function seriesView(
-  { requests, preferences }: SeriesRequestsDto,
+  { requests, sources }: SeriesRequestsDto,
   { fulfilments, files }: SeriesStatusDto,
   torrents: TorrentWithItemsDto[],
 ): { episodes: MediaView[]; files: MediaFileDto[] } {
@@ -117,16 +117,14 @@ export function seriesView(
         const request = requests.find(
           (r) => r.season === season && r.episode === episode,
         );
-        const preferenceOf = (ofEpisode: number) =>
-          preferences.find(
-            (p) => p.season === season && p.episode === ofEpisode,
-          );
+        const sourceOf = (ofEpisode: number) =>
+          sources.find((p) => p.season === season && p.episode === ofEpisode);
 
         return viewOf(
           season,
           episode,
           request,
-          preferenceOf(episode) ?? preferenceOf(0),
+          sourceOf(episode) ?? sourceOf(0),
           fulfilments.find((f) => f.requestId === request?.id),
           files,
           torrents,
@@ -138,12 +136,12 @@ export function seriesView(
 
 /** The movie, and its files */
 export function movieView(
-  { request, preference }: MovieRequestsDto,
+  { request, source }: MovieRequestsDto,
   { fulfilment, files }: MovieStatusDto,
   torrents: TorrentWithItemsDto[],
 ): MediaView & { files: MediaFileDto[] } {
   return {
-    ...viewOf(0, 0, request, preference, fulfilment, files, torrents),
+    ...viewOf(0, 0, request, source, fulfilment, files, torrents),
     files,
   };
 }

@@ -19,10 +19,14 @@ import {
   MovieRequestsDto,
   RequestRuleDto,
   SeriesRequestsDto,
-  SetPreferenceDto,
+  SetRequestSourceDto,
   UpdateSeriesRequestsDto,
 } from './requests.dto.js';
-import { RequestsService, SelectionTarget } from './requests.service.js';
+import {
+  RequestSourcesService,
+  SelectionTarget,
+} from './request-sources.service.js';
+import { RequestsService } from './requests.service.js';
 
 /** A limit of a rule: null for off, else a positive integer */
 const isLimit = (value: unknown) =>
@@ -32,13 +36,16 @@ const isLimit = (value: unknown) =>
 @Controller('me/requests')
 @UseGuards(UserAccessControl)
 export class RequestsController {
-  constructor(private readonly requestsService: RequestsService) {}
+  constructor(
+    private readonly requestsService: RequestsService,
+    private readonly requestSourcesService: RequestSourcesService,
+  ) {}
 
   @Get('movies/:tmdbId')
   @ApiOkResponse({
     type: MovieRequestsDto,
     description:
-      'The request of the user for the movie, with the rule and the preference it is fulfilled by',
+      'The request of the user for the movie, with the rule and the source it is fulfilled by',
   })
   getMovieRequests(
     @GetAuthUser() user: User,
@@ -95,16 +102,16 @@ export class RequestsController {
     return { keepWatchedHours };
   }
 
-  @Put('movies/:tmdbId/preference')
+  @Put('movies/:tmdbId/source')
   @ApiOkResponse({
     type: SuccessResponseDto,
     description:
       'Makes a release the torrent the request of the user for the movie downloads from, or a file in the library what it has',
   })
-  async setMoviePreference(
+  async setMovieSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
-    @Body() body: SetPreferenceDto,
+    @Body() body: SetRequestSourceDto,
   ): Promise<SuccessResponseDto> {
     const target = movieTarget(user.id, tmdbId);
     const hasRelease = typeof body?.releaseId === 'string';
@@ -116,25 +123,25 @@ export class RequestsController {
     }
 
     if (hasRelease) {
-      await this.requestsService.preferRelease(target, body.releaseId);
+      await this.requestSourcesService.selectRelease(target, body.releaseId);
     } else {
-      await this.requestsService.preferFile(target, body.mediaFileId);
+      await this.requestSourcesService.selectFile(target, body.mediaFileId);
     }
 
     return { success: true };
   }
 
-  @Delete('movies/:tmdbId/preference')
+  @Delete('movies/:tmdbId/source')
   @ApiOkResponse({
     type: SuccessResponseDto,
     description:
-      'Forgets the torrent or the file the user prefers for the movie',
+      'Forgets the torrent or the file the user selected for the movie',
   })
-  async clearMoviePreference(
+  async clearMovieSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
   ): Promise<SuccessResponseDto> {
-    const success = await this.requestsService.clearPreference(
+    const success = await this.requestSourcesService.clearSelection(
       movieTarget(user.id, tmdbId),
     );
 
@@ -145,7 +152,7 @@ export class RequestsController {
   @ApiOkResponse({
     type: SeriesRequestsDto,
     description:
-      'The requests of the user for the series, with the rule and the preferences they are fulfilled by',
+      'The requests of the user for the series, with the rule and the sources they are fulfilled by',
   })
   getSeriesRequests(
     @GetAuthUser() user: User,
@@ -204,23 +211,23 @@ export class RequestsController {
     );
   }
 
-  @Put('series/:tmdbId/preferences/seasons/:season')
+  @Put('series/:tmdbId/sources/seasons/:season')
   @ApiOkResponse({
     type: SuccessResponseDto,
     description:
       'Makes a release the torrent the requests of the user for the season download from',
   })
-  async setSeasonPreference(
+  async setSeasonSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
-    @Body() body: SetPreferenceDto,
+    @Body() body: SetRequestSourceDto,
   ): Promise<SuccessResponseDto> {
     if (typeof body?.releaseId !== 'string' || body.mediaFileId !== undefined) {
       throw new BadRequestException('Expected { releaseId }');
     }
 
-    await this.requestsService.preferRelease(
+    await this.requestSourcesService.selectRelease(
       seriesTarget(user.id, tmdbId, season, 0),
       body.releaseId,
     );
@@ -228,35 +235,35 @@ export class RequestsController {
     return { success: true };
   }
 
-  @Delete('series/:tmdbId/preferences/seasons/:season')
+  @Delete('series/:tmdbId/sources/seasons/:season')
   @ApiOkResponse({
     type: SuccessResponseDto,
-    description: 'Forgets the torrent the user prefers for the season',
+    description: 'Forgets the torrent the user selected for the season',
   })
-  async clearSeasonPreference(
+  async clearSeasonSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
   ): Promise<SuccessResponseDto> {
-    const success = await this.requestsService.clearPreference(
+    const success = await this.requestSourcesService.clearSelection(
       seriesTarget(user.id, tmdbId, season, 0),
     );
 
     return { success };
   }
 
-  @Put('series/:tmdbId/preferences/seasons/:season/episodes/:episode')
+  @Put('series/:tmdbId/sources/seasons/:season/episodes/:episode')
   @ApiOkResponse({
     type: SuccessResponseDto,
     description:
       'Makes a release the torrent the requests of the user for the episode download from, or a file in the library what they have',
   })
-  async setEpisodePreference(
+  async setEpisodeSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
-    @Body() body: SetPreferenceDto,
+    @Body() body: SetRequestSourceDto,
   ): Promise<SuccessResponseDto> {
     if (episode < 1) throw new BadRequestException('Invalid episode');
     const target = seriesTarget(user.id, tmdbId, season, episode);
@@ -269,28 +276,28 @@ export class RequestsController {
     }
 
     if (hasRelease) {
-      await this.requestsService.preferRelease(target, body.releaseId);
+      await this.requestSourcesService.selectRelease(target, body.releaseId);
     } else {
-      await this.requestsService.preferFile(target, body.mediaFileId);
+      await this.requestSourcesService.selectFile(target, body.mediaFileId);
     }
 
     return { success: true };
   }
 
-  @Delete('series/:tmdbId/preferences/seasons/:season/episodes/:episode')
+  @Delete('series/:tmdbId/sources/seasons/:season/episodes/:episode')
   @ApiOkResponse({
     type: SuccessResponseDto,
     description:
-      'Forgets the torrent or the file the user prefers for the episode',
+      'Forgets the torrent or the file the user selected for the episode',
   })
-  async clearEpisodePreference(
+  async clearEpisodeSource(
     @GetAuthUser() user: User,
     @Param('tmdbId') tmdbId: string,
     @Param('season', ParseIntPipe) season: number,
     @Param('episode', ParseIntPipe) episode: number,
   ): Promise<SuccessResponseDto> {
     if (episode < 1) throw new BadRequestException('Invalid episode');
-    const success = await this.requestsService.clearPreference(
+    const success = await this.requestSourcesService.clearSelection(
       seriesTarget(user.id, tmdbId, season, episode),
     );
 

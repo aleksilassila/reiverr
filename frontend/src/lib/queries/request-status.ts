@@ -2,7 +2,7 @@ import type {
 	FulfilmentStatusDto,
 	MediaFileDto,
 	MediaRequestDto,
-	PreferenceDto,
+	RequestSourceDto,
 	TorrentItemDto,
 	TorrentWithItemsDto
 } from '$lib/apis/reiverr/reiverr.openapi';
@@ -17,7 +17,7 @@ export type TitleTorrents = Map<string, TorrentWithItemsDto>;
 export type MediaStatus = {
 	request?: MediaRequestDto;
 	/** The source of the request: the release or the file the user picked for it */
-	preference?: PreferenceDto;
+	source?: RequestSourceDto;
 	fulfilment?: FulfilmentStatusDto;
 	/** The files of the episode or the movie */
 	files: MediaFileDto[];
@@ -96,7 +96,7 @@ const isTorrentItemFailed = ({ fulfilment, torrentItem }: MediaStatus) =>
 
 /** The line the pages show of the status of a request, if there is anything to say */
 export function getStatusLabel(status: MediaStatus): string | undefined {
-	const { request, preference, fulfilment, files, torrent, torrentItem } = status;
+	const { request, source, fulfilment, files, torrent, torrentItem } = status;
 
 	if (isTorrentItemFailed(status)) return torrentItem?.error;
 	switch (fulfilment?.status) {
@@ -119,7 +119,7 @@ export function getStatusLabel(status: MediaStatus): string | undefined {
 	// A file of another torrent, or one that was found on disk, plays as well
 	if (files.length) return inactive ? `On disk · ${inactive}` : 'On disk';
 	if (request && !request.approved) return 'Waiting for approval';
-	if (request && !preference?.release && !preference?.mediaFileId) return 'No source selected';
+	if (request && !source?.release && !source?.mediaFileId) return 'No source selected';
 
 	return inactive;
 }

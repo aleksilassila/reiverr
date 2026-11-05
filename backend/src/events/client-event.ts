@@ -7,7 +7,7 @@ import { Title } from '../common/common.dto.js';
  * the client gets.
  */
 export type ClientEvent =
-  /** The requests, the rule or the preferences of the user for the title changed on the server */
+  /** The requests, the rule or the sources of the user for the title changed on the server */
   | { type: 'requests'; userId: string; data: Title }
   /** What the library has of the title, or what the requests of users have of it, changed */
   | { type: 'library'; userId?: never; data: Title }

@@ -25,6 +25,7 @@ import { MetadataService } from '../metadata/metadata.service.js';
 import { TmdbService } from '../metadata/tmdb/tmdb.service.js';
 import mikroOrmConfig from '../mikro-orm.config.js';
 import { MediaRequest } from '../requests/request.entity.js';
+import { RequestSourcesService } from '../requests/request-sources.service.js';
 import { RequestsService } from '../requests/requests.service.js';
 import { ServerLogService } from '../server-log/server-log.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -199,9 +200,14 @@ async function createHub() {
   const requests = new RequestsService(
     orm.em,
     metadata as unknown as MetadataService,
-    indexers as unknown as IndexersService,
     jobs,
     events,
+  );
+  const requestSources = new RequestSourcesService(
+    orm.em,
+    metadata as unknown as MetadataService,
+    indexers as unknown as IndexersService,
+    requests,
   );
   const users = new UsersService(
     orm.em.getRepository(User),
@@ -299,6 +305,7 @@ async function createHub() {
     libraryService,
     scan,
     requests,
+    requestSources,
     downloads,
     deletion,
     fulfilment,
@@ -332,7 +339,7 @@ describe('FulfilmentService', () => {
     );
   const select = (episode: number, releaseId: string, user = userId) =>
     request(() =>
-      hub.requests.preferRelease(
+      hub.requestSources.selectRelease(
         {
           userId: user,
           mediaType: MediaType.Series,
@@ -345,7 +352,7 @@ describe('FulfilmentService', () => {
     );
   const selectFile = (episode: number, mediaFileId: string, user = userId) =>
     request(() =>
-      hub.requests.preferFile(
+      hub.requestSources.selectFile(
         {
           userId: user,
           mediaType: MediaType.Series,
@@ -749,7 +756,7 @@ describe('FulfilmentService', () => {
 
     // Without a source the request is not active, but keeps its file
     await request(() =>
-      hub.requests.clearPreference({
+      hub.requestSources.clearSelection({
         userId,
         mediaType: MediaType.Series,
         tmdbId: TMDB_ID,
@@ -1036,7 +1043,9 @@ describe('FulfilmentService', () => {
       status: 'no-source',
     });
 
-    await request(() => hub.requests.preferRelease(movieTarget(), 'movie'));
+    await request(() =>
+      hub.requestSources.selectRelease(movieTarget(), 'movie'),
+    );
     await settle();
     const torrent = hub.engine.running(MOVIE);
     expect(torrent.wanted).toEqual([0]);
@@ -1049,7 +1058,7 @@ describe('FulfilmentService', () => {
       files: [],
     });
     expect(await movieRequests()).toMatchObject({
-      preference: {
+      source: {
         release: { infoHash: MOVIE, title: 'Test.Movie.2021.1080p.WEB-GRP' },
       },
     });
@@ -1100,7 +1109,7 @@ describe('FulfilmentService', () => {
     expect(file).toMatchObject({ mediaType: MediaType.Movie, season: 0 });
 
     await requestMovie();
-    await request(() => hub.requests.preferFile(movieTarget(), file.id));
+    await request(() => hub.requestSources.selectFile(movieTarget(), file.id));
     await settle();
     expect(await movieStatus()).toMatchObject({
       status: 'fulfilled',
@@ -1108,7 +1117,7 @@ describe('FulfilmentService', () => {
       files: [{ id: file.id, managed: false }],
     });
     expect(await movieRequests()).toMatchObject({
-      preference: { mediaFileId: file.id },
+      source: { mediaFileId: file.id },
     });
     expect(await usage()).toEqual({ heldBytes: 8, pendingBytes: 0 });
 
@@ -1121,7 +1130,9 @@ describe('FulfilmentService', () => {
     const [episode] = await orm.em
       .fork()
       .find(MediaFile, { mediaType: MediaType.Series });
-    await request(() => hub.requests.preferFile(movieTarget(), episode.id));
+    await request(() =>
+      hub.requestSources.selectFile(movieTarget(), episode.id),
+    );
     await settle();
     expect(await movieStatus()).toMatchObject({
       status: 'failed',

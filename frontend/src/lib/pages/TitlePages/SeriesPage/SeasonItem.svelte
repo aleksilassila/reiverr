@@ -38,7 +38,7 @@
 	).length;
 	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
 
-	$: seasonPack = data.requests?.preferences.get(episodeKey(seasonNumber, 0))?.release;
+	$: seasonPack = data.requests?.sources.get(episodeKey(seasonNumber, 0))?.release;
 	// The season pack as the engine has it, once something was wanted of it
 	$: seasonPackTorrent = seasonPack && data.torrents?.get(seasonPack.infoHash);
 	$: seasonPackStatus =

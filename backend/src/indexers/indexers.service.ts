@@ -119,7 +119,7 @@ export class IndexersService {
    * Releases of one episode, or the season packs of the season when no
    * episode is given, with the most seeded first.
    */
-  async searchSeries(
+  async searchSeriesReleases(
     tmdbId: string,
     season: number,
     episode?: number,
@@ -158,7 +158,7 @@ export class IndexersService {
   }
 
   /** Releases of a movie, by its name and year, with the most seeded first */
-  async searchMovies(tmdbId: string): Promise<Release[]> {
+  async searchMovieReleases(tmdbId: string): Promise<Release[]> {
     const metadata = await this.metadataService.getMovieByTmdbId(tmdbId);
     if (!metadata) throw new NotFoundException('Movie not found');
 
