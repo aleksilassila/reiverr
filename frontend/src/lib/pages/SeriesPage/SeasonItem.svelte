@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { EpisodeRefDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbSeason } from '$lib/apis/tmdb/tmdb-api';
+	import RequestRow from '$lib/components/RequestRow.svelte';
 	import { episodeKey } from '$lib/queries/requests.queries';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
@@ -8,7 +9,6 @@
 	import { createEventDispatcher } from 'svelte';
 	import type { SeriesData } from './episode-status';
 	import EpisodeItem from './EpisodeItem.svelte';
-	import RequestRow from './RequestRow.svelte';
 
 	export let season: TmdbSeason;
 	export let data: SeriesData = {};

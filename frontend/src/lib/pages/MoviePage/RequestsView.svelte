@@ -3,7 +3,9 @@
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
+	import HeroTitleInfo from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
+	import RequestRow from '$lib/components/RequestRow.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
@@ -21,8 +23,6 @@
 	import { confirmQuota } from '$lib/quota';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
-	import HeroTitleInfo from '../HeroTitleInfo.svelte';
-	import RequestRow from '../SeriesPage/RequestRow.svelte';
 	import { getMovieRequestStatus } from './movie-status';
 	import TorrentsView from './TorrentsView.svelte';
 

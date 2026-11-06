@@ -2,11 +2,11 @@
 	import type { TmdbItemDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbPersonFull } from '$lib/apis/tmdb/tmdb-api';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
+	import HeroTitleInfo from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { TMDB_POSTER_SMALL } from '../constants.js';
 	import CollectionPage from './CollectionPages/CollectionPage.svelte';
-	import HeroTitleInfo from './TitlePages/HeroTitleInfo.svelte';
 
 	backgroundContext.createContext();
 

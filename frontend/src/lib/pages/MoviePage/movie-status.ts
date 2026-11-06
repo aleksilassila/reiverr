@@ -1,7 +1,7 @@
 import type { MovieRequestsDto, MovieStatusDto } from '$lib/apis/reiverr/reiverr.openapi';
 import { getStatusTags, type MediaStatusTags } from '$lib/components/status-tags';
 import type { TitleTorrents } from '$lib/queries/downloads.queries';
-import { findDownload, heldFileOf, torrentItemOf } from '../request-status';
+import { findDownload, heldFileOf, torrentItemOf } from '$lib/request-status';
 
 /** The three documents of a movie the request views read, each as far as it has loaded */
 export type MovieData = {

@@ -6,10 +6,13 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
+	import type { TitleInfoProperty } from '$lib/components/HeroShowcase/HeroTitleInfo';
+	import HeroTitleInfo from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB } from '$lib/constants';
+	import { playMovie } from '$lib/play-media';
 	import { downloadsQueries } from '$lib/queries/downloads.queries';
 	import { libraryQueries } from '$lib/queries/library.queries';
 	import { metadataQueries } from '$lib/queries/metadata.queries';
@@ -27,9 +30,6 @@
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { formatMinutesToTime, formatThousands } from '$lib/utils';
 	import { Bookmark, Check, ExternalLink, Minus, Play, Plus, Video } from 'radix-icons-svelte';
-	import type { TitleInfoProperty } from '../HeroTitleInfo';
-	import HeroTitleInfo from '../HeroTitleInfo.svelte';
-	import { playMovie } from '../play-media';
 	import { getMovieRequestStatus } from './movie-status';
 	import RequestsView from './RequestsView.svelte';
 
@@ -215,26 +215,24 @@
 		</HeroCarousel>
 	</Container>
 	<div class="relative z-10" style={$visibleStyle}>
-		<Container on:enter={scrollIntoView({ top: 0 })} class="">
-			{#if movie}
-				<Carousel scrollClass="px-32" class="mb-16">
-					<div slot="header">Show Cast</div>
-					{#each movie.credits?.cast?.slice(0, 15) || [] as credit}
-						<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
-					{/each}
-				</Carousel>
-			{/if}
-			{#if $recommendations.data?.length}
-				<Carousel scrollClass="px-32" class="mb-16">
-					<div slot="header">Recommendations</div>
-					{#each $recommendations.data as recommendation}
-						<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
-					{/each}
-				</Carousel>
-			{/if}
-		</Container>
 		{#if movie}
-			<Container class="flex-1 bg-secondary-950 pt-8 px-32" on:enter={scrollIntoView({ top: 0 })}>
+			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
+				<div slot="header">Show Cast</div>
+				{#each movie.credits?.cast?.slice(0, 15) || [] as credit}
+					<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
+				{/each}
+			</Carousel>
+		{/if}
+		{#if $recommendations.data?.length}
+			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
+				<div slot="header">Recommendations</div>
+				{#each $recommendations.data as recommendation}
+					<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+				{/each}
+			</Carousel>
+		{/if}
+		{#if movie}
+			<Container class="flex-1 bg-secondary-950 pt-16 px-32" on:enter={scrollIntoView({ top: 0 })}>
 				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 					<div class="flex-1">

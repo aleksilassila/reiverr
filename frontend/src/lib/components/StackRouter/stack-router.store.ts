@@ -19,9 +19,9 @@ import SearchPage from '../../pages/SearchPage.svelte';
 import SeriesHomePage from '../../pages/SeriesHomePage.svelte';
 import ServerPage from '../../pages/ServerPage/ServerPage.svelte';
 import SettingsPage from '../../pages/SettingsPage/SettingsPage.svelte';
-import EpisodePage from '../../pages/TitlePages/EpisodePage.svelte';
-import MoviePage from '../../pages/TitlePages/MoviePage/MoviePage.svelte';
-import SeriesPage from '../../pages/TitlePages/SeriesPage/SeriesPage.svelte';
+import EpisodePage from '../../pages/SeriesPage/EpisodePage.svelte';
+import MoviePage from '../../pages/MoviePage/MoviePage.svelte';
+import SeriesPage from '../../pages/SeriesPage/SeriesPage.svelte';
 import UiPage from '../../pages/UiPage/UiPage.svelte';
 import UsersPage from '../../pages/UsersPage.svelte';
 

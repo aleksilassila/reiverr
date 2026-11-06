@@ -4,6 +4,7 @@
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
 	import SelectDialog from '$lib/components/Dialog/SelectDialog.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
+	import HeroTitleInfo from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 	import QuickNav from '$lib/components/QuickNav.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
@@ -24,7 +25,6 @@
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
-	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import SeasonItem from './SeasonItem.svelte';
 	import TorrentsView from './TorrentsView.svelte';
 

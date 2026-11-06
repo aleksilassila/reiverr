@@ -7,6 +7,7 @@
 	import { Sheet } from '$lib/components/Sheet';
 	import StatusTags from '$lib/components/StatusTags.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
+	import { playEpisode } from '$lib/play-media';
 	import { downloadsQueries } from '$lib/queries/downloads.queries';
 	import { libraryQueries } from '$lib/queries/library.queries';
 	import { metadataQueries } from '$lib/queries/metadata.queries';
@@ -18,7 +19,6 @@
 		userDataQueries
 	} from '$lib/queries/user-data.queries';
 	import { Check, Play } from 'radix-icons-svelte';
-	import { playEpisode } from '../play-media';
 	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 
 	export let tmdbId: string;

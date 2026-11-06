@@ -1,6 +1,4 @@
 <script lang="ts">
-	import type { TitleInfoProperty } from '$lib/pages/TitlePages/HeroTitleInfo';
-	import HeroTitleInfo from '$lib/pages/TitlePages/HeroTitleInfo.svelte';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -10,6 +8,8 @@
 	import FloatingIconButton from '../FloatingIconButton.svelte';
 	import { backgroundContext } from '../GlobalBackground/background-stack.store';
 	import HeroContainer from './HeroContainer.svelte';
+	import type { TitleInfoProperty } from './HeroTitleInfo';
+	import HeroTitleInfo from './HeroTitleInfo.svelte';
 	import PageDots from './PageDots.svelte';
 
 	type ShowcaseItem = {

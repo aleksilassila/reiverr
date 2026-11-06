@@ -3,7 +3,7 @@ import { getStatusTags, type MediaStatusTags } from '$lib/components/status-tags
 import type { TitleTorrents } from '$lib/queries/downloads.queries';
 import type { SeriesStatus } from '$lib/queries/library.queries';
 import { episodeKey, type SeriesRequests } from '$lib/queries/requests.queries';
-import { findDownload, heldFileOf, torrentItemOf } from '../request-status';
+import { findDownload, heldFileOf, torrentItemOf } from '$lib/request-status';
 
 /** The three documents of a series the request views read, each as far as it has loaded */
 export type SeriesData = {

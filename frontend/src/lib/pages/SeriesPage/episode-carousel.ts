@@ -1,10 +1,10 @@
 import type { TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
+import type { TitleInfoProperty } from '$lib/components/HeroShowcase/HeroTitleInfo';
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
 import { formatThousands, waitFor } from '$lib/utils';
 import type { EpisodesData } from './episode-status';
 import { derived, writable, type Readable, type Writable } from 'svelte/store';
-import type { TitleInfoProperty } from '../HeroTitleInfo';
 
 type SelectedEpisode = { episode: number; season: number } | undefined;
 

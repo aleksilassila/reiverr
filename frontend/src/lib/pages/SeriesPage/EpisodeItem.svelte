@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getEpisodeRequestStatus, type SeriesData } from './episode-status';
-	import RequestRow from './RequestRow.svelte';
+	import RequestRow from '$lib/components/RequestRow.svelte';
 
 	export let seasonNumber: number;
 	export let episodeNumber: number;

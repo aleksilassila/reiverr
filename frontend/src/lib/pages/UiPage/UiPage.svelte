@@ -22,6 +22,7 @@
 	import PlayButton from '$lib/components/PlayButton.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import QuickNav from '$lib/components/QuickNav.svelte';
+	import RequestRow from '$lib/components/RequestRow.svelte';
 	import { LETTERS } from '$lib/utils';
 	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
@@ -54,7 +55,6 @@
 		Trash,
 		Video
 	} from 'radix-icons-svelte';
-	import RequestRow from '../TitlePages/SeriesPage/RequestRow.svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
 	import UiSheet from './UiSheet.svelte';
 

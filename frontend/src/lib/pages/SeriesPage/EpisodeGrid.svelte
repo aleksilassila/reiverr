@@ -10,12 +10,12 @@
 		type TmdbSeason,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull
-	} from '../../../apis/tmdb/tmdb-api';
-	import CardGrid from '../../../components/CardGrid.svelte';
-	import Scrollable from '../../../components/Carousel/Scrollable.svelte';
-	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { navigate } from '../../../components/StackRouter/stack-router.store';
-	import { Selectable } from '../../../selectable';
+	} from '../../apis/tmdb/tmdb-api';
+	import CardGrid from '../../components/CardGrid.svelte';
+	import Scrollable from '../../components/Carousel/Scrollable.svelte';
+	import TmdbEpisodeCard from '../../components/EpisodeCard/TmdbEpisodeCard.svelte';
+	import { navigate } from '../../components/StackRouter/stack-router.store';
+	import { Selectable } from '../../selectable';
 
 	const { topVisible } = getScrollContext();
 

@@ -13,9 +13,9 @@
 		type TmdbSeason,
 		type TmdbSeasonEpisode,
 		type TmdbSeriesFull
-	} from '../../../apis/tmdb/tmdb-api';
-	import TmdbEpisodeCard from '../../../components/EpisodeCard/TmdbEpisodeCard.svelte';
-	import { Selectable } from '../../../selectable';
+	} from '../../apis/tmdb/tmdb-api';
+	import TmdbEpisodeCard from '../../components/EpisodeCard/TmdbEpisodeCard.svelte';
+	import { Selectable } from '../../selectable';
 
 	const { topVisible } = getScrollContext();
 

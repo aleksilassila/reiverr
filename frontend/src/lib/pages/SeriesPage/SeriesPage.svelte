@@ -7,10 +7,13 @@
 	import TmdbEpisodeCard from '$lib/components/EpisodeCard/TmdbEpisodeCard.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
+	import type { TitleInfoProperty } from '$lib/components/HeroShowcase/HeroTitleInfo';
+	import TitleProperties from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import { createErrorNotification } from '$lib/components/Notifications/notification.store';
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { playEpisode } from '$lib/play-media';
 	import { downloadsQueries } from '$lib/queries/downloads.queries';
 	import { libraryQueries } from '$lib/queries/library.queries';
 	import { metadataQueries } from '$lib/queries/metadata.queries';
@@ -26,11 +29,8 @@
 	import classNames from 'classnames';
 	import { Bookmark, ExternalLink, Minus, Plus, Video } from 'radix-icons-svelte';
 	import { derived } from 'svelte/store';
-	import type { TitleInfoProperty } from '../HeroTitleInfo';
-	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
-	import { playEpisode } from '../play-media';
 	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
 	import RequestsView from './RequestsView.svelte';
 

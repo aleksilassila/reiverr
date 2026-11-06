@@ -3,6 +3,8 @@
 	import type { SeasonEpisodeDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
+	import TitleProperties from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
+	import { playEpisode } from '$lib/play-media';
 	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { setEpisodeWatched, userDataQueries } from '$lib/queries/user-data.queries';
@@ -10,8 +12,6 @@
 	import Button from '../../components/Button/Button.svelte';
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
-	import TitleProperties from './HeroTitleInfo.svelte';
-	import { playEpisode } from './play-media';
 
 	export let id: string; // Series tmdbId
 	export let season: string;

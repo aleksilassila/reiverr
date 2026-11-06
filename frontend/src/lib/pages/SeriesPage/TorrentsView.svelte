@@ -2,6 +2,7 @@
 	import type { MediaFileDto, ReleaseDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import Container from '$lib/components/Container.svelte';
 	import FloatingIconButton from '$lib/components/FloatingIconButton.svelte';
+	import HeroTitleInfo from '$lib/components/HeroShowcase/HeroTitleInfo.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
@@ -9,44 +10,69 @@
 	import { downloadsQueries } from '$lib/queries/downloads.queries';
 	import { indexersQueries } from '$lib/queries/indexers.queries';
 	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { clearMovieSource, requestsQueries, setMovieSource } from '$lib/queries/requests.queries';
-	import { confirmQuota } from '$lib/quota';
+	import {
+		clearSeriesSource,
+		episodeKey,
+		requestsQueries,
+		setSeriesSource
+	} from '$lib/queries/requests.queries';
+	import { confirmQuota, expectedBytes } from '$lib/quota';
+	import { getOnServer, heldFileOf } from '$lib/request-status';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Check, Cross1, Cross2 } from 'radix-icons-svelte';
-	import HeroTitleInfo from '../HeroTitleInfo.svelte';
-	import { getOnServer, heldFileOf } from '../request-status';
 
 	export let tmdbId: string;
+	export let season: number;
+	/** Season packs are listed when there is no episode */
+	export let episode: number | undefined = undefined;
 	export let name: string;
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const requestsQuery = usePageQuery(requestsQueries.movie(tmdbId));
-	const statusQuery = usePageQuery(libraryQueries.movieStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.movieTorrents(tmdbId));
-	const releases = usePageQuery(indexersQueries.movieReleases(tmdbId));
-	$: status = $statusQuery.data;
+	const requestsQuery = usePageQuery(requestsQueries.series(tmdbId));
+	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
+	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
+	const releases = usePageQuery(indexersQueries.seriesReleases(tmdbId, season, episode));
+	$: requests = $requestsQuery.data;
+	// The requests of the season or the episode
+	$: requestList = [...(requests?.requests.values() ?? [])].filter(
+		(r) => r.season === season && (episode === undefined || r.episode === episode)
+	);
 
-	$: selection = $requestsQuery.data?.source;
-	// A torrent picked for the movie replaces the file the request has
-	$: heldFile = heldFileOf(status?.fulfilment, status?.files);
-	$: kept = !!heldFile && heldFile.infoHash !== selection?.release?.infoHash;
-	$: keptTorrent = kept && heldFile?.infoHash ? $torrents.data?.get(heldFile.infoHash) : undefined;
-	$: keptHint = !kept
+	$: selection = requests?.sources.get(episodeKey(season, episode ?? 0));
+	// An episode without a torrent of its own downloads from the season pack
+	$: seasonPack = episode === undefined ? undefined : requests?.sources.get(episodeKey(season, 0));
+	// A request that has its file keeps it when another torrent is selected for the season
+	$: kept = requestList.flatMap((r) => {
+		const file = heldFileOf($status.data?.fulfilments.get(r.id), $status.data?.files);
+		const selected =
+			requests?.sources.get(episodeKey(r.season, r.episode)) ??
+			requests?.sources.get(episodeKey(r.season, 0));
+
+		return file && file.infoHash !== selected?.release?.infoHash ? [file] : [];
+	});
+	$: keptTorrent = kept[0]?.infoHash ? $torrents.data?.get(kept[0].infoHash) : undefined;
+	$: keptHint = !kept.length
 		? ''
-		: keptTorrent
-			? `On disk from: ${keptTorrent.title}. Select a torrent or a file to replace it.`
-			: 'On disk. Select a torrent or a file to replace it.';
+		: episode === undefined
+			? `${kept.length} ${kept.length === 1 ? 'episode keeps its file' : 'episodes keep their files'}. Select a torrent for an episode to replace it.`
+			: keptTorrent
+				? `On disk from: ${keptTorrent.title}. Select a torrent or a file to replace it.`
+				: 'On disk. Select a torrent or a file to replace it.';
 
 	let error = '';
-	// The files of the movie in the library, external or imported, which the request can have instead
-	$: fileList = status?.files ?? [];
+	// The files of the episode in the library, external or imported, which a request can have instead
+	$: fileList = ($status.data?.files ?? []).filter(
+		(file) => episode !== undefined && file.season === season && file.episodes.includes(episode)
+	);
 	$: releaseList = $releases.data ?? [];
 	// The torrents that have the release already, which selecting downloads nothing anew from
-	$: onServer = getOnServer($torrents.data, status?.files);
+	$: onServer = getOnServer($torrents.data, $status.data?.files);
 
 	$: hasFiles = fileList.length > 0;
 	$: selectedFile = fileList.find((file) => file.id === selection?.mediaFileId);
@@ -73,16 +99,25 @@
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
-	/** Whether the request downloads from the release: there is one, and a new torrent replaces its file */
-	$: affected = $requestsQuery.data?.request ? 1 : 0;
+	/** The requests that would download from the release: the episode's, or those of the season without a torrent of their own that do not keep their file */
+	$: affected = requestList.filter(
+		(r) =>
+			episode !== undefined ||
+			(!requests?.sources.has(episodeKey(r.season, r.episode)) &&
+				$status.data?.fulfilments.get(r.id)?.status !== 'fulfilled')
+	);
+	$: episodesInSeason = $tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes
+		?.length;
 
 	async function select(release: ReleaseDto) {
 		error = '';
 
 		try {
-			if (!(await confirmQuota(affected * release.size))) return;
+			const bytes =
+				affected.length * expectedBytes(release.size, episode !== undefined, episodesInSeason);
+			if (!(await confirmQuota(bytes))) return;
 
-			await setMovieSource(tmdbId, { releaseId: release.id });
+			await setSeriesSource(tmdbId, season, episode, { releaseId: release.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -93,9 +128,9 @@
 		error = '';
 
 		try {
-			if (!(await confirmQuota(affected * file.size))) return;
+			if (!(await confirmQuota(affected.length * file.size))) return;
 
-			await setMovieSource(tmdbId, { mediaFileId: file.id });
+			await setSeriesSource(tmdbId, season, episode, { mediaFileId: file.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -105,7 +140,7 @@
 	async function clear() {
 		error = '';
 
-		await clearMovieSource(tmdbId)
+		await clearSeriesSource(tmdbId, season, episode)
 			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}
@@ -135,7 +170,16 @@
 		</div>
 	{/if}
 	<Container class="mx-32 mt-16">
-		<HeroTitleInfo title={name} overview="" properties={[{ label: 'Files and torrents' }]} />
+		<HeroTitleInfo
+			title={name}
+			overview=""
+			properties={[{ label: episode === undefined ? 'Season packs' : 'Files and torrents' }]}
+		/>
+		{#if seasonPack && !selection}
+			<div class="text-lg font-medium text-secondary-500 mt-4 line-clamp-1">
+				From the season pack: {seasonPack.release?.title}
+			</div>
+		{/if}
 		{#if keptHint}
 			<div class="text-lg font-medium text-secondary-500 mt-1 line-clamp-1">{keptHint}</div>
 		{/if}
@@ -261,7 +305,9 @@
 			</div>
 			{#if !releaseList.length}
 				<div class="text-2xl font-medium text-secondary-400 my-8">
-					No torrents found for this movie.
+					{episode === undefined
+						? 'No season packs found for this season.'
+						: 'No torrents found for this episode.'}
 				</div>
 			{/if}
 		{/if}

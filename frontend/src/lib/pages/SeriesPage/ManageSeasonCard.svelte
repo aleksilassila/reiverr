@@ -1,11 +1,11 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import type { Readable } from 'svelte/store';
-	import AnimateScale from '../../../components/AnimateScale.svelte';
+	import AnimateScale from '../../components/AnimateScale.svelte';
 	import classNames from 'classnames';
 	import { Plus } from 'radix-icons-svelte';
-	import { getCardDimensions } from '../../../utils';
-	import IconOverlay from '../../../components/IconOverlay.svelte';
+	import { getCardDimensions } from '../../utils';
+	import IconOverlay from '../../components/IconOverlay.svelte';
 
 	export let backdropUrl: string;
 
