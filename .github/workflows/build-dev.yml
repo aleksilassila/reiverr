@@ -3,7 +3,7 @@ name: Build Dev
 on:
   push:
     branches:
-      - dev
+      - v2-dev
   workflow_dispatch:
 
 env:
@@ -33,7 +33,7 @@ jobs:
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml build
 
       - name: Add tag
-        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:dev
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:v2-dev
 
       - name: Push to Docker Hub
-        run: docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:dev
+        run: docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:v2-dev

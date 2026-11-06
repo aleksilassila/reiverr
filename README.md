@@ -4,7 +4,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/aleksilassila/reiverr)
 ![Discord](https://img.shields.io/discord/923259625145524354)
 ![Version](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/latest_tag?color=%2344cc11&ignore=latest&label=version&trim=)
-![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=latest&label=image+size&trim=)
+![Size](https://ghcr-badge.egpl.dev/aleksilassila/reiverr/size?color=%2344cc11&tag=v2-latest&label=image+size&trim=)
 
 Reiverr is a project that aims to create a single UI for interacting with TMDB, streaming content from various sources and be an alternative to Overseerr.
 
@@ -12,9 +12,11 @@ This project is still in early stages, and many features are still missing / bei
 
 ![Demo Video](images/reiverr-demo.gif)
 
-## Reiverr 1.0
+## Versions
 
-This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind. It still lacks many features of the previous version. If you want a more stable experience, or only care about the web app, you might want to check out the [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0) for now.
+This is the page for Reiverr 2.0, which is a rewrite of the project with TVs in mind. The latest version is on `master` and `dev`. For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see the [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0).
+
+> [!WARNING] This version is unmaintained and might contain old packages. Migrating to v3 is recommended.
 
 # List of major features
 
@@ -47,7 +49,7 @@ docker run -it --init \
   -p 9494:9494 \
   -v /path/to/appdata/config:/config \
   -v /path/to/appdata/plugins:/plugins \
-  ghcr.io/aleksilassila/reiverr:latest
+  ghcr.io/aleksilassila/reiverr:v2-latest
 ```
 
 ### Docker compose
@@ -59,7 +61,7 @@ name: reiverr
 
 services:
   reiverr:
-    image: ghcr.io/aleksilassila/reiverr:latest
+    image: ghcr.io/aleksilassila/reiverr:v2-latest
     container_name: reiverr
     ports:
       - 9494:9494
@@ -78,7 +80,7 @@ services:
 1. Requirements(ish):
    - Node v18.14.0 or higher
    - NPM v9.3.1 or higher
-2. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
+2. Clone the **v2** branch or download a [2.x release](https://github.com/aleksilassila/reiverr/releases)
 3. Build & run the app:\
    `npm install`\
    `npm install --prefix backend`\
@@ -133,7 +135,7 @@ Before you contribute:
 - If the ticket is vague or missing information, please ask for clarification in the comments.
 - UI style should match the rest of the project, and it is a good idea to discuss the design beforehand, especially for larger design choices (issues labelled with `design`).
 - [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) are encouraged.
-- When creating a pull request, please make sure to target the `dev` branch and mark the PR as a draft if it is a work in progress.
+- When creating a pull request, please make sure to target the `v2-dev` branch and mark the PR as a draft if it is a work in progress.
 
 I'm not a designer, so if you have any ideas for improving the UI, I'd love to learn about them. If you are a designer and would like to help, contributions are much appreciated! Also the project is still missing a logo :)
 
@@ -142,7 +144,7 @@ I'm not a designer, so if you have any ideas for improving the UI, I'd love to l
 To get started with development:
 
 1. Clone the repository
-2. Check out the `dev` branch
+2. Check out the `v2-dev` branch
 3. Install dependencies\
    `npm install`\
    `npm install --prefix backend`

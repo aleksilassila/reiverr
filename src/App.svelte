@@ -46,7 +46,10 @@
 		return axios
 			.get('https://api.github.com/repos/aleksilassila/reiverr/releases')
 			.then(
-				(res) => res.data?.find((v: { tag_name: string }) => v.tag_name.startsWith('v2'))?.tag_name
+				(res) =>
+					res.data?.find(
+						(v: { tag_name: string }) => v.tag_name.startsWith('v2') || v.tag_name.startsWith('v3')
+					)?.tag_name
 			);
 	}
 

@@ -3,7 +3,7 @@ name: Build & Deploy
 on:
   push:
     tags:
-      - v*
+      - v2*
   workflow_dispatch:
 
     # branches:
@@ -60,6 +60,9 @@ jobs:
       - name: Add tag
         run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
 
+      - name: Add v2-latest tag
+        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:v2-latest
+
       #      - name: Add tag
       #        run: docker tag ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{github.sha}}
 
@@ -69,4 +72,4 @@ jobs:
       - name: Push to Docker Hub
         run: |
           docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:${{env.TAG}}
-          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:latest
+          docker push ${{env.REGISTRY}}/${{env.IMAGE_NAME}}:v2-latest
