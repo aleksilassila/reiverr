@@ -1,9 +1,21 @@
 import { Dirent, promises as fs } from 'fs';
 import * as path from 'path';
 import type { DiskUsageDto } from './library.dto.js';
+import { isVideoFile } from './library.utils.js';
 
 // How many files are looked at at a time
 export const STAT_BATCH_SIZE = 64;
+
+// Title folder -> season folder -> file is the deepest layout Radarr and Sonarr produce
+const MAX_DEPTH = 3;
+
+/** A video file on disk */
+export interface FoundFile {
+  path: string;
+  name: string;
+  size: number;
+  modifiedAt: Date;
+}
 
 export const byName = (a: Dirent, b: Dirent) => a.name.localeCompare(b.name);
 
@@ -57,7 +69,7 @@ export const entryExists = (filePath: string) =>
   );
 
 /** Whether an indexed file is no longer a file at its path */
-export const isNoLongerFile = (filePath: string) =>
+const isNoLongerFile = (filePath: string) =>
   fs.stat(filePath).then(
     (stats) => !stats.isFile(),
     () => true,
@@ -77,4 +89,46 @@ export async function filterGone<T extends { path: string }>(
   }
 
   return gone;
+}
+
+/**
+ * The video files under a title folder. A directory that cannot be read is
+ * up to `onUnreadable`: skipped when it returns, and failing the walk when it
+ * throws.
+ */
+export async function walkVideoFiles(
+  dir: string,
+  onUnreadable: (dir: string, error: Error) => void,
+  depth = MAX_DEPTH,
+): Promise<FoundFile[]> {
+  const files: FoundFile[] = [];
+
+  const entries = await readDirectory(dir).catch((error: Error) => {
+    onUnreadable(dir, error);
+    return [];
+  });
+  for (const entry of entries) {
+    const entryPath = path.join(dir, entry.name);
+
+    if (await isDirectory(entry, dir)) {
+      if (depth > 1) {
+        files.push(
+          ...(await walkVideoFiles(entryPath, onUnreadable, depth - 1)),
+        );
+      }
+    } else if (isVideoFile(entry.name)) {
+      // A link that leads nowhere is not a file
+      const stats = await fs.stat(entryPath).catch(() => undefined);
+      if (!stats?.isFile()) continue;
+
+      files.push({
+        path: entryPath,
+        name: entry.name,
+        size: stats.size,
+        modifiedAt: stats.mtime,
+      });
+    }
+  }
+
+  return files;
 }
