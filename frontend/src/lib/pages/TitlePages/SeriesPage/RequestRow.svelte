@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ListRow from '$lib/components/ListRow.svelte';
 	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
+	import StatusTags from '$lib/components/StatusTags.svelte';
+	import type { MediaStatusTags } from '$lib/queries/request-status';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -10,6 +12,8 @@
 	export let subtitleDimmed = false;
 	export let status = '';
 	export let isError = false;
+	/** Of an episode or a movie, which has no status line */
+	export let statusTags: MediaStatusTags = {};
 	export let checked = false;
 	export let partiallyChecked = false;
 
@@ -53,6 +57,7 @@
 				</div>
 			{/if}
 		</div>
+		<StatusTags tags={statusTags} direction="right" class="flex-shrink-0 ml-4" />
 		{#if status}
 			<div
 				class={classNames(

@@ -5,6 +5,7 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { createModal } from '$lib/components/Modal/modal.store';
 	import { Sheet } from '$lib/components/Sheet';
+	import StatusTags from '$lib/components/StatusTags.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import {
@@ -41,6 +42,7 @@
 		episode
 	);
 	$: onDisk = requestStatus.onDisk;
+	$: statusTags = requestStatus.tags;
 
 	async function play() {
 		componentStack.close();
@@ -85,7 +87,16 @@
 <Sheet size="lg" on:close={() => componentStack.close()}>
 	<div class="text-secondary-400 font-medium text-lg">Season {season} Episode {episode}</div>
 	<h1 class="h3 mb-2">{name}</h1>
-	<p class="body mb-8">{requestStatus.label ?? 'Not requested'}</p>
+	<div class="mb-8">
+		{#if statusTags.primary || statusTags.secondary}
+			<StatusTags tags={statusTags} />
+			{#if statusTags.primary?.detail}
+				<p class="body mt-2">{statusTags.primary.detail}</p>
+			{/if}
+		{:else}
+			<p class="body">Not requested</p>
+		{/if}
+	</div>
 
 	<Container class="flex flex-col space-y-4">
 		{#if onDisk}

@@ -27,21 +27,28 @@
 	import SelectButtonGroup from '$lib/components/SelectButtonGroup.svelte';
 	import SelectField from '$lib/components/SelectField.svelte';
 	import SelectItem from '$lib/components/SelectItem.svelte';
+	import StatusTags from '$lib/components/StatusTags.svelte';
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useTabs } from '$lib/components/Tab/Tab';
 	import Tab from '$lib/components/Tab/Tab.svelte';
 	import TabContainer from '$lib/components/Tab/TabContainer.svelte';
 	import TabItem from '$lib/components/Tab/TabItem.svelte';
+	import Tag from '$lib/components/Tag.svelte';
 	import TextField from '$lib/components/TextField.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { GIGABYTE } from '$lib/utils';
+	import type { StatusTag } from '$lib/queries/request-status';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import {
 		ArrowRight,
 		Bookmark,
+		Check,
 		ChevronDown,
+		Clock,
 		Download,
+		ExclamationTriangle,
+		File,
 		Heart,
 		Plus,
 		Trash,
@@ -136,31 +143,73 @@
 	let smallChecked = false;
 	let text = '';
 	let backdrop = 0;
+	const TAG_SIZES: ('md' | 'sm')[] = ['md', 'sm'];
+	const FULFILLED: StatusTag = { label: 'Fulfilled', icon: Check, type: 'default' };
+	const NOT_NEEDED: StatusTag = { label: 'Not needed', icon: Clock, type: 'secondary' };
+	const DOWNLOADING: StatusTag = {
+		label: 'Downloading 42%',
+		shortLabel: '42%',
+		icon: Download,
+		type: 'progress'
+	};
+	const FAILED: StatusTag = {
+		label: 'Not in torrent',
+		detail: 'The torrent has no file for this episode',
+		icon: ExclamationTriangle,
+		type: 'error'
+	};
+	const ON_DISK: StatusTag = { label: 'On disk', icon: File, type: 'secondary' };
+	const CLEANUP: StatusTag = {
+		label: 'Deleted in 6h',
+		shortLabel: '6h',
+		icon: Trash,
+		type: 'error'
+	};
+
 	let rows = [
 		{
-			title: 'S1E1 - On disk',
+			title: 'S1E1 - Fulfilled',
 			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
-			status: 'On disk',
+			statusTags: { primary: FULFILLED },
 			checked: true
 		},
 		{
-			title: 'S1E2 - Downloading',
+			title: 'S1E2 - Downloading, with another file on disk',
 			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
-			status: 'Downloading 42%',
+			statusTags: { primary: DOWNLOADING, secondary: ON_DISK },
 			checked: true
 		},
 		{
-			title: 'S1E3 - Failed',
+			title: 'S1E3 - Failed, with a file the cleanup deletes',
 			subtitle: 'Some.Show.S01E03.1080p.WEB-DL.x264-GROUP',
-			status: 'No file of the episode in the torrent',
-			isError: true,
+			statusTags: { primary: FAILED, secondary: CLEANUP },
 			checked: true
 		},
 		{
-			title: 'S1E4 - Not requested',
+			title: 'S1E4 - Not needed',
+			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
+			statusTags: { primary: NOT_NEEDED },
+			checked: true
+		},
+		{
+			title: 'S1E5 - Not requested, on disk',
 			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
 			subtitleDimmed: true,
-			status: '',
+			statusTags: { secondary: ON_DISK },
+			checked: false
+		},
+		{
+			title: 'S1E6 - Not requested, deleted by the cleanup',
+			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
+			subtitleDimmed: true,
+			statusTags: { secondary: CLEANUP },
+			checked: false
+		},
+		{
+			title: 'S1E7 - Not requested',
+			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
+			subtitleDimmed: true,
+			statusTags: {},
 			checked: false
 		}
 	];
@@ -426,10 +475,46 @@
 	</section>
 
 	<section class="space-y-8">
+		<h2 class="h2">Tags</h2>
+		{#each TAG_SIZES as size (size)}
+			<div class="flex items-center space-x-4">
+				<Tag {size} label="Default" />
+				<Tag {size} label="Default" icon={Check} />
+				<Tag {size} label="Secondary" icon={Clock} type="secondary" />
+				<Tag {size} label="Progress" icon={Download} type="progress" />
+				<Tag {size} label="Error" icon={Trash} type="error" />
+				<Tag {size} icon={Check} />
+				<Tag {size} icon={File} type="secondary" />
+				<Tag {size} icon={Download} type="progress" />
+				<Tag {size} icon={Trash} type="error" />
+			</div>
+		{/each}
+		<p class="body">
+			The status of an episode or a movie: the tag of its request, and the tag of its files, which
+			is collapsed next to the first.
+		</p>
+		{#each TAG_SIZES as size (size)}
+			<div class="flex items-center space-x-8">
+				{#each rows as row (row.title)}
+					<StatusTags {size} tags={row.statusTags} />
+				{/each}
+			</div>
+		{/each}
+		<p class="body">Aligned to the right, the tag of the request stays at the edge.</p>
+		{#each TAG_SIZES as size (size)}
+			<div class="flex items-center space-x-8">
+				{#each rows as row (row.title)}
+					<StatusTags {size} direction="right" tags={row.statusTags} />
+				{/each}
+			</div>
+		{/each}
+	</section>
+
+	<section class="space-y-8">
 		<h2 class="h2">Request rows</h2>
 		<Container class="space-y-2">
 			<RequestRow
-				title="Season 1 (4 episodes)"
+				title="Season 1 (7 episodes)"
 				subtitle="Season pack: Some.Show.S01.1080p.WEB-DL.x264-GROUP"
 				status="12 peers, 3.4 MB/s"
 				checked={allChecked}
@@ -666,7 +751,7 @@
 			</Container>
 			<Container class="space-y-4">
 				<RequestRow
-					title="Season 1 (4 episodes)"
+					title="Season 1 (7 episodes)"
 					subtitle="Season pack: Some.Show.S01.1080p.WEB-DL.x264-GROUP"
 					status="12 peers, 3.4 MB/s"
 					checked={allChecked}

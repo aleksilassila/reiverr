@@ -10,11 +10,12 @@ import { queryOptions } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
 import {
-	getStatusLabel,
+	findDownload,
+	getStatusTags,
 	heldFileOf,
-	isErrorStatus,
 	torrentItemOf,
 	liveRefetchInterval,
+	type MediaStatusTags,
 	type TitleTorrents,
 	toTitleTorrents
 } from './request-status';
@@ -165,8 +166,7 @@ export type MovieRequestStatus = {
 	infoHash?: string;
 	/** The name of that torrent, or of the file selected for the movie */
 	sourceName?: string;
-	label?: string;
-	isError: boolean;
+	tags: MediaStatusTags;
 };
 
 export function getMovieRequestStatus({
@@ -184,21 +184,22 @@ export function getMovieRequestStatus({
 	const file = selected?.mediaFileId
 		? files.find((file) => file.id === selected.mediaFileId)
 		: undefined;
-	const mediaStatus = {
-		request: requests?.request,
-		source: selected,
-		fulfilment,
-		files,
-		torrent,
-		torrentItem: torrentItemOf(torrent, 0, 0)
-	};
+	// Without a request, the movie may download for someone else
+	const download = requests?.request
+		? { torrent, torrentItem: torrentItemOf(torrent, 0, 0) }
+		: findDownload(torrents, 0, 0);
 
 	return {
 		requested: !!requests?.request,
 		onDisk: files.length > 0,
 		infoHash,
 		sourceName: torrent?.title ?? release?.title ?? file?.fileName,
-		label: getStatusLabel(mediaStatus),
-		isError: isErrorStatus(mediaStatus)
+		tags: getStatusTags({
+			request: requests?.request,
+			source: selected,
+			fulfilment,
+			files,
+			...download
+		})
 	};
 }

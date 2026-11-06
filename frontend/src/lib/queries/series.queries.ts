@@ -17,11 +17,12 @@ import { queryOptions, skipToken } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
 import { invalidate } from './query-client';
 import {
-	getStatusLabel,
+	findDownload,
+	getStatusTags,
 	heldFileOf,
-	isErrorStatus,
 	torrentItemOf,
 	liveRefetchInterval,
+	type MediaStatusTags,
 	type TitleTorrents,
 	toTitleTorrents
 } from './request-status';
@@ -251,8 +252,7 @@ export type EpisodeRequestStatus = {
 	sourceName?: string;
 	/** The torrent is the season pack, which was not selected for this episode */
 	isSeasonPack: boolean;
-	label?: string;
-	isError: boolean;
+	tags: MediaStatusTags;
 };
 
 export function getEpisodeRequestStatus(
@@ -278,14 +278,10 @@ export function getEpisodeRequestStatus(
 		? data.status?.files.find((file) => file.id === own.mediaFileId)
 		: undefined;
 
-	const status = {
-		request,
-		source: selected,
-		fulfilment,
-		files,
-		torrent,
-		torrentItem: torrentItemOf(torrent, season, episode)
-	};
+	// Without a request, the episode may download for someone else
+	const download = request
+		? { torrent, torrentItem: torrentItemOf(torrent, season, episode) }
+		: findDownload(data.torrents, season, episode);
 
 	return {
 		requested: !!request,
@@ -293,8 +289,7 @@ export function getEpisodeRequestStatus(
 		infoHash,
 		sourceName: torrent?.title ?? release?.title ?? file?.fileName,
 		isSeasonPack: !own && !!infoHash && infoHash === seasonPack?.release?.infoHash,
-		label: getStatusLabel(status),
-		isError: isErrorStatus(status)
+		tags: getStatusTags({ request, source: selected, fulfilment, files, ...download })
 	};
 }
 

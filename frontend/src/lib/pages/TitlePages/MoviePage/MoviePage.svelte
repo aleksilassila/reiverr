@@ -128,9 +128,13 @@
 		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
 	}
 
-	// The status of the request of the user, or what is on disk, first among the properties
-	$: statusLabel = requestStatus.label;
-	$: heroProperties = statusLabel ? [{ label: statusLabel }, ...titleProperties] : titleProperties;
+	// The status of the request of the user and what is on disk, first among the properties
+	$: heroProperties = [
+		...[requestStatus.tags.primary, requestStatus.tags.secondary].flatMap((tag) =>
+			tag ? [{ label: tag.label }] : []
+		),
+		...titleProperties
+	];
 
 	async function play() {
 		if (!movie) return;

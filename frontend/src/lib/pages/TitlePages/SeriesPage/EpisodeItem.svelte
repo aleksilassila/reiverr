@@ -14,8 +14,7 @@
 <RequestRow
 	subtitle={status.sourceName}
 	subtitleDimmed={status.isSeasonPack}
-	status={status.label}
-	isError={status.isError}
+	statusTags={status.tags}
 	checked={status.requested}
 	on:toggle
 	on:open

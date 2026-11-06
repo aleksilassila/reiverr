@@ -341,7 +341,7 @@
 						{#key episode.id}
 							<TmdbEpisodeCard
 								{episode}
-								requestStatus={requestStatus.isError ? 'Download failed' : requestStatus.label}
+								statusTags={requestStatus.tags}
 								series={tmdbSeries}
 								on:mount={(e) =>
 									onEpisodeMount(e.detail, episode.season_number ?? 1, episode.episode_number ?? 1)}

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import type { MediaStatusTags } from '$lib/queries/request-status';
 	import classNames from 'classnames';
 	import { Check, DotsVertical } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';
 	import { getCardDimensions } from '../../utils';
 	import AnimateScale from '../AnimateScale.svelte';
 	import Container from '../Container.svelte';
+	import StatusTags from '../StatusTags.svelte';
 
 	export let episodeNumber: number;
 	export let episodeName: string;
@@ -14,7 +16,7 @@
 	export let progress = 0;
 	export let runtime = 0;
 	export let releaseDate = 0;
-	export let requestStatus: string | undefined = undefined;
+	export let statusTags: MediaStatusTags = {};
 	/** Opens the actions of the episode: a long press on the remote, or the dots that show on hover */
 	export let onLongPress: (() => void) | undefined = undefined;
 
@@ -170,11 +172,7 @@
 			</h2>
 		</div>
 		<div class="self-end flex-shrink-0 ml-2">
-			{#if requestStatus}
-				<div class="text-xs bg-primary-500/25 text-primary-300 px-2 py-1 rounded-full">
-					{requestStatus}
-				</div>
-			{/if}
+			<StatusTags tags={statusTags} size="sm" direction="right" />
 			<!-- <div class="text-secondary-300 font-medium">
 				{#if releaseDate > 0 && releaseDate > Date.now()}
 					{new Date(releaseDate).toLocaleDateString('en-US', {

@@ -161,8 +161,7 @@
 			{#if movie}
 				<RequestRow
 					subtitle={requestStatus.sourceName ?? 'No torrent selected'}
-					status={requestStatus.label}
-					isError={requestStatus.isError}
+					statusTags={requestStatus.tags}
 					checked={requestStatus.requested}
 					on:toggle={() =>
 						request(!requestStatus.requested).catch((e) =>
