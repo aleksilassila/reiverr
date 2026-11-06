@@ -38,7 +38,7 @@
 	import Toggle from '$lib/components/Toggle.svelte';
 	import { scrollIntoView } from '$lib/selectable';
 	import { GIGABYTE } from '$lib/utils';
-	import type { StatusTag } from '$lib/queries/request-status';
+	import type { StatusTag } from '$lib/components/status-tags';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import {
 		ArrowRight,

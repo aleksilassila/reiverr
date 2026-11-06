@@ -6,7 +6,7 @@ const ENTRIES_PAGE_SIZE = 50;
 
 export const serverLogKeys = {
 	all: ['server-log'] as const,
-	entries: (type: LogEntryDto['type'] | undefined) => ['server-log', { type }] as const
+	entries: (type: LogEntryDto['type'] | undefined) => [...serverLogKeys.all, { type }] as const
 };
 
 export const serverLogQueries = {

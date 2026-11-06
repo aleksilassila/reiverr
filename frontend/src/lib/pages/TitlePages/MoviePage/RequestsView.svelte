@@ -8,19 +8,22 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
+	import { usePageQuery } from '$lib/queries/page-query';
 	import {
-		getMovieRequestStatus,
-		movieQueries,
+		requestsQueries,
 		setMovieRequested,
 		updateMovieRequestRule
-	} from '$lib/queries/movie.queries';
-	import { usePageQuery } from '$lib/queries/page-query';
+	} from '$lib/queries/requests.queries';
 	import { storageQueries } from '$lib/queries/storage.queries';
 	import { confirmQuota } from '$lib/quota';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import RequestRow from '../SeriesPage/RequestRow.svelte';
+	import { getMovieRequestStatus } from './movie-status';
 	import TorrentsView from './TorrentsView.svelte';
 
 	export let tmdbId: string;
@@ -39,10 +42,10 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const tmdbMovie = usePageQuery(movieQueries.metadata(tmdbId));
-	const requests = usePageQuery(movieQueries.requests(tmdbId));
-	const statusQuery = usePageQuery(movieQueries.status(tmdbId));
-	const torrents = usePageQuery(movieQueries.torrents(tmdbId));
+	const tmdbMovie = usePageQuery(metadataQueries.movie(tmdbId));
+	const requests = usePageQuery(requestsQueries.movie(tmdbId));
+	const statusQuery = usePageQuery(libraryQueries.movieStatus(tmdbId));
+	const torrents = usePageQuery(downloadsQueries.movieTorrents(tmdbId));
 	const storage = usePageQuery(storageQueries.user());
 	$: movie = $tmdbMovie.data;
 	$: status = $statusQuery.data;

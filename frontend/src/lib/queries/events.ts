@@ -1,18 +1,18 @@
 import type { Session } from '$lib/stores/session.store';
 import type { QueryKey } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
-import { movieKeys } from './movie.queries';
-import { invalidate, queryClient } from './query-client';
-import { seriesKeys } from './series.queries';
+import { downloadsKeys } from './downloads.queries';
+import { libraryKeys } from './library.queries';
+import { invalidate, queryClient, type MediaType } from './query-client';
+import { requestsChangedKeys } from './requests.queries';
 import { serverKeys } from './server.queries';
 import { storageKeys } from './storage.queries';
 
 /** A burst of events from one change becomes one refetch */
 const DEBOUNCE = 250;
 
-type Title = { mediaType: 'movie' | 'series'; tmdbId: string };
+type Title = { mediaType: MediaType; tmdbId: string };
 
-const keysOf = (title: Title) => (title.mediaType === 'movie' ? movieKeys : seriesKeys);
 const titleOf = (event: MessageEvent): Title => JSON.parse(event.data);
 
 let source: EventSource | undefined;
@@ -51,24 +51,22 @@ export function connectEvents(session: Session | undefined) {
 		wasOpen = true;
 	};
 	events.addEventListener('requests', (event) => {
-		const title = titleOf(event);
-		const keys = keysOf(title);
-		queue(keys.requests(title.tmdbId), keys.status(title.tmdbId), storageKeys.all, catalogKeys.all);
+		const { mediaType, tmdbId } = titleOf(event);
+		queue(...requestsChangedKeys(mediaType, tmdbId));
 	});
 	events.addEventListener('library', (event) => {
-		const title = titleOf(event);
-		const keys = keysOf(title);
+		const { mediaType, tmdbId } = titleOf(event);
 		queue(
-			keys.status(title.tmdbId),
-			keys.files(title.tmdbId),
+			libraryKeys.status(mediaType, tmdbId),
+			libraryKeys.files(mediaType, tmdbId),
 			storageKeys.all,
 			catalogKeys.all,
 			serverKeys.library()
 		);
 	});
 	events.addEventListener('downloads', (event) => {
-		const title = titleOf(event);
-		queue(keysOf(title).torrents(title.tmdbId), catalogKeys.downloads());
+		const { mediaType, tmdbId } = titleOf(event);
+		queue(downloadsKeys.torrents(mediaType, tmdbId), catalogKeys.downloads());
 	});
 	events.addEventListener('storage', () => queue(storageKeys.all));
 	source = events;

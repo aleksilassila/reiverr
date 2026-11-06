@@ -7,16 +7,19 @@
 	import { Sheet } from '$lib/components/Sheet';
 	import StatusTags from '$lib/components/StatusTags.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
+	import { requestsQueries } from '$lib/queries/requests.queries';
 	import {
-		getEpisodeData,
-		getEpisodeRequestStatus,
-		seriesQueries,
 		setEpisodesWatched,
-		setEpisodeWatched
-	} from '$lib/queries/series.queries';
+		setEpisodeWatched,
+		userDataQueries
+	} from '$lib/queries/user-data.queries';
 	import { Check, Play } from 'radix-icons-svelte';
 	import { playEpisode } from '../play-media';
+	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 
 	export let tmdbId: string;
 	export let season: number;
@@ -26,11 +29,11 @@
 
 	const componentStack = useComponentStack();
 	const { playMedia } = backgroundContext.getContext();
-	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
-	const seriesUserData = usePageQuery(seriesQueries.userData(tmdbId));
-	const requests = usePageQuery(seriesQueries.requests(tmdbId));
-	const status = usePageQuery(seriesQueries.status(tmdbId));
-	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
+	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
+	const seriesUserData = usePageQuery(userDataQueries.series(tmdbId));
+	const requests = usePageQuery(requestsQueries.series(tmdbId));
+	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
 
 	$: episodesData = getEpisodeData($tmdbSeries.data, $seriesUserData.data);
 	$: userData = episodesData.episodes.find((e) => e.season === season && e.episode === episode);

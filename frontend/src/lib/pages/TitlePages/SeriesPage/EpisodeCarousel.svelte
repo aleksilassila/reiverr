@@ -3,7 +3,7 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView } from '$lib/selectable';
-	import type { EpisodeUserData } from '$lib/queries/series.queries';
+	import type { EpisodeUserData } from './episode-status';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
 	import { onDestroy } from 'svelte';

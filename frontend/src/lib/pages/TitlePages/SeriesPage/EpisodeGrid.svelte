@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import { scrollIntoView } from '$lib/selectable';
-	import type { EpisodeUserData } from '$lib/queries/series.queries';
+	import type { EpisodeUserData } from './episode-status';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
 	import type { Readable } from 'svelte/store';

@@ -10,14 +10,17 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB } from '$lib/constants';
-	import {
-		getMovieRequestStatus,
-		movieQueries,
-		setMovieInMyList,
-		setMovieWatched
-	} from '$lib/queries/movie.queries';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
+	import { requestsQueries } from '$lib/queries/requests.queries';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
+	import {
+		setMovieInMyList,
+		setMovieWatched,
+		userDataQueries
+	} from '$lib/queries/user-data.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
@@ -27,6 +30,7 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
 	import { playMovie } from '../play-media';
+	import { getMovieRequestStatus } from './movie-status';
 	import RequestsView from './RequestsView.svelte';
 
 	export let id: string;
@@ -34,11 +38,11 @@
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
 
-	const tmdbMovie = usePageQuery(movieQueries.metadata(id));
-	const userData = usePageQuery(movieQueries.userData(id));
-	const requests = usePageQuery(movieQueries.requests(id));
-	const statusQuery = usePageQuery(movieQueries.status(id));
-	const torrents = usePageQuery(movieQueries.torrents(id));
+	const tmdbMovie = usePageQuery(metadataQueries.movie(id));
+	const userData = usePageQuery(userDataQueries.movie(id));
+	const requests = usePageQuery(requestsQueries.movie(id));
+	const statusQuery = usePageQuery(libraryQueries.movieStatus(id));
+	const torrents = usePageQuery(downloadsQueries.movieTorrents(id));
 	$: movie = $tmdbMovie.data;
 	$: status = $statusQuery.data;
 	$: requestStatus = getMovieRequestStatus({

@@ -3,9 +3,9 @@ import type {
 	MediaFileDto,
 	MediaRequestDto,
 	RequestSourceDto,
-	TorrentItemDto,
-	TorrentWithItemsDto
+	TorrentItemDto
 } from '$lib/apis/reiverr/reiverr.openapi';
+import { progressOf, type TorrentDto } from '$lib/queries/downloads.queries';
 import {
 	Check,
 	Clock,
@@ -19,12 +19,6 @@ import {
 	Update
 } from 'radix-icons-svelte';
 import type { ComponentType } from 'svelte';
-
-/** A torrent as the engine has it, without its torrent items */
-export type TorrentDto = Omit<TorrentWithItemsDto, 'torrentItems'>;
-
-/** The torrents of a title as the engine has them, by info hash */
-export type TitleTorrents = Map<string, TorrentWithItemsDto>;
 
 /** What the tags of an episode or a movie are made from */
 type StatusTagsInput = {
@@ -61,80 +55,6 @@ export type MediaStatusTags = {
 	primary?: StatusTag;
 	secondary?: StatusTag;
 };
-
-/** How often the torrents of a title are fetched: while one runs, else only when the server says they changed */
-export const LIVE_REFRESH_INTERVAL = 3000;
-
-export const toTitleTorrents = (torrents: TorrentWithItemsDto[]): TitleTorrents =>
-	new Map(torrents.map((torrent) => [torrent.infoHash, torrent]));
-
-const isRunning = (torrent: TorrentDto) =>
-	torrent.status === 'starting' || torrent.status === 'downloading' || torrent.status === 'seeding';
-
-export function liveRefetchInterval(query: {
-	state: { data?: TorrentWithItemsDto[] };
-}): number | false {
-	return query.state.data?.some(isRunning) ? LIVE_REFRESH_INTERVAL : false;
-}
-
-/** The torrent item a torrent has for an episode, or for a movie with season and episode 0 */
-export function torrentItemOf(
-	torrent: TorrentWithItemsDto | undefined,
-	season: number,
-	episode: number
-): TorrentItemDto | undefined {
-	return torrent?.torrentItems.find(
-		(torrentItem) => torrentItem.season === season && torrentItem.episode === episode
-	);
-}
-
-/** A torrent that has data on the server, or that something is wanted of: selecting it downloads nothing anew */
-export const isOnServer = (torrent: TorrentDto) =>
-	torrent.downloadedBytes > 0 || isRunning(torrent);
-
-/** The torrents of a title that are on the server, and the ones its files came from, by info hash */
-export function getOnServer(
-	torrents: TitleTorrents | undefined,
-	files: { infoHash?: string }[] | undefined
-): Set<string> {
-	return new Set([
-		...[...(torrents?.values() ?? [])].filter(isOnServer).map((torrent) => torrent.infoHash),
-		...(files ?? []).flatMap((file) => (file.infoHash ? [file.infoHash] : []))
-	]);
-}
-
-/** The torrent items that are on their way to the library */
-const isDownloading = (torrentItem: TorrentItemDto) =>
-	torrentItem.status === 'resolving' ||
-	torrentItem.status === 'downloading' ||
-	torrentItem.status === 'complete';
-
-const progressOf = (torrentItem: TorrentItemDto) =>
-	torrentItem.status === 'complete' ? 1 : (torrentItem.progress ?? 0);
-
-/** The torrent that downloads an episode, or a movie with season and episode 0, for anyone, with its torrent item: the one that is furthest */
-export function findDownload(
-	torrents: TitleTorrents | undefined,
-	season: number,
-	episode: number
-): { torrent: TorrentDto; torrentItem: TorrentItemDto } | undefined {
-	return [...(torrents?.values() ?? [])]
-		.flatMap((torrent) => {
-			const torrentItem = torrentItemOf(torrent, season, episode);
-			return torrentItem && isDownloading(torrentItem) ? [{ torrent, torrentItem }] : [];
-		})
-		.sort((a, b) => progressOf(b.torrentItem) - progressOf(a.torrentItem))[0];
-}
-
-/** The file a request has */
-export function heldFileOf(
-	fulfilment: FulfilmentStatusDto | undefined,
-	files: MediaFileDto[] | undefined
-): MediaFileDto | undefined {
-	return fulfilment?.mediaFileId
-		? files?.find((file) => file.id === fulfilment.mediaFileId)
-		: undefined;
-}
 
 function formatTimeUntil(date: string): string {
 	const hours = Math.max(1, Math.ceil((new Date(date).getTime() - Date.now()) / 3_600_000));

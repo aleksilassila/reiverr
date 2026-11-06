@@ -2,19 +2,19 @@ import type { DeleteLibraryEntriesDto, LibraryEntriesDto } from '$lib/apis/reive
 import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
 import { catalogKeys } from './catalog.queries';
-import { movieKeys } from './movie.queries';
+import { libraryKeys } from './library.queries';
 import { invalidate } from './query-client';
+import { requestsKeys } from './requests.queries';
 import { serverLogKeys } from './server-log.queries';
-import { seriesKeys } from './series.queries';
 import { storageKeys } from './storage.queries';
 
 export const serverKeys = {
 	all: ['server'] as const,
 	/** Every folder listing: what a change of the files on the server invalidates */
-	library: () => ['server', 'library'] as const,
-	libraryEntries: (folder: string) => ['server', 'library', folder] as const,
-	cleanupPreview: () => ['server', 'cleanup'] as const,
-	directories: (path: string) => ['server', 'directories', path] as const
+	library: () => [...serverKeys.all, 'library'] as const,
+	libraryEntries: (folder: string) => [...serverKeys.library(), folder] as const,
+	cleanupPreview: () => [...serverKeys.all, 'cleanup'] as const,
+	directories: (path: string) => [...serverKeys.all, 'directories', path] as const
 };
 
 export const serverQueries = {
@@ -38,14 +38,14 @@ export const serverQueries = {
 		})
 };
 
-/** What the files on the server change: the files, the lists, the usage, the titles and the log */
+/** What the files on the server change: the files, the lists, the usage, the requests, the library and the log */
 const filesChanged = () =>
 	invalidate(
 		serverKeys.all,
 		catalogKeys.all,
 		storageKeys.all,
-		seriesKeys.all,
-		movieKeys.all,
+		requestsKeys.all,
+		libraryKeys.all,
 		serverLogKeys.all
 	);
 

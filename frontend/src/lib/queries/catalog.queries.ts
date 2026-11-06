@@ -1,7 +1,7 @@
 import { reiverrApi } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
-import { pagedQueryOptions } from './query-client';
-import { LIVE_REFRESH_INTERVAL } from './request-status';
+import { LIVE_REFRESH_INTERVAL } from './downloads.queries';
+import { pagedQueryOptions, type MediaType } from './query-client';
 
 type MyListParams = Omit<
 	NonNullable<Parameters<typeof reiverrApi.catalog.getMyList>[0]>,
@@ -30,13 +30,13 @@ export const mediaTypeOf = (category: CatalogCategory) =>
 export const catalogKeys = {
 	/** Every list: what the mutations of a title invalidate */
 	all: ['catalog'] as const,
-	myList: (params: MyListParams) => ['catalog', 'my-list', params] as const,
-	continueWatching: (mediaType: 'movie' | 'series') =>
-		['catalog', 'my-list', 'continue-watching', mediaType] as const,
+	myList: (params: MyListParams) => [...catalogKeys.all, 'my-list', params] as const,
+	continueWatching: (mediaType: MediaType) =>
+		[...catalogKeys.all, 'my-list', 'continue-watching', mediaType] as const,
 	/** Every list of the downloads: what a change of a torrent invalidates */
-	downloads: () => ['catalog', 'downloads'] as const,
-	downloadsList: (params: DownloadsParams) => ['catalog', 'downloads', params] as const,
-	onDisk: (params: OnDiskParams) => ['catalog', 'on-disk', params] as const
+	downloads: () => [...catalogKeys.all, 'downloads'] as const,
+	downloadsList: (params: DownloadsParams) => [...catalogKeys.downloads(), params] as const,
+	onDisk: (params: OnDiskParams) => [...catalogKeys.all, 'on-disk', params] as const
 };
 
 export const catalogQueries = {

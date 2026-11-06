@@ -1,33 +1,34 @@
 import { tmdbApi as legacyTmdbApi, type TmdbPersonFull } from '$lib/apis/tmdb/tmdb-api';
 import { tmdbApi, tmdbApi4, user } from '$lib/stores/user.store';
 import { queryOptions } from '@tanstack/svelte-query';
-import { invalidate, pagedQueryOptions } from './query-client';
+import { invalidate, pagedQueryOptions, type MediaType } from './query-client';
 
 /** The backend's proxy caches TMDB for a day */
 const HOUR = 3_600_000;
 
-type MediaType = 'movie' | 'series';
-
 export const tmdbKeys = {
-	trending: (mediaType: MediaType) => ['tmdb', 'trending', mediaType] as const,
-	upcoming: (mediaType: MediaType) => ['tmdb', 'upcoming', mediaType] as const,
-	nowStreaming: () => ['tmdb', 'now-streaming'] as const,
-	digitalReleases: () => ['tmdb', 'digital-releases'] as const,
+	all: ['tmdb'] as const,
+	trending: (mediaType: MediaType) => [...tmdbKeys.all, 'trending', mediaType] as const,
+	upcoming: (mediaType: MediaType) => [...tmdbKeys.all, 'upcoming', mediaType] as const,
+	nowStreaming: () => [...tmdbKeys.all, 'now-streaming'] as const,
+	digitalReleases: () => [...tmdbKeys.all, 'digital-releases'] as const,
 	/** Everything read with the user's TMDB account: what connecting or disconnecting it invalidates */
-	account: () => ['tmdb', 'account'] as const,
-	accountDetails: () => ['tmdb', 'account', 'details'] as const,
-	recommended: (mediaType: MediaType) => ['tmdb', 'account', 'recommended', mediaType] as const,
-	series: (tmdbId: number) => ['tmdb', 'series', tmdbId] as const,
-	movie: (tmdbId: number) => ['tmdb', 'movie', tmdbId] as const,
-	seriesRecommendations: (tmdbId: number) => ['tmdb', 'series', tmdbId, 'recommendations'] as const,
-	movieRecommendations: (tmdbId: number) => ['tmdb', 'movie', tmdbId, 'recommendations'] as const,
-	person: (personId: number) => ['tmdb', 'person', personId] as const,
-	search: (query: string) => ['tmdb', 'search', query] as const,
-	network: (networkId: number | undefined) => ['tmdb', 'network', networkId ?? null] as const,
-	company: (companyId: number) => ['tmdb', 'company', companyId] as const,
+	account: () => [...tmdbKeys.all, 'account'] as const,
+	accountDetails: () => [...tmdbKeys.account(), 'details'] as const,
+	recommended: (mediaType: MediaType) => [...tmdbKeys.account(), 'recommended', mediaType] as const,
+	series: (tmdbId: number) => [...tmdbKeys.all, 'series', tmdbId] as const,
+	movie: (tmdbId: number) => [...tmdbKeys.all, 'movie', tmdbId] as const,
+	seriesRecommendations: (tmdbId: number) =>
+		[...tmdbKeys.series(tmdbId), 'recommendations'] as const,
+	movieRecommendations: (tmdbId: number) => [...tmdbKeys.movie(tmdbId), 'recommendations'] as const,
+	person: (personId: number) => [...tmdbKeys.all, 'person', personId] as const,
+	search: (query: string) => [...tmdbKeys.all, 'search', query] as const,
+	network: (networkId: number | undefined) =>
+		[...tmdbKeys.all, 'network', networkId ?? null] as const,
+	company: (companyId: number) => [...tmdbKeys.all, 'company', companyId] as const,
 	companyMovies: (companyId: number | undefined) =>
-		['tmdb', 'company', companyId ?? null, 'movies'] as const,
-	list: (listId: number | undefined) => ['tmdb', 'list', listId ?? null] as const
+		[...tmdbKeys.all, 'company', companyId ?? null, 'movies'] as const,
+	list: (listId: number | undefined) => [...tmdbKeys.all, 'list', listId ?? null] as const
 };
 
 export const tmdbQueries = {

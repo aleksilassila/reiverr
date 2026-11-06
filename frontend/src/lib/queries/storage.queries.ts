@@ -5,7 +5,7 @@ export const storageKeys = {
 	/** Everything of the usage of the user: what a change of their requests invalidates */
 	all: ['storage'] as const,
 	/** What the requests of the user hold and wait for, against their quota */
-	user: () => ['storage', 'user'] as const
+	user: () => [...storageKeys.all, 'user'] as const
 };
 
 export const storageQueries = {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
 	import type { IndexerDto } from '$lib/apis/reiverr/reiverr.openapi';
-	import { updateIndexers } from '$lib/queries/downloads.queries';
+	import { updateIndexers } from '$lib/queries/indexers.queries';
 	import { Pencil1, Trash } from 'radix-icons-svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import Dialog from '../../components/Dialog/Dialog.svelte';

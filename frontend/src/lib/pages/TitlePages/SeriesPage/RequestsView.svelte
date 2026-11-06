@@ -10,13 +10,16 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import {
 		episodeKey,
-		seriesQueries,
+		requestsQueries,
 		setSeriesRequests,
 		updateSeriesRequestRule
-	} from '$lib/queries/series.queries';
+	} from '$lib/queries/requests.queries';
 	import { storageQueries } from '$lib/queries/storage.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import classNames from 'classnames';
@@ -74,10 +77,10 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
-	const requests = usePageQuery(seriesQueries.requests(tmdbId));
-	const status = usePageQuery(seriesQueries.status(tmdbId));
-	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
+	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
+	const requests = usePageQuery(requestsQueries.series(tmdbId));
+	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
 	const storage = usePageQuery(storageQueries.user());
 	$: data = { requests: $requests.data, status: $status.data, torrents: $torrents.data };
 	$: ruleData = $requests.data?.rule;

@@ -6,15 +6,24 @@
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_TV, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { indexersQueries } from '$lib/queries/indexers.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { getOnServer, heldFileOf } from '$lib/queries/request-status';
-	import { clearSource, episodeKey, seriesQueries, setSource } from '$lib/queries/series.queries';
+	import {
+		clearSeriesSource,
+		episodeKey,
+		requestsQueries,
+		setSeriesSource
+	} from '$lib/queries/requests.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Check, Cross1, Cross2 } from 'radix-icons-svelte';
 	import HeroTitleInfo from '../HeroTitleInfo.svelte';
+	import { getOnServer, heldFileOf } from '../request-status';
 
 	export let tmdbId: string;
 	export let season: number;
@@ -24,11 +33,11 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const requestsQuery = usePageQuery(seriesQueries.requests(tmdbId));
-	const status = usePageQuery(seriesQueries.status(tmdbId));
-	const torrents = usePageQuery(seriesQueries.torrents(tmdbId));
-	const tmdbSeries = usePageQuery(seriesQueries.metadata(tmdbId));
-	const releases = usePageQuery(seriesQueries.releases(tmdbId, season, episode));
+	const requestsQuery = usePageQuery(requestsQueries.series(tmdbId));
+	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
+	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
+	const releases = usePageQuery(indexersQueries.seriesReleases(tmdbId, season, episode));
 	$: requests = $requestsQuery.data;
 	// The requests of the season or the episode
 	$: requestList = [...(requests?.requests.values() ?? [])].filter(
@@ -108,7 +117,7 @@
 				affected.length * expectedBytes(release.size, episode !== undefined, episodesInSeason);
 			if (!(await confirmQuota(bytes))) return;
 
-			await setSource(tmdbId, season, episode, { releaseId: release.id });
+			await setSeriesSource(tmdbId, season, episode, { releaseId: release.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -121,7 +130,7 @@
 		try {
 			if (!(await confirmQuota(affected.length * file.size))) return;
 
-			await setSource(tmdbId, season, episode, { mediaFileId: file.id });
+			await setSeriesSource(tmdbId, season, episode, { mediaFileId: file.id });
 			componentStack.close();
 		} catch (e) {
 			error = errorMessage(e);
@@ -131,7 +140,7 @@
 	async function clear() {
 		error = '';
 
-		await clearSource(tmdbId, season, episode)
+		await clearSeriesSource(tmdbId, season, episode)
 			.then(() => componentStack.close())
 			.catch((e) => (error = errorMessage(e)));
 	}

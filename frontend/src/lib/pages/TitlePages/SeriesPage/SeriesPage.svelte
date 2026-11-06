@@ -11,14 +11,13 @@
 	import TmdbPersonCard from '$lib/components/PersonCard/TmdbPersonCard.svelte';
 	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { PLATFORM_WEB, TMDB_BACKDROP_SMALLEST } from '$lib/constants';
+	import { downloadsQueries } from '$lib/queries/downloads.queries';
+	import { libraryQueries } from '$lib/queries/library.queries';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import {
-		getEpisodeData,
-		getEpisodeRequestStatus,
-		seriesQueries,
-		setSeriesInMyList
-	} from '$lib/queries/series.queries';
+	import { requestsQueries } from '$lib/queries/requests.queries';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
+	import { setSeriesInMyList, userDataQueries } from '$lib/queries/user-data.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { getScrollContext, setScrollContext } from '$lib/stores/scroll.store';
@@ -30,6 +29,7 @@
 	import type { TitleInfoProperty } from '../HeroTitleInfo';
 	import TitleProperties from '../HeroTitleInfo.svelte';
 	import { useEpisodeCarousel } from './episode-carousel';
+	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 	import { playEpisode } from '../play-media';
 	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
 	import RequestsView from './RequestsView.svelte';
@@ -39,11 +39,11 @@
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
 
-	const tmdbSeries = usePageQuery(seriesQueries.metadata(id));
-	const userData = usePageQuery(seriesQueries.userData(id));
-	const requests = usePageQuery(seriesQueries.requests(id));
-	const status = usePageQuery(seriesQueries.status(id));
-	const torrents = usePageQuery(seriesQueries.torrents(id));
+	const tmdbSeries = usePageQuery(metadataQueries.series(id));
+	const userData = usePageQuery(userDataQueries.series(id));
+	const requests = usePageQuery(requestsQueries.series(id));
+	const status = usePageQuery(libraryQueries.seriesStatus(id));
+	const torrents = usePageQuery(downloadsQueries.seriesTorrents(id));
 	const series = derived(tmdbSeries, ($tmdbSeries) => $tmdbSeries.data);
 	const episodesData = derived([tmdbSeries, userData], ([$tmdbSeries, $userData]) =>
 		getEpisodeData($tmdbSeries.data, $userData.data)

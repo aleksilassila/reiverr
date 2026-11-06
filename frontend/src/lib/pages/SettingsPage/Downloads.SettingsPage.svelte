@@ -2,6 +2,7 @@
 	import Container from '$components/Container.svelte';
 	import type { IndexerDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { downloadsQueries, updateDownloadSettings } from '$lib/queries/downloads.queries';
+	import { indexersQueries } from '$lib/queries/indexers.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
@@ -13,7 +14,7 @@
 	import Toggle from '../../components/Toggle.svelte';
 	import EditIndexerDialog from './EditIndexerDialog.SettingsPage.svelte';
 
-	const indexersQuery = usePageQuery(downloadsQueries.indexers());
+	const indexersQuery = usePageQuery(indexersQueries.list());
 	const settingsQuery = usePageQuery(downloadsQueries.settings());
 
 	/** What is typed into the seed ratio field, until it is saved */

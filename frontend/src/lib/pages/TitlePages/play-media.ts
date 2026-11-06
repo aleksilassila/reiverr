@@ -1,9 +1,9 @@
 import type { LibraryFileDto, UpdatePlayStateDto } from '$lib/apis/reiverr/reiverr.openapi';
 import type { PlayMediaOptions } from '$lib/components/GlobalBackground/background-stack.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
-import { movieQueries, saveMoviePlayState } from '$lib/queries/movie.queries';
+import { libraryQueries } from '$lib/queries/library.queries';
 import { queryClient } from '$lib/queries/query-client';
-import { saveEpisodePlayState, seriesQueries } from '$lib/queries/series.queries';
+import { saveEpisodePlayState, saveMoviePlayState } from '$lib/queries/user-data.queries';
 import { sessions } from '$lib/stores/session.store';
 import { get } from 'svelte/store';
 
@@ -34,7 +34,7 @@ export async function playEpisode(
 
 	// Looked up again, since an import may have just added a file
 	const files = await queryClient
-		.fetchQuery({ ...seriesQueries.episodeFiles(tmdbId, season, episode), staleTime: 0 })
+		.fetchQuery({ ...libraryQueries.episodeFiles(tmdbId, season, episode), staleTime: 0 })
 		.catch(reportLookupFailure);
 
 	return playFiles(files, options, (playState) =>
@@ -53,7 +53,7 @@ export async function playMovie(options: PlayOptions & { tmdbId: string }): Prom
 	const { tmdbId } = options;
 
 	const files = await queryClient
-		.fetchQuery({ ...movieQueries.files(tmdbId), staleTime: 0 })
+		.fetchQuery({ ...libraryQueries.movieFiles(tmdbId), staleTime: 0 })
 		.catch(reportLookupFailure);
 
 	return playFiles(files, options, (playState) => saveMoviePlayState(tmdbId, playState));

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ListRow from '$lib/components/ListRow.svelte';
 	import RowCheckbox from '$lib/components/RowCheckbox.svelte';
+	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import StatusTags from '$lib/components/StatusTags.svelte';
-	import type { MediaStatusTags } from '$lib/queries/request-status';
 	import classNames from 'classnames';
 	import { ChevronRight } from 'radix-icons-svelte';
 	import { createEventDispatcher } from 'svelte';

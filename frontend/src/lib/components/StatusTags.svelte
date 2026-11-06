@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { MediaStatusTags } from '$lib/queries/request-status';
 	import classNames from 'classnames';
+	import type { MediaStatusTags } from './status-tags';
 	import Tag from './Tag.svelte';
 
 	export let tags: MediaStatusTags;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaStatusTags } from '$lib/queries/request-status';
+	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import classNames from 'classnames';
 	import { Check, DotsVertical } from 'radix-icons-svelte';
 	import type { Readable } from 'svelte/store';

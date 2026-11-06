@@ -2,6 +2,8 @@ import { infiniteQueryOptions, QueryClient, type QueryKey } from '@tanstack/svel
 
 const MINUTE = 60_000;
 
+export type MediaType = 'movie' | 'series';
+
 export const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {

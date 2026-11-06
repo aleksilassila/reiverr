@@ -3,8 +3,9 @@
 	import type { SeasonEpisodeDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import HeroCarousel from '$lib/components/HeroShowcase/HeroCarousel.svelte';
+	import { metadataQueries } from '$lib/queries/metadata.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
-	import { seriesQueries, setEpisodeWatched } from '$lib/queries/series.queries';
+	import { setEpisodeWatched, userDataQueries } from '$lib/queries/user-data.queries';
 	import { Check, ExternalLink, Play } from 'radix-icons-svelte';
 	import Button from '../../components/Button/Button.svelte';
 	import { PLATFORM_WEB } from '../../constants';
@@ -20,8 +21,8 @@
 	const episodeNumber = Number(episode);
 
 	const background = backgroundContext.createContext({ videoMediaId: id });
-	const tmdbSeries = usePageQuery(seriesQueries.metadata(id));
-	const userData = usePageQuery(seriesQueries.userData(id));
+	const tmdbSeries = usePageQuery(metadataQueries.series(id));
+	const userData = usePageQuery(userDataQueries.series(id));
 
 	$: tmdbEpisode = $tmdbSeries.data?.seasons
 		?.map((s) => s.episodes ?? [])

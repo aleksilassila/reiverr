@@ -1,8 +1,8 @@
 import type { TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
-import type { EpisodesData } from '$lib/queries/series.queries';
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
 import { formatThousands, waitFor } from '$lib/utils';
+import type { EpisodesData } from './episode-status';
 import { derived, writable, type Readable, type Writable } from 'svelte/store';
 import type { TitleInfoProperty } from '../HeroTitleInfo';
 

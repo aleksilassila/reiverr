@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { MediaStatusTags } from '$lib/queries/request-status';
+	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import type { TmdbSeasonEpisode, TmdbSeries } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_BACKDROP_SMALL } from '../../constants';
 	import EpisodeCard from './EpisodeCard.svelte';
