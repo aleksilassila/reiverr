@@ -7,7 +7,7 @@ services:
     ports:
       - 9494:9494
     environment:
-      - SECRET
+      - JWT_SECRET
       - ADMIN_USERNAME
       - ADMIN_PASSWORD
     volumes:

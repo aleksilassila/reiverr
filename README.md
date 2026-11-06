@@ -9,9 +9,7 @@ Reiverr is a self hosted, TVs-first replacement for the arr stack (Jellyfin, Son
 
 This project is still in early stages, and many features are still missing / being tested and changed. Contributions are welcome! See [contributing](#Contributing) for more information.
 
-> For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see [1.0 branch](https://github.com/aleksilassila/reiverr/tree/reiverr-1.0).
-
-<!-- TODO: Rename that branch to v1.0 ^ -->
+> For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see [1.0 branch](https://github.com/aleksilassila/reiverr/tree/v1).
 
 ![Demo Video](images/reiverr-demo.gif)
 
@@ -45,7 +43,7 @@ Playback:
 - Audio track selection (Tizen, or [audioTracks](https://caniuse.com/audiotracks))
 - Subtitles (VTT/SRT as sidecar files)
 
-For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/5).
+For a list of planned features & known bugs, see [Reiverr Taskboard](https://github.com/users/aleksilassila/projects/7).
 
 # Installation
 
@@ -64,7 +62,7 @@ services:
       - 9494:9494
     environment:
       # Optional variables:
-      - SECRET=your_secret_here # used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
+      - JWT_SECRET=your_secret_here # used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
       # - ADMIN_USERNAME=admin
       # - ADMIN_PASSWORD=very_strong_password
       # - TORRENT_PORT=51413 # The port that torrent client listens on. If not set, a random port is used. It's recommend to forward this in your VPN
@@ -100,8 +98,8 @@ The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold 
 2. Clone from **master** or download the [latest source](https://github.com/aleksilassila/reiverr/releases)
 3. Build & run the app:\
    `npm install`\
-   `npm install --prefix backend`\
-   `npm run preview`
+   `npm run build`\
+   `npm run start:prod`
 
 #### Reiverr will be accessible via port 9494 by default.
 

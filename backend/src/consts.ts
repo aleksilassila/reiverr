@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 export const ENV = process.env.NODE_ENV || 'production';
 export const DEV = ENV === 'development';
 export const JWT_SECRET =
-  process.env.SECRET ||
+  process.env.JWT_SECRET ||
   (ENV === 'development'
     ? 'secret'
     : Math.random().toString(36).substring(2, 15));

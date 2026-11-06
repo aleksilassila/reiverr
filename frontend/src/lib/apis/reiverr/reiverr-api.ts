@@ -15,8 +15,8 @@ export type ReiverrSettings = UserSettingsDto;
 
 export const getReiverrApi = (session = get(sessions).activeSession) => {
 	const token = session?.token;
-	console.log('session', session);
-	console.log('Creating Reiverr API with base URL:', session?.baseUrl, 'and token:', token);
+	// console.log('session', session);
+	// console.log('Creating Reiverr API with base URL:', session?.baseUrl, 'and token:', token);
 
 	return new ReiverrApi({
 		baseURL: session?.baseUrl,

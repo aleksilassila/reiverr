@@ -4,7 +4,6 @@
   "private": true,
   "description": "Reiverr - A media server application",
   "author": "aleksilassila",
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/aleksilassila/reiverr"

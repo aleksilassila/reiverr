@@ -8,15 +8,13 @@
 	import { userActivity } from '$lib/stores/user-activity.store';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
-	import axios from 'axios';
-	import { onMount } from 'svelte';
 	import NavigationDebugger from './lib/components/DebugElements.svelte';
-	import UpdateDialog from './lib/components/Dialog/UpdateDialog.svelte';
 	import I18n from './lib/components/Lang/I18n.svelte';
 	import { createModal } from './lib/components/Modal/modal.store';
 	import { createErrorNotification } from './lib/components/Notifications/notification.store';
 	import NotificationStack from './lib/components/Notifications/NotificationStack.svelte';
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
+	import UpdateChecker from './lib/components/UpdateChecker.svelte';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
 	import {
@@ -24,19 +22,15 @@
 		handleKeyboardNavigationKeyUp,
 		setMouseMode
 	} from './lib/selectable';
-	import { localSettings } from './lib/stores/localstorage.store';
 	import { sessions } from './lib/stores/session.store';
 	import { isAppInitialized, user } from './lib/stores/user.store';
 
 	user.subscribe((s) => {
-		console.log('user', s);
 		if (s?.onboardingDone === false) {
-			console.log('ONBOARDING');
 			createModal(OnboardingDialog, {});
 		}
 	});
 	sessions.subscribe((s) => {
-		console.log('sessions', s);
 		connectEvents(s.activeSession);
 	});
 
@@ -54,14 +48,6 @@
 	// 		tizen.mediakey.setMediaKeyEventListener(myMediaKeyChangeListener);
 	// 	}
 	// });
-
-	async function fetchLatestVersion() {
-		return axios
-			.get('https://api.github.com/repos/aleksilassila/reiverr/releases')
-			.then(
-				(res) => res.data?.find((v: { tag_name: string }) => v.tag_name.startsWith('v2'))?.tag_name
-			);
-	}
 
 	function handleError(event: any) {
 		createErrorNotification(event?.error?.message ?? 'An error occurred');
@@ -82,19 +68,6 @@
 	function handleMouseInput() {
 		setMouseMode(true);
 	}
-
-	onMount(() => {
-		if ($localSettings.checkForUpdates)
-			fetchLatestVersion().then((latestVersion) => {
-				// @ts-ignore
-				if (
-					latestVersion !== `v${REIVERR_VERSION}` &&
-					latestVersion !== $localSettings.skippedVersion
-				) {
-					createModal(UpdateDialog, { version: latestVersion });
-				}
-			});
-	});
 </script>
 
 <I18n />
@@ -121,6 +94,7 @@
 </QueryClientProvider>
 
 <NotificationStack />
+<UpdateChecker />
 
 {#if import.meta.env.DEV}
 	<NavigationDebugger />
