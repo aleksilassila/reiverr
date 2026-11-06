@@ -19,7 +19,11 @@
 	import StackRouter from './lib/components/StackRouter/StackRouter.svelte';
 	import SplashScreen from './lib/pages/SplashScreen.svelte';
 	import UsersPage from './lib/pages/UsersPage.svelte';
-	import { handleKeyboardNavigation, handleKeyboardNavigationKeyUp } from './lib/selectable';
+	import {
+		handleKeyboardNavigation,
+		handleKeyboardNavigationKeyUp,
+		setMouseMode
+	} from './lib/selectable';
 	import { localSettings } from './lib/stores/localstorage.store';
 	import { sessions } from './lib/stores/session.store';
 	import { isAppInitialized, user } from './lib/stores/user.store';
@@ -74,6 +78,11 @@
 		userActivity.registerUserActivity();
 	}
 
+	// Captured, so that a handler that stops the event (the dots of an episode card, a checkbox) cannot keep it
+	function handleMouseInput() {
+		setMouseMode(true);
+	}
+
 	onMount(() => {
 		if ($localSettings.checkForUpdates)
 			fetchLatestVersion().then((latestVersion) => {
@@ -124,6 +133,8 @@
 
 <svelte:window
 	on:mousemove={handleMouseMove}
+	on:mousedown|capture={handleMouseInput}
+	on:wheel|capture|passive={handleMouseInput}
 	on:keydown={handleKeyDown}
 	on:keyup={handleKeyboardNavigationKeyUp}
 	on:error={handleError}

@@ -87,6 +87,18 @@ const createKeyEventOptions = (target: Selectable): KeyEventOptions => ({
 	target
 });
 
+/**
+ * Whether the focus follows the mouse: on from a mouse button or the wheel, off from the arrow keys.
+ * The scroll into view on focus is skipped while it is on, so that the focus a closed sheet or
+ * dialog gives back does not scroll the page away from where the mouse left it.
+ * Not `inputMode`: that goes back to keyboard mode on Enter and Back, which here would scroll
+ * when a sheet opened with a click is closed with Back.
+ */
+export let mouseMode = true;
+export function setMouseMode(next: boolean) {
+	mouseMode = next;
+}
+
 export class Selectable {
 	id: number;
 	name: string;
@@ -1026,13 +1038,25 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	}
 
 	if (event.key === 'ArrowUp' && !event.metaKey && !event.ctrlKey) {
-		if (Selectable.giveFocus('up')) event.preventDefault();
+		setMouseMode(false);
+		if (Selectable.giveFocus('up')) {
+			event.preventDefault();
+		}
 	} else if (event.key === 'ArrowDown' && !event.metaKey && !event.ctrlKey) {
-		if (Selectable.giveFocus('down')) event.preventDefault();
+		setMouseMode(false);
+		if (Selectable.giveFocus('down')) {
+			event.preventDefault();
+		}
 	} else if (event.key === 'ArrowLeft' && !event.metaKey && !event.ctrlKey) {
-		if (Selectable.giveFocus('left')) event.preventDefault();
+		setMouseMode(false);
+		if (Selectable.giveFocus('left')) {
+			event.preventDefault();
+		}
 	} else if (event.key === 'ArrowRight' && !event.metaKey && !event.ctrlKey) {
-		if (Selectable.giveFocus('right')) event.preventDefault();
+		setMouseMode(false);
+		if (Selectable.giveFocus('right')) {
+			event.preventDefault();
+		}
 	} else if (event.key === 'Enter') {
 		handleEnterKeyDown(currentlyFocusedObject, event.shiftKey);
 	} else if (event.key === 'Back' || event.key === 'XF86Back' || event.key === 'Escape') {
@@ -1068,12 +1092,14 @@ export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable |
 	};
 };
 
-export const scrollIntoView: (...args: [Offsets]) => (e: CustomEvent<EnterEvent>) => void =
-	(...args) =>
-	(e) => {
+/** Scrolls the element into view on focus, unless the focus follows the mouse; `always` scrolls then too */
+export const scrollIntoView =
+	({ always = false, ...offsets }: Offsets & { always?: boolean }) =>
+	(e: CustomEvent<EnterEvent>) => {
 		const element = e.detail.selectable.getHtmlElement();
-		if (element) {
-			scrollElementIntoView(element, ...args);
+
+		if (element && (always || !mouseMode)) {
+			scrollElementIntoView(element, offsets);
 		}
 	};
 

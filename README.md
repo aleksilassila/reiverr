@@ -30,6 +30,7 @@ Requests & downloads:
 - Can be configured to download episodes only as they are needed and automatically delete them after watching
 - Storage usage quotas per user
 - ~~Discovery of new content via RSS~~
+- ~~Limit # of concurrent downloads and download speed~~
 
 Library:
 
