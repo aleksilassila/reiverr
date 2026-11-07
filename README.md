@@ -11,7 +11,7 @@ This project is still in early stages, and many features are still missing / bei
 
 > For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see [1.0 branch](https://github.com/aleksilassila/reiverr/tree/v1).
 
-![Demo Video](images/reiverr-demo.gif)
+<https://github.com/user-attachments/assets/ec2df6fd-6c06-47a3-9d1f-5ff16f424f04>
 
 # List of major features
 
@@ -62,7 +62,7 @@ services:
       - 9494:9494
     environment:
       # Optional variables:
-      - JWT_SECRET=your_secret_here # used to sign JWT tokens for authentication. If not set, sessions will not persist between server restarts. Use a random string.
+      # - JWT_SECRET=your_secret_here # used to sign JWT tokens for authentication. If not set, defaults to a random string and sessions will not persist between server restarts. Use a random string.
       # - ADMIN_USERNAME=admin
       # - ADMIN_PASSWORD=very_strong_password
       # - TORRENT_PORT=51413 # The port that torrent client listens on. If not set, a random port is used. It's recommend to forward this in your VPN
@@ -70,9 +70,11 @@ services:
       # - TORRENT_UPNP=true # Enable UPnP, off by default
       # - TORRENT_NAT_PMP=true # Enable NAT-PMP, off by default
       # - TORRENT_WEBRTC=false # Disable WebRTC peers. On by default
+      # - TZ=Europe/Helsinki # Time zone of the nightly cleanup and scans. UTC by default
     volumes:
       - /path/to/appdata/config:/config
       - /path/to/data:/data
+      # - /path/to/downloads:/data/downloads # Optional
     restart: unless-stopped
 ```
 
@@ -182,11 +184,15 @@ Frontend will run on port 5173 and backend port 9494
 
 # Additional Screenshots
 
-![Landing Page](images/screenshot-1.png)
+![Home page](assets/screenshot-1.png)
 
-![Series Page](images/screenshot-2.png)
+![Library page](assets/screenshot-2.png)
 
-![Library Page](images/screenshot-3.png)
+![Requests page](assets/screenshot-3.png)
+
+![Downloads page](assets/screenshot-4.png)
+
+![Server page](assets/screenshot-5.png)
 
 # Star History
 
