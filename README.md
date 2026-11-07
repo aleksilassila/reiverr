@@ -49,7 +49,7 @@ For a list of planned features & known bugs, see [Reiverr Taskboard](https://git
 
 The easiest and the recommended way to install Reiverr is via Docker. After installation, see [post-installation](#post-installation).
 
-### Docker compose
+## Docker compose
 
 ```yaml
 name: reiverr
@@ -78,7 +78,7 @@ services:
     restart: unless-stopped
 ```
 
-### Docker CLI
+## Docker CLI
 
 ```sh
 docker run -it --init \
@@ -92,7 +92,7 @@ docker run -it --init \
 
 The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold the media library too, for example `/data/tv` and `/data/movies`. When both are on the same volume, finished downloads are hard linked into the library and take no extra space; across volumes they are copied.
 
-### Building from Source
+## Building from Source
 
 1. Requirements(ish):
    - Node v22.17.0 or higher
@@ -103,21 +103,32 @@ The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold 
    `npm run build`\
    `npm run start:prod`
 
-#### Reiverr will be accessible via port 9494 by default.
+### Reiverr will be accessible via port 9494 by default.
 
-### Smart TVs
+## Smart TVs
 
 To be able to use Reiverr on TVs, you'll **still need to host the backend server** on a separate device. See the above methods for instructions on how to set up the backend / web app.
 
 ### Tizen / Samsung Smart TVs
 
-Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker image to build and install the application on tizen. To get started:
+Installing on a Samsung TV needs [developer mode on the TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html), with the computer you install from as its Host PC IP.
 
-1. [Enable developer mode on your TV](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html)
-2. Obtain your TV's IP address
-3. Run `npm run deploy:tizen <TV_IP>` to build and install the app on your TV
+Each release has a ready-built `Reiverr.wgt` on the [releases page](https://github.com/aleksilassila/reiverr/releases), signed with the Tizen SDK's generic developer certificate. Older TVs accept it as is, but newer TVs need the package to to be signed with a [Samsung certificate made for the TV](https://developer.samsung.com/smarttv/develop/getting-started/setting-up-sdk/creating-certificates.html). Installers such as [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) make the certificate and sign the package for you, or you can re-sign it with the Tizen CLI:
 
-For troubleshooting and more detailed instructions, you can see [the repository](https://github.com/Georift/install-jellyfin-tizen) that this build method is based on. In case the installation requires custom certificates, refer to the above repository. Certificate password can be provided as secondary argument after the ip.
+`tizen package -t wgt -s <certificate profile> -- Reiverr.wgt`
+
+Alternatively, you can build and install the app from source with Docker:
+
+1. Obtain your TV's IP address
+2. Run `npm run deploy:tizen <TV_IP>` to build and install the app on your TV
+
+To sign with your own certificates, put `author.p12` and `distributor.p12` in `tizen/certificates/` and give their password after the IP:
+
+`npm run deploy:tizen <TV_IP> <CERTIFICATE_PASSWORD>`
+
+An update has to be signed with the same certificate as the installed app; otherwise, uninstall the app first.
+
+For troubleshooting, see [install-jellyfin-tizen](https://github.com/Georift/install-jellyfin-tizen), which this build method is based on.
 
 ### Android TV / Fire TV
 
@@ -137,7 +148,7 @@ With Docker Desktop, `npm run deploy:android host.docker.internal` installs into
 
 The APK is signed with a key that is stored in `android/keystore/` on the first build. If you want to update the app, it needs to be signed with the same key. To sign with a keystore of your own, put it there as `reiverr.jks` and set `KEYSTORE_PASSWORD`. An APK you build is signed with a different key than the release APKs, so switching between the two means uninstalling the app first.
 
-## WebOS
+### WebOS
 
 Planned
 

@@ -1,0 +1,39 @@
+name: Build Tizen
+
+# Builds the Samsung TV app. When a release is published, the package is attached to it; a manual run only keeps it
+# as an artifact of the run.
+#
+# The package is signed with the Tizen SDK's generic developer certificate. Newer TVs reject it, and users re-sign it
+# with a Samsung certificate made for their TV.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  wgt:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build
+        run: npm run build:tizen
+
+      - name: Keep as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: tizen/Reiverr.wgt
+          archive: false
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" tizen/Reiverr.wgt --clobber --repo "$GITHUB_REPOSITORY"

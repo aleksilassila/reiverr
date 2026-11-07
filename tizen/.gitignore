@@ -1,3 +1,4 @@
 .sign/*
 *.wgt
 .buildResult/
+certificates/

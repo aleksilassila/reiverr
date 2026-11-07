@@ -33,3 +33,7 @@ android/local.properties
 android/keystore
 android/Reiverr.apk
 android/Reiverr.apk.idsig
+
+# Tizen: the package and the certificates are not part of the image, which would put them in the package
+tizen/*.wgt
+tizen/certificates
