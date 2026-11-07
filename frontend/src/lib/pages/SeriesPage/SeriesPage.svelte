@@ -28,13 +28,17 @@
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Bookmark, ExternalLink, Minus, Plus, Video } from 'radix-icons-svelte';
-	import { derived } from 'svelte/store';
+	import { derived as derivedStore } from 'svelte/store';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
 	import RequestsView from './RequestsView.svelte';
 
-	export let id: string;
+	interface Props {
+		id: string;
+	}
+
+	let { id }: Props = $props();
 
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
@@ -44,16 +48,13 @@
 	const requests = usePageQuery(requestsQueries.series(id));
 	const status = usePageQuery(libraryQueries.seriesStatus(id));
 	const torrents = usePageQuery(downloadsQueries.seriesTorrents(id));
-	const series = derived(tmdbSeries, ($tmdbSeries) => $tmdbSeries.data);
-	const episodesData = derived([tmdbSeries, userData], ([$tmdbSeries, $userData]) =>
+	const series = derivedStore(tmdbSeries, ($tmdbSeries) => $tmdbSeries.data);
+	const episodesData = derivedStore([tmdbSeries, userData], ([$tmdbSeries, $userData]) =>
 		getEpisodeData($tmdbSeries.data, $userData.data)
 	);
-	$: requestsData = { requests: $requests.data, status: $status.data, torrents: $torrents.data };
-	$: inMyList = $userData.data?.inMyList ?? false;
 
 	// The labels of the episodes go missing while the status cannot be loaded; said once per failure
 	let statusFailed = false;
-	$: reportStatusFailure($status.isError, $status.error);
 	function reportStatusFailure(isError: boolean, error: any) {
 		if (isError && !statusFailed) {
 			createErrorNotification(
@@ -64,7 +65,6 @@
 		statusFailed = isError;
 	}
 
-	$: if ($series) setBackgrounds($series);
 	function setBackgrounds(series: TmdbSeriesFull) {
 		const backgrounds =
 			series.images?.backdrops
@@ -98,11 +98,6 @@
 	const { topVisible } = getScrollContext();
 
 	const recommendations = usePageQuery(tmdbQueries.seriesRecommendations(Number(id)));
-
-	$: trailerId = $series?.videos?.results?.find(
-		(video) => video.type === 'Trailer' && video.site === 'YouTube'
-	)?.key;
-	$: titleProperties = $series ? getTitleProperties($series, trailerId) : [];
 
 	function getTitleProperties(series: TmdbSeriesFull, trailerId?: string) {
 		const properties: TitleInfoProperty[] = [];
@@ -141,13 +136,32 @@
 
 		return properties;
 	}
-	$: if ($localSettings.autoplayTrailers && trailerId) {
-		background.playYoutubeVideo({
-			tmdbId: id,
-			videoId: trailerId,
-			onBackground: true
-		});
-	}
+	let requestsData = $derived({
+		requests: $requests.data,
+		status: $status.data,
+		torrents: $torrents.data
+	});
+	let inMyList = $derived($userData.data?.inMyList ?? false);
+	$effect(() => {
+		reportStatusFailure($status.isError, $status.error);
+	});
+	$effect(() => {
+		if ($series) setBackgrounds($series);
+	});
+	let trailerId = $derived(
+		$series?.videos?.results?.find((video) => video.type === 'Trailer' && video.site === 'YouTube')
+			?.key
+	);
+	let titleProperties = $derived($series ? getTitleProperties($series, trailerId) : []);
+	$effect(() => {
+		if ($localSettings.autoplayTrailers && trailerId) {
+			background.playYoutubeVideo({
+				tmdbId: id,
+				videoId: trailerId,
+				onBackground: true
+			});
+		}
+	});
 </script>
 
 <!-- Prefetching blurred background -->
@@ -167,7 +181,7 @@
 {/if}
 
 <div class="relative" use:scrollRegistrar>
-	<HeroCarousel class="h-[calc(100vh-7.5rem)] relative" on:enter={scrollIntoView({ top: 0 })}>
+	<HeroCarousel class="h-[calc(100vh-7.5rem)] relative" onEnter={scrollIntoView({ top: 0 })}>
 		{#if $selectedTmdbEpisode}
 			<div
 				class={classNames(
@@ -189,13 +203,13 @@
 							<AnimateScale hasFocus={false}>
 								<button
 									class="h-12 flex-1 flex items-center group font-medium tracking-wide bg-secondary-800 selectable rounded-xl px-6 cursor-pointer"
-									on:click={() =>
+								 onclick={() =>
 										openEpisodeMenu(
 											$selectedTmdbEpisode?.season_number ?? 1,
 											$selectedTmdbEpisode?.episode_number ?? 1
 										)}
 								>
-									<InfoCircled size={19} slot="icon" class="mr-2" />
+									<InfoCircled size={19} class="mr-2" />
 									Details
 								</button>
 							</AnimateScale>
@@ -238,7 +252,7 @@
 
 				<Button
 					icon={Plus}
-					on:clickOrSelect={() =>
+					onClickOrSelect={() =>
 						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
 				>
 					Requests
@@ -254,10 +268,10 @@
 
 				{#if trailerId}
 					<Button
-						on:clickOrSelect={() =>
+						icon={Video}
+						onClickOrSelect={() =>
 							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
 					>
-						<Video slot="icon" size={19} />
 						Play Trailer
 					</Button>
 				{/if}
@@ -271,7 +285,7 @@
 						<Check slot="icon" size={19} />
 					</Button> -->
 				<!-- <Button
-					on:clickOrSelect={() => {
+				 onClickOrSelect={() => {
 						// openManageSeries(tmdbId)
 					}}
 				>
@@ -281,10 +295,11 @@
 
 				{#if PLATFORM_WEB}
 					<Button
-						on:clickOrSelect={() => window.open(`https://www.themoviedb.org/tv/${id}`, '_blank')}
+						icon={ExternalLink}
+						iconPosition="after"
+						onClickOrSelect={() => window.open(`https://www.themoviedb.org/tv/${id}`, '_blank')}
 					>
 						Open in TMDB
-						<ExternalLink size={19} slot="icon-after" />
 					</Button>
 				{/if}
 			</Container>
@@ -297,12 +312,12 @@
 			{#if episodes.length}
 				<Carousel
 					scrollClass="px-32"
-					on:enter={scrollIntoView({ bottom: 64 })}
+					onEnter={scrollIntoView({ bottom: 64 })}
 					class="mb-8"
 					hideControls={$topVisible}
 					scrollIndexes
 					focusFirstOnBack={false}
-					on:scrollIndex={({ detail: i }) => {
+					onScrollIndex={(i) => {
 						const episode = episodes[i];
 
 						selectedEpisode.set({
@@ -310,88 +325,90 @@
 							episode: episode?.episode_number ?? 1
 						});
 					}}
-					let:scrollToIndex
 				>
-					<span
-						slot="header"
-						class={classNames('transition-opacity', {
-							// 'opacity-0': $topVisible
-						})}
-					>
-						{#if $selectedTmdbEpisode}
-							Season {$selectedTmdbEpisode.season_number}
-							<!-- <div class="text-secondary-400 text-sm">
-									{$selectedTmdbEpisode.season.episodes?.length} Episodes
-								</div> -->
-						{:else}
-							Episodes
-						{/if}
-					</span>
+					{#snippet header()}
+						<span
+							class={classNames('transition-opacity', {
+								// 'opacity-0': $topVisible
+							})}
+						>
+							{#if $selectedTmdbEpisode}
+								Season {$selectedTmdbEpisode.season_number}
+								<!-- <div class="text-secondary-400 text-sm">
+										{$selectedTmdbEpisode.season.episodes?.length} Episodes
+									</div> -->
+							{:else}
+								Episodes
+							{/if}
+						</span>
+					{/snippet}
 
-					{#each episodes as episode, i (episode.id)}
-						{@const userData = $episodesData.episodes.find(
-							(e) => e.season === episode.season_number && e.episode === episode.episode_number
-						)}
-						{@const requestStatus = getEpisodeRequestStatus(
-							requestsData,
-							episode.season_number ?? 0,
-							episode.episode_number ?? 0
-						)}
+					{#snippet children({ scrollToIndex })}
+						{#each episodes as episode, i (episode.id)}
+							{@const userData = $episodesData.episodes.find(
+								(e) => e.season === episode.season_number && e.episode === episode.episode_number
+							)}
+							{@const requestStatus = getEpisodeRequestStatus(
+								requestsData,
+								episode.season_number ?? 0,
+								episode.episode_number ?? 0
+							)}
 
-						{#key episode.id}
-							<TmdbEpisodeCard
-								{episode}
-								statusTags={requestStatus.tags}
-								series={tmdbSeries}
-								on:mount={(e) =>
-									onEpisodeMount(e.detail, episode.season_number ?? 1, episode.episode_number ?? 1)}
-								on:enter={(e) => {
-									// if (PLATFORM_TV) {
-									// 	scrollIntoView({
-									// 		left: 128
-									// 	})(e);
-									// } else {
-									scrollToIndex(i);
-									// }
+							{#key episode.id}
+								<TmdbEpisodeCard
+									{episode}
+									statusTags={requestStatus.tags}
+									series={tmdbSeries}
+									onMounted={(e) =>
+										onEpisodeMount(e, episode.season_number ?? 1, episode.episode_number ?? 1)}
+									onEnter={(e) => {
+										// if (PLATFORM_TV) {
+										// 	scrollIntoView({
+										// 		left: 128
+										// 	})(e);
+										// } else {
+										scrollToIndex(i);
+										// }
 
-									// selectedEpisode.set({
-									// 	season: episode.season_number ?? 1,
-									// 	episode: episode.episode_number ?? 1
-									// });
-								}}
-								on:mouseenter={() =>
-									onEpisodeCardMouseEnter({
-										episode: episode.episode_number ?? 1,
-										season: episode.season_number ?? 1
-									})}
-								on:mouseleave={() => onEpisodeCardMouseLeave()}
-								isWatched={userData?.watched || false}
-								progress={userData?.progress}
-								onLongPress={() =>
-									componentStack.push({
-										component: EpisodeActionsSheet,
-										props: {
+										// selectedEpisode.set({
+										// 	season: episode.season_number ?? 1,
+										// 	episode: episode.episode_number ?? 1
+										// });
+									}}
+									onmouseenter={() =>
+										onEpisodeCardMouseEnter({
+											episode: episode.episode_number ?? 1,
+											season: episode.season_number ?? 1
+										})}
+									onmouseleave={() => onEpisodeCardMouseLeave()}
+									isWatched={userData?.watched || false}
+									progress={userData?.progress}
+									onLongPress={() =>
+										componentStack.push({
+											component: EpisodeActionsSheet,
+											props: {
+												tmdbId: id,
+												season: episode.season_number ?? 0,
+												episode: episode.episode_number ?? 0,
+												name: episode.name ?? '',
+												seriesName: tmdbSeries.name ?? ''
+											}
+										})}
+									onClickOrSelect={() =>
+										playEpisode({
 											tmdbId: id,
 											season: episode.season_number ?? 0,
 											episode: episode.episode_number ?? 0,
-											name: episode.name ?? '',
-											seriesName: tmdbSeries.name ?? ''
-										}
-									})}
-								on:clickOrSelect={() =>
-									playEpisode({
-										tmdbId: id,
-										season: episode.season_number ?? 0,
-										episode: episode.episode_number ?? 0,
-										title: episode.name ?? '',
-										subtitle: `${tmdbSeries.name ?? ''} · Season ${episode.season_number} Episode ${episode.episode_number}`,
-										progress: userData?.progress,
-										playMedia: background.playMedia
-									})}
-							/>
-						{/key}
-					{/each}
-					<!-- <div use:episodeCardsObserver /> -->
+											title: episode.name ?? '',
+											subtitle: `${tmdbSeries.name ?? ''} · Season ${episode.season_number} Episode ${episode.episode_number}`,
+											progress: userData?.progress,
+											playMedia: background.playMedia
+										})}
+								/>
+							{/key}
+						{/each}
+						<!-- <div use:episodeCardsObserver /> -->
+					{/snippet}
 				</Carousel>
 			{/if}
 		{/if}
@@ -400,31 +417,35 @@
 			{@const seasonCredits = $series.seasons?.find(
 				(s) => s.season_number === ($selectedTmdbEpisode?.season_number ?? 1)
 			)?.aggregate_credits}
-			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
-				<div slot="header">
-					{#if seasonCredits}
-						Season {$selectedTmdbEpisode?.season_number ?? 1} Cast
-					{:else}
-						Show Cast
-					{/if}
-				</div>
+			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
+				{#snippet header()}
+					<div>
+						{#if seasonCredits}
+							Season {$selectedTmdbEpisode?.season_number ?? 1} Cast
+						{:else}
+							Show Cast
+						{/if}
+					</div>
+				{/snippet}
 				{#each (seasonCredits ?? $series.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
-					<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} index={i} />
+					<TmdbPersonCard onEnter={scrollIntoView({ left: 128 })} tmdbCredit={credit} index={i} />
 				{/each}
 			</Carousel>
 		{/if}
 		{#if $recommendations.data?.length}
-			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
-				<div slot="header">Recommendations</div>
+			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
+				{#snippet header()}
+					<div>Recommendations</div>
+				{/snippet}
 				{#each $recommendations.data as recommendation (recommendation.id)}
-					<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+					<TmdbCard item={recommendation} onEnter={scrollIntoView({ left: 128 })} />
 				{/each}
 			</Carousel>
 		{/if}
 		{#if $series}
 			<Container
 				class="flex-1 bg-secondary-950 pt-16 pb-8 px-32"
-				on:enter={scrollIntoView({ bottom: 0 })}
+				onEnter={scrollIntoView({ bottom: 0 })}
 			>
 				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">

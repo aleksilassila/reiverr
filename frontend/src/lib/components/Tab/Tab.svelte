@@ -1,34 +1,54 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from '../Container.svelte';
 	import classNames from 'classnames';
-	import type { NavigateEvent, Selectable } from '../../selectable';
+	import { type NavigateEvent, Selectable } from '../../selectable';
 	import type { Writable } from 'svelte/store';
 
-	export let tab: number;
-	export let index: number = tab;
-	export let openTab: Writable<number>;
-	export let direction: 'horizontal' | 'vertical' = 'horizontal';
-	export let remount = true;
+	interface Props {
+		onBack?: ContainerProps['onBack'];
+		tab: number;
+		index?: number;
+		openTab: Writable<number>;
+		direction?: 'horizontal' | 'vertical';
+		remount?: boolean;
+		children?: Snippet<[{ active: boolean }]>;
+		class?: string;
+	}
 
-	let selectable: Selectable;
+	let {
+		tab,
+		index = tab,
+		openTab,
+		direction = 'horizontal',
+		remount = true,
+		children,
+		onBack,
+		class: className
+	}: Props = $props();
 
-	$: active = tab === $openTab;
-	$: if (active) selectable?.activate();
+	const selectable = new Selectable();
 
-	function handleNavigate({ detail }: CustomEvent<NavigateEvent>) {
-		// if (detail.willLeaveContainer) {
+	let active = $derived(tab === $openTab);
+	$effect(() => {
+		if (active) selectable.activate();
+	});
+
+	function handleNavigate(e: NavigateEvent) {
+		// if (e.willLeaveContainer) {
 		// 	if (
 		// 		(trapFocus === 'all' || trapFocus === 'horizontal') &&
-		// 		(detail.direction === 'left' || detail.direction === 'right')
+		// 		(detail.direction === 'left' || e.direction === 'right')
 		// 	) {
-		// 		detail.preventNavigation();
-		// 		detail.stopPropagation();
+		// 		e.preventNavigation();
+		// 		e.stopPropagation();
 		// 	} else if (
 		// 		(trapFocus === 'all' || trapFocus === 'vertical') &&
-		// 		(detail.direction === 'up' || detail.direction === 'down')
+		// 		(detail.direction === 'up' || e.direction === 'down')
 		// 	) {
-		// 		detail.preventNavigation();
-		// 		detail.stopPropagation();
+		// 		e.preventNavigation();
+		// 		e.stopPropagation();
 		// 	}
 		// }
 	}
@@ -51,13 +71,13 @@
 						'translate-y-10': !active && $openTab < index
 					}
 		)}
-		bind:selectable
-		on:back
-		on:navigate={handleNavigate}
+		{selectable}
+		{onBack}
+		onNavigate={handleNavigate}
 		disabled={!active}
 	>
-		<div class={$$restProps.class}>
-			<slot {active} />
+		<div class={className}>
+			{@render children?.({ active })}
 		</div>
 	</Container>
 {/if}

@@ -9,12 +9,18 @@
 	import { _setComponentStack, type CompStackPage } from './stack-router.store';
 	import { backgroundContext } from '../GlobalBackground/background-stack.store';
 
-	export let page: CompStackPage;
-	export let isHidden: boolean;
+	interface Props {
+		page: CompStackPage;
+		isHidden: boolean;
+	}
+
+	let { page, isHidden }: Props = $props();
 	const registrar = useRegistrar();
 	const hasFocusWithin = nestedDerived(registrar, (r) => r?.hasFocusWithin);
 	const hidden = writable(isHidden);
-	$: hidden.set(isHidden);
+	$effect(() => {
+		hidden.set(isHidden);
+	});
 
 	const componentStack = _setComponentStack({
 		...page,
@@ -41,7 +47,7 @@
 	style="backface-visibility: hidden;"
 	trapFocus={page.trapFocus}
 	direction="horizontal"
-	on:mount={registrar.registrar}
+	onMounted={registrar.registrar}
 >
 	<div in:fade|global={{ duration: 200, delay: 200 }} class="contents">
 		{#if page.sidebar === true}
@@ -49,20 +55,20 @@
 		{/if}
 		<Container
 			class="contents"
-			on:back={() => {
+			onBack={() => {
 				// {...$$restProps}
 				// handleGoToTop()
 				page.close();
 			}}
 			focusOnMount={!isHidden}
-			on:navigate={({ detail }) => {
-				// if (detail.direction === 'left' && detail.willLeaveContainer) {
-				// 	detail.preventNavigation();
+			onNavigate={(e) => {
+				// if (e.direction === 'left' && e.willLeaveContainer) {
+				// 	e.preventNavigation();
 				// 	focusSidebar();
 				// }
 			}}
 		>
-			<svelte:component this={page.component} {...page.props} />
+			<page.component {...page.props} />
 		</Container>
 	</div>
 </Container>

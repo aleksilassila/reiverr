@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import type { EpisodeRefDto } from '$lib/apis/reiverr/reiverr.openapi';
 	import type { TmdbSeason } from '$lib/apis/tmdb/tmdb-api';
 	import RequestRow from '$lib/components/RequestRow.svelte';
@@ -6,68 +7,75 @@
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView, type Selectable } from '$lib/selectable';
 	import { formatSize } from '$lib/utils';
-	import { createEventDispatcher } from 'svelte';
+
 	import type { SeriesData } from './episode-status';
 	import EpisodeItem from './EpisodeItem.svelte';
 
-	export let season: TmdbSeason;
-	export let data: SeriesData = {};
+	interface Props {
+		onEnter?: ComponentProps<typeof RequestRow>['onEnter'];
+		onRequest?: (detail: { episodes: EpisodeRefDto[]; requested: boolean }) => void;
+		onTorrents?: (detail: { season: number; episode?: number; name: string }) => void;
+		season: TmdbSeason;
+		data?: SeriesData;
+	}
 
-	const dispatch = createEventDispatcher<{
-		request: { episodes: EpisodeRefDto[]; requested: boolean };
-		torrents: { season: number; episode?: number; name: string };
-	}>();
+	let { season, data = {}, onEnter, onRequest, onTorrents }: Props = $props();
 
-	let heading: Selectable;
+	let heading: Selectable | undefined = $state();
 
 	/** Focuses the season's heading at the top of the list */
 	export function focus() {
-		heading.focus();
-		const el = heading.getHtmlElement();
+		heading?.focus();
+		const el = heading?.getHtmlElement();
 		if (el) scrollElementIntoView(el, { top: 32 });
 	}
 
-	$: seasonNumber = season.season_number ?? 0;
-	$: seasonName = season.name ?? `Season ${seasonNumber}`;
-	$: episodes = (season.episodes ?? []).map((e) => ({
-		season: seasonNumber,
-		episode: e.episode_number ?? 0,
-		name: e.name ?? ''
-	}));
-	$: requestedCount = episodes.filter((e) =>
-		data.requests?.requests.has(episodeKey(e.season, e.episode))
-	).length;
-	$: allRequested = episodes.length > 0 && requestedCount === episodes.length;
+	let seasonNumber = $derived(season.season_number ?? 0);
+	let seasonName = $derived(season.name ?? `Season ${seasonNumber}`);
+	let episodes = $derived(
+		(season.episodes ?? []).map((e) => ({
+			season: seasonNumber,
+			episode: e.episode_number ?? 0,
+			name: e.name ?? ''
+		}))
+	);
+	let requestedCount = $derived(
+		episodes.filter((e) => data.requests?.requests.has(episodeKey(e.season, e.episode))).length
+	);
+	let allRequested = $derived(episodes.length > 0 && requestedCount === episodes.length);
 
-	$: seasonPack = data.requests?.sources.get(episodeKey(seasonNumber, 0))?.release;
+	let seasonPack = $derived(data.requests?.sources.get(episodeKey(seasonNumber, 0))?.release);
 	// The season pack as the engine has it, once something was wanted of it
-	$: seasonPackTorrent = seasonPack && data.torrents?.get(seasonPack.infoHash);
-	$: seasonPackStatus =
+	let seasonPackTorrent = $derived(seasonPack && data.torrents?.get(seasonPack.infoHash));
+	let seasonPackStatus = $derived(
 		seasonPackTorrent?.status === 'seeding'
 			? `Seeding, ${formatSize(seasonPackTorrent.uploadedBytes)} uploaded`
 			: seasonPackTorrent?.status === 'failed'
 				? seasonPackTorrent.error
 				: seasonPackTorrent?.status === 'starting' || seasonPackTorrent?.status === 'downloading'
 					? `${seasonPackTorrent.peers} peers, ${formatSize(seasonPackTorrent.downloadSpeed)}/s`
-					: '';
+					: ''
+	);
 </script>
 
 <div class="mt-8 space-y-4">
 	<RequestRow
-		on:mount={({ detail }) => (heading = detail)}
+		onMounted={(e) => (heading = e)}
 		subtitle={seasonPack ? seasonPack.title : 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}
 		checked={allRequested}
 		partiallyChecked={requestedCount > 0}
-		on:toggle={() =>
-			dispatch('request', {
+		onToggle={() =>
+			onRequest?.({
 				episodes: episodes.map(({ season, episode }) => ({ season, episode })),
 				requested: !allRequested
 			})}
-		on:open={() => dispatch('torrents', { season: seasonNumber, name: seasonName })}
-		on:enter={scrollIntoView({ vertical: 96 })}
-		on:enter
+		onOpen={() => onTorrents?.({ season: seasonNumber, name: seasonName })}
+		onEnter={(e) => {
+			scrollIntoView({ vertical: 96 })(e);
+			onEnter?.(e);
+		}}
 	>
 		{seasonName}
 	</RequestRow>
@@ -79,19 +87,21 @@
 			episodeNumber={episode.episode}
 			episodeName={episode.name}
 			{data}
-			on:toggle={() =>
-				dispatch('request', {
+			onToggle={() =>
+				onRequest?.({
 					episodes: [{ season: episode.season, episode: episode.episode }],
 					requested: !requested
 				})}
-			on:open={() =>
-				dispatch('torrents', {
+			onOpen={() =>
+				onTorrents?.({
 					season: episode.season,
 					episode: episode.episode,
 					name: `S${episode.season}E${episode.episode} - ${episode.name}`
 				})}
-			on:enter={scrollIntoView({ vertical: 96 })}
-			on:enter
+			onEnter={(e) => {
+				scrollIntoView({ vertical: 96 })(e);
+				onEnter?.(e);
+			}}
 		/>
 	{/each}
 </div>

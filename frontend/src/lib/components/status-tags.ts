@@ -18,7 +18,7 @@ import {
 	Trash,
 	Update
 } from 'radix-icons-svelte';
-import type { ComponentType } from 'svelte';
+import type { IconComponent } from '$lib/components/icon.type';
 
 /** What the tags of an episode or a movie are made from */
 type StatusTagsInput = {
@@ -42,7 +42,7 @@ export type StatusTag = {
 	shortLabel?: string;
 	/** The failure as the server words it, for where there is room */
 	detail?: string;
-	icon: ComponentType;
+	icon: IconComponent;
 	type: 'default' | 'secondary' | 'progress' | 'error';
 };
 

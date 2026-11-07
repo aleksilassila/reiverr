@@ -1,6 +1,8 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
+	import { Selectable } from '$lib/selectable';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
 	import { getCardDimensions } from '../../utils';
 	import AnimatedSelection from '../AnimateScale.svelte';
 	import Container from '../Container.svelte';
@@ -8,28 +10,45 @@
 	import ProgressBar from '../ProgressBar.svelte';
 	import type { CardBadge } from './Card';
 
-	export let backdropUrl: string = '';
-	// export let group = false;
+	type Props = Omit<ContainerProps, 'children'> & {
+		backdropUrl?: string;
+		// export let group = false;
+		title?: string;
+		progress?: number; // keep
+		runtime?: number;
+		disabled?: boolean;
+		size?: 'md' | 'lg' | 'sm';
+		orientation?: 'portrait' | 'landscape';
+		/** Short marks in the top right corner, such as a count or a warning */
+		badges?: CardBadge[];
+		children?: Snippet<[{ hasFocus: boolean; width: number; height: number }]>;
+	};
 
-	export let title = '';
-	export let progress = 0; // keep
-	export let runtime = 0;
+	let {
+		backdropUrl = '',
+		title = '',
+		progress = 0,
+		runtime = 0,
+		disabled = false,
+		size = 'md',
+		orientation = 'landscape',
+		badges = [],
+		children,
+		...rest
+	}: Props = $props();
 
-	export let disabled = false;
-	export let size: 'md' | 'lg' | 'sm' = 'md';
-	export let orientation: 'portrait' | 'landscape' = 'landscape';
-	/** Short marks in the top right corner, such as a count or a warning */
-	export let badges: CardBadge[] = [];
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
+	let dimensions = $state(
+		getCardDimensions({ viewportWidth: window.innerWidth, orientation, size })
+	);
 
-	let hasFocus: Readable<boolean>;
-	let dimensions = getCardDimensions({ viewportWidth: window.innerWidth, orientation, size });
-
-	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
-	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
+	let lowerLimit = $derived(Math.min(runtime ? 15 / runtime : 0.1, 0.1));
+	let upperLimit = $derived(1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1));
 </script>
 
 <svelte:window
-	on:resize={(e) =>
+	onresize={(e) =>
 		(dimensions = getCardDimensions({
 			viewportWidth: e.currentTarget.innerWidth,
 			orientation,
@@ -51,21 +70,22 @@
 	{/if} -->
 <AnimatedSelection hasFocus={$hasFocus} class="relative">
 	<Container
-		{...$$restProps}
+		{...rest}
 		{disabled}
-		on:clickOrSelect
-		on:enter
-		on:click
 		class={classNames(
 			'relative flex flex-shrink-0 rounded-xl group hover:text-inherit overflow-hidden text-left cursor-pointer',
 			'selectable',
-			$$restProps.class
+			rest.class
 		)}
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
 		focusOnClick
-		bind:hasFocus
+		{selectable}
 	>
-		<slot hasFocus={$hasFocus} width={dimensions.width} height={dimensions.height}>
+		{#if children}{@render children({
+				hasFocus: $hasFocus,
+				width: dimensions.width,
+				height: dimensions.height
+			})}{:else}
 			{#if backdropUrl}
 				<LazyImg
 					src={backdropUrl}
@@ -78,7 +98,7 @@
 					{title}
 				</h1>
 			{/if}
-		</slot>
+		{/if}
 
 		{#if badges.length}
 			<div class="absolute top-2 right-2 flex space-x-1">
@@ -93,7 +113,7 @@
 						)}
 					>
 						{#if badge.icon}
-							<svelte:component this={badge.icon} size={14} class={badge.label ? 'mr-1' : ''} />
+							<badge.icon size={14} class={badge.label ? 'mr-1' : ''} />
 						{/if}
 						{#if badge.label}
 							{badge.label}

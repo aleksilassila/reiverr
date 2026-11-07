@@ -1,10 +1,17 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import classNames from 'classnames';
 	import IconButton from './FloatingIconButton.svelte';
 	import { Cross1 } from 'radix-icons-svelte';
 
-	export let size: 'sm' | 'full' | 'lg' | 'dynamic' = 'sm';
-	export let onClose: (() => void) | undefined = undefined;
+	interface Props {
+		size?: 'sm' | 'full' | 'lg' | 'dynamic';
+		onClose?: (() => void) | undefined;
+		children?: Snippet;
+		class?: string;
+	}
+
+	let { size = 'sm', onClose = undefined, children, class: className }: Props = $props();
 </script>
 
 <div
@@ -16,15 +23,15 @@
 			'flex-1 max-h-full max-w-[56rem] min-h-0 overflow-y-auto scrollbar-hide': size === 'lg',
 			'max-w-max overflow-hidden': size === 'dynamic'
 		},
-		$$restProps.class
+		className
 	)}
 >
 	{#if onClose}
 		<div class="absolute top-4 right-4">
-			<IconButton on:click={onClose}>
+			<IconButton onclick={onClose}>
 				<Cross1 size={20} />
 			</IconButton>
 		</div>
 	{/if}
-	<slot />
+	{@render children?.()}
 </div>

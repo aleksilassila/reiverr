@@ -19,13 +19,17 @@
 	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { derived, writable } from 'svelte/store';
+	import { derived as derivedStore, writable } from 'svelte/store';
 	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
 
-	/** The titles of the list with an aired episode left to watch, or with none */
-	export let status: 'unwatched' | 'watched';
+	interface Props {
+		/** The titles of the list with an aired episode left to watch, or with none */
+		status: 'unwatched' | 'watched';
+	}
+
+	let { status }: Props = $props();
 
 	type Category = 'series' | 'movies';
 
@@ -55,7 +59,7 @@
 
 	const { topVisible } = getScrollContext();
 
-	let didMount = false;
+	let didMount = $state(false);
 
 	const category = writable<CatalogCategory>('all');
 	const availability = writable<MyListAvailability | null>(null);
@@ -69,7 +73,7 @@
 	});
 
 	const titles = usePageInfiniteQuery(
-		derived(
+		derivedStore(
 			[category, availability, letter, viewSettings],
 			([$category, $availability, $letter, $viewSettings]) =>
 				catalogQueries.myList({
@@ -84,7 +88,7 @@
 	);
 	const { loadMore } = titles;
 
-	$: items = $titles.data ?? [];
+	let items = $derived($titles.data ?? []);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -120,120 +124,122 @@
 </FloatingHeader>
 
 <Container direction="horizontal" class="min-h-full flex" focusOnMount>
-	<Container class="flex-1 min-w-0 pb-16 space-y-8 flex flex-col" let:hasFocus focusOnMount>
-		<div class="h-full flex-1 flex flex-col">
-			<Scrollable class="mx-32 flex items-end space-x-8" fadeWidth={3}>
-				<div class="flex-shrink-0">
-					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-						Media Type
-					</div>
-					<Container direction="horizontal" class="flex space-x-4">
-						{#each CATEGORIES as option (option.value)}
-							<Pill
-								selected={$category === option.value}
-								on:clickOrSelect={() => filter(option.value)}
-								on:enter={scrollIntoView({ horizontal: 64 })}
-							>
-								{option.label}
-							</Pill>
-						{/each}
-					</Container>
-				</div>
-				<div class="flex-shrink-0">
-					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-						On Disk
-					</div>
-					<Container direction="horizontal" class="flex space-x-4">
-						{#each AVAILABILITIES as option (option.value)}
-							<Pill
-								selected={$availability === option.value}
-								on:clickOrSelect={() => filterAvailability(option.value)}
-								on:enter={scrollIntoView({ horizontal: 64 })}
-							>
-								{option.label}
-							</Pill>
-						{/each}
-					</Container>
-				</div>
-				<div class="flex-shrink-0">
-					<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
-						Sort By
-					</div>
-					<Container direction="horizontal" class="flex space-x-4">
-						{#each SORTS as option (option.value)}
-							<Pill
-								selected={$viewSettings.order === option.value}
-								on:clickOrSelect={() => selectSort(option.value)}
-								on:enter={scrollIntoView({ horizontal: 64 })}
-							>
-								<span class="flex items-center">
+	<Container class="flex-1 min-w-0 pb-16 space-y-8 flex flex-col" focusOnMount>
+		{#snippet children({ hasFocus })}
+			<div class="h-full flex-1 flex flex-col">
+				<Scrollable class="mx-32 flex items-end space-x-8" fadeWidth={3}>
+					<div class="flex-shrink-0">
+						<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+							Media Type
+						</div>
+						<Container direction="horizontal" class="flex space-x-4">
+							{#each CATEGORIES as option (option.value)}
+								<Pill
+									selected={$category === option.value}
+									onClickOrSelect={() => filter(option.value)}
+									onEnter={scrollIntoView({ horizontal: 64 })}
+								>
 									{option.label}
-									{#if $viewSettings.order === option.value}
-										<svelte:component
-											this={$viewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
-											size={20}
-											class="ml-2"
-										/>
-									{/if}
-								</span>
-							</Pill>
-						{/each}
-					</Container>
-				</div>
-			</Scrollable>
-			<Container
-				focusOnMount={hasFocus || !didMount}
-				on:mount={() => {
-					didMount = true;
-				}}
-				focusedChild
-				class="flex-1 flex flex-col"
-			>
-				{#if items.length}
-					<div class="my-6">
-						<CardGrid class="px-32" let:columns on:back={scrollToTop}>
-							{#each items as item, index (`${item.mediaType}-${item.tmdbId}`)}
-								<TmdbCard
-									{index}
-									item={item.tmdbItem}
-									progress={item.progress ?? 0}
-									badges={titleBadges(item, {
-										movieOnDisk: true,
-										nextEpisode: true
-									})}
-									on:enter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
-								/>
+								</Pill>
 							{/each}
-						</CardGrid>
-						<div use:loadMore />
+						</Container>
 					</div>
-				{:else if $titles.isLoading}
-					<Container class="h-ghost m-auto px-32">Loading...</Container>
-				{:else if $titles.error}
-					<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
-						{errorMessage($titles.error)}
-					</Container>
-				{:else}
-					<Container focusOnMount class="h-ghost m-auto px-32">
-						{#if $letter}
-							Nothing {status} in your list under {$letter}.
-						{:else if $availability}
-							Nothing {status} and {$availability} in your list.
-						{:else if $category !== 'all'}
-							No {status} {$category} in your list.
-						{:else}
-							Nothing {status} in your list.
-						{/if}
-					</Container>
-				{/if}
-			</Container>
-		</div>
+					<div class="flex-shrink-0">
+						<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+							On Disk
+						</div>
+						<Container direction="horizontal" class="flex space-x-4">
+							{#each AVAILABILITIES as option (option.value)}
+								<Pill
+									selected={$availability === option.value}
+									onClickOrSelect={() => filterAvailability(option.value)}
+									onEnter={scrollIntoView({ horizontal: 64 })}
+								>
+									{option.label}
+								</Pill>
+							{/each}
+						</Container>
+					</div>
+					<div class="flex-shrink-0">
+						<div class="uppercase text-secondary-300 font-semibold tracking-wider text-sm mb-2">
+							Sort By
+						</div>
+						<Container direction="horizontal" class="flex space-x-4">
+							{#each SORTS as option (option.value)}
+								<Pill
+									selected={$viewSettings.order === option.value}
+									onClickOrSelect={() => selectSort(option.value)}
+									onEnter={scrollIntoView({ horizontal: 64 })}
+								>
+									<span class="flex items-center">
+										{option.label}
+										{#if $viewSettings.order === option.value}
+											{@const SvelteComponent =
+												$viewSettings.direction === 'desc' ? ArrowDown : ArrowUp}
+											<SvelteComponent size={20} class="ml-2" />
+										{/if}
+									</span>
+								</Pill>
+							{/each}
+						</Container>
+					</div>
+				</Scrollable>
+				<Container
+					focusOnMount={hasFocus || !didMount}
+					onMounted={() => {
+						didMount = true;
+					}}
+					focusedChild
+					class="flex-1 flex flex-col"
+				>
+					{#if items.length}
+						<div class="my-6">
+							<CardGrid class="px-32" onBack={scrollToTop}>
+								{#snippet children({ columns })}
+									{#each items as item, index (`${item.mediaType}-${item.tmdbId}`)}
+										<TmdbCard
+											{index}
+											item={item.tmdbItem}
+											progress={item.progress ?? 0}
+											badges={titleBadges(item, {
+												movieOnDisk: true,
+												nextEpisode: true
+											})}
+											onEnter={scrollIntoView({ top: index < columns ? 192 + 64 : 192 })}
+										/>
+									{/each}
+								{/snippet}
+							</CardGrid>
+							<div use:loadMore></div>
+						</div>
+					{:else if $titles.isLoading}
+						<Container class="h-ghost m-auto px-32">Loading...</Container>
+					{:else if $titles.error}
+						<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
+							{errorMessage($titles.error)}
+						</Container>
+					{:else}
+						<Container focusOnMount class="h-ghost m-auto px-32">
+							{#if $letter}
+								Nothing {status} in your list under {$letter}.
+							{:else if $availability}
+								Nothing {status} and {$availability} in your list.
+							{:else if $category !== 'all'}
+								No {status} {$category} in your list.
+							{:else}
+								Nothing {status} in your list.
+							{/if}
+						</Container>
+					{/if}
+				</Container>
+			</div>
+		{/snippet}
 	</Container>
 	<QuickNav
 		size="sm"
 		class="fixed right-12 inset-y-0 justify-center z-10"
 		items={LETTERS}
 		selected={$letter ? LETTERS.indexOf($letter) : -1}
-		on:select={({ detail }) => filterLetter(detail)}
+		onSelect={(e) => filterLetter(e)}
 	/>
 </Container>

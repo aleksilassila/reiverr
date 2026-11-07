@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { Selectable } from '$lib/selectable';
 	import { PLATFORM_TV, PLATFORM_WEB } from '$lib/constants';
 	import { userActivity } from '$lib/stores/user-activity.store';
 	import { getVideoZoomLevel } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Cross1, Play } from 'radix-icons-svelte';
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import { onDestroy, onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
@@ -15,45 +15,49 @@
 
 	const STOP_WHEN_REMAINING = 0;
 
-	const dispatch = createEventDispatcher<{
-		watched: undefined;
-		play: undefined;
-		pause: undefined;
-	}>();
+	interface Props {
+		onPlay?: () => void;
+		onPause?: () => void;
+		videoId?: string | null;
+		loadTime?: any;
+		load?: boolean;
+		paused?: boolean;
+		muted?: boolean;
+	}
 
-	export let videoId: string | null = null;
-	export let loadTime = PLATFORM_TV ? 2500 : 1000;
+	let {
+		videoId = null,
+		loadTime = PLATFORM_TV ? 2500 : 1000,
+		load = true,
+		paused = false,
+		muted = false,
+		onPlay,
+		onPause
+	}: Props = $props();
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocusWithin;
 
-	export let load = true;
-	export let paused = false;
-	export let muted = false;
-	let hasFocus: Readable<boolean>;
-
-	let userPaused = false;
+	let userPaused = $state(false);
 
 	const playerId = `youtube-player-${videoId}-${Math.random().toString(36).substr(2, 9)}`;
 
 	// Component did mount
-	let didMount = false;
+	let didMount = $state(false);
 	// Did load script, makes sure we only load the script once
-	let isInitialized = false;
+	let isInitialized = $state(false);
 	// Player is ready to play, true after initialization and loadTime
-	let isPlayerReady = false;
+	let isPlayerReady = $state(false);
 	let player: YT['Player'];
 	let checkStopInterval: ReturnType<typeof setInterval>;
 	let loadTimeout: ReturnType<typeof setTimeout>;
-	let errorTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
-	let zoom = getVideoZoomLevel({
-		viewportWidth: window.innerWidth,
-		viewportHeight: window.innerHeight
-	});
+	let errorTimeout: ReturnType<typeof setTimeout> | undefined = $state(undefined);
+	let zoom = $state(
+		getVideoZoomLevel({
+			viewportWidth: window.innerWidth,
+			viewportHeight: window.innerHeight
+		})
+	);
 
-	$: if (isPlayerReady && load && !paused && !userPaused) play();
-	$: if (isPlayerReady && load && (paused || userPaused)) pause();
-	$: if (isInitialized && isPlayerReady && muted) mute();
-	$: if (isInitialized && isPlayerReady && !muted) unMute();
-
-	$: if (didMount && !isInitialized && load) loadYouTubeAPI();
 	function loadYouTubeAPI() {
 		isInitialized = true;
 		console.log('Loading YouTube API for ' + videoId);
@@ -85,8 +89,6 @@
 		} catch (e) {
 			console.warn('Error destroying player.', e);
 		}
-
-		dispatch('pause');
 	}
 
 	function setupPlayer() {
@@ -148,6 +150,7 @@
 			errorMessages[event.data] || 'Unknown error.'
 		);
 		destroyPlayer();
+		onPause?.();
 	}
 
 	function handlePlayerStateChange(event: any) {
@@ -171,7 +174,7 @@
 
 				if (remainingTime <= STOP_WHEN_REMAINING) {
 					try {
-						// dispatch('watched');
+						// onWatched?.();
 						// player.pauseVideo();
 						// player.seekTo(0);
 						topBackground.destroyVideo();
@@ -198,14 +201,14 @@
 		if (!player?.playVideo) return;
 
 		player?.playVideo?.();
-		dispatch('play');
+		onPlay?.();
 	}
 
 	function pause() {
 		if (!player?.pauseVideo) return;
 
 		player?.pauseVideo?.();
-		dispatch('pause');
+		onPause?.();
 	}
 
 	function mute() {
@@ -240,6 +243,8 @@
 		// }
 	});
 
+	// Not dispatched from here: Svelte 5 looks the listeners up through the parent's props when
+	// dispatching, and the background stack has dropped the video by the time its outro ends
 	onDestroy(() => {
 		destroyPlayer();
 	});
@@ -247,10 +252,25 @@
 	// 	const el = document.getElementById(playerId);
 	// 	if (el) el.style.opacity = isPlayerReady && visible ? '1' : '0';
 	// }
+	$effect(() => {
+		if (isPlayerReady && load && !paused && !userPaused) play();
+	});
+	$effect(() => {
+		if (isPlayerReady && load && (paused || userPaused)) pause();
+	});
+	$effect(() => {
+		if (isInitialized && isPlayerReady && muted) mute();
+	});
+	$effect(() => {
+		if (isInitialized && isPlayerReady && !muted) unMute();
+	});
+	$effect(() => {
+		if (didMount && !isInitialized && load) loadYouTubeAPI();
+	});
 </script>
 
 <svelte:window
-	on:resize={() =>
+	onresize={() =>
 		(zoom = getVideoZoomLevel({
 			viewportWidth: window.innerWidth,
 			viewportHeight: window.innerHeight
@@ -258,8 +278,8 @@
 />
 
 <Container
-	bind:hasFocusWithin={hasFocus}
-	on:select={() => (userPaused = !userPaused)}
+	{selectable}
+	onSelect={() => (userPaused = !userPaused)}
 	class={classNames('relative h-full w-full transition-opacity bg-black', {
 		'opacity-0': !$hasFocus && !isPlayerReady
 	})}
@@ -273,7 +293,7 @@
 		)}
 		style={`transform: scale(${zoom});`}
 	>
-		<div id={playerId} class="video-background" />
+		<div id={playerId} class="video-background"></div>
 	</div>
 
 	<div
@@ -285,7 +305,7 @@
 		)}
 	>
 		{#if errorTimeout}
-			<div out:fade>
+			<div out:fade|global>
 				<Cross1 class="w-12 h-12" />
 			</div>
 		{:else if !load || paused || userPaused}
@@ -295,14 +315,14 @@
 		{/if}
 	</div>
 
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<div on:click={() => (userPaused = !userPaused)} class="absolute inset-0" />
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div onclick={() => (userPaused = !userPaused)} class="absolute inset-0"></div>
 	{#if PLATFORM_WEB}
 		<FloatingIconButton
 			class={classNames('absolute top-12 right-16 transition-opacity', {
 				'opacity-0': !$hasFocus || $userActivity
 			})}
-			on:click={() => topBackground.destroyVideo()}
+			onclick={() => topBackground.destroyVideo()}
 		>
 			<Cross1 size={32} />
 		</FloatingIconButton>

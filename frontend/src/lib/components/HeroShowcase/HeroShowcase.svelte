@@ -1,8 +1,9 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { ChevronRight } from 'radix-icons-svelte';
-	import { createEventDispatcher } from 'svelte';
-	import { get, type Readable } from 'svelte/store';
+
+	import { get } from 'svelte/store';
 	import { TMDB_POSTER_SMALL } from '../../constants';
 	import Container from '../Container.svelte';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
@@ -25,48 +26,35 @@
 	};
 
 	const background = backgroundContext.getContext();
-	const dispatch = createEventDispatcher<{
-		select: ShowcaseItem | undefined;
-	}>();
 
-	export let items: Promise<ShowcaseItem[]> = Promise.resolve([]);
-
-	let index = 0;
-	let awaitedItems: undefined | ShowcaseItem[];
-	let componentHasFocus: Readable<boolean>;
-
-	$: items.then((items) => {
-		awaitedItems = items;
-
-		background.setBackgrounds?.(
-			items.map((i) => ({
-				backdropUri: `${i.backdropUri}`,
-				mediaId: String(i.id)
-			}))
-		);
-	});
-	$: {
-		awaitedItems?.[index];
-		updateTrailer();
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onSelect?: (detail: ShowcaseItem | undefined) => void;
+		items?: Promise<ShowcaseItem[]>;
 	}
-	function updateTrailer() {
-		// destroyBackgroundVideo();
+
+	let { items = Promise.resolve([]), onSelect, onEnter }: Props = $props();
+
+	let index = $state(0);
+	let awaitedItems: undefined | ShowcaseItem[] = $state();
+
+	function updateTrailer(item: ShowcaseItem | undefined) {
 		background.destroyVideo?.();
 		if (get(localSettings).autoplayTrailers) {
-			playTrailer(true);
+			playTrailer(item, true);
 		}
 	}
 
-	async function playTrailer(onBackground: boolean = false) {
-		const videoId = awaitedItems?.[index]?.videoUrl;
-		const tmdbId = awaitedItems?.[index]?.id;
+	async function playTrailer(item: ShowcaseItem | undefined, onBackground: boolean = false) {
+		const videoId = item?.videoUrl;
+		const tmdbId = item?.id;
 		if (!videoId) return;
 
 		background.playYoutubeVideo?.({ videoId, tmdbId: String(tmdbId), onBackground });
 	}
 
 	function focusTrailer() {
-		if (!get(localSettings).autoplayTrailers) playTrailer();
+		if (!get(localSettings).autoplayTrailers) playTrailer(awaitedItems?.[index]);
 		else background.focus?.();
 		// toggleFocusGlobalBackground();
 	}
@@ -118,36 +106,51 @@
 	}
 
 	function openItem() {
-		if (awaitedItems) dispatch('select', awaitedItems[index]);
+		if (awaitedItems) onSelect?.(awaitedItems[index]);
 	}
+	$effect(() => {
+		items.then((items) => {
+			awaitedItems = items;
+
+			background.setBackgrounds?.(
+				items.map((i) => ({
+					backdropUri: `${i.backdropUri}`,
+					mediaId: String(i.id)
+				}))
+			);
+		});
+	});
+	// The trailer follows the item: whatever plays stops when the item changes
+	$effect(() => {
+		updateTrailer(awaitedItems?.[index]);
+	});
 </script>
 
 <HeroContainer>
 	<Container
-		bind:hasFocusWithin={componentHasFocus}
 		class="flex-1 flex items-end"
-		on:select={openItem}
-		on:enter
-		on:navigate={({ detail }) => {
-			if (detail.direction === 'left') {
+		onSelect={openItem}
+		{onEnter}
+		onNavigate={(e) => {
+			if (e.direction === 'left') {
 				const success = onPrevious();
 				if (success) {
-					detail.preventNavigation();
-					detail.stopPropagation();
+					e.preventNavigation();
+					e.stopPropagation();
 				}
-			} else if (detail.direction === 'right') {
+			} else if (e.direction === 'right') {
 				const success = onNext();
 				if (success) {
-					detail.preventNavigation();
-					detail.stopPropagation();
+					e.preventNavigation();
+					e.stopPropagation();
 				}
-			} else if (detail.direction === 'up') {
+			} else if (e.direction === 'up') {
 				focusTrailer();
-				detail.preventNavigation();
-				detail.stopPropagation();
+				e.preventNavigation();
+				e.stopPropagation();
 			}
 		}}
-		on:click={({ detail: e }) => {
+		onclick={(e) => {
 			if (e.target === e.currentTarget) focusTrailer();
 		}}
 	>
@@ -166,12 +169,12 @@
 				<div class="flex-1 flex items-end">
 					<div class="mr-8">
 						<!--						<Card orientation="portrait" backdropUrl={TMDB_POSTER_SMALL + item.posterUrl} />-->
-						<!-- svelte-ignore a11y-click-events-have-key-events -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<div
 							class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer"
 							style={`background-image: url("${TMDB_POSTER_SMALL + item.posterUri}")`}
-							on:click={openItem}
-						/>
+							onclick={openItem}
+						></div>
 					</div>
 					<div class="flex flex-col">
 						<HeroTitleInfo
@@ -186,7 +189,7 @@
 
 			<div class="self-stretch flex flex-col justify-end ml-4">
 				<div class="flex flex-1 justify-end items-center">
-					<FloatingIconButton on:click={onNext}>
+					<FloatingIconButton onclick={onNext}>
 						<ChevronRight size={38} />
 					</FloatingIconButton>
 				</div>

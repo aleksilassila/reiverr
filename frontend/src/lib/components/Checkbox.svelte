@@ -1,34 +1,34 @@
 <script lang="ts">
+	import { Selectable } from '$lib/selectable';
 	import Container from './Container.svelte';
-	import { createEventDispatcher } from 'svelte';
+
 	import { Check } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import AnimateScale from './AnimateScale.svelte';
-	import type { Readable } from 'svelte/store';
 
-	export type CheckboxChangeEvent = CustomEvent<boolean>;
+	interface Props {
+		onChange?: (detail: boolean) => void;
+		checked: boolean;
+	}
 
-	const dispatch = createEventDispatcher<{
-		change: boolean;
-	}>();
-
-	export let checked: boolean;
-	let hasFocus: Readable<boolean>;
-	let input: HTMLInputElement;
+	let { checked = $bindable(), onChange }: Props = $props();
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
+	let input: HTMLInputElement | undefined = $state();
 
 	const handleChange = (e: Event) => {
-		checked = e.target?.checked;
-		dispatch('change', e.target?.checked);
+		checked = (e.target as HTMLInputElement).checked;
+		onChange?.(checked);
 	};
 </script>
 
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
-		on:enter={(e) => {
-			e.detail.options.setFocusedElement = input;
+		onEnter={(e) => {
+			if (input) e.options.setFocusedElement = input;
 		}}
-		on:clickOrSelect={() => input?.click()}
-		bind:hasFocus
+		onClickOrSelect={() => input?.click()}
+		{selectable}
 		class={classNames(
 			'border-2 rounded-xl w-9 h-9 cursor-pointer flex items-center justify-center transition-colors p-[3px]',
 			{
@@ -47,7 +47,7 @@
 				bind:checked
 				class="sr-only peer"
 				bind:this={input}
-				on:input={handleChange}
+				oninput={handleChange}
 			/>
 			<Check class="opacity-0 peer-checked:opacity-100" size={24} />
 			<!--		<div-->

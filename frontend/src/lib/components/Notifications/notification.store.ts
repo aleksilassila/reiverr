@@ -1,10 +1,10 @@
-import type { ComponentProps, ComponentType, SvelteComponentTyped } from 'svelte';
+import type { Component, ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import Notification from './Notification.svelte';
 
-type NotificationItem<T extends SvelteComponentTyped = SvelteComponentTyped> = {
+type NotificationItem<T extends Component<any> = Component<any>> = {
 	id: symbol;
-	component: ComponentType<T>;
+	component: T;
 	props: ComponentProps<T>;
 };
 
@@ -31,10 +31,11 @@ function useNotificationStack() {
 
 export const notificationStack = useNotificationStack();
 export const createErrorNotification = (title: string, message?: string) => {
-	console.error(message);
+	const body = message ?? title;
+	console.error(body);
 	notificationStack.create(Notification, {
 		title: message ? title : 'Unexpected error occurred',
-		body: message ?? title,
+		body,
 		type: 'error'
 	});
 };

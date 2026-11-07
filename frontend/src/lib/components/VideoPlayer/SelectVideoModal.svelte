@@ -8,9 +8,13 @@
 
 	const { close } = useComponentStack();
 
-	export let available: VideoTrack[];
-	export let current: VideoTrack | undefined;
-	export let selectVideoTrack: (videoTrack?: VideoTrack) => void;
+	interface Props {
+		available: VideoTrack[];
+		current: VideoTrack | undefined;
+		selectVideoTrack: (videoTrack?: VideoTrack) => void;
+	}
+
+	let { available, current, selectVideoTrack }: Props = $props();
 </script>
 
 <Dialog>
@@ -21,11 +25,11 @@
 	<div class="flex flex-col space-y-4 overflow-y-auto scrollbar-hide flex-1 px-4 -mx-4 py-2 -my-2">
 		{#each available as videoTrack}
 			<Button
-				on:clickOrSelect={() => {
+				onClickOrSelect={() => {
 					close();
 					selectVideoTrack(videoTrack);
 				}}
-				on:enter={scrollIntoView({ vertical: 64 })}
+				onEnter={scrollIntoView({ vertical: 64 })}
 				class="relative"
 			>
 				{#if current?.id === videoTrack.id}

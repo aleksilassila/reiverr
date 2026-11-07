@@ -1,5 +1,5 @@
 import { Selectable, useRegistrar } from '$lib/selectable';
-import { onDestroy, SvelteComponentTyped, type ComponentProps, type ComponentType } from 'svelte';
+import { onDestroy, type Component, type ComponentProps } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
@@ -24,9 +24,9 @@ export type Background = {
 	mediaId?: string;
 };
 
-export type BackgroundVideo<T extends SvelteComponentTyped = SvelteComponentTyped> = {
+export type BackgroundVideo<T extends Component<any> = Component<any>> = {
 	id: symbol;
-	component: ComponentType<T>;
+	component: T;
 	props: ComponentProps<T>;
 	mediaId?: string;
 };
@@ -172,7 +172,7 @@ function _createBackgroundPage(
 		backgroundPagesStack.update((p) => p);
 	}
 
-	function setVideo<T extends SvelteComponentTyped>(video: BackgroundVideo<T>) {
+	function setVideo<T extends Component<any>>(video: BackgroundVideo<T>) {
 		if (video.mediaId && video.mediaId === page.video?.mediaId) return;
 
 		page.video = video;

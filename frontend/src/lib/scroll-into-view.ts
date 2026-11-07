@@ -1,4 +1,4 @@
-import { get_store_value as get } from 'svelte/internal';
+import { get } from 'svelte/store';
 import { localSettings } from './stores/localstorage.store';
 
 /** How far from the edges of the scroll parent the element is kept, per side or per axis; 'center' puts it in the middle of the axis */

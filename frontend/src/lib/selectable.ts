@@ -1,10 +1,8 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
 import { type Offsets, scrollElementIntoView } from './scroll-into-view';
 
-export type BackEvent = CustomEvent<KeyEvent>;
-
-export type Registerer = (htmlElement: HTMLElement) => { destroy: () => void };
-export type Registrar = (e: CustomEvent<Selectable>) => () => void;
+export type Registerer = (htmlElement: HTMLElement) => void;
+export type Registrar = (selectable: Selectable) => () => void;
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export type FlowDirection = 'vertical' | 'horizontal';
@@ -533,6 +531,8 @@ export class Selectable {
 			let previousSibling: Selectable | undefined = undefined;
 
 			for (const existingSibling of parent.children) {
+				// A sibling on its way out is removed once the teardown ends; it says nothing of the order
+				if (existingSibling.didUnmount) continue;
 				// Does not contain this yet
 				if (!existingSibling.htmlElement) {
 					console.error('No html element found for', existingSibling);
@@ -555,9 +555,12 @@ export class Selectable {
 				if (!newSibling || !targetSibling || !commonParentElement) {
 					console.warn(
 						"Couldn't find common parent element",
-						newSibling,
-						targetSibling,
-						commonParentElement
+						parent.name || parent.htmlElement,
+						'sibling',
+						existingSibling.htmlElement,
+						existingSibling.htmlElement.isConnected ? 'connected' : 'detached',
+						'new',
+						newHtmlElement
 					);
 					continue;
 				}
@@ -639,13 +642,64 @@ export class Selectable {
 		}
 	}
 
+	/**
+	 * Called from the container's onMount cleanup. The removal waits for the end of the teardown, so
+	 * that every container of the unmounting subtree is in the list and is removed in one pass, whatever
+	 * order Svelte runs the cleanups and the action destroyers in (Svelte 5 runs the destroyers first).
+	 */
 	_unmountContainer() {
-		// This is called before the registrars are destroyed,
-		// though the initialization finalization process doesn't
-		// work because unmount and destroy are both called
-		// before the next element unmounts :(
+		const first = Selectable._childrenToRemove.length === 0;
 		Selectable._childrenToRemove.push(this);
 		this.didUnmount = true;
+		if (first) Promise.resolve().then(Selectable.removeUnmounted);
+	}
+
+	private static removeUnmounted() {
+		// The focused container and its ancestors, so that the removal of one of them is known before
+		// the parent links go
+		const focusedPath = Selectable.pathOf(get(Selectable.focusedObject));
+		let parentToRefocus: Selectable | undefined = undefined;
+		const parents = new Set<Selectable>();
+
+		for (const child of Selectable._childrenToRemove) {
+			const parent = child.parent;
+
+			if (parent) {
+				parents.add(parent);
+				parent.removeChild(child);
+				const last = parent.children.length - 1;
+				if (last >= 0 && get(parent.focusIndex) > last) parent.focusIndex.set(last);
+
+				// The topmost removed container that had the focus: its parent gives the focus to whatever
+				// stands at the index now, as a replacement mounted in the same flush does
+				if (focusedPath.includes(child) && !parent.didUnmount) parentToRefocus = parent;
+			} else {
+				const topRootIndex = Selectable.rootObjectsStack.indexOf(child);
+
+				if (topRootIndex === Selectable.rootObjectsStack.length - 1) {
+					Selectable.rootObjectsStack.pop();
+					Selectable.rootObjectsStack[Selectable.rootObjectsStack.length - 1]?.focus();
+				} else if (topRootIndex !== -1) {
+					Selectable.rootObjectsStack.splice(topRootIndex, 1);
+				}
+			}
+
+			if (child.htmlElement) {
+				Selectable.objects.delete(child.htmlElement);
+			}
+		}
+
+		Selectable._childrenToRemove = [];
+		// The shifts that were counted are those of this teardown, undone or not
+		for (const parent of parents) parent._addChildCount = 0;
+
+		parentToRefocus?.focus();
+	}
+
+	private static pathOf(selectable: Selectable | undefined): Selectable[] {
+		const path: Selectable[] = [];
+		for (let current = selectable; current; current = current.parent) path.push(current);
+		return path;
 	}
 
 	/**
@@ -656,62 +710,6 @@ export class Selectable {
 			this.setHtmlElement(htmlElement);
 			Selectable._initializationStack.push(this);
 			Selectable.initializeTreeStructure();
-
-			return {
-				destroy: () => {
-					let elementToFocus: Selectable | undefined = undefined;
-					for (const child of Selectable._childrenToRemove) {
-						// console.warn('Removing child', child, 'from parent', child.parent);
-						const parent = child.parent;
-
-						if (parent) {
-							const childToFocus = child.parent?.removeChild(child);
-
-							if (get(parent.hasFocusWithin) && childToFocus) elementToFocus = childToFocus;
-							else if (childToFocus) {
-								const index = parent.children.indexOf(childToFocus);
-
-								if (index !== -1) {
-									parent.focusIndex.set(index);
-								} else {
-									console.error(
-										"Couldn't find index of child to focus",
-										childToFocus,
-										parent.children
-									);
-								}
-							} else if (parent.children.length === 0 && get(parent.hasFocusWithin)) {
-								elementToFocus = parent;
-								console.warn('Focusing parent after last child unmount', parent);
-							}
-						} else {
-							const topRootIndex = Selectable.rootObjectsStack.indexOf(child);
-
-							if (topRootIndex === Selectable.rootObjectsStack.length - 1) {
-								Selectable.rootObjectsStack.pop();
-								Selectable.rootObjectsStack[Selectable.rootObjectsStack.length - 1]?.focus();
-							} else if (topRootIndex !== -1) {
-								Selectable.rootObjectsStack.splice(topRootIndex, 1);
-							}
-						}
-
-						if (child.htmlElement) {
-							Selectable.objects.delete(child.htmlElement);
-						}
-					}
-
-					Selectable._childrenToRemove = [];
-
-					if (elementToFocus) {
-						console.log('Focusing element after unmount', elementToFocus);
-						if (elementToFocus.parent && get(elementToFocus.parent.hasFocusWithin)) {
-							console.log('executing focus after unmount');
-							elementToFocus.focus();
-							console.log('activeElement', document.activeElement);
-						}
-					}
-				}
-			};
 		};
 	}
 
@@ -733,7 +731,19 @@ export class Selectable {
 			return;
 		}
 
-		if (index === focusIndex) {
+		// A child mounted where one is unmounting takes its place: the removal follows when the teardown
+		// ends and undoes the shift of the index, which is what `_addChildCount` counts
+		const replacesChild = this.children
+			.slice(index, focusIndex + 1)
+			.some((sibling) => sibling.didUnmount);
+		const focusedChild = this.children[focusIndex];
+
+		if (!replacesChild && !initialization && this.children.length > 0 && index <= focusIndex) {
+			// Mounted before the focused child, with nothing unmounting there: the index follows the child.
+			// A container that has not had the focus yet is still entered at its first child
+			if (focusIndex > 0 || (focusedChild && get(focusedChild.hasFocusWithin)))
+				this.focusIndex.update((prev) => prev + 1);
+		} else if (index === focusIndex) {
 			// console.log('Adding to focusIndex', index, this._removedChildrenCount);
 
 			// Increment
@@ -1074,13 +1084,13 @@ export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable |
 	const selectable = writable<Selectable | undefined>();
 	// const hasFocus = nestedDerived(selectable, (s) => s?.hasFocusWithin ?? readable(false));
 
-	const registrar: Registrar = (e) => {
+	const registrar: Registrar = (next) => {
 		selectable.update((prev) => {
 			if (prev) {
-				console.warn('Overwriting existing selectable', prev, e.detail);
+				console.warn('Overwriting existing selectable', prev, next);
 			}
 
-			return e.detail;
+			return next;
 		});
 
 		return () => selectable.set(undefined);
@@ -1095,19 +1105,28 @@ export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable |
 /** Scrolls the element into view on focus, unless the focus follows the mouse; `always` scrolls then too */
 export const scrollIntoView =
 	({ always = false, ...offsets }: Offsets & { always?: boolean }) =>
-	(e: CustomEvent<EnterEvent>) => {
-		const element = e.detail.selectable.getHtmlElement();
+	(e: EnterEvent) => {
+		const element = e.selectable.getHtmlElement();
 
 		if (element && (always || !mouseMode)) {
 			scrollElementIntoView(element, offsets);
 		}
 	};
 
-export const scrollToTop = (e: CustomEvent<KeyEvent>) => {
-	const selectable = e.detail.selectable;
+/**
+ * For `onMounted`: a container mounted directly before the focused one takes the focus from it, as
+ * the main action of a row does when it arrives after the focus was given to the action next to it
+ */
+export const takeFocusFromNext = (selectable: Selectable) => {
+	const next = selectable.getSibling(1);
+	if (next && get(next.hasFocus)) selectable.focus();
+};
+
+export const scrollToTop = (e: KeyEvent) => {
+	const selectable = e.selectable;
 	if (get(selectable.focusIndex) !== 0) {
 		selectable.focusChild(0);
-		e.detail.stopPropagation();
+		e.stopPropagation();
 	}
 };
 

@@ -16,13 +16,13 @@
 <Container>
 	<h1 class="h3 mb-8">Server Accounts</h1>
 	{#if $accounts.data}
-		{@const accounts = $accounts.data}
+		{@const accountList = $accounts.data}
 		<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
-			{#each accounts.filter((a) => a.id !== $user?.id) as account (account.id)}
+			{#each accountList.filter((a) => a.id !== $user?.id) as account (account.id)}
 				<SelectField
 					value={account.name || ''}
-					on:enter={scrollIntoView({ vertical: 128 })}
-					on:clickOrSelect={() => {
+					onEnter={scrollIntoView({ vertical: 128 })}
+					onClickOrSelect={() => {
 						createModal(EditProfileModal, {
 							user: account,
 							admin: true
@@ -30,20 +30,24 @@
 					}}
 				>
 					{account.isAdmin ? 'Admin' : 'User'}
-					<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+					{#snippet icon({ size, iconClass })}
+						<Pencil2 {size} class={classNames(iconClass)} />
+					{/snippet}
 				</SelectField>
 			{/each}
 			<SelectField
 				value="New Account"
-				on:enter={scrollIntoView({ vertical: 128 })}
-				on:clickOrSelect={() => {
+				onEnter={scrollIntoView({ vertical: 128 })}
+				onClickOrSelect={() => {
 					createModal(EditProfileModal, {
 						createNew: true
 					});
 				}}
 			>
 				Create
-				<Plus slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+				{#snippet icon({ size, iconClass })}
+					<Plus {size} class={classNames(iconClass)} />
+				{/snippet}
 			</SelectField>
 		</Container>
 	{/if}

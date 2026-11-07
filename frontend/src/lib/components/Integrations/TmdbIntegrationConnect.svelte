@@ -6,15 +6,19 @@
 		setTmdbAccount
 	} from '../../queries/tmdb.queries';
 	import Button from '../Button/Button.svelte';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { ExternalLink } from 'radix-icons-svelte';
 
-	const dispatch = createEventDispatcher<{ connected: null }>();
+	interface Props {
+		onConnected?: () => void;
+	}
+
+	let { onConnected }: Props = $props();
 
 	let tmdbConnectRequestToken: string | undefined = undefined;
-	let tmdbConnectLink: string | undefined = undefined;
-	let tmdbConnectQrCode: string | undefined = undefined;
-	let tmdbError: string = '';
+	let tmdbConnectLink: string | undefined = $state(undefined);
+	let tmdbConnectQrCode: string | undefined = $state(undefined);
+	let tmdbError: string = $state('');
 
 	handleGenerateTMDBLink();
 
@@ -40,7 +44,7 @@
 
 			await setTmdbAccount({ userId: account_id, sessionId: access_token });
 
-			dispatch('connected');
+			onConnected?.();
 		});
 	}
 </script>
@@ -54,7 +58,7 @@
 	<div
 		class="w-[150px] h-[150px] bg-contain bg-center mb-8 mx-auto"
 		style={`background-image: url(${tmdbConnectQrCode})`}
-	/>
+	></div>
 {/if}
 
 {#if tmdbError}
@@ -66,9 +70,13 @@
 	<!--	<Button type="primary-dark" action={handleGenerateTMDBLink}>Generate Link</Button>-->
 	{#if tmdbConnectLink}
 		<Button type="primary-dark" action={completeTMDBConnect}>Complete Connection</Button>
-		<Button type="primary-dark" on:clickOrSelect={() => window.open(tmdbConnectLink)}>
+		<Button
+			icon={ExternalLink}
+			iconPosition="after"
+			type="primary-dark"
+			onClickOrSelect={() => window.open(tmdbConnectLink)}
+		>
 			Open Link
-			<ExternalLink size={19} slot="icon-after" />
 		</Button>
 	{/if}
 </Container>

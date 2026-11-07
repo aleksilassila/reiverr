@@ -5,7 +5,11 @@
 	import { capitalize } from '$lib/utils';
 	import CollectionPage from './CollectionPage.svelte';
 
-	export let company: string;
+	interface Props {
+		company: string;
+	}
+
+	let { company }: Props = $props();
 
 	const tmdbCompanyId = companies[company]?.id;
 	const companyName = companies[company]?.name ?? capitalize(company);
@@ -20,5 +24,7 @@
 	title={companyName}
 	subtitle="Production Company"
 >
-	<div class="-translate-y-80" slot="footer" use:loadMore />
+	{#snippet footer()}
+		<div class="-translate-y-80" use:loadMore></div>
+	{/snippet}
 </CollectionPage>

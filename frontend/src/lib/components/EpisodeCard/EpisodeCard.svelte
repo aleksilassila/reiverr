@@ -1,39 +1,74 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
+	import { Selectable } from '$lib/selectable';
+
 	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import classNames from 'classnames';
 	import { Check, DotsVertical } from 'radix-icons-svelte';
-	import type { Readable } from 'svelte/store';
 	import { getCardDimensions } from '../../utils';
 	import AnimateScale from '../AnimateScale.svelte';
 	import Container from '../Container.svelte';
 	import StatusTags from '../StatusTags.svelte';
 
-	export let episodeNumber: number;
-	export let episodeName: string;
-	export let backdropUrl: string;
-	// export let handlePlay: (() => void) | undefined = undefined;
-	export let isWatched = false;
-	export let progress = 0;
-	export let runtime = 0;
-	export let releaseDate = 0;
-	export let statusTags: MediaStatusTags = {};
-	/** Opens the actions of the episode: a long press on the remote, or the dots that show on hover */
-	export let onLongPress: (() => void) | undefined = undefined;
+	interface Props {
+		onClickOrSelect?: ContainerProps['onClickOrSelect'];
+		onclick?: ContainerProps['onclick'];
+		onEnter?: ContainerProps['onEnter'];
+		onMounted?: ContainerProps['onMounted'];
+		onSelect?: ContainerProps['onSelect'];
+		onmouseenter?: ContainerProps['onmouseenter'];
+		onmouseleave?: ContainerProps['onmouseleave'];
+		episodeNumber: number;
+		episodeName: string;
+		backdropUrl: string;
+		// export let handlePlay: (() => void) | undefined = undefined;
+		isWatched?: boolean;
+		progress?: number;
+		runtime?: number;
+		releaseDate?: number;
+		statusTags?: MediaStatusTags;
+		/** Opens the actions of the episode: a long press on the remote, or the dots that show on hover */
+		onLongPress?: (() => void) | undefined;
+		class?: string;
+	}
 
-	$: lowerLimit = Math.min(runtime ? 15 / runtime : 0.1, 0.1);
-	$: upperLimit = 1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1);
+	let {
+		episodeNumber,
+		episodeName,
+		backdropUrl,
+		isWatched = false,
+		progress = 0,
+		runtime = 0,
+		releaseDate = 0,
+		statusTags = {},
+		onLongPress = undefined,
+		onClickOrSelect,
+		onclick,
+		onEnter,
+		onMounted,
+		onSelect,
+		onmouseenter,
+		onmouseleave,
+		class: className
+	}: Props = $props();
+
+	let lowerLimit = $derived(Math.min(runtime ? 15 / runtime : 0.1, 0.1));
+	let upperLimit = $derived(1 - Math.max(runtime ? 10 / runtime : 0.1, 0.1));
 
 	// $: isOnDeck = handlePlay !== undefined;
 
-	let hasFocus: Readable<boolean>;
-	let dimensions = getCardDimensions({
-		viewportWidth: window.innerWidth,
-		orientation: 'landscape'
-	});
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
+	let dimensions = $state(
+		getCardDimensions({
+			viewportWidth: window.innerWidth,
+			orientation: 'landscape'
+		})
+	);
 </script>
 
 <svelte:window
-	on:resize={(e) =>
+	onresize={(e) =>
 		(dimensions = getCardDimensions({
 			viewportWidth: e.currentTarget.innerWidth,
 			orientation: 'landscape'
@@ -45,24 +80,27 @@
 		class={classNames(
 			'flex flex-col shrink-0',
 			'overflow-hidden rounded-2xl cursor-pointer group relative px-4 py-3 selectable',
-			$$restProps.class
+			className
 		)}
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px`}
-		on:clickOrSelect
-		on:click
-		on:enter
-		on:mount
-		on:select
-		on:mouseenter
-		on:mouseleave
-		bind:hasFocus
+		{onClickOrSelect}
+		{onclick}
+		{onEnter}
+		{onMounted}
+		{onSelect}
+		{onmouseenter}
+		{onmouseleave}
+		{selectable}
 		focusOnClick
 		{onLongPress}
 	>
 		{#if onLongPress}
 			<button
 				class="absolute top-2 right-2 z-20 rounded-full p-1.5 bg-secondary-950/75 text-secondary-200 opacity-0 group-hover:opacity-100 hover:bg-primary-500 hover:text-secondary-950 transition-opacity"
-				on:click|stopPropagation={onLongPress}
+				onclick={(e) => {
+					e.stopPropagation();
+					onLongPress?.();
+				}}
 			>
 				<DotsVertical size={20} />
 			</button>
@@ -89,7 +127,7 @@
 						<div
 							class="absolute inset-y-0 bg-white left-0"
 							style={`width: ${(progress * 100).toFixed(0)}%`}
-						/>
+						></div>
 					</div>
 				{/if}
 			</div>
@@ -100,7 +138,7 @@
 				// 'opacity-75': !isOnDeck && !$hasFocus
 			})}
 			style={`background-image: url('${backdropUrl}')`}
-		/>
+		></div>
 		<!-- Background Overlay / Tint -->
 		<!-- <div
 			class={classNames('absolute inset-0', {
@@ -119,14 +157,13 @@
 			)}
 		>
 			{#if handlePlay} -->
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<!-- <div
 					class={classNames(
 						'rounded-full p-2.5 cursor-pointer',
 						'bg-zinc-900/90 text-zinc-200',
 						'group-focus-within:text-secondary-800 group-focus-within:bg-primary-500 hover:bg-primary-500 hover:text-secondary-800'
 					)}
-					on:click={handlePlay}
+				 onclick={handlePlay}
 				>
 					<TriangleRight size={32} />
 				</div> -->

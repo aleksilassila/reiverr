@@ -22,86 +22,38 @@
 	import type { AxiosError } from 'axios';
 	import TabContainer from '../Tab/TabContainer.svelte';
 
-	enum Tabs {
-		EditProfile,
-		ProfilePictures
-	}
+	const Tabs = { EditProfile: 0, ProfilePictures: 1 } as const;
 
 	const { close, push } = useComponentStack();
 
-	export let user: ReiverrUser | undefined = undefined;
-	export let createNew = false;
-	export let admin = createNew;
+	interface Props {
+		user?: ReiverrUser | undefined;
+		createNew?: boolean;
+		admin?: boolean;
+	}
+
+	let { user = undefined, createNew = false, admin = createNew }: Props = $props();
 
 	const tab = useTabs(Tabs.EditProfile, { remount: false });
 
 	const gigabytesOf = (bytes: number | null | undefined) =>
 		bytes === null || bytes === undefined ? '' : String(bytes / GIGABYTE);
 
-	let name = user?.name || '';
-	let quota = gigabytesOf(user?.quotaBytes);
-	let oldPassword = '';
-	let oldPasswordVisible = false;
-	let newPassword = '';
-	let newPasswordVisible = false;
-	let isAdmin = user?.isAdmin || false;
-	let profilePictureFiles: FileList;
-	let profilePictureBase64: string = user?.profilePicture ?? getRandomProfilePicture() ?? '';
-	let profilePictureTitle: string;
-	let profilePictureFilesInput: HTMLInputElement;
-	$: {
-		const file = profilePictureFiles?.[0];
+	let name = $state(user?.name || '');
+	let quota = $state(gigabytesOf(user?.quotaBytes));
+	let oldPassword = $state('');
+	let oldPasswordVisible = $state(false);
+	let newPassword = $state('');
+	let newPasswordVisible = $state(false);
+	let isAdmin = $state(user?.isAdmin || false);
+	let profilePictureFiles: FileList | undefined = $state();
+	let profilePictureBase64: string = $state(
+		user?.profilePicture ?? getRandomProfilePicture() ?? ''
+	);
+	let profilePictureTitle: string | undefined = $state();
+	let profilePictureFilesInput: HTMLInputElement | undefined = $state();
 
-		if (file) {
-			const reader = new FileReader();
-			reader.onload = () => setProfilePicture(reader.result as string);
-			reader.readAsDataURL(file);
-		}
-	}
-
-	$: {
-		switch (profilePictureBase64) {
-			case profilePictures.ana:
-				profilePictureTitle = 'Ana';
-				break;
-			case profilePictures.emma:
-				profilePictureTitle = 'Emma';
-				break;
-			case profilePictures.glen:
-				profilePictureTitle = 'Glen';
-				break;
-			case profilePictures.henry:
-				profilePictureTitle = 'Henry';
-				break;
-			case profilePictures.keanu:
-				profilePictureTitle = 'Keanu';
-				break;
-			case profilePictures.leo:
-				profilePictureTitle = 'Leo';
-				break;
-			case profilePictures.sydney:
-				profilePictureTitle = 'Sydney';
-				break;
-			case profilePictures.zendaya:
-				profilePictureTitle = 'Zendaya';
-				break;
-			default:
-				profilePictureTitle = 'Custom';
-				break;
-		}
-	}
-
-	// Admins set the passwords of other users without the old ones
-	$: oldPasswordNeeded = !createNew && user?.id === $userStore?.id;
-
-	$: stale =
-		(name !== user?.name && name !== '') ||
-		oldPassword !== newPassword ||
-		profilePictureBase64 !== user?.profilePicture ||
-		isAdmin !== user?.isAdmin ||
-		quota !== gigabytesOf(user?.quotaBytes);
-	$: complete = name !== '';
-	let errorMessage = '';
+	let errorMessage = $state('');
 
 	const messageOf = (e: AxiosError<any>): string =>
 		e.response?.data?.message ?? e.message ?? String(e);
@@ -168,11 +120,61 @@
 			}
 		}
 	}
+	$effect(() => {
+		const file = profilePictureFiles?.[0];
+
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = () => setProfilePicture(reader.result as string);
+			reader.readAsDataURL(file);
+		}
+	});
+	$effect(() => {
+		switch (profilePictureBase64) {
+			case profilePictures.ana:
+				profilePictureTitle = 'Ana';
+				break;
+			case profilePictures.emma:
+				profilePictureTitle = 'Emma';
+				break;
+			case profilePictures.glen:
+				profilePictureTitle = 'Glen';
+				break;
+			case profilePictures.henry:
+				profilePictureTitle = 'Henry';
+				break;
+			case profilePictures.keanu:
+				profilePictureTitle = 'Keanu';
+				break;
+			case profilePictures.leo:
+				profilePictureTitle = 'Leo';
+				break;
+			case profilePictures.sydney:
+				profilePictureTitle = 'Sydney';
+				break;
+			case profilePictures.zendaya:
+				profilePictureTitle = 'Zendaya';
+				break;
+			default:
+				profilePictureTitle = 'Custom';
+				break;
+		}
+	});
+	// Admins set the passwords of other users without the old ones
+	let oldPasswordNeeded = $derived(!createNew && user?.id === $userStore?.id);
+	let stale = $derived(
+		(name !== user?.name && name !== '') ||
+			oldPassword !== newPassword ||
+			profilePictureBase64 !== user?.profilePicture ||
+			isAdmin !== user?.isAdmin ||
+			quota !== gigabytesOf(user?.quotaBytes)
+	);
+	let complete = $derived(name !== '');
 </script>
 
-<Dialog size={'dynamic'}>
+<Dialog size="dynamic">
 	<TabContainer class="grid -m-4 p-4 *:col-start-1 *:row-start-1 *:-my-4 *:py-4">
-		<Tab {...tab} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
+		<Tab {...tab.props} tab={Tabs.EditProfile} class="space-y-4 max-w-lg">
 			<h1 class="h3">
 				{createNew ? 'Create Account' : 'Edit Profile'}
 			</h1>
@@ -180,7 +182,7 @@
 			<SelectField
 				type="primary-dark"
 				value={profilePictureTitle}
-				on:clickOrSelect={() => tab.set(Tabs.ProfilePictures)}
+				onClickOrSelect={() => tab.set(Tabs.ProfilePictures)}
 			>
 				Profile Picture
 			</SelectField>
@@ -196,7 +198,7 @@
 					</TextField>
 					<IconToggle
 						type="primary-dark"
-						on:clickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
+						onClickOrSelect={() => (oldPasswordVisible = !oldPasswordVisible)}
 						icon={oldPasswordVisible ? EyeOpen : EyeClosed}
 					/>
 				</Container>
@@ -212,7 +214,7 @@
 				</TextField>
 				<IconToggle
 					type="primary-dark"
-					on:clickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
+					onClickOrSelect={() => (newPasswordVisible = !newPasswordVisible)}
 					icon={newPasswordVisible ? EyeOpen : EyeClosed}
 				/>
 			</Container>
@@ -236,7 +238,7 @@
 					<Button
 						type="primary-dark"
 						icon={Trash}
-						on:clickOrSelect={() =>
+						onClickOrSelect={() =>
 							push({
 								component: ConfirmDialog,
 								props: {
@@ -255,58 +257,58 @@
 		</Tab>
 
 		<Tab
-			{...tab}
+			{...tab.props}
 			tab={Tabs.ProfilePictures}
-			on:back={({ detail }) => {
+			onBack={(e) => {
 				tab.set(Tabs.EditProfile);
-				detail.stopPropagation();
+				e.stopPropagation();
 			}}
 		>
 			<h1 class="h3 mb-6">Select Profile Picture</h1>
 			<Container direction="grid" gridCols={3} class="grid grid-cols-3 gap-4 w-max">
 				<ProfileIcon
 					url={profilePictures.ana}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.ana)}
-					focusOnMount={profilePictureBase64 === profilePictures.ana}
+					onClickOrSelect={() => setProfilePicture(profilePictures.ana)}
+					focusedChild={profilePictureBase64 === profilePictures.ana}
 				/>
 				<ProfileIcon
 					url={profilePictures.emma}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.emma)}
-					focusOnMount={profilePictureBase64 === profilePictures.emma}
+					onClickOrSelect={() => setProfilePicture(profilePictures.emma)}
+					focusedChild={profilePictureBase64 === profilePictures.emma}
 				/>
 				<ProfileIcon
 					url={profilePictures.glen}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.glen)}
-					focusOnMount={profilePictureBase64 === profilePictures.glen}
+					onClickOrSelect={() => setProfilePicture(profilePictures.glen)}
+					focusedChild={profilePictureBase64 === profilePictures.glen}
 				/>
 				<ProfileIcon
 					url={profilePictures.henry}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.henry)}
-					focusOnMount={profilePictureBase64 === profilePictures.henry}
+					onClickOrSelect={() => setProfilePicture(profilePictures.henry)}
+					focusedChild={profilePictureBase64 === profilePictures.henry}
 				/>
 				<ProfileIcon
 					url={profilePictures.keanu}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.keanu)}
-					focusOnMount={profilePictureBase64 === profilePictures.keanu}
+					onClickOrSelect={() => setProfilePicture(profilePictures.keanu)}
+					focusedChild={profilePictureBase64 === profilePictures.keanu}
 				/>
 				<ProfileIcon
 					url={profilePictures.leo}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.leo)}
-					focusOnMount={profilePictureBase64 === profilePictures.leo}
+					onClickOrSelect={() => setProfilePicture(profilePictures.leo)}
+					focusedChild={profilePictureBase64 === profilePictures.leo}
 				/>
 				<ProfileIcon
 					url={profilePictures.sydney}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.sydney)}
-					focusOnMount={profilePictureBase64 === profilePictures.sydney}
+					onClickOrSelect={() => setProfilePicture(profilePictures.sydney)}
+					focusedChild={profilePictureBase64 === profilePictures.sydney}
 				/>
 				<ProfileIcon
 					url={profilePictures.zendaya}
-					on:clickOrSelect={() => setProfilePicture(profilePictures.zendaya)}
-					focusOnMount={profilePictureBase64 === profilePictures.zendaya}
+					onClickOrSelect={() => setProfilePicture(profilePictures.zendaya)}
+					focusedChild={profilePictureBase64 === profilePictures.zendaya}
 				/>
 				<ProfileIcon
 					url="profile-pictures/leo.webp"
-					on:clickOrSelect={() => profilePictureFilesInput?.click()}
+					onClickOrSelect={() => profilePictureFilesInput?.click()}
 					icon={Upload}
 				/>
 				<input

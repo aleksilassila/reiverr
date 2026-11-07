@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { Selectable } from '$lib/selectable';
 	import Container from '$lib/components/Container.svelte';
 	import {
 		globalBackground,
@@ -10,18 +12,24 @@
 	import { userActivity } from '$lib/stores/user-activity.store';
 	import classNames from 'classnames';
 	import { Cross1 } from 'radix-icons-svelte';
-	import { type Readable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import FloatingIconButton from '../FloatingIconButton.svelte';
 	import BackgroundBackdrop from './BackgroundBackdrop.svelte';
 	import BackgroundCarousel from './BackgroundCarousel.svelte';
+	interface Props {
+		children?: Snippet;
+	}
 
-	let hasFocus: Readable<boolean>;
+	let { children }: Props = $props();
 
-	let autoplayVideo = false;
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocusWithin;
+
+	let autoplayVideo = $state(false);
+	// Not state: the effect below clears and sets it, and would re-run on its own write
 	let loadDelayTimeout: ReturnType<typeof setTimeout> | undefined;
 
-	$: {
+	$effect(() => {
 		if ($topBackground.video) {
 			autoplayVideo = false;
 			clearTimeout(loadDelayTimeout);
@@ -30,12 +38,12 @@
 				autoplayVideo = true;
 			}, 2000);
 		}
-	}
+	});
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<div on:wheel={() => unfocusGlobalBackground()} on:click={() => unfocusGlobalBackground()}>
-	<div class="absolute inset-0 bg-secondary-900" />
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div onwheel={() => unfocusGlobalBackground()} onclick={() => unfocusGlobalBackground()}>
+	<div class="absolute inset-0 bg-secondary-900"></div>
 
 	{#each $topBackground.backgrounds as { backdropUri: backdropUrl, visible }, index (backdropUrl)}
 		{#key backdropUrl}
@@ -45,85 +53,83 @@
 
 	<Container class="contents">
 		<Container
-			bind:hasFocusWithin={hasFocus}
+			{selectable}
 			class="contents"
-			on:navigate={({ detail }) => {
-				console.log(detail);
-				if (detail.direction === 'down' && detail.willLeaveContainer) {
+			onNavigate={(e) => {
+				console.log(e);
+				if (e.direction === 'down' && e.willLeaveContainer) {
 					unfocusGlobalBackground();
-					detail.preventNavigation();
-					detail.stopPropagation();
+					e.preventNavigation();
+					e.stopPropagation();
 				}
 			}}
-			on:mount={globalBackground.registrar}
+			onMounted={globalBackground.registrar}
 		>
-			<!-- Every change of the video makes a new block, so that a video that comes back while the
-				previous one fades out is not given the block that is going away: Svelte 3 nulls an if
-				branch when its outro ends, also when the branch was shown again in the meantime -->
-			{#key $topBackground.video?.id}
-				{#if $topBackground.video}
-					{@const video = $topBackground.video}
-					<div out:fade={{ duration: 200 }}>
-						<Container
-							class={classNames('absolute inset-0 transition-opacity duration-500', {
-								'pointer-events-none': !$hasFocus
-							})}
-							on:click={({ detail: e }) => e.stopPropagation()}
-							on:back={() => topBackground.destroyVideo()}
-						>
-							<svelte:component
-								this={video.component}
-								{...video.props}
-								paused={!$hasFocus && !$localSettings.autoplayTrailers}
-								muted={!$hasFocus}
-								load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
-							/>
-						</Container>
-					</div>
-				{:else}
+			<!-- An each block over the one video, keyed by its id. Every change of the video makes a new
+				block, so that a video that comes back while the previous one fades out is not given the
+				block that is going away. And the item stays what it was after the video is gone: a block
+				on the store's video would read the component and its props, when the component reads
+				one, from a store that has no video any more -->
+			{#each $topBackground.video ? [$topBackground.video] : [] as video (video.id)}
+				<div out:fade|global={{ duration: 200 }}>
 					<Container
-						on:back={() => unfocusGlobalBackground()}
-						on:wheel={(e) => e.stopPropagation()}
-						on:click={({ detail: e }) => e.stopPropagation()}
-						on:navigate={({ detail }) => {
-							if (detail.direction === 'left') {
-								topBackground.previousBackground();
-								detail.preventNavigation();
-								detail.stopPropagation();
-							} else if (detail.direction === 'right') {
-								topBackground.nextBackground();
-								detail.preventNavigation();
-								detail.stopPropagation();
-							}
-						}}
-						class={classNames(
-							'absolute inset-x-0 bottom-0 z-20 transition-opacity duration-500 flex flex-col justify-end bg-gradient-to-b from-transparent to-secondary-900',
-							{
-								'pointer-events-none': !$hasFocus,
-								'opacity-0': !$hasFocus || $userActivity
-							}
-						)}
+						class={classNames('absolute inset-0 transition-opacity duration-500', {
+							'pointer-events-none': !$hasFocus
+						})}
+						onclick={(e) => e.stopPropagation()}
+						onBack={() => topBackground.destroyVideo()}
 					>
-						<BackgroundCarousel
-							backgrounds={$topBackground.backgrounds}
-							focusIndex={$topBackground.index}
-							on:jumpTo={({ detail: index }) => {
-								topBackground.setIndex(index);
-							}}
+						<video.component
+							{...video.props}
+							paused={!$hasFocus && !$localSettings.autoplayTrailers}
+							muted={!$hasFocus}
+							load={$localSettings.autoplayTrailers ? $hasFocus || autoplayVideo : true}
 						/>
 					</Container>
-					{#if PLATFORM_WEB}
-						<FloatingIconButton
-							class={classNames('absolute top-12 right-16 transition-opacity', {
-								'opacity-0': !$hasFocus || $userActivity
-							})}
-							on:click={() => unfocusGlobalBackground()}
-						>
-							<Cross1 size={32} />
-						</FloatingIconButton>
-					{/if}
+				</div>
+			{:else}
+				<Container
+					onBack={() => unfocusGlobalBackground()}
+					onwheel={(e) => e.stopPropagation()}
+					onclick={(e) => e.stopPropagation()}
+					onNavigate={(e) => {
+						if (e.direction === 'left') {
+							topBackground.previousBackground();
+							e.preventNavigation();
+							e.stopPropagation();
+						} else if (e.direction === 'right') {
+							topBackground.nextBackground();
+							e.preventNavigation();
+							e.stopPropagation();
+						}
+					}}
+					class={classNames(
+						'absolute inset-x-0 bottom-0 z-20 transition-opacity duration-500 flex flex-col justify-end bg-gradient-to-b from-transparent to-secondary-900',
+						{
+							'pointer-events-none': !$hasFocus,
+							'opacity-0': !$hasFocus || $userActivity
+						}
+					)}
+				>
+					<BackgroundCarousel
+						backgrounds={$topBackground.backgrounds}
+						focusIndex={$topBackground.index}
+						onJumpTo={(index) => {
+							topBackground.setIndex(index);
+						}}
+					/>
+				</Container>
+				{#if PLATFORM_WEB}
+					<FloatingIconButton
+						class={classNames('absolute top-12 right-16 transition-opacity', {
+							'opacity-0': !$hasFocus || $userActivity
+						})}
+						onclick={() => unfocusGlobalBackground()}
+					>
+						<Cross1 size={32} />
+					</FloatingIconButton>
 				{/if}
-			{/key}
+			{/each}
 		</Container>
 		<!-- For willLeaveContainer -->
 		<Container />
@@ -133,8 +139,8 @@
 		class="transition-opacity duration-300"
 		class:opacity-0={$hasFocus}
 		class:pointer-events-none={$hasFocus}
-		on:click={(e) => e.stopPropagation()}
+		onclick={(e) => e.stopPropagation()}
 	>
-		<slot />
+		{@render children?.()}
 	</div>
 </div>

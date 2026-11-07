@@ -1,24 +1,34 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
+	import { Selectable } from '$lib/selectable';
 	import Container from '$components/Container.svelte';
-	import type { Readable } from 'svelte/store';
 	import AnimateScale from '../../components/AnimateScale.svelte';
 	import classNames from 'classnames';
 	import { Plus } from 'radix-icons-svelte';
 	import { getCardDimensions } from '../../utils';
 	import IconOverlay from '../../components/IconOverlay.svelte';
 
-	export let backdropUrl: string;
+	interface Props {
+		onClickOrSelect?: ContainerProps['onClickOrSelect'];
+		onEnter?: ContainerProps['onEnter'];
+		backdropUrl: string;
+	}
 
-	let hasFocus: Readable<boolean>;
+	let { backdropUrl, onClickOrSelect, onEnter }: Props = $props();
 
-	let dimensions = getCardDimensions({
-		viewportWidth: window.innerWidth,
-		orientation: 'landscape'
-	});
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
+
+	let dimensions = $state(
+		getCardDimensions({
+			viewportWidth: window.innerWidth,
+			orientation: 'landscape'
+		})
+	);
 </script>
 
 <svelte:window
-	on:resize={(e) =>
+	onresize={(e) =>
 		(dimensions = getCardDimensions({
 			viewportWidth: e.currentTarget.innerWidth,
 			orientation: 'landscape'
@@ -31,14 +41,14 @@
 			'overflow-hidden rounded-2xl cursor-pointer group relative selectable transition-opacity'
 		)}
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px`}
-		on:clickOrSelect
-		on:enter
-		bind:hasFocus
+		{onClickOrSelect}
+		{onEnter}
+		{selectable}
 	>
 		<div
 			class="bg-cover bg-center absolute inset-0"
 			style={`background-image: url('${backdropUrl}')`}
-		/>
+		></div>
 		<IconOverlay icon={Plus} />
 	</Container>
 </AnimateScale>

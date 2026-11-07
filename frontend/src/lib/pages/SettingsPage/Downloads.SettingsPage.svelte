@@ -18,13 +18,13 @@
 	const settingsQuery = usePageQuery(downloadsQueries.settings());
 
 	/** What is typed into the seed ratio field, until it is saved */
-	let seedRatioInput: string | undefined;
-	let seedRatioError = '';
-	let subtitlesError = '';
+	let seedRatioInput: string | undefined = $state();
+	let seedRatioError = $state('');
+	let subtitlesError = $state('');
 
-	$: settings = $settingsQuery.data;
-	$: savedSeedRatio = settings ? String(settings.seedRatio) : '';
-	$: seedRatio = seedRatioInput ?? savedSeedRatio;
+	let settings = $derived($settingsQuery.data);
+	let savedSeedRatio = $derived(settings ? String(settings.seedRatio) : '');
+	let seedRatio = $derived(seedRatioInput ?? savedSeedRatio);
 
 	const errorMessage = (e: any) => e?.response?.data?.message ?? e?.message;
 
@@ -67,18 +67,20 @@
 			{#each indexers as indexer (indexer.id)}
 				<SelectField
 					value={indexer.name}
-					on:enter={scrollIntoView({ vertical: 128 })}
-					on:clickOrSelect={() => editIndexer(indexers, indexer)}
+					onEnter={scrollIntoView({ vertical: 128 })}
+					onClickOrSelect={() => editIndexer(indexers, indexer)}
 				>
 					Indexer
-					<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+					{#snippet icon({ size, iconClass })}
+						<Pencil2 {size} class={classNames(iconClass)} />
+					{/snippet}
 				</SelectField>
 			{/each}
 		</Container>
 		<Button
 			icon={Plus}
-			on:enter={scrollIntoView({ vertical: 128 })}
-			on:clickOrSelect={() => editIndexer(indexers)}
+			onEnter={scrollIntoView({ vertical: 128 })}
+			onClickOrSelect={() => editIndexer(indexers)}
 		>
 			Add Indexer
 		</Button>
@@ -91,7 +93,7 @@
 			<Toggle
 				label="Download subtitles found in torrents"
 				checked={settings.downloadSubtitles}
-				on:change={({ detail }) => saveDownloadSubtitles(detail)}
+				onChange={(e) => saveDownloadSubtitles(e)}
 			/>
 			{#if subtitlesError}
 				<p class="error mt-4">{subtitlesError}</p>
@@ -105,8 +107,8 @@
 		<TextField
 			type="number"
 			value={seedRatio}
-			on:enter={scrollIntoView({ vertical: 128 })}
-			on:change={({ detail }) => (seedRatioInput = detail)}
+			onEnter={scrollIntoView({ vertical: 128 })}
+			onChange={(e) => (seedRatioInput = e)}
 		>
 			Seed ratio (uploaded / downloaded, 0 to not seed)
 		</TextField>
@@ -118,7 +120,7 @@
 		class="mt-4"
 		disabled={seedRatio === savedSeedRatio}
 		action={saveSeedRatio}
-		on:enter={scrollIntoView({ vertical: 128 })}
+		onEnter={scrollIntoView({ vertical: 128 })}
 	>
 		Save Seed Ratio
 	</Button>

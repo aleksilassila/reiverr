@@ -1,13 +1,20 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Spinner from '../Utils/Spinner.svelte';
 
-	export let loading = false;
+	interface Props {
+		loading?: boolean;
+		children?: Snippet;
+		class?: string;
+	}
+
+	let { loading = false, children, class: className }: Props = $props();
 </script>
 
-<div class={$$restProps.class}>
+<div class={className}>
 	{#if loading}
 		<Spinner />
 	{:else}
-		<slot />
+		{@render children?.()}
 	{/if}
 </div>

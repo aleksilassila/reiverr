@@ -5,7 +5,11 @@
 	import { capitalize } from '$lib/utils';
 	import CollectionPage from './CollectionPage.svelte';
 
-	export let network: string;
+	interface Props {
+		network: string;
+	}
+
+	let { network }: Props = $props();
 
 	const networkId = networks[network]?.id;
 	const networkName = networks[network]?.name ?? capitalize(network);
@@ -20,5 +24,7 @@
 	title={networkName}
 	subtitle="Network"
 >
-	<div class="-translate-y-80" slot="footer" use:loadMore />
+	{#snippet footer()}
+		<div class="-translate-y-80" use:loadMore></div>
+	{/snippet}
 </CollectionPage>

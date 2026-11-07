@@ -1,10 +1,9 @@
-import type { ComponentType, SvelteComponentTyped } from 'svelte';
+import type { Component } from 'svelte';
 import { stackRouter } from '../StackRouter/stack-router.store';
 import { writable } from 'svelte/store';
-import { subscribe } from 'svelte/internal';
 
-export const createModal = <T extends Record<string, unknown>>(
-	component: ComponentType<SvelteComponentTyped<T>>,
+export const createModal = <T extends Record<string, any>>(
+	component: Component<T>,
 	props: T,
 	group?: symbol | 'top'
 ) => {
@@ -18,15 +17,13 @@ export const createModal = <T extends Record<string, unknown>>(
 export type SimpleModalStack = ReturnType<typeof useSimpleModal>;
 
 export function useSimpleModal() {
+	// The props type is erased: the pair was checked where the modal was created
 	const modal = writable<{
-		component: ComponentType<SvelteComponentTyped<Record<string, unknown>>>;
+		component: Component<any>;
 		props: Record<string, unknown>;
 	} | null>(null);
 
-	function createModal<T extends Record<string, unknown>>(
-		component: ComponentType<SvelteComponentTyped<T>>,
-		props: T
-	) {
+	function createModal<T extends Record<string, any>>(component: Component<T>, props: T) {
 		modal.set({
 			component,
 			props

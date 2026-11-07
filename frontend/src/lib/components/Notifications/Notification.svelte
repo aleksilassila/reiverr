@@ -2,13 +2,17 @@
 	import classNames from 'classnames';
 	import { onMount } from 'svelte';
 
-	export let duration = 5000;
-	export let title: string;
-	export let body = '';
-	export let type: 'info' | 'warning' | 'error' = 'info';
-	export let persistent = false;
+	interface Props {
+		duration?: number;
+		title: string;
+		body?: string;
+		type?: 'info' | 'warning' | 'error';
+		persistent?: boolean;
+	}
 
-	let visible = true;
+	let { duration = 5000, title, body = '', type = 'info', persistent = false }: Props = $props();
+
+	let visible = $state(true);
 	let timeout: ReturnType<typeof setTimeout>;
 
 	onMount(() => {

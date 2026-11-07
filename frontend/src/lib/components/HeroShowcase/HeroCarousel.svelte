@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 	import {
@@ -6,27 +8,34 @@
 		toggleFocusGlobalBackground
 	} from '../GlobalBackground/background-stack.store';
 	import HeroContainer from './HeroContainer.svelte';
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		children?: Snippet;
+		class?: string;
+	}
+
+	let { children, onEnter, class: className }: Props = $props();
 </script>
 
 <HeroContainer>
 	<Container />
 	<Container
-		class={classNames('flex flex-col justify-end flex-1 z-10', $$restProps.class)}
-		on:enter
-		on:click={({ detail: e }) => {
+		class={classNames('flex flex-col justify-end flex-1 z-10', className)}
+		{onEnter}
+		onclick={(e) => {
 			if (e.target === e.currentTarget) {
 				toggleFocusGlobalBackground();
 				e.preventDefault();
 			}
 		}}
-		on:navigate={({ detail }) => {
-			if (detail.direction === 'up' && detail.willLeaveContainer) {
+		onNavigate={(e) => {
+			if (e.direction === 'up' && e.willLeaveContainer) {
 				focusGlobalBackground();
-				detail.preventNavigation();
-				detail.stopPropagation();
+				e.preventNavigation();
+				e.stopPropagation();
 			}
 		}}
 	>
-		<slot />
+		{@render children?.()}
 	</Container>
 </HeroContainer>

@@ -2,10 +2,14 @@
 	import type { StackRouterStore } from './stack-router.store';
 	import StackRouterPage from './StackRouterPage.svelte';
 
-	export let stack: StackRouterStore;
+	interface Props {
+		stack: StackRouterStore;
+	}
+
+	let { stack }: Props = $props();
 </script>
 
-<svelte:window on:popstate={stack.handlePopState} />
+<svelte:window onpopstate={stack.handlePopState} />
 
 <svelte:head>
 	{#if $stack[$stack.length - 1]?.preventScroll}

@@ -3,19 +3,28 @@
 	import { getScrollParent } from '$lib/scroll-into-view';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 
-	export let scrollTop: number = 0;
-	export let scrollLeft: number = 0;
+	interface Props {
+		scrollTop?: number;
+		scrollLeft?: number;
+	}
+
+	let { scrollTop = $bindable(0), scrollLeft = $bindable(0) }: Props = $props();
 
 	const scrollStore = getScrollContext();
 	if (!scrollStore.scrollLeft || !scrollStore.scrollTop)
 		console.error('ScrollHelper requires ScrollStore');
 
-	$: scrollStore.scrollTop?.set(scrollTop);
-	$: scrollStore.scrollLeft?.set(scrollLeft);
+	$effect(() => {
+		scrollStore.scrollTop?.set(scrollTop);
+	});
+	$effect(() => {
+		scrollStore.scrollLeft?.set(scrollLeft);
+	});
 
-	let div: HTMLElement;
+	let div: HTMLElement | undefined = $state();
 
 	onMount(() => {
+		if (!div) return;
 		const verticalScrollParent = getScrollParent(div, 'vertical', false);
 		const horizontalScrollParent = getScrollParent(div, 'horizontal', false);
 
@@ -32,4 +41,4 @@
 	});
 </script>
 
-<div bind:this={div} />
+<div bind:this={div}></div>

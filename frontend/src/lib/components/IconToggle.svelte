@@ -1,10 +1,16 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from './Container.svelte';
 	import classNames from 'classnames';
-	import type { ComponentType } from 'svelte';
+	import type { IconComponent } from '$lib/components/icon.type';
 
-	export let icon: ComponentType;
-	export let type: 'primary' | 'primary-dark' = 'primary';
+	interface Props {
+		onClickOrSelect?: ContainerProps['onClickOrSelect'];
+		icon: IconComponent;
+		type?: 'primary' | 'primary-dark';
+	}
+
+	let { icon, type = 'primary', onClickOrSelect }: Props = $props();
 </script>
 
 <Container
@@ -15,7 +21,8 @@
 			'bg-primary-900': type === 'primary-dark'
 		}
 	)}
-	on:clickOrSelect
+	{onClickOrSelect}
 >
-	<svelte:component this={icon} size={19} />
+	{@const SvelteComponent = icon}
+	<SvelteComponent size={19} />
 </Container>

@@ -24,12 +24,12 @@
 		serverQueries,
 		unmanageLibraryEntries
 	} from '$lib/queries/server.queries';
-	import { scrollIntoView, type Selectable } from '$lib/selectable';
+	import { scrollIntoView, Selectable } from '$lib/selectable';
 	import { formatSize, useInteractionObserver } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Archive, Bookmark, ChevronDown, Cross2, Reload, Trash } from 'radix-icons-svelte';
 	import { tick } from 'svelte';
-	import { derived, writable } from 'svelte/store';
+	import { derived as derivedStore, writable } from 'svelte/store';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -54,7 +54,7 @@
 	const folder = writable('');
 	const settings = usePageQuery(libraryQueries.settings());
 	const entries = usePageQuery(
-		derived(folder, ($folder) => ({
+		derivedStore(folder, ($folder) => ({
 			...serverQueries.libraryEntries($folder),
 			select: buildTree,
 			enabled: !!$folder
@@ -63,29 +63,12 @@
 	// What the cleanup would delete now, library-wide as the button runs it
 	const cleanup = usePageQuery(serverQueries.cleanupPreview());
 
-	let expanded = new Set<string>();
-	let checked = new Set<string>();
-	let order: LibraryOrder = 'size';
-	let limit = ROWS;
-	let isScanning = false;
-	let header: Selectable | undefined;
-
-	$: folders = $settings.data
-		? [...folderPaths($settings.data.seriesFolders), ...folderPaths($settings.data.movieFolders)]
-		: [];
-	$: if (!$folder && folders[0]) $folder = folders[0];
-	$: tree = $entries.data ?? EMPTY_TREE;
-	// A selection is of the entries as they were listed: a new listing of the folder clears it
-	$: (tree, (checked = new Set()));
-	$: isLoading = $settings.isLoading || $entries.isLoading;
-	$: loadError = $settings.error ?? $entries.error;
-	$: error = loadError ? errorMessage(loadError) : '';
-	$: unretained = $cleanup.data?.files ?? 0;
-
-	$: rows = getRows(tree.roots, expanded, order);
-	$: orderLabel = ORDERS.find((o) => o.value === order)?.label;
-	$: partiallyChecked = getPartiallyChecked(checked);
-	$: selection = getSelection(checked, tree.nodes);
+	let expanded = $state.raw(new Set<string>());
+	let checked = $state.raw(new Set<string>());
+	let order: LibraryOrder = $state('size');
+	let limit = $state(ROWS);
+	let isScanning = $state(false);
+	const header = new Selectable();
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 	const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -104,6 +87,7 @@
 			selectedOption: $folder,
 			handleSelectOption: (next: string) => {
 				if (next === $folder) return;
+				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- the sets are replaced, never mutated
 				expanded = new Set();
 				limit = ROWS;
 				$folder = next;
@@ -300,42 +284,66 @@
 			.catch((e) => createErrorNotification('Could not scan', errorMessage(e)));
 		isScanning = false;
 	}
+	let folders = $derived(
+		$settings.data
+			? [...folderPaths($settings.data.seriesFolders), ...folderPaths($settings.data.movieFolders)]
+			: []
+	);
+	$effect(() => {
+		if (!$folder && folders[0]) $folder = folders[0];
+	});
+	let tree = $derived($entries.data ?? EMPTY_TREE);
+	// A selection is of the entries as they were listed: a new listing of the folder clears it
+	$effect(() => {
+		if (tree) checked = new Set();
+	});
+	let isLoading = $derived($settings.isLoading || $entries.isLoading);
+	let loadError = $derived($settings.error ?? $entries.error);
+	let error = $derived(loadError ? errorMessage(loadError) : '');
+	let unretained = $derived($cleanup.data?.files ?? 0);
+	let rows = $derived(getRows(tree.roots, expanded, order));
+	let orderLabel = $derived(ORDERS.find((o) => o.value === order)?.label);
+	let partiallyChecked = $derived(getPartiallyChecked(checked));
+	let selection = $derived(getSelection(checked, tree.nodes));
 </script>
 
 <Container class="h-full flex flex-col">
-	<Container class="space-y-4" bind:selectable={header}>
+	<Container class="space-y-4" selectable={header}>
 		<SelectField
 			value={$folder || 'None'}
 			disabled={!folders.length}
 			class="max-w-md"
-			on:clickOrSelect={selectFolder}
+			onClickOrSelect={selectFolder}
 		>
 			Library folder
-			<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+			{#snippet icon({ size, iconClass })}
+				<ChevronDown {size} class={classNames(iconClass)} />
+			{/snippet}
 		</SelectField>
 		<Scrollable class="flex items-center justify-between space-x-8" fadeWidth={3}>
 			<Container direction="horizontal" class="flex-shrink-0 flex items-center space-x-4">
 				<Button
-					iconAfter={ChevronDown}
+					icon={ChevronDown}
+					iconPosition="after"
 					disabled={!$folder}
-					on:clickOrSelect={selectOrder}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={selectOrder}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Sort by {orderLabel}
 				</Button>
 				<Button
 					icon={Reload}
 					disabled={!$folder || isScanning}
-					on:clickOrSelect={confirmScan}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={confirmScan}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					{isScanning ? 'Scanning...' : 'Scan library'}
 				</Button>
 				<Button
 					icon={Trash}
 					disabled={!folders.length}
-					on:clickOrSelect={confirmCleanup}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={confirmCleanup}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Delete unretained{unretained ? ` (${unretained})` : ''}
 				</Button>
@@ -344,16 +352,16 @@
 				<Button
 					icon={Bookmark}
 					disabled={!selection.indexedFiles}
-					on:clickOrSelect={confirmRequest}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={confirmRequest}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Request
 				</Button>
 				<Button
 					icon={Archive}
 					disabled={selection.indexedFiles === selection.managedFiles}
-					on:clickOrSelect={confirmManage}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={confirmManage}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Set managed
 				</Button>
@@ -361,15 +369,15 @@
 					icon={Cross2}
 					disabled={!selection.managedFiles}
 					action={() => setManaged(false)}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Set external
 				</Button>
 				<Button
 					icon={Trash}
 					disabled={!checked.size}
-					on:clickOrSelect={confirmDelete}
-					on:enter={scrollIntoView({ horizontal: 64 })}
+					onClickOrSelect={confirmDelete}
+					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
 					Delete {count(selection.files, 'file', 'files')}
 					{#if checked.size}({formatSize(selection.size)}){/if}
@@ -387,9 +395,9 @@
 			<Container
 				class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide mt-6 pb-16"
 				style="backface-visibility: hidden;"
-				on:back={({ detail }) => {
-					header?.focus();
-					detail.stopPropagation();
+				onBack={(e) => {
+					header.focus();
+					e.stopPropagation();
 				}}
 			>
 				{#each rows.slice(0, limit) as node (node.entry.path)}
@@ -398,16 +406,16 @@
 						checked={isChecked(node, checked)}
 						partiallyChecked={partiallyChecked.has(node.entry.path)}
 						expanded={expanded.has(node.entry.path)}
-						on:toggle={() => (checked = toggleChecked(node, checked))}
-						on:expand={({ detail }) => expand(node, detail)}
-						on:collapse={({ detail }) => collapse(node, detail)}
+						onToggle={() => (checked = toggleChecked(node, checked))}
+						onExpand={(e) => expand(node, e)}
+						onCollapse={(e) => collapse(node, e)}
 					/>
 				{/each}
 				{#if rows.length > limit}
 					<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
 					{#key limit}
 						<div class="relative">
-							<div use:observer class="absolute bottom-0 w-px h-[50rem] pointer-events-none" />
+							<div use:observer class="absolute bottom-0 w-px h-[50rem] pointer-events-none"></div>
 						</div>
 					{/key}
 				{/if}

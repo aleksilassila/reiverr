@@ -1,7 +1,7 @@
-import type { ComponentType } from 'svelte';
+import type { IconComponent } from '$lib/components/icon.type';
 
 export type TitleInfoProperty = {
 	href?: string;
 	label?: string;
-	icon?: ComponentType;
+	icon?: IconComponent;
 };

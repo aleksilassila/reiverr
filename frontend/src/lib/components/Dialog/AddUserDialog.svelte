@@ -4,11 +4,13 @@
 	import { navigate } from '../StackRouter/stack-router.store';
 </script>
 
-<Dialog let:close>
-	<Login
-		on:login={() => {
-			close();
-			navigate('/', { refresh: true });
-		}}
-	/>
+<Dialog>
+	{#snippet children({ close })}
+		<Login
+			onLogin={() => {
+				close();
+				navigate('/', { refresh: true });
+			}}
+		/>
+	{/snippet}
 </Dialog>

@@ -2,25 +2,29 @@
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
 	import { scrollIntoView, useRegistrar } from '$lib/selectable';
-	import { createEventDispatcher } from 'svelte';
+
 	import BackgroundCard from './BackgroundCard.svelte';
 	import type { Background } from './background-stack.store';
 
-	const dispatch = createEventDispatcher<{
-		jumpTo: number;
-	}>();
 	const carousel = useRegistrar();
 
-	export let backgrounds: Background[];
-	export let focusIndex: number;
+	interface Props {
+		onJumpTo?: (detail: number) => void;
+		backgrounds: Background[];
+		focusIndex: number;
+	}
 
-	$: $carousel?.activateChild(focusIndex);
+	let { backgrounds, focusIndex, onJumpTo }: Props = $props();
+
+	$effect(() => {
+		$carousel?.activateChild(focusIndex);
+	});
 </script>
 
 <Carousel
 	scrollClass="px-32"
 	class="py-12"
-	on:mount={carousel.registrar}
+	onMounted={carousel.registrar}
 	horizontalScroll
 	controls={false}
 	focusFirstOnBack={false}
@@ -29,13 +33,13 @@
 		<BackgroundCard
 			focusedChild={focusIndex === index}
 			backdropUri={background.backdropUri}
-			on:clickOrSelect={({ detail }) => {
-				dispatch('jumpTo', index);
-				const el = detail.getHtmlElement();
-				console.log(detail, el);
+			onClickOrSelect={(e) => {
+				onJumpTo?.(index);
+				const el = e.getHtmlElement();
+				console.log(e, el);
 				if (el) scrollElementIntoView(el, { horizontal: 128 });
 			}}
-			on:enter={scrollIntoView({ horizontal: 128 })}
+			onEnter={scrollIntoView({ horizontal: 128 })}
 		/>
 	{/each}
 </Carousel>

@@ -3,19 +3,25 @@
 	import { DotFilled } from 'radix-icons-svelte';
 	import type { TitleInfoProperty } from './HeroTitleInfo';
 	import TitleText from '$lib/components/TitleText.svelte';
+	import type { Snippet } from 'svelte';
 
-	export let title = '';
-	export let properties: TitleInfoProperty[] = [];
-	export let overview: string;
-	export let onClickTitle: (() => void) | undefined = undefined;
+	interface Props {
+		/** The title text, or a snippet in its place */
+		title?: string | Snippet;
+		properties?: TitleInfoProperty[];
+		overview: string;
+		onClickTitle?: (() => void) | undefined;
+	}
+
+	let { title = '', properties = [], overview, onClickTitle = undefined }: Props = $props();
 </script>
 
 <TitleText
-	{title}
-	on:click={onClickTitle}
+	title={typeof title === 'string' ? title : ''}
+	onclick={onClickTitle}
 	class={classNames({ 'hover:text-amber-200 cursor-pointer': !!onClickTitle })}
 >
-	<slot name="title" />
+	{#if typeof title === 'function'}{@render title()}{/if}
 </TitleText>
 
 <div
@@ -31,7 +37,7 @@
 					{#if property.label}
 						{property.label}
 					{:else if property.icon}
-						<svelte:component this={property.icon} size={22} />
+						<property.icon size={22} />
 					{/if}
 				</a>
 			</p>
@@ -41,7 +47,7 @@
 			</p>
 		{:else if property.icon}
 			<span>
-				<svelte:component this={property.icon} size={22} />
+				<property.icon size={22} />
 			</span>
 		{/if}
 	{/each}

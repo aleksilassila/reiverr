@@ -1,21 +1,28 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 
-	export let absolute = false;
+	type Props = Omit<ContainerProps, 'children'> & {
+		absolute?: boolean;
+		children?: Snippet;
+	};
+
+	let { absolute = false, children, ...rest }: Props = $props();
 </script>
 
 <div class="w-full h-full flex flex-1">
 	<Container
-		{...$$restProps}
+		{...rest}
 		class={classNames(
 			'flex-1 overflow-hidden',
 			{
 				'relative *:absolute -mx-4 *:inset-x-4 *:inset-y-0': absolute
 			},
-			$$restProps.class
+			rest.class
 		)}
 	>
-		<slot />
+		{@render children?.()}
 	</Container>
 </div>

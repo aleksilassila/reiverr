@@ -1,16 +1,17 @@
-<script>
+<script lang="ts">
 	import { TriangleRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
+	import type { SvelteHTMLElements } from 'svelte/elements';
+
+	let { ...rest }: SvelteHTMLElements['div'] = $props();
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
+	{...rest}
 	class={classNames(
-		$$restProps.class,
+		rest.class,
 		'backdrop-blur-lg rounded-full bg-[#00000044] text-zinc-300 hover:text-zinc-200 p-2'
 	)}
-	on:click
 >
 	<TriangleRight size={30} />
 </div>

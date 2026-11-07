@@ -1,20 +1,21 @@
 <script lang="ts">
 	import Container from '$components/Container.svelte';
-	import { scrollIntoView } from '$lib/selectable';
+	import { scrollIntoView, Selectable } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { MagnifyingGlass } from 'radix-icons-svelte';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { onDestroy } from 'svelte';
-	import { derived, writable, type Readable } from 'svelte/store';
+	import { derived, writable } from 'svelte/store';
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import CardGrid from '../components/CardGrid.svelte';
 
-	let searchQuery = '';
+	let searchQuery = $state('');
 	let typingTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
-	let searchInput: HTMLInputElement | undefined = undefined;
-	let inputFocused: Readable<boolean>;
+	let searchInput: HTMLInputElement | undefined = $state(undefined);
+	const inputSelectable = new Selectable();
+	const inputFocused = inputSelectable.hasFocus;
 
 	/** What is searched: the input once typing pauses */
 	const query = writable('');
@@ -45,8 +46,8 @@
 			class={classNames('flex items-center space-x-4 font-medium', {
 				// 'text-secondary-300': !$inputFocused
 			})}
-			bind:hasFocus={inputFocused}
-			on:clickOrSelect={() => searchInput?.focus()}
+			selectable={inputSelectable}
+			onClickOrSelect={() => searchInput?.focus()}
 		>
 			<AnimateScale hasFocus={$inputFocused}>
 				<MagnifyingGlass
@@ -59,7 +60,7 @@
 			<input
 				class="bg-transparent outline-none placeholder:text-secondary-400"
 				bind:value={searchQuery}
-				on:input={() => handleInput(searchQuery)}
+				oninput={() => handleInput(searchQuery)}
 				placeholder="Search titles..."
 				bind:this={searchInput}
 			/>
@@ -69,7 +70,7 @@
 		{#if !!searchQuery && $results.data}
 			<CardGrid class="px-4">
 				{#each $results.data as item}
-					<TmdbCard {item} on:enter={scrollIntoView({ vertical: 128 })} />
+					<TmdbCard {item} onEnter={scrollIntoView({ vertical: 128 })} />
 				{/each}
 			</CardGrid>
 		{/if}

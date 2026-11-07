@@ -1,13 +1,25 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import type { ComponentType } from 'svelte';
+	import type { IconComponent } from '$lib/components/icon.type';
 
-	/** Without a label, the tag is its icon alone */
-	export let label = '';
-	export let icon: ComponentType | undefined = undefined;
-	export let type: 'default' | 'secondary' | 'progress' | 'error' = 'default';
-	export let size: 'sm' | 'md' = 'md';
-	export let title = '';
+	interface Props {
+		/** Without a label, the tag is its icon alone */
+		label?: string;
+		icon?: IconComponent | undefined;
+		type?: 'default' | 'secondary' | 'progress' | 'error';
+		size?: 'sm' | 'md';
+		title?: string;
+		class?: string;
+	}
+
+	let {
+		label = '',
+		icon = undefined,
+		type = 'default',
+		size = 'md',
+		title = '',
+		class: className
+	}: Props = $props();
 </script>
 
 <div
@@ -21,13 +33,13 @@
 			'bg-purple-500/30 text-purple-200': type === 'progress',
 			'bg-red-500/30 text-red-200': type === 'error'
 		},
-		$$restProps.class
+		className
 	)}
 	title={title || label}
 >
 	{#if icon}
-		<svelte:component
-			this={icon}
+		{@const SvelteComponent = icon}
+		<SvelteComponent
 			size={size === 'md' ? 20 : 14}
 			class={classNames('flex-shrink-0', {
 				'mr-2': label && size === 'md',

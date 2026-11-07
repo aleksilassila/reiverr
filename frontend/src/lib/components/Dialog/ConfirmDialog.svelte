@@ -8,13 +8,17 @@
 	type ActionFn = (() => Promise<any>) | (() => any);
 	const { close } = useComponentStack();
 
-	export let header: string;
-	export let body: string;
-	export let confirm: ActionFn;
-	/** Also runs when the dialog is closed without a choice, by back or the cross */
-	export let cancel: ActionFn = () => {};
+	interface Props {
+		header: string;
+		body: string;
+		confirm: ActionFn;
+		/** Also runs when the dialog is closed without a choice, by back or the cross */
+		cancel?: ActionFn;
+	}
 
-	let fetching = false;
+	let { header, body, confirm, cancel = () => {} }: Props = $props();
+
+	let fetching = $state(false);
 	let chosen = false;
 
 	onDestroy(() => {
@@ -44,10 +48,10 @@
 		{body}
 	</div>
 	<Container class="flex flex-col space-y-4">
-		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(confirm)}>
+		<Button type="secondary" disabled={fetching} onClickOrSelect={() => handleAction(confirm)}>
 			Confirm
 		</Button>
-		<Button type="secondary" disabled={fetching} on:clickOrSelect={() => handleAction(cancel)}>
+		<Button type="secondary" disabled={fetching} onClickOrSelect={() => handleAction(cancel)}>
 			Cancel
 		</Button>
 	</Container>

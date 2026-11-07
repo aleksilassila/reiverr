@@ -6,8 +6,7 @@ import { Selectable } from '$lib/selectable';
 import {
 	getContext as getSvelteContext,
 	setContext as setSvelteContext,
-	SvelteComponentTyped,
-	type ComponentType
+	type Component
 } from 'svelte';
 import { writable, type Readable, type Writable } from 'svelte/store';
 import MyListPage from '../../pages/MyListPage/MyListPage.svelte';
@@ -27,7 +26,7 @@ import UsersPage from '../../pages/UsersPage.svelte';
 
 export type CreateCompStackPage<TProps extends Record<string, unknown> = Record<string, unknown>> =
 	{
-		component: ComponentType<SvelteComponentTyped<TProps>>;
+		component: Component<TProps>;
 		props: TProps;
 
 		id?: symbol;
@@ -39,7 +38,9 @@ export type CreateCompStackPage<TProps extends Record<string, unknown> = Record<
 		background?: boolean;
 	};
 
-export interface CompStackPage extends CreateCompStackPage {
+export interface CompStackPage extends Omit<CreateCompStackPage, 'component'> {
+	/** The props type is erased: the pair was checked where the page was pushed */
+	component: Component<any>;
 	context: Record<string, unknown>;
 	pages: CompStackPage[];
 
@@ -107,7 +108,7 @@ class RouteGroup {
 		this.handleUpdate();
 	}
 
-	push(opts: CreateCompStackPage) {
+	push<TProps extends Record<string, unknown>>(opts: CreateCompStackPage<TProps>) {
 		const previousPage = this.pages.length > 0 ? this.pages[this.pages.length - 1] : undefined;
 		const previousContext = previousPage?.context ?? {};
 		const context = {};
@@ -182,7 +183,7 @@ class RouteGroup {
 
 interface Route {
 	path: string;
-	component: ComponentType;
+	component: Component<any>;
 	default?: boolean;
 	// When root is navigated to, stack is cleared
 	root?: boolean;

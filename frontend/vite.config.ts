@@ -1,7 +1,8 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import viteLegacyPlugin from '@vitejs/plugin-legacy';
+import { svelteTesting } from '@testing-library/svelte/vite';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -21,9 +22,9 @@ export default defineConfig({
 			modernPolyfills: true
 		}),
 		svelte(),
-		viteSingleFile()
+		viteSingleFile(),
+		svelteTesting()
 	],
-	optimizeDeps: { exclude: ['svelte-navigator'] },
 	define: {
 		REIVERR_VERSION: `"${pkg.version}"`
 	},
@@ -33,6 +34,12 @@ export default defineConfig({
 			$components: path.resolve(__dirname, './src/lib/components'),
 			$pages: path.resolve(__dirname, './src/lib/pages')
 		}
+	},
+	test: {
+		environment: 'jsdom',
+		include: ['src/**/*.spec.ts'],
+		// The focus tree logs every move
+		silent: 'passed-only'
 	}
 
 	// base: '/dist',

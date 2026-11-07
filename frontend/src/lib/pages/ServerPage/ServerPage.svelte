@@ -9,10 +9,7 @@
 	import Files from './Files.ServerPage.svelte';
 	import Logs from './Logs.ServerPage.svelte';
 
-	enum Tabs {
-		Files,
-		Logs
-	}
+	const Tabs = { Files: 0, Logs: 1 } as const;
 
 	const tab = useTabs(Tabs.Files);
 </script>
@@ -27,22 +24,20 @@
 			<Container
 				direction="horizontal"
 				class="flex space-x-8"
-				on:blur={({ detail: selectable }) => {
+				onBlur={(selectable) => {
 					selectable.activateChild($tab);
 				}}
 			>
-				<TabItem selected={$tab === Tabs.Files} on:select={() => tab.set(Tabs.Files)}>
-					Files
-				</TabItem>
-				<TabItem selected={$tab === Tabs.Logs} on:select={() => tab.set(Tabs.Logs)}>Logs</TabItem>
+				<TabItem selected={$tab === Tabs.Files} onSelect={() => tab.set(Tabs.Files)}>Files</TabItem>
+				<TabItem selected={$tab === Tabs.Logs} onSelect={() => tab.set(Tabs.Logs)}>Logs</TabItem>
 			</Container>
 		</div>
 		<div class="flex-1 flex flex-col h-full w-full">
 			<TabContainer absolute>
-				<Tab {...tab} tab={Tabs.Files} class="h-full">
+				<Tab {...tab.props} tab={Tabs.Files} class="h-full">
 					<Files />
 				</Tab>
-				<Tab {...tab} tab={Tabs.Logs} class="h-full">
+				<Tab {...tab.props} tab={Tabs.Logs} class="h-full">
 					<Logs />
 				</Tab>
 			</TabContainer>

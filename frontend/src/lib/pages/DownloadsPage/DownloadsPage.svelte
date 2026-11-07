@@ -20,7 +20,7 @@
 	import { formatSize, LETTERS, type Letter } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { derived, writable } from 'svelte/store';
+	import { derived as derivedStore, writable } from 'svelte/store';
 
 	type MediaType = CatalogTitleOnDiskDto['mediaType'];
 	type Sort = 'size' | 'name' | 'added';
@@ -51,7 +51,7 @@
 
 	const storage = usePageQuery(storageQueries.user());
 	const downloads = usePageQuery(
-		derived(
+		derivedStore(
 			[mediaType, requestedOnly, letter, order],
 			([$mediaType, $requestedOnly, $letter, $order]) =>
 				catalogQueries.downloads({
@@ -64,7 +64,7 @@
 		)
 	);
 	const titles = usePageInfiniteQuery(
-		derived(
+		derivedStore(
 			[mediaType, requestedOnly, letter, order],
 			([$mediaType, $requestedOnly, $letter, $order]) =>
 				catalogQueries.onDisk({
@@ -77,11 +77,11 @@
 		)
 	);
 	const { loadMore } = titles;
-	$: usage = $storage.data;
-	$: downloadList = $downloads.data ?? [];
-	$: titleList = $titles.data ?? [];
-	$: listed = $requestedOnly ? 'requested' : 'on disk';
-	$: error = $downloads.error ?? $titles.error;
+	let usage = $derived($storage.data);
+	let downloadList = $derived($downloads.data ?? []);
+	let titleList = $derived($titles.data ?? []);
+	let listed = $derived($requestedOnly ? 'requested' : 'on disk');
+	let error = $derived($downloads.error ?? $titles.error);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -188,8 +188,8 @@
 					{#each MEDIA_TYPES as option (option.value)}
 						<Pill
 							selected={$mediaType === option.value}
-							on:clickOrSelect={() => filter(option.value)}
-							on:enter={scrollIntoView({ horizontal: 64 })}
+							onClickOrSelect={() => filter(option.value)}
+							onEnter={scrollIntoView({ horizontal: 64 })}
 						>
 							{option.label}
 						</Pill>
@@ -203,8 +203,8 @@
 				<Container direction="horizontal" class="flex space-x-4">
 					<Pill
 						selected={$requestedOnly}
-						on:clickOrSelect={() => ($requestedOnly = !$requestedOnly)}
-						on:enter={scrollIntoView({ horizontal: 64 })}
+						onClickOrSelect={() => ($requestedOnly = !$requestedOnly)}
+						onEnter={scrollIntoView({ horizontal: 64 })}
 					>
 						Requested only
 					</Pill>
@@ -218,17 +218,14 @@
 					{#each SORTS as option (option.value)}
 						<Pill
 							selected={$order.sort === option.value}
-							on:clickOrSelect={() => selectSort(option.value)}
-							on:enter={scrollIntoView({ horizontal: 64 })}
+							onClickOrSelect={() => selectSort(option.value)}
+							onEnter={scrollIntoView({ horizontal: 64 })}
 						>
 							<span class="flex items-center">
 								{option.label}
 								{#if $order.sort === option.value}
-									<svelte:component
-										this={$order.direction === 'desc' ? ArrowDown : ArrowUp}
-										size={20}
-										class="ml-2"
-									/>
+									{@const SvelteComponent = $order.direction === 'desc' ? ArrowDown : ArrowUp}
+									<SvelteComponent size={20} class="ml-2" />
 								{/if}
 							</span>
 						</Pill>
@@ -248,8 +245,8 @@
 				{/if}
 				{#each downloadList as download (download.infoHash)}
 					<ListRow
-						on:enter={scrollIntoView({ vertical: 96 })}
-						on:clickOrSelect={() => open(download)}
+						onEnter={scrollIntoView({ vertical: 96 })}
+						onClickOrSelect={() => open(download)}
 					>
 						<div class="w-12 h-[4.5rem] rounded-lg bg-secondary-800 overflow-hidden flex-shrink-0">
 							{#if download.tmdbItem.poster_path}
@@ -278,7 +275,7 @@
 					<div class="text-lg font-semibold text-secondary-400 mt-8">On disk</div>
 				{/if}
 				{#each titleList as title (`${title.mediaType}-${title.tmdbId}`)}
-					<ListRow on:enter={scrollIntoView({ vertical: 96 })} on:clickOrSelect={() => open(title)}>
+					<ListRow onEnter={scrollIntoView({ vertical: 96 })} onClickOrSelect={() => open(title)}>
 						<div class="w-12 h-[4.5rem] rounded-lg bg-secondary-800 overflow-hidden flex-shrink-0">
 							{#if title.tmdbItem.poster_path}
 								<LazyImg
@@ -301,7 +298,7 @@
 				{/each}
 				<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
 				<div class="relative">
-					<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none" />
+					<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none"></div>
 				</div>
 			</Container>
 		{:else}
@@ -325,6 +322,6 @@
 		class="fixed right-12 inset-y-0 justify-center z-10"
 		items={LETTERS}
 		selected={$letter ? LETTERS.indexOf($letter) : -1}
-		on:select={({ detail }) => filterLetter(detail)}
+		onSelect={(e) => filterLetter(e)}
 	/>
 </Container>

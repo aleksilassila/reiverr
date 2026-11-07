@@ -1,17 +1,22 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import type { TmdbMovie, TmdbSeries } from '../../apis/tmdb/tmdb-api';
 	import { TMDB_POSTER_SMALL } from '../../constants';
 	import type { TitleType } from '../../types';
 	import { navigate } from '../StackRouter/stack-router.store';
 	import Card from './Card.svelte';
 
-	export let item:
-		| Pick<TmdbMovie, 'id' | 'title' | 'poster_path' | 'runtime'>
-		| Pick<TmdbSeries, 'id' | 'name' | 'poster_path'>;
-	export let progress = 0;
+	type Props = Omit<ComponentProps<typeof Card>, 'children'> & {
+		item:
+			| Pick<TmdbMovie, 'id' | 'title' | 'poster_path' | 'runtime'>
+			| Pick<TmdbSeries, 'id' | 'name' | 'poster_path'>;
+		progress?: number;
+	};
 
-	let title = '';
-	let type: TitleType = 'movie';
+	let { item, progress = 0, ...rest }: Props = $props();
+
+	let title = $state('');
+	let type: TitleType = $state('movie');
 
 	if ('title' in item) {
 		title = item.title || title;
@@ -23,13 +28,12 @@
 </script>
 
 <Card
-	{...$$restProps}
+	{...rest}
 	backdropUrl={item.poster_path ? TMDB_POSTER_SMALL + item.poster_path : undefined}
 	orientation="portrait"
 	size="lg"
 	{title}
 	{progress}
 	runtime={'runtime' in item ? item.runtime : 0}
-	on:enter
-	on:clickOrSelect={() => navigate(`/${type}/${item.id}`)}
+	onClickOrSelect={() => navigate(`/${type}/${item.id}`)}
 />

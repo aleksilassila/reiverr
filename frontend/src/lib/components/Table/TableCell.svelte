@@ -1,9 +1,16 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import classNames from 'classnames';
+	interface Props {
+		children?: Snippet;
+		class?: string;
+	}
+
+	let { children, class: className }: Props = $props();
 </script>
 
-<div class={classNames('_table-cell', $$restProps.class)}>
-	<slot />
+<div class={classNames('_table-cell', className)}>
+	{@render children?.()}
 </div>
 
 <style global>

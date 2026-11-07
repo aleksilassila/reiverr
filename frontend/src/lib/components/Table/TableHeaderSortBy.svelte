@@ -1,18 +1,27 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
+	import { Selectable } from '$lib/selectable';
 	import Container from '../Container.svelte';
 	import classNames from 'classnames';
 	import { ChevronDown, ChevronUp } from 'radix-icons-svelte';
-	import type { Readable } from 'svelte/store';
 	import TableHeaderCell from './TableHeaderCell.svelte';
 
-	export let icon: undefined | 'asc' | 'desc' = undefined;
-	let hasFocus: Readable<boolean>;
+	interface Props {
+		onClickOrSelect?: ContainerProps['onClickOrSelect'];
+		icon?: undefined | 'asc' | 'desc';
+		children?: Snippet;
+	}
+
+	let { icon = undefined, children, onClickOrSelect }: Props = $props();
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
 </script>
 
 <TableHeaderCell>
 	<Container
-		bind:hasFocus
-		on:clickOrSelect
+		{selectable}
+		{onClickOrSelect}
 		focusOnClick
 		class={classNames(
 			'flex items-center rounded-full py-1 cursor-pointer select-none font-semibold float-left',
@@ -21,9 +30,10 @@
 			}
 		)}
 	>
-		<slot />
+		{@render children?.()}
 		{#if icon}
-			<svelte:component this={icon === 'desc' ? ChevronDown : ChevronUp} size={19} class="ml-2" />
+			{@const SvelteComponent = icon === 'desc' ? ChevronDown : ChevronUp}
+			<SvelteComponent size={19} class="ml-2" />
 		{/if}
 	</Container>
 </TableHeaderCell>

@@ -7,14 +7,16 @@
 	import { serverLogQueries } from '$lib/queries/server-log.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
-	import { derived, writable } from 'svelte/store';
+	import { derived as derivedStore, writable } from 'svelte/store';
 
 	const TYPES: LogEntryDto['type'][] = ['file.deleted', 'download.deleted', 'scan.failed'];
 
 	const type = writable<LogEntryDto['type'] | undefined>(undefined);
-	const entries = usePageInfiniteQuery(derived(type, ($type) => serverLogQueries.entries($type)));
+	const entries = usePageInfiniteQuery(
+		derivedStore(type, ($type) => serverLogQueries.entries($type))
+	);
 	const { loadMore } = entries;
-	$: entryList = $entries.data ?? [];
+	let entryList = $derived($entries.data ?? []);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -27,7 +29,7 @@
 <Container class="h-full flex flex-col">
 	<Container direction="horizontal" class="flex space-x-4">
 		{#each TYPES as entryType (entryType)}
-			<Pill selected={$type === entryType} on:clickOrSelect={() => filter(entryType)}>
+			<Pill selected={$type === entryType} onClickOrSelect={() => filter(entryType)}>
 				{entryType}
 			</Pill>
 		{/each}
@@ -38,7 +40,7 @@
 			style="backface-visibility: hidden;"
 		>
 			{#each entryList as entry (entry.id)}
-				<ListRow on:enter={scrollIntoView({ vertical: 96 })}>
+				<ListRow onEnter={scrollIntoView({ vertical: 96 })}>
 					<div class="flex-1 min-w-0">
 						<div class="text-2xl font-semibold line-clamp-1">{entry.message}</div>
 						<div class="text-lg font-medium text-secondary-400 mt-1">
@@ -49,7 +51,7 @@
 			{/each}
 			<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
 			<div class="relative">
-				<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none" />
+				<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none"></div>
 			</div>
 		</Container>
 	{:else}

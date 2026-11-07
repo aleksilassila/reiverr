@@ -1,9 +1,19 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
+	import { Selectable } from '$lib/selectable';
 	import Container from '../Container.svelte';
 	import classNames from 'classnames';
-	import type { Readable } from 'svelte/store';
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		children?: Snippet;
+		class?: string;
+	}
 
-	let hasFocusWithin: Readable<boolean>;
+	let { children, onEnter, class: className }: Props = $props();
+
+	const selectable = new Selectable();
+	const hasFocusWithin = selectable.hasFocusWithin;
 </script>
 
 <Container
@@ -14,10 +24,10 @@
 			// 'bg-secondary-800 shadow-xl shadow-secondary-900': $hasFocusWithin
 			// 'scale-[102%] bg-primary-500/10': $hasFocusWithin
 		},
-		$$restProps.class
+		className
 	)}
-	bind:hasFocusWithin
-	on:enter
+	{selectable}
+	{onEnter}
 >
 	<!-- Background, has to be inside a td to not create another column -->
 	<!--	<div-->
@@ -26,5 +36,5 @@
 	<!--			'bg-transparent': !$hasFocusWithin-->
 	<!--		})}-->
 	<!--	/>-->
-	<slot />
+	{@render children?.()}
 </Container>

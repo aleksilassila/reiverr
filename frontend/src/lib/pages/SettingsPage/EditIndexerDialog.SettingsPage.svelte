@@ -8,16 +8,20 @@
 	import { useComponentStack } from '../../components/StackRouter/stack-router.store';
 	import TextField from '../../components/TextField.svelte';
 
-	export let indexers: IndexerDto[];
-	/** The indexer to edit; a new one is added without it */
-	export let indexer: IndexerDto | undefined = undefined;
+	interface Props {
+		indexers: IndexerDto[];
+		/** The indexer to edit; a new one is added without it */
+		indexer?: IndexerDto | undefined;
+	}
+
+	let { indexers, indexer = undefined }: Props = $props();
 
 	const { close } = useComponentStack();
 
-	let name = indexer?.name ?? '';
-	let url = indexer?.url ?? '';
-	let apiKey = indexer?.apiKey ?? '';
-	let error = '';
+	let name = $state(indexer?.name ?? '');
+	let url = $state(indexer?.url ?? '');
+	let apiKey = $state(indexer?.apiKey ?? '');
+	let error = $state('');
 
 	async function save(next: IndexerDto[]) {
 		error = '';
@@ -44,7 +48,7 @@
 		<TextField
 			variant="primary-dark"
 			value={name}
-			on:change={({ detail }) => (name = detail)}
+			onChange={(e) => (name = e)}
 			placeholder="Jackett"
 		>
 			Name
@@ -52,17 +56,12 @@
 		<TextField
 			variant="primary-dark"
 			value={url}
-			on:change={({ detail }) => (url = detail)}
+			onChange={(e) => (url = e)}
 			placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/"
 		>
 			Torznab URL
 		</TextField>
-		<TextField
-			variant="primary-dark"
-			type="password"
-			value={apiKey}
-			on:change={({ detail }) => (apiKey = detail)}
-		>
+		<TextField variant="primary-dark" type="password" value={apiKey} onChange={(e) => (apiKey = e)}>
 			API Key
 		</TextField>
 		{#if error}

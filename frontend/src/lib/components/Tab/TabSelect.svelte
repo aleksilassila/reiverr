@@ -1,27 +1,28 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from '$components/Container.svelte';
-	import { createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
-	export let tabValue: number;
-	export let openTab: Writable<number>;
+	type Props = Omit<ContainerProps, 'children'> & {
+		tabValue: number;
+		onSelect?: (detail: { value: number }) => void;
+		openTab: Writable<number>;
+		children?: Snippet<[{ isActive: boolean; hasFocus: boolean }]>;
+	};
 
-	const dispatch = createEventDispatcher();
+	let { tabValue, openTab, onSelect, children: content, ...rest }: Props = $props();
 
 	function handleSelect() {
 		openTab.set(tabValue);
-		dispatch('select', { value: tabValue });
+		onSelect?.({ value: tabValue });
 	}
 
-	$: isActive = $openTab === tabValue;
+	let isActive = $derived($openTab === tabValue);
 </script>
 
-<Container
-	on:enter={handleSelect}
-	on:clickOrSelect={handleSelect}
-	let:hasFocus
-	focusOnClick
-	{...$$restProps}
->
-	<slot {isActive} {hasFocus} />
+<Container onEnter={handleSelect} onClickOrSelect={handleSelect} focusOnClick {...rest}>
+	{#snippet children({ hasFocus })}
+		{@render content?.({ isActive, hasFocus })}
+	{/snippet}
 </Container>

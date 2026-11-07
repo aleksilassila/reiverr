@@ -1,8 +1,12 @@
 <script lang="ts">
 	import Hls from 'hls.js';
+	import type { SvelteHTMLElements } from 'svelte/elements';
 	import { onDestroy, onMount } from 'svelte';
 	import { isTizen } from '../../utils/browser-detection';
 	import { getAudioTrackList, videoPlayerContext, type VideoTrack } from './video-player.store';
+
+	let { onclick, ondblclick }: Pick<SvelteHTMLElements['video'], 'onclick' | 'ondblclick'> =
+		$props();
 
 	const REPORT_PROGRESS_INTERVAL = 10_000;
 	const AUDIO_TRACK_EVENTS = ['addtrack', 'removetrack', 'change'];
@@ -29,11 +33,9 @@
 
 	let hls: Hls | undefined;
 
-	$: $videoTracks.current && $video && loadVideoTrack($videoTracks.current);
-	$: ($subtitleTracks, updateSubtitlesVisibility());
-
 	function loadVideoTrack(track: VideoTrack) {
-		if (!$video) return;
+		const element = $video;
+		if (!element) return;
 
 		$videoDidLoad = false;
 		$error = undefined;
@@ -44,9 +46,10 @@
 		if (track.type === 'hls' && !isTizen() && Hls.isSupported()) {
 			hls = new Hls();
 			hls.loadSource(track.src);
-			hls.attachMedia($video);
+			hls.attachMedia(element);
 		} else {
-			$video.src = track.src;
+			// Not through `$video.src`: that is a store write, and the effect that calls this reads the store
+			element.src = track.src;
 		}
 	}
 
@@ -90,9 +93,15 @@
 		$video?.removeAttribute('src');
 		$video?.load();
 	});
+	$effect(() => {
+		if ($videoTracks.current && $video) loadVideoTrack($videoTracks.current);
+	});
+	$effect(() => {
+		// Re-run when the subtitle tracks change
+		if ($subtitleTracks) updateSubtitlesVisibility();
+	});
 </script>
 
-<!-- svelte-ignore a11y-media-has-caption -->
 <video
 	bind:this={$video}
 	bind:paused={$paused}
@@ -100,13 +109,13 @@
 	bind:volume={$volume}
 	bind:muted={$muted}
 	bind:currentTime={$currentTime}
-	on:progress={handleProgress}
-	on:loadeddata={handleLoadedData}
-	on:waiting={handleWaiting}
-	on:playing={handlePlaying}
-	on:error={() => ($error = describeError($video?.error ?? null))}
-	on:dblclick
-	on:click
+	onprogress={handleProgress}
+	onloadeddata={handleLoadedData}
+	onwaiting={handleWaiting}
+	onplaying={handlePlaying}
+	onerror={() => ($error = describeError($video?.error ?? null))}
+	{ondblclick}
+	{onclick}
 	autoplay
 	crossorigin="anonymous"
 	playsinline

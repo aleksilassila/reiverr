@@ -1,9 +1,17 @@
+<script lang="ts">
+	interface Props {
+		class?: string;
+	}
+
+	let { class: className }: Props = $props();
+</script>
+
 <svg
 	width="24"
 	height="24"
 	viewBox="0 0 24 24"
 	xmlns="http://www.w3.org/2000/svg"
-	class={$$restProps.class}
+	class={className}
 >
 	<style>
 		.spinner_ajPY {

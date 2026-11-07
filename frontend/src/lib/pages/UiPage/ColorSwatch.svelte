@@ -3,12 +3,16 @@
 	import classNames from 'classnames';
 	import { onMount } from 'svelte';
 
-	export let label: string;
-	/** A background class written out in full, so that Tailwind generates it */
-	export let background: string;
+	interface Props {
+		label: string;
+		/** A background class written out in full, so that Tailwind generates it */
+		background: string;
+	}
 
-	let element: HTMLElement;
-	let value = '';
+	let { label, background }: Props = $props();
+
+	let element: HTMLElement | undefined = $state();
+	let value = $state('');
 
 	// The computed color in the notation of tailwind.config.js
 	function toHsl(rgb: string): string {
@@ -33,23 +37,25 @@
 	}
 
 	onMount(() => {
-		value = toHsl(getComputedStyle(element).backgroundColor);
+		if (element) value = toHsl(getComputedStyle(element).backgroundColor);
 	});
 </script>
 
-<Container class="flex-1 min-w-0 max-w-[10rem] group" let:hasFocus>
-	<div
-		bind:this={element}
-		class={classNames(
-			'h-20 rounded-xl border-2 group-hover:border-primary-500',
-			background,
-			hasFocus ? 'border-primary-500' : 'border-transparent'
-		)}
-	/>
-	<div
-		class={classNames('mt-2 font-semibold', hasFocus ? 'text-primary-500' : 'text-secondary-200')}
-	>
-		{label}
-	</div>
-	<div class="text-sm text-secondary-400 truncate">{value}</div>
+<Container class="flex-1 min-w-0 max-w-[10rem] group">
+	{#snippet children({ hasFocus })}
+		<div
+			bind:this={element}
+			class={classNames(
+				'h-20 rounded-xl border-2 group-hover:border-primary-500',
+				background,
+				hasFocus ? 'border-primary-500' : 'border-transparent'
+			)}
+		></div>
+		<div
+			class={classNames('mt-2 font-semibold', hasFocus ? 'text-primary-500' : 'text-secondary-200')}
+		>
+			{label}
+		</div>
+		<div class="text-sm text-secondary-400 truncate">{value}</div>
+	{/snippet}
 </Container>

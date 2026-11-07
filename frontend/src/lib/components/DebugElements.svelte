@@ -4,11 +4,11 @@
 	import { onMount } from 'svelte';
 	import { PLATFORM_WEB } from '../constants';
 
-	let showOverlay = false;
-	let x = 0;
-	let y = 0;
-	let width = 0;
-	let height = 0;
+	let showOverlay = $state(false);
+	let x = $state(0);
+	let y = $state(0);
+	let width = $state(0);
+	let height = $state(0);
 
 	const focusedObject = Selectable.focusedObject;
 	let element: HTMLElement | undefined = undefined;
@@ -48,32 +48,32 @@
 	});
 </script>
 
-<svelte:window on:keydown={handleKeydown} on:keyup={handleKeyup} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
 
 {#if showOverlay}
 	<div
 		class={classNames('fixed bg-red-500/20 z-50 pointer-events-none')}
 		style={`left: ${x}px; top: ${y}px; width: ${width}px; height: ${height}px;`}
-	/>
+	></div>
 
 	<div
 		class="fixed inset-0 border-x-[96px] border-y-[48px] border-green-500/10 z-50 pointer-events-none"
-	/>
+	></div>
 	<div
 		class="fixed inset-0 px-32 grid grid-cols-12 gap-x-16 *:bg-purple-500/10 items-stretch z-50 pointer-events-none"
 	>
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
-		<div />
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
 	</div>
 
 	<!--	<div class="fixed inset-0 border-x-[96px] border-y-[48px] border-green-500/10 z-50" />-->

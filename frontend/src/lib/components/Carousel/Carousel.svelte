@@ -1,42 +1,59 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import IconButton from '../FloatingIconButton.svelte';
 	import { ChevronLeft, ChevronRight } from 'radix-icons-svelte';
 	import classNames from 'classnames';
 	import Container from '../Container.svelte';
 	import { PLATFORM_TV } from '../../constants';
-	import { Selectable, type BackEvent } from '../../selectable';
+	import { Selectable, type KeyEvent } from '../../selectable';
 	import { get } from 'svelte/store';
 	import { getCardDimensions } from '$lib/utils';
-	import { createEventDispatcher, tick } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
 	import { smoothScrollTo } from '$lib/scroll-into-view';
 
-	export let hideControls = false;
-	export let horizontalScroll = false;
-	export let focusFirstOnBack = true;
+	type Props = Omit<ContainerProps, 'children'> & {
+		onScrollIndex?: (detail: number) => void;
+		hideControls?: boolean;
+		horizontalScroll?: boolean;
+		focusFirstOnBack?: boolean;
+		scrollClass?: string;
+		/** The heading text, or a snippet in its place */
+		header?: string | Snippet;
+		fadeWidth?: number;
+		controls?: boolean;
+		scrollIndexes?: boolean;
+		children?: Snippet<
+			[{ focusIndex: number; selectable: Selectable; scrollToIndex: (index: number) => void }]
+		>;
+	};
 
-	export let scrollClass = '';
-	export let header = '';
-	export let fadeWidth = 6;
-	export let controls = true;
-	export let scrollIndexes = false;
+	let {
+		hideControls = false,
+		horizontalScroll = false,
+		focusFirstOnBack = true,
+		scrollClass = '',
+		header = '',
+		fadeWidth = 6,
+		controls = true,
+		scrollIndexes = false,
+		children: content,
+		onScrollIndex,
+		...rest
+	}: Props = $props();
 
-	let carousel: HTMLDivElement | undefined;
-	let selectable = new Selectable();
+	let carousel: HTMLDivElement | undefined = $state();
+	const selectable = new Selectable();
 	let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
 	let scrollIndex = 0;
-	let scrollPastWidth = 0;
+	let scrollPastWidth = $state(0);
 
-	const dispatch = createEventDispatcher<{
-		scrollIndex: number;
-	}>();
-
-	function handleOnBack({ detail }: BackEvent) {
-		const focusIndex = get(detail.selectable.focusIndex);
+	function handleOnBack(e: KeyEvent) {
+		const focusIndex = get(e.selectable.focusIndex);
 
 		if (focusIndex !== 0 && focusFirstOnBack) {
-			const didFocus = detail.selectable.focusChild(0);
+			const didFocus = e.selectable.focusChild(0);
 
-			if (didFocus) detail.stopPropagation();
+			if (didFocus) e.stopPropagation();
 		}
 	}
 
@@ -65,7 +82,7 @@
 
 		if (scrollIndex !== index) {
 			scrollIndex = index;
-			dispatch('scrollIndex', scrollIndex);
+			onScrollIndex?.(scrollIndex);
 		}
 
 		smoothScrollTo({
@@ -103,7 +120,7 @@
 			const scrollLeft = el.scrollLeft;
 			const scrollWidth = el.scrollWidth;
 
-			let newScrollIndex = 0;
+			let newScrollIndex: number;
 
 			if (scrollLeft < childWidth / 2) {
 				newScrollIndex = 0;
@@ -140,7 +157,7 @@
 			if (newScrollIndex !== scrollIndex) {
 				scrollIndex = newScrollIndex;
 				console.log('scrollIndex', scrollIndex);
-				dispatch('scrollIndex', scrollIndex);
+				onScrollIndex?.(scrollIndex);
 			}
 		}, 200);
 	}
@@ -150,7 +167,7 @@
 	let movement = 0;
 	let isDown = false;
 	let cancelAnimation: (() => void) | undefined;
-	let captureClick = false;
+	let captureClick = $state(false);
 	let unlocked = false;
 
 	function handleMouseUp(e: MouseEvent) {
@@ -230,15 +247,11 @@
 	}
 </script>
 
-<div class={classNames('flex flex-col group/carousel', $$restProps.class)}>
+<div class={classNames('flex flex-col group/carousel', rest.class)}>
 	<div class={'flex justify-between items-center mb-2 ' + scrollClass}>
-		{#if header}
-			<div class="h3">{header}</div>
-		{:else}
-			<div class="h3">
-				<slot name="header" />
-			</div>
-		{/if}
+		<div class="h3">
+			{#if typeof header === 'function'}{@render header()}{:else}{header}{/if}
+		</div>
 		{#if controls}
 			<div
 				class={classNames(
@@ -252,10 +265,10 @@
 					}
 				)}
 			>
-				<IconButton on:click={() => scrollBy(-1)}>
+				<IconButton onclick={() => scrollBy(-1)}>
 					<ChevronLeft size={20} />
 				</IconButton>
-				<IconButton on:click={() => scrollBy(1)}>
+				<IconButton onclick={() => scrollBy(1)}>
 					<ChevronRight size={20} />
 				</IconButton>
 			</div>
@@ -263,53 +276,45 @@
 	</div>
 
 	<div class="relative">
-		<Container
-			{selectable}
-			on:mount
-			direction="horizontal"
-			let:focusIndex
-			on:enter
-			on:navigate
-			{...$$restProps}
-			on:back={handleOnBack}
-		>
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<div
-				on:mousedown={handleMouseDown}
-				on:mouseup={handleMouseUp}
-				on:mouseleave={handleMouseLeave}
-				on:mousemove={handleMouseMove}
-				on:click|capture={(e) => {
-					if (captureClick) {
-						// console.log('CAPTURED', captureClick);
-						e.stopPropagation();
-						captureClick = false;
-					}
-				}}
-				class={classNames(
-					'flex overflow-x-auto overflow-y-hidden relative scrollbar-hide *:will-change-contents',
-					'space-x-8 py-4 w-full',
-					{
-						// 'snap-x snap-mandatory *:snap-start *:scroll-mx-32': !PLATFORM_TV,
-						'select-none': true
-					},
-					scrollClass
-				)}
-				style={`backface-visibility: hidden; -webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
-				bind:this={carousel}
-				tabindex="-1"
-				on:scroll={handleScroll}
-				on:wheel={(e) => {
-					if (horizontalScroll && e.deltaY) {
-						e.currentTarget.scrollLeft += e.deltaY;
-					}
-				}}
-			>
-				<slot {focusIndex} {selectable} {scrollToIndex} />
+		<Container {selectable} direction="horizontal" {...rest} onBack={handleOnBack}>
+			{#snippet children({ focusIndex })}
 				<div
-					style={scrollIndexes ? `width: ${scrollPastWidth}px; height: 1px; flex-shrink: 0;` : ''}
-				/>
-			</div>
+					onmousedown={handleMouseDown}
+					onmouseup={handleMouseUp}
+					onmouseleave={handleMouseLeave}
+					onmousemove={handleMouseMove}
+					onclickcapture={(e) => {
+						if (captureClick) {
+							// console.log('CAPTURED', captureClick);
+							e.stopPropagation();
+							captureClick = false;
+						}
+					}}
+					class={classNames(
+						'flex overflow-x-auto overflow-y-hidden relative scrollbar-hide *:will-change-contents',
+						'space-x-8 py-4 w-full',
+						{
+							// 'snap-x snap-mandatory *:snap-start *:scroll-mx-32': !PLATFORM_TV,
+							'select-none': true
+						},
+						scrollClass
+					)}
+					style={`backface-visibility: hidden; -webkit-mask-image: linear-gradient(to right, transparent, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), transparent);`}
+					bind:this={carousel}
+					tabindex="-1"
+					onscroll={handleScroll}
+					onwheel={(e) => {
+						if (horizontalScroll && e.deltaY) {
+							e.currentTarget.scrollLeft += e.deltaY;
+						}
+					}}
+				>
+					{@render content?.({ focusIndex, selectable, scrollToIndex })}
+					<div
+						style={scrollIndexes ? `width: ${scrollPastWidth}px; height: 1px; flex-shrink: 0;` : ''}
+					></div>
+				</div>
+			{/snippet}
 		</Container>
 	</div>
 </div>

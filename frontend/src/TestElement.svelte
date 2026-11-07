@@ -1,17 +1,18 @@
 <script lang="ts">
+	import { Selectable } from '$lib/selectable';
 	import { onMount } from 'svelte';
 	import Container from '$components/Container.svelte';
-	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
 
-	let hasFocusWithin: Readable<boolean>;
+	const selectable = new Selectable();
+	const hasFocusWithin = selectable.hasFocusWithin;
 
 	onMount(() => {
 		console.log('Hello world! onMount testElement');
 	});
 </script>
 
-<Container bind:hasFocusWithin>
+<Container {selectable}>
 	<h1
 		class={classNames({
 			'bg-red-500': $hasFocusWithin

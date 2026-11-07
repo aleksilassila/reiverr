@@ -12,8 +12,6 @@
 	import { profilePictures } from '../profile-pictures';
 	import { type Session, sessions } from '../stores/session.store.js';
 
-	$: users = getUsers($sessions.sessions);
-
 	async function getUsers(sessions: Session[]) {
 		return Promise.all(
 			sessions.map(async (session) =>
@@ -29,6 +27,7 @@
 		sessions.setActiveSession(session);
 		navigate('/');
 	}
+	let users = $derived(getUsers($sessions.sessions));
 </script>
 
 <div class="px-32 py-16 h-full flex flex-col items-center justify-center">
@@ -38,26 +37,28 @@
 			<Container direction="grid" gridCols={4} class="flex space-x-8 mb-16">
 				{#each users as item}
 					{@const user = item.user}
-					<Container let:hasFocusWithin on:clickOrSelect={() => user && handleSwitchUser(item)}>
-						<ProfileIcon
-							class="mb-4"
-							url={user?.profilePicture || profilePictures.keanu}
-							on:clickOrSelect={() => user && handleSwitchUser(item)}
-						/>
-						<div class={classNames('text-center h4', { '!text-secondary-100': hasFocusWithin })}>
-							{user?.name}
-						</div>
+					<Container onClickOrSelect={() => user && handleSwitchUser(item)}>
+						{#snippet children({ hasFocusWithin })}
+							<ProfileIcon
+								class="mb-4"
+								url={user?.profilePicture || profilePictures.keanu}
+								onClickOrSelect={() => user && handleSwitchUser(item)}
+							/>
+							<div class={classNames('text-center h4', { '!text-secondary-100': hasFocusWithin })}>
+								{user?.name}
+							</div>
+						{/snippet}
 					</Container>
 				{/each}
 				<ProfileIcon
 					url="profile-pictures/leo.webp"
-					on:clickOrSelect={() => createModal(AddUserDialog, {})}
+					onClickOrSelect={() => createModal(AddUserDialog, {})}
 					icon={Plus}
 				/>
 			</Container>
 			<Container direction="horizontal" class="flex space-x-4">
 				<Button
-					on:clickOrSelect={() => {
+					onClickOrSelect={() => {
 						sessions.removeSessions();
 						navigate('/');
 					}}

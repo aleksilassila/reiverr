@@ -26,7 +26,11 @@
 	import { getMovieRequestStatus } from './movie-status';
 	import TorrentsView from './TorrentsView.svelte';
 
-	export let tmdbId: string;
+	interface Props {
+		tmdbId: string;
+	}
+
+	let { tmdbId }: Props = $props();
 
 	// The one setting of a movie: download ahead and keep last watched are for episodes
 	const KEEP_FIELD = {
@@ -47,21 +51,26 @@
 	const statusQuery = usePageQuery(libraryQueries.movieStatus(tmdbId));
 	const torrents = usePageQuery(downloadsQueries.movieTorrents(tmdbId));
 	const storage = usePageQuery(storageQueries.user());
-	$: movie = $tmdbMovie.data;
-	$: status = $statusQuery.data;
-	$: requestStatus = getMovieRequestStatus({
-		requests: $requests.data,
-		status,
-		torrents: $torrents.data
-	});
-	$: ruleData = $requests.data?.rule;
-	$: usage = $storage.data;
+	let movie = $derived($tmdbMovie.data);
+	let status = $derived($statusQuery.data);
+	let requestStatus = $derived(
+		getMovieRequestStatus({
+			requests: $requests.data,
+			status,
+			torrents: $torrents.data
+		})
+	);
+	let ruleData = $derived($requests.data?.rule);
+	let usage = $derived($storage.data);
 
-	$: name = movie ? `${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})` : '';
-	$: keepLabel =
+	let name = $derived(
+		movie ? `${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})` : ''
+	);
+	let keepLabel = $derived(
 		KEEP_FIELD.options.find((option) => option.value === (ruleData?.keepWatchedHours ?? null))
-			?.label ?? '';
-	$: source = $requests.data?.source;
+			?.label ?? ''
+	);
+	let source = $derived($requests.data?.source);
 
 	function selectKeepOption() {
 		if (!ruleData) return;
@@ -88,10 +97,11 @@
 	}
 
 	/** What a new request is expected to take from its source, if it has one */
-	$: sourceBytes =
+	let sourceBytes = $derived(
 		source?.release?.size ??
-		status?.files.find((file) => file.id === source?.mediaFileId)?.size ??
-		0;
+			status?.files.find((file) => file.id === source?.mediaFileId)?.size ??
+			0
+	);
 
 	async function request(requested: boolean) {
 		if (requested && !(await confirmQuota(sourceBytes))) return;
@@ -106,20 +116,20 @@
 		style={$background?.backdropUri
 			? `background-image: url('${TMDB_BACKDROP_SMALLEST}${$background?.backdropUri}');`
 			: ''}
-	/>
+	></div>
 </div>
 
 <Container
 	direction="horizontal"
 	class={classNames('relative flex flex-col min-h-screen bg-primary-900/50 h-screen')}
-	on:back={({ detail }) => {
+	onBack={(e) => {
 		componentStack.close();
-		detail.stopPropagation();
+		e.stopPropagation();
 	}}
 >
 	{#if !PLATFORM_TV}
 		<div class="absolute top-8 right-8">
-			<FloatingIconButton on:click={() => componentStack.close()}>
+			<FloatingIconButton onclick={() => componentStack.close()}>
 				<Cross1 size={24} />
 			</FloatingIconButton>
 		</div>
@@ -132,7 +142,9 @@
 						overview=""
 						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
 					>
-						<span slot="title" class="block truncate leading-tight">{movie?.title ?? ''}</span>
+						{#snippet title()}
+							<span class="block truncate leading-tight">{movie?.title ?? ''}</span>
+						{/snippet}
 					</HeroTitleInfo>
 				</div>
 				{#if usage && usage.quotaBytes !== null}
@@ -149,15 +161,17 @@
 					class="flex-1"
 					value={keepLabel}
 					disabled={!ruleData}
-					on:clickOrSelect={selectKeepOption}
+					onClickOrSelect={selectKeepOption}
 					type="transparent"
 				>
 					{KEEP_FIELD.name}
-					<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+					{#snippet icon({ size, iconClass })}
+						<ChevronDown {size} class={classNames(iconClass)} />
+					{/snippet}
 				</SelectField>
 			</Container>
 
-			<div class="divider mt-4" />
+			<div class="divider mt-4"></div>
 		</div>
 
 		<Container focusOnMount class="pb-16 mx-32 mt-8">
@@ -166,14 +180,14 @@
 					subtitle={requestStatus.sourceName ?? 'No torrent selected'}
 					statusTags={requestStatus.tags}
 					checked={requestStatus.requested}
-					on:toggle={() =>
+					onToggle={() =>
 						request(!requestStatus.requested).catch((e) =>
 							createErrorNotification(
 								'Could not update the request',
 								e?.response?.data?.message ?? e?.message
 							)
 						)}
-					on:open={() => componentStack.push({ component: TorrentsView, props: { tmdbId, name } })}
+					onOpen={() => componentStack.push({ component: TorrentsView, props: { tmdbId, name } })}
 				>
 					{name}
 				</RequestRow>

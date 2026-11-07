@@ -28,7 +28,11 @@
 	import SeasonItem from './SeasonItem.svelte';
 	import TorrentsView from './TorrentsView.svelte';
 
-	export let tmdbId: string;
+	interface Props {
+		tmdbId: string;
+	}
+
+	let { tmdbId }: Props = $props();
 
 	type RuleField = {
 		key: keyof RequestRuleDto;
@@ -82,17 +86,19 @@
 	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
 	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
 	const storage = usePageQuery(storageQueries.user());
-	$: data = { requests: $requests.data, status: $status.data, torrents: $torrents.data };
-	$: ruleData = $requests.data?.rule;
-	$: usage = $storage.data;
+	let data = $derived({ requests: $requests.data, status: $status.data, torrents: $torrents.data });
+	let ruleData = $derived($requests.data?.rule);
+	let usage = $derived($storage.data);
 
-	const seasonItems: SeasonItem[] = [];
+	const seasonItems: SeasonItem[] = $state([]);
 	// The season of the focused row, highlighted in the quick navigation
-	let activeSeason: number | undefined = undefined;
-	$: seasons = $tmdbSeries.data?.seasons ?? [];
-	$: selectedSeason = Math.max(
-		0,
-		seasons.findIndex((season) => season.season_number === activeSeason)
+	let activeSeason: number | undefined = $state(undefined);
+	let seasons = $derived($tmdbSeries.data?.seasons ?? []);
+	let selectedSeason = $derived(
+		Math.max(
+			0,
+			seasons.findIndex((season) => season.season_number === activeSeason)
+		)
 	);
 
 	const getLabel = (field: RuleField, rule?: RequestRuleDto) =>
@@ -154,20 +160,20 @@
 		style={$background?.backdropUri
 			? `background-image: url('${TMDB_BACKDROP_SMALLEST}${$background?.backdropUri}');`
 			: ''}
-	/>
+	></div>
 </div>
 
 <Container
 	direction="horizontal"
 	class={classNames('relative flex flex-col min-h-screen bg-primary-900/50 h-screen')}
-	on:back={({ detail }) => {
+	onBack={(e) => {
 		componentStack.close();
-		detail.stopPropagation();
+		e.stopPropagation();
 	}}
 >
 	{#if !PLATFORM_TV}
 		<div class="absolute top-8 right-8">
-			<FloatingIconButton on:click={() => componentStack.close()}>
+			<FloatingIconButton onclick={() => componentStack.close()}>
 				<Cross1 size={24} />
 			</FloatingIconButton>
 		</div>
@@ -176,7 +182,7 @@
 		class="absolute left-12 inset-y-0 justify-center"
 		items={seasons.map((season) => `S${season.season_number}`)}
 		selected={selectedSeason}
-		on:select={({ detail }) => seasonItems[detail]?.focus()}
+		onSelect={(e) => seasonItems[e]?.focus()}
 	/>
 	<Container class="flex-1 min-h-0 flex flex-col">
 		<div class="mx-32 mt-16">
@@ -186,9 +192,11 @@
 						overview=""
 						properties={[{ label: 'Select to request' }, { label: 'Right to choose a torrent' }]}
 					>
-						<span slot="title" class="block truncate leading-tight">
-							{$tmdbSeries.data?.name ?? ''}
-						</span>
+						{#snippet title()}
+							<span class="block truncate leading-tight">
+								{$tmdbSeries.data?.name ?? ''}
+							</span>
+						{/snippet}
 					</HeroTitleInfo>
 				</div>
 				{#if usage && usage.quotaBytes !== null}
@@ -206,16 +214,18 @@
 						class="flex-1"
 						value={getLabel(field, ruleData)}
 						disabled={!ruleData}
-						on:clickOrSelect={() => selectRuleOption(field)}
+						onClickOrSelect={() => selectRuleOption(field)}
 						type="transparent"
 					>
 						{field.name}
-						<ChevronDown slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+						{#snippet icon({ size, iconClass })}
+							<ChevronDown {size} class={classNames(iconClass)} />
+						{/snippet}
 					</SelectField>
 				{/each}
 			</Container>
 
-			<div class="divider mt-4" />
+			<div class="divider mt-4"></div>
 		</div>
 
 		<Container
@@ -225,22 +235,22 @@
 		>
 			{#each seasons as season, index (season.season_number)}
 				{#if index > 0}
-					<div class="divider mt-8" />
+					<div class="divider mt-8"></div>
 				{/if}
 				<SeasonItem
 					bind:this={seasonItems[index]}
-					on:enter={() => (activeSeason = season.season_number)}
+					onEnter={() => (activeSeason = season.season_number)}
 					{season}
 					{data}
-					on:request={({ detail }) =>
-						request(detail.episodes, detail.requested).catch((e) =>
+					onRequest={(e) =>
+						request(e.episodes, e.requested).catch((e) =>
 							createErrorNotification(
 								'Could not update the request',
 								e?.response?.data?.message ?? e?.message
 							)
 						)}
-					on:torrents={({ detail }) =>
-						componentStack.push({ component: TorrentsView, props: { tmdbId, ...detail } })}
+					onTorrents={(e) =>
+						componentStack.push({ component: TorrentsView, props: { tmdbId, ...e } })}
 				/>
 			{:else}
 				<div class="h-ghost m-auto">

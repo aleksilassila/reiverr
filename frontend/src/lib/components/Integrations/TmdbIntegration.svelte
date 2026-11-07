@@ -1,18 +1,24 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { setTmdbAccount, tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { user } from '../../stores/user.store';
 	import { createErrorNotification } from '../Notifications/notification.store';
 	import SelectField from '../SelectField.svelte';
 	import { Trash } from 'radix-icons-svelte';
-	import { derived } from 'svelte/store';
+	import { derived as derivedStore } from 'svelte/store';
 	import classNames from 'classnames';
+	interface Props {
+		children?: Snippet<[{ connected: boolean }]>;
+	}
 
-	const userId = derived(user, (user) => user?.settings.tmdb.userId);
+	let { children }: Props = $props();
+
+	const userId = derivedStore(user, (user) => user?.settings.tmdb.userId);
 	const account = usePageQuery(
-		derived(userId, ($userId) => ({ ...tmdbQueries.accountDetails(), enabled: !!$userId }))
+		derivedStore(userId, ($userId) => ({ ...tmdbQueries.accountDetails(), enabled: !!$userId }))
 	);
-	$: tmdbAccount = $userId ? $account.data : undefined;
+	let tmdbAccount = $derived($userId ? $account.data : undefined);
 
 	const handleDisconnectTmdb = () =>
 		setTmdbAccount({ userId: '', sessionId: '' }).catch((e) =>
@@ -27,8 +33,10 @@
 	{#if tmdbAccount}
 		<SelectField value={tmdbAccount.username || ''} action={handleDisconnectTmdb}>
 			Connected to
-			<Trash slot="icon" let:size let:iconClass {size} class={classNames(iconClass, '')} />
+			{#snippet icon({ size, iconClass })}
+				<Trash {size} class={classNames(iconClass, '')} />
+			{/snippet}
 		</SelectField>
 	{/if}
-	<slot connected={!!tmdbAccount} />
+	{@render children?.({ connected: !!tmdbAccount })}
 {/if}

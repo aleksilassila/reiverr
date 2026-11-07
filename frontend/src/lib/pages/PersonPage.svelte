@@ -10,12 +10,13 @@
 
 	backgroundContext.createContext();
 
-	export let id: string;
+	interface Props {
+		id: string;
+	}
+
+	let { id }: Props = $props();
 
 	const personQuery = usePageQuery(tmdbQueries.person(Number(id)));
-	$: person = $personQuery.data;
-	$: infoProperties = person ? getInfoProperties(person) : [];
-	$: items = person ? getCredits(person) : [];
 
 	function getInfoProperties(person: TmdbPersonFull) {
 		const properties: { href?: string; label: string }[] = [];
@@ -56,23 +57,28 @@
 			(b.release_date ?? b.first_air_date ?? 0) > (a.release_date ?? a.first_air_date ?? 0) ? 1 : -1
 		);
 	}
+	let person = $derived($personQuery.data);
+	let infoProperties = $derived(person ? getInfoProperties(person) : []);
+	let items = $derived(person ? getCredits(person) : []);
 </script>
 
 {#if person}
 	<CollectionPage {items} subtitle="Person" title={person.name ?? 'Unknown'}>
-		<div class="flex space-x-8" slot="header">
-			<div
-				class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer flex-shrink-0"
-				style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
-			/>
+		{#snippet header()}
+			<div class="flex space-x-8">
+				<div
+					class="bg-center bg-cover rounded-xl w-44 h-64 cursor-pointer flex-shrink-0"
+					style={`background-image: url("${TMDB_POSTER_SMALL + person.profile_path}")`}
+				></div>
 
-			<div class="flex flex-col justify-end">
-				<HeroTitleInfo
-					title={person.name ?? ''}
-					overview={person.biography ?? ''}
-					properties={infoProperties}
-				/>
+				<div class="flex flex-col justify-end">
+					<HeroTitleInfo
+						title={person.name ?? ''}
+						overview={person.biography ?? ''}
+						properties={infoProperties}
+					/>
+				</div>
 			</div>
-		</div>
+		{/snippet}
 	</CollectionPage>
 {/if}

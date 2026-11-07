@@ -1,13 +1,29 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { getEpisodeRequestStatus, type SeriesData } from './episode-status';
 	import RequestRow from '$lib/components/RequestRow.svelte';
 
-	export let seasonNumber: number;
-	export let episodeNumber: number;
-	export let episodeName: string;
-	export let data: SeriesData = {};
+	interface Props {
+		onToggle?: ComponentProps<typeof RequestRow>['onToggle'];
+		onOpen?: ComponentProps<typeof RequestRow>['onOpen'];
+		onEnter?: ComponentProps<typeof RequestRow>['onEnter'];
+		seasonNumber: number;
+		episodeNumber: number;
+		episodeName: string;
+		data?: SeriesData;
+	}
 
-	$: status = getEpisodeRequestStatus(data, seasonNumber, episodeNumber);
+	let {
+		seasonNumber,
+		episodeNumber,
+		episodeName,
+		data = {},
+		onToggle,
+		onOpen,
+		onEnter
+	}: Props = $props();
+
+	let status = $derived(getEpisodeRequestStatus(data, seasonNumber, episodeNumber));
 </script>
 
 <!-- The season pack is dimmed: it was not selected for this episode -->
@@ -16,9 +32,9 @@
 	subtitleDimmed={status.isSeasonPack}
 	statusTags={status.tags}
 	checked={status.requested}
-	on:toggle
-	on:open
-	on:enter
+	{onToggle}
+	{onOpen}
+	{onEnter}
 >
 	<span class="text-secondary-400">S{seasonNumber}E{episodeNumber}</span>
 	{episodeName}

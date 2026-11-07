@@ -12,7 +12,5 @@
 			}
 		}
 	],
-	"svelteBracketNewLine": true,
-	"htmlWhitespaceSensitivity": "ignore",
-	"tailwindStylesheet": "./src/app.css"
+	"htmlWhitespaceSensitivity": "ignore"
 }

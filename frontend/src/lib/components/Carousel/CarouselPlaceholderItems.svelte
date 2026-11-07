@@ -1,8 +1,12 @@
 <script lang="ts">
 	import CardPlaceholder from '../Card/CardPlaceholder.svelte';
 	import Container from '../Container.svelte';
-	export let size: 'dynamic' | 'md' | 'lg' = 'md';
-	export let orientation: 'landscape' | 'portrait' = 'landscape';
+	interface Props {
+		size?: 'dynamic' | 'md' | 'lg';
+		orientation?: 'landscape' | 'portrait';
+	}
+
+	let { size = 'md', orientation = 'landscape' }: Props = $props();
 </script>
 
 {#each Array(10) as _, i (i)}

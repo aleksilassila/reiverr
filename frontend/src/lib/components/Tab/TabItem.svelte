@@ -1,13 +1,28 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from '$lib/components/Container.svelte';
 	import classNames from 'classnames';
-	import { createEventDispatcher } from 'svelte';
 
-	export let selected = false;
-	export let disabled = false;
-	export let size: 'sm' | 'md' = 'md';
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onSelect?: () => void;
+		selected?: boolean;
+		disabled?: boolean;
+		size?: 'sm' | 'md';
+		children?: Snippet;
+		class?: string;
+	}
 
-	const dispatch = createEventDispatcher<{ select: null }>();
+	let {
+		selected = false,
+		disabled = false,
+		size = 'md',
+		children: content,
+		onSelect,
+		onEnter,
+		class: className
+	}: Props = $props();
 </script>
 
 <Container
@@ -16,22 +31,23 @@
 		disabled ? 'cursor-not-allowed pointer-events-none opacity-40' : 'cursor-pointer'
 	)}
 	{disabled}
-	let:hasFocus
-	on:clickOrSelect={() => dispatch('select')}
-	on:enter
+	onClickOrSelect={() => onSelect?.()}
+	{onEnter}
 	focusOnClick
 >
-	<span
-		class={classNames(
-			'font-semibold group-focus-within:text-primary-500',
-			size === 'sm' ? 'text-lg' : 'text-2xl',
-			{
-				'text-secondary-50': selected && !hasFocus,
-				'text-secondary-400': !hasFocus && !selected
-			},
-			$$restProps.class
-		)}
-	>
-		<slot />
-	</span>
+	{#snippet children({ hasFocus })}
+		<span
+			class={classNames(
+				'font-semibold group-focus-within:text-primary-500',
+				size === 'sm' ? 'text-lg' : 'text-2xl',
+				{
+					'text-secondary-50': selected && !hasFocus,
+					'text-secondary-400': !hasFocus && !selected
+				},
+				className
+			)}
+		>
+			{@render content?.()}
+		</span>
+	{/snippet}
 </Container>

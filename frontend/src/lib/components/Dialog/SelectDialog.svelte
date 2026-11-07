@@ -1,16 +1,29 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Dialog from '../Dialog/Dialog.svelte';
 	import SelectItem from '../SelectItem.svelte';
 	import { useComponentStack } from '../StackRouter/stack-router.store';
 
 	const { close } = useComponentStack();
 
-	// TODO: Add labels to the options
-	export let title: string = 'Select';
-	export let subtitle: string = '';
-	export let options: string[];
-	export let selectedOption: string | undefined = undefined;
-	export let handleSelectOption: (option: string) => void;
+	interface Props {
+		// TODO: Add labels to the options
+		title?: string;
+		subtitle?: string;
+		options: string[];
+		selectedOption?: string | undefined;
+		handleSelectOption: (option: string) => void;
+		children?: Snippet;
+	}
+
+	let {
+		title = 'Select',
+		subtitle = '',
+		options,
+		selectedOption = undefined,
+		handleSelectOption,
+		children
+	}: Props = $props();
 
 	function handleSelect(option: string) {
 		handleSelectOption(option);
@@ -20,17 +33,14 @@
 
 <Dialog>
 	<div class="mb-4">
-		<slot>
+		{#if children}{@render children()}{:else}
 			<h1 class="h4">{title}</h1>
 			<p class="text-secondary-300">{subtitle}</p>
-		</slot>
+		{/if}
 	</div>
 	<div class="space-y-4">
 		{#each options as option}
-			<SelectItem
-				selected={selectedOption === option}
-				on:clickOrSelect={() => handleSelect(option)}
-			>
+			<SelectItem selected={selectedOption === option} onClickOrSelect={() => handleSelect(option)}>
 				{option}
 			</SelectItem>
 		{/each}

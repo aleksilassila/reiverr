@@ -24,7 +24,7 @@
 		setMovieWatched,
 		userDataQueries
 	} from '$lib/queries/user-data.queries';
-	import { scrollIntoView } from '$lib/selectable';
+	import { scrollIntoView, takeFocusFromNext } from '$lib/selectable';
 	import { localSettings } from '$lib/stores/localstorage.store';
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
@@ -33,7 +33,11 @@
 	import { getMovieRequestStatus } from './movie-status';
 	import RequestsView from './RequestsView.svelte';
 
-	export let id: string;
+	interface Props {
+		id: string;
+	}
+
+	let { id }: Props = $props();
 
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
@@ -43,19 +47,9 @@
 	const requests = usePageQuery(requestsQueries.movie(id));
 	const statusQuery = usePageQuery(libraryQueries.movieStatus(id));
 	const torrents = usePageQuery(downloadsQueries.movieTorrents(id));
-	$: movie = $tmdbMovie.data;
-	$: status = $statusQuery.data;
-	$: requestStatus = getMovieRequestStatus({
-		requests: $requests.data,
-		status,
-		torrents: $torrents.data
-	});
-	$: inMyList = $userData.data?.inMyList ?? false;
-	$: watched = $userData.data?.playState?.watched ?? false;
 
 	// A failure is reported once per failure streak
 	let statusFailed = false;
-	$: reportStatusFailure($statusQuery.isError, $statusQuery.error);
 	function reportStatusFailure(isError: boolean, error: any) {
 		if (isError && !statusFailed) {
 			createErrorNotification(
@@ -66,7 +60,6 @@
 		statusFailed = isError;
 	}
 
-	$: if (movie) setBackgrounds(movie);
 	function setBackgrounds(movie: TmdbMovieFull) {
 		const backgrounds =
 			movie.images?.backdrops
@@ -91,11 +84,6 @@
 	const { registrar: registerScroll } = setScrollContext();
 
 	const recommendations = usePageQuery(tmdbQueries.movieRecommendations(Number(id)));
-
-	$: trailerId = movie?.videos?.results?.find(
-		(video) => video.type === 'Trailer' && video.site === 'YouTube'
-	)?.key;
-	$: titleProperties = movie ? getTitleProperties(movie, trailerId) : [];
 
 	function getTitleProperties(movie: TmdbMovieFull, trailerId?: string) {
 		const properties: TitleInfoProperty[] = [];
@@ -128,17 +116,6 @@
 
 		return properties;
 	}
-	$: if ($localSettings.autoplayTrailers && trailerId) {
-		background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
-	}
-
-	// The status of the request of the user and what is on disk, first among the properties
-	$: heroProperties = [
-		...[requestStatus.tags.primary, requestStatus.tags.secondary].flatMap((tag) =>
-			tag ? [{ label: tag.label }] : []
-		),
-		...titleProperties
-	];
 
 	async function play() {
 		if (!movie) return;
@@ -151,12 +128,46 @@
 			playMedia: background.playMedia
 		});
 	}
+	let movie = $derived($tmdbMovie.data);
+	let status = $derived($statusQuery.data);
+	let requestStatus = $derived(
+		getMovieRequestStatus({
+			requests: $requests.data,
+			status,
+			torrents: $torrents.data
+		})
+	);
+	let inMyList = $derived($userData.data?.inMyList ?? false);
+	let watched = $derived($userData.data?.playState?.watched ?? false);
+	$effect(() => {
+		reportStatusFailure($statusQuery.isError, $statusQuery.error);
+	});
+	$effect(() => {
+		if (movie) setBackgrounds(movie);
+	});
+	let trailerId = $derived(
+		movie?.videos?.results?.find((video) => video.type === 'Trailer' && video.site === 'YouTube')
+			?.key
+	);
+	let titleProperties = $derived(movie ? getTitleProperties(movie, trailerId) : []);
+	$effect(() => {
+		if ($localSettings.autoplayTrailers && trailerId) {
+			background.playYoutubeVideo({ tmdbId: id, videoId: trailerId, onBackground: true });
+		}
+	});
+	// The status of the request of the user and what is on disk, first among the properties
+	let heroProperties = $derived([
+		...[requestStatus.tags.primary, requestStatus.tags.secondary].flatMap((tag) =>
+			tag ? [{ label: tag.label }] : []
+		),
+		...titleProperties
+	]);
 </script>
 
 <div class="relative" use:registerScroll>
 	<Container
 		class="h-[calc(100vh-4rem)] flex flex-col py-16 px-32"
-		on:enter={scrollIntoView({ top: 999 })}
+		onEnter={scrollIntoView({ top: 999 })}
 	>
 		<HeroCarousel>
 			{#if movie}
@@ -168,12 +179,13 @@
 			{/if}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
 				{#if requestStatus.onDisk}
-					<Button action={play} icon={Play}>Play</Button>
+					<!-- Arrives with the status, when Request has the focus of the row already -->
+					<Button action={play} icon={Play} onMounted={takeFocusFromNext}>Play</Button>
 				{/if}
 
 				<Button
 					icon={Plus}
-					on:clickOrSelect={() =>
+					onClickOrSelect={() =>
 						componentStack.push({ component: RequestsView, props: { tmdbId: id } })}
 				>
 					Request
@@ -181,10 +193,10 @@
 
 				{#if trailerId}
 					<Button
-						on:clickOrSelect={() =>
+						icon={Video}
+						onClickOrSelect={() =>
 							trailerId && background.playYoutubeVideo({ tmdbId: id, videoId: trailerId })}
 					>
-						<Video slot="icon" size={19} />
 						Play Trailer
 					</Button>
 				{/if}
@@ -205,10 +217,11 @@
 
 				{#if PLATFORM_WEB}
 					<Button
-						on:clickOrSelect={() => window.open('https://www.themoviedb.org/movie/' + id, '_blank')}
+						icon={ExternalLink}
+						iconPosition="after"
+						onClickOrSelect={() => window.open('https://www.themoviedb.org/movie/' + id, '_blank')}
 					>
 						Open In TMDB
-						<ExternalLink size={19} slot="icon-after" />
 					</Button>
 				{/if}
 			</Container>
@@ -216,23 +229,27 @@
 	</Container>
 	<div class="relative z-10" style={$visibleStyle}>
 		{#if movie}
-			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
-				<div slot="header">Show Cast</div>
+			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
+				{#snippet header()}
+					<div>Show Cast</div>
+				{/snippet}
 				{#each movie.credits?.cast?.slice(0, 15) || [] as credit}
-					<TmdbPersonCard on:enter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
+					<TmdbPersonCard onEnter={scrollIntoView({ left: 128 })} tmdbCredit={credit} />
 				{/each}
 			</Carousel>
 		{/if}
 		{#if $recommendations.data?.length}
-			<Carousel scrollClass="px-32" class="mb-8" on:enter={scrollIntoView({ top: 64 + 32 })}>
-				<div slot="header">Recommendations</div>
+			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
+				{#snippet header()}
+					<div>Recommendations</div>
+				{/snippet}
 				{#each $recommendations.data as recommendation}
-					<TmdbCard item={recommendation} on:enter={scrollIntoView({ left: 128 })} />
+					<TmdbCard item={recommendation} onEnter={scrollIntoView({ left: 128 })} />
 				{/each}
 			</Carousel>
 		{/if}
 		{#if movie}
-			<Container class="flex-1 bg-secondary-950 pt-16 px-32" on:enter={scrollIntoView({ top: 0 })}>
+			<Container class="flex-1 bg-secondary-950 pt-16 px-32" onEnter={scrollIntoView({ top: 0 })}>
 				<h1 class="font-medium tracking-wide text-2xl text-zinc-300 mb-8">More Information</h1>
 				<div class="text-zinc-300 font-medium text-lg flex flex-wrap">
 					<div class="flex-1">

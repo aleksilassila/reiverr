@@ -1,13 +1,17 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, type Snippet } from 'svelte';
+	interface Props {
+		children?: Snippet;
+		class?: string;
+	}
 
-	let parentWidth = 0;
-	let childWidth = 0;
-	let transformX = 0;
+	let { children, class: className }: Props = $props();
+
+	let parentWidth = $state(0);
+	let childWidth = $state(0);
+	let transformX = $state(0);
 	let interval: ReturnType<typeof setInterval>;
-
-	$: animate(parentWidth, childWidth);
 
 	function animate(parent: number, child: number) {
 		clearInterval(interval);
@@ -30,10 +34,13 @@
 	}
 
 	onDestroy(() => clearInterval(interval));
+	$effect(() => {
+		animate(parentWidth, childWidth);
+	});
 </script>
 
 <h1
-	class={classNames('overflow-x-hidden flex items-center relative', $$restProps.class)}
+	class={classNames('overflow-x-hidden flex items-center relative', className)}
 	bind:clientWidth={parentWidth}
 >
 	<span
@@ -42,7 +49,7 @@
 		bind:clientWidth={childWidth}
 	>
 		<span>
-			<slot />
+			{@render children?.()}
 		</span>
 	</span>
 </h1>

@@ -1,17 +1,23 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import classNames from 'classnames';
 	import Card from '../Card/Card.svelte';
 	import type { Network } from './collections';
 	import { navigate } from '../StackRouter/stack-router.store';
 
-	export let network: Network;
+	interface Props {
+		onEnter?: ComponentProps<typeof Card>['onEnter'];
+		network: Network;
+	}
+
+	let { network, onEnter }: Props = $props();
 </script>
 
 <Card
 	orientation="landscape"
 	class="bg-primary-800"
-	on:clickOrSelect={() => navigate(`/network/${network.route}`)}
-	on:enter
+	onClickOrSelect={() => navigate(`/network/${network.route}`)}
+	{onEnter}
 >
 	<div
 		class={classNames(
@@ -20,5 +26,5 @@
 		style={"mask-image: url('/networks/" +
 			network.route +
 			".svg'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"}
-	/>
+	></div>
 </Card>

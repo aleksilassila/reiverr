@@ -1,24 +1,32 @@
 <script lang="ts">
 	import classNames from 'classnames';
 	import { Check, Minus } from 'radix-icons-svelte';
-	import { createEventDispatcher } from 'svelte';
 
-	/**
-	 * The checkbox of a row that is the focusable unit itself, such as a ListRow: not focusable,
-	 * drawn after the focus of the row. Yellow while the row has focus or the box is hovered.
-	 */
+	interface Props {
+		onToggle?: () => void;
+		/**
+		 * The checkbox of a row that is the focusable unit itself, such as a ListRow: not focusable,
+		 * drawn after the focus of the row. Yellow while the row has focus or the box is hovered.
+		 */
+		checked?: boolean;
+		partiallyChecked?: boolean;
+		/** The focus of the row */
+		hasFocus?: boolean;
+		/** Whether a click anywhere on the row toggles the box, so that hovering the row (the nearest `group`) highlights it too */
+		rowToggles?: boolean;
+		size?: 'md' | 'sm';
+	}
 
-	export let checked = false;
-	export let partiallyChecked = false;
-	/** The focus of the row */
-	export let hasFocus = false;
-	/** Whether a click anywhere on the row toggles the box, so that hovering the row (the nearest `group`) highlights it too */
-	export let rowToggles = false;
-	export let size: 'md' | 'sm' = 'md';
+	let {
+		checked = false,
+		partiallyChecked = false,
+		hasFocus = false,
+		rowToggles = false,
+		size = 'md',
+		onToggle
+	}: Props = $props();
 
-	const dispatch = createEventDispatcher<{ toggle: null }>();
-
-	$: iconSize = size === 'md' ? 20 : 18;
+	let iconSize = $derived(size === 'md' ? 20 : 18);
 </script>
 
 <!-- A click on the box is the box's, not the row's -->
@@ -39,8 +47,11 @@
 			'border-primary-500': !checked && !partiallyChecked && hasFocus
 		}
 	)}
-	on:click|stopPropagation={() => dispatch('toggle')}
-	on:keypress={() => {
+	onclick={(e) => {
+		e.stopPropagation();
+		onToggle?.();
+	}}
+	onkeypress={() => {
 		/* For a11y */
 	}}
 >

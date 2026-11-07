@@ -1,26 +1,30 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import classNames from 'classnames';
-	import { createEventDispatcher } from 'svelte';
+
 	import Container from '../Container.svelte';
 	import { useComponentStack } from '../StackRouter/stack-router.store';
+	interface Props {
+		onClose?: () => void;
+		children?: Snippet<[{ close: () => void }]>;
+		class?: string;
+	}
+
+	let { children, onClose, class: className }: Props = $props();
 
 	const componentStack = useComponentStack();
 
-	const dispatch = createEventDispatcher<{
-		close: null;
-	}>();
-
 	function handleClose() {
 		componentStack.close();
-		dispatch('close');
+		onClose?.();
 	}
 </script>
 
 <Container
 	focusOnMount
 	trapFocus
-	class={classNames('fixed inset-0', $$restProps.class)}
-	on:back={() => handleClose()}
+	class={classNames('fixed inset-0', className)}
+	onBack={() => handleClose()}
 >
-	<slot close={() => handleClose()} />
+	{@render children?.({ close: () => handleClose() })}
 </Container>

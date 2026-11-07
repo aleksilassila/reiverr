@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import GlobalBackgroundStack from '$lib/components/GlobalBackground/BackgroundStack.svelte';
 	import OnboardingDialog from '$lib/components/OnboardingDialog/OnboardingDialog.svelte';
 	import { stackRouter } from '$lib/components/StackRouter/stack-router.store';
@@ -65,6 +66,12 @@
 	}
 
 	// Captured, so that a handler that stops the event (the dots of an episode card, a checkbox) cannot keep it
+	// A passive listener, as the wheel listener was: it only switches the input mode
+	onMount(() => {
+		window.addEventListener('wheel', handleMouseInput, { passive: true });
+		return () => window.removeEventListener('wheel', handleMouseInput);
+	});
+
 	function handleMouseInput() {
 		setMouseMode(true);
 	}
@@ -100,16 +107,15 @@
 	<NavigationDebugger />
 {/if}
 <!-- <svelte:window
-	on:keydown={handleKeyboardNavigation}
-	on:error={handleError}
-	on:unhandledrejection={handleError}
+ onkeydown={handleKeyboardNavigation}
+ onerror={handleError}
+ onunhandledrejection={handleError}
 /> -->
 
 <svelte:window
-	on:mousemove={handleMouseMove}
-	on:mousedown|capture={handleMouseInput}
-	on:wheel|capture|passive={handleMouseInput}
-	on:keydown={handleKeyDown}
-	on:keyup={handleKeyboardNavigationKeyUp}
-	on:error={handleError}
+	onmousemove={handleMouseMove}
+	onmousedowncapture={handleMouseInput}
+	onkeydown={handleKeyDown}
+	onkeyup={handleKeyboardNavigationKeyUp}
+	onerror={handleError}
 />

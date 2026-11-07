@@ -13,7 +13,6 @@
 		Stack
 	} from 'radix-icons-svelte';
 	import { onMount } from 'svelte';
-	import { type Readable, writable, type Writable } from 'svelte/store';
 	import { Selectable } from '../../selectable';
 	import { sessions } from '../../stores/session.store';
 	import { user } from '../../stores/user.store';
@@ -23,7 +22,7 @@
 	import { sidebarRegistrar, unfocusSidebar } from './sidebar';
 
 	// Entries are addressed by their position in the sidebar, and Server is only rendered for admins
-	$: Tabs = {
+	let Tabs = $derived({
 		Users: 0,
 		Series: 1,
 		Movies: 2,
@@ -32,12 +31,12 @@
 		Search: 5,
 		Server: $user?.isAdmin ? 6 : -1,
 		Settings: $user?.isAdmin ? 7 : 6
-	};
+	});
 
 	const { visibleStyle } = getUiVisibilityContext();
 
-	let selectedIndex = 0;
-	let activeIndex = -1;
+	let selectedIndex = $state(0);
+	let activeIndex = $state(-1);
 
 	// 	'': 0,
 	// 	series: 0,
@@ -47,8 +46,8 @@
 	// 	settings: 4
 	// }[$location.pathname.split('/')[1] || '/'];
 
-	let focusIndex: Writable<number> = writable(0);
-	let selectable: Selectable;
+	const selectable = new Selectable();
+	const focusIndex = selectable.focusIndex;
 
 	focusIndex.subscribe((v) => {
 		selectedIndex = v;
@@ -106,313 +105,305 @@
 		'flex flex-col items-stretch fixed z-20 left-0 inset-y-0 group',
 		'py-8 w-24 select-none'
 	)}
-	let:hasFocusWithin
-	bind:focusIndex
-	bind:selectable
-	on:navigate={({ detail }) => {
-		// if (detail.direction === 'right') {
-		// 	detail.preventNavigation();
+	{selectable}
+	onNavigate={(e) => {
+		// if (e.direction === 'right') {
+		// 	e.preventNavigation();
 		// 	// unfocusSidebar();
 		// }
 	}}
-	on:back={() => unfocusSidebar()}
-	on:mount={sidebarRegistrar.registrar}
+	onBack={() => unfocusSidebar()}
+	onMounted={sidebarRegistrar.registrar}
 	style={$visibleStyle}
 >
-	<!-- Background -->
-	<div
-		class={classNames(
-			'absolute inset-y-0 left-0 min-w-[40rem] w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
-			{
-				'opacity-0': !hasFocusWithin,
-				'group-hover:opacity-100 pointer-events-none': true
-			}
-		)}
-	/>
-	<!-- Keep group hovered and sidebar open for width of this -->
-	<div
-		class={classNames('absolute inset-y-0 left-0 w-48 ', {
-			'pointer-events-none': !hasFocusWithin,
-			'group-hover:pointer-events-auto': true
-		})}
-	/>
-
-	<Container
-		class="w-full h-12 cursor-pointer"
-		on:clickOrSelect={() => sessions.setActiveSession()}
-		let:hasFocus
-	>
+	{#snippet children({ hasFocusWithin })}
+		<!-- Background -->
 		<div
 			class={classNames(
-				'w-full h-full relative flex items-center justify-center transition-opacity',
+				'absolute inset-y-0 left-0 min-w-[40rem] w-[25vw] transition-opacity bg-gradient-to-r from-secondary-900 to-transparent',
 				{
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Users),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Users),
-					'opacity-0 pointer-events-none': hasFocusWithin === false,
-					'group-hover:opacity-100 group-hover:pointer-events-auto': true
+					'opacity-0': !hasFocusWithin,
+					'group-hover:opacity-100 pointer-events-none': true
 				}
 			)}
-		>
-			<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-				<DotFilled
-					class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Users })}
-					size={19}
-				/>
-			</div>
-			<Person class="w-8 h-8" />
-			<span
-				class={classNames(
-					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 text-nowrap',
-					{
-						'opacity-0 pointer-events-none': hasFocusWithin === false,
-						'group-hover:opacity-100 group-hover:pointer-events-auto': true
-					}
-				)}
-			>
-				{$user?.name}
-			</span>
-		</div>
-	</Container>
-
-	<div class={'flex-1 flex flex-col justify-center self-stretch'}>
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Series)}
-			let:hasFocus
-			focusedChild
-		>
-			<div
-				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Series),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Series)
-				})}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Series })}
-						size={19}
-					/>
-				</div>
-				<Laptop class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					Series
-				</span>
-			</div>
-		</Container>
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Movies)}
-			let:hasFocus
-		>
-			<div
-				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Movies),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Movies)
-				})}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Movies })}
-						size={19}
-					/>
-				</div>
-				<CardStack class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					Movies
-				</span>
-			</div>
-		</Container>
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.MyList)}
-			let:hasFocus
-		>
-			<div
-				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.MyList),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.MyList)
-				})}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.MyList })}
-						size={19}
-					/>
-				</div>
-				<Bookmark class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 whitespace-nowrap',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					My List
-				</span>
-			</div>
-		</Container>
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Downloads)}
-			let:hasFocus
-		>
-			<div
-				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Downloads),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Downloads)
-				})}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Downloads })}
-						size={19}
-					/>
-				</div>
-				<Download class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					Downloads
-				</span>
-			</div>
-		</Container>
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Search)}
-			let:hasFocus
-		>
-			<div
-				class={classNames('w-full h-full relative flex items-center justify-center', {
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Search),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Search)
-				})}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Search })}
-						size={19}
-					/>
-				</div>
-				<MagnifyingGlass class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					Search
-				</span>
-			</div>
-		</Container>
-	</div>
-
-	{#if $user?.isAdmin}
-		<Container
-			class="w-full h-12 cursor-pointer"
-			on:clickOrSelect={selectIndex(Tabs.Server)}
-			let:hasFocus
-		>
-			<div
-				class={classNames(
-					'w-full h-full relative flex items-center justify-center transition-opacity',
-					{
-						'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Server),
-						'text-stone-300 hover:text-primary-500':
-							!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Server),
-						'opacity-0 pointer-events-none': hasFocusWithin === false,
-						'group-hover:opacity-100 group-hover:pointer-events-auto': true
-					}
-				)}
-			>
-				<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-					<DotFilled
-						class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Server })}
-						size={19}
-					/>
-				</div>
-				<Stack class="w-8 h-8" />
-				<span
-					class={classNames(
-						'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-						{
-							'opacity-0 pointer-events-none': hasFocusWithin === false,
-							'group-hover:opacity-100 group-hover:pointer-events-auto': true
-						}
-					)}
-				>
-					Server
-				</span>
-			</div>
-		</Container>
-	{/if}
-	<Container
-		class="w-full h-12 cursor-pointer"
-		on:clickOrSelect={selectIndex(Tabs.Settings)}
-		let:hasFocus
-	>
+		></div>
+		<!-- Keep group hovered and sidebar open for width of this -->
 		<div
-			class={classNames(
-				'w-full h-full relative flex items-center justify-center transition-opacity',
-				{
-					'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Settings),
-					'text-stone-300 hover:text-primary-500':
-						!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Settings),
-					'opacity-0 pointer-events-none': hasFocusWithin === false,
-					'group-hover:opacity-100 group-hover:pointer-events-auto': true
-				}
-			)}
+			class={classNames('absolute inset-y-0 left-0 w-48 ', {
+				'pointer-events-none': !hasFocusWithin,
+				'group-hover:pointer-events-auto': true
+			})}
+		></div>
+
+		<Container
+			class="w-full h-12 cursor-pointer"
+			onClickOrSelect={() => sessions.setActiveSession()}
 		>
-			<div class="absolute inset-y-0 left-2 flex items-center justify-center">
-				<DotFilled
-					class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Settings })}
-					size={19}
-				/>
-			</div>
-			<Gear class="w-8 h-8" />
-			<span
-				class={classNames(
-					'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
-					{
-						'opacity-0 pointer-events-none': hasFocusWithin === false,
-						'group-hover:opacity-100 group-hover:pointer-events-auto': true
-					}
-				)}
+			{#snippet children({ hasFocus })}
+				<div
+					class={classNames(
+						'w-full h-full relative flex items-center justify-center transition-opacity',
+						{
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Users),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Users),
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+						<DotFilled
+							class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Users })}
+							size={19}
+						/>
+					</div>
+					<Person class="w-8 h-8" />
+					<span
+						class={classNames(
+							'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 text-nowrap',
+							{
+								'opacity-0 pointer-events-none': hasFocusWithin === false,
+								'group-hover:opacity-100 group-hover:pointer-events-auto': true
+							}
+						)}
+					>
+						{$user?.name}
+					</span>
+				</div>
+			{/snippet}
+		</Container>
+
+		<div class="flex-1 flex flex-col justify-center self-stretch">
+			<Container
+				class="w-full h-12 cursor-pointer"
+				onClickOrSelect={selectIndex(Tabs.Series)}
+				focusedChild
 			>
-				Settings
-			</span>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames('w-full h-full relative flex items-center justify-center', {
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Series),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Series)
+						})}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Series })}
+								size={19}
+							/>
+						</div>
+						<Laptop class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							Series
+						</span>
+					</div>
+				{/snippet}
+			</Container>
+			<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.Movies)}>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames('w-full h-full relative flex items-center justify-center', {
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Movies),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Movies)
+						})}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Movies })}
+								size={19}
+							/>
+						</div>
+						<CardStack class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							Movies
+						</span>
+					</div>
+				{/snippet}
+			</Container>
+			<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.MyList)}>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames('w-full h-full relative flex items-center justify-center', {
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.MyList),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.MyList)
+						})}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.MyList })}
+								size={19}
+							/>
+						</div>
+						<Bookmark class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20 whitespace-nowrap',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							My List
+						</span>
+					</div>
+				{/snippet}
+			</Container>
+			<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.Downloads)}>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames('w-full h-full relative flex items-center justify-center', {
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Downloads),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Downloads)
+						})}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', {
+									'opacity-0': activeIndex !== Tabs.Downloads
+								})}
+								size={19}
+							/>
+						</div>
+						<Download class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							Downloads
+						</span>
+					</div>
+				{/snippet}
+			</Container>
+			<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.Search)}>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames('w-full h-full relative flex items-center justify-center', {
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Search),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Search)
+						})}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Search })}
+								size={19}
+							/>
+						</div>
+						<MagnifyingGlass class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							Search
+						</span>
+					</div>
+				{/snippet}
+			</Container>
 		</div>
-	</Container>
+
+		{#if $user?.isAdmin}
+			<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.Server)}>
+				{#snippet children({ hasFocus })}
+					<div
+						class={classNames(
+							'w-full h-full relative flex items-center justify-center transition-opacity',
+							{
+								'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Server),
+								'text-stone-300 hover:text-primary-500':
+									!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Server),
+								'opacity-0 pointer-events-none': hasFocusWithin === false,
+								'group-hover:opacity-100 group-hover:pointer-events-auto': true
+							}
+						)}
+					>
+						<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+							<DotFilled
+								class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Server })}
+								size={19}
+							/>
+						</div>
+						<Stack class="w-8 h-8" />
+						<span
+							class={classNames(
+								'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+								{
+									'opacity-0 pointer-events-none': hasFocusWithin === false,
+									'group-hover:opacity-100 group-hover:pointer-events-auto': true
+								}
+							)}
+						>
+							Server
+						</span>
+					</div>
+				{/snippet}
+			</Container>
+		{/if}
+		<Container class="w-full h-12 cursor-pointer" onClickOrSelect={selectIndex(Tabs.Settings)}>
+			{#snippet children({ hasFocus })}
+				<div
+					class={classNames(
+						'w-full h-full relative flex items-center justify-center transition-opacity',
+						{
+							'text-primary-500': hasFocus || (!hasFocusWithin && selectedIndex === Tabs.Settings),
+							'text-stone-300 hover:text-primary-500':
+								!hasFocus && !(!hasFocusWithin && selectedIndex === Tabs.Settings),
+							'opacity-0 pointer-events-none': hasFocusWithin === false,
+							'group-hover:opacity-100 group-hover:pointer-events-auto': true
+						}
+					)}
+				>
+					<div class="absolute inset-y-0 left-2 flex items-center justify-center">
+						<DotFilled
+							class={classNames('text-primary-500', { 'opacity-0': activeIndex !== Tabs.Settings })}
+							size={19}
+						/>
+					</div>
+					<Gear class="w-8 h-8" />
+					<span
+						class={classNames(
+							'text-xl font-medium transition-opacity flex items-center absolute inset-y-0 left-20',
+							{
+								'opacity-0 pointer-events-none': hasFocusWithin === false,
+								'group-hover:opacity-100 group-hover:pointer-events-auto': true
+							}
+						)}
+					>
+						Settings
+					</span>
+				</div>
+			{/snippet}
+		</Container>
+	{/snippet}
 </Container>

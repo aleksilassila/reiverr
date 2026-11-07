@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
+
 	import Container from './Container.svelte';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
@@ -10,14 +11,25 @@
 		disabled?: boolean;
 	};
 
-	export let options: Option[] = [];
-	export let selected: string | undefined = undefined;
-	export let name: string | undefined = undefined;
-	export let type: 'primary' | 'primary-dark' = 'primary';
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onSelect?: (detail: string) => void;
+		options?: Option[];
+		selected?: string | undefined;
+		name?: string | undefined;
+		type?: 'primary' | 'primary-dark';
+		class?: string;
+	}
 
-	const dispatch = createEventDispatcher<{
-		select: string;
-	}>();
+	let {
+		options = [],
+		selected = undefined,
+		name = undefined,
+		type = 'primary',
+		onSelect,
+		onEnter,
+		class: className
+	}: Props = $props();
 </script>
 
 <div>
@@ -32,19 +44,18 @@
 				'bg-secondary-800': type === 'primary',
 				'bg-primary-900': type === 'primary-dark'
 			},
-			$$restProps.class
+			className
 		)}
 	>
 		{#each options as option, index}
 			{@const first = index === 0}
 			{@const last = index === options.length - 1}
 			{#if !first}
-				<div class="divider" />
+				<div class="divider"></div>
 			{/if}
 			<Container
-				on:clickOrSelect={() => dispatch('select', option.value ?? option.label)}
-				on:enter
-				let:hasFocus
+				onClickOrSelect={() => onSelect?.(option.value ?? option.label)}
+				{onEnter}
 				class="group"
 			>
 				<div

@@ -1,16 +1,32 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import classNames from 'classnames';
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import Container from '../Container.svelte';
 	import { Selectable } from '../../selectable';
 
-	export let direction: 'horizontal' | 'vertical' = 'horizontal';
-	export let fadeWidth = 6;
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onBlur?: ContainerProps['onBlur'];
+		direction?: 'horizontal' | 'vertical';
+		fadeWidth?: number;
+		children?: Snippet<[{ focusIndex: number }]>;
+		class?: string;
+	}
+
+	let {
+		direction = 'horizontal',
+		fadeWidth = 6,
+		children: content,
+		onEnter,
+		onBlur,
+		class: className
+	}: Props = $props();
 
 	const selectable = new Selectable();
 	// Whether the content goes on past the start and past the end of the box
-	let fadeStart = false;
-	let fadeEnd = false;
+	let fadeStart = $state(false);
+	let fadeEnd = $state(false);
 
 	function updateFades() {
 		const element = selectable.getHtmlElement();
@@ -28,13 +44,13 @@
 	onMount(updateFades);
 </script>
 
-<svelte:window on:resize={updateFades} />
+<svelte:window onresize={updateFades} />
 
 <Container
 	{selectable}
 	{direction}
 	class={classNames(
-		$$restProps.class,
+		className,
 		'scrollbar-hide relative',
 		direction === 'horizontal'
 			? 'overflow-x-auto overflow-y-visible'
@@ -45,10 +61,11 @@
 	}, ${fadeStart ? 'transparent' : 'black'}, black ${fadeWidth}rem, black calc(100% - ${fadeWidth}rem), ${
 		fadeEnd ? 'transparent' : 'black'
 	});`}
-	on:scroll={updateFades}
-	on:enter
-	on:blur
-	let:focusIndex
+	onscroll={updateFades}
+	{onEnter}
+	{onBlur}
 >
-	<slot {focusIndex} />
+	{#snippet children({ focusIndex })}
+		{@render content?.({ focusIndex })}
+	{/snippet}
 </Container>

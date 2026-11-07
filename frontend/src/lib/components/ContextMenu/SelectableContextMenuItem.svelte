@@ -1,12 +1,19 @@
 <script lang="ts">
+	import type { ComponentProps, Snippet } from 'svelte';
 	import classNames from 'classnames';
 	import { Check } from 'radix-icons-svelte';
 	import ContextMenuItem from './ContextMenuItem.svelte';
 
-	export let selected = false;
+	interface Props {
+		onclick?: ComponentProps<typeof ContextMenuItem>['onclick'];
+		selected?: boolean;
+		children?: Snippet;
+	}
+
+	let { selected = false, children, onclick }: Props = $props();
 </script>
 
-<ContextMenuItem on:click>
+<ContextMenuItem {onclick}>
 	<div class="flex items-center gap-2 justify-between cursor-pointer">
 		<Check
 			size={20}
@@ -16,7 +23,7 @@
 			})}
 		/>
 		<div class="flex items-center text-left w-32">
-			<slot />
+			{@render children?.()}
 		</div>
 	</div>
 </ContextMenuItem>

@@ -1,16 +1,13 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import Card from '$lib/components/Card/Card.svelte';
 	import { TMDB_BACKDROP_SMALL } from '$lib/constants';
 
-	export let backdropUri: string;
+	type Props = Omit<ComponentProps<typeof Card>, 'children'> & {
+		backdropUri: string;
+	};
+
+	let { backdropUri, ...rest }: Props = $props();
 </script>
 
-<Card
-	{...$$restProps}
-	backdropUrl={TMDB_BACKDROP_SMALL + backdropUri}
-	orientation="landscape"
-	size="sm"
-	on:click
-	on:clickOrSelect
-	on:enter
-/>
+<Card {...rest} backdropUrl={TMDB_BACKDROP_SMALL + backdropUri} orientation="landscape" size="sm" />

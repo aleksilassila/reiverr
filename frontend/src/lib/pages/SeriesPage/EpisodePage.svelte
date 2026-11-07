@@ -13,9 +13,13 @@
 	import { PLATFORM_WEB } from '../../constants';
 	import { formatThousands } from '../../utils';
 
-	export let id: string; // Series tmdbId
-	export let season: string;
-	export let episode: string;
+	interface Props {
+		id: string; // Series tmdbId
+		season: string;
+		episode: string;
+	}
+
+	let { id, season, episode }: Props = $props();
 
 	const seasonNumber = Number(season);
 	const episodeNumber = Number(episode);
@@ -23,19 +27,6 @@
 	const background = backgroundContext.createContext({ videoMediaId: id });
 	const tmdbSeries = usePageQuery(metadataQueries.series(id));
 	const userData = usePageQuery(userDataQueries.series(id));
-
-	$: tmdbEpisode = $tmdbSeries.data?.seasons
-		?.map((s) => s.episodes ?? [])
-		.flat()
-		.find((e) => e.season_number === seasonNumber && e.episode_number === episodeNumber);
-	$: playState = $userData.data?.playStates.find(
-		(p) => p.season === seasonNumber && p.episode === episodeNumber
-	);
-	$: isWatched = playState?.watched ?? false;
-	$: progress = playState?.progress ?? 0;
-
-	$: if (tmdbEpisode) background.setBackgrounds([{ backdropUri: `${tmdbEpisode.still_path}` }]);
-	$: titleProperties = tmdbEpisode ? getTitleProperties(tmdbEpisode) : [];
 
 	function getTitleProperties(episode: SeasonEpisodeDto) {
 		const properties: { href?: string; label: string }[] = [];
@@ -75,6 +66,21 @@
 			progress,
 			playMedia: background.playMedia
 		});
+	let tmdbEpisode = $derived(
+		$tmdbSeries.data?.seasons
+			?.map((s) => s.episodes ?? [])
+			.flat()
+			.find((e) => e.season_number === seasonNumber && e.episode_number === episodeNumber)
+	);
+	let playState = $derived(
+		$userData.data?.playStates.find((p) => p.season === seasonNumber && p.episode === episodeNumber)
+	);
+	let isWatched = $derived(playState?.watched ?? false);
+	let progress = $derived(playState?.progress ?? 0);
+	$effect(() => {
+		if (tmdbEpisode) background.setBackgrounds([{ backdropUri: `${tmdbEpisode.still_path}` }]);
+	});
+	let titleProperties = $derived(tmdbEpisode ? getTitleProperties(tmdbEpisode) : []);
 </script>
 
 {#if tmdbEpisode}
@@ -89,18 +95,17 @@
 				Season {tmdbEpisode?.season_number} Episode {tmdbEpisode?.episode_number}
 			</div> -->
 			<TitleProperties properties={titleProperties} overview={tmdbEpisode.overview ?? ''}>
-				<span slot="title">
-					<span class="text-secondary-400">
-						{`S${tmdbEpisode.season_number}E${tmdbEpisode.episode_number}`}
+				{#snippet title()}
+					<span>
+						<span class="text-secondary-400">
+							{`S${tmdbEpisode.season_number}E${tmdbEpisode.episode_number}`}
+						</span>
+						{tmdbEpisode.name ?? ''}
 					</span>
-					{tmdbEpisode.name ?? ''}
-				</span>
+				{/snippet}
 			</TitleProperties>
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
-				<Button class="mr-4" action={play}>
-					Play
-					<Play size={19} slot="icon" />
-				</Button>
+				<Button class="mr-4" action={play} icon={Play}>Play</Button>
 
 				{#if isWatched}
 					<Button
@@ -119,10 +124,7 @@
 				{/if}
 
 				{#if PLATFORM_WEB}
-					<Button>
-						Open In TMDB
-						<ExternalLink size={19} slot="icon-after" />
-					</Button>
+					<Button icon={ExternalLink} iconPosition="after">Open In TMDB</Button>
 				{/if}
 			</Container>
 		</HeroCarousel>

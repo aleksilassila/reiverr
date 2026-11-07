@@ -133,16 +133,16 @@
 	const wait = () => new Promise((resolve) => setTimeout(resolve, 1500));
 
 	const tab = useTabs(0);
-	let quickNav = 0;
-	let quickNavLetter = -1;
-	let pill = 'first';
-	let selected = 'first';
-	let selectedItem: string | undefined = undefined;
-	let toggled = true;
-	let checked = false;
-	let smallChecked = false;
-	let text = '';
-	let backdrop = 0;
+	let quickNav = $state(0);
+	let quickNavLetter = $state(-1);
+	let pill = $state('first');
+	let selected = $state('first');
+	let selectedItem: string | undefined = $state(undefined);
+	let toggled = $state(true);
+	let checked = $state(false);
+	let smallChecked = $state(false);
+	let text = $state('');
+	let backdrop = $state(0);
 	const TAG_SIZES: ('md' | 'sm')[] = ['md', 'sm'];
 	const FULFILLED: StatusTag = { label: 'Fulfilled', icon: Check, type: 'default' };
 	const NOT_NEEDED: StatusTag = { label: 'Not needed', icon: Clock, type: 'secondary' };
@@ -166,7 +166,7 @@
 		type: 'error'
 	};
 
-	let rows = [
+	let rows = $state([
 		{
 			title: 'S1E1 - Fulfilled',
 			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
@@ -212,9 +212,9 @@
 			statusTags: {},
 			checked: false
 		}
-	];
+	]);
 
-	$: allChecked = rows.every((row) => row.checked);
+	let allChecked = $derived(rows.every((row) => row.checked));
 
 	function openSelectDialog() {
 		createModal(SelectDialog, {
@@ -250,7 +250,7 @@
 		{#each COLORS as family (family.name)}
 			<div>
 				<h3 class="h4 mb-4">{family.name}</h3>
-				<Container direction="horizontal" class="flex space-x-2" on:enter={scroll}>
+				<Container direction="horizontal" class="flex space-x-2" onEnter={scroll}>
 					{#each family.swatches as swatch (swatch.background)}
 						<ColorSwatch {...swatch} />
 					{/each}
@@ -273,48 +273,48 @@
 
 	<section class="space-y-8">
 		<h2 class="h2">Dividers</h2>
-		<div class="divider" />
-		<div class="divider-lg" />
+		<div class="divider"></div>
+		<div class="divider-lg"></div>
 		<div class="flex h-16 space-x-8">
-			<div class="divider-vertical" />
+			<div class="divider-vertical"></div>
 			<div class="body">divider, divider-lg and divider-vertical</div>
 		</div>
 	</section>
 
 	<section class="space-y-8">
 		<h2 class="h2">Buttons</h2>
-		<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex items-center space-x-4" onEnter={scroll}>
 			<Button>Primary</Button>
 			<Button type="secondary">Secondary</Button>
 			<Button type="primary-dark">Primary dark</Button>
 			<Button disabled>Disabled</Button>
 			<Button icon={Plus}>Icon</Button>
-			<Button iconAfter={ArrowRight}>Icon after</Button>
+			<Button icon={ArrowRight} iconPosition="after">Icon after</Button>
 		</Container>
-		<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex items-center space-x-4" onEnter={scroll}>
 			<Button action={wait}>Async action</Button>
 			<Button
 				confirmDanger
 				icon={Trash}
-				on:clickOrSelect={() => createInfoNotification('Confirmed', 'Selected twice')}
+				onClickOrSelect={() => createInfoNotification('Confirmed', 'Selected twice')}
 			>
 				Confirm danger
 			</Button>
 			<Button secondaryAction={() => createInfoNotification('Secondary action')}>
 				Secondary action
 			</Button>
-			<IconButton on:clickOrSelect={() => createInfoNotification('Icon button')}>
+			<IconButton onClickOrSelect={() => createInfoNotification('Icon button')}>
 				<Heart size={24} />
 			</IconButton>
-			<IconToggle icon={Bookmark} on:clickOrSelect={() => createInfoNotification('Icon toggle')} />
+			<IconToggle icon={Bookmark} onClickOrSelect={() => createInfoNotification('Icon toggle')} />
 			<IconToggle
 				type="primary-dark"
 				icon={Bookmark}
-				on:clickOrSelect={() => createInfoNotification('Icon toggle', 'Primary dark')}
+				onClickOrSelect={() => createInfoNotification('Icon toggle', 'Primary dark')}
 			/>
-			<PlayButton on:click={() => createInfoNotification('Play button', 'Mouse only')} />
+			<PlayButton onclick={() => createInfoNotification('Play button', 'Mouse only')} />
 		</Container>
-		<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex items-center space-x-4" onEnter={scroll}>
 			<Button size="sm">Small</Button>
 			<Button size="sm" type="secondary">Small secondary</Button>
 			<Button size="sm" type="primary-dark">Small primary dark</Button>
@@ -327,20 +327,22 @@
 
 	<section class="space-y-8">
 		<h2 class="h2">Fields</h2>
-		<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 			<SelectField
 				class="flex-1"
 				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-				on:clickOrSelect={openSelectDialog}
+				onClickOrSelect={openSelectDialog}
 			>
 				Select field
-				<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+				{#snippet icon({ size, iconClass })}
+					<ChevronDown {size} class={iconClass} />
+				{/snippet}
 			</SelectField>
 			<SelectField
 				class="flex-1"
 				type="primary-dark"
 				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-				on:clickOrSelect={openSelectDialog}
+				onClickOrSelect={openSelectDialog}
 			>
 				Select field, primary dark
 			</SelectField>
@@ -348,19 +350,21 @@
 				class="flex-1"
 				type="transparent"
 				value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-				on:clickOrSelect={openSelectDialog}
+				onClickOrSelect={openSelectDialog}
 			>
 				Select field, transparent
-				<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+				{#snippet icon({ size, iconClass })}
+					<ChevronDown {size} class={iconClass} />
+				{/snippet}
 			</SelectField>
 			<SelectField class="flex-1" value="Disabled" disabled>Select field, disabled</SelectField>
 		</Container>
-		<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 			<TextField
 				class="flex-1"
 				value={text}
 				placeholder="Type something"
-				on:change={({ detail }) => (text = detail)}
+				onChange={(e) => (text = e)}
 			>
 				Text field
 			</TextField>
@@ -372,20 +376,20 @@
 				Primary dark
 			</TextField>
 		</Container>
-		<Container direction="horizontal" class="flex space-x-8" on:enter={scroll}>
+		<Container direction="horizontal" class="flex space-x-8" onEnter={scroll}>
 			<Container class="flex-1">
 				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 					<span class="mr-2">Toggle</span>
-					<Toggle checked={toggled} on:change={({ detail }) => (toggled = detail)} />
+					<Toggle checked={toggled} onChange={(e) => (toggled = e)} />
 				</div>
 				<div class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2">
 					<span class="mr-2">Checkbox</span>
-					<Checkbox {checked} on:change={({ detail }) => (checked = detail)} />
+					<Checkbox {checked} onChange={(e) => (checked = e)} />
 				</div>
 				<Toggle
 					label="Toggle with its own label"
 					checked={!toggled}
-					on:change={({ detail }) => (toggled = !detail)}
+					onChange={(e) => (toggled = !e)}
 				/>
 			</Container>
 			<div class="flex-1">
@@ -393,7 +397,7 @@
 					name="Select button group"
 					options={SELECT_OPTIONS}
 					{selected}
-					on:select={({ detail }) => (selected = detail)}
+					onSelect={(e) => (selected = e)}
 				/>
 			</div>
 			<div class="flex-1">
@@ -402,7 +406,7 @@
 					type="primary-dark"
 					options={[...SELECT_OPTIONS, { label: 'Disabled', value: 'disabled', disabled: true }]}
 					{selected}
-					on:select={({ detail }) => (selected = detail)}
+					onSelect={(e) => (selected = e)}
 				/>
 			</div>
 			<Container class="flex-1 space-y-4">
@@ -410,7 +414,7 @@
 				{#each SELECT_OPTIONS as option (option.value)}
 					<SelectItem
 						selected={selectedItem === option.value}
-						on:clickOrSelect={() => (selectedItem = option.value)}
+						onClickOrSelect={() => (selectedItem = option.value)}
 					>
 						{option.label}
 					</SelectItem>
@@ -424,32 +428,28 @@
 		<Container
 			direction="horizontal"
 			class="flex space-x-8"
-			on:enter={scroll}
-			on:blur={({ detail: selectable }) => selectable.activateChild($tab)}
+			onEnter={scroll}
+			onBlur={(selectable) => selectable.activateChild($tab)}
 		>
-			<TabItem selected={$tab === 0} on:select={() => tab.set(0)}>First tab</TabItem>
-			<TabItem selected={$tab === 1} on:select={() => tab.set(1)}>Second tab</TabItem>
+			<TabItem selected={$tab === 0} onSelect={() => tab.set(0)}>First tab</TabItem>
+			<TabItem selected={$tab === 1} onSelect={() => tab.set(1)}>Second tab</TabItem>
 			<TabItem disabled>Disabled tab</TabItem>
 		</Container>
 		<TabContainer>
-			<Tab {...tab} tab={0}>
-				<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+			<Tab {...tab.props} tab={0}>
+				<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 					<Button>Button of the first tab</Button>
 				</Container>
 			</Tab>
-			<Tab {...tab} tab={1}>
-				<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+			<Tab {...tab.props} tab={1}>
+				<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 					<Button>Button of the second tab</Button>
 					<Button type="secondary">Another one</Button>
 				</Container>
 			</Tab>
 		</TabContainer>
 		<div class="flex items-center space-x-16">
-			<QuickNav
-				items={['S1', 'S2', 'S3']}
-				selected={quickNav}
-				on:select={({ detail }) => (quickNav = detail)}
-			/>
+			<QuickNav items={['S1', 'S2', 'S3']} selected={quickNav} onSelect={(e) => (quickNav = e)} />
 			<p class="body">Quick navigation: the focus moves between the items, selecting one jumps.</p>
 		</div>
 		<div class="flex items-center space-x-16">
@@ -458,7 +458,7 @@
 				class="h-64"
 				items={LETTERS}
 				selected={quickNavLetter}
-				on:select={({ detail }) => (quickNavLetter = quickNavLetter === detail ? -1 : detail)}
+				onSelect={(e) => (quickNavLetter = quickNavLetter === e ? -1 : e)}
 			/>
 			<p class="body">
 				Small, as a filter: the highlighted item is the filter that is on, selecting it again turns
@@ -467,7 +467,7 @@
 		</div>
 		<Container direction="horizontal" class="flex space-x-4">
 			{#each SELECT_OPTIONS as option (option.value)}
-				<Pill selected={pill === option.value} on:clickOrSelect={() => (pill = option.value)}>
+				<Pill selected={pill === option.value} onClickOrSelect={() => (pill = option.value)}>
 					{option.label}
 				</Pill>
 			{/each}
@@ -519,46 +519,46 @@
 				status="12 peers, 3.4 MB/s"
 				checked={allChecked}
 				partiallyChecked={rows.some((row) => row.checked)}
-				on:toggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
-				on:open={() => createInfoNotification('Open', 'Season 1')}
-				on:enter={scroll}
+				onToggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
+				onOpen={() => createInfoNotification('Open', 'Season 1')}
+				onEnter={scroll}
 			/>
 			{#each rows as row (row.title)}
 				<RequestRow
 					{...row}
-					on:toggle={() =>
-						(rows = rows.map((r) => (r === row ? { ...r, checked: !r.checked } : r)))}
-					on:open={() => createInfoNotification('Open', row.title)}
-					on:enter={scroll}
+					onToggle={() => (rows = rows.map((r) => (r === row ? { ...r, checked: !r.checked } : r)))}
+					onOpen={() => createInfoNotification('Open', row.title)}
+					onEnter={scroll}
 				/>
 			{/each}
 			<ListRow
-				on:select={() => (smallChecked = !smallChecked)}
-				on:click={() => (smallChecked = !smallChecked)}
-				on:enter={scroll}
-				let:hasFocus
+				onSelect={() => (smallChecked = !smallChecked)}
+				onclick={() => (smallChecked = !smallChecked)}
+				onEnter={scroll}
 			>
-				<div class="flex-1 text-xl font-semibold">A file row: small, toggled by the row</div>
-				<RowCheckbox
-					size="sm"
-					rowToggles
-					checked={smallChecked}
-					{hasFocus}
-					on:toggle={() => (smallChecked = !smallChecked)}
-				/>
+				{#snippet children({ hasFocus })}
+					<div class="flex-1 text-xl font-semibold">A file row: small, toggled by the row</div>
+					<RowCheckbox
+						size="sm"
+						rowToggles
+						checked={smallChecked}
+						{hasFocus}
+						onToggle={() => (smallChecked = !smallChecked)}
+					/>
+				{/snippet}
 			</ListRow>
 		</Container>
 	</section>
 
 	<section>
 		<div class="-mx-32">
-			<Carousel header="Cards" scrollClass="px-32" on:enter={scroll}>
+			<Carousel header="Cards" scrollClass="px-32" onEnter={scroll}>
 				{#each CARDS as card (card.title)}
 					<Card
 						title={card.title}
 						progress={card.progress}
-						on:enter={scrollIntoView({ horizontal: 128 })}
-						on:clickOrSelect={() => createInfoNotification(card.title)}
+						onEnter={scrollIntoView({ horizontal: 128 })}
+						onClickOrSelect={() => createInfoNotification(card.title)}
 					/>
 				{/each}
 				<Card
@@ -569,14 +569,14 @@
 						{ label: '8', icon: Video },
 						{ label: '6h', icon: Trash, type: 'error' }
 					]}
-					on:enter={scrollIntoView({ horizontal: 128 })}
-					on:clickOrSelect={() =>
+					onEnter={scrollIntoView({ horizontal: 128 })}
+					onClickOrSelect={() =>
 						createInfoNotification('Badges', 'An icon alone, a count and a warning')}
 				/>
 				<Card
 					title="Portrait"
 					orientation="portrait"
-					on:enter={scrollIntoView({ horizontal: 128 })}
+					onEnter={scrollIntoView({ horizontal: 128 })}
 				/>
 				<CardPlaceholder index={0} />
 				<CardPlaceholder index={1} orientation="portrait" />
@@ -586,9 +586,9 @@
 
 	<section class="space-y-8">
 		<h2 class="h2">Dialogs, sheets and notifications</h2>
-		<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+		<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 			<Button
-				on:clickOrSelect={() =>
+				onClickOrSelect={() =>
 					createModal(ConfirmDialog, {
 						header: 'Confirm dialog',
 						body: 'Confirm resolves after a moment and closes the dialog.',
@@ -597,9 +597,9 @@
 			>
 				Confirm dialog
 			</Button>
-			<Button on:clickOrSelect={openSelectDialog}>Select dialog</Button>
+			<Button onClickOrSelect={openSelectDialog}>Select dialog</Button>
 			<Button
-				on:clickOrSelect={() =>
+				onClickOrSelect={() =>
 					createModal(FolderPickerDialog, {
 						title: 'Folder picker',
 						disabled: { '/tmp': 'Series folder' },
@@ -608,15 +608,15 @@
 			>
 				Folder picker
 			</Button>
-			<Button on:clickOrSelect={() => createModal(UiSheet, {})}>Sheet</Button>
+			<Button onClickOrSelect={() => createModal(UiSheet, {})}>Sheet</Button>
 			<Button
-				on:clickOrSelect={() =>
+				onClickOrSelect={() =>
 					createInfoNotification('Info notification', 'Goes away in a few seconds.')}
 			>
 				Info notification
 			</Button>
 			<Button
-				on:clickOrSelect={() =>
+				onClickOrSelect={() =>
 					createErrorNotification('Error notification', 'Something went wrong.')}
 			>
 				Error notification
@@ -649,7 +649,7 @@
 			<div
 				class="absolute inset-0 bg-secondary-900 bg-center bg-cover bg-no-repeat blur-md brightness-[0.2] saturate-50"
 				style={`background-image: url('${BACKDROPS[backdrop]}');`}
-			/>
+			></div>
 		</div>
 		<div class="relative bg-primary-900/50 px-32 py-16 space-y-8">
 			<div class="flex justify-between items-start">
@@ -659,73 +659,76 @@
 			<Container
 				direction="horizontal"
 				class="flex space-x-8"
-				on:enter={scroll}
-				on:blur={({ detail: selectable }) => selectable.activateChild(backdrop)}
+				onEnter={scroll}
+				onBlur={(selectable) => selectable.activateChild(backdrop)}
 			>
 				{#each BACKDROPS as url, index (url)}
-					<TabItem selected={backdrop === index} on:select={() => (backdrop = index)}>
+					<TabItem selected={backdrop === index} onSelect={() => (backdrop = index)}>
 						Backdrop {index + 1}
 					</TabItem>
 				{/each}
 			</Container>
-			<Container direction="horizontal" class="flex space-x-4" on:enter={scroll}>
+			<Container direction="horizontal" class="flex space-x-4" onEnter={scroll}>
 				<SelectField
 					class="flex-1"
 					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-					on:clickOrSelect={openSelectDialog}
+					onClickOrSelect={openSelectDialog}
 				>
 					Select field
-					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+					{#snippet icon({ size, iconClass })}
+						<ChevronDown {size} class={iconClass} />
+					{/snippet}
 				</SelectField>
 				<SelectField
 					class="flex-1"
 					type="primary-dark"
 					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-					on:clickOrSelect={openSelectDialog}
+					onClickOrSelect={openSelectDialog}
 				>
 					Select field, primary dark
-					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+					{#snippet icon({ size, iconClass })}
+						<ChevronDown {size} class={iconClass} />
+					{/snippet}
 				</SelectField>
 				<SelectField
 					class="flex-1"
 					type="transparent"
 					value={SELECT_OPTIONS.find((option) => option.value === selected)?.label ?? ''}
-					on:clickOrSelect={openSelectDialog}
+					onClickOrSelect={openSelectDialog}
 				>
 					Select field, transparent
-					<ChevronDown slot="icon" let:size let:iconClass {size} class={iconClass} />
+					{#snippet icon({ size, iconClass })}
+						<ChevronDown {size} class={iconClass} />
+					{/snippet}
 				</SelectField>
 				<TextField
 					class="flex-1"
 					value={text}
 					placeholder="Type something"
-					on:change={({ detail }) => (text = detail)}
+					onChange={(e) => (text = e)}
 				>
 					Text field
 				</TextField>
 			</Container>
-			<div class="divider" />
-			<Container direction="horizontal" class="flex items-center space-x-4" on:enter={scroll}>
+			<div class="divider"></div>
+			<Container direction="horizontal" class="flex items-center space-x-4" onEnter={scroll}>
 				<Button>Primary</Button>
 				<Button type="secondary">Secondary</Button>
 				<Button type="primary-dark">Primary dark</Button>
 				<Button disabled>Disabled</Button>
 				<Button size="sm" type="secondary">Small</Button>
-				<IconButton on:clickOrSelect={() => createInfoNotification('Icon button')}>
+				<IconButton onClickOrSelect={() => createInfoNotification('Icon button')}>
 					<Heart size={24} />
 				</IconButton>
-				<IconToggle
-					icon={Bookmark}
-					on:clickOrSelect={() => createInfoNotification('Icon toggle')}
-				/>
+				<IconToggle icon={Bookmark} onClickOrSelect={() => createInfoNotification('Icon toggle')} />
 			</Container>
-			<Container direction="horizontal" class="flex space-x-8" on:enter={scroll}>
+			<Container direction="horizontal" class="flex space-x-8" onEnter={scroll}>
 				<div class="flex-1">
 					<SelectButtonGroup
 						name="Select button group"
 						options={SELECT_OPTIONS}
 						{selected}
-						on:select={({ detail }) => (selected = detail)}
+						onSelect={(e) => (selected = e)}
 					/>
 				</div>
 				<div class="flex-1">
@@ -734,7 +737,7 @@
 						type="primary-dark"
 						options={SELECT_OPTIONS}
 						{selected}
-						on:select={({ detail }) => (selected = detail)}
+						onSelect={(e) => (selected = e)}
 					/>
 				</div>
 				<Container class="flex-1 space-y-4">
@@ -742,7 +745,7 @@
 					{#each SELECT_OPTIONS as option (option.value)}
 						<SelectItem
 							selected={selectedItem === option.value}
-							on:clickOrSelect={() => (selectedItem = option.value)}
+							onClickOrSelect={() => (selectedItem = option.value)}
 						>
 							{option.label}
 						</SelectItem>
@@ -756,17 +759,17 @@
 					status="12 peers, 3.4 MB/s"
 					checked={allChecked}
 					partiallyChecked={rows.some((row) => row.checked)}
-					on:toggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
-					on:open={() => createInfoNotification('Open', 'Season 1')}
-					on:enter={scroll}
+					onToggle={() => (rows = rows.map((row) => ({ ...row, checked: !allChecked })))}
+					onOpen={() => createInfoNotification('Open', 'Season 1')}
+					onEnter={scroll}
 				/>
 				{#each rows as row (row.title)}
 					<RequestRow
 						{...row}
-						on:toggle={() =>
+						onToggle={() =>
 							(rows = rows.map((r) => (r === row ? { ...r, checked: !r.checked } : r)))}
-						on:open={() => createInfoNotification('Open', row.title)}
-						on:enter={scroll}
+						onOpen={() => createInfoNotification('Open', row.title)}
+						onEnter={scroll}
 					/>
 				{/each}
 			</Container>

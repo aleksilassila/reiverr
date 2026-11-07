@@ -1,14 +1,22 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from '../Container.svelte';
 
-	export let rows: number;
+	type Props = Omit<ContainerProps, 'children'> & {
+		rows: number;
+		header?: Snippet;
+		children?: Snippet;
+	};
+
+	let { rows, header, children, ...rest }: Props = $props();
 </script>
 
 <table class="w-full grid">
 	<thead>
-		<slot name="header" />
+		{@render header?.()}
 	</thead>
-	<Container tag="tbody" {...$$restProps}>
-		<slot />
+	<Container tag="tbody" {...rest}>
+		{@render children?.()}
 	</Container>
 </table>

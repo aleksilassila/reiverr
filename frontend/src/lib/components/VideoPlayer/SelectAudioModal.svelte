@@ -9,9 +9,13 @@
 
 	const { close } = useComponentStack();
 
-	export let available: AudioTrack[];
-	export let current: AudioTrack | undefined;
-	export let selectAudioTrack: (audioTrack: AudioTrack) => void;
+	interface Props {
+		available: AudioTrack[];
+		current: AudioTrack | undefined;
+		selectAudioTrack: (audioTrack: AudioTrack) => void;
+	}
+
+	let { available, current, selectAudioTrack }: Props = $props();
 </script>
 
 <Dialog>
@@ -24,11 +28,11 @@
 			{@const language =
 				audioTrack.lang && (getLanguageName(audioTrack.lang.replace(/-.*/, '')) ?? audioTrack.lang)}
 			<Button
-				on:clickOrSelect={() => {
+				onClickOrSelect={() => {
 					close();
 					selectAudioTrack(audioTrack);
 				}}
-				on:enter={scrollIntoView({ vertical: 64 })}
+				onEnter={scrollIntoView({ vertical: 64 })}
 				class="relative"
 				type="primary-dark"
 			>

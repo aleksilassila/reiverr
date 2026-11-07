@@ -7,18 +7,22 @@
 	import { createModal } from '../../components/Modal/modal.store';
 	import { useComponentStack } from '../../components/StackRouter/stack-router.store';
 
-	export let path: string;
-	/** What the folder holds, "Series folder" or "Movie folder" */
-	export let label: string;
-	export let isPrimary: boolean;
-	/** Makes the folder the primary one. The dialog closes when it resolves and shows what it rejects with */
-	export let onMakePrimary: () => Promise<unknown>;
-	/** Removes the folder; with `force`, the indexed files in it are forgotten */
-	export let onRemove: (force: boolean) => Promise<unknown>;
+	interface Props {
+		path: string;
+		/** What the folder holds, "Series folder" or "Movie folder" */
+		label: string;
+		isPrimary: boolean;
+		/** Makes the folder the primary one. The dialog closes when it resolves and shows what it rejects with */
+		onMakePrimary: () => Promise<unknown>;
+		/** Removes the folder; with `force`, the indexed files in it are forgotten */
+		onRemove: (force: boolean) => Promise<unknown>;
+	}
+
+	let { path, label, isPrimary, onMakePrimary, onRemove }: Props = $props();
 
 	const { close } = useComponentStack();
 
-	let error = '';
+	let error = $state('');
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -72,7 +76,7 @@
 			type="primary-dark"
 			focusedChild={isPrimary}
 			icon={Trash}
-			on:clickOrSelect={confirmRemove}
+			onClickOrSelect={confirmRemove}
 		>
 			Remove Folder
 		</Button>

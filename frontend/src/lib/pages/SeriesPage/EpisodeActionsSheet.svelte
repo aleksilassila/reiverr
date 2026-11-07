@@ -21,11 +21,15 @@
 	import { Check, Play } from 'radix-icons-svelte';
 	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 
-	export let tmdbId: string;
-	export let season: number;
-	export let episode: number;
-	export let name: string;
-	export let seriesName: string;
+	interface Props {
+		tmdbId: string;
+		season: number;
+		episode: number;
+		name: string;
+		seriesName: string;
+	}
+
+	let { tmdbId, season, episode, name, seriesName }: Props = $props();
 
 	const componentStack = useComponentStack();
 	const { playMedia } = backgroundContext.getContext();
@@ -35,17 +39,23 @@
 	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
 	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
 
-	$: episodesData = getEpisodeData($tmdbSeries.data, $seriesUserData.data);
-	$: userData = episodesData.episodes.find((e) => e.season === season && e.episode === episode);
-	$: seasonEpisodes = episodesData.episodes.filter((e) => e.season === season && !e.upcoming);
-	$: seasonWatched = seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched);
-	$: requestStatus = getEpisodeRequestStatus(
-		{ requests: $requests.data, status: $status.data, torrents: $torrents.data },
-		season,
-		episode
+	let episodesData = $derived(getEpisodeData($tmdbSeries.data, $seriesUserData.data));
+	let userData = $derived(
+		episodesData.episodes.find((e) => e.season === season && e.episode === episode)
 	);
-	$: onDisk = requestStatus.onDisk;
-	$: statusTags = requestStatus.tags;
+	let seasonEpisodes = $derived(
+		episodesData.episodes.filter((e) => e.season === season && !e.upcoming)
+	);
+	let seasonWatched = $derived(seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched));
+	let requestStatus = $derived(
+		getEpisodeRequestStatus(
+			{ requests: $requests.data, status: $status.data, torrents: $torrents.data },
+			season,
+			episode
+		)
+	);
+	let onDisk = $derived(requestStatus.onDisk);
+	let statusTags = $derived(requestStatus.tags);
 
 	async function play() {
 		componentStack.close();
@@ -87,7 +97,7 @@
 	}
 </script>
 
-<Sheet size="lg" on:close={() => componentStack.close()}>
+<Sheet size="lg" onClose={() => componentStack.close()}>
 	<div class="text-secondary-400 font-medium text-lg">Season {season} Episode {episode}</div>
 	<h1 class="h3 mb-2">{name}</h1>
 	<div class="mb-8">
@@ -128,7 +138,7 @@
 			<Button
 				icon={Check}
 				type="primary-dark"
-				on:clickOrSelect={() => confirmSeasonWatched(!seasonWatched)}
+				onClickOrSelect={() => confirmSeasonWatched(!seasonWatched)}
 			>
 				Mark Season as {seasonWatched ? 'Unwatched' : 'Watched'}
 			</Button>

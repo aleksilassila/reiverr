@@ -6,7 +6,7 @@
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronRight, Link2 } from 'radix-icons-svelte';
-	import { derived, writable } from 'svelte/store';
+	import { derived as derivedStore, writable } from 'svelte/store';
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import ListRow from '../ListRow.svelte';
@@ -17,25 +17,27 @@
 
 	const { close } = useComponentStack();
 
-	export let title: string;
-	/** Where the picker opens */
-	export let path = '/';
-	/** Folders that cannot be picked, by path, with why */
-	export let disabled: Record<string, string> = {};
-	/** Gets the picked folder. The picker closes when it resolves and shows what it rejects with */
-	export let onSelect: (path: string) => Promise<unknown>;
+	interface Props {
+		title: string;
+		/** Where the picker opens */
+		path?: string;
+		/** Folders that cannot be picked, by path, with why */
+		disabled?: Record<string, string>;
+		/** Gets the picked folder. The picker closes when it resolves and shows what it rejects with */
+		onSelect: (path: string) => Promise<unknown>;
+	}
+
+	let { title, path = '/', disabled = {}, onSelect }: Props = $props();
 
 	/** One level at a time: entering a folder loads what is in it */
 	const current = writable(path);
 	const directories = usePageQuery(
-		derived(current, ($current) => serverQueries.directories($current))
+		derivedStore(current, ($current) => serverQueries.directories($current))
 	);
 
 	// The folder shown stays until the one entered is loaded, and when it cannot be
-	let listing: DirectoryListingDto | undefined = undefined;
-	let pickError = '';
-	$: if ($directories.data) listing = $directories.data;
-	$: error = ($directories.error && errorMessage($directories.error)) || pickError;
+	let listing: DirectoryListingDto | undefined = $state(undefined);
+	let pickError = $state('');
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
@@ -61,6 +63,10 @@
 				)
 		});
 	}
+	$effect(() => {
+		if ($directories.data) listing = $directories.data;
+	});
+	let error = $derived(($directories.error && errorMessage($directories.error)) || pickError);
 </script>
 
 <!-- Enter picks the focused folder, right enters it and left goes to the parent. A click enters a
@@ -96,13 +102,13 @@
 						<!-- The first folder takes the focus; .. only when there is none -->
 						<ListRow
 							focusOnMount={!listing.entries.length}
-							on:enter={scrollIntoView({ vertical: 96 })}
-							on:select={goUp}
-							on:click={goUp}
-							on:navigate={({ detail }) => {
-								if (detail.direction === 'left') {
-									detail.preventNavigation();
-									detail.stopPropagation();
+							onEnter={scrollIntoView({ vertical: 96 })}
+							onSelect={goUp}
+							onclick={goUp}
+							onNavigate={(e) => {
+								if (e.direction === 'left') {
+									e.preventNavigation();
+									e.stopPropagation();
 									goUp();
 								}
 							}}
@@ -114,63 +120,64 @@
 						{@const reason = disabled[entry.path]}
 						<ListRow
 							focusOnMount={index === 0}
-							on:enter={scrollIntoView({ vertical: 96 })}
-							on:select={() => pick(entry.path)}
-							on:click={() => load(entry.path)}
-							on:navigate={({ detail }) => {
-								if (detail.direction === 'right') {
-									detail.preventNavigation();
-									detail.stopPropagation();
+							onEnter={scrollIntoView({ vertical: 96 })}
+							onSelect={() => pick(entry.path)}
+							onclick={() => load(entry.path)}
+							onNavigate={(e) => {
+								if (e.direction === 'right') {
+									e.preventNavigation();
+									e.stopPropagation();
 									load(entry.path);
-								} else if (detail.direction === 'left' && listing?.parent) {
-									detail.preventNavigation();
-									detail.stopPropagation();
+								} else if (e.direction === 'left' && listing?.parent) {
+									e.preventNavigation();
+									e.stopPropagation();
 									goUp();
 								}
 							}}
-							let:hasFocus
 						>
-							<div
-								class={classNames('flex-1 min-w-0 flex items-center', {
-									'opacity-40': reason
-								})}
-							>
-								<ChevronRight
-									size={24}
-									class={classNames('flex-shrink-0 mr-1', { 'text-primary-500': hasFocus })}
-								/>
-								<span
-									class={classNames('line-clamp-1 text-xl font-semibold', {
-										'text-primary-500': hasFocus
+							{#snippet children({ hasFocus })}
+								<div
+									class={classNames('flex-1 min-w-0 flex items-center', {
+										'opacity-40': reason
 									})}
 								>
-									{entry.name}
-								</span>
-								{#if entry.isSymbolicLink}
-									<Link2 size={20} class="flex-shrink-0 ml-2 text-secondary-400" />
-								{/if}
-								{#if reason}
-									<span class="flex-shrink-0 ml-4 text-base font-medium text-secondary-400">
-										{reason}
+									<ChevronRight
+										size={24}
+										class={classNames('flex-shrink-0 mr-1', { 'text-primary-500': hasFocus })}
+									/>
+									<span
+										class={classNames('line-clamp-1 text-xl font-semibold', {
+											'text-primary-500': hasFocus
+										})}
+									>
+										{entry.name}
 									</span>
+									{#if entry.isSymbolicLink}
+										<Link2 size={20} class="flex-shrink-0 ml-2 text-secondary-400" />
+									{/if}
+									{#if reason}
+										<span class="flex-shrink-0 ml-4 text-base font-medium text-secondary-400">
+											{reason}
+										</span>
+									{/if}
+								</div>
+								{#if !reason}
+									<!-- Not focusable, enter on the row picks. A click on the button is the button's, not the row's -->
+									<Button
+										type="secondary"
+										size="sm"
+										selectableDisabled
+										class={classNames(
+											'flex-shrink-0 ml-4',
+											hasFocus ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+										)}
+										onclick={(e) => e.stopPropagation()}
+										onClickOrSelect={() => pick(entry.path)}
+									>
+										Select
+									</Button>
 								{/if}
-							</div>
-							{#if !reason}
-								<!-- Not focusable, enter on the row picks. A click on the button is the button's, not the row's -->
-								<Button
-									type="secondary"
-									size="sm"
-									selectableDisabled
-									class={classNames(
-										'flex-shrink-0 ml-4',
-										hasFocus ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-									)}
-									on:click={({ detail }) => detail.stopPropagation()}
-									on:clickOrSelect={() => pick(entry.path)}
-								>
-									Select
-								</Button>
-							{/if}
+							{/snippet}
 						</ListRow>
 					{/each}
 					{#if !listing.entries.length}

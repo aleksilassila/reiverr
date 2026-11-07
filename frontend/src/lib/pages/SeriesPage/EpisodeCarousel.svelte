@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from '$components/Container.svelte';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
@@ -6,7 +7,7 @@
 	import type { EpisodeUserData } from './episode-status';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import classNames from 'classnames';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, type ComponentProps } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import {
 		type TmdbEpisode,
@@ -19,19 +20,35 @@
 
 	const { topVisible } = getScrollContext();
 
-	export let tmdbSeries: Promise<TmdbSeriesFull | undefined>;
-	export let nextEpisode: Readable<EpisodeUserData>;
-	export let episodesUserData: EpisodeUserData[];
 	// export let jellyfinEpisodes: Promise<JellyfinItem[]>;
 	// export let currentJellyfinEpisode: Promise<JellyfinItem | undefined>;
-	// export let handleRequestSeason: (season: number) => Promise<any>;
-	export let tmdbSeasons: Promise<TmdbSeason[]>;
-	export let onSelectEpisode: (season: number, episode: number) => void;
-	export let selectedEpisode: Writable<TmdbSeasonEpisode | undefined>;
 
-	let selectedSeason: number | undefined = 1;
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onMounted?: ComponentProps<typeof Carousel>['onMounted'];
+		tmdbSeries: Promise<TmdbSeriesFull | undefined>;
+		nextEpisode: Readable<EpisodeUserData>;
+		episodesUserData: EpisodeUserData[];
+		// export let handleRequestSeason: (season: number) => Promise<any>;
+		tmdbSeasons: Promise<TmdbSeason[]>;
+		onSelectEpisode: (season: number, episode: number) => void;
+		selectedEpisode: Writable<TmdbSeasonEpisode | undefined>;
+	}
 
-	let unsubscribers: (() => void)[] = [];
+	let {
+		tmdbSeries,
+		nextEpisode,
+		episodesUserData,
+		tmdbSeasons,
+		onSelectEpisode,
+		selectedEpisode,
+		onEnter,
+		onMounted
+	}: Props = $props();
+
+	let selectedSeason: number | undefined = $state(1);
+
+	const unsubscribers: (() => void)[] = [];
 	function handleMountCard(s: Selectable, episode: TmdbEpisode) {
 		unsubscribers.push(
 			nextEpisode.subscribe((nextEpisode) => {
@@ -60,7 +77,7 @@
 </script>
 
 <Container
-	on:enter
+	{onEnter}
 	class={classNames('transition-transform', {
 		'-translate-y-16': $topVisible
 	})}
@@ -70,13 +87,13 @@
 			class={classNames('flex transition-opacity mb-8 mx-32', {
 				'opacity-0': $topVisible
 			})}
-			on:enter={scrollIntoView({ horizontal: 64 })}
+		 onEnter={scrollIntoView({ horizontal: 64 })}
 		>
 			{#each tmdbSeasons || [] as season, i}
 				<Container
-					on:mount={(e) => handleMountSeasonButton(e.detail, season?.season_number || 0)}
+				 onMounted={(e) => handleMountSeasonButton(e, season?.season_number || 0)}
 					let:hasFocus
-					on:enter={(event) => {
+				 onEnter={(event) => {
 						scrollIntoView({ horizontal: 64 })(event);
 						seasonIndex = i;
 					}}
@@ -102,21 +119,22 @@
 		</UICarousel> -->
 		<Carousel
 			scrollClass="px-32"
-			on:mount
-			on:navigate={({ detail }) => {
-				if (detail.willLeaveContainer) {
+			{onMounted}
+			onNavigate={(e) => {
+				if (e.willLeaveContainer) {
 					selectedEpisode.set(undefined);
 				}
 			}}
 		>
-			<span
-				slot="header"
-				class={classNames('transition-opacity', {
-					'opacity-0': $topVisible
-				})}
-			>
-				{$selectedEpisode ? `Season ${$selectedEpisode.season_number}` : 'Episodes'}
-			</span>
+			{#snippet header()}
+				<span
+					class={classNames('transition-opacity', {
+						'opacity-0': $topVisible
+					})}
+				>
+					{$selectedEpisode ? `Season ${$selectedEpisode.season_number}` : 'Episodes'}
+				</span>
+			{/snippet}
 			{#each tmdbSeasons as season}
 				{#each season.episodes ?? [] as episode}
 					{@const userData = episodesUserData.find(
@@ -126,15 +144,15 @@
 						<TmdbEpisodeCard
 							{episode}
 							series={tmdbSeries}
-							on:mount={(e) => handleMountCard(e.detail, episode)}
-							on:enter={(e) => {
+							onMounted={(e) => handleMountCard(e, episode)}
+							onEnter={(e) => {
 								scrollIntoView({ left: 128 })(e);
 								selectedSeason = episode.season_number;
 								selectedEpisode.set(episode);
 							}}
 							isWatched={userData?.watched || false}
 							progress={userData?.progress}
-							on:clickOrSelect={() =>
+							onClickOrSelect={() =>
 								onSelectEpisode(episode?.season_number ?? 1, episode.episode_number ?? 1)}
 						/>
 					{/key}

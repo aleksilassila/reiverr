@@ -1,44 +1,44 @@
-<svelte:options accessors />
-
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
-	import { Selectable, type EnterEvent, type NavigateEvent, type KeyEvent } from '../selectable';
+	import { onMount } from 'svelte';
+	import { Selectable } from '../selectable';
 	import classNames from 'classnames';
 	import type { ContainerProps } from './Container.type';
-	import type { Readable } from 'svelte/store';
-
-	type $$Props = ContainerProps;
 
 	/**
 	 * The basis for d-pad navigation. It's a mess, but it works™️
 	 */
 
-	const dispatch = createEventDispatcher<{
-		click: MouseEvent;
-		select: null;
-		clickOrSelect: Selectable;
-		enter: EnterEvent;
-		mount: Selectable;
-		navigate: NavigateEvent;
-		back: KeyEvent;
-		playPause: KeyEvent;
-		blur: Selectable;
-	}>();
+	let {
+		name = '',
+		direction = 'vertical',
+		gridCols = 0,
+		focusOnMount = false,
+		trapFocus = false,
+		debugOutline = false,
+		focusOnClick = false,
+		focusedChild = false,
+		index = undefined,
+		onLongPress = undefined,
+		disabled = false,
+		selectable: givenSelectable,
+		tag = 'div',
+		onEnter,
+		onNavigate,
+		onSelect,
+		onClickOrSelect,
+		onBack,
+		onPlayPause,
+		onMounted,
+		onBlur,
+		onclick,
+		children,
+		...rest
+	}: ContainerProps = $props();
 
-	export let name: Required<ContainerProps>['name'] = '';
-	export let direction: Required<ContainerProps>['direction'] = 'vertical';
-	export let gridCols: Required<ContainerProps>['gridCols'] = 0;
-	export let focusOnMount: Required<ContainerProps>['focusOnMount'] = false;
-	export let trapFocus: Required<ContainerProps>['trapFocus'] = false;
-	export let debugOutline: Required<ContainerProps>['debugOutline'] = false;
-	export let focusOnClick: Required<ContainerProps>['focusOnClick'] = false;
-	export let focusedChild: Required<ContainerProps>['focusedChild'] = false;
-	export let index: ContainerProps['index'] = undefined;
-	export let onLongPress: ContainerProps['onLongPress'] = undefined;
-
-	export let disabled = false;
-
-	export let selectable = new Selectable(name);
+	// Not the default of the prop: Svelte evaluates a default again when what it reads (the name) may
+	// have changed, and the cleanup of an unmounting container would get a selectable that is not in
+	// the tree
+	const selectable = givenSelectable ?? new Selectable(name);
 
 	selectable
 		.setDirection(direction === 'grid' ? 'horizontal' : direction)
@@ -49,7 +49,7 @@
 				options.propagate = false;
 			}
 
-			dispatch('enter', { selectable, options, stopPropagation });
+			onEnter?.({ selectable, options, stopPropagation });
 		})
 		.setOnNavigate((selectable, options, willLeaveContainer) => {
 			function preventNavigation() {
@@ -60,7 +60,7 @@
 				options.propagate = false;
 			}
 
-			dispatch('navigate', {
+			onNavigate?.({
 				selectable,
 				options,
 				willLeaveContainer,
@@ -70,12 +70,12 @@
 			});
 
 			if (willLeaveContainer) {
-				dispatch('blur', selectable);
+				onBlur?.(selectable);
 			}
 		})
 		.setOnSelect(() => {
-			dispatch('select');
-			dispatch('clickOrSelect', selectable);
+			onSelect?.();
+			onClickOrSelect?.(selectable);
 		})
 		.setOnBack((selectable, options) => {
 			function stopPropagation() {
@@ -86,7 +86,7 @@
 				options.propagate = true;
 			}
 
-			dispatch('back', { selectable, options, stopPropagation, bubble });
+			onBack?.({ selectable, options, stopPropagation, bubble });
 		})
 		.setOnPlayPause((selectable, options) => {
 			function stopPropagation() {
@@ -97,37 +97,42 @@
 				options.propagate = true;
 			}
 
-			dispatch('playPause', { selectable, options, stopPropagation, bubble });
+			onPlayPause?.({ selectable, options, stopPropagation, bubble });
 		})
 		.setAsFocusedChild(focusedChild);
 
-	export const hasFocus = selectable.hasFocus;
-	export const hasFocusWithin = selectable.hasFocusWithin;
-	export const focusIndex: Readable<number> = selectable.focusIndex;
-	export const activeChild = selectable.activeChild;
+	const hasFocus = selectable.hasFocus;
+	const hasFocusWithin = selectable.hasFocusWithin;
+	const focusIndex = selectable.focusIndex;
 	const registerer = selectable.createRegisterer();
 
-	export let tag: Required<ContainerProps>['tag'] = 'div';
+	// Before the DOM update, as `$:` ran: the selectable is configured before it mounts
+	$effect.pre(() => {
+		if (index !== undefined) selectable.updateIndex(index);
+	});
+	$effect.pre(() => {
+		selectable.setIsDisabled(disabled);
+	});
+	$effect.pre(() => {
+		selectable.setOnLongPress(onLongPress);
+	});
+	$effect.pre(() => {
+		selectable.setGridColumns(gridCols);
+	});
 
-	$: if (index !== undefined) selectable.updateIndex(index);
-
-	$: selectable.setIsDisabled(disabled);
-	$: selectable.setOnLongPress(onLongPress);
-	$: selectable.setGridColumns(gridCols);
-
-	function handleClick(e: MouseEvent) {
+	function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLElement }) {
 		if (focusOnClick) {
 			selectable.focus();
 		}
 
-		dispatch('click', e);
-		dispatch('clickOrSelect', selectable);
+		onclick?.(e as MouseEvent & { currentTarget: EventTarget & HTMLDivElement });
+		onClickOrSelect?.(selectable);
 	}
 
 	onMount(() => {
 		selectable._mountSelectable(focusOnMount);
 
-		dispatch('mount', selectable);
+		onMounted?.(selectable);
 
 		return () => {
 			selectable._unmountContainer();
@@ -137,23 +142,18 @@
 
 <svelte:element
 	this={tag}
-	on:click={handleClick}
-	on:mousemove
-	on:wheel
-	on:scroll
-	on:mouseenter
-	on:mouseleave
+	onclick={handleClick}
 	tabindex={disabled ? -1 : 0}
-	{...$$restProps}
-	class={classNames($$restProps.class, {
+	{...rest}
+	class={classNames(rest.class, {
 		'outline-none': debugOutline === false
 	})}
 	use:registerer
 >
-	<slot
-		hasFocus={$hasFocus}
-		hasFocusWithin={$hasFocusWithin}
-		focusIndex={$focusIndex}
-		{selectable}
-	/>
+	{@render children?.({
+		hasFocus: $hasFocus,
+		hasFocusWithin: $hasFocusWithin,
+		focusIndex: $focusIndex,
+		selectable
+	})}
 </svelte:element>

@@ -1,52 +1,73 @@
 <script lang="ts">
 	import Container from '../Container.svelte';
-	import type { Readable } from 'svelte/store';
 	import classNames from 'classnames';
 	import AnimatedSelection from '../AnimateScale.svelte';
-	import { type ComponentType, createEventDispatcher } from 'svelte';
-	import type { Selectable } from '../../selectable';
+	import type { Snippet } from 'svelte';
+	import { Selectable } from '../../selectable';
 	import { DotsVertical } from 'radix-icons-svelte';
 	import type { ContainerProps } from '../Container.type';
+	import type { IconComponent } from '../icon.type';
 
-	type $$Props = {
+	type Props = {
 		disabled?: boolean;
 		focusOnMount?: boolean;
 		focusedChild?: boolean;
 		type?: 'primary' | 'secondary' | 'primary-dark';
 		size?: 'md' | 'sm';
+		/** The first select arms the button, the second runs the action */
 		confirmDanger?: boolean;
+		/** Awaited with the button disabled while it runs */
 		action?: (() => Promise<any>) | null;
+		/** Adds a second button with a dots icon that runs this */
 		secondaryAction?: (() => Promise<any> | any) | null;
-		icon?: ComponentType;
-		iconAfter?: ComponentType;
-		iconAbsolute?: ComponentType;
+		icon?: IconComponent;
+		/** Which side of the label the icon is on */
+		iconPosition?: 'before' | 'after';
 		selectableDisabled?: boolean;
-	} & ContainerProps;
+		class?: ContainerProps['class'];
+		onclick?: ContainerProps['onclick'];
+		onSelect?: ContainerProps['onSelect'];
+		onEnter?: ContainerProps['onEnter'];
+		onMounted?: ContainerProps['onMounted'];
+		onClickOrSelect?: () => void;
+		children?: Snippet<[{ hasFocus: boolean; loading: boolean }]>;
+	};
 
-	const dispatch = createEventDispatcher<{ clickOrSelect: null }>();
+	let {
+		disabled = false,
+		focusOnMount = false,
+		focusedChild = false,
+		type = 'primary',
+		size = 'md',
+		confirmDanger = false,
+		action = null,
+		secondaryAction = null,
+		icon: Icon = undefined,
+		iconPosition = 'before',
+		selectableDisabled = false,
+		class: className = undefined,
+		onclick,
+		onSelect,
+		onEnter,
+		onMounted,
+		onClickOrSelect,
+		children
+	}: Props = $props();
 
-	export let disabled: Required<$$Props>['disabled'] = false;
-	export let focusOnMount: Required<$$Props>['focusOnMount'] = false;
-	export let focusedChild: Required<$$Props>['focusedChild'] = false;
-	export let type: Required<$$Props>['type'] = 'primary';
-	export let size: Required<$$Props>['size'] = 'md';
-	export let confirmDanger: Required<$$Props>['confirmDanger'] = false;
-	export let action: Required<$$Props>['action'] = null;
-	export let secondaryAction: Required<$$Props>['secondaryAction'] = null;
-	export let icon: $$Props['icon'] = undefined;
-	export let iconAfter: $$Props['iconAfter'] = undefined;
-	export let iconAbsolute: $$Props['iconAbsolute'] = undefined;
-	export let selectableDisabled: Required<$$Props>['selectableDisabled'] = false;
+	const selectable = new Selectable();
+	const hasFocus = selectable.hasFocus;
+	const secondarySelectable = new Selectable();
+	const hasSecondaryFocus = secondarySelectable.hasFocus;
 
-	let actionIsFetching = false;
-	$: _disabled = disabled || actionIsFetching;
-	let armed = false;
-	let hasFocus: Readable<boolean>;
-	let hasSecondaryFocus: Readable<boolean>;
-	$: if (!$hasFocus && armed) armed = false;
-	$: iconSize = size === 'md' ? 19 : 16;
+	let actionIsFetching = $state(false);
+	let _disabled = $derived(disabled || actionIsFetching);
+	let armed = $state(false);
+	$effect(() => {
+		if (!$hasFocus && armed) armed = false;
+	});
+	let iconSize = $derived(size === 'md' ? 19 : 16);
 
-	function handleClickOrSelect({ detail: selectable }: { detail: Selectable }) {
+	function handleClickOrSelect(selectable: Selectable) {
 		if (actionIsFetching || _disabled) return;
 
 		if (confirmDanger && !armed) {
@@ -60,7 +81,7 @@
 			action().then(() => (actionIsFetching = false));
 		}
 
-		dispatch('clickOrSelect');
+		onClickOrSelect?.();
 		armed = false;
 	}
 </script>
@@ -68,10 +89,10 @@
 <AnimatedSelection
 	hasFocus={$hasFocus || $hasSecondaryFocus}
 	enabled={!disabled}
-	class={classNames('inline-flex items-center font-medium tracking-wide ', {}, $$restProps.class)}
+	class={classNames('inline-flex items-center font-medium tracking-wide ', {}, className)}
 >
 	<Container
-		bind:hasFocus
+		{selectable}
 		class={classNames(
 			'flex-1 flex items-center group/button',
 			size === 'md' && 'h-12',
@@ -95,10 +116,11 @@
 				'!border-red-500': confirmDanger && armed
 			}
 		)}
-		on:click
-		on:select
-		on:clickOrSelect={handleClickOrSelect}
-		on:enter
+		{onclick}
+		{onSelect}
+		onClickOrSelect={handleClickOrSelect}
+		{onEnter}
+		{onMounted}
 		{focusOnMount}
 		{focusedChild}
 		disabled={selectableDisabled}
@@ -115,46 +137,25 @@
 				'!bg-red-500': confirmDanger && armed
 			})}
 		>
-			<div class="flex-1 text-center text-nowrap flex items-center justify-center relative">
-				{#if $$slots.icon}
+			<div class="flex-1 text-center text-nowrap flex items-center justify-center">
+				{#if Icon && iconPosition === 'before'}
 					<div class="mr-2">
-						<slot name="icon" />
+						<Icon size={iconSize} />
 					</div>
 				{/if}
-				{#if icon}
-					<div class="mr-2">
-						<svelte:component this={icon} size={iconSize} />
-					</div>
-				{/if}
-				<slot {hasFocus} loading={actionIsFetching} />
-				{#if $$slots['icon-after']}
+				{@render children?.({ hasFocus: $hasFocus, loading: actionIsFetching })}
+				{#if Icon && iconPosition === 'after'}
 					<div class="ml-2">
-						<slot name="icon-after" />
-					</div>
-				{/if}
-				{#if iconAfter}
-					<div class="ml-2">
-						<svelte:component this={iconAfter} size={iconSize} />
-					</div>
-				{/if}
-				{#if $$slots['icon-absolute']}
-					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
-						<slot name="icon-absolute" />
-					</div>
-				{/if}
-				{#if iconAbsolute}
-					<div class="w-8" />
-					<div class="absolute inset-y-0 right-0 flex items-center justify-center">
-						<svelte:component this={iconAbsolute} size={iconSize} />
+						<Icon size={iconSize} />
 					</div>
 				{/if}
 			</div>
 		</div>
 	</Container>
 	{#if secondaryAction !== null}
-		<div class="w-0.5 h-full bg-secondary-700" />
+		<div class="w-0.5 h-full bg-secondary-700"></div>
 		<Container
-			bind:hasFocus={hasSecondaryFocus}
+			selectable={secondarySelectable}
 			class={classNames('flex items-center group cursor-pointer', {
 				'rounded-r-xl h-12': size === 'md',
 				'rounded-r-lg h-9': size === 'sm',
@@ -165,7 +166,7 @@
 				'!border-red-500': confirmDanger && armed,
 				'cursor-not-allowed pointer-events-none opacity-40': _disabled
 			})}
-			on:clickOrSelect={secondaryAction}
+			onClickOrSelect={secondaryAction}
 		>
 			<DotsVertical size={18} class="" />
 		</Container>

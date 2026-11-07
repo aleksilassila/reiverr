@@ -29,17 +29,18 @@
 
 	const settingsQuery = usePageQuery(libraryQueries.settings());
 
-	let cleanupError = '';
+	let cleanupError = $state('');
 	/** What is typed into the disk limit field, until it is saved */
-	let diskLimitInput: string | undefined;
-	let diskLimitError = '';
+	let diskLimitInput: string | undefined = $state();
+	let diskLimitError = $state('');
 
-	$: settings = $settingsQuery.data;
-	$: savedDiskLimit =
+	let settings = $derived($settingsQuery.data);
+	let savedDiskLimit = $derived(
 		settings?.maxDiskUsagePercent === null || settings?.maxDiskUsagePercent === undefined
 			? ''
-			: String(settings.maxDiskUsagePercent);
-	$: diskLimit = diskLimitInput ?? savedDiskLimit;
+			: String(settings.maxDiskUsagePercent)
+	);
+	let diskLimit = $derived(diskLimitInput ?? savedDiskLimit);
 
 	const cleanupOptions: { label: string; value: LibrarySettingsDto['cleanup'] }[] = [
 		{ label: 'Off', value: 'off' },
@@ -157,22 +158,20 @@
 					<Container class="flex flex-col space-y-4 mb-4">
 						{#each paths as path (path)}
 							<SelectField
-								on:enter={scrollIntoView({ vertical: 128 })}
-								on:clickOrSelect={() => openFolder(group, path)}
+								onEnter={scrollIntoView({ vertical: 128 })}
+								onClickOrSelect={() => openFolder(group, path)}
 							>
-								<div slot="content" class="flex items-center">
-									{#if settings[group.key][path]?.primary}
-										<Check size={24} class="flex-shrink-0 mr-2" />
-									{/if}
-									<span class="line-clamp-1 break-all">{path}</span>
-								</div>
-								<ChevronRight
-									slot="icon"
-									let:size
-									let:iconClass
-									{size}
-									class={classNames(iconClass)}
-								/>
+								{#snippet content()}
+									<div class="flex items-center">
+										{#if settings[group.key][path]?.primary}
+											<Check size={24} class="flex-shrink-0 mr-2" />
+										{/if}
+										<span class="line-clamp-1 break-all">{path}</span>
+									</div>
+								{/snippet}
+								{#snippet icon({ size, iconClass })}
+									<ChevronRight {size} class={classNames(iconClass)} />
+								{/snippet}
 							</SelectField>
 						{/each}
 					</Container>
@@ -181,8 +180,8 @@
 				{/if}
 				<Button
 					icon={Plus}
-					on:enter={scrollIntoView({ vertical: 128 })}
-					on:clickOrSelect={() => addFolder(group)}
+					onEnter={scrollIntoView({ vertical: 128 })}
+					onClickOrSelect={() => addFolder(group)}
 				>
 					{group.add}
 				</Button>
@@ -194,8 +193,8 @@
 				name="Garbage collect files no one wants (at 4:00)"
 				options={cleanupOptions}
 				selected={settings.cleanup}
-				on:enter={scrollIntoView({ vertical: 128 })}
-				on:select={({ detail }) => saveCleanup(detail)}
+				onEnter={scrollIntoView({ vertical: 128 })}
+				onSelect={(e) => saveCleanup(e)}
 			/>
 			{#if cleanupError}
 				<p class="error mt-4">{cleanupError}</p>
@@ -207,8 +206,8 @@
 				type="number"
 				value={diskLimit}
 				placeholder="No limit"
-				on:enter={scrollIntoView({ vertical: 128 })}
-				on:change={({ detail }) => (diskLimitInput = detail)}
+				onEnter={scrollIntoView({ vertical: 128 })}
+				onChange={(e) => (diskLimitInput = e)}
 			>
 				Disk limit (percent of a disk in use, empty for no limit)
 			</TextField>
@@ -220,7 +219,7 @@
 			class="mt-4"
 			disabled={diskLimit === savedDiskLimit}
 			action={saveDiskLimit}
-			on:enter={scrollIntoView({ vertical: 128 })}
+			onEnter={scrollIntoView({ vertical: 128 })}
 		>
 			Save Disk Limit
 		</Button>

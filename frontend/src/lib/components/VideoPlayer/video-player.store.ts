@@ -136,7 +136,10 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 	});
 	const audioTracks = writable<{ current?: AudioTrack; tracks: AudioTrack[] }>({ tracks: [] });
 
-	const paused = writable(false);
+	// The element starts paused and `autoplay` starts it; the binding follows the element. Starting at
+	// false would have Svelte 5 call play() at mount, before the source is set, and the aborted play
+	// would pause the element again
+	const paused = writable(true);
 	const muted = writable(false);
 	const volume = writable(1);
 	const duration = writable(0);

@@ -4,10 +4,14 @@
 	import Button from './Button/Button.svelte';
 	import { createLocalStorageStore } from '../stores/localstorage.store';
 	import { sessions } from '../stores/session.store';
-	import { createEventDispatcher } from 'svelte';
+
 	import { PLATFORM_TV } from '$lib/constants';
 
-	const dispatch = createEventDispatcher<{ login: null }>();
+	interface Props {
+		onLogin?: () => void;
+	}
+
+	let { onLogin }: Props = $props();
 
 	// The TV packages serve the app from a local origin, which is no server
 	const baseUrl = createLocalStorageStore(
@@ -15,10 +19,10 @@
 		PLATFORM_TV ? '' : window.location.origin || ''
 	);
 	const name = createLocalStorageStore('username', '');
-	let password: string = '';
-	let error: string | undefined = undefined;
+	let password: string = $state('');
+	let error: string | undefined = $state(undefined);
 
-	let loading = false;
+	let loading = $state(false);
 
 	function handleLogin() {
 		loading = true;
@@ -32,7 +36,7 @@
 				} else if (res?.request.status !== 200) {
 					error = 'Error occurred: ' + res.request.statusText;
 				} else {
-					dispatch('login');
+					onLogin?.();
 				}
 			})
 			.catch((err: Error) => {
@@ -53,25 +57,20 @@
 	<TextField
 		variant="primary-dark"
 		value={$baseUrl}
-		on:change={(e) => baseUrl.set(e.detail)}
+		onChange={(e) => baseUrl.set(e)}
 		class="mb-4 w-full"
 	>
 		Server
 	</TextField>
 
-	<TextField
-		variant="primary-dark"
-		value={$name}
-		on:change={({ detail }) => name.set(detail)}
-		class="mb-4 w-full"
-	>
+	<TextField variant="primary-dark" value={$name} onChange={(e) => name.set(e)} class="mb-4 w-full">
 		Name
 	</TextField>
 	<TextField variant="primary-dark" bind:value={password} type="password" class="mb-8 w-full">
 		Password
 	</TextField>
 
-	<Button type="primary-dark" disabled={loading} on:clickOrSelect={handleLogin} class="mb-4 w-full">
+	<Button type="primary-dark" disabled={loading} onClickOrSelect={handleLogin} class="mb-4 w-full">
 		Submit
 	</Button>
 

@@ -1,12 +1,26 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import classNames from 'classnames';
 
-	export let src: string;
-	export let alt: string = '';
-	export let width: number | undefined = undefined;
-	export let height: number | undefined = undefined;
+	interface Props {
+		src: string;
+		alt?: string;
+		width?: number | undefined;
+		height?: number | undefined;
+		children?: Snippet;
+		class?: string;
+	}
 
-	let loaded = false;
+	let {
+		src,
+		alt = '',
+		width = undefined,
+		height = undefined,
+		children,
+		class: className
+	}: Props = $props();
+
+	let loaded = $state(false);
 
 	function handleLoad() {
 		loaded = true;
@@ -20,7 +34,7 @@
 			'opacity-0': !loaded,
 			'opacity-100': loaded
 		},
-		$$restProps.class
+		className
 	)}
 >
 	<img
@@ -28,10 +42,10 @@
 		{alt}
 		style="object-fit: cover; width: 100%; height: 100%;"
 		loading="lazy"
-		on:load={handleLoad}
+		onload={handleLoad}
 		{width}
 		{height}
 		draggable="false"
 	/>
-	<slot />
+	{@render children?.()}
 </div>

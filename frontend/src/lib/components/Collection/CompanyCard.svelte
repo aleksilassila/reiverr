@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { TMDB_IMAGES_ORIGINAL } from '$lib/constants';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
@@ -7,25 +8,30 @@
 	import { navigate } from '../StackRouter/stack-router.store';
 	import type { Company } from './collections';
 
-	export let company: Company;
+	interface Props {
+		onEnter?: ComponentProps<typeof Card>['onEnter'];
+		company: Company;
+	}
+
+	let { company, onEnter }: Props = $props();
 
 	const details = usePageQuery(tmdbQueries.company(company.id));
-	$: logoPath = $details.data?.logo_path;
-	$: backdropUrl = logoPath ? `${TMDB_IMAGES_ORIGINAL}${logoPath}` : undefined;
+	let logoPath = $derived($details.data?.logo_path);
+	let backdropUrl = $derived(logoPath ? `${TMDB_IMAGES_ORIGINAL}${logoPath}` : undefined);
 </script>
 
 <Card
 	orientation="landscape"
 	class="bg-primary-800"
-	on:clickOrSelect={() => navigate(`/company/${company.route}`)}
+	onClickOrSelect={() => navigate(`/company/${company.route}`)}
 	title={company.name}
-	on:enter
+	{onEnter}
 >
 	{#if backdropUrl}
 		<div
 			class={classNames('absolute inset-10 transition-colors m-6')}
 			style={`background-image: url('${backdropUrl}'); filter: grayscale(1) invert(1); background-size: contain; background-position: center; background-repeat: no-repeat;`}
-		/>
+		></div>
 	{:else}
 		<h1 class="text-center flex-1 h2 bg-primary-800 flex items-center justify-center">
 			{company.name}

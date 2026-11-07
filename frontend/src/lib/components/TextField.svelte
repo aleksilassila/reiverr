@@ -1,21 +1,41 @@
 <script lang="ts">
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import Container from './Container.svelte';
 	import type { FormEventHandler, HTMLInputTypeAttribute } from 'svelte/elements';
-	import { type ComponentType, createEventDispatcher } from 'svelte';
+	import { type Snippet } from 'svelte';
+	import type { IconComponent } from '$lib/components/icon.type';
 	import classNames from 'classnames';
 	import Spinner from './Utils/Spinner.svelte';
 	import { Check, Cross1 } from 'radix-icons-svelte';
 	import type { Selectable } from '../selectable';
 
-	export let value = '';
-	export let placeholder: string = '';
-	export let type: HTMLInputTypeAttribute = 'text';
-	/** The surface; `type` is the input's */
-	export let variant: 'primary' | 'primary-dark' = 'primary';
-	export let isValid: Promise<boolean> | boolean | undefined = undefined;
-	let icon: ComponentType | undefined = undefined;
+	interface Props {
+		onEnter?: ContainerProps['onEnter'];
+		onChange?: (detail: string) => void;
+		value?: string;
+		placeholder?: string;
+		type?: HTMLInputTypeAttribute;
+		/** The surface; `type` is the input's */
+		variant?: 'primary' | 'primary-dark';
+		isValid?: Promise<boolean> | boolean | undefined;
+		children?: Snippet;
+		class?: string;
+	}
 
-	$: {
+	let {
+		value = $bindable(''),
+		placeholder = '',
+		type = 'text',
+		variant = 'primary',
+		isValid = undefined,
+		children,
+		onChange,
+		onEnter,
+		class: className
+	}: Props = $props();
+	let icon: IconComponent | undefined = $state(undefined);
+
+	$effect(() => {
 		if (isValid instanceof Promise) {
 			icon = Spinner;
 			isValid.then((valid) => {
@@ -28,18 +48,15 @@
 		} else {
 			icon = undefined;
 		}
-	}
+	});
 
-	const dispatch = createEventDispatcher<{
-		change: string;
-	}>();
-	let input: HTMLInputElement;
+	let input: HTMLInputElement | undefined = $state();
 
 	const handleChange = (e: Event) => {
 		// @ts-ignore
 		value = e.target?.value;
 		// @ts-ignore
-		dispatch('change', e.target?.value);
+		onChange?.(e.target?.value);
 	};
 
 	// Navigating onto the field focuses the container, not the input, which on a TV
@@ -59,18 +76,18 @@
 </script>
 
 <Container
-	on:enter
-	on:clickOrSelect={({ detail }) => toggleEditing(detail)}
-	on:back={(e) => {
+	{onEnter}
+	onClickOrSelect={(e) => toggleEditing(e)}
+	onBack={(e) => {
 		if (!isEditing()) return;
-		e.detail.selectable.focus();
-		e.detail.stopPropagation();
+		e.selectable.focus();
+		e.stopPropagation();
 	}}
-	class={classNames('group flex flex-col', $$restProps.class)}
+	class={classNames('group flex flex-col', className)}
 	focusOnClick
 >
 	<label class="text-secondary-300 font-medium tracking-wide text-sm mb-1">
-		<slot>Label</slot>
+		{#if children}{@render children()}{:else}Label{/if}
 	</label>
 	<div class="relative flex flex-col">
 		<input
@@ -78,17 +95,17 @@
 				'bg-secondary-800': variant === 'primary',
 				'bg-primary-900': variant === 'primary-dark'
 			})}
-			on:blur
-			on:keydown={handleKeyDown}
+			onkeydown={handleKeyDown}
 			{type}
 			{value}
-			on:input={handleChange}
+			oninput={handleChange}
 			bind:this={input}
 			{placeholder}
 		/>
 		{#if icon}
+			{@const SvelteComponent = icon}
 			<div class="absolute inset-y-0 right-4 flex items-center justify-center">
-				<svelte:component this={icon} size={19} />
+				<SvelteComponent size={19} />
 			</div>
 		{/if}
 	</div>

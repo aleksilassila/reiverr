@@ -1,5 +1,6 @@
 // import { generateApi } from 'swagger-typescript-api';
 import './app.css';
+import { mount } from 'svelte';
 import App from './App.svelte';
 
 // if (import.meta.env.MODE === 'development') {
@@ -16,10 +17,6 @@ import App from './App.svelte';
 // 	});
 // }
 
-const app = new App({
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	// @ts-expect-error
-	target: document.getElementById('app')
-});
+const app = mount(App, { target: document.getElementById('app')! });
 
 export default app;

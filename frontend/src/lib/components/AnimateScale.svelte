@@ -1,15 +1,22 @@
 <script lang="ts">
+	import type { SvelteHTMLElements } from 'svelte/elements';
+	import type { Snippet } from 'svelte';
 	import classNames from 'classnames';
 	import { localSettings } from '../stores/localstorage.store';
 	import { inputMode } from '$lib/stores/input-mode.store';
 
-	export let hasFocus: boolean;
-	export let enabled = true;
-	$: useTransitions = $localSettings.useCssTransitions;
+	type Props = SvelteHTMLElements['div'] & {
+		hasFocus: boolean;
+		enabled?: boolean;
+		children?: Snippet;
+	};
+
+	let { hasFocus, enabled = true, children, ...rest }: Props = $props();
+	let useTransitions = $derived($localSettings.useCssTransitions);
 </script>
 
 <div
-	{...$$restProps}
+	{...rest}
 	style={useTransitions ? 'transition: transform 200ms; ' : ''}
 	class={classNames(
 		'relative',
@@ -18,8 +25,8 @@
 			'hover:scale-105': useTransitions && enabled
 			// 'transition-all': enabled
 		},
-		$$restProps.class
+		rest.class
 	)}
 >
-	<slot />
+	{@render children?.()}
 </div>

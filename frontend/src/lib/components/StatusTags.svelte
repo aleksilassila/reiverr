@@ -3,10 +3,15 @@
 	import type { MediaStatusTags } from './status-tags';
 	import Tag from './Tag.svelte';
 
-	export let tags: MediaStatusTags;
-	export let size: 'sm' | 'md' = 'md';
-	/** The side the tags are aligned to: the primary tag is at that edge */
-	export let direction: 'left' | 'right' = 'left';
+	interface Props {
+		tags: MediaStatusTags;
+		size?: 'sm' | 'md';
+		/** The side the tags are aligned to: the primary tag is at that edge */
+		direction?: 'left' | 'right';
+		class?: string;
+	}
+
+	let { tags, size = 'md', direction = 'left', class: className }: Props = $props();
 </script>
 
 <!-- The secondary tag is collapsed to its icon next to a primary one -->
@@ -15,7 +20,7 @@
 		class={classNames(
 			'flex items-center space-x-2',
 			{ 'flex-row-reverse space-x-reverse': direction === 'right' },
-			$$restProps.class
+			className
 		)}
 	>
 		{#if tags.primary}

@@ -21,17 +21,18 @@
 	import Accounts from './Accounts.SettingsPage.svelte';
 	import Downloads from './Downloads.SettingsPage.svelte';
 	import Library from './Library.SettingsPage.svelte';
-
-	enum Tabs {
-		Account,
-		Device,
-		Server
+	interface Props {
+		class?: string;
 	}
+
+	let { class: className }: Props = $props();
+
+	const Tabs = { Account: 0, Device: 1, Server: 2 } as const;
 
 	const tab = useTabs(Tabs.Device, { direction: 'vertical', remount: false });
 
-	let lastKeyCode = 0;
-	let lastKey = '';
+	let lastKeyCode = $state(0);
+	let lastKey = $state('');
 	const tizenMediaKey = '';
 
 	function handleLogOut() {
@@ -55,7 +56,7 @@
 </script>
 
 <svelte:window
-	on:keydown={(e) => {
+	onkeydown={(e) => {
 		lastKeyCode = e.keyCode;
 		lastKey = e.key;
 	}}
@@ -68,40 +69,8 @@
 	</div>
 	<div class="flex-1 flex mx-auto h-full w-full max-w-7xl items-start space-x-16">
 		<Container direction="vertical" class="space-y-4 h3 w-52 lg:w-72 flex flex-col *:flex-1">
-			<TabSelect tabValue={Tabs.Account} openTab={tab.openTab} let:hasFocus let:isActive>
-				<span
-					class={classNames(
-						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
-						{
-							'bg-secondary-800': isActive,
-							'text-secondary-400': !isActive,
-							'text-secondary-200': isActive && !hasFocus,
-							'text-primary-500': hasFocus
-						},
-						$$restProps.class
-					)}
-				>
-					Account
-				</span>
-			</TabSelect>
-			<TabSelect tabValue={Tabs.Device} openTab={tab.openTab} let:hasFocus let:isActive>
-				<span
-					class={classNames(
-						'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
-						{
-							'bg-secondary-800': isActive,
-							'text-secondary-400': !isActive,
-							'text-secondary-200': isActive && !hasFocus,
-							'text-primary-500': hasFocus
-						},
-						$$restProps.class
-					)}
-				>
-					Device
-				</span>
-			</TabSelect>
-			{#if $user?.isAdmin}
-				<TabSelect tabValue={Tabs.Server} openTab={tab.openTab} let:hasFocus let:isActive>
+			<TabSelect tabValue={Tabs.Account} openTab={tab.openTab}>
+				{#snippet children({ hasFocus, isActive })}
 					<span
 						class={classNames(
 							'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
@@ -111,23 +80,61 @@
 								'text-secondary-200': isActive && !hasFocus,
 								'text-primary-500': hasFocus
 							},
-							$$restProps.class
+							className
 						)}
 					>
-						Server
+						Account
 					</span>
+				{/snippet}
+			</TabSelect>
+			<TabSelect tabValue={Tabs.Device} openTab={tab.openTab}>
+				{#snippet children({ hasFocus, isActive })}
+					<span
+						class={classNames(
+							'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+							{
+								'bg-secondary-800': isActive,
+								'text-secondary-400': !isActive,
+								'text-secondary-200': isActive && !hasFocus,
+								'text-primary-500': hasFocus
+							},
+							className
+						)}
+					>
+						Device
+					</span>
+				{/snippet}
+			</TabSelect>
+			{#if $user?.isAdmin}
+				<TabSelect tabValue={Tabs.Server} openTab={tab.openTab}>
+					{#snippet children({ hasFocus, isActive })}
+						<span
+							class={classNames(
+								'flex items-center cursor-pointer py-3 px-6 w-full rounded-xl',
+								{
+									'bg-secondary-800': isActive,
+									'text-secondary-400': !isActive,
+									'text-secondary-200': isActive && !hasFocus,
+									'text-primary-500': hasFocus
+								},
+								className
+							)}
+						>
+							Server
+						</span>
+					{/snippet}
 				</TabSelect>
 			{/if}
 		</Container>
 
 		<TabContainer absolute>
-			<Tab {...tab} tab={Tabs.Account} class="space-y-16 pb-16">
-				<Container class="max-w-sm" on:enter={scrollIntoView({ top: 9999 })}>
+			<Tab {...tab.props} tab={Tabs.Account} class="space-y-16 pb-16">
+				<Container class="max-w-sm" onEnter={scrollIntoView({ top: 9999 })}>
 					<h1 class="h3 mb-8">My Profile</h1>
 					<SelectField
 						class="mb-4"
 						value={$user?.name || ''}
-						on:clickOrSelect={() => {
+						onClickOrSelect={() => {
 							const u = $user;
 							if (u)
 								createModal(EditProfileModal, {
@@ -136,32 +143,37 @@
 						}}
 					>
 						Logged in as
-						<Pencil2 slot="icon" let:size let:iconClass {size} class={classNames(iconClass)} />
+						{#snippet icon({ size, iconClass })}
+							<Pencil2 {size} class={classNames(iconClass)} />
+						{/snippet}
 					</SelectField>
 					<Container direction="horizontal" class="flex space-x-4">
-						<Button icon={Exit} on:clickOrSelect={handleLogOut}>Log Out</Button>
+						<Button icon={Exit} onClickOrSelect={handleLogOut}>Log Out</Button>
 					</Container>
 				</Container>
 
-				<Container class="max-w-sm" on:enter={scrollIntoView({ vertical: 64 })}>
+				<Container class="max-w-sm" onEnter={scrollIntoView({ vertical: 64 })}>
 					<h1 class="h3 mb-8">Tmdb Account</h1>
-					<TmdbIntegration let:connected>
-						{#if !connected}
-							<div class="flex space-x-4">
-								<Button
-									iconAfter={ArrowRight}
-									on:clickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
-								>
-									Connect
-								</Button>
-							</div>
-						{/if}
+					<TmdbIntegration>
+						{#snippet children({ connected })}
+							{#if !connected}
+								<div class="flex space-x-4">
+									<Button
+										icon={ArrowRight}
+										iconPosition="after"
+										onClickOrSelect={() => createModal(TmdbIntegrationConnectDialog, {})}
+									>
+										Connect
+									</Button>
+								</div>
+							{/if}
+						{/snippet}
 					</TmdbIntegration>
 				</Container>
 			</Tab>
 
-			<Tab {...tab} tab={Tabs.Device} class="space-y-16 pb-16">
-				<Container on:enter={scrollIntoView({ top: 9999 })}>
+			<Tab {...tab.props} tab={Tabs.Device} class="space-y-16 pb-16">
+				<Container onEnter={scrollIntoView({ top: 9999 })}>
 					<p class="body mb-8">These options are saved on this device and only apply to it.</p>
 					<div
 						class="flex items-center justify-between text-lg font-medium text-secondary-100 py-2"
@@ -169,8 +181,7 @@
 						<label class="mr-2">Animate scrolling</label>
 						<Toggle
 							checked={$localSettings.animateScrolling}
-							on:change={({ detail }) =>
-								localSettings.update((p) => ({ ...p, animateScrolling: detail }))}
+							onChange={(e) => localSettings.update((p) => ({ ...p, animateScrolling: e }))}
 						/>
 					</div>
 					<div
@@ -179,8 +190,7 @@
 						<label class="mr-2">Use CSS Transitions</label>
 						<Toggle
 							checked={$localSettings.useCssTransitions}
-							on:change={({ detail }) =>
-								localSettings.update((p) => ({ ...p, useCssTransitions: detail }))}
+							onChange={(e) => localSettings.update((p) => ({ ...p, useCssTransitions: e }))}
 						/>
 					</div>
 					<div
@@ -189,8 +199,7 @@
 						<label class="mr-2">Check for Updates</label>
 						<Toggle
 							checked={$localSettings.checkForUpdates}
-							on:change={({ detail }) =>
-								localSettings.update((p) => ({ ...p, checkForUpdates: detail }))}
+							onChange={(e) => localSettings.update((p) => ({ ...p, checkForUpdates: e }))}
 						/>
 					</div>
 					<div
@@ -199,8 +208,7 @@
 						<label class="mr-2">Enable Trailers</label>
 						<Toggle
 							checked={$localSettings.enableTrailers}
-							on:change={({ detail }) =>
-								localSettings.update((p) => ({ ...p, enableTrailers: detail }))}
+							onChange={(e) => localSettings.update((p) => ({ ...p, enableTrailers: e }))}
 						/>
 					</div>
 					<div
@@ -209,8 +217,7 @@
 						<label class="mr-2">Autoplay Trailers</label>
 						<Toggle
 							checked={$localSettings.autoplayTrailers}
-							on:change={({ detail }) =>
-								localSettings.update((p) => ({ ...p, autoplayTrailers: detail }))}
+							onChange={(e) => localSettings.update((p) => ({ ...p, autoplayTrailers: e }))}
 						/>
 					</div>
 				</Container>
@@ -237,8 +244,8 @@
 					{/if}
 					<div class="flex flex-col items-start space-y-4 mt-4">
 						<Button
-							on:clickOrSelect={handleLogOut}
-							on:enter={scrollIntoView({ vertical: 128 })}
+							onClickOrSelect={handleLogOut}
+							onEnter={scrollIntoView({ vertical: 128 })}
 							class="hover:bg-red-500"
 						>
 							Log Out
@@ -248,7 +255,7 @@
 			</Tab>
 
 			{#if $user?.isAdmin}
-				<Tab {...tab} tab={Tabs.Server} class="space-y-16 pb-16">
+				<Tab {...tab.props} tab={Tabs.Server} class="space-y-16 pb-16">
 					<Accounts />
 
 					<Downloads />
@@ -257,7 +264,7 @@
 
 					<div>
 						<h1 class="h3 mb-8">Metadata</h1>
-						<Button action={clearMetadataCache} on:enter={scrollIntoView({ vertical: 128 })}>
+						<Button action={clearMetadataCache} onEnter={scrollIntoView({ vertical: 128 })}>
 							Clear TMDB Cache
 						</Button>
 					</div>

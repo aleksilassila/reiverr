@@ -5,7 +5,11 @@
 	import { capitalize } from '$lib/utils';
 	import CollectionPage from './CollectionPage.svelte';
 
-	export let collection: string;
+	interface Props {
+		collection: string;
+	}
+
+	let { collection }: Props = $props();
 
 	const listId = collection.match(/^\d+$/) ? parseInt(collection) : collections[collection]?.id;
 	const collectionName = collections[collection]?.name ?? capitalize(collection);
@@ -20,5 +24,7 @@
 	title={collectionName}
 	subtitle="Collection"
 >
-	<div class="-translate-y-80" slot="footer" use:loadMore />
+	{#snippet footer()}
+		<div class="-translate-y-80" use:loadMore></div>
+	{/snippet}
 </CollectionPage>

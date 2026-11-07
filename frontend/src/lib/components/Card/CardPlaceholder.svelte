@@ -2,9 +2,13 @@
 	import classNames from 'classnames';
 	import { fade } from 'svelte/transition';
 
-	export let index = 0;
-	export let size: 'dynamic' | 'md' | 'lg' = 'md';
-	export let orientation: 'portrait' | 'landscape' = 'landscape';
+	interface Props {
+		index?: number;
+		size?: 'dynamic' | 'md' | 'lg';
+		orientation?: 'portrait' | 'landscape';
+	}
+
+	let { index = 0, size = 'md', orientation = 'landscape' }: Props = $props();
 </script>
 
 <div
@@ -20,4 +24,4 @@
 	style={'animation-delay: ' + ((index * 100) % 2000) + 'ms;'}
 	transition:fade|global
 	tabindex="0"
-/>
+></div>

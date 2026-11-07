@@ -7,5 +7,5 @@
 </script>
 
 <Dialog>
-	<TmdbIntegrationConnect on:connected={() => close()} />
+	<TmdbIntegrationConnect onConnected={() => close()} />
 </Dialog>

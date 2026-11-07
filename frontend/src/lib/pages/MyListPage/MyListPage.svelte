@@ -15,8 +15,8 @@
 <Container
 	class="pt-16 space-y-8 min-h-screen flex flex-col"
 	focusOnMount
-	on:mount={({ detail }) => {
-		const el = detail.getHtmlElement();
+	onMounted={(e) => {
+		const el = e.getHtmlElement();
 
 		if (el) {
 			scrollRegistrar(el);
@@ -26,23 +26,23 @@
 	<Container
 		direction="horizontal"
 		class="divider-lg pb-4 mx-32 mb-8 flex space-x-8"
-		on:blur={({ detail: selectable }) => {
+		onBlur={(selectable) => {
 			selectable.activateChild($tab);
 		}}
 	>
-		<TabItem class="text-4xl tracking-wider" selected={$tab === 0} on:select={() => tab.set(0)}>
+		<TabItem class="text-4xl tracking-wider" selected={$tab === 0} onSelect={() => tab.set(0)}>
 			Unwatched
 		</TabItem>
-		<TabItem class="text-4xl tracking-wider" selected={$tab === 1} on:select={() => tab.set(1)}>
+		<TabItem class="text-4xl tracking-wider" selected={$tab === 1} onSelect={() => tab.set(1)}>
 			Watched
 		</TabItem>
 	</Container>
 	<Container focusOnMount class="contents">
 		<TabContainer class="flex-1 flex *:flex-1">
-			<Tab class="h-full" tab={0} {...tab}>
+			<Tab class="h-full" tab={0} {...tab.props}>
 				<MyListTab status="unwatched" />
 			</Tab>
-			<Tab class="h-full" tab={1} {...tab}>
+			<Tab class="h-full" tab={1} {...tab.props}>
 				<MyListTab status="watched" />
 			</Tab>
 		</TabContainer>

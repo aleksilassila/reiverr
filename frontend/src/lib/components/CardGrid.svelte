@@ -1,18 +1,27 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { ContainerProps } from '$lib/components/Container.type';
 	import classNames from 'classnames';
 	import { getCardDimensions } from '../utils';
 	import Container from './Container.svelte';
 
-	export let orientation: 'portrait' | 'landscape' = 'portrait';
+	type Props = Omit<ContainerProps, 'children'> & {
+		orientation?: 'portrait' | 'landscape';
+		children?: Snippet<[{ columns: number }]>;
+	};
 
-	let cols = getCardDimensions({
-		viewportWidth: window.innerWidth,
-		orientation
-	}).columns;
+	let { orientation = 'portrait', children, ...rest }: Props = $props();
+
+	let cols = $state(
+		getCardDimensions({
+			viewportWidth: window.innerWidth,
+			orientation
+		}).columns
+	);
 </script>
 
 <svelte:window
-	on:resize={(e) =>
+	onresize={(e) =>
 		(cols = getCardDimensions({
 			viewportWidth: e.currentTarget.innerWidth,
 			orientation
@@ -20,15 +29,13 @@
 />
 
 <Container
-	{...$$restProps}
+	{...rest}
 	direction="grid"
 	gridCols={cols}
-	class={classNames('grid gap-x-8 gap-y-8', $$restProps.class)}
+	class={classNames('grid gap-x-8 gap-y-8', rest.class)}
 	style={`grid-template-columns: repeat(${cols}, minmax(0, 1fr));`}
-	on:mount
-	on:back
 >
-	<slot columns={cols} />
+	{@render children?.({ columns: cols })}
 </Container>
 
-<!--<svelte:window on:resize={calculateRows} />-->
+<!--<svelte:window onresize={calculateRows} />-->
