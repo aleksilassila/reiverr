@@ -1,0 +1,68 @@
+name: Build Android
+
+# Builds the Android TV app and signs it with the release key. When a release is published, the APK is attached
+# to it; a manual run only keeps it as an artifact of the run.
+#
+# Repository secrets (Settings > Secrets and variables > Actions):
+# - ANDROID_KEYSTORE_BASE64: the keystore as base64, `base64 -w0 android/keystore/reiverr.jks`
+# - ANDROID_KEYSTORE_PASSWORD: its password
+# Installed apps only take updates signed with the same key, so keep a copy of both outside GitHub.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The APK's version code comes from package.json, and an installed app only updates to a higher one
+      - name: Check the tag against package.json
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::The tag $TAG does not match the version $version in package.json"
+            exit 1
+          fi
+
+      # Without a keystore package.sh would make a new key, and installed apps could not update to the APK
+      - name: Write the keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::The ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD secrets are not set"
+            exit 1
+          fi
+          mkdir -p android/keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/keystore/reiverr.jks
+
+      - name: Build and sign
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: npm run build:android
+
+      - name: Keep as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: android/Reiverr.apk
+          archive: false
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" android/Reiverr.apk --clobber --repo "$GITHUB_REPOSITORY"

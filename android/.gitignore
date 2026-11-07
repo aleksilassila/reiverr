@@ -1,0 +1,12 @@
+/.gradle
+/.kotlin
+/.idea
+/build
+/app/build
+/local.properties
+*.iml
+
+# Made by package.sh
+/keystore
+/Reiverr.apk
+/Reiverr.apk.idsig

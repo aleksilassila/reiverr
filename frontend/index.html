@@ -22,6 +22,12 @@
 		<script>
 			document.documentElement.setAttribute('data-useragent', navigator.userAgent);
 			document.documentElement.setAttribute('data-platform', navigator.platform);
+			// The Android TV WebView would lay out at the TV's 960x540 dp. MainActivity fits this to the screen
+			if (navigator.userAgent.indexOf('AndroidTV') !== -1) {
+				document
+					.querySelector('meta[name="viewport"]')
+					.setAttribute('content', 'width=1920, user-scalable=no');
+			}
 		</script>
 	</head>
 	<body class="bg-secondary-900 min-h-screen text-white touch-manipulation relative -z-10">

@@ -22,3 +22,14 @@ wireguard
 data
 backend/downloads
 .claude
+
+# Android: build output, the keystore and the APK are not part of the image
+android/build
+android/app/build
+android/.gradle
+android/.kotlin
+android/.idea
+android/local.properties
+android/keystore
+android/Reiverr.apk
+android/Reiverr.apk.idsig

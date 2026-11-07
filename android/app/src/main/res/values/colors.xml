@@ -1,0 +1,4 @@
+<resources>
+    <!-- bg-secondary-900 of the frontend, hsl(40, 8%, 7%) -->
+    <color name="background">#131210</color>
+</resources>

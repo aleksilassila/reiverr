@@ -105,9 +105,11 @@ The `/data` volume holds the downloads (`/data/downloads`) and is meant to hold 
 
 #### Reiverr will be accessible via port 9494 by default.
 
-### Tizen / Samsung Smart TVs
+### Smart TVs
 
 To be able to use Reiverr on TVs, you'll **still need to host the backend server** on a separate device. See the above methods for instructions on how to set up the backend / web app.
+
+### Tizen / Samsung Smart TVs
 
 Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker image to build and install the application on tizen. To get started:
 
@@ -117,13 +119,30 @@ Easiest way to install reiverr on a Samsung Smart TV is to use a provided docker
 
 For troubleshooting and more detailed instructions, you can see [the repository](https://github.com/Georift/install-jellyfin-tizen) that this build method is based on. In case the installation requires custom certificates, refer to the above repository. Certificate password can be provided as secondary argument after the ip.
 
-If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
+### Android TV / Fire TV
 
-## Other Platforms
+The build has only been tested in an Android TV emulator. If you have a real TV, let me know if you run into issues.
 
-The roadmap includes plans to support the following platforms in the future:
+Each release has a ready-built `Reiverr.apk` on the [releases page](https://github.com/aleksilassila/reiverr/releases). Download it on the TV with a downloader app and allow that app to install unknown apps, or install it from a computer with `adb install -r Reiverr.apk`. Fire TV models running Vega OS (the Fire TV Stick 4K Select and some newer Fire TV Stick HD models) cannot install Android apps.
 
-- Android TV / WebOS
+In the emulator, files with Dolby (AC-3, E-AC-3) or DTS audio play without sound, and 10-bit HEVC (x265) video plays without a picture. If you try such files on a real TV, let me know how they play.
+
+To build the APK yourself, `npm run build:android` builds the app in Docker and writes `android/Reiverr.apk`, which can be sideloaded on an Android TV or Fire TV device, or installed in the Android TV emulator of Android Studio with `adb install -r android/Reiverr.apk` (from inside the emulator, a backend on the same computer is at `http://10.0.2.2:9494`). To install it on a TV over the network:
+
+1. Enable ADB debugging on the TV (Android TV: Settings > System > Developer options; Fire TV: Settings > My Fire TV > Developer options) and allow the connection on the TV when it asks
+2. Obtain your TV's IP address
+3. Run `npm run deploy:android <TV_IP>`
+
+With Docker Desktop, `npm run deploy:android host.docker.internal` installs into an emulator running on the same computer.
+
+The APK is signed with a key that is stored in `android/keystore/` on the first build. If you want to update the app, it needs to be signed with the same key. To sign with a keystore of your own, put it there as `reiverr.jks` and set `KEYSTORE_PASSWORD`. An APK you build is signed with a different key than the release APKs, so switching between the two means uninstalling the app first.
+
+## WebOS
+
+Planned
+
+> [!NOTE]
+> If you have any questions or run into issues or bugs, you can start a [discussion](https://github.com/aleksilassila/reiverr/discussions) or open an [issue](https://github.com/aleksilassila/reiverr/issues). If find a feature request that you'd like to see implemented, you can react to it with a thumbs up.
 
 # Post Installation
 

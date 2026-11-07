@@ -22,6 +22,8 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run start:dev --workspace=backend",
     "deploy:tizen": "docker build -f ./tizen/Dockerfile -t reiverr-tizen . && docker run --rm reiverr-tizen",
+    "build:android": "docker build -f ./android/Dockerfile -t reiverr-android . && docker run --rm -e KEYSTORE_PASSWORD -v \"$(pwd)/android:/out\" reiverr-android",
+    "deploy:android": "npm run build:android --",
     "test": "npm run test --workspace=frontend && npm run test --workspace=backend",
     "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
     "format": "npm run format --workspace=frontend && npm run format --workspace=backend",

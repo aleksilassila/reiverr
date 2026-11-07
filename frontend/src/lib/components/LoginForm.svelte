@@ -5,10 +5,15 @@
 	import { createLocalStorageStore } from '../stores/localstorage.store';
 	import { sessions } from '../stores/session.store';
 	import { createEventDispatcher } from 'svelte';
+	import { PLATFORM_TV } from '$lib/constants';
 
 	const dispatch = createEventDispatcher<{ login: null }>();
 
-	const baseUrl = createLocalStorageStore('baseUrl', window.location.origin || '');
+	// The TV packages serve the app from a local origin, which is no server
+	const baseUrl = createLocalStorageStore(
+		'baseUrl',
+		PLATFORM_TV ? '' : window.location.origin || ''
+	);
 	const name = createLocalStorageStore('username', '');
 	let password: string = '';
 	let error: string | undefined = undefined;

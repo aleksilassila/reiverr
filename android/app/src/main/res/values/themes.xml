@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.Reiverr" parent="android:Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+</resources>
