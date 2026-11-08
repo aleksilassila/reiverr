@@ -11,7 +11,7 @@ This project is still in early stages, and many features are still missing / bei
 
 > For the old, desktop-only version that connects to Jellyfin, Radarr and Sonarr, see [1.0 branch](https://github.com/aleksilassila/reiverr/tree/v1).
 
-<https://github.com/user-attachments/assets/ec2df6fd-6c06-47a3-9d1f-5ff16f424f04>
+![Reiverr demo](assets/reiverr-v3-demo.avif)
 
 # List of major features
 
