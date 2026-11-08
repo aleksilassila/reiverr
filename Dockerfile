@@ -38,6 +38,10 @@ FROM base as pre-production
 
 RUN npm run build
 
+# The frontend is bundled into backend/dist: the image needs only the
+# backend's runtime dependencies, compiled above
+RUN npm prune --omit=dev
+
 FROM node:24-alpine as production
 
 RUN mkdir -p /usr/src/app
