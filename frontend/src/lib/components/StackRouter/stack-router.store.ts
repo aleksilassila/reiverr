@@ -55,7 +55,8 @@ export interface CompStackPage extends Omit<CreateCompStackPage, 'component'> {
 }
 
 export interface CompStackForPageContext extends Readonly<CompStackPage> {
-	readonly root: Readable<Selectable | undefined>;
+	/** The selectable of the page's root container */
+	readonly root: Selectable;
 	readonly hasFocusWithin: Readable<boolean>;
 	/** Whether another route group covers the page; the queries of the page fetch while it does not */
 	readonly isHidden: Readable<boolean>;

@@ -1,4 +1,4 @@
-import type { EnterEvent, KeyEvent, NavigateEvent, Selectable } from '$lib/selectable';
+import type { Selectable, SelectableConfig } from '$lib/selectable';
 import type { Snippet } from 'svelte';
 import type { SvelteHTMLElements } from 'svelte/elements';
 
@@ -10,34 +10,25 @@ export type ContainerChildrenProps = {
 	selectable: Selectable;
 };
 
-export type ContainerProps = Omit<SvelteHTMLElements['div'], 'children'> & {
-	/** The selectable the container drives; a parent that reads its stores creates it and passes it here */
-	selectable?: Selectable;
-	name?: string;
-	direction?: 'vertical' | 'horizontal' | 'grid';
-	gridCols?: number;
-	focusOnMount?: boolean;
-	trapFocus?: boolean;
-	debugOutline?: boolean;
-	focusOnClick?: boolean;
-	focusedChild?: boolean;
-	disabled?: boolean;
-	tag?: string;
-	index?: number | undefined;
-	/** Called when enter is held down, instead of select */
-	onLongPress?: () => void;
-	/** The container or something in it got the focus */
-	onEnter?: (e: EnterEvent) => void;
-	onNavigate?: (e: NavigateEvent) => void;
-	/** Selected with the d-pad */
-	onSelect?: () => void;
-	/** Clicked with the mouse or selected with the d-pad */
-	onClickOrSelect?: (selectable: Selectable) => void;
-	onBack?: (e: KeyEvent) => void;
-	onPlayPause?: (e: KeyEvent) => void;
-	/** The selectable is mounted in the focus tree */
-	onMounted?: (selectable: Selectable) => void;
-	/** The focus left the container */
-	onBlur?: (selectable: Selectable) => void;
-	children?: Snippet<[ContainerChildrenProps]>;
-};
+export type ContainerProps = Omit<SvelteHTMLElements['div'], 'children'> &
+	SelectableConfig & {
+		/**
+		 * The selectable the container drives; a parent that reads its stores creates it and passes it
+		 * here. It lives as long as the container: a selectable is not given to a second container.
+		 */
+		selectable?: Selectable;
+		focusOnMount?: boolean;
+		focusOnClick?: boolean;
+		/**
+		 * The position of the container in a keyed list that can be reordered. The focus tree is put in
+		 * order when a container mounts, and a reordered list only moves elements: a change of the index
+		 * is what tells the container that it has moved.
+		 */
+		index?: number;
+		tag?: string;
+		/** Clicked with the mouse or selected with the d-pad */
+		onClickOrSelect?: (selectable: Selectable) => void;
+		/** The selectable is mounted in the focus tree */
+		onMounted?: (selectable: Selectable) => void;
+		children?: Snippet<[ContainerChildrenProps]>;
+	};

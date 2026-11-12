@@ -1,13 +1,12 @@
 <script lang="ts">
-	import type { ContainerProps } from '$lib/components/Container.type';
 	import classNames from 'classnames';
 	import { untrack } from 'svelte';
-	import type { NavigateEvent } from '../../selectable';
+	import type { NavigateEvent, Selectable } from '../../selectable';
 	import { formatSecondsToTime } from '../../utils';
 	import Container from '../Container.svelte';
 
 	interface Props {
-		onMounted?: ContainerProps['onMounted'];
+		selectable?: Selectable;
 		onJumpTo?: (detail: number) => void;
 		onPlay?: () => void;
 		onPause?: () => void;
@@ -29,7 +28,7 @@
 		onJumpTo,
 		onPlay,
 		onPause,
-		onMounted
+		selectable
 	}: Props = $props();
 
 	let displayTime = $state(currentTime);
@@ -102,7 +101,7 @@
 		focusOnMount
 		onNavigate={handleNavigateEvent}
 		onSelect={() => (paused ? onPlay : onPause)?.()}
-		{onMounted}
+		{selectable}
 	>
 		{#snippet children({ hasFocus })}
 			<div class="absolute inset-y-1 inset-x-2 rounded-full bg-zinc-300/50"></div>

@@ -19,7 +19,6 @@
 	import Container from '../Container.svelte';
 	import { navigate, stackRouter } from '../StackRouter/stack-router.store';
 	import { useTabs } from '../Tab/Tab';
-	import { sidebarRegistrar, unfocusSidebar } from './sidebar';
 
 	// Entries are addressed by their position in the sidebar, and Server is only rendered for admins
 	let Tabs = $derived({
@@ -106,14 +105,6 @@
 		'py-8 w-24 select-none'
 	)}
 	{selectable}
-	onNavigate={(e) => {
-		// if (e.direction === 'right') {
-		// 	e.preventNavigation();
-		// 	// unfocusSidebar();
-		// }
-	}}
-	onBack={() => unfocusSidebar()}
-	onMounted={sidebarRegistrar.registrar}
 	style={$visibleStyle}
 >
 	{#snippet children({ hasFocusWithin })}

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { Selectable } from '$lib/selectable';
 	import Container from '$lib/components/Container.svelte';
 	import {
-		globalBackground,
+		globalBackgroundSelectable,
 		topBackground,
 		unfocusGlobalBackground
 	} from '$lib/components/GlobalBackground/background-stack.store';
@@ -24,6 +24,11 @@
 
 	const selectable = new Selectable();
 	const hasFocus = selectable.hasFocusWithin;
+
+	onMount(() => {
+		globalBackgroundSelectable.set(selectable);
+		return () => globalBackgroundSelectable.set(undefined);
+	});
 
 	let autoplayVideo = $state(false);
 	// Not state: the effect below clears and sets it, and would re-run on its own write
@@ -63,7 +68,6 @@
 					e.stopPropagation();
 				}
 			}}
-			onMounted={globalBackground.registrar}
 		>
 			<!-- An each block over the one video, keyed by its id. Every change of the video makes a new
 				block, so that a video that comes back while the previous one fades out is not given the

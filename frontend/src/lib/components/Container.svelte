@@ -9,115 +9,69 @@
 	 */
 
 	let {
-		name = '',
-		direction = 'vertical',
-		gridCols = 0,
-		focusOnMount = false,
-		trapFocus = false,
-		debugOutline = false,
-		focusOnClick = false,
-		focusedChild = false,
-		index = undefined,
-		onLongPress = undefined,
+		name,
+		direction,
+		gridCols,
+		trapFocus,
 		disabled = false,
+		focusedChild,
+		focusOnMount = false,
+		focusOnClick = false,
+		index,
 		selectable: givenSelectable,
 		tag = 'div',
 		onEnter,
 		onNavigate,
-		onSelect,
-		onClickOrSelect,
-		onBack,
-		onPlayPause,
-		onMounted,
 		onBlur,
+		onSelect,
+		onLongPress,
+		onBack,
+		onClickOrSelect,
+		onMounted,
 		onclick,
 		children,
 		...rest
 	}: ContainerProps = $props();
 
-	// Not the default of the prop: Svelte evaluates a default again when what it reads (the name) may
-	// have changed, and the cleanup of an unmounting container would get a selectable that is not in
-	// the tree
-	const selectable = givenSelectable ?? new Selectable(name);
-
-	selectable
-		.setDirection(direction === 'grid' ? 'horizontal' : direction)
-		.setGridColumns(gridCols)
-		.setTrapFocus(trapFocus)
-		.setOnFocus((selectable, options) => {
-			function stopPropagation() {
-				options.propagate = false;
-			}
-
-			onEnter?.({ selectable, options, stopPropagation });
-		})
-		.setOnNavigate((selectable, options, willLeaveContainer) => {
-			function preventNavigation() {
-				options.preventNavigation = true;
-			}
-
-			function stopPropagation() {
-				options.propagate = false;
-			}
-
-			onNavigate?.({
-				selectable,
-				options,
-				willLeaveContainer,
-				preventNavigation,
-				stopPropagation,
-				direction: options.direction
-			});
-
-			if (willLeaveContainer) {
-				onBlur?.(selectable);
-			}
-		})
-		.setOnSelect(() => {
-			onSelect?.();
-			onClickOrSelect?.(selectable);
-		})
-		.setOnBack((selectable, options) => {
-			function stopPropagation() {
-				options.propagate = false;
-			}
-
-			function bubble() {
-				options.propagate = true;
-			}
-
-			onBack?.({ selectable, options, stopPropagation, bubble });
-		})
-		.setOnPlayPause((selectable, options) => {
-			function stopPropagation() {
-				options.propagate = false;
-			}
-
-			function bubble() {
-				options.propagate = true;
-			}
-
-			onPlayPause?.({ selectable, options, stopPropagation, bubble });
-		})
-		.setAsFocusedChild(focusedChild);
+	// Not the default of the prop: Svelte evaluates a default again when what it reads may have
+	// changed, and the cleanup of an unmounting container would get a selectable that is not in the
+	// tree
+	const selectable = givenSelectable ?? new Selectable();
 
 	const hasFocus = selectable.hasFocus;
 	const hasFocusWithin = selectable.hasFocusWithin;
 	const focusIndex = selectable.focusIndex;
 	const registerer = selectable.createRegisterer();
 
-	// Before the DOM update, as `$:` ran: the selectable is configured before it mounts
+	// Before the DOM update, as `$:` ran: the selectable is configured before it mounts, and again
+	// when a prop changes
 	$effect.pre(() => {
-		if (index !== undefined) selectable.updateIndex(index);
+		selectable.configure({
+			name,
+			direction,
+			gridCols,
+			trapFocus,
+			disabled,
+			focusedChild,
+			onEnter,
+			onNavigate,
+			onBlur,
+			onLongPress,
+			onBack,
+			onSelect: (selectable) => {
+				onSelect?.(selectable);
+				onClickOrSelect?.(selectable);
+			}
+		});
 	});
-	$effect.pre(() => {
-		selectable.setIsDisabled(disabled);
-	});
-	$effect.pre(() => {
-		selectable.setOnLongPress(onLongPress);
-	});
-	$effect.pre(() => {
-		selectable.setGridColumns(gridCols);
+
+	// A keyed list that is reordered moves the elements of its items, and nothing mounts. Their index
+	// changes then, and the tree takes the order of the document again
+	let sortedAtIndex = index;
+	$effect(() => {
+		if (index === sortedAtIndex) return;
+		sortedAtIndex = index;
+		selectable.sortSiblings();
 	});
 
 	function handleClick(e: MouseEvent & { currentTarget: EventTarget & HTMLElement }) {
@@ -140,14 +94,14 @@
 	});
 </script>
 
+<!-- Not a plain element: Svelte runs the action of a svelte:element before those of the containers
+     inside it, which then find this one as their parent, and of a plain element after them -->
 <svelte:element
 	this={tag}
 	onclick={handleClick}
 	tabindex={disabled ? -1 : 0}
 	{...rest}
-	class={classNames(rest.class, {
-		'outline-none': debugOutline === false
-	})}
+	class={classNames(rest.class, 'outline-none')}
 	use:registerer
 >
 	{@render children?.({

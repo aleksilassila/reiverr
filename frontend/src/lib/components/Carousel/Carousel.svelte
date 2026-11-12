@@ -38,11 +38,12 @@
 		scrollIndexes = false,
 		children: content,
 		onScrollIndex,
+		selectable: givenSelectable,
 		...rest
 	}: Props = $props();
 
 	let carousel: HTMLDivElement | undefined = $state();
-	const selectable = new Selectable();
+	const selectable = givenSelectable ?? new Selectable();
 	let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
 	let scrollIndex = 0;
 	let scrollPastWidth = $state(0);

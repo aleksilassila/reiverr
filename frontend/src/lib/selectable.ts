@@ -1,89 +1,60 @@
 import { derived, get, type Readable, type Writable, writable } from 'svelte/store';
 import { type Offsets, scrollElementIntoView } from './scroll-into-view';
 
-export type Registerer = (htmlElement: HTMLElement) => void;
-export type Registrar = (selectable: Selectable) => () => void;
-
 export type Direction = 'up' | 'down' | 'left' | 'right';
-export type FlowDirection = 'vertical' | 'horizontal';
+type FlowDirection = 'vertical' | 'horizontal';
 
 type FocusEventOptions = {
+	/** Whether the browser's focus moves too, and to which element in place of the selectable's own */
 	setFocusedElement: boolean | HTMLElement;
 	propagate: boolean;
-	/** Will attempt to set foucus index of every component between the old and new focued object to avoid jumps in focus when navigating */
-	cycleTo?: boolean;
-	onFocus?: (
-		superOnFocus: FocusHandler,
-		...args: Parameters<FocusHandler>
-	) => ReturnType<FocusHandler>;
 };
 
-export type EnterEvent = {
+/** An event that goes up the tree, from the focused selectable to the root, until a handler stops it */
+type PropagatingEvent = {
+	/** The selectable whose handler is called */
 	selectable: Selectable;
-	options: FocusEventOptions;
+	/** Keeps the event from the selectables above */
 	stopPropagation: () => void;
 };
 
-type NavigateEventOptions = {
-	target?: Selectable;
-	preventNavigation: boolean;
-	propagate: boolean;
-	direction: Direction;
+export type EnterEvent = PropagatingEvent & {
+	/** The element the browser focuses in place of the focused selectable's own */
+	focusElement: (element: HTMLElement) => void;
 };
 
-export type NavigateEvent = {
-	selectable: Selectable;
+export type NavigateEvent = PropagatingEvent & {
 	direction: Direction;
+	/** Whether the focus leaves the selectable whose handler is called */
 	willLeaveContainer: boolean;
-	options: NavigateEventOptions;
 	preventNavigation: () => void;
-	stopPropagation: () => void;
 };
 
-type KeyEventOptions = {
-	propagate: boolean;
-	target: Selectable;
+export type KeyEvent = PropagatingEvent;
+
+/**
+ * What a Container tells its selectable, under the names of the Container's props. The handlers of
+ * the events that go up the tree get the event, the others the selectable.
+ */
+export type SelectableConfig = {
+	name?: string;
+	direction?: FlowDirection | 'grid';
+	gridCols?: number;
+	trapFocus?: boolean;
+	disabled?: boolean;
+	focusedChild?: boolean;
+	/** The selectable or something in it got the focus */
+	onEnter?: (e: EnterEvent) => void;
+	/** The d-pad moves the focus from the selectable or from something in it */
+	onNavigate?: (e: NavigateEvent) => void;
+	/** The d-pad moves the focus out of the selectable; not called when the focus leaves another way */
+	onBlur?: (selectable: Selectable) => void;
+	/** Selected with the d-pad */
+	onSelect?: (selectable: Selectable) => void;
+	/** Called when enter is held down, instead of select */
+	onLongPress?: (selectable: Selectable) => void;
+	onBack?: (e: KeyEvent) => void;
 };
-
-export type KeyEvent = {
-	selectable: Selectable;
-	options: KeyEventOptions;
-	stopPropagation: () => void;
-	bubble: () => void;
-};
-
-export type FocusHandler = (selectable: Selectable, options: FocusEventOptions) => void;
-export type NavigationHandler = (
-	selectable: Selectable,
-	options: NavigateEventOptions,
-	willLeaveContainer: boolean
-) => void;
-export type KeyEventHandler = (selectable: Selectable, options: KeyEventOptions) => void;
-
-enum FocusOrder {
-	First,
-	Last
-}
-
-const createFocusHandlerOptions = (): FocusEventOptions => ({
-	setFocusedElement: true,
-	propagate: true
-});
-
-const createNavigateHandlerOptions = (
-	target: Selectable | undefined,
-	direction: Direction
-): NavigateEventOptions => ({
-	target,
-	preventNavigation: false,
-	propagate: true,
-	direction
-});
-
-const createKeyEventOptions = (target: Selectable): KeyEventOptions => ({
-	propagate: true,
-	target
-});
 
 /**
  * Whether the focus follows the mouse: on from a mouse button or the wheel, off from the arrow keys.
@@ -98,7 +69,6 @@ export function setMouseMode(next: boolean) {
 }
 
 export class Selectable {
-	id: number;
 	name: string;
 	private parent?: Selectable;
 	private children: Selectable[] = [];
@@ -108,27 +78,23 @@ export class Selectable {
 	private trapFocus: boolean = false;
 	private disabled: boolean = true;
 
-	private onNavigate: NavigationHandler = () => {};
-	private onFocus: FocusHandler = () => {};
-	private onBack: KeyEventHandler = () => {};
-	private onPlayPause: KeyEventHandler = () => {};
-	private onSelect?: () => void;
-	private onLongPress?: () => void;
+	private onEnter: SelectableConfig['onEnter'];
+	private onNavigate: SelectableConfig['onNavigate'];
+	private onBlur: SelectableConfig['onBlur'];
+	private onSelect: SelectableConfig['onSelect'];
+	private onLongPress: SelectableConfig['onLongPress'];
+	private onBack: SelectableConfig['onBack'];
 
 	private direction: FlowDirection = 'vertical';
 	private gridColumns: number = 0;
 	private _removedChildrenCount: number = 0;
 	private _addChildCount = 0;
 
-	private static _initializationStack: Selectable[] = [];
 	private static _childrenToRemove: Selectable[] = [];
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
 	focusIndex: Writable<number> = writable(0);
-	activeChild = derived(this.focusIndex, (focusIndex) => {
-		return this.children[focusIndex];
-	});
 	hasFocus: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
 		return $focusedObject === this;
 	});
@@ -151,38 +117,73 @@ export class Selectable {
 	static rootObjectsStack: Selectable[] = [];
 
 	constructor(name: string = '') {
-		this.id = Math.floor(Math.random() * 1000000);
 		this.name = name;
 	}
 
-	setDirection(direction: FlowDirection) {
-		this.direction = direction;
-		return this;
+	/**
+	 * Called by the Container that drives the selectable, with all of its props at once: what is left
+	 * out goes back to its default. A selectable is disabled until its Container configures it.
+	 */
+	configure(config: SelectableConfig) {
+		this.name = config.name || this.name;
+		this.direction = config.direction === 'grid' ? 'horizontal' : (config.direction ?? 'vertical');
+		this.gridColumns = config.gridCols ?? 0;
+		this.trapFocus = config.trapFocus ?? false;
+		this.disabled = config.disabled ?? false;
+		this.makeFocusedChild = config.focusedChild ?? false;
+		this.onEnter = config.onEnter;
+		this.onNavigate = config.onNavigate;
+		this.onBlur = config.onBlur;
+		this.onSelect = config.onSelect;
+		this.onLongPress = config.onLongPress;
+		this.onBack = config.onBack;
 	}
 
-	setHtmlElement(htmlElement: HTMLElement) {
-		this.htmlElement = htmlElement;
-		Selectable.objects.set(htmlElement, this);
-		return this;
-	}
+	/**
+	 * Called when the element of the selectable may have moved among its siblings without mounting, as
+	 * the items of a keyed list do when the list is reordered. The selectables of the parent take the
+	 * order of the document again, and the focus index stays on the child it was on.
+	 */
+	sortSiblings() {
+		const parent = this.parent;
+		if (!parent) return;
 
-	updateIndex(index: number) {
-		if (this.parent && index > -1 && index < this.parent.children.length) {
-			const oldIndex = this.parent.children.indexOf(this);
-			const other = this.parent.children[index];
-			if (oldIndex !== -1 && other) {
-				this.parent.children[oldIndex] = other;
-				this.parent.children[index] = this;
-			}
-		}
+		const follows = (a: Selectable, b: Selectable) => {
+			if (!a.htmlElement || !b.htmlElement) return false;
+			const position = b.htmlElement.compareDocumentPosition(a.htmlElement);
+			return (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+		};
+
+		// A selectable on its way out keeps its place until the teardown ends: its element is detached
+		const mounted = parent.children.filter((child) => !child.didUnmount);
+		if (!mounted.some((child, index) => index > 0 && follows(mounted[index - 1]!, child))) return;
+
+		const focusIndex = get(parent.focusIndex);
+		const focusedChild = parent.children[focusIndex];
+		// A container that has not had the focus yet is still entered at its first child
+		const followFocusedChild = focusIndex > 0 || (focusedChild && get(focusedChild.hasFocusWithin));
+
+		mounted.sort((a, b) => (follows(a, b) ? 1 : -1));
+		let next = 0;
+		parent.children = parent.children.map((child) => (child.didUnmount ? child : mounted[next++]!));
+
+		if (focusedChild && followFocusedChild)
+			parent.focusIndex.set(parent.children.indexOf(focusedChild));
 	}
 
 	focus(options: Partial<FocusEventOptions> = {}) {
 		function propagateFocusUpdates(options: FocusEventOptions, selectable: Selectable) {
-			if (options.propagate && options.onFocus)
-				options.onFocus(selectable.onFocus, selectable, options);
-			else if (options.propagate && !get(selectable.hasFocusWithin))
-				selectable.onFocus(selectable, options);
+			if (options.propagate && !get(selectable.hasFocusWithin)) {
+				selectable.onEnter?.({
+					selectable,
+					stopPropagation: () => {
+						options.propagate = false;
+					},
+					focusElement: (element) => {
+						if (options.setFocusedElement) options.setFocusedElement = element;
+					}
+				});
+			}
 
 			const parent = selectable.parent;
 
@@ -193,24 +194,6 @@ export class Selectable {
 					parent.focusIndex.update((prev) => (index === -1 ? prev : index));
 
 					propagateFocusUpdates(options, parent);
-				}
-			}
-		}
-
-		function recursiveSetFocusIndex(
-			_this: Selectable,
-			direction: FlowDirection,
-			order: FocusOrder
-		) {
-			for (const child of _this.children) {
-				recursiveSetFocusIndex(child, direction, order);
-			}
-
-			if (_this.direction === direction || _this.gridColumns) {
-				if (order === FocusOrder.First) {
-					_this.focusIndex.set(0);
-				} else {
-					_this.focusIndex.set(_this.children.length - 1);
 				}
 			}
 		}
@@ -242,64 +225,8 @@ export class Selectable {
 		}
 
 		if (this.htmlElement) {
-			const _options: FocusEventOptions = {
-				...createFocusHandlerOptions(),
-				...options
-			};
+			const _options: FocusEventOptions = { setFocusedElement: true, propagate: true, ...options };
 			propagateFocusUpdates(_options, this);
-
-			if (_options.cycleTo) {
-				const previouslyFocused = get(Selectable.focusedObject);
-				if (previouslyFocused) {
-					const parents = this.getParents();
-					const otherParents = [];
-					let commonParent: Selectable | undefined = undefined;
-
-					let el = previouslyFocused;
-					while (el) {
-						const parent = el.parent;
-						if (parent) otherParents.push(parent);
-						if (parent && parents.includes(parent)) {
-							commonParent = parent;
-							// const thisBeforeParent = parents[parents.indexOf(commonParent) - 1];
-							// after = thisBeforeParent
-							// 	? parent.children.indexOf(el) < parent.children.indexOf(thisBeforeParent)
-							// 	: false;
-							// thatChild = parents[parents.indexOf(commonParent) - 1];
-							break;
-						} else if (parent) {
-							el = parent;
-						} else break;
-					}
-
-					if (commonParent) {
-						const targetChild = parents[parents.indexOf(commonParent) - 1];
-						const previousChild = otherParents[otherParents.indexOf(commonParent) - 1];
-
-						let order: FocusOrder | undefined = undefined;
-						const direction = commonParent.direction;
-						for (const child of commonParent.children) {
-							if (child === targetChild) {
-								if (order !== undefined) {
-									break;
-								}
-								order = FocusOrder.First;
-								continue;
-							} else if (child === previousChild) {
-								if (order !== undefined) {
-									recursiveSetFocusIndex(child, direction, order);
-									break;
-								}
-								order = FocusOrder.Last;
-							}
-
-							if (order !== undefined) {
-								recursiveSetFocusIndex(child, direction, order);
-							}
-						}
-					}
-				}
-			}
 
 			if (_options.setFocusedElement) {
 				if (_options.setFocusedElement === true) {
@@ -362,7 +289,7 @@ export class Selectable {
 		return !this.disabled;
 	}
 
-	private giveFocus(direction: Direction, fireActions: boolean = true): boolean {
+	private giveFocus(direction: Direction): boolean {
 		function getSelectable(selectable: Selectable): {
 			target?: Selectable;
 			cycledParent?: Selectable;
@@ -411,91 +338,54 @@ export class Selectable {
 			return {};
 		}
 
-		function propagateNavigationEvent(
-			selectable: Selectable,
-			options: NavigateEventOptions,
-			cycledParent?: Selectable
-		) {
+		const options = { preventNavigation: false, propagate: true };
+
+		function propagateNavigationEvent(selectable: Selectable, cycledParent?: Selectable) {
 			const willLeaveContainer = cycledParent ? cycledParent !== selectable : false;
-			selectable.onNavigate(selectable, options, willLeaveContainer);
+			selectable.onNavigate?.({
+				selectable,
+				direction,
+				willLeaveContainer,
+				preventNavigation: () => {
+					options.preventNavigation = true;
+				},
+				stopPropagation: () => {
+					options.propagate = false;
+				}
+			});
+			if (willLeaveContainer) selectable.onBlur?.(selectable);
 
 			if (options.propagate && selectable.parent) {
-				propagateNavigationEvent(
-					selectable.parent,
-					options,
-					willLeaveContainer ? cycledParent : undefined
-				);
+				propagateNavigationEvent(selectable.parent, willLeaveContainer ? cycledParent : undefined);
 			}
 		}
 
 		const { target, cycledParent } = getSelectable(this);
-		const navigationEventOptions = createNavigateHandlerOptions(target, direction);
-		if (fireActions) propagateNavigationEvent(this, navigationEventOptions, cycledParent);
+		propagateNavigationEvent(this, cycledParent);
 
-		if (target && !navigationEventOptions.preventNavigation) {
+		if (target && !options.preventNavigation) {
 			target.focus();
 			return true;
 		}
 
-		if (navigationEventOptions.preventNavigation) return true;
+		if (options.preventNavigation) return true;
 
 		return false;
 	}
 
-	static giveFocus(direction: Direction, fireActions?: boolean) {
+	static giveFocus(direction: Direction) {
 		const currentlyFocusedObject = get(Selectable.focusedObject);
-		return currentlyFocusedObject?.giveFocus(direction, fireActions);
+		return currentlyFocusedObject?.giveFocus(direction);
 	}
 
 	/**
-	 * Components are mounted in reverse order, such that a child and its siblings are mounted before the parent.
-	 * This function initializes the parent-child tree structure by iterating through the initialization stack,
-	 * adding children under their parents. This is done in the registration phase, before anything is mounted to
-	 * the DOM (before onMount is called on these elements). The output is a set of parent root nodes (usually
-	 * just one), that will be mounted to the dom.
-	 *
-	 * See {@link finalizeTreeStructure} for the finalization
+	 * Attaches the selectable to the container its element is in, after the siblings that precede it
+	 * in the document, or makes it a root. Called from the action of the element, which Svelte 5 runs
+	 * with the element in the document and, for a `<svelte:element>`, before the actions of the
+	 * containers inside it: the parent is in the tree by then. On a plain element the actions inside
+	 * would run first and find no parent.
 	 */
-	private static initializeTreeStructure() {
-		for (let i = 0; i < Selectable._initializationStack.length; i++) {
-			const selectable = Selectable._initializationStack[i];
-			const htmlElement = selectable?.getHtmlElement();
-
-			const previousSelectable = Selectable._initializationStack[i - 1];
-			const previousHtmlElement = previousSelectable?.getHtmlElement();
-
-			const isParent =
-				htmlElement && previousHtmlElement && htmlElement.contains(previousHtmlElement);
-			if (isParent && selectable && previousSelectable && htmlElement && previousHtmlElement) {
-				// Add all previous elements as children
-				for (let j = i - 1; j >= 0; j--) {
-					const potentialChild = Selectable._initializationStack[j];
-					if (potentialChild && htmlElement.contains(potentialChild.htmlElement || null)) {
-						selectable.addChild(potentialChild, undefined, true);
-						Selectable._initializationStack.splice(j, 1);
-						i = j;
-					} else break;
-				}
-			}
-		}
-	}
-
-	/**
-	 * For tree structure initialization, see {@link initializeTreeStructure}.
-	 *
-	 * This function iterates through the root nodes, created in the initialization phase, that are to be mounted
-	 * to the DOM. It adds the to-be-mounted root elements as children to the already mounted parent elements.
-	 *
-	 * The initialization and finalization phases must be separated, because when a new selectable is registered
-	 * and assigned a htmlElement, its to-be-parent selectable hasn't been assigned a htmlElement yet. As a result,
-	 * when a html element is registered to a selectable, we don't know if that selectable is the last parent (root)
-	 * that will be mounted, or if there's more parents that hasn't been initialized yet, hence we can't attach it
-	 * to already mounted parent. The solution is to first create the parent-child structure of to-be-mounted elements
-	 * using [Svelte Actions](https://svelte.dev/docs/svelte-action) (initialization), and when the first element
-	 * mounts (onMount is called), we have all to-be-mounted elements and can attach them to the already mounted
-	 * parent elements (finalization).
-	 */
-	private static finalizeTreeStructure() {
+	private attach() {
 		const getParentSelectable = (htmlElement: HTMLElement): Selectable | undefined => {
 			if (Selectable.objects.get(htmlElement)) return Selectable.objects.get(htmlElement);
 			else if (htmlElement.parentElement) return getParentSelectable(htmlElement.parentElement);
@@ -574,50 +464,35 @@ export class Selectable {
 			return previousSibling;
 		};
 
-		let childToFocus: Selectable | undefined = undefined;
+		const htmlElement = this.htmlElement;
+		const parentSelectable = htmlElement?.parentElement
+			? getParentSelectable(htmlElement.parentElement)
+			: undefined;
 
-		for (const child of this._initializationStack) {
-			const htmlElement = child.htmlElement;
-			const parentSelectable = htmlElement?.parentElement
-				? getParentSelectable(htmlElement.parentElement)
-				: undefined;
+		if (parentSelectable) {
+			const previousSibling = getPreviousSibling(parentSelectable, this);
+			const childToFocus = parentSelectable.addChild(this, previousSibling);
 
-			if (parentSelectable) {
-				const previousSibling = getPreviousSibling(parentSelectable, child);
+			console.debug(
+				'Attached child to parent',
+				this,
+				parentSelectable,
+				'previousSibling',
+				previousSibling
+			);
 
-				const toFocus = parentSelectable.addChild(child, previousSibling);
-				if (toFocus) childToFocus = toFocus;
-
-				console.debug(
-					'Attached child tree to parent',
-					child,
-					parentSelectable,
-					'previousSibling',
-					previousSibling
-				);
-			} else {
-				console.warn('Could not attach child (probably root)', child);
-				Selectable.rootObjectsStack.push(child);
-				child.focus();
-			}
+			if (childToFocus?.parent && get(childToFocus.parent.hasFocusWithin)) childToFocus.focus();
+		} else {
+			console.warn('Could not attach child (probably root)', this);
+			Selectable.rootObjectsStack.push(this);
+			this.focus();
 		}
-
-		if (childToFocus?.parent && get(childToFocus.parent.hasFocusWithin)) childToFocus.focus();
-		// if (childToFocus) console.log("Focusing child that's being added", childToFocus);
-		// childToFocus?.focus();
-
-		Selectable._initializationStack = [];
 	}
 
 	/**
-	 * Attaches new selectable to an existing, already mounted parent selectable.
-	 * See {@link finalizeTreeStructure} for more information.
+	 * Called from the container's onMount, when the containers inside it are in the tree.
 	 */
 	_mountSelectable(focusOnMount: boolean = false) {
-		// console.debug('Mounting', this, Selectable._initializationStack.slice());
-
-		Selectable.finalizeTreeStructure();
-
 		if (!get(this.hasFocusWithin) && this.isFocusable() && focusOnMount) {
 			this.focus(); // TODO: CLEAN UP
 		}
@@ -703,29 +578,25 @@ export class Selectable {
 	}
 
 	/**
-	 * This only sets the htmlElement. See {@link _mountSelectable} for the rest of the initialization.
+	 * The action of the container's element: sets the htmlElement and attaches the selectable to the
+	 * tree. See {@link attach}.
 	 */
-	createRegisterer(): Registerer {
+	createRegisterer() {
 		return (htmlElement: HTMLElement) => {
-			this.setHtmlElement(htmlElement);
-			Selectable._initializationStack.push(this);
-			Selectable.initializeTreeStructure();
+			this.htmlElement = htmlElement;
+			Selectable.objects.set(htmlElement, this);
+			this.attach();
 		};
 	}
 
 	/**
 	 * @return {Selectable | undefined} child to be focused
 	 */
-	private addChild(
-		child: Selectable,
-		previousSibling?: Selectable,
-		initialization = false
-	): Selectable | undefined {
+	private addChild(child: Selectable, previousSibling?: Selectable): Selectable | undefined {
 		const index: number = previousSibling ? this.children.indexOf(previousSibling) + 1 : 0;
 		const focusIndex = get(this.focusIndex);
 		let childToFocus: Selectable | undefined = undefined;
 
-		// console.log('Adding child to parent', child, this, index, this.children.slice());
 		if (child === this) {
 			console.error('TRYING TO ADD SELF AS A CHILD', this);
 			return;
@@ -738,21 +609,18 @@ export class Selectable {
 			.some((sibling) => sibling.didUnmount);
 		const focusedChild = this.children[focusIndex];
 
-		if (!replacesChild && !initialization && this.children.length > 0 && index <= focusIndex) {
+		if (!replacesChild && this.children.length > 0 && index <= focusIndex) {
 			// Mounted before the focused child, with nothing unmounting there: the index follows the child.
 			// A container that has not had the focus yet is still entered at its first child
 			if (focusIndex > 0 || (focusedChild && get(focusedChild.hasFocusWithin)))
 				this.focusIndex.update((prev) => prev + 1);
 		} else if (index === focusIndex) {
-			// console.log('Adding to focusIndex', index, this._removedChildrenCount);
-
 			// Increment
 			// Do not refocus
 			if (this._removedChildrenCount === 1) {
 				childToFocus = child;
-			} else if (this.children.length > 0 && !initialization) {
+			} else if (this.children.length > 0) {
 				this._addChildCount++;
-				// console.log('Incremented addChildCount to', this._addChildCount);
 				if (focusIndex > 0) this.focusIndex.update((prev) => prev + 1); // TODO: Maybe needs fixing pt1
 			} else if (this.children.length === 0 && get(this.hasFocus)) {
 				childToFocus = child;
@@ -765,7 +633,6 @@ export class Selectable {
 			// Increment
 			// Do not refocus
 			this._addChildCount++;
-			// console.log('Incremented addChildCount to', this._addChildCount);
 			this.focusIndex.update((prev) => prev + 1);
 		} else if (index > focusIndex) {
 			// Do nothing
@@ -778,91 +645,37 @@ export class Selectable {
 	}
 
 	private _removedChildCountTemp = 0;
-	/**
-	 * @return {Selectable | undefined} child to be focused
-	 */
-	private removeChild(child: Selectable): Selectable | undefined {
+	/** The focus is given afterwards, by {@link removeUnmounted} */
+	private removeChild(child: Selectable) {
 		const index = this.children.indexOf(child);
 		const focusIndex = get(this.focusIndex);
-		let childToFocus: Selectable | undefined = undefined;
-		// console.log(
-		// 	'removing child',
-		// 	child,
-		// 	'from parent',
-		// 	this,
-		// 	'index',
-		// 	index,
-		// 	'focusIndex',
-		// 	focusIndex
-		// );
 
 		if (index === focusIndex) {
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
 				this.focusIndex.update((prev) => prev - 1);
-				childToFocus = this.children[focusIndex - 1];
-			} else {
-				// Do not decrement
-				// Refocus
-				childToFocus = this.children[focusIndex + 1] || this.children[focusIndex - 1];
 			}
 
 			if (!this._removedChildrenCount) this._removedChildrenCount = this._removedChildCountTemp + 1;
 		} else if (index < focusIndex) {
-			// Decrement
-			// Do not refocus
-			if (this._addChildCount > 1) {
-				this._addChildCount--;
-				this.focusIndex.update((prev) => prev - 1);
-			} else {
-				this.focusIndex.update((prev) => prev - 1);
-			}
+			if (this._addChildCount > 1) this._addChildCount--;
+			this.focusIndex.update((prev) => prev - 1);
 
 			this._removedChildCountTemp++;
 		} else if (index > focusIndex) {
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
-				if (focusIndex > 0) {
-					// TODO: This might need fixing pt2
-					this.focusIndex.update((prev) => prev - 1);
-					childToFocus = this.children[focusIndex - 1];
-				} else childToFocus = this.children[focusIndex];
-			} else {
-				// Do nothing
+				// TODO: This might need fixing pt2
+				if (focusIndex > 0) this.focusIndex.update((prev) => prev - 1);
 			}
 		}
 
 		this.children = this.children.filter((c) => c !== child);
 		child.parent = undefined;
-
-		return childToFocus;
-	}
-
-	private getParents(): Selectable[] {
-		const parents = [];
-
-		let parent = this.parent;
-		while (parent) {
-			parents.push(parent);
-			parent = parent.parent;
-		}
-
-		return parents;
-	}
-
-	private getCommonParent(other: Selectable): Selectable | undefined {
-		const parents = this.getParents();
-		const otherParents = other.getParents();
-
-		for (const parent of parents) {
-			if (otherParents.includes(parent)) return parent;
-		}
-
-		return undefined;
 	}
 
 	select() {
-		this.onSelect?.();
+		this.onSelect?.(this);
 	}
 
 	hasLongPress() {
@@ -870,23 +683,18 @@ export class Selectable {
 	}
 
 	longPress() {
-		this.onLongPress?.();
+		this.onLongPress?.(this);
 	}
 
-	back(options?: KeyEventOptions) {
-		const _options = options || createKeyEventOptions(this);
-		this.onBack(this, _options);
-		if (this.parent && _options.propagate) this.parent.back(_options);
-	}
-
-	playPause(options?: KeyEventOptions) {
-		const _options = options || createKeyEventOptions(this);
-		this.onPlayPause(this, _options);
-		if (this.parent && _options.propagate) this.parent.playPause(_options);
-	}
-
-	getFocusedChild() {
-		return this.children[get(this.focusIndex)];
+	/** Sends back up the tree from the selectable, until a handler stops it */
+	back(options = { propagate: true }) {
+		this.onBack?.({
+			selectable: this,
+			stopPropagation: () => {
+				options.propagate = false;
+			}
+		});
+		if (this.parent && options.propagate) this.parent.back(options);
 	}
 
 	getParent() {
@@ -895,11 +703,6 @@ export class Selectable {
 
 	getChildren() {
 		return this.children;
-	}
-
-	getChild(index: number) {
-		if (index < 0 || index >= this.children.length) return undefined;
-		return this.children[index];
 	}
 
 	getSibling(index: number) {
@@ -919,62 +722,8 @@ export class Selectable {
 		return parent;
 	}
 
-	setIsDisabled(disabled: boolean) {
-		this.disabled = disabled;
-		return this;
-	}
-
-	setGridColumns(columns: number) {
-		this.gridColumns = columns;
-		return this;
-	}
-
-	getGridColumns() {
-		return this.gridColumns;
-	}
-
 	getHtmlElement() {
 		return this.htmlElement;
-	}
-
-	setTrapFocus(trapFocus: boolean) {
-		this.trapFocus = trapFocus;
-		return this;
-	}
-
-	setOnFocus(onFocus: typeof this.onFocus) {
-		this.onFocus = onFocus;
-		return this;
-	}
-
-	setOnSelect(onSelect: () => void) {
-		this.onSelect = onSelect;
-		return this;
-	}
-
-	setOnLongPress(onLongPress: (() => void) | undefined) {
-		this.onLongPress = onLongPress;
-		return this;
-	}
-
-	setOnNavigate(onNavigate: NavigationHandler) {
-		this.onNavigate = onNavigate;
-		return this;
-	}
-
-	setOnBack(onBack: KeyEventHandler) {
-		this.onBack = onBack;
-		return this;
-	}
-
-	setOnPlayPause(onPlayPause: KeyEventHandler) {
-		this.onPlayPause = onPlayPause;
-		return this;
-	}
-
-	setAsFocusedChild(focusedChild: boolean) {
-		this.makeFocusedChild = focusedChild;
-		return this;
 	}
 }
 
@@ -1071,36 +820,12 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 		handleEnterKeyDown(currentlyFocusedObject, event.shiftKey);
 	} else if (event.key === 'Back' || event.key === 'XF86Back' || event.key === 'Escape') {
 		currentlyFocusedObject.back();
-	} else if (event.key === 'MediaPlayPause') {
-		currentlyFocusedObject.playPause();
 	} else {
 		return;
 	}
 
 	event.preventDefault();
 }
-
-export const useRegistrar = (): { registrar: Registrar } & Readable<Selectable | undefined> => {
-	const selectable = writable<Selectable | undefined>();
-	// const hasFocus = nestedDerived(selectable, (s) => s?.hasFocusWithin ?? readable(false));
-
-	const registrar: Registrar = (next) => {
-		selectable.update((prev) => {
-			if (prev) {
-				console.warn('Overwriting existing selectable', prev, next);
-			}
-
-			return next;
-		});
-
-		return () => selectable.set(undefined);
-	};
-
-	return {
-		registrar,
-		subscribe: selectable.subscribe
-	};
-};
 
 /** Scrolls the element into view on focus, unless the focus follows the mouse; `always` scrolls then too */
 export const scrollIntoView =

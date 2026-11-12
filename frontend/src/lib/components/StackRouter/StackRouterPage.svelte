@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { useRegistrar } from '$lib/selectable';
-	import { nestedDerived } from '$lib/utils';
+	import { Selectable } from '$lib/selectable';
 	import classNames from 'classnames';
 	import { writable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
@@ -15,8 +14,7 @@
 	}
 
 	let { page, isHidden }: Props = $props();
-	const registrar = useRegistrar();
-	const hasFocusWithin = nestedDerived(registrar, (r) => r?.hasFocusWithin);
+	const selectable = new Selectable();
 	const hidden = writable(isHidden);
 	$effect(() => {
 		hidden.set(isHidden);
@@ -24,8 +22,8 @@
 
 	const componentStack = _setComponentStack({
 		...page,
-		root: registrar,
-		hasFocusWithin,
+		root: selectable,
+		hasFocusWithin: selectable.hasFocusWithin,
 		isHidden: hidden
 	});
 
@@ -47,7 +45,7 @@
 	style="backface-visibility: hidden;"
 	trapFocus={page.trapFocus}
 	direction="horizontal"
-	onMounted={registrar.registrar}
+	{selectable}
 >
 	<div in:fade|global={{ duration: 200, delay: 200 }} class="contents">
 		{#if page.sidebar === true}
@@ -61,12 +59,6 @@
 				page.close();
 			}}
 			focusOnMount={!isHidden}
-			onNavigate={(e) => {
-				// if (e.direction === 'left' && e.willLeaveContainer) {
-				// 	e.preventNavigation();
-				// 	focusSidebar();
-				// }
-			}}
 		>
 			<page.component {...page.props} />
 		</Container>

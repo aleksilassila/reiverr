@@ -2,13 +2,12 @@
 	import classNames from 'classnames';
 	import { EnterFullScreen, Pause, SpeakerLoud, TextAlignLeft, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
-	import { useRegistrar } from '../../selectable';
+	import { Selectable } from '../../selectable';
 	import Container from '../Container.svelte';
 	import IconButton from '../IconButton.svelte';
 	import Spinner from '../Utils/Spinner.svelte';
 	import ProgressBar from './ProgressBar.svelte';
 
-	import { get } from 'svelte/store';
 	import { useSimpleModal as useSimpleModalStack } from '../Modal/modal.store';
 	import ModalStackProvider from '../Modal/ModalStackProvider.svelte';
 	import SelectAudioModal from './SelectAudioModal.svelte';
@@ -72,7 +71,7 @@
 	let showInterface = $state(true);
 	let showInterfaceTimeout: ReturnType<typeof setTimeout>;
 	let hideInterfaceTimeout: ReturnType<typeof setTimeout>;
-	const progressBar = useRegistrar();
+	const progressBar = new Selectable();
 
 	let clockTime = $state(0);
 	const clockInterval = setInterval(() => {
@@ -91,7 +90,7 @@
 		showInterface = false;
 		clearTimeout(hideInterfaceTimeout);
 		hideInterfaceTimeout = setTimeout(() => {
-			get(progressBar)?.activate();
+			progressBar.activate();
 		}, 200);
 	}
 
@@ -272,7 +271,7 @@
 					currentTime={$currentTime}
 					bufferedTime={$bufferedTime}
 					paused={$paused}
-					onMounted={progressBar.registrar}
+					selectable={progressBar}
 				/>
 			</div>
 		</Container>

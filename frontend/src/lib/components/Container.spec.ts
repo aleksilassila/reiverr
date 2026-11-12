@@ -1,6 +1,7 @@
 import { render } from '@testing-library/svelte';
+import { get } from 'svelte/store';
 import { describe, expect, it, vi } from 'vitest';
-import { takeFocusFromNext } from '../selectable';
+import { Selectable, takeFocusFromNext } from '../selectable';
 import { focused, press, settle, setupFocusTree } from '../selectable.spec-utils';
 import ContainerTree, { type TreeNode } from './ContainerTree.fixture.svelte';
 
@@ -158,7 +159,28 @@ describe('navigating', () => {
 		press('ArrowDown');
 		press('Enter');
 		expect(onSelect).toHaveBeenCalledTimes(1);
+		expect(onSelect).toHaveBeenCalledWith(get(Selectable.focusedObject));
 		expect(onClickOrSelect).toHaveBeenCalledTimes(1);
+	});
+
+	// A checkbox: the container is what the tree focuses, the input what the browser does
+	it('gives the focus of the browser to the element onEnter names', async () => {
+		const input = document.createElement('input');
+		document.body.append(input);
+		await mountTree([
+			{
+				name: 'page',
+				children: [{ name: 'a' }, { name: 'b', onEnter: (e) => e.focusElement(input) }]
+			}
+		]);
+
+		document.activeElement?.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+		);
+
+		expect(get(Selectable.focusedObject)?.name).toBe('b');
+		expect(document.activeElement).toBe(input);
+		input.remove();
 	});
 
 	it('focuses a clicked container that has focusOnClick', async () => {
@@ -201,6 +223,30 @@ describe('navigating', () => {
 });
 
 describe('mounting', () => {
+	// A container attaches in the action of its element, which has to run before the actions of the
+	// containers inside it. Svelte does that for a svelte:element; were it to stop, or Container to
+	// render a plain element, every container would be a root
+	it('attaches a container to the container around it, in the order of the document', async () => {
+		await mountTree([
+			{
+				name: 'page',
+				children: [
+					{ name: 'row', direction: 'horizontal', children: named('a', 'b') },
+					{ name: 'c' }
+				]
+			}
+		]);
+
+		const a = get(Selectable.focusedObject);
+		const row = a?.getParent();
+		const page = row?.getParent();
+
+		expect(a?.name).toBe('a');
+		expect(row?.getChildren().map((child) => child.name)).toEqual(['a', 'b']);
+		expect(page?.getChildren().map((child) => child.name)).toEqual(['row', 'c']);
+		expect(page?.getParent()).toBeUndefined();
+	});
+
 	it('gives the focus to a container mounted with focusOnMount', async () => {
 		const tree = await mountTree([{ name: 'page', children: named('a', 'b') }]);
 
@@ -319,6 +365,80 @@ describe('mounting', () => {
 		expect(press('ArrowDown')).toBe('d');
 		expect(press('ArrowUp')).toBe('c');
 		expect(press('ArrowUp')).toBe('c');
+	});
+});
+
+describe('updating', () => {
+	it('follows the props of its container', async () => {
+		const page = (props: Partial<TreeNode>): TreeNode[] => [
+			{ name: 'page', children: [{ name: 'list', ...props, children: named('a', 'b', 'c') }] }
+		];
+		const tree = await mountTree(page({ direction: 'vertical' }));
+		expect(press('ArrowRight')).toBe('a');
+
+		await tree.update(page({ direction: 'horizontal' }));
+		expect(press('ArrowRight')).toBe('b');
+
+		await tree.update(page({ direction: 'horizontal', disabled: true }));
+		expect(get(Selectable.focusedObject)?.getParent()?.isFocusable()).toBe(false);
+	});
+
+	// A reordered keyed list moves the elements of its items without mounting anything; the index of
+	// the items is how their containers know
+	describe('a keyed list whose containers have an index', () => {
+		const list = (...names: string[]): TreeNode[] => [
+			{
+				name: 'page',
+				children: [
+					{
+						name: 'list',
+						direction: 'horizontal',
+						children: names.map((name, index) => ({ name, index }))
+					}
+				]
+			}
+		];
+
+		it('keeps the order of the document and the focus when it is reordered', async () => {
+			const tree = await mountTree(list('a', 'b', 'c', 'd'));
+			expect(press('ArrowRight')).toBe('b');
+
+			await tree.update(list('c', 'a', 'd', 'b'));
+
+			// Not `focused()`: the browser takes its focus from an element that is moved, until the next
+			// move of the focus
+			expect(get(Selectable.focusedObject)?.name).toBe('b');
+			expect(press('ArrowLeft')).toBe('d');
+			expect(press('ArrowLeft')).toBe('a');
+			expect(press('ArrowLeft')).toBe('c');
+			expect(press('ArrowRight')).toBe('a');
+		});
+
+		it('keeps the order of the document when a container is mounted in it', async () => {
+			const tree = await mountTree(list('a', 'b', 'c', 'd'));
+
+			await tree.update(list('x', 'a', 'b', 'y', 'c', 'd'));
+
+			expect(focused()).toBe('a');
+			expect(press('ArrowLeft')).toBe('x');
+			expect(press('ArrowRight')).toBe('a');
+			expect(press('ArrowRight')).toBe('b');
+			expect(press('ArrowRight')).toBe('y');
+			expect(press('ArrowRight')).toBe('c');
+			expect(press('ArrowRight')).toBe('d');
+		});
+
+		it('is entered at its first container while it has not had the focus', async () => {
+			const page = (...names: string[]): TreeNode[] => [
+				{ name: 'page', children: [{ name: 'top' }, ...(list(...names)[0]?.children ?? [])] }
+			];
+			const tree = await mountTree(page('a', 'b', 'c'));
+
+			await tree.update(page('c', 'a', 'b'));
+
+			expect(focused()).toBe('top');
+			expect(press('ArrowDown')).toBe('c');
+		});
 	});
 });
 

@@ -25,7 +25,7 @@
 <AnimateScale hasFocus={$hasFocus}>
 	<Container
 		onEnter={(e) => {
-			if (input) e.options.setFocusedElement = input;
+			if (input) e.focusElement(input);
 		}}
 		onClickOrSelect={() => input?.click()}
 		{selectable}

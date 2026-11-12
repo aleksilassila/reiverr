@@ -7,7 +7,7 @@ import {
 } from 'svelte';
 import type { Action } from 'svelte/action';
 
-import { get, readable, type Readable, type Writable, writable } from 'svelte/store';
+import { get, type Readable, type Writable, writable } from 'svelte/store';
 
 export function formatSecondsToTime(seconds: number) {
 	const days = Math.floor(seconds / 60 / 60 / 24);
@@ -360,54 +360,6 @@ export function useSubscribes() {
 	return {
 		add,
 		destroy
-	};
-}
-
-export function nestedDerived<T, O>(
-	store: Readable<T>,
-	getStore2: (t: T) => Readable<O> | undefined,
-	def?: O
-): Readable<O> {
-	const subscribers: ((value: O) => void)[] = [];
-
-	let unsub: (() => void) | undefined = undefined;
-	let unsub2: (() => void) | undefined = undefined;
-	let lastValue:
-		| {
-				v: O;
-		  }
-		| undefined = undefined;
-	function subscribe(cb: (value: O) => void) {
-		subscribers.push(cb);
-
-		if (subscribers.length === 1) {
-			unsub = store.subscribe((s) => {
-				unsub2?.();
-				const store2 = getStore2(s);
-				unsub2 = (store2 ?? (def ? readable(def) : undefined))?.subscribe((hf) => {
-					// hasFocus.set(hf);
-					subscribers.forEach((cb) => cb(hf));
-					lastValue = { v: hf };
-				});
-			});
-		} else if (lastValue) {
-			cb(lastValue.v);
-		}
-
-		return () => {
-			subscribers.splice(subscribers.indexOf(cb), 1);
-
-			if (subscribers.length === 0) {
-				unsub?.();
-				unsub2?.();
-				unsub = undefined;
-				unsub2 = undefined;
-			}
-		};
-	}
-
-	return {
-		subscribe
 	};
 }
 

@@ -32,7 +32,7 @@
 	<Container
 		class="relative inline-flex items-center cursor-pointer w-min h-min"
 		onEnter={(e) => {
-			if (input) e.options.setFocusedElement = input;
+			if (input) e.focusElement(input);
 		}}
 		onClickOrSelect={() => input?.click()}
 	>

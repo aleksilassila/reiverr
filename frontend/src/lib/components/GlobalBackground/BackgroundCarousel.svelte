@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import { scrollElementIntoView } from '$lib/scroll-into-view';
-	import { scrollIntoView, useRegistrar } from '$lib/selectable';
+	import { scrollIntoView, Selectable } from '$lib/selectable';
 
 	import BackgroundCard from './BackgroundCard.svelte';
 	import type { Background } from './background-stack.store';
 
-	const carousel = useRegistrar();
+	const carousel = new Selectable();
 
 	interface Props {
 		onJumpTo?: (detail: number) => void;
@@ -17,14 +17,14 @@
 	let { backgrounds, focusIndex, onJumpTo }: Props = $props();
 
 	$effect(() => {
-		$carousel?.activateChild(focusIndex);
+		carousel.activateChild(focusIndex);
 	});
 </script>
 
 <Carousel
 	scrollClass="px-32"
 	class="py-12"
-	onMounted={carousel.registrar}
+	selectable={carousel}
 	horizontalScroll
 	controls={false}
 	focusFirstOnBack={false}

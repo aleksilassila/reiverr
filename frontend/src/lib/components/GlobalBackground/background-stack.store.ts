@@ -1,4 +1,4 @@
-import { Selectable, useRegistrar } from '$lib/selectable';
+import { Selectable } from '$lib/selectable';
 import { onDestroy, type Component, type ComponentProps } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
@@ -50,7 +50,8 @@ export type BackgroundPage = {
 	destroy: () => void;
 };
 
-export const globalBackground = useRegistrar();
+/** The selectable of the background, while `BackgroundStack` is mounted */
+export const globalBackgroundSelectable = writable<Selectable | undefined>(undefined);
 
 export const backgroundPagesStack = writable<BackgroundPage[]>([]);
 export const topBackground = (() => {
@@ -262,7 +263,7 @@ export const backgroundContext = createStoreContext(BACKGROUND_CONTEXT_KEY, _cre
 
 export function focusGlobalBackground() {
 	lastFocused = get(Selectable.focusedObject)?.getRootParent();
-	const backgroundSelectable = get(globalBackground);
+	const backgroundSelectable = get(globalBackgroundSelectable);
 
 	if (!lastFocused) {
 		console.error('[Background Stack]: No focused object to return to');
