@@ -27,14 +27,14 @@
 		{ key: 'movieFolders', name: 'Movie folders', label: 'Movie folder', add: 'Add Movie Folder' }
 	];
 
-	const settingsQuery = usePageQuery(libraryQueries.settings());
+	const settingsQuery = usePageQuery(() => libraryQueries.settings());
 
 	let cleanupError = $state('');
 	/** What is typed into the disk limit field, until it is saved */
 	let diskLimitInput: string | undefined = $state();
 	let diskLimitError = $state('');
 
-	let settings = $derived($settingsQuery.data);
+	let settings = $derived(settingsQuery.data);
 	let savedDiskLimit = $derived(
 		settings?.maxDiskUsagePercent === null || settings?.maxDiskUsagePercent === undefined
 			? ''

@@ -10,13 +10,13 @@
 	import SelectField from '../../components/SelectField.svelte';
 	import { user } from '../../stores/user.store';
 
-	const accounts = usePageQuery(usersQueries.list());
+	const accounts = usePageQuery(() => usersQueries.list());
 </script>
 
 <Container>
 	<h1 class="h3 mb-8">Server Accounts</h1>
-	{#if $accounts.data}
-		{@const accountList = $accounts.data}
+	{#if accounts.data}
+		{@const accountList = accounts.data}
 		<Container class="grid grid-cols-2 gap-4" direction="grid" gridCols={2}>
 			{#each accountList.filter((a) => a.id !== $user?.id) as account (account.id)}
 				<SelectField

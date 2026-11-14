@@ -37,12 +37,12 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const requestsQuery = usePageQuery(requestsQueries.series(tmdbId));
-	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
-	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
-	const releases = usePageQuery(indexersQueries.seriesReleases(tmdbId, season, episode));
-	let requests = $derived($requestsQuery.data);
+	const requestsQuery = usePageQuery(() => requestsQueries.series(tmdbId));
+	const status = usePageQuery(() => libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(tmdbId));
+	const tmdbSeries = usePageQuery(() => metadataQueries.series(tmdbId));
+	const releases = usePageQuery(() => indexersQueries.seriesReleases(tmdbId, season, episode));
+	let requests = $derived(requestsQuery.data);
 	// The requests of the season or the episode
 	let requestList = $derived(
 		[...(requests?.requests.values() ?? [])].filter(
@@ -58,7 +58,7 @@
 	// A request that has its file keeps it when another torrent is selected for the season
 	let kept = $derived(
 		requestList.flatMap((r) => {
-			const file = heldFileOf($status.data?.fulfilments.get(r.id), $status.data?.files);
+			const file = heldFileOf(status.data?.fulfilments.get(r.id), status.data?.files);
 			const selected =
 				requests?.sources.get(episodeKey(r.season, r.episode)) ??
 				requests?.sources.get(episodeKey(r.season, 0));
@@ -66,7 +66,7 @@
 			return file && file.infoHash !== selected?.release?.infoHash ? [file] : [];
 		})
 	);
-	let keptTorrent = $derived(kept[0]?.infoHash ? $torrents.data?.get(kept[0].infoHash) : undefined);
+	let keptTorrent = $derived(kept[0]?.infoHash ? torrents.data?.get(kept[0].infoHash) : undefined);
 	let keptHint = $derived(
 		!kept.length
 			? ''
@@ -80,13 +80,13 @@
 	let error = $state('');
 	// The files of the episode in the library, external or imported, which a request can have instead
 	let fileList = $derived(
-		($status.data?.files ?? []).filter(
+		(status.data?.files ?? []).filter(
 			(file) => episode !== undefined && file.season === season && file.episodes.includes(episode)
 		)
 	);
-	let releaseList = $derived($releases.data ?? []);
+	let releaseList = $derived(releases.data ?? []);
 	// The torrents that have the release already, which selecting downloads nothing anew from
-	let onServer = $derived(getOnServer($torrents.data, $status.data?.files));
+	let onServer = $derived(getOnServer(torrents.data, status.data?.files));
 
 	let hasFiles = $derived(fileList.length > 0);
 	let selectedFile = $derived(fileList.find((file) => file.id === selection?.mediaFileId));
@@ -124,11 +124,11 @@
 			(r) =>
 				episode !== undefined ||
 				(!requests?.sources.has(episodeKey(r.season, r.episode)) &&
-					$status.data?.fulfilments.get(r.id)?.status !== 'fulfilled')
+					status.data?.fulfilments.get(r.id)?.status !== 'fulfilled')
 		)
 	);
 	let episodesInSeason = $derived(
-		$tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes?.length
+		tmdbSeries.data?.seasons?.find((s) => s.season_number === season)?.episodes?.length
 	);
 
 	async function select(release: ReleaseDto) {
@@ -281,10 +281,10 @@
 		{#if selection || otherFiles.length}
 			<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 		{/if}
-		{#if $releases.isPending}
+		{#if releases.isPending}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
-		{:else if $releases.error}
-			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage($releases.error)}</div>
+		{:else if releases.error}
+			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(releases.error)}</div>
 		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}

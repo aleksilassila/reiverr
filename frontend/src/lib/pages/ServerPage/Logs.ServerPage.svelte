@@ -3,33 +3,29 @@
 	import Container from '$lib/components/Container.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Pill from '$lib/components/Pill.svelte';
-	import { usePageInfiniteQuery } from '$lib/queries/page-query';
+	import { loadMore, usePageInfiniteQuery } from '$lib/queries/page-query';
 	import { serverLogQueries } from '$lib/queries/server-log.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import classNames from 'classnames';
-	import { derived as derivedStore, writable } from 'svelte/store';
 
 	const TYPES: LogEntryDto['type'][] = ['file.deleted', 'download.deleted', 'scan.failed'];
 
-	const type = writable<LogEntryDto['type'] | undefined>(undefined);
-	const entries = usePageInfiniteQuery(
-		derivedStore(type, ($type) => serverLogQueries.entries($type))
-	);
-	const { loadMore } = entries;
-	let entryList = $derived($entries.data ?? []);
+	let type: LogEntryDto['type'] | undefined = $state(undefined);
+	const entries = usePageInfiniteQuery(() => serverLogQueries.entries(type));
+	let entryList = $derived(entries.data ?? []);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the type that is shown shows all again
 	function filter(selected: LogEntryDto['type']) {
-		$type = $type === selected ? undefined : selected;
+		type = type === selected ? undefined : selected;
 	}
 </script>
 
 <Container class="h-full flex flex-col">
 	<Container direction="horizontal" class="flex space-x-4">
 		{#each TYPES as entryType (entryType)}
-			<Pill selected={$type === entryType} onClickOrSelect={() => filter(entryType)}>
+			<Pill selected={type === entryType} onClickOrSelect={() => filter(entryType)}>
 				{entryType}
 			</Pill>
 		{/each}
@@ -51,14 +47,17 @@
 			{/each}
 			<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
 			<div class="relative">
-				<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none"></div>
+				<div
+					{@attach loadMore(entries)}
+					class="absolute bottom-0 w-px h-[50rem] pointer-events-none"
+				></div>
 			</div>
 		</Container>
 	{:else}
-		<div class={classNames('h-ghost mt-14', { error: !!$entries.error })}>
-			{#if $entries.error}
-				{errorMessage($entries.error)}
-			{:else if $entries.isLoading}
+		<div class={classNames('h-ghost mt-14', { error: !!entries.error })}>
+			{#if entries.error}
+				{errorMessage(entries.error)}
+			{:else if entries.isLoading}
 				Loading...
 			{:else}
 				Nothing has been logged yet.

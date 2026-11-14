@@ -18,24 +18,24 @@
 
 	backgroundContext.createContext();
 
-	const continueWatching = usePageQuery(catalogQueries.continueWatching('movie'));
+	const continueWatching = usePageQuery(() => catalogQueries.continueWatching('movie'));
 
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const trendingQuery = usePageQuery(tmdbQueries.trending('movie'));
-	const digitalReleasesQuery = usePageQuery(tmdbQueries.digitalReleases());
-	const upcomingQuery = usePageQuery(tmdbQueries.upcomingMovies());
-	const recommendedQuery = usePageQuery(tmdbQueries.recommendedMovies());
-	let digitalReleases = $derived($digitalReleasesQuery.data);
-	let upcomingMovies = $derived($upcomingQuery.data);
+	const trendingQuery = usePageQuery(() => tmdbQueries.trending('movie'));
+	const digitalReleasesQuery = usePageQuery(() => tmdbQueries.digitalReleases());
+	const upcomingQuery = usePageQuery(() => tmdbQueries.upcomingMovies());
+	const recommendedQuery = usePageQuery(() => tmdbQueries.recommendedMovies());
+	let digitalReleases = $derived(digitalReleasesQuery.data);
+	let upcomingMovies = $derived(upcomingQuery.data);
 	// Trending without what the upcoming row shows
 	let trending = $derived(
-		$trendingQuery.data && digitalReleases && upcomingMovies
-			? $trendingQuery.data.filter((p) => !upcomingMovies?.find((u) => u.id === p.id))
+		trendingQuery.data && digitalReleases && upcomingMovies
+			? trendingQuery.data.filter((p) => !upcomingMovies?.find((u) => u.id === p.id))
 			: undefined
 	);
-	let genreIdToMovie = $derived($recommendedQuery.data?.genreIdToMovie ?? {});
+	let genreIdToMovie = $derived(recommendedQuery.data?.genreIdToMovie ?? {});
 	// The genres with the most recommendations first
 	let genres = $derived(
 		Object.keys(genreIdToMovie)
@@ -72,12 +72,12 @@
 		<TmdbMoviesHeroShowcase movies={showcase} />
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $continueWatching.data?.length}
+		{#if continueWatching.data?.length}
 			<Carousel scrollClass="px-32" onEnter={scrollIntoView({ top: 128 })}>
 				{#snippet header()}
 					<span>Continue Watching</span>
 				{/snippet}
-				{#each $continueWatching.data as item, index (item.tmdbId)}
+				{#each continueWatching.data as item, index (item.tmdbId)}
 					<TmdbCard
 						{index}
 						onEnter={scrollIntoView({ left: 128 })}
@@ -100,7 +100,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[0] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -126,7 +126,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[1] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -152,7 +152,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[2] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -167,7 +167,7 @@
 			{/if}
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[3] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -200,7 +200,7 @@
 			{/each}
 		</Carousel>
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[4] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}
@@ -215,7 +215,7 @@
 			{/if}
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = genres[5] || -1}
 			{@const items = genreIdToMovie[genre] || []}
 			{#if items.length}

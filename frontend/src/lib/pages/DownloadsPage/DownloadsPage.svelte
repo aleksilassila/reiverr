@@ -14,13 +14,12 @@
 	import StorageQuota from '$lib/components/StorageQuota.svelte';
 	import { TMDB_POSTER_SMALL } from '$lib/constants';
 	import { catalogQueries } from '$lib/queries/catalog.queries';
-	import { usePageInfiniteQuery, usePageQuery } from '$lib/queries/page-query';
+	import { loadMore, usePageInfiniteQuery, usePageQuery } from '$lib/queries/page-query';
 	import { storageQueries } from '$lib/queries/storage.queries';
 	import { scrollIntoView } from '$lib/selectable';
 	import { formatSize, LETTERS, type Letter } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { derived as derivedStore, writable } from 'svelte/store';
 
 	type MediaType = CatalogTitleOnDiskDto['mediaType'];
 	type Sort = 'size' | 'name' | 'added';
@@ -40,69 +39,59 @@
 	// The direction a sort starts in: largest, A to Z, newest
 	const NATURAL: Record<Sort, Direction> = { size: 'desc', name: 'asc', added: 'desc' };
 
-	const mediaType = writable<MediaType | undefined>(undefined);
+	let mediaType: MediaType | undefined = $state(undefined);
 	// On, the downloads the user's requests wait for and the titles they have files of, sized by what those files take; off, everything the server downloads and has on disk, sized by all of it
-	const requestedOnly = writable(true);
-	const letter = writable<Letter | null>(null);
-	const order = writable<{ sort: Sort; direction: Direction }>({
+	let requestedOnly = $state(true);
+	let letter: Letter | null = $state(null);
+	let order: { sort: Sort; direction: Direction } = $state({
 		sort: 'size',
 		direction: NATURAL.size
 	});
 
-	const storage = usePageQuery(storageQueries.user());
-	const downloads = usePageQuery(
-		derivedStore(
-			[mediaType, requestedOnly, letter, order],
-			([$mediaType, $requestedOnly, $letter, $order]) =>
-				catalogQueries.downloads({
-					mediaType: $mediaType,
-					status: $requestedOnly ? 'requested' : undefined,
-					letter: $letter ?? undefined,
-					order: $order.sort,
-					direction: $order.direction
-				})
-		)
+	const storage = usePageQuery(() => storageQueries.user());
+	const downloads = usePageQuery(() =>
+		catalogQueries.downloads({
+			mediaType,
+			status: requestedOnly ? 'requested' : undefined,
+			letter: letter ?? undefined,
+			order: order.sort,
+			direction: order.direction
+		})
 	);
-	const titles = usePageInfiniteQuery(
-		derivedStore(
-			[mediaType, requestedOnly, letter, order],
-			([$mediaType, $requestedOnly, $letter, $order]) =>
-				catalogQueries.onDisk({
-					mediaType: $mediaType,
-					status: $requestedOnly ? 'requested' : undefined,
-					letter: $letter ?? undefined,
-					order: $order.sort,
-					direction: $order.direction
-				})
-		)
+	const titles = usePageInfiniteQuery(() =>
+		catalogQueries.onDisk({
+			mediaType,
+			status: requestedOnly ? 'requested' : undefined,
+			letter: letter ?? undefined,
+			order: order.sort,
+			direction: order.direction
+		})
 	);
-	const { loadMore } = titles;
-	let usage = $derived($storage.data);
-	let downloadList = $derived($downloads.data ?? []);
-	let titleList = $derived($titles.data ?? []);
-	let listed = $derived($requestedOnly ? 'requested' : 'on disk');
-	let error = $derived($downloads.error ?? $titles.error);
+	let usage = $derived(storage.data);
+	let downloadList = $derived(downloads.data ?? []);
+	let titleList = $derived(titles.data ?? []);
+	let listed = $derived(requestedOnly ? 'requested' : 'on disk');
+	let error = $derived(downloads.error ?? titles.error);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the type that is shown shows both again
 	function filter(selected: MediaType) {
-		$mediaType = $mediaType === selected ? undefined : selected;
+		mediaType = mediaType === selected ? undefined : selected;
 	}
 
 	// Selecting the letter that is on shows every title again
 	function filterLetter(index: number) {
 		const selected = LETTERS[index] ?? null;
-		$letter = $letter === selected ? null : selected;
+		letter = letter === selected ? null : selected;
 	}
 
 	// One sort is always on; selecting it again turns it around
 	function selectSort(selected: Sort) {
-		order.update(({ sort, direction }) =>
-			selected === sort
-				? { sort, direction: direction === 'asc' ? 'desc' : 'asc' }
-				: { sort: selected, direction: NATURAL[selected] }
-		);
+		order =
+			selected === order.sort
+				? { sort: order.sort, direction: order.direction === 'asc' ? 'desc' : 'asc' }
+				: { sort: selected, direction: NATURAL[selected] };
 	}
 
 	const nameOf = (title: Title) =>
@@ -187,7 +176,7 @@
 				<Container direction="horizontal" class="flex space-x-4">
 					{#each MEDIA_TYPES as option (option.value)}
 						<Pill
-							selected={$mediaType === option.value}
+							selected={mediaType === option.value}
 							onClickOrSelect={() => filter(option.value)}
 							onEnter={scrollIntoView({ horizontal: 64 })}
 						>
@@ -202,8 +191,8 @@
 				</div>
 				<Container direction="horizontal" class="flex space-x-4">
 					<Pill
-						selected={$requestedOnly}
-						onClickOrSelect={() => ($requestedOnly = !$requestedOnly)}
+						selected={requestedOnly}
+						onClickOrSelect={() => (requestedOnly = !requestedOnly)}
 						onEnter={scrollIntoView({ horizontal: 64 })}
 					>
 						Requested only
@@ -217,14 +206,14 @@
 				<Container direction="horizontal" class="flex space-x-4">
 					{#each SORTS as option (option.value)}
 						<Pill
-							selected={$order.sort === option.value}
+							selected={order.sort === option.value}
 							onClickOrSelect={() => selectSort(option.value)}
 							onEnter={scrollIntoView({ horizontal: 64 })}
 						>
 							<span class="flex items-center">
 								{option.label}
-								{#if $order.sort === option.value}
-									{@const SvelteComponent = $order.direction === 'desc' ? ArrowDown : ArrowUp}
+								{#if order.sort === option.value}
+									{@const SvelteComponent = order.direction === 'desc' ? ArrowDown : ArrowUp}
 									<SvelteComponent size={20} class="ml-2" />
 								{/if}
 							</span>
@@ -288,29 +277,32 @@
 						<div class="flex-1 min-w-0 ml-6">
 							<div class="text-2xl font-semibold line-clamp-1">{nameOf(title)}</div>
 							<div class="text-lg font-medium text-secondary-400 mt-1 line-clamp-1">
-								{detailsOf(title, $requestedOnly)}
+								{detailsOf(title, requestedOnly)}
 							</div>
 						</div>
 						<div class="flex-shrink-0 ml-4 text-lg font-medium text-secondary-300 tabular-nums">
-							{formatSize(sizeOf(title, $requestedOnly))}
+							{formatSize(sizeOf(title, requestedOnly))}
 						</div>
 					</ListRow>
 				{/each}
 				<!-- Reaches up from the end of the rows, so that more are there before the last one is -->
 				<div class="relative">
-					<div use:loadMore class="absolute bottom-0 w-px h-[50rem] pointer-events-none"></div>
+					<div
+						{@attach loadMore(titles)}
+						class="absolute bottom-0 w-px h-[50rem] pointer-events-none"
+					></div>
 				</div>
 			</Container>
 		{:else}
 			<div class={classNames('h-ghost', { error: !!error })}>
 				{#if error}
 					{errorMessage(error)}
-				{:else if $downloads.isLoading || $titles.isLoading}
+				{:else if downloads.isLoading || titles.isLoading}
 					Loading...
-				{:else if $letter}
-					Nothing {listed} under {$letter}.
-				{:else if $mediaType}
-					No {$mediaType === 'movie' ? 'movies' : 'series'} {listed}.
+				{:else if letter}
+					Nothing {listed} under {letter}.
+				{:else if mediaType}
+					No {mediaType === 'movie' ? 'movies' : 'series'} {listed}.
 				{:else}
 					Nothing {listed} yet.
 				{/if}
@@ -321,7 +313,7 @@
 		size="sm"
 		class="fixed right-12 inset-y-0 justify-center z-10"
 		items={LETTERS}
-		selected={$letter ? LETTERS.indexOf($letter) : -1}
+		selected={letter ? LETTERS.indexOf(letter) : -1}
 		onSelect={(e) => filterLetter(e)}
 	/>
 </Container>

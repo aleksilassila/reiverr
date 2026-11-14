@@ -15,8 +15,8 @@
 
 	let { company, onEnter }: Props = $props();
 
-	const details = usePageQuery(tmdbQueries.company(company.id));
-	let logoPath = $derived($details.data?.logo_path);
+	const details = usePageQuery(() => tmdbQueries.company(company.id));
+	let logoPath = $derived(details.data?.logo_path);
 	let backdropUrl = $derived(logoPath ? `${TMDB_IMAGES_ORIGINAL}${logoPath}` : undefined);
 </script>
 

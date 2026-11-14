@@ -33,13 +33,13 @@
 
 	const componentStack = useComponentStack();
 	const { playMedia } = backgroundContext.getContext();
-	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
-	const seriesUserData = usePageQuery(userDataQueries.series(tmdbId));
-	const requests = usePageQuery(requestsQueries.series(tmdbId));
-	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
+	const tmdbSeries = usePageQuery(() => metadataQueries.series(tmdbId));
+	const seriesUserData = usePageQuery(() => userDataQueries.series(tmdbId));
+	const requests = usePageQuery(() => requestsQueries.series(tmdbId));
+	const status = usePageQuery(() => libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(tmdbId));
 
-	let episodesData = $derived(getEpisodeData($tmdbSeries.data, $seriesUserData.data));
+	let episodesData = $derived(getEpisodeData(tmdbSeries.data, seriesUserData.data));
 	let userData = $derived(
 		episodesData.episodes.find((e) => e.season === season && e.episode === episode)
 	);
@@ -49,7 +49,7 @@
 	let seasonWatched = $derived(seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched));
 	let requestStatus = $derived(
 		getEpisodeRequestStatus(
-			{ requests: $requests.data, status: $status.data, torrents: $torrents.data },
+			{ requests: requests.data, status: status.data, torrents: torrents.data },
 			season,
 			episode
 		)

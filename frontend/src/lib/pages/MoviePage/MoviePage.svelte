@@ -42,11 +42,11 @@
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
 
-	const tmdbMovie = usePageQuery(metadataQueries.movie(id));
-	const userData = usePageQuery(userDataQueries.movie(id));
-	const requests = usePageQuery(requestsQueries.movie(id));
-	const statusQuery = usePageQuery(libraryQueries.movieStatus(id));
-	const torrents = usePageQuery(downloadsQueries.movieTorrents(id));
+	const tmdbMovie = usePageQuery(() => metadataQueries.movie(id));
+	const userData = usePageQuery(() => userDataQueries.movie(id));
+	const requests = usePageQuery(() => requestsQueries.movie(id));
+	const statusQuery = usePageQuery(() => libraryQueries.movieStatus(id));
+	const torrents = usePageQuery(() => downloadsQueries.movieTorrents(id));
 
 	// A failure is reported once per failure streak
 	let statusFailed = false;
@@ -83,7 +83,7 @@
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registrar: registerScroll } = setScrollContext();
 
-	const recommendations = usePageQuery(tmdbQueries.movieRecommendations(Number(id)));
+	const recommendations = usePageQuery(() => tmdbQueries.movieRecommendations(Number(id)));
 
 	function getTitleProperties(movie: TmdbMovieFull, trailerId?: string) {
 		const properties: TitleInfoProperty[] = [];
@@ -124,23 +124,23 @@
 			tmdbId: id,
 			title: movie.title ?? '',
 			subtitle: movie.release_date ? String(new Date(movie.release_date).getFullYear()) : '',
-			progress: $userData.data?.playState?.progress ?? 0,
+			progress: userData.data?.playState?.progress ?? 0,
 			playMedia: background.playMedia
 		});
 	}
-	let movie = $derived($tmdbMovie.data);
-	let status = $derived($statusQuery.data);
+	let movie = $derived(tmdbMovie.data);
+	let status = $derived(statusQuery.data);
 	let requestStatus = $derived(
 		getMovieRequestStatus({
-			requests: $requests.data,
+			requests: requests.data,
 			status,
-			torrents: $torrents.data
+			torrents: torrents.data
 		})
 	);
-	let inMyList = $derived($userData.data?.inMyList ?? false);
-	let watched = $derived($userData.data?.playState?.watched ?? false);
+	let inMyList = $derived(userData.data?.inMyList ?? false);
+	let watched = $derived(userData.data?.playState?.watched ?? false);
 	$effect(() => {
-		reportStatusFailure($statusQuery.isError, $statusQuery.error);
+		reportStatusFailure(statusQuery.isError, statusQuery.error);
 	});
 	$effect(() => {
 		if (movie) setBackgrounds(movie);
@@ -238,12 +238,12 @@
 				{/each}
 			</Carousel>
 		{/if}
-		{#if $recommendations.data?.length}
+		{#if recommendations.data?.length}
 			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
 				{#snippet header()}
 					<div>Recommendations</div>
 				{/snippet}
-				{#each $recommendations.data as recommendation}
+				{#each recommendations.data as recommendation}
 					<TmdbCard item={recommendation} onEnter={scrollIntoView({ left: 128 })} />
 				{/each}
 			</Carousel>

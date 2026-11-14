@@ -6,7 +6,6 @@
 	import { formatSize } from '$lib/utils';
 	import classNames from 'classnames';
 	import { ChevronRight, Link2 } from 'radix-icons-svelte';
-	import { derived as derivedStore, writable } from 'svelte/store';
 	import Button from '../Button/Button.svelte';
 	import Container from '../Container.svelte';
 	import ListRow from '../ListRow.svelte';
@@ -30,10 +29,8 @@
 	let { title, path = '/', disabled = {}, onSelect }: Props = $props();
 
 	/** One level at a time: entering a folder loads what is in it */
-	const current = writable(path);
-	const directories = usePageQuery(
-		derivedStore(current, ($current) => serverQueries.directories($current))
-	);
+	let current = $state(path);
+	const directories = usePageQuery(() => serverQueries.directories(current));
 
 	// The folder shown stays until the one entered is loaded, and when it cannot be
 	let listing: DirectoryListingDto | undefined = $state(undefined);
@@ -43,7 +40,7 @@
 
 	function load(next: string) {
 		pickError = '';
-		current.set(next);
+		current = next;
 	}
 
 	function goUp() {
@@ -64,9 +61,9 @@
 		});
 	}
 	$effect(() => {
-		if ($directories.data) listing = $directories.data;
+		if (directories.data) listing = directories.data;
 	});
-	let error = $derived(($directories.error && errorMessage($directories.error)) || pickError);
+	let error = $derived((directories.error && errorMessage(directories.error)) || pickError);
 </script>
 
 <!-- Enter picks the focused folder, right enters it and left goes to the parent. A click enters a

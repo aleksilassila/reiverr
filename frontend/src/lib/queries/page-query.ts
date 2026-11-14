@@ -2,29 +2,27 @@ import { useComponentStack } from '$lib/components/StackRouter/stack-router.stor
 import {
 	createInfiniteQuery,
 	createQuery,
+	type Accessor,
 	type CreateInfiniteQueryOptions,
 	type CreateInfiniteQueryResult,
 	type CreateQueryOptions,
 	type CreateQueryResult,
 	type DefaultError,
 	type InfiniteData,
-	type QueryKey,
-	type StoreOrVal
+	type QueryKey
 } from '@tanstack/svelte-query';
-import { tick } from 'svelte';
-import type { Action } from 'svelte/action';
-import { derived, get, readable } from 'svelte/store';
+import type { Attachment } from 'svelte/attachments';
+import { fromStore, readable } from 'svelte/store';
 
 /** The options, disabled while another page covers the component's page */
-function enabledAtFront<TOptions extends { enabled?: unknown }>(options: StoreOrVal<TOptions>) {
+function enabledAtFront<TOptions extends { enabled?: unknown }>(options: Accessor<TOptions>) {
 	// Outside the router (the users page) nothing covers the component
-	const isHidden = useComponentStack()?.isHidden ?? readable(false);
-	const optionsStore = 'subscribe' in options ? options : readable(options);
+	const isHidden = fromStore(useComponentStack()?.isHidden ?? readable(false));
 
-	return derived([optionsStore, isHidden], ([$options, $isHidden]) => ({
-		...$options,
-		enabled: !$isHidden && ($options.enabled ?? true)
-	}));
+	return () => {
+		const current = options();
+		return { ...current, enabled: !isHidden.current && (current.enabled ?? true) };
+	};
 }
 
 /**
@@ -38,18 +36,12 @@ export function usePageQuery<
 	TData = TQueryFnData,
 	TQueryKey extends QueryKey = QueryKey
 >(
-	options: StoreOrVal<CreateQueryOptions<TQueryFnData, TError, TData, TQueryKey>>
+	options: Accessor<CreateQueryOptions<TQueryFnData, TError, TData, TQueryKey>>
 ): CreateQueryResult<TData, TError> {
 	return createQuery(enabledAtFront(options));
 }
 
-/**
- * A list of a page of the stack router (`pagedQueryOptions`), fetched like {@link usePageQuery}.
- * `loadMore` is the action of the element after the list: while it is in view, the next page is
- * fetched, if there is one and nothing is fetching. It looks again whenever a fetch settles, since
- * a page that does not push it out of view, or a fetch that was running when it came into view,
- * leaves it in view without a new intersection.
- */
+/** A list of a page of the stack router (`pagedQueryOptions`), fetched like {@link usePageQuery} */
 export function usePageInfiniteQuery<
 	TQueryFnData,
 	TError = DefaultError,
@@ -57,41 +49,34 @@ export function usePageInfiniteQuery<
 	TQueryKey extends QueryKey = QueryKey,
 	TPageParam = unknown
 >(
-	options: StoreOrVal<
-		CreateInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>
-	>
-): CreateInfiniteQueryResult<TData, TError> & { loadMore: Action } {
-	const query = createInfiniteQuery(enabledAtFront(options));
+	options: Accessor<CreateInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>>
+): CreateInfiniteQueryResult<TData, TError> {
+	return createInfiniteQuery(enabledAtFront(options));
+}
 
-	const loadMore: Action = (node) => {
+/**
+ * The attachment of the element after a list ({@link usePageInfiniteQuery}): while it is in view,
+ * the next page is fetched, if there is one and nothing is fetching. It observes anew whenever a
+ * fetch settles, since a page that does not push it out of view, or a fetch that was running when
+ * it came into view, leaves it in view without a new intersection.
+ *
+ * @example
+ * <div {@attach loadMore(titles)}></div>
+ */
+export function loadMore(
+	query: Pick<CreateInfiniteQueryResult, 'hasNextPage' | 'isFetching' | 'fetchNextPage'>
+): Attachment {
+	return (node) => {
+		if (!query.hasNextPage || query.isFetching) return;
+
 		const observer = new IntersectionObserver(
 			([entry]) => {
-				const { hasNextPage, isFetching, fetchNextPage } = get(query);
-				if (entry?.isIntersecting && hasNextPage && !isFetching) fetchNextPage();
+				if (entry?.isIntersecting) query.fetchNextPage();
 			},
 			{ threshold: 0.1 }
 		);
 		observer.observe(node);
 
-		// Observing again reports where the element is once the new rows are rendered
-		let wasFetching = false;
-		const unsubscribe = query.subscribe(({ isFetching }) => {
-			if (wasFetching && !isFetching) {
-				tick().then(() => {
-					observer.unobserve(node);
-					observer.observe(node);
-				});
-			}
-			wasFetching = isFetching;
-		});
-
-		return {
-			destroy() {
-				unsubscribe();
-				observer.disconnect();
-			}
-		};
+		return () => observer.disconnect();
 	};
-
-	return { subscribe: query.subscribe, loadMore };
 }

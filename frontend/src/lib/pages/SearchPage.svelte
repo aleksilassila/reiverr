@@ -6,7 +6,6 @@
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { tmdbQueries } from '$lib/queries/tmdb.queries';
 	import { onDestroy } from 'svelte';
-	import { derived, writable } from 'svelte/store';
 	import AnimateScale from '../components/AnimateScale.svelte';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import CardGrid from '../components/CardGrid.svelte';
@@ -18,14 +17,14 @@
 	const inputFocused = inputSelectable.hasFocus;
 
 	/** What is searched: the input once typing pauses */
-	const query = writable('');
-	const results = usePageQuery(derived(query, ($query) => tmdbQueries.search($query)));
+	let query = $state('');
+	const results = usePageQuery(() => tmdbQueries.search(query));
 
 	function handleInput(value: string) {
 		clearTimeout(typingTimeout);
 
 		typingTimeout = setTimeout(() => {
-			if (value) query.set(value);
+			if (value) query = value;
 		}, 500);
 	}
 
@@ -67,9 +66,9 @@
 		</Container>
 	</Container>
 	<div class="min-h-0 overflow-y-auto scrollbar-hide pt-4">
-		{#if !!searchQuery && $results.data}
+		{#if !!searchQuery && results.data}
 			<CardGrid class="px-4">
-				{#each $results.data as item}
+				{#each results.data as item}
 					<TmdbCard {item} onEnter={scrollIntoView({ vertical: 128 })} />
 				{/each}
 			</CardGrid>

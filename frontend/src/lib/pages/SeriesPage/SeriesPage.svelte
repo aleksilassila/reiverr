@@ -28,7 +28,7 @@
 	import { formatThousands } from '$lib/utils';
 	import classNames from 'classnames';
 	import { Bookmark, ExternalLink, Minus, Plus, Video } from 'radix-icons-svelte';
-	import { derived as derivedStore } from 'svelte/store';
+	import { toStore } from 'svelte/store';
 	import { useEpisodeCarousel } from './episode-carousel';
 	import { getEpisodeData, getEpisodeRequestStatus } from './episode-status';
 	import EpisodeActionsSheet from './EpisodeActionsSheet.svelte';
@@ -43,15 +43,13 @@
 	const componentStack = useComponentStack();
 	const background = backgroundContext.createContext({ backgroundMediaId: id, videoMediaId: id });
 
-	const tmdbSeries = usePageQuery(metadataQueries.series(id));
-	const userData = usePageQuery(userDataQueries.series(id));
-	const requests = usePageQuery(requestsQueries.series(id));
-	const status = usePageQuery(libraryQueries.seriesStatus(id));
-	const torrents = usePageQuery(downloadsQueries.seriesTorrents(id));
-	const series = derivedStore(tmdbSeries, ($tmdbSeries) => $tmdbSeries.data);
-	const episodesData = derivedStore([tmdbSeries, userData], ([$tmdbSeries, $userData]) =>
-		getEpisodeData($tmdbSeries.data, $userData.data)
-	);
+	const tmdbSeries = usePageQuery(() => metadataQueries.series(id));
+	const userData = usePageQuery(() => userDataQueries.series(id));
+	const requests = usePageQuery(() => requestsQueries.series(id));
+	const status = usePageQuery(() => libraryQueries.seriesStatus(id));
+	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(id));
+	let series = $derived(tmdbSeries.data);
+	let episodesData = $derived(getEpisodeData(tmdbSeries.data, userData.data));
 
 	// The labels of the episodes go missing while the status cannot be loaded; said once per failure
 	let statusFailed = false;
@@ -90,14 +88,18 @@
 		onEpisodeMount,
 		onEpisodeCardMouseEnter,
 		onEpisodeCardMouseLeave
-	} = useEpisodeCarousel(id, series, episodesData);
+	} = useEpisodeCarousel(
+		id,
+		toStore(() => series),
+		toStore(() => episodesData)
+	);
 
 	const { visibleStyle } = setUiVisibilityContext();
 	const { registrar: scrollRegistrar } = setScrollContext();
 
 	const { topVisible } = getScrollContext();
 
-	const recommendations = usePageQuery(tmdbQueries.seriesRecommendations(Number(id)));
+	const recommendations = usePageQuery(() => tmdbQueries.seriesRecommendations(Number(id)));
 
 	function getTitleProperties(series: TmdbSeriesFull, trailerId?: string) {
 		const properties: TitleInfoProperty[] = [];
@@ -137,22 +139,22 @@
 		return properties;
 	}
 	let requestsData = $derived({
-		requests: $requests.data,
-		status: $status.data,
-		torrents: $torrents.data
+		requests: requests.data,
+		status: status.data,
+		torrents: torrents.data
 	});
-	let inMyList = $derived($userData.data?.inMyList ?? false);
+	let inMyList = $derived(userData.data?.inMyList ?? false);
 	$effect(() => {
-		reportStatusFailure($status.isError, $status.error);
+		reportStatusFailure(status.isError, status.error);
 	});
 	$effect(() => {
-		if ($series) setBackgrounds($series);
+		if (series) setBackgrounds(series);
 	});
 	let trailerId = $derived(
-		$series?.videos?.results?.find((video) => video.type === 'Trailer' && video.site === 'YouTube')
+		series?.videos?.results?.find((video) => video.type === 'Trailer' && video.site === 'YouTube')
 			?.key
 	);
-	let titleProperties = $derived($series ? getTitleProperties($series, trailerId) : []);
+	let titleProperties = $derived(series ? getTitleProperties(series, trailerId) : []);
 	$effect(() => {
 		if ($localSettings.autoplayTrailers && trailerId) {
 			background.playYoutubeVideo({
@@ -227,11 +229,11 @@
 			)}
 			style="transform: translateZ(0);"
 		>
-			{#if $series}
+			{#if series}
 				<TitleProperties
-					title={$series.name ?? ''}
+					title={series.name ?? ''}
 					properties={titleProperties}
-					overview={$series.overview ?? ''}
+					overview={series.overview ?? ''}
 				/>
 			{/if}
 			<Container direction="horizontal" class="flex mt-8 space-x-4" focusOnMount>
@@ -306,8 +308,8 @@
 		</div>
 	</HeroCarousel>
 	<div class="relative z-10" style={$visibleStyle}>
-		{#if $series}
-			{@const tmdbSeries = $series}
+		{#if series}
+			{@const tmdbSeries = series}
 			{@const episodes = tmdbSeries.seasons?.map((s) => s?.episodes ?? [])?.flat() ?? []}
 			{#if episodes.length}
 				<Carousel
@@ -345,7 +347,7 @@
 
 					{#snippet children({ scrollToIndex })}
 						{#each episodes as episode, i (episode.id)}
-							{@const userData = $episodesData.episodes.find(
+							{@const userData = episodesData.episodes.find(
 								(e) => e.season === episode.season_number && e.episode === episode.episode_number
 							)}
 							{@const requestStatus = getEpisodeRequestStatus(
@@ -413,8 +415,8 @@
 			{/if}
 		{/if}
 
-		{#if $series}
-			{@const seasonCredits = $series.seasons?.find(
+		{#if series}
+			{@const seasonCredits = series.seasons?.find(
 				(s) => s.season_number === ($selectedTmdbEpisode?.season_number ?? 1)
 			)?.aggregate_credits}
 			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
@@ -427,22 +429,22 @@
 						{/if}
 					</div>
 				{/snippet}
-				{#each (seasonCredits ?? $series.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
+				{#each (seasonCredits ?? series.aggregate_credits)?.cast?.slice(0, 15) || [] as credit, i (credit.id)}
 					<TmdbPersonCard onEnter={scrollIntoView({ left: 128 })} tmdbCredit={credit} index={i} />
 				{/each}
 			</Carousel>
 		{/if}
-		{#if $recommendations.data?.length}
+		{#if recommendations.data?.length}
 			<Carousel scrollClass="px-32" class="mb-8" onEnter={scrollIntoView({ top: 64 + 32 })}>
 				{#snippet header()}
 					<div>Recommendations</div>
 				{/snippet}
-				{#each $recommendations.data as recommendation (recommendation.id)}
+				{#each recommendations.data as recommendation (recommendation.id)}
 					<TmdbCard item={recommendation} onEnter={scrollIntoView({ left: 128 })} />
 				{/each}
 			</Carousel>
 		{/if}
-		{#if $series}
+		{#if series}
 			<Container
 				class="flex-1 bg-secondary-950 pt-16 pb-8 px-32"
 				onEnter={scrollIntoView({ bottom: 0 })}
@@ -452,34 +454,34 @@
 					<div class="flex-1">
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Created By</h2>
-							{#each $series.created_by || [] as creator}
+							{#each series.created_by || [] as creator}
 								<div>{creator.name}</div>
 							{/each}
 						</div>
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Network</h2>
-							<div>{$series.networks?.[0]?.name}</div>
+							<div>{series.networks?.[0]?.name}</div>
 						</div>
-						{#if $series.number_of_seasons}
+						{#if series.number_of_seasons}
 							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Seasons</h2>
-								<div>{$series.number_of_seasons}</div>
+								<div>{series.number_of_seasons}</div>
 							</div>
 						{/if}
 					</div>
 					<div class="flex-1">
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Language</h2>
-							<div>{$series.spoken_languages?.[0]?.name}</div>
+							<div>{series.spoken_languages?.[0]?.name}</div>
 						</div>
 						<div class="mb-8">
 							<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Last Air Date</h2>
-							<div>{$series.last_air_date}</div>
+							<div>{series.last_air_date}</div>
 						</div>
-						{#if $series.number_of_episodes}
+						{#if series.number_of_episodes}
 							<div class="mb-8">
 								<h2 class="uppercase text-sm font-semibold text-zinc-500 mb-0.5">Episodes</h2>
-								<div>{$series.number_of_episodes}</div>
+								<div>{series.number_of_episodes}</div>
 							</div>
 						{/if}
 					</div>

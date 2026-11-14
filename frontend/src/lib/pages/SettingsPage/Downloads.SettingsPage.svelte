@@ -14,15 +14,15 @@
 	import Toggle from '../../components/Toggle.svelte';
 	import EditIndexerDialog from './EditIndexerDialog.SettingsPage.svelte';
 
-	const indexersQuery = usePageQuery(indexersQueries.list());
-	const settingsQuery = usePageQuery(downloadsQueries.settings());
+	const indexersQuery = usePageQuery(() => indexersQueries.list());
+	const settingsQuery = usePageQuery(() => downloadsQueries.settings());
 
 	/** What is typed into the seed ratio field, until it is saved */
 	let seedRatioInput: string | undefined = $state();
 	let seedRatioError = $state('');
 	let subtitlesError = $state('');
 
-	let settings = $derived($settingsQuery.data);
+	let settings = $derived(settingsQuery.data);
 	let savedSeedRatio = $derived(settings ? String(settings.seedRatio) : '');
 	let seedRatio = $derived(seedRatioInput ?? savedSeedRatio);
 
@@ -61,8 +61,8 @@
 			the series library folder.
 		</p>
 	</div>
-	{#if $indexersQuery.data}
-		{@const indexers = $indexersQuery.data}
+	{#if indexersQuery.data}
+		{@const indexers = indexersQuery.data}
 		<Container class="flex flex-col space-y-4 mb-4 max-w-sm">
 			{#each indexers as indexer (indexer.id)}
 				<SelectField
@@ -84,8 +84,8 @@
 		>
 			Add Indexer
 		</Button>
-	{:else if $indexersQuery.error}
-		<p class="error">{errorMessage($indexersQuery.error)}</p>
+	{:else if indexersQuery.error}
+		<p class="error">{errorMessage(indexersQuery.error)}</p>
 	{/if}
 
 	{#if settings}
@@ -99,8 +99,8 @@
 				<p class="error mt-4">{subtitlesError}</p>
 			{/if}
 		</Container>
-	{:else if $settingsQuery.error}
-		<p class="error mt-8">{errorMessage($settingsQuery.error)}</p>
+	{:else if settingsQuery.error}
+		<p class="error mt-8">{errorMessage(settingsQuery.error)}</p>
 	{/if}
 
 	<Container class="flex flex-col space-y-4 mt-8 max-w-sm">

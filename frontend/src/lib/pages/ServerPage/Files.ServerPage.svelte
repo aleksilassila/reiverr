@@ -29,7 +29,6 @@
 	import classNames from 'classnames';
 	import { Archive, Bookmark, ChevronDown, Cross2, Reload, Trash } from 'radix-icons-svelte';
 	import { tick } from 'svelte';
-	import { derived as derivedStore, writable } from 'svelte/store';
 	import FileRow from './FileRow.ServerPage.svelte';
 	import {
 		buildTree,
@@ -51,17 +50,15 @@
 	];
 	const EMPTY_TREE: LibraryTree = { roots: [], nodes: new Map() };
 
-	const folder = writable('');
-	const settings = usePageQuery(libraryQueries.settings());
-	const entries = usePageQuery(
-		derivedStore(folder, ($folder) => ({
-			...serverQueries.libraryEntries($folder),
-			select: buildTree,
-			enabled: !!$folder
-		}))
-	);
+	let folder = $state('');
+	const settings = usePageQuery(() => libraryQueries.settings());
+	const entries = usePageQuery(() => ({
+		...serverQueries.libraryEntries(folder),
+		select: buildTree,
+		enabled: !!folder
+	}));
 	// What the cleanup would delete now, library-wide as the button runs it
-	const cleanup = usePageQuery(serverQueries.cleanupPreview());
+	const cleanup = usePageQuery(() => serverQueries.cleanupPreview());
 
 	let expanded = $state.raw(new Set<string>());
 	let checked = $state.raw(new Set<string>());
@@ -84,13 +81,13 @@
 		createModal(SelectDialog, {
 			title: 'Library folder',
 			options: folders,
-			selectedOption: $folder,
+			selectedOption: folder,
 			handleSelectOption: (next: string) => {
-				if (next === $folder) return;
+				if (next === folder) return;
 				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- the sets are replaced, never mutated
 				expanded = new Set();
 				limit = ROWS;
-				$folder = next;
+				folder = next;
 			}
 		});
 	}
@@ -148,7 +145,7 @@
 					? ` ${count(heldFiles, 'file is', 'files are')} held by ${count(requests, 'request', 'requests')}, which will be deleted too.`
 					: ''),
 			confirm: () =>
-				deleteLibraryEntries({ folder: $folder, paths: Array.from(checked) })
+				deleteLibraryEntries({ folder, paths: Array.from(checked) })
 					.then(({ failed }) => {
 						if (failed.length) {
 							createErrorNotification(
@@ -169,7 +166,7 @@
 			header: 'Request the files?',
 			body: `The episodes or movies of ${files} will be requested for you, bound to the files, so that they are kept as long as your requests keep them under your request rules. Of several files of one episode or movie, one gets the request. Automatic request rules apply.`,
 			confirm: () =>
-				requestLibraryEntries({ folder: $folder, paths: Array.from(checked) })
+				requestLibraryEntries({ folder, paths: Array.from(checked) })
 					.then((data) => {
 						const what = [
 							`${count(data.requests, 'request', 'requests')} bound`,
@@ -221,7 +218,7 @@
 	}
 
 	function setManaged(managed: boolean) {
-		const entries = { folder: $folder, paths: Array.from(checked) };
+		const entries = { folder, paths: Array.from(checked) };
 
 		return (managed ? manageLibraryEntries(entries) : unmanageLibraryEntries(entries))
 			.then((data) =>
@@ -240,7 +237,7 @@
 
 	/** Warns when the scan would forget indexed files, which happens to all of them in a folder that is not mounted */
 	async function confirmScan() {
-		const preview = await previewLibraryScan($folder).catch((e) => {
+		const preview = await previewLibraryScan(folder).catch((e) => {
 			createErrorNotification('Could not scan', errorMessage(e));
 			return undefined;
 		});
@@ -263,7 +260,7 @@
 
 	async function scan(force: boolean) {
 		isScanning = true;
-		await scanLibrary($folder, force)
+		await scanLibrary(folder, force)
 			.then((data) => {
 				const what = [
 					`${data.added} added`,
@@ -285,22 +282,22 @@
 		isScanning = false;
 	}
 	let folders = $derived(
-		$settings.data
-			? [...folderPaths($settings.data.seriesFolders), ...folderPaths($settings.data.movieFolders)]
+		settings.data
+			? [...folderPaths(settings.data.seriesFolders), ...folderPaths(settings.data.movieFolders)]
 			: []
 	);
 	$effect(() => {
-		if (!$folder && folders[0]) $folder = folders[0];
+		if (!folder && folders[0]) folder = folders[0];
 	});
-	let tree = $derived($entries.data ?? EMPTY_TREE);
+	let tree = $derived(entries.data ?? EMPTY_TREE);
 	// A selection is of the entries as they were listed: a new listing of the folder clears it
 	$effect(() => {
 		if (tree) checked = new Set();
 	});
-	let isLoading = $derived($settings.isLoading || $entries.isLoading);
-	let loadError = $derived($settings.error ?? $entries.error);
+	let isLoading = $derived(settings.isLoading || entries.isLoading);
+	let loadError = $derived(settings.error ?? entries.error);
 	let error = $derived(loadError ? errorMessage(loadError) : '');
-	let unretained = $derived($cleanup.data?.files ?? 0);
+	let unretained = $derived(cleanup.data?.files ?? 0);
 	let rows = $derived(getRows(tree.roots, expanded, order));
 	let orderLabel = $derived(ORDERS.find((o) => o.value === order)?.label);
 	let partiallyChecked = $derived(getPartiallyChecked(checked));
@@ -310,7 +307,7 @@
 <Container class="h-full flex flex-col">
 	<Container class="space-y-4" selectable={header}>
 		<SelectField
-			value={$folder || 'None'}
+			value={folder || 'None'}
 			disabled={!folders.length}
 			class="max-w-md"
 			onClickOrSelect={selectFolder}
@@ -325,7 +322,7 @@
 				<Button
 					icon={ChevronDown}
 					iconPosition="after"
-					disabled={!$folder}
+					disabled={!folder}
 					onClickOrSelect={selectOrder}
 					onEnter={scrollIntoView({ horizontal: 64 })}
 				>
@@ -333,7 +330,7 @@
 				</Button>
 				<Button
 					icon={Reload}
-					disabled={!$folder || isScanning}
+					disabled={!folder || isScanning}
 					onClickOrSelect={confirmScan}
 					onEnter={scrollIntoView({ horizontal: 64 })}
 				>

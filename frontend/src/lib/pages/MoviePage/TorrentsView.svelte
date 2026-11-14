@@ -28,18 +28,18 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const requestsQuery = usePageQuery(requestsQueries.movie(tmdbId));
-	const statusQuery = usePageQuery(libraryQueries.movieStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.movieTorrents(tmdbId));
-	const releases = usePageQuery(indexersQueries.movieReleases(tmdbId));
-	let status = $derived($statusQuery.data);
+	const requestsQuery = usePageQuery(() => requestsQueries.movie(tmdbId));
+	const statusQuery = usePageQuery(() => libraryQueries.movieStatus(tmdbId));
+	const torrents = usePageQuery(() => downloadsQueries.movieTorrents(tmdbId));
+	const releases = usePageQuery(() => indexersQueries.movieReleases(tmdbId));
+	let status = $derived(statusQuery.data);
 
-	let selection = $derived($requestsQuery.data?.source);
+	let selection = $derived(requestsQuery.data?.source);
 	// A torrent picked for the movie replaces the file the request has
 	let heldFile = $derived(heldFileOf(status?.fulfilment, status?.files));
 	let kept = $derived(!!heldFile && heldFile.infoHash !== selection?.release?.infoHash);
 	let keptTorrent = $derived(
-		kept && heldFile?.infoHash ? $torrents.data?.get(heldFile.infoHash) : undefined
+		kept && heldFile?.infoHash ? torrents.data?.get(heldFile.infoHash) : undefined
 	);
 	let keptHint = $derived(
 		!kept
@@ -52,9 +52,9 @@
 	let error = $state('');
 	// The files of the movie in the library, external or imported, which the request can have instead
 	let fileList = $derived(status?.files ?? []);
-	let releaseList = $derived($releases.data ?? []);
+	let releaseList = $derived(releases.data ?? []);
 	// The torrents that have the release already, which selecting downloads nothing anew from
-	let onServer = $derived(getOnServer($torrents.data, status?.files));
+	let onServer = $derived(getOnServer(torrents.data, status?.files));
 
 	let hasFiles = $derived(fileList.length > 0);
 	let selectedFile = $derived(fileList.find((file) => file.id === selection?.mediaFileId));
@@ -87,7 +87,7 @@
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	/** Whether the request downloads from the release: there is one, and a new torrent replaces its file */
-	let affected = $derived($requestsQuery.data?.request ? 1 : 0);
+	let affected = $derived(requestsQuery.data?.request ? 1 : 0);
 
 	async function select(release: ReleaseDto) {
 		error = '';
@@ -228,10 +228,10 @@
 		{#if selection || otherFiles.length}
 			<div class="text-lg font-semibold text-secondary-400 mt-8 mb-4">Torrents</div>
 		{/if}
-		{#if $releases.isPending}
+		{#if releases.isPending}
 			<div class="text-2xl font-medium text-secondary-400 my-8">Searching indexers...</div>
-		{:else if $releases.error}
-			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage($releases.error)}</div>
+		{:else if releases.error}
+			<div class="text-2xl font-medium text-red-400 my-8">{errorMessage(releases.error)}</div>
 		{:else}
 			<div class="space-y-4">
 				{#each otherReleases as release, index (release.id)}

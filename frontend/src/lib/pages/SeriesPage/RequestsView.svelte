@@ -81,19 +81,19 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const tmdbSeries = usePageQuery(metadataQueries.series(tmdbId));
-	const requests = usePageQuery(requestsQueries.series(tmdbId));
-	const status = usePageQuery(libraryQueries.seriesStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.seriesTorrents(tmdbId));
-	const storage = usePageQuery(storageQueries.user());
-	let data = $derived({ requests: $requests.data, status: $status.data, torrents: $torrents.data });
-	let ruleData = $derived($requests.data?.rule);
-	let usage = $derived($storage.data);
+	const tmdbSeries = usePageQuery(() => metadataQueries.series(tmdbId));
+	const requests = usePageQuery(() => requestsQueries.series(tmdbId));
+	const status = usePageQuery(() => libraryQueries.seriesStatus(tmdbId));
+	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(tmdbId));
+	const storage = usePageQuery(() => storageQueries.user());
+	let data = $derived({ requests: requests.data, status: status.data, torrents: torrents.data });
+	let ruleData = $derived(requests.data?.rule);
+	let usage = $derived(storage.data);
 
 	const seasonItems: SeasonItem[] = $state([]);
 	// The season of the focused row, highlighted in the quick navigation
 	let activeSeason: number | undefined = $state(undefined);
-	let seasons = $derived($tmdbSeries.data?.seasons ?? []);
+	let seasons = $derived(tmdbSeries.data?.seasons ?? []);
 	let selectedSeason = $derived(
 		Math.max(
 			0,
@@ -194,7 +194,7 @@
 					>
 						{#snippet title()}
 							<span class="block truncate leading-tight">
-								{$tmdbSeries.data?.name ?? ''}
+								{tmdbSeries.data?.name ?? ''}
 							</span>
 						{/snippet}
 					</HeroTitleInfo>
@@ -254,7 +254,7 @@
 				/>
 			{:else}
 				<div class="h-ghost m-auto">
-					{#if $tmdbSeries.isPending}
+					{#if tmdbSeries.isPending}
 						Loading...
 					{:else}
 						Could not load series.

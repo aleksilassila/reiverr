@@ -14,12 +14,11 @@
 		type MyListAvailability,
 		type MyListOrder
 	} from '$lib/queries/catalog.queries';
-	import { usePageInfiniteQuery } from '$lib/queries/page-query';
+	import { loadMore, usePageInfiniteQuery } from '$lib/queries/page-query';
 	import { scrollIntoView, scrollToTop } from '$lib/selectable';
 	import { createLocalStorageStore } from '$lib/stores/localstorage.store';
 	import { getScrollContext } from '$lib/stores/scroll.store';
 	import { ArrowDown, ArrowUp } from 'radix-icons-svelte';
-	import { derived as derivedStore, writable } from 'svelte/store';
 	import { titleBadges } from '../../components/Card/title-badges';
 	import TmdbCard from '../../components/Card/TmdbCard.svelte';
 	import CardGrid from '../../components/CardGrid.svelte';
@@ -61,9 +60,9 @@
 
 	let didMount = $state(false);
 
-	const category = writable<CatalogCategory>('all');
-	const availability = writable<MyListAvailability | null>(null);
-	const letter = writable<Letter | null>(null);
+	let category: CatalogCategory = $state('all');
+	let availability: MyListAvailability | null = $state(null);
+	let letter: Letter | null = $state(null);
 	const viewSettings = createLocalStorageStore<{
 		order: MyListOrder;
 		direction: CatalogOrderDirection;
@@ -72,40 +71,35 @@
 		direction: 'desc'
 	});
 
-	const titles = usePageInfiniteQuery(
-		derivedStore(
-			[category, availability, letter, viewSettings],
-			([$category, $availability, $letter, $viewSettings]) =>
-				catalogQueries.myList({
-					status,
-					mediaType: mediaTypeOf($category),
-					availability: $availability ?? undefined,
-					letter: $letter ?? undefined,
-					order: $viewSettings.order,
-					direction: $viewSettings.direction
-				})
-		)
+	const titles = usePageInfiniteQuery(() =>
+		catalogQueries.myList({
+			status,
+			mediaType: mediaTypeOf(category),
+			availability: availability ?? undefined,
+			letter: letter ?? undefined,
+			order: $viewSettings.order,
+			direction: $viewSettings.direction
+		})
 	);
-	const { loadMore } = titles;
 
-	let items = $derived($titles.data ?? []);
+	let items = $derived(titles.data ?? []);
 
 	const errorMessage = (e: any): string => e?.response?.data?.message ?? e?.message ?? String(e);
 
 	// Selecting the category that is shown shows both again
 	function filter(selected: Category) {
-		$category = $category === selected ? 'all' : selected;
+		category = category === selected ? 'all' : selected;
 	}
 
 	// Selecting the availability that is on turns the filter off
 	function filterAvailability(selected: MyListAvailability) {
-		$availability = $availability === selected ? null : selected;
+		availability = availability === selected ? null : selected;
 	}
 
 	// Selecting the letter that is on turns the filter off
 	function filterLetter(index: number) {
 		const selected = LETTERS[index] ?? null;
-		$letter = $letter === selected ? null : selected;
+		letter = letter === selected ? null : selected;
 	}
 
 	// One sort is always on; selecting it again turns it around
@@ -135,7 +129,7 @@
 						<Container direction="horizontal" class="flex space-x-4">
 							{#each CATEGORIES as option (option.value)}
 								<Pill
-									selected={$category === option.value}
+									selected={category === option.value}
 									onClickOrSelect={() => filter(option.value)}
 									onEnter={scrollIntoView({ horizontal: 64 })}
 								>
@@ -151,7 +145,7 @@
 						<Container direction="horizontal" class="flex space-x-4">
 							{#each AVAILABILITIES as option (option.value)}
 								<Pill
-									selected={$availability === option.value}
+									selected={availability === option.value}
 									onClickOrSelect={() => filterAvailability(option.value)}
 									onEnter={scrollIntoView({ horizontal: 64 })}
 								>
@@ -210,22 +204,22 @@
 									{/each}
 								{/snippet}
 							</CardGrid>
-							<div use:loadMore></div>
+							<div {@attach loadMore(titles)}></div>
 						</div>
-					{:else if $titles.isLoading}
+					{:else if titles.isLoading}
 						<Container class="h-ghost m-auto px-32">Loading...</Container>
-					{:else if $titles.error}
+					{:else if titles.error}
 						<Container focusOnMount class="h-ghost m-auto px-32 text-red-400">
-							{errorMessage($titles.error)}
+							{errorMessage(titles.error)}
 						</Container>
 					{:else}
 						<Container focusOnMount class="h-ghost m-auto px-32">
-							{#if $letter}
-								Nothing {status} in your list under {$letter}.
-							{:else if $availability}
-								Nothing {status} and {$availability} in your list.
-							{:else if $category !== 'all'}
-								No {status} {$category} in your list.
+							{#if letter}
+								Nothing {status} in your list under {letter}.
+							{:else if availability}
+								Nothing {status} and {availability} in your list.
+							{:else if category !== 'all'}
+								No {status} {category} in your list.
 							{:else}
 								Nothing {status} in your list.
 							{/if}
@@ -239,7 +233,7 @@
 		size="sm"
 		class="fixed right-12 inset-y-0 justify-center z-10"
 		items={LETTERS}
-		selected={$letter ? LETTERS.indexOf($letter) : -1}
+		selected={letter ? LETTERS.indexOf(letter) : -1}
 		onSelect={(e) => filterLetter(e)}
 	/>
 </Container>

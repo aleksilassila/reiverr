@@ -24,12 +24,6 @@ Provides access to the stack router, which is used for client side navigation an
 
 ---
 
-[src/lib/stores/**data**/](src/lib/stores/data/)
-
-Data fetching stores and utilities.
-
----
-
 [src/lib/components/GlobalBackground/**background-stack.store.ts**](src/lib/components/GlobalBackground/background-stack.store.ts)
 
 Provides access to the global background stack, which allows reusing backgrounds between pages.

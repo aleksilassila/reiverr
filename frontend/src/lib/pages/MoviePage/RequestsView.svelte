@@ -46,22 +46,22 @@
 
 	const componentStack = useComponentStack();
 	const { background } = backgroundContext.getContext();
-	const tmdbMovie = usePageQuery(metadataQueries.movie(tmdbId));
-	const requests = usePageQuery(requestsQueries.movie(tmdbId));
-	const statusQuery = usePageQuery(libraryQueries.movieStatus(tmdbId));
-	const torrents = usePageQuery(downloadsQueries.movieTorrents(tmdbId));
-	const storage = usePageQuery(storageQueries.user());
-	let movie = $derived($tmdbMovie.data);
-	let status = $derived($statusQuery.data);
+	const tmdbMovie = usePageQuery(() => metadataQueries.movie(tmdbId));
+	const requests = usePageQuery(() => requestsQueries.movie(tmdbId));
+	const statusQuery = usePageQuery(() => libraryQueries.movieStatus(tmdbId));
+	const torrents = usePageQuery(() => downloadsQueries.movieTorrents(tmdbId));
+	const storage = usePageQuery(() => storageQueries.user());
+	let movie = $derived(tmdbMovie.data);
+	let status = $derived(statusQuery.data);
 	let requestStatus = $derived(
 		getMovieRequestStatus({
-			requests: $requests.data,
+			requests: requests.data,
 			status,
-			torrents: $torrents.data
+			torrents: torrents.data
 		})
 	);
-	let ruleData = $derived($requests.data?.rule);
-	let usage = $derived($storage.data);
+	let ruleData = $derived(requests.data?.rule);
+	let usage = $derived(storage.data);
 
 	let name = $derived(
 		movie ? `${movie.title} (${new Date(movie.release_date ?? 0).getFullYear()})` : ''
@@ -70,7 +70,7 @@
 		KEEP_FIELD.options.find((option) => option.value === (ruleData?.keepWatchedHours ?? null))
 			?.label ?? ''
 	);
-	let source = $derived($requests.data?.source);
+	let source = $derived(requests.data?.source);
 
 	function selectKeepOption() {
 		if (!ruleData) return;
@@ -193,7 +193,7 @@
 				</RequestRow>
 			{:else}
 				<div class="h-ghost m-auto">
-					{#if $tmdbMovie.isLoading}
+					{#if tmdbMovie.isLoading}
 						Loading...
 					{:else}
 						Could not load movie.

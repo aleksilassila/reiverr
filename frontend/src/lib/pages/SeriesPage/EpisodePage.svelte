@@ -25,8 +25,8 @@
 	const episodeNumber = Number(episode);
 
 	const background = backgroundContext.createContext({ videoMediaId: id });
-	const tmdbSeries = usePageQuery(metadataQueries.series(id));
-	const userData = usePageQuery(userDataQueries.series(id));
+	const tmdbSeries = usePageQuery(() => metadataQueries.series(id));
+	const userData = usePageQuery(() => userDataQueries.series(id));
 
 	function getTitleProperties(episode: SeasonEpisodeDto) {
 		const properties: { href?: string; label: string }[] = [];
@@ -67,13 +67,13 @@
 			playMedia: background.playMedia
 		});
 	let tmdbEpisode = $derived(
-		$tmdbSeries.data?.seasons
+		tmdbSeries.data?.seasons
 			?.map((s) => s.episodes ?? [])
 			.flat()
 			.find((e) => e.season_number === seasonNumber && e.episode_number === episodeNumber)
 	);
 	let playState = $derived(
-		$userData.data?.playStates.find((p) => p.season === seasonNumber && p.episode === episodeNumber)
+		userData.data?.playStates.find((p) => p.season === seasonNumber && p.episode === episodeNumber)
 	);
 	let isWatched = $derived(playState?.watched ?? false);
 	let progress = $derived(playState?.progress ?? 0);

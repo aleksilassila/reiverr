@@ -16,7 +16,7 @@
 
 	let { id }: Props = $props();
 
-	const personQuery = usePageQuery(tmdbQueries.person(Number(id)));
+	const personQuery = usePageQuery(() => tmdbQueries.person(Number(id)));
 
 	function getInfoProperties(person: TmdbPersonFull) {
 		const properties: { href?: string; label: string }[] = [];
@@ -57,7 +57,7 @@
 			(b.release_date ?? b.first_air_date ?? 0) > (a.release_date ?? a.first_air_date ?? 0) ? 1 : -1
 		);
 	}
-	let person = $derived($personQuery.data);
+	let person = $derived(personQuery.data);
 	let infoProperties = $derived(person ? getInfoProperties(person) : []);
 	let items = $derived(person ? getCredits(person) : []);
 </script>

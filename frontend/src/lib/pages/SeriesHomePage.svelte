@@ -16,28 +16,28 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 
 	backgroundContext.createContext();
-	const continueWatching = usePageQuery(catalogQueries.continueWatching('series'));
+	const continueWatching = usePageQuery(() => catalogQueries.continueWatching('series'));
 
 	const { registrar: registerScroll } = setScrollContext();
 	const { visibleStyle } = setUiVisibilityContext();
 
-	const trendingQuery = usePageQuery(tmdbQueries.trending('series'));
-	const nowStreamingQuery = usePageQuery(tmdbQueries.nowStreaming());
-	const upcomingQuery = usePageQuery(tmdbQueries.upcomingSeries());
-	const recommendedQuery = usePageQuery(tmdbQueries.recommendedSeries());
-	let nowStreaming = $derived($nowStreamingQuery.data);
-	let upcomingSeries = $derived($upcomingQuery.data);
+	const trendingQuery = usePageQuery(() => tmdbQueries.trending('series'));
+	const nowStreamingQuery = usePageQuery(() => tmdbQueries.nowStreaming());
+	const upcomingQuery = usePageQuery(() => tmdbQueries.upcomingSeries());
+	const recommendedQuery = usePageQuery(() => tmdbQueries.recommendedSeries());
+	let nowStreaming = $derived(nowStreamingQuery.data);
+	let upcomingSeries = $derived(upcomingQuery.data);
 	// Trending without what the rows below show
 	let trending = $derived(
-		$trendingQuery.data && nowStreaming && upcomingSeries
-			? $trendingQuery.data.filter(
+		trendingQuery.data && nowStreaming && upcomingSeries
+			? trendingQuery.data.filter(
 					(p) =>
 						!nowStreaming?.find((n) => n.id === p.id) && !upcomingSeries?.find((u) => u.id === p.id)
 				)
 			: undefined
 	);
-	let genreIdToMovie = $derived($recommendedQuery.data?.genreIdToMovie ?? {});
-	let topGenres = $derived($recommendedQuery.data?.topGenres ?? []);
+	let genreIdToMovie = $derived(recommendedQuery.data?.genreIdToMovie ?? {});
+	let topGenres = $derived(recommendedQuery.data?.topGenres ?? []);
 
 	// The account's top recommendations, else the upcoming series
 	const showcase = queryClient
@@ -55,13 +55,13 @@
 		<TmdbSeriesHeroShowcase series={showcase} />
 	</Container>
 	<div class="my-16 space-y-8 relative z-10" style={$visibleStyle}>
-		{#if $continueWatching.data?.length}
+		{#if continueWatching.data?.length}
 			<Carousel scrollClass="px-32" onEnter={scrollIntoView({ top: 128 })}>
 				{#snippet header()}
 					<span>Continue Watching</span>
 				{/snippet}
 
-				{#each $continueWatching.data as item, index (item.tmdbId)}
+				{#each continueWatching.data as item, index (item.tmdbId)}
 					<TmdbCard
 						{index}
 						onEnter={scrollIntoView({ left: 128 })}
@@ -84,7 +84,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[0]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
@@ -110,7 +110,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[1]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
@@ -136,7 +136,7 @@
 			</Carousel>
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[2]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
@@ -151,7 +151,7 @@
 			{/if}
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[3]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
@@ -166,7 +166,7 @@
 			{/if}
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[4]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
@@ -181,7 +181,7 @@
 			{/if}
 		{/if}
 
-		{#if $recommendedQuery.data}
+		{#if recommendedQuery.data}
 			{@const genre = topGenres[5]}
 			{@const genreItems = genreIdToMovie[genre || '']}
 			{#if genreItems?.length}
