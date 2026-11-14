@@ -3,6 +3,7 @@
 	import type { ContainerProps } from '$lib/components/Container.type';
 	import { Selectable } from '$lib/selectable';
 	import classNames from 'classnames';
+	import { DotsVertical } from 'radix-icons-svelte';
 	import { getCardDimensions } from '../../utils';
 	import AnimatedSelection from '../AnimateScale.svelte';
 	import Container from '../Container.svelte';
@@ -21,6 +22,8 @@
 		orientation?: 'portrait' | 'landscape';
 		/** Short marks in the top right corner, such as a count or a warning */
 		badges?: CardBadge[];
+		/** Opens the actions of the card: a long press on the remote, or the dots that show on hover */
+		onLongPress?: ContainerProps['onLongPress'];
 		children?: Snippet<[{ hasFocus: boolean; width: number; height: number }]>;
 	};
 
@@ -34,6 +37,7 @@
 		orientation = 'landscape',
 		badges = [],
 		children,
+		onLongPress,
 		...rest
 	}: Props = $props();
 
@@ -80,6 +84,7 @@
 		style={`width: ${dimensions.width}px; height: ${dimensions.height}px;`}
 		focusOnClick
 		{selectable}
+		{onLongPress}
 	>
 		{#if children}{@render children({
 				hasFocus: $hasFocus,
@@ -121,6 +126,18 @@
 					</div>
 				{/each}
 			</div>
+		{/if}
+
+		{#if onLongPress}
+			<button
+				class="absolute top-2 right-2 z-20 rounded-full p-1.5 bg-secondary-950/75 text-secondary-200 opacity-0 group-hover:opacity-100 hover:bg-primary-500 hover:text-secondary-950 transition-opacity"
+				onclick={(e) => {
+					e.stopPropagation();
+					onLongPress?.(selectable);
+				}}
+			>
+				<DotsVertical size={20} />
+			</button>
 		{/if}
 
 		{#if progress && progress > lowerLimit && progress < upperLimit}

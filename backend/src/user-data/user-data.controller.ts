@@ -111,6 +111,21 @@ export class UserDataController {
     return { success: removed };
   }
 
+  @Delete('movies/:tmdbId/continue-watching')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async removeMovieFromContinueWatching(
+    @GetAuthUser() user: User,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<SuccessResponseDto> {
+    await this.titleStateService.removeFromContinueWatching(
+      user.id,
+      tmdbId,
+      MediaType.Movie,
+    );
+
+    return { success: true };
+  }
+
   // Series
 
   @Get('series/:tmdbId')
@@ -219,5 +234,20 @@ export class UserDataController {
     );
 
     return { success: removed };
+  }
+
+  @Delete('series/:tmdbId/continue-watching')
+  @ApiOkResponse({ type: SuccessResponseDto })
+  async removeSeriesFromContinueWatching(
+    @GetAuthUser() user: User,
+    @Param('tmdbId') tmdbId: string,
+  ): Promise<SuccessResponseDto> {
+    await this.titleStateService.removeFromContinueWatching(
+      user.id,
+      tmdbId,
+      MediaType.Series,
+    );
+
+    return { success: true };
   }
 }

@@ -578,6 +578,13 @@
 					orientation="portrait"
 					onEnter={scrollIntoView({ horizontal: 128 })}
 				/>
+				<Card
+					title="Actions"
+					orientation="portrait"
+					onEnter={scrollIntoView({ horizontal: 128 })}
+					onLongPress={() =>
+						createInfoNotification('Actions', 'A long press, or the dots that show on hover')}
+				/>
 				<CardPlaceholder index={0} />
 				<CardPlaceholder index={1} orientation="portrait" />
 			</Carousel>

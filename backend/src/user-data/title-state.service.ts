@@ -72,6 +72,21 @@ export class TitleStateService {
     return changed > 0;
   }
 
+  /**
+   * Forgets when the user last played the title, which leaves it out of
+   * continue watching until they play something of it again
+   */
+  async removeFromContinueWatching(
+    userId: string,
+    tmdbId: string,
+    mediaType: MediaType,
+  ): Promise<void> {
+    await this.repository.nativeUpdate(
+      { userId, tmdbId, mediaType },
+      { lastPlayedAt: null },
+    );
+  }
+
   /** The user played something of the title, in the caller's transaction */
   async played(em: EntityManager, pair: Pair, at: Date): Promise<void> {
     const state = await this.getOrCreate(em, pair);

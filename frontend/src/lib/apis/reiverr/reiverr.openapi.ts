@@ -2224,6 +2224,24 @@ export class Api<
      * No description
      *
      * @tags userData
+     * @name RemoveMovieFromContinueWatching
+     * @request DELETE:/api/me/user-data/movies/{tmdbId}/continue-watching
+     */
+    removeMovieFromContinueWatching: (
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/movies/${tmdbId}/continue-watching`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
      * @name GetSeriesUserData
      * @request GET:/api/me/user-data/series/{tmdbId}
      */
@@ -2321,6 +2339,24 @@ export class Api<
     removeSeriesFromMyList: (tmdbId: string, params: RequestParams = {}) =>
       this.request<SuccessResponseDto, any>({
         path: `/api/me/user-data/series/${tmdbId}/my-list`,
+        method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags userData
+     * @name RemoveSeriesFromContinueWatching
+     * @request DELETE:/api/me/user-data/series/{tmdbId}/continue-watching
+     */
+    removeSeriesFromContinueWatching: (
+      tmdbId: string,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseDto, any>({
+        path: `/api/me/user-data/series/${tmdbId}/continue-watching`,
         method: "DELETE",
         format: "json",
         ...params,

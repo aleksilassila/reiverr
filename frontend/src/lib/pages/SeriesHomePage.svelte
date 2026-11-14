@@ -2,8 +2,10 @@
 	import { networksList } from '$lib/components/Collection/collections';
 	import NetworkCard from '$lib/components/Collection/NetworkCard.svelte';
 	import Container from '$lib/components/Container.svelte';
+	import ContinueWatchingActionsSheet from '$lib/components/ContinueWatchingActionsSheet.svelte';
 	import { backgroundContext } from '$lib/components/GlobalBackground/background-stack.store';
 	import TmdbSeriesHeroShowcase from '$lib/components/HeroShowcase/TmdbSeriesHeroShowcase.svelte';
+	import { useComponentStack } from '$lib/components/StackRouter/stack-router.store';
 	import { catalogQueries } from '$lib/queries/catalog.queries';
 	import { usePageQuery } from '$lib/queries/page-query';
 	import { queryClient } from '$lib/queries/query-client';
@@ -16,6 +18,7 @@
 	import Carousel from '../components/Carousel/Carousel.svelte';
 
 	backgroundContext.createContext();
+	const componentStack = useComponentStack();
 	const continueWatching = usePageQuery(() => catalogQueries.continueWatching('series'));
 
 	const { registrar: registerScroll } = setScrollContext();
@@ -68,6 +71,15 @@
 						size="lg"
 						item={item.tmdbItem}
 						progress={item.progress ?? 0}
+						onLongPress={() =>
+							componentStack.push({
+								component: ContinueWatchingActionsSheet,
+								props: {
+									mediaType: item.mediaType,
+									tmdbId: item.tmdbId,
+									title: item.tmdbItem.name ?? item.tmdbItem.title ?? ''
+								}
+							})}
 					/>
 				{/each}
 			</Carousel>

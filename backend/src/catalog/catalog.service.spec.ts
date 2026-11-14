@@ -406,6 +406,29 @@ describe('CatalogService', () => {
       ).toEqual(['Movie']);
     });
 
+    it('leaves out what was removed from continue watching until something of it is played again', async () => {
+      const played = () =>
+        RequestContext.create(orm.em, () =>
+          playStates.updateOrCreateMoviePlayState(userId, '1', {
+            progress: 0.5,
+          }),
+        );
+      await played();
+      await RequestContext.create(orm.em, () =>
+        titleStates.removeFromContinueWatching(userId, '1', MediaType.Movie),
+      );
+
+      expect(
+        names(await myList({ status: MyListStatus.ContinueWatching })),
+      ).toEqual([]);
+      expect(names(await myList())).toContain('Movie');
+
+      await played();
+      expect(
+        names(await myList({ status: MyListStatus.ContinueWatching })),
+      ).toEqual(['Movie']);
+    });
+
     it('filters by the first letter of the name', async () => {
       await insert(
         MovieMetadata.from({

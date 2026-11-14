@@ -87,6 +87,14 @@ export async function setSeriesInMyList(tmdbId: string, inMyList: boolean) {
 	await myListChanged('series', tmdbId);
 }
 
+/** Until something of the title is played again; the lists ordered by last played change with it */
+export async function removeFromContinueWatching(mediaType: MediaType, tmdbId: string) {
+	await (mediaType === 'series'
+		? reiverrApi.userData.removeSeriesFromContinueWatching(tmdbId)
+		: reiverrApi.userData.removeMovieFromContinueWatching(tmdbId));
+	await invalidate(catalogKeys.all);
+}
+
 export async function setMovieInMyList(tmdbId: string, inMyList: boolean) {
 	await (inMyList
 		? reiverrApi.userData.addMovieToMyList(tmdbId)
