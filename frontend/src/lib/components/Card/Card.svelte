@@ -106,7 +106,11 @@
 		{/if}
 
 		{#if badges.length}
-			<div class="absolute top-2 right-2 flex space-x-1">
+			<div
+				class={classNames('absolute top-2 right-2 flex space-x-1 transition-opacity', {
+					'group-hover:opacity-0': onLongPress
+				})}
+			>
 				{#each badges as badge}
 					<div
 						class={classNames(

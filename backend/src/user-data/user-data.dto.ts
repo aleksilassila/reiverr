@@ -41,6 +41,24 @@ export class MovieUserDataDto {
   playState?: PlayStateDto;
 }
 
+/** What the user would watch next of a series */
+export class NextEpisodeDto {
+  @ApiProperty()
+  season: number;
+
+  @ApiProperty()
+  episode: number;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    required: false,
+    description:
+      'When the episode aired or airs; absent when it has no date yet',
+  })
+  airDate?: string;
+}
+
 export class SeriesUserDataDto {
   @ApiProperty()
   tmdbId: string;
@@ -50,4 +68,12 @@ export class SeriesUserDataDto {
 
   @ApiProperty({ type: [PlayStateDto] })
   playStates: PlayStateDto[];
+
+  @ApiProperty({
+    type: NextEpisodeDto,
+    required: false,
+    description:
+      'The first unwatched episode after the one the user watched last; absent when nothing is left to watch or the user has nothing of the series yet',
+  })
+  nextEpisode?: NextEpisodeDto;
 }

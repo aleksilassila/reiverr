@@ -148,6 +148,16 @@ export class UserDataController {
       tmdbId,
       inMyList: !!state?.addedToMyListAt,
       playStates,
+      ...(state?.nextSeason != null &&
+        state.nextEpisode != null && {
+          nextEpisode: {
+            season: state.nextSeason,
+            episode: state.nextEpisode,
+            ...(state.nextAirDate && {
+              airDate: state.nextAirDate.toISOString(),
+            }),
+          },
+        }),
     };
   }
 

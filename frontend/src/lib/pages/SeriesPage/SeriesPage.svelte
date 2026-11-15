@@ -91,7 +91,7 @@
 	} = useEpisodeCarousel(
 		id,
 		toStore(() => series),
-		toStore(() => episodesData)
+		toStore(() => userData.data)
 	);
 
 	const { visibleStyle } = setUiVisibilityContext();
@@ -347,7 +347,7 @@
 
 					{#snippet children({ scrollToIndex })}
 						{#each episodes as episode, i (episode.id)}
-							{@const userData = episodesData.episodes.find(
+							{@const userData = episodesData.find(
 								(e) => e.season === episode.season_number && e.episode === episode.episode_number
 							)}
 							{@const requestStatus = getEpisodeRequestStatus(

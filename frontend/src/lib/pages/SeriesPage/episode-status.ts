@@ -70,50 +70,27 @@ export type EpisodeUserData = {
 	upcoming: boolean;
 };
 
-export type EpisodesData = {
-	/** The episode after the last watched one */
-	nextEpisode: EpisodeUserData | undefined;
-	episodes: EpisodeUserData[];
-};
-
 /** The play state of every episode of the series, in season and episode order */
 export function getEpisodeData(
 	tmdbSeries?: TmdbSeriesFull,
 	userData?: SeriesUserDataDto
-): EpisodesData {
-	let nextEpisodeData: EpisodeUserData | undefined = undefined;
+): EpisodeUserData[] {
 	const episodesData: EpisodeUserData[] = [];
-	let foundNext = false;
-	const lastWatchedPlayState = userData?.playStates?.filter((p) => p.watched).pop();
 	for (let season = 1; season <= (tmdbSeries?.number_of_seasons ?? 0); season++) {
 		const s = tmdbSeries?.seasons?.find((s) => s.season_number === season);
 		for (let episode = 1; episode <= (s?.episodes?.length ?? 0); episode++) {
 			const ep = userData?.playStates?.find((p) => p.season === season && p.episode === episode);
 			const upcoming = !s?.air_date || new Date(s.air_date) > new Date();
 
-			const episodeData = {
+			episodesData.push({
 				season,
 				episode,
 				watched: ep?.watched ?? false,
 				progress: ep?.progress ?? 0,
 				upcoming
-			};
-
-			if (
-				!foundNext &&
-				((lastWatchedPlayState?.season ?? Infinity) < season ||
-					((lastWatchedPlayState?.season ?? Infinity) === season &&
-						(lastWatchedPlayState?.episode ?? Infinity) < episode))
-			) {
-				nextEpisodeData = episodeData;
-				foundNext = true;
-			}
-			episodesData.push(episodeData);
+			});
 		}
 	}
 
-	return {
-		nextEpisode: nextEpisodeData,
-		episodes: episodesData
-	};
+	return episodesData;
 }

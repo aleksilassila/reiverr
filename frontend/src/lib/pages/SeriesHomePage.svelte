@@ -14,6 +14,7 @@
 	import { setScrollContext } from '$lib/stores/scroll.store';
 	import { setUiVisibilityContext } from '$lib/stores/ui-visibility.store';
 	import { TMDB_SERIES_GENRES } from '../apis/tmdb/tmdb-api';
+	import { titleBadges } from '../components/Card/title-badges';
 	import TmdbCard from '../components/Card/TmdbCard.svelte';
 	import Carousel from '../components/Carousel/Carousel.svelte';
 
@@ -71,6 +72,7 @@
 						size="lg"
 						item={item.tmdbItem}
 						progress={item.progress ?? 0}
+						badges={titleBadges(item, { nextEpisode: true })}
 						onLongPress={() =>
 							componentStack.push({
 								component: ContinueWatchingActionsSheet,

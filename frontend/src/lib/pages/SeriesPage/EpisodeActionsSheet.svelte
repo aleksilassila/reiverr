@@ -40,12 +40,8 @@
 	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(tmdbId));
 
 	let episodesData = $derived(getEpisodeData(tmdbSeries.data, seriesUserData.data));
-	let userData = $derived(
-		episodesData.episodes.find((e) => e.season === season && e.episode === episode)
-	);
-	let seasonEpisodes = $derived(
-		episodesData.episodes.filter((e) => e.season === season && !e.upcoming)
-	);
+	let userData = $derived(episodesData.find((e) => e.season === season && e.episode === episode));
+	let seasonEpisodes = $derived(episodesData.filter((e) => e.season === season && !e.upcoming));
 	let seasonWatched = $derived(seasonEpisodes.length > 0 && seasonEpisodes.every((e) => e.watched));
 	let requestStatus = $derived(
 		getEpisodeRequestStatus(

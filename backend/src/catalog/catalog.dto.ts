@@ -3,6 +3,7 @@ import { EpisodeRefDto, MediaType, Title } from '../common/common.dto.js';
 import { TorrentStatus } from '../downloads/downloads.dto.js';
 import { TmdbItemDto } from '../metadata/tmdb/tmdb.dto.js';
 import { RequestRuleDto } from '../requests/requests.dto.js';
+import { NextEpisodeDto } from '../user-data/user-data.dto.js';
 
 /** A title of a catalogue, with its TMDB item */
 export class CatalogItemDto implements Title {
@@ -157,23 +158,8 @@ export enum MyListAvailability {
   Unavailable = 'unavailable',
 }
 
-/** What the user would watch next of a series */
-export class NextEpisodeDto {
-  @ApiProperty()
-  season: number;
-
-  @ApiProperty()
-  episode: number;
-
-  @ApiProperty({
-    type: 'string',
-    format: 'date-time',
-    required: false,
-    description:
-      'When the episode aired or airs; absent when it has no date yet',
-  })
-  airDate?: string;
-
+/** What the user would watch next of a series, and whether it is on disk */
+export class CatalogNextEpisodeDto extends NextEpisodeDto {
   @ApiProperty({
     description: 'Whether a file of the library covers the episode',
   })
@@ -205,10 +191,10 @@ export class CatalogTitleDto extends CatalogItemDto {
   progress?: number;
 
   @ApiProperty({
-    type: NextEpisodeDto,
+    type: CatalogNextEpisodeDto,
     required: false,
     description:
       'The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet',
   })
-  nextEpisode?: NextEpisodeDto;
+  nextEpisode?: CatalogNextEpisodeDto;
 }

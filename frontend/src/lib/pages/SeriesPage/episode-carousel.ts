@@ -1,9 +1,8 @@
-import type { TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
+import type { SeriesUserDataDto, TmdbSeriesFull } from '$lib/apis/reiverr/reiverr.openapi';
 import type { TitleInfoProperty } from '$lib/components/HeroShowcase/HeroTitleInfo';
 import { scrollElementIntoView } from '$lib/scroll-into-view';
 import type { Selectable } from '$lib/selectable';
 import { formatThousands, waitFor } from '$lib/utils';
-import type { EpisodesData } from './episode-status';
 import { derived, writable, type Readable, type Writable } from 'svelte/store';
 
 type SelectedEpisode = { episode: number; season: number } | undefined;
@@ -34,7 +33,7 @@ function useCardHover(selectedEpisode: Writable<SelectedEpisode>) {
 export function useEpisodeCarousel(
 	tmdbId: string,
 	series: Readable<TmdbSeriesFull | undefined>,
-	episodesData: Readable<EpisodesData>
+	userData: Readable<SeriesUserDataDto | undefined>
 ) {
 	const selectedEpisode: Writable<SelectedEpisode> = writable(undefined);
 	const cardHover = useCardHover(selectedEpisode);
@@ -97,30 +96,19 @@ export function useEpisodeCarousel(
 		};
 	});
 
-	// const unsubscribeNextEpisode = episodesData.subscribe(({ nextEpisode }) => {
-	// 	if (nextEpisode?.season) episodesRequest.requestUntil(nextEpisode.season);
-	// 	selectedEpisode.set(nextEpisode);
-	// });
-
 	const unsubs: Array<() => void> = [];
+	/** Activates the card of the next episode the server tells, once the user data has loaded */
 	function onEpisodeMount(s: Selectable, season: number, episode: number) {
 		const { unsubscribe: unsubEarly } = waitFor(
-			episodesData,
-			(data) => !!data.nextEpisode,
+			userData,
+			(data) => !!data,
 			(data) => {
-				if (data.nextEpisode?.season === season && data.nextEpisode?.episode === episode) {
+				if (data?.nextEpisode?.season === season && data.nextEpisode.episode === episode) {
 					s.activate();
 					scrollElementIntoView(s.getHtmlElement()!, { left: 128, instant: true });
 				}
 			}
 		);
-
-		// const unsub = episodesData.subscribe(({ nextEpisode }) => {
-		// 	if (nextEpisode?.season === season && nextEpisode?.episode === episode) {
-		// 		s.activate();
-		// 		scrollElementIntoView(s.getHtmlElement()!, { left: 128, instant: true });
-		// 	}
-		// });
 
 		unsubs.push(unsubEarly);
 	}
@@ -132,7 +120,6 @@ export function useEpisodeCarousel(
 		selectedTmdbEpisode,
 		unsubscribe: () => {
 			// episodesRequest.unsubscribe();
-			// unsubscribeNextEpisode();
 			unsubs.forEach((unsub) => unsub());
 		}
 	};

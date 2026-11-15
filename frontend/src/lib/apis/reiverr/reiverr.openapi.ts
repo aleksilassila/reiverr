@@ -1269,10 +1269,22 @@ export interface SuccessResponseDto {
   success: boolean;
 }
 
+export interface NextEpisodeDto {
+  season: number;
+  episode: number;
+  /**
+   * When the episode aired or airs; absent when it has no date yet
+   * @format date-time
+   */
+  airDate?: string;
+}
+
 export interface SeriesUserDataDto {
   tmdbId: string;
   inMyList: boolean;
   playStates: PlayStateDto[];
+  /** The first unwatched episode after the one the user watched last; absent when nothing is left to watch or the user has nothing of the series yet */
+  nextEpisode?: NextEpisodeDto;
 }
 
 export interface BulkUpdatePlayStateDto {
@@ -1738,7 +1750,7 @@ export interface TmdbItemDto {
   name?: string;
 }
 
-export interface NextEpisodeDto {
+export interface CatalogNextEpisodeDto {
   season: number;
   episode: number;
   /**
@@ -1764,7 +1776,7 @@ export interface CatalogTitleDto {
   /** The progress, from 0 to 1, of what the user played last of the title; absent when they played nothing of it */
   progress?: number;
   /** The first unwatched episode after the one the user watched last of a series; absent for a movie, and when nothing is left to watch or the user has nothing of the series yet */
-  nextEpisode?: NextEpisodeDto;
+  nextEpisode?: CatalogNextEpisodeDto;
 }
 
 export interface CatalogDownloadDto {
