@@ -168,9 +168,10 @@
 
 	let rows = $state([
 		{
-			title: 'S1E1 - Fulfilled',
+			title: 'S1E1 - Fulfilled, watched',
 			subtitle: 'Some.Show.S01.1080p.WEB-DL.x264-GROUP',
 			statusTags: { primary: FULFILLED },
+			watched: true,
 			checked: true
 		},
 		{

@@ -5,7 +5,7 @@
 	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import StatusTags from '$lib/components/StatusTags.svelte';
 	import classNames from 'classnames';
-	import { ChevronRight } from 'radix-icons-svelte';
+	import { Check, ChevronRight } from 'radix-icons-svelte';
 
 	interface Props {
 		onMounted?: ComponentProps<typeof ListRow>['onMounted'];
@@ -19,6 +19,8 @@
 		isError?: boolean;
 		/** Of an episode or a movie, which has no status line */
 		statusTags?: MediaStatusTags;
+		/** The user has watched the episode or the movie of the row */
+		watched?: boolean;
 		checked?: boolean;
 		partiallyChecked?: boolean;
 		children?: Snippet;
@@ -31,6 +33,7 @@
 		status = '',
 		isError = false,
 		statusTags = {},
+		watched = false,
 		checked = false,
 		partiallyChecked = false,
 		children: content,
@@ -60,11 +63,19 @@
 		<!-- What a click opens, without the checkbox -->
 		<div class="group/open flex-1 min-w-0 flex items-center pl-4">
 			<div class="flex-1 min-w-0">
-				<div class="text-2xl font-semibold line-clamp-1">
-					{#if title}
-						{title}
-					{:else}
-						{@render content?.()}
+				<div class="flex items-center">
+					<div class="min-w-0 text-2xl font-semibold line-clamp-1">
+						{#if title}
+							{title}
+						{:else}
+							{@render content?.()}
+						{/if}
+					</div>
+					<!-- The mark of a watched episode on its card -->
+					{#if watched}
+						<div class="flex-shrink-0 ml-3 rounded-full p-0.5 bg-primary-500" title="Watched">
+							<Check class="text-secondary-800" size={18} />
+						</div>
 					{/if}
 				</div>
 				{#if subtitle}

@@ -17,9 +17,11 @@
 		onTorrents?: (detail: { season: number; episode?: number; name: string }) => void;
 		season: TmdbSeason;
 		data?: SeriesData;
+		/** The episodes of the series the user has watched, by `episodeKey` */
+		watchedEpisodes: Set<string>;
 	}
 
-	let { season, data = {}, onEnter, onRequest, onTorrents }: Props = $props();
+	let { season, data = {}, watchedEpisodes, onEnter, onRequest, onTorrents }: Props = $props();
 
 	let heading: Selectable | undefined = $state();
 
@@ -77,7 +79,8 @@
 			onEnter?.(e);
 		}}
 	>
-		{seasonName}
+		<span class="text-secondary-400">S{seasonNumber}</span>
+		Season pack
 	</RequestRow>
 
 	{#each episodes as episode (episode.episode)}
@@ -86,6 +89,7 @@
 			seasonNumber={episode.season}
 			episodeNumber={episode.episode}
 			episodeName={episode.name}
+			watched={watchedEpisodes.has(episodeKey(episode.season, episode.episode))}
 			{data}
 			onToggle={() =>
 				onRequest?.({

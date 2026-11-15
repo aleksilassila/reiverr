@@ -10,6 +10,7 @@
 		seasonNumber: number;
 		episodeNumber: number;
 		episodeName: string;
+		watched?: boolean;
 		data?: SeriesData;
 	}
 
@@ -17,6 +18,7 @@
 		seasonNumber,
 		episodeNumber,
 		episodeName,
+		watched = false,
 		data = {},
 		onToggle,
 		onOpen,
@@ -31,6 +33,7 @@
 	subtitle={status.sourceName}
 	subtitleDimmed={status.isSeasonPack}
 	statusTags={status.tags}
+	{watched}
 	checked={status.requested}
 	{onToggle}
 	{onOpen}

@@ -22,6 +22,7 @@
 		updateSeriesRequestRule
 	} from '$lib/queries/requests.queries';
 	import { storageQueries } from '$lib/queries/storage.queries';
+	import { userDataQueries } from '$lib/queries/user-data.queries';
 	import { confirmQuota, expectedBytes } from '$lib/quota';
 	import classNames from 'classnames';
 	import { ChevronDown, Cross1 } from 'radix-icons-svelte';
@@ -86,7 +87,15 @@
 	const status = usePageQuery(() => libraryQueries.seriesStatus(tmdbId));
 	const torrents = usePageQuery(() => downloadsQueries.seriesTorrents(tmdbId));
 	const storage = usePageQuery(() => storageQueries.user());
+	const userData = usePageQuery(() => userDataQueries.series(tmdbId));
 	let data = $derived({ requests: requests.data, status: status.data, torrents: torrents.data });
+	let watchedEpisodes = $derived(
+		new Set(
+			(userData.data?.playStates ?? [])
+				.filter((playState) => playState.watched)
+				.map((playState) => episodeKey(playState.season ?? 0, playState.episode ?? 0))
+		)
+	);
 	let ruleData = $derived(requests.data?.rule);
 	let usage = $derived(storage.data);
 
@@ -242,6 +251,7 @@
 					onEnter={() => (activeSeason = season.season_number)}
 					{season}
 					{data}
+					{watchedEpisodes}
 					onRequest={(e) =>
 						request(e.episodes, e.requested).catch((e) =>
 							createErrorNotification(
