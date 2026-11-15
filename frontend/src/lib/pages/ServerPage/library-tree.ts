@@ -103,6 +103,19 @@ export function getRows(
 	return rows;
 }
 
+/** Expands a directory, or collapses it with everything in it */
+export function toggleExpanded(path: string, expanded: Set<string>): Set<string> {
+	const next = new Set(expanded);
+
+	if (next.delete(path)) {
+		next.forEach((p) => {
+			if (p.startsWith(`${path}/`)) next.delete(p);
+		});
+	} else next.add(path);
+
+	return next;
+}
+
 /** The node or the directory above it that is checked, which checks everything in it */
 function getChecked(node: LibraryNode, checked: Set<string>): LibraryNode | undefined {
 	for (let current: LibraryNode | undefined = node; current; current = current.parent) {

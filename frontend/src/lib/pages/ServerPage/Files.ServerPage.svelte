@@ -37,6 +37,7 @@
 		getSelection,
 		isChecked,
 		toggleChecked,
+		toggleExpanded,
 		type LibraryNode,
 		type LibraryOrder,
 		type LibraryTree
@@ -54,7 +55,6 @@
 	const settings = usePageQuery(() => libraryQueries.settings());
 	const entries = usePageQuery(() => ({
 		...serverQueries.libraryEntries(folder),
-		select: buildTree,
 		enabled: !!folder
 	}));
 	// What the cleanup would delete now, library-wide as the button runs it
@@ -84,7 +84,6 @@
 			selectedOption: folder,
 			handleSelectOption: (next: string) => {
 				if (next === folder) return;
-				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- the sets are replaced, never mutated
 				expanded = new Set();
 				limit = ROWS;
 				folder = next;
@@ -101,20 +100,10 @@
 		});
 	}
 
-	/** Collapsing a directory collapses everything in it */
-	function toggleExpanded(path: string) {
-		if (expanded.delete(path)) {
-			expanded.forEach((p) => {
-				if (p.startsWith(`${path}/`)) expanded.delete(p);
-			});
-		} else expanded.add(path);
-		expanded = expanded;
-	}
-
 	/** Opens a directory and moves on to its first entry; opening it again closes it */
 	async function expand(node: LibraryNode, row: Selectable) {
 		const opens = !expanded.has(node.entry.path);
-		toggleExpanded(node.entry.path);
+		expanded = toggleExpanded(node.entry.path, expanded);
 		if (!opens || !node.children.length) return;
 
 		await tick();
@@ -123,11 +112,14 @@
 
 	/** Closes the directory of the row, or the one the row is in, which then takes the focus */
 	function collapse(node: LibraryNode, row: Selectable) {
-		if (expanded.has(node.entry.path)) return toggleExpanded(node.entry.path);
+		if (expanded.has(node.entry.path)) {
+			expanded = toggleExpanded(node.entry.path, expanded);
+			return;
+		}
 		if (!node.parent) return;
 
 		row.getSibling(rows.indexOf(node.parent) - rows.indexOf(node))?.focus();
-		toggleExpanded(node.parent.entry.path);
+		expanded = toggleExpanded(node.parent.entry.path, expanded);
 	}
 
 	function confirmDelete() {
@@ -289,7 +281,11 @@
 	$effect(() => {
 		if (!folder && folders[0]) folder = folders[0];
 	});
-	let tree = $derived(entries.data ?? EMPTY_TREE);
+	// The tree is built here and not as the `select` of the query: its nodes refer back to their
+	// parents, and the query would compare a new tree with the last one through those without end.
+	// Read on its own, so that a listing that comes back as it was keeps the tree, and the selection
+	let listing = $derived(entries.data);
+	let tree = $derived(listing ? buildTree(listing) : EMPTY_TREE);
 	// A selection is of the entries as they were listed: a new listing of the folder clears it
 	$effect(() => {
 		if (tree) checked = new Set();
