@@ -13,6 +13,7 @@
 		onNavigate?: ContainerProps['onNavigate'];
 		type?: 'transparent';
 		focusOnMount?: boolean;
+		focusedChild?: boolean;
 		children?: Snippet<[{ hasFocus: boolean }]>;
 		class?: string;
 	}
@@ -20,6 +21,7 @@
 	let {
 		type = 'transparent',
 		focusOnMount = false,
+		focusedChild = false,
 		children: content,
 		onMounted,
 		onEnter,
@@ -40,6 +42,7 @@
 	{onClickOrSelect}
 	{onNavigate}
 	{focusOnMount}
+	{focusedChild}
 	focusOnClick
 >
 	{#snippet children({ hasFocus })}

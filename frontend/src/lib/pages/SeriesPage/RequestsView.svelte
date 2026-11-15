@@ -98,6 +98,8 @@
 	);
 	let ruleData = $derived(requests.data?.rule);
 	let usage = $derived(storage.data);
+	// The list opens at the season of the next episode
+	let nextSeason = $derived(userData.data?.nextEpisode?.season);
 
 	const seasonItems: SeasonItem[] = $state([]);
 	// The season of the focused row, highlighted in the quick navigation
@@ -237,40 +239,44 @@
 			<div class="divider mt-4"></div>
 		</div>
 
-		<Container
-			focusOnMount
-			class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
-			style="backface-visibility: hidden"
-		>
-			{#each seasons as season, index (season.season_number)}
-				{#if index > 0}
-					<div class="divider mt-8"></div>
-				{/if}
-				<SeasonItem
-					bind:this={seasonItems[index]}
-					onEnter={() => (activeSeason = season.season_number)}
-					{season}
-					{data}
-					{watchedEpisodes}
-					onRequest={(e) =>
-						request(e.episodes, e.requested).catch((e) =>
-							createErrorNotification(
-								'Could not update the request',
-								e?.response?.data?.message ?? e?.message
-							)
-						)}
-					onTorrents={(e) =>
-						componentStack.push({ component: TorrentsView, props: { tmdbId, ...e } })}
-				/>
-			{:else}
-				<div class="h-ghost m-auto">
-					{#if tmdbSeries.isPending}
-						Loading...
-					{:else}
-						Could not load series.
+		<!-- Mounted with the user data, which says where the list is entered -->
+		{#if seasons.length && !userData.isPending}
+			<Container
+				focusOnMount
+				class="overflow-y-auto overflow-x-hidden scrollbar-hide pb-16 mx-32"
+				style="backface-visibility: hidden"
+			>
+				{#each seasons as season, index (season.season_number)}
+					{#if index > 0}
+						<div class="divider mt-8"></div>
 					{/if}
-				</div>
-			{/each}
-		</Container>
+					<SeasonItem
+						bind:this={seasonItems[index]}
+						onEnter={() => (activeSeason = season.season_number)}
+						{season}
+						{data}
+						{watchedEpisodes}
+						openAtHeading={season.season_number === nextSeason}
+						onRequest={(e) =>
+							request(e.episodes, e.requested).catch((e) =>
+								createErrorNotification(
+									'Could not update the request',
+									e?.response?.data?.message ?? e?.message
+								)
+							)}
+						onTorrents={(e) =>
+							componentStack.push({ component: TorrentsView, props: { tmdbId, ...e } })}
+					/>
+				{/each}
+			</Container>
+		{:else}
+			<div class="h-ghost m-auto">
+				{#if tmdbSeries.isPending || userData.isPending}
+					Loading...
+				{:else}
+					Could not load series.
+				{/if}
+			</div>
+		{/if}
 	</Container>
 </Container>

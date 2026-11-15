@@ -19,9 +19,19 @@
 		data?: SeriesData;
 		/** The episodes of the series the user has watched, by `episodeKey` */
 		watchedEpisodes: Set<string>;
+		/** The list is entered at the heading of the season, which is in view when the list mounts */
+		openAtHeading?: boolean;
 	}
 
-	let { season, data = {}, watchedEpisodes, onEnter, onRequest, onTorrents }: Props = $props();
+	let {
+		season,
+		data = {},
+		watchedEpisodes,
+		openAtHeading = false,
+		onEnter,
+		onRequest,
+		onTorrents
+	}: Props = $props();
 
 	let heading: Selectable | undefined = $state();
 
@@ -62,7 +72,14 @@
 
 <div class="mt-8 space-y-4">
 	<RequestRow
-		onMounted={(e) => (heading = e)}
+		focusedChild={openAtHeading}
+		onMounted={(e) => {
+			heading = e;
+			// Before the list takes the focus, to where the focus of a row keeps it: the focus then has
+			// nothing to scroll, and in mouse mode it does not scroll at all
+			const element = e.getHtmlElement();
+			if (openAtHeading && element) scrollElementIntoView(element, { top: 96, instant: true });
+		}}
 		subtitle={seasonPack ? seasonPack.title : 'No season pack selected'}
 		status={seasonPackStatus}
 		isError={seasonPackTorrent?.status === 'failed'}

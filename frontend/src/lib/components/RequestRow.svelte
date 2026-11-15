@@ -5,11 +5,12 @@
 	import type { MediaStatusTags } from '$lib/components/status-tags';
 	import StatusTags from '$lib/components/StatusTags.svelte';
 	import classNames from 'classnames';
-	import { Check, ChevronRight } from 'radix-icons-svelte';
+	import { ChevronRight } from 'radix-icons-svelte';
 
 	interface Props {
 		onMounted?: ComponentProps<typeof ListRow>['onMounted'];
 		onEnter?: ComponentProps<typeof ListRow>['onEnter'];
+		focusedChild?: boolean;
 		onToggle?: () => void;
 		onOpen?: () => void;
 		title?: string;
@@ -19,7 +20,7 @@
 		isError?: boolean;
 		/** Of an episode or a movie, which has no status line */
 		statusTags?: MediaStatusTags;
-		/** The user has watched the episode or the movie of the row */
+		/** The user has watched the episode or the movie of the row, which dims its title */
 		watched?: boolean;
 		checked?: boolean;
 		partiallyChecked?: boolean;
@@ -40,7 +41,8 @@
 		onToggle,
 		onOpen,
 		onMounted,
-		onEnter
+		onEnter,
+		focusedChild = false
 	}: Props = $props();
 </script>
 
@@ -48,6 +50,7 @@
 <ListRow
 	{onMounted}
 	{onEnter}
+	{focusedChild}
 	onSelect={() => onToggle?.()}
 	onclick={() => onOpen?.()}
 	onNavigate={(e) => {
@@ -63,19 +66,11 @@
 		<!-- What a click opens, without the checkbox -->
 		<div class="group/open flex-1 min-w-0 flex items-center pl-4">
 			<div class="flex-1 min-w-0">
-				<div class="flex items-center">
-					<div class="min-w-0 text-2xl font-semibold line-clamp-1">
-						{#if title}
-							{title}
-						{:else}
-							{@render content?.()}
-						{/if}
-					</div>
-					<!-- The mark of a watched episode on its card -->
-					{#if watched}
-						<div class="flex-shrink-0 ml-3 rounded-full p-0.5 bg-primary-500" title="Watched">
-							<Check class="text-secondary-800" size={18} />
-						</div>
+				<div class={classNames('text-2xl font-semibold line-clamp-1', { 'opacity-60': watched })}>
+					{#if title}
+						{title}
+					{:else}
+						{@render content?.()}
 					{/if}
 				</div>
 				{#if subtitle}
