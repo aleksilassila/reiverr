@@ -392,76 +392,41 @@ export class Selectable {
 			else return undefined;
 		};
 
+		// The children are in the order of the document, and a container usually mounts after all of
+		// them, so they are looked at from the last one: every container of a long row is attached, and
+		// looking at each sibling before it made a row of 200 cards take seconds on a TV
 		const getPreviousSibling = (
 			parent: Selectable,
 			newChild: Selectable
 		): Selectable | undefined => {
-			const getAncestors = (start: HTMLElement, end: HTMLElement): HTMLElement[] => {
-				let element = start;
-				const elements: HTMLElement[] = [start];
-
-				while (element !== end) {
-					if (element.parentElement) element = element.parentElement;
-					else break;
-					elements.push(element);
-				}
-
-				return elements;
-			};
-
 			const newHtmlElement = newChild.htmlElement;
 			if (!newHtmlElement) return undefined;
 
-			const parentHtmlElement = parent.htmlElement;
-
-			if (!parentHtmlElement) return undefined;
-
-			const newElementAncestors = getAncestors(newHtmlElement, parentHtmlElement);
-
-			let previousSibling: Selectable | undefined = undefined;
-
-			for (const existingSibling of parent.children) {
+			for (let index = parent.children.length - 1; index >= 0; index--) {
+				const existingSibling = parent.children[index]!;
 				// A sibling on its way out is removed once the teardown ends; it says nothing of the order
 				if (existingSibling.didUnmount) continue;
-				// Does not contain this yet
 				if (!existingSibling.htmlElement) {
 					console.error('No html element found for', existingSibling);
 					continue;
 				}
-				const siblingElementTree: HTMLElement[] = getAncestors(
-					existingSibling.htmlElement,
-					parentHtmlElement
-				);
 
-				const commonParentElement = newElementAncestors.find((element) =>
-					siblingElementTree.includes(element)
-				);
-				const newSibling = newElementAncestors.find(
-					(element) => element.parentElement && siblingElementTree.includes(element.parentElement)
-				);
-				const targetSibling = siblingElementTree.find(
-					(element) => element.parentElement && newElementAncestors.includes(element.parentElement)
-				);
-				if (!newSibling || !targetSibling || !commonParentElement) {
+				const position = newHtmlElement.compareDocumentPosition(existingSibling.htmlElement);
+				if (position & Node.DOCUMENT_POSITION_DISCONNECTED) {
 					console.warn(
-						"Couldn't find common parent element",
+						'Sibling is not in the document of the new child',
 						parent.name || parent.htmlElement,
 						'sibling',
 						existingSibling.htmlElement,
-						existingSibling.htmlElement.isConnected ? 'connected' : 'detached',
 						'new',
 						newHtmlElement
 					);
 					continue;
 				}
-				const allSiblingElements = Array.from(commonParentElement.children);
-
-				if (allSiblingElements.indexOf(targetSibling) < allSiblingElements.indexOf(newSibling)) {
-					previousSibling = existingSibling;
-				} else break;
+				if (position & Node.DOCUMENT_POSITION_PRECEDING) return existingSibling;
 			}
 
-			return previousSibling;
+			return undefined;
 		};
 
 		const htmlElement = this.htmlElement;
@@ -473,13 +438,13 @@ export class Selectable {
 			const previousSibling = getPreviousSibling(parentSelectable, this);
 			const childToFocus = parentSelectable.addChild(this, previousSibling);
 
-			console.debug(
-				'Attached child to parent',
-				this,
-				parentSelectable,
-				'previousSibling',
-				previousSibling
-			);
+			// console.debug(
+			// 	'Attached child to parent',
+			// 	this,
+			// 	parentSelectable,
+			// 	'previousSibling',
+			// 	previousSibling
+			// );
 
 			if (childToFocus?.parent && get(childToFocus.parent.hasFocusWithin)) childToFocus.focus();
 		} else {
