@@ -13,7 +13,11 @@ export const queryClient = new QueryClient({
 			networkMode: 'always',
 			// What a page showed is good for a while when it comes back to the front; what changes
 			// through the app is invalidated by the mutation that changed it
-			staleTime: MINUTE
+			staleTime: MINUTE,
+			// The result follows every change of the query. By default only a change of the properties
+			// read so far is passed on, and a property first read after it changed stays as it was:
+			// the status of a series page that read `isError` at once and `data` when the episodes rendered
+			notifyOnChangeProps: 'all'
 		},
 		mutations: { networkMode: 'always' }
 	}
