@@ -73,8 +73,9 @@
 	};
 
 	onMount(() => {
-		// Set active tab based on bottommost page
-		stackRouter.subscribe((r) => {
+		// Set active tab based on bottommost page. Unsubscribed with the page: every page has a
+		// sidebar of its own, and the router would keep the page of each one it still told
+		return stackRouter.subscribe((r) => {
 			const initialUri = window.location.pathname;
 			const uri = initialUri === '/' ? '/' : `/${initialUri.split('/')[1]}`;
 
