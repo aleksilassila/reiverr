@@ -173,7 +173,7 @@
 	/** The nightly cleanup, now: it asks with what a dry run of it would delete */
 	async function confirmCleanup() {
 		const preview = await queryClient
-			.fetchQuery({ ...serverQueries.cleanupPreview(), staleTime: 0 })
+			.query({ ...serverQueries.cleanupPreview(), staleTime: 0 })
 			.catch((e) => {
 				createErrorNotification('Could not preview the cleanup', errorMessage(e));
 				return undefined;

@@ -24,7 +24,7 @@ export async function confirmQuota(bytes: number): Promise<boolean> {
 	if (bytes <= 0) return true;
 
 	// Read again: the usage changes with every request and download
-	const usage = await queryClient.fetchQuery({ ...storageQueries.user(), staleTime: 0 });
+	const usage = await queryClient.query({ ...storageQueries.user(), staleTime: 0 });
 	const quota = usage.quotaBytes;
 	if (quota === null) return true;
 

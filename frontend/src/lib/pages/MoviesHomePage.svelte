@@ -48,11 +48,11 @@
 
 	// The account's top recommendations, else the upcoming movies
 	const showcase = queryClient
-		.fetchQuery(tmdbQueries.recommendedMovies())
+		.query(tmdbQueries.recommendedMovies())
 		.then(({ top10 }) =>
 			top10.length
 				? top10
-				: queryClient.fetchQuery(tmdbQueries.upcomingMovies()).then((m) => m.slice(0, 10))
+				: queryClient.query(tmdbQueries.upcomingMovies()).then((m) => m.slice(0, 10))
 		);
 
 	// const travisBellCollections: Promise<Collection[]> = tmdbApi.v3

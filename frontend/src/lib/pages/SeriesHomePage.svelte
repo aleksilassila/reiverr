@@ -45,11 +45,11 @@
 
 	// The account's top recommendations, else the upcoming series
 	const showcase = queryClient
-		.fetchQuery(tmdbQueries.recommendedSeries())
+		.query(tmdbQueries.recommendedSeries())
 		.then(({ top10 }) =>
 			top10.length
 				? top10
-				: queryClient.fetchQuery(tmdbQueries.upcomingSeries()).then((s) => s.slice(0, 10))
+				: queryClient.query(tmdbQueries.upcomingSeries()).then((s) => s.slice(0, 10))
 		);
 </script>
 

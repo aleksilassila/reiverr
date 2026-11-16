@@ -30,10 +30,10 @@ export async function playEpisode(
 ) {
 	const lookup = await Promise.all([
 		// The document the page shows the series from does, however old
-		queryClient.fetchQuery({ ...metadataQueries.series(tmdbId), staleTime: Infinity }),
-		queryClient.fetchQuery(userDataQueries.series(tmdbId)),
+		queryClient.query({ ...metadataQueries.series(tmdbId), staleTime: Infinity }),
+		queryClient.query(userDataQueries.series(tmdbId)),
 		// Looked up again, since an import may have just added a file
-		queryClient.fetchQuery({
+		queryClient.query({
 			...libraryQueries.episodeFiles(tmdbId, season, episode),
 			staleTime: 0
 		})
@@ -67,10 +67,10 @@ export async function playEpisode(
 export async function playMovie(tmdbId: string, playMedia: PlayMedia) {
 	const lookup = await Promise.all([
 		// The document the page shows the movie from does, however old
-		queryClient.fetchQuery({ ...metadataQueries.movie(tmdbId), staleTime: Infinity }),
-		queryClient.fetchQuery(userDataQueries.movie(tmdbId)),
+		queryClient.query({ ...metadataQueries.movie(tmdbId), staleTime: Infinity }),
+		queryClient.query(userDataQueries.movie(tmdbId)),
 		// Looked up again, since an import may have just added a file
-		queryClient.fetchQuery({ ...libraryQueries.movieFiles(tmdbId), staleTime: 0 })
+		queryClient.query({ ...libraryQueries.movieFiles(tmdbId), staleTime: 0 })
 	]).catch(reportLookupFailure);
 	if (!lookup) return;
 

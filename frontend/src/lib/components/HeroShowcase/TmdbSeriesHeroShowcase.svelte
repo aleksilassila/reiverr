@@ -17,7 +17,7 @@
 		series.then(async (series) => {
 			return Promise.all(
 				series.map(async (series) => {
-					const seriesFull = await queryClient.fetchQuery(tmdbQueries.series(series.id ?? 0));
+					const seriesFull = await queryClient.query(tmdbQueries.series(series.id ?? 0));
 					const videoUrl = seriesFull?.videos?.results?.find(
 						(video) => video.type === 'Trailer' && video.site === 'YouTube'
 					)?.key;

@@ -17,7 +17,7 @@
 		movies
 			.then(async (movies) =>
 				movies.map(async (movie) => {
-					const movieFull = await queryClient.fetchQuery(tmdbQueries.movie(movie.id ?? 0));
+					const movieFull = await queryClient.query(tmdbQueries.movie(movie.id ?? 0));
 					const videoUrl = movieFull?.videos?.results?.find(
 						(video) => video.type === 'Trailer' && video.site === 'YouTube'
 					)?.key;
