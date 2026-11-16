@@ -48,6 +48,7 @@
 		ChevronDown,
 		Clock,
 		Download,
+		EnterFullScreen,
 		ExclamationTriangle,
 		File,
 		Heart,
@@ -57,6 +58,7 @@
 	} from 'radix-icons-svelte';
 	import ColorSwatch from './ColorSwatch.svelte';
 	import UiSheet from './UiSheet.svelte';
+	import VolumeControl from '$lib/components/VideoPlayer/VolumeControl.svelte';
 
 	// The classes are written out in full, since Tailwind only generates the ones it finds
 	const COLORS = [
@@ -217,6 +219,8 @@
 
 	let allChecked = $derived(rows.every((row) => row.checked));
 
+	let volume = $state(0.6);
+
 	function openSelectDialog() {
 		createModal(SelectDialog, {
 			title: 'Select dialog',
@@ -314,6 +318,24 @@
 				onClickOrSelect={() => createInfoNotification('Icon toggle', 'Primary dark')}
 			/>
 			<PlayButton onclick={() => createInfoNotification('Play button', 'Mouse only')} />
+		</Container>
+		<!-- The volume control grows to the left, so it is shown as in the player: at the right end of a row -->
+		<Container
+			direction="horizontal"
+			class="flex items-center justify-between max-w-md"
+			onEnter={scroll}
+		>
+			<span class="text-secondary-300 font-medium">Video player controls</span>
+			<div class="flex space-x-2">
+				<VolumeControl
+					{volume}
+					onVolumeChange={(value) => (volume = value)}
+					onToggleMute={() => (volume = volume ? 0 : 0.6)}
+				/>
+				<IconButton onClickOrSelect={() => createInfoNotification('Icon button')}>
+					<EnterFullScreen size={24} />
+				</IconButton>
+			</div>
 		</Container>
 		<Container direction="horizontal" class="flex items-center space-x-4" onEnter={scroll}>
 			<Button size="sm">Small</Button>

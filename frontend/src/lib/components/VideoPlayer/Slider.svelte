@@ -1,66 +1,35 @@
 <script lang="ts">
-	import type { SvelteHTMLElements } from 'svelte/elements';
-
-	type Props = Pick<
-		SvelteHTMLElements['input'],
-		'onmouseup' | 'onmousedown' | 'ontouchstart' | 'ontouchend'
-	> & {
-		min?: number;
-		max?: number;
+	interface Props {
+		/** From 0 to 1 */
+		value: number;
+		onChange: (value: number) => void;
 		step?: number;
-		primaryValue?: number;
-		secondaryValue?: number;
-	};
+	}
 
-	let {
-		min = 0,
-		max = 100,
-		step = 0.01,
-		primaryValue = $bindable(0),
-		secondaryValue = 0,
-		onmouseup,
-		onmousedown,
-		ontouchstart,
-		ontouchend
-	}: Props = $props();
-
-	let progressBarOffset = $state(0);
+	let { value, onChange, step = 0.01 }: Props = $props();
 </script>
 
-<div class="h-1 relative group">
-	<div class="h-full relative px-[0.5rem]">
-		<div class="h-full bg-zinc-200 bg-opacity-20 rounded-full overflow-hidden relative">
-			<!-- Secondary progress -->
-			<div
-				class="h-full bg-zinc-200 bg-opacity-20 absolute top-0"
-				style="width: {(secondaryValue / max) * 100}%;"
-			></div>
+<!-- In the text color of where it is placed -->
+<div class="h-4 relative">
+	<div class="absolute inset-y-1 inset-x-2 rounded-full bg-current opacity-30"></div>
+	<div
+		class="absolute inset-y-1 rounded-full bg-current"
+		style={`left: 0.5rem; right: calc(${(1 - value) * 100}% - 0.5rem + ${value}rem);`}
+	></div>
+	<div
+		class="absolute inset-y-0 w-4 h-4 bg-current rounded-full"
+		style={`left: calc(${value * 100}% - ${value}rem);`}
+	></div>
 
-			<!-- Primary progress -->
-			<div
-				class="h-full bg-amber-300 absolute top-0"
-				style="width: {(primaryValue / max) * 100}%;"
-				bind:offsetWidth={progressBarOffset}
-			></div>
-		</div>
-
-		<div
-			class="absolute w-3 h-3 bg-amber-200 rounded-full transform mx-2 -translate-x-1/2 -translate-y-1/2 top-1/2 cursor-pointer
-                    drop-shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-100"
-			style="left: {progressBarOffset}px;"
-		></div>
-	</div>
-
+	<!-- Blurred after a drag, so that the arrow keys go to the focus navigation and not to the input -->
 	<input
 		type="range"
-		class="w-full absolute -top-0.5 cursor-pointer h-2 opacity-0"
-		{min}
-		{max}
+		class="w-full absolute cursor-pointer h-4 inset-y-0 opacity-0"
+		min={0}
+		max={1}
 		{step}
-		bind:value={primaryValue}
-		{onmouseup}
-		{onmousedown}
-		{ontouchstart}
-		{ontouchend}
+		{value}
+		oninput={(e) => onChange(e.currentTarget.valueAsNumber)}
+		onpointerup={(e) => e.currentTarget.blur()}
 	/>
 </div>

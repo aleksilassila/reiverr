@@ -14,8 +14,10 @@
 	import SelectSubtitlesModal from './SelectSubtitlesModal.svelte';
 	import SelectVideoModal from './SelectVideoModal.svelte';
 	import VideoElement from './VideoElement.svelte';
+	import VolumeControl from './VolumeControl.svelte';
 	import { videoPlayerContext, type SubtitleTrack, type VideoTrack } from './video-player.store';
 	import { isTv } from '$lib/utils/browser-detection';
+	import { PLATFORM_WEB } from '$lib/constants';
 
 	interface Props {
 		title: string;
@@ -50,6 +52,7 @@
 		videoDidLoad,
 		seeking,
 		error,
+		audibleVolume,
 		togglePause,
 		play,
 		pause: pauseVideo,
@@ -58,6 +61,8 @@
 		selectSubtitles,
 		selectAudioTrack,
 		toggleFullscreen,
+		setVolume,
+		toggleMute,
 		handleKeyboardShortcut
 	} = videoPlayerContext.createContext({
 		videoTracks,
@@ -216,6 +221,13 @@
 						<h1 class="h1">{title}</h1>
 					</div>
 					<div class="flex space-x-2">
+						{#if PLATFORM_WEB && !isTv()}
+							<VolumeControl
+								volume={$audibleVolume}
+								onVolumeChange={setVolume}
+								onToggleMute={toggleMute}
+							/>
+						{/if}
 						{#if $audioTrackState.tracks.length > 1}
 							<IconButton
 								onClickOrSelect={() => {

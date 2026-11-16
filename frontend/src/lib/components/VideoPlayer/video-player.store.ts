@@ -1,3 +1,4 @@
+import { videoPlayerSettings } from '$lib/stores/localstorage.store';
 import { _createStoreContext } from '$lib/utils';
 import { isTizen, isWebOS1, isWebOS2, isWebOS3, tizenVersion } from '$lib/utils/browser-detection';
 import { derived, get, writable } from 'svelte/store';
@@ -140,8 +141,8 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 	// false would have Svelte 5 call play() at mount, before the source is set, and the aborted play
 	// would pause the element again
 	const paused = writable(true);
-	const muted = writable(false);
-	const volume = writable(1);
+	const muted = writable(videoPlayerSettings.get().muted);
+	const volume = writable(videoPlayerSettings.get().volume);
 	const duration = writable(0);
 	const currentTime = writable(0);
 	const bufferedTime = writable(0);
@@ -154,6 +155,8 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 	const progress = derived([currentTime, duration], ([$currentTime, $duration]) =>
 		$duration > 0 ? $currentTime / $duration : 0
 	);
+	/** What is heard, from 0 to 1: the volume, or 0 while muted */
+	const audibleVolume = derived([volume, muted], ([$volume, $muted]) => ($muted ? 0 : $volume));
 
 	function play() {
 		get(video)?.play();
@@ -183,19 +186,32 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 		}
 	}
 
-	function setVolume(v: number) {
+	function saveVolume(el: HTMLVideoElement) {
+		videoPlayerSettings.set({ muted: el.muted, volume: el.volume });
+	}
+
+	/** From 0 to 1. Setting 0 mutes, which keeps the volume that unmuting returns to */
+	function setVolume(value: number) {
 		const el = get(video);
-		if (el) el.volume = Math.max(0, Math.min(1, v));
+		if (!el) return;
+
+		const rounded = Math.max(0, Math.min(1, Math.round(value * 100) / 100));
+		if (rounded > 0) el.volume = rounded;
+		el.muted = rounded === 0;
+		saveVolume(el);
 	}
 
 	function adjustVolume(delta: number) {
 		const el = get(video);
-		if (el) el.volume = Math.max(0, Math.min(1, el.volume + delta));
+		if (el) setVolume((el.muted ? 0 : el.volume) + delta);
 	}
 
 	function toggleMute() {
 		const el = get(video);
-		if (el) el.muted = !el.muted;
+		if (!el) return;
+
+		el.muted = !el.muted;
+		saveVolume(el);
 	}
 
 	function toggleFullscreen() {
@@ -324,6 +340,7 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 		seeking,
 		error,
 		progress,
+		audibleVolume,
 
 		play,
 		pause,
