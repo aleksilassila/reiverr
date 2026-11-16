@@ -141,6 +141,8 @@ export function getBrowserSpecificMediaFunctions() {
 
 export function useVideoPlayer(options: VideoPlayerOptions) {
 	const video = writable<HTMLVideoElement | undefined>(undefined);
+	/** What goes fullscreen: the player with its controls and dialogs, which the video element alone would cover */
+	const playerElement = writable<HTMLElement | undefined>(undefined);
 
 	const videoTracks = writable<{ current?: VideoTrack; tracks: VideoTrack[] }>({
 		current: options.videoTracks[0],
@@ -229,7 +231,7 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 	}
 
 	function toggleFullscreen() {
-		const el = get(video);
+		const el = get(playerElement);
 		if (!el) return;
 		if (document.fullscreenElement) document.exitFullscreen();
 		else el.requestFullscreen();
@@ -340,6 +342,7 @@ export function useVideoPlayer(options: VideoPlayerOptions) {
 
 	return {
 		video,
+		playerElement,
 		videoTracks,
 		subtitleTracks,
 		audioTracks,

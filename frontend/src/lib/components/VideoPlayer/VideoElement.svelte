@@ -1,12 +1,8 @@
 <script lang="ts">
 	import Hls from 'hls.js';
-	import type { SvelteHTMLElements } from 'svelte/elements';
 	import { onDestroy, onMount } from 'svelte';
 	import { isTizen } from '../../utils/browser-detection';
 	import { getAudioTrackList, videoPlayerContext, type VideoTrack } from './video-player.store';
-
-	let { onclick, ondblclick }: Pick<SvelteHTMLElements['video'], 'onclick' | 'ondblclick'> =
-		$props();
 
 	const REPORT_PROGRESS_INTERVAL = 10_000;
 	const AUDIO_TRACK_EVENTS = ['addtrack', 'removetrack', 'change'];
@@ -114,8 +110,6 @@
 	onwaiting={handleWaiting}
 	onplaying={handlePlaying}
 	onerror={() => ($error = describeError($video?.error ?? null))}
-	{ondblclick}
-	{onclick}
 	autoplay
 	crossorigin="anonymous"
 	playsinline
