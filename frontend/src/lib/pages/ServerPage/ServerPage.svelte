@@ -25,7 +25,7 @@
 				direction="horizontal"
 				class="flex space-x-8"
 				onBlur={(selectable) => {
-					selectable.activateChild($tab);
+					selectable.setFocusIndex($tab);
 				}}
 			>
 				<TabItem selected={$tab === Tabs.Files} onSelect={() => tab.set(Tabs.Files)}>Files</TabItem>

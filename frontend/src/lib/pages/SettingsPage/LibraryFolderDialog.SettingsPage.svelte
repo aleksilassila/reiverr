@@ -74,7 +74,7 @@
 		</Button>
 		<Button
 			type="primary-dark"
-			focusedChild={isPrimary}
+			defaultFocus={isPrimary}
 			icon={Trash}
 			onClickOrSelect={confirmRemove}
 		>

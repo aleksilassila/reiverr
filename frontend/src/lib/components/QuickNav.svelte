@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { scrollIntoView } from '$lib/selectable';
+	import { scrollElementIntoView } from '$lib/scroll-into-view';
+	import { mouseMode, scrollIntoView, type Selectable } from '$lib/selectable';
 	import classNames from 'classnames';
 
 	import Scrollable from './Carousel/Scrollable.svelte';
@@ -15,6 +16,16 @@
 	}
 
 	let { items, selected = 0, size = 'md', onSelect, class: className }: Props = $props();
+
+	/**
+	 * The focus has left: the navigation is entered at the highlighted item again, which is scrolled
+	 * back into view as its focus would, unless the focus follows the mouse
+	 */
+	function returnToSelected(navigation: Selectable) {
+		navigation.setFocusIndex(selected);
+		const element = navigation.getChildren()[selected]?.getHtmlElement();
+		if (element && !mouseMode) scrollElementIntoView(element, { vertical: 'center' });
+	}
 </script>
 
 <!-- Moving the focus does not jump, selecting an item does; the focus comes back to the highlighted item.
@@ -26,7 +37,7 @@
 			'max-h-full flex flex-col items-center',
 			size === 'sm' ? 'space-y-1' : 'space-y-2'
 		)}
-		onBlur={(selectable) => selectable.activateChild(selected)}
+		onBlur={returnToSelected}
 	>
 		{#each items as item, index (item)}
 			<TabItem

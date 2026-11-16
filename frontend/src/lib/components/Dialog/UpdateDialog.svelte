@@ -45,7 +45,7 @@
 					iconPosition="after"
 					onClickOrSelect={() => window.open('https://github.com/aleksilassila/reiverr/releases')}
 					focusOnMount
-					focusedChild
+					defaultFocus
 				>
 					Open Releases
 				</Button>

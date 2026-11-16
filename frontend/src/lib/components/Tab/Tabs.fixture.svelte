@@ -15,7 +15,7 @@
 		</Tab>
 		<Tab {...tab.props} tab={1}>
 			<Container name="second-a" />
-			<Container name="second-b" focusedChild />
+			<Container name="second-b" defaultFocus />
 		</Tab>
 	</TabContainer>
 </Container>

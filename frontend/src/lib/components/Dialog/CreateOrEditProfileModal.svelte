@@ -269,42 +269,42 @@
 				<ProfileIcon
 					url={profilePictures.ana}
 					onClickOrSelect={() => setProfilePicture(profilePictures.ana)}
-					focusedChild={profilePictureBase64 === profilePictures.ana}
+					defaultFocus={profilePictureBase64 === profilePictures.ana}
 				/>
 				<ProfileIcon
 					url={profilePictures.emma}
 					onClickOrSelect={() => setProfilePicture(profilePictures.emma)}
-					focusedChild={profilePictureBase64 === profilePictures.emma}
+					defaultFocus={profilePictureBase64 === profilePictures.emma}
 				/>
 				<ProfileIcon
 					url={profilePictures.glen}
 					onClickOrSelect={() => setProfilePicture(profilePictures.glen)}
-					focusedChild={profilePictureBase64 === profilePictures.glen}
+					defaultFocus={profilePictureBase64 === profilePictures.glen}
 				/>
 				<ProfileIcon
 					url={profilePictures.henry}
 					onClickOrSelect={() => setProfilePicture(profilePictures.henry)}
-					focusedChild={profilePictureBase64 === profilePictures.henry}
+					defaultFocus={profilePictureBase64 === profilePictures.henry}
 				/>
 				<ProfileIcon
 					url={profilePictures.keanu}
 					onClickOrSelect={() => setProfilePicture(profilePictures.keanu)}
-					focusedChild={profilePictureBase64 === profilePictures.keanu}
+					defaultFocus={profilePictureBase64 === profilePictures.keanu}
 				/>
 				<ProfileIcon
 					url={profilePictures.leo}
 					onClickOrSelect={() => setProfilePicture(profilePictures.leo)}
-					focusedChild={profilePictureBase64 === profilePictures.leo}
+					defaultFocus={profilePictureBase64 === profilePictures.leo}
 				/>
 				<ProfileIcon
 					url={profilePictures.sydney}
 					onClickOrSelect={() => setProfilePicture(profilePictures.sydney)}
-					focusedChild={profilePictureBase64 === profilePictures.sydney}
+					defaultFocus={profilePictureBase64 === profilePictures.sydney}
 				/>
 				<ProfileIcon
 					url={profilePictures.zendaya}
 					onClickOrSelect={() => setProfilePicture(profilePictures.zendaya)}
-					focusedChild={profilePictureBase64 === profilePictures.zendaya}
+					defaultFocus={profilePictureBase64 === profilePictures.zendaya}
 				/>
 				<ProfileIcon
 					url="profile-pictures/leo.webp"

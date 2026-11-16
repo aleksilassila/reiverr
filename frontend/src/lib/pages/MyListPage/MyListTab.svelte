@@ -183,7 +183,7 @@
 					onMounted={() => {
 						didMount = true;
 					}}
-					focusedChild
+					defaultFocus
 					class="flex-1 flex flex-col"
 				>
 					{#if items.length}

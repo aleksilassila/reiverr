@@ -19,6 +19,13 @@ async function mountTree(nodes: TreeNode[]) {
 
 const named = (...names: string[]): TreeNode[] => names.map((name) => ({ name }));
 
+function selectableOf(name: string): Selectable {
+	const element = document.querySelector<HTMLElement>(`[data-testid="${name}"]`);
+	const selectable = element && Selectable.objects.get(element);
+	if (!selectable) throw new Error(`No container named ${name}`);
+	return selectable;
+}
+
 setupFocusTree();
 
 describe('navigating', () => {
@@ -95,6 +102,29 @@ describe('navigating', () => {
 		expect(press('ArrowUp')).toBe('a');
 	});
 
+	it('says whether a container took the focus, which a disabled one does not', async () => {
+		await mountTree([
+			{
+				name: 'page',
+				children: [
+					{ name: 'a' },
+					{ name: 'b', disabled: true },
+					{ name: 'list', disabled: true, children: named('c') },
+					{ name: 'row', children: [{ name: 'd', disabled: true }, { name: 'e' }] }
+				]
+			}
+		]);
+
+		expect(selectableOf('b').focus()).toBe(false);
+		expect(selectableOf('list').focus()).toBe(false);
+		expect(focused()).toBe('a');
+
+		expect(selectableOf('row').focus()).toBe(true);
+		expect(focused()).toBe('e');
+		expect(selectableOf('row').focus()).toBe(true);
+		expect(focused()).toBe('e');
+	});
+
 	it('keeps the focus inside a container that traps it', async () => {
 		await mountTree([
 			{
@@ -144,6 +174,73 @@ describe('navigating', () => {
 
 		expect(onEnterRow).toHaveBeenCalledTimes(1);
 		expect(onEnterB).toHaveBeenCalledTimes(1);
+	});
+
+	it('calls onBlur when the focus has left a container, whichever way, not when it moves inside it', async () => {
+		const hadFocusWithin = vi.fn();
+		const onBlur = (row: Selectable) => hadFocusWithin(get(row.hasFocusWithin));
+		await mountTree([
+			{
+				name: 'page',
+				children: [
+					{ name: 'row', direction: 'horizontal', onBlur, children: named('a', 'b') },
+					{ name: 'c', focusOnClick: true }
+				]
+			}
+		]);
+
+		expect(press('ArrowRight')).toBe('b');
+		expect(hadFocusWithin).not.toHaveBeenCalled();
+
+		expect(press('ArrowDown')).toBe('c');
+		expect(hadFocusWithin).toHaveBeenCalledTimes(1);
+		expect(hadFocusWithin).toHaveBeenLastCalledWith(false);
+
+		expect(press('ArrowUp')).toBe('b');
+		selectableOf('c').focus();
+		expect(hadFocusWithin).toHaveBeenCalledTimes(2);
+
+		expect(press('ArrowUp')).toBe('b');
+		document.querySelector<HTMLElement>('[data-testid="c"]')?.click();
+		expect(focused()).toBe('c');
+		expect(hadFocusWithin).toHaveBeenCalledTimes(3);
+	});
+
+	it('does not call onBlur when the navigation out of a container is prevented', async () => {
+		const onBlur = vi.fn();
+		await mountTree([
+			{
+				name: 'page',
+				onNavigate: (e) => e.preventNavigation(),
+				children: [{ name: 'row', onBlur, children: named('a') }, { name: 'b' }]
+			}
+		]);
+
+		expect(press('ArrowDown')).toBe('a');
+		expect(onBlur).not.toHaveBeenCalled();
+	});
+
+	// A tab bar: the focus moves between its items and comes back to the open one
+	it('enters a container again at the child activated when the focus left it', async () => {
+		await mountTree([
+			{
+				name: 'page',
+				children: [
+					{
+						name: 'bar',
+						direction: 'horizontal',
+						onBlur: (bar) => bar.setFocusIndex(0),
+						children: named('a', 'b', 'c')
+					},
+					{ name: 'd' }
+				]
+			}
+		]);
+
+		press('ArrowRight');
+		expect(press('ArrowRight')).toBe('c');
+		expect(press('ArrowDown')).toBe('d');
+		expect(press('ArrowUp')).toBe('a');
 	});
 
 	it('selects the focused container with enter', async () => {
@@ -219,6 +316,67 @@ describe('navigating', () => {
 
 		expect(onBackA).toHaveBeenCalledTimes(1);
 		expect(onBackPage).not.toHaveBeenCalled();
+	});
+});
+
+describe('setting the focus index', () => {
+	const page: TreeNode[] = [
+		{
+			name: 'page',
+			children: [
+				{ name: 'a' },
+				{ name: 'group', children: [{ name: 'b' }, { name: 'list', children: named('c', 'd') }] }
+			]
+		}
+	];
+
+	it('enters the container at the child of the index, and leaves the focus where it is', async () => {
+		await mountTree(page);
+		press('ArrowDown');
+		expect(press('ArrowDown')).toBe('c');
+		press('ArrowUp');
+		expect(press('ArrowUp')).toBe('a');
+
+		selectableOf('list').setFocusIndex(1);
+		expect(focused()).toBe('a');
+		expect(press('ArrowDown')).toBe('b');
+		expect(press('ArrowDown')).toBe('d');
+	});
+
+	it('leaves the containers above as they are entered', async () => {
+		await mountTree(page);
+
+		selectableOf('list').setFocusIndex(1);
+		expect(press('ArrowDown')).toBe('b');
+	});
+
+	it('gives the focus to the child of the index in a container that has the focus', async () => {
+		await mountTree(page);
+		press('ArrowDown');
+		expect(press('ArrowDown')).toBe('c');
+
+		selectableOf('list').setFocusIndex(1);
+		expect(focused()).toBe('d');
+	});
+
+	it('does nothing for an index without a child', async () => {
+		await mountTree(page);
+		press('ArrowDown');
+		expect(press('ArrowDown')).toBe('c');
+		expect(press('ArrowDown')).toBe('d');
+
+		selectableOf('list').setFocusIndex(-1);
+		selectableOf('list').setFocusIndex(2);
+		expect(focused()).toBe('d');
+	});
+
+	it('is set by a child that activates itself', async () => {
+		await mountTree(page);
+
+		selectableOf('d').activate();
+		expect(focused()).toBe('a');
+		press('ArrowDown');
+		expect(press('ArrowDown')).toBe('d');
 	});
 });
 
@@ -328,19 +486,73 @@ describe('mounting', () => {
 		});
 	});
 
-	it('enters a container at the child mounted with focusedChild', async () => {
+	it('enters a container at the child mounted with defaultFocus', async () => {
 		await mountTree([
 			{
 				name: 'page',
 				children: [
 					{ name: 'a' },
-					{ name: 'list', children: [{ name: 'b' }, { name: 'c', focusedChild: true }] }
+					{ name: 'list', children: [{ name: 'b' }, { name: 'c', defaultFocus: true }] }
 				]
 			}
 		]);
 
 		expect(focused()).toBe('a');
 		expect(press('ArrowDown')).toBe('c');
+	});
+
+	// The default button of a dialog, in a row of buttons under its fields
+	it('enters every container above the child mounted with defaultFocus at it', async () => {
+		await mountTree([
+			{
+				name: 'page',
+				children: [
+					{ name: 'a' },
+					{
+						name: 'dialog',
+						children: [
+							{ name: 'fields', children: named('b', 'c') },
+							{
+								name: 'buttons',
+								direction: 'horizontal',
+								children: [{ name: 'cancel' }, { name: 'save', defaultFocus: true }]
+							}
+						]
+					}
+				]
+			}
+		]);
+
+		expect(focused()).toBe('a');
+		expect(press('ArrowDown')).toBe('save');
+	});
+
+	it('leaves the focus where it is when a container is mounted with defaultFocus', async () => {
+		const list = (...children: TreeNode[]): TreeNode[] => [{ name: 'list', children }];
+		const tree = await mountTree(list(...named('a', 'b')));
+
+		await tree.update(list(...named('a', 'b'), { name: 'c', defaultFocus: true }));
+
+		expect(focused()).toBe('a');
+	});
+
+	it('enters a container that was left at another child at the first one mounted with defaultFocus', async () => {
+		const page = (...list: TreeNode[]): TreeNode[] => [
+			{
+				name: 'page',
+				direction: 'horizontal',
+				children: [{ name: 'a' }, { name: 'list', children: list }]
+			}
+		];
+		const tree = await mountTree(page(...named('c', 'd')));
+		press('ArrowRight');
+		expect(press('ArrowDown')).toBe('d');
+		expect(press('ArrowLeft')).toBe('a');
+
+		await tree.update(page({ name: 'b', defaultFocus: true }, ...named('c', 'd')));
+
+		expect(focused()).toBe('a');
+		expect(press('ArrowRight')).toBe('b');
 	});
 
 	it('gives the focus to the first container mounted in an empty focused container', async () => {
@@ -380,7 +592,7 @@ describe('updating', () => {
 		expect(press('ArrowRight')).toBe('b');
 
 		await tree.update(page({ direction: 'horizontal', disabled: true }));
-		expect(get(Selectable.focusedObject)?.getParent()?.isFocusable()).toBe(false);
+		expect(get(Selectable.focusedObject)?.getParent()?.focus()).toBe(false);
 	});
 
 	// A reordered keyed list moves the elements of its items without mounting anything; the index of

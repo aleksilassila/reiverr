@@ -10,7 +10,7 @@
 	interface Props {
 		onMounted?: ComponentProps<typeof ListRow>['onMounted'];
 		onEnter?: ComponentProps<typeof ListRow>['onEnter'];
-		focusedChild?: boolean;
+		defaultFocus?: boolean;
 		onToggle?: () => void;
 		onOpen?: () => void;
 		title?: string;
@@ -42,7 +42,7 @@
 		onOpen,
 		onMounted,
 		onEnter,
-		focusedChild = false
+		defaultFocus = false
 	}: Props = $props();
 </script>
 
@@ -50,7 +50,7 @@
 <ListRow
 	{onMounted}
 	{onEnter}
-	{focusedChild}
+	{defaultFocus}
 	onSelect={() => onToggle?.()}
 	onclick={() => onOpen?.()}
 	onNavigate={(e) => {

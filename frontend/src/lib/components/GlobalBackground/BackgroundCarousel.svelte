@@ -17,7 +17,7 @@
 	let { backgrounds, focusIndex, onJumpTo }: Props = $props();
 
 	$effect(() => {
-		carousel.activateChild(focusIndex);
+		carousel.setFocusIndex(focusIndex);
 	});
 </script>
 
@@ -31,7 +31,7 @@
 >
 	{#each backgrounds as background, index}
 		<BackgroundCard
-			focusedChild={focusIndex === index}
+			defaultFocus={focusIndex === index}
 			backdropUri={background.backdropUri}
 			onClickOrSelect={(e) => {
 				onJumpTo?.(index);

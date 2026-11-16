@@ -27,7 +27,7 @@
 		direction="horizontal"
 		class="divider-lg pb-4 mx-32 mb-8 flex space-x-8"
 		onBlur={(selectable) => {
-			selectable.activateChild($tab);
+			selectable.setFocusIndex($tab);
 		}}
 	>
 		<TabItem class="text-4xl tracking-wider" selected={$tab === 0} onSelect={() => tab.set(0)}>

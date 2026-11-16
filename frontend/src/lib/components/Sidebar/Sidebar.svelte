@@ -56,7 +56,7 @@
 		// if (index === activeIndex) {
 		// 	if (get(selectable.hasFocusWithin)) Selectable.giveFocus('right');
 		// }
-		selectable.focusChild(index, { setFocusedElement: false });
+		selectable.setFocusIndex(index);
 		const path =
 			{
 				[Tabs.Users]: '/users',
@@ -93,7 +93,7 @@
 					'/server': Tabs.Server,
 					'/settings': Tabs.Settings
 				}[uri] ?? -1;
-			selectable.focusIndex.set(activeIndex);
+			selectable.setFocusIndex(activeIndex);
 			selectedIndex = activeIndex;
 			// }
 		});
@@ -170,7 +170,7 @@
 			<Container
 				class="w-full h-12 cursor-pointer"
 				onClickOrSelect={selectIndex(Tabs.Series)}
-				focusedChild
+				defaultFocus
 			>
 				{#snippet children({ hasFocus })}
 					<div

@@ -12,14 +12,14 @@
 		url: string;
 		icon?: IconComponent | undefined;
 		/** The icon that gets the focus when its container does */
-		focusedChild?: boolean;
+		defaultFocus?: boolean;
 		class?: string;
 	}
 
 	let {
 		url,
 		icon = undefined,
-		focusedChild = false,
+		defaultFocus = false,
 		onClickOrSelect,
 		class: className
 	}: Props = $props();
@@ -34,7 +34,7 @@
 			'selectable w-40 h-40 rounded-xl overflow-hidden cursor-pointer relative',
 			className
 		)}
-		{focusedChild}
+		{defaultFocus}
 		{onClickOrSelect}
 	>
 		<div class="bg-center bg-cover w-full h-full" style={`background-image: url('${url}')`}></div>

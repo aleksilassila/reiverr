@@ -17,7 +17,19 @@ export type ContainerProps = Omit<SvelteHTMLElements['div'], 'children'> &
 		 * here. It lives as long as the container: a selectable is not given to a second container.
 		 */
 		selectable?: Selectable;
+		/**
+		 * The container takes the focus when it mounts, from wherever the focus is, unless it has it
+		 * already: a page, a dialog or a sheet that opens, or content that arrives after its page and is
+		 * what the page is for. Read at the mount only.
+		 */
 		focusOnMount?: boolean;
+		/**
+		 * The focus starts here when it comes to the containers above: at the mount the container becomes
+		 * what its parent is entered at, the parent what its own parent is entered at, and so on up to
+		 * the first container that has the focus. The focus itself stays where it is. Read at the mount
+		 * only; the parent's `setFocusIndex()` is for what follows a value afterwards.
+		 */
+		defaultFocus?: boolean;
 		focusOnClick?: boolean;
 		/**
 		 * The position of the container in a keyed list that can be reordered. The focus tree is put in

@@ -72,7 +72,7 @@
 
 <div class="mt-8 space-y-4">
 	<RequestRow
-		focusedChild={openAtHeading}
+		defaultFocus={openAtHeading}
 		onMounted={(e) => {
 			heading = e;
 			// Before the list takes the focus, to where the focus of a row keeps it: the focus then has

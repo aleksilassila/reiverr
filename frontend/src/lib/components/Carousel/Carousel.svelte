@@ -49,13 +49,10 @@
 	let scrollPastWidth = $state(0);
 
 	function handleOnBack(e: KeyEvent) {
-		const focusIndex = get(e.selectable.focusIndex);
+		if (get(e.selectable.focusIndex) === 0 || !focusFirstOnBack) return;
 
-		if (focusIndex !== 0 && focusFirstOnBack) {
-			const didFocus = e.selectable.focusChild(0);
-
-			if (didFocus) e.stopPropagation();
-		}
+		const didFocus = e.selectable.getChildren()[0]?.focus();
+		if (didFocus) e.stopPropagation();
 	}
 
 	function scrollBy(multiplier: number) {
@@ -153,7 +150,7 @@
 					}
 				});
 
-			selectable.activateChild(newScrollIndex);
+			selectable.setFocusIndex(newScrollIndex);
 
 			if (newScrollIndex !== scrollIndex) {
 				scrollIndex = newScrollIndex;

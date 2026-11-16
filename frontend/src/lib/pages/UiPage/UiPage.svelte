@@ -430,7 +430,7 @@
 			direction="horizontal"
 			class="flex space-x-8"
 			onEnter={scroll}
-			onBlur={(selectable) => selectable.activateChild($tab)}
+			onBlur={(selectable) => selectable.setFocusIndex($tab)}
 		>
 			<TabItem selected={$tab === 0} onSelect={() => tab.set(0)}>First tab</TabItem>
 			<TabItem selected={$tab === 1} onSelect={() => tab.set(1)}>Second tab</TabItem>
@@ -668,7 +668,7 @@
 				direction="horizontal"
 				class="flex space-x-8"
 				onEnter={scroll}
-				onBlur={(selectable) => selectable.activateChild(backdrop)}
+				onBlur={(selectable) => selectable.setFocusIndex(backdrop)}
 			>
 				{#each BACKDROPS as url, index (url)}
 					<TabItem selected={backdrop === index} onSelect={() => (backdrop = index)}>

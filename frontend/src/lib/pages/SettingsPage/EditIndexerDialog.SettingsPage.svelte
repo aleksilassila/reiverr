@@ -73,7 +73,7 @@
 		{#if indexer}
 			<Button type="primary-dark" confirmDanger action={handleRemove} icon={Trash}>Remove</Button>
 		{/if}
-		<Button focusedChild type="primary-dark" class="flex-1" action={handleSave} icon={Pencil1}>
+		<Button defaultFocus type="primary-dark" class="flex-1" action={handleSave} icon={Pencil1}>
 			Save
 		</Button>
 	</Container>

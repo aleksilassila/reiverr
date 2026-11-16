@@ -11,7 +11,7 @@
 	type Props = {
 		disabled?: boolean;
 		focusOnMount?: boolean;
-		focusedChild?: boolean;
+		defaultFocus?: boolean;
 		type?: 'primary' | 'secondary' | 'primary-dark';
 		size?: 'md' | 'sm';
 		/** The first select arms the button, the second runs the action */
@@ -36,7 +36,7 @@
 	let {
 		disabled = false,
 		focusOnMount = false,
-		focusedChild = false,
+		defaultFocus = false,
 		type = 'primary',
 		size = 'md',
 		confirmDanger = false,
@@ -122,7 +122,7 @@
 		{onEnter}
 		{onMounted}
 		{focusOnMount}
-		{focusedChild}
+		{defaultFocus}
 		disabled={selectableDisabled}
 	>
 		<div

@@ -14,8 +14,8 @@
 		gridCols,
 		trapFocus,
 		disabled = false,
-		focusedChild,
 		focusOnMount = false,
+		defaultFocus = false,
 		focusOnClick = false,
 		index,
 		selectable: givenSelectable,
@@ -52,7 +52,6 @@
 			gridCols,
 			trapFocus,
 			disabled,
-			focusedChild,
 			onEnter,
 			onNavigate,
 			onBlur,
@@ -84,7 +83,7 @@
 	}
 
 	onMount(() => {
-		selectable._mountSelectable(focusOnMount);
+		selectable._mountSelectable({ focusOnMount, defaultFocus });
 
 		onMounted?.(selectable);
 

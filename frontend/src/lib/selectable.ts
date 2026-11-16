@@ -4,12 +4,6 @@ import { type Offsets, scrollElementIntoView } from './scroll-into-view';
 export type Direction = 'up' | 'down' | 'left' | 'right';
 type FlowDirection = 'vertical' | 'horizontal';
 
-type FocusEventOptions = {
-	/** Whether the browser's focus moves too, and to which element in place of the selectable's own */
-	setFocusedElement: boolean | HTMLElement;
-	propagate: boolean;
-};
-
 /** An event that goes up the tree, from the focused selectable to the root, until a handler stops it */
 type PropagatingEvent = {
 	/** The selectable whose handler is called */
@@ -41,13 +35,19 @@ export type SelectableConfig = {
 	direction?: FlowDirection | 'grid';
 	gridCols?: number;
 	trapFocus?: boolean;
+	/**
+	 * Disabled selectable won't receive focus. Use to make hidden elements
+	 * uninteractable without unmounting them, for example
+	 */
 	disabled?: boolean;
-	focusedChild?: boolean;
 	/** The selectable or something in it got the focus */
 	onEnter?: (e: EnterEvent) => void;
 	/** The d-pad moves the focus from the selectable or from something in it */
 	onNavigate?: (e: NavigateEvent) => void;
-	/** The d-pad moves the focus out of the selectable; not called when the focus leaves another way */
+	/**
+	 * The focus has left the selectable, whichever way: it or something in it had the focus, and what
+	 * has it now is outside. Called after the focus has moved
+	 */
 	onBlur?: (selectable: Selectable) => void;
 	/** Selected with the d-pad */
 	onSelect?: (selectable: Selectable) => void;
@@ -73,7 +73,6 @@ export class Selectable {
 	private parent?: Selectable;
 	private children: Selectable[] = [];
 	private htmlElement?: HTMLElement;
-	private makeFocusedChild: boolean = false;
 
 	private trapFocus: boolean = false;
 	private disabled: boolean = true;
@@ -94,7 +93,12 @@ export class Selectable {
 
 	static focusedObject: Writable<Selectable | undefined> = writable(undefined);
 
-	focusIndex: Writable<number> = writable(0);
+	private _focusIndex: Writable<number> = writable(0);
+	/**
+	 * The index of the child the selectable is entered at: the child that has the focus, or the one
+	 * that gets it when the selectable does. Written by {@link focus} and {@link setFocusIndex}
+	 */
+	focusIndex: Readable<number> = this._focusIndex;
 	hasFocus: Readable<boolean> = derived(Selectable.focusedObject, ($focusedObject) => {
 		return $focusedObject === this;
 	});
@@ -130,7 +134,6 @@ export class Selectable {
 		this.gridColumns = config.gridCols ?? 0;
 		this.trapFocus = config.trapFocus ?? false;
 		this.disabled = config.disabled ?? false;
-		this.makeFocusedChild = config.focusedChild ?? false;
 		this.onEnter = config.onEnter;
 		this.onNavigate = config.onNavigate;
 		this.onBlur = config.onBlur;
@@ -168,91 +171,78 @@ export class Selectable {
 		parent.children = parent.children.map((child) => (child.didUnmount ? child : mounted[next++]!));
 
 		if (focusedChild && followFocusedChild)
-			parent.focusIndex.set(parent.children.indexOf(focusedChild));
+			parent._focusIndex.set(parent.children.indexOf(focusedChild));
 	}
 
-	focus(options: Partial<FocusEventOptions> = {}) {
-		function propagateFocusUpdates(options: FocusEventOptions, selectable: Selectable) {
-			if (options.propagate && !get(selectable.hasFocusWithin)) {
+	/**
+	 * Takes the focus, from wherever it is: the child the selectable is entered at takes it, or the
+	 * nearest child after or before that one which does, and so on down; a selectable none of whose
+	 * children take it takes it itself. The selectables above are then entered at it.
+	 *
+	 * @returns whether the focus is in the selectable now. A disabled selectable does not take it,
+	 * and nothing changes.
+	 */
+	focus(): boolean {
+		if (this.disabled) return false;
+
+		const entered = Math.max(get(this.focusIndex), 0);
+		for (let i = entered; i < this.children.length; i++) {
+			if (this.children[i]?.focus()) return true;
+		}
+		for (let i = Math.min(entered, this.children.length) - 1; i >= 0; i--) {
+			if (this.children[i]?.focus()) return true;
+		}
+
+		if (!this.htmlElement) return false;
+
+		const previous = get(Selectable.focusedObject);
+		let propagate = true;
+		let element = this.htmlElement;
+
+		for (const selectable of Selectable.pathOf(this)) {
+			if (propagate && !get(selectable.hasFocusWithin)) {
 				selectable.onEnter?.({
 					selectable,
 					stopPropagation: () => {
-						options.propagate = false;
+						propagate = false;
 					},
-					focusElement: (element) => {
-						if (options.setFocusedElement) options.setFocusedElement = element;
+					focusElement: (focused) => {
+						element = focused;
 					}
 				});
 			}
 
-			const parent = selectable.parent;
-
-			if (parent) {
-				const updateParentFocusIndex = options.setFocusedElement || !get(parent?.hasFocusWithin);
-				if (updateParentFocusIndex) {
-					const index = parent.children.indexOf(selectable);
-					parent.focusIndex.update((prev) => (index === -1 ? prev : index));
-
-					propagateFocusUpdates(options, parent);
-				}
-			}
+			const index = selectable.parent?.children.indexOf(selectable) ?? -1;
+			if (index !== -1) selectable.parent?._focusIndex.set(index);
 		}
 
-		if (this.children.length > 0) {
-			const focusIndex = get(this.focusIndex);
+		element.focus({ preventScroll: true });
+		Selectable.focusedObject.set(this);
 
-			if (this.children[focusIndex]?.isFocusable()) {
-				this.children[focusIndex]?.focus(options);
-				return;
-			} else {
-				let i = focusIndex;
-				while (i < this.children.length) {
-					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(options);
-						return;
-					}
-					i++;
-				}
-				i = focusIndex - 1;
-				while (i >= 0) {
-					if (this.children[i]?.isFocusable()) {
-						this.children[i]?.focus(options);
-						return;
-					}
-					i--;
-				}
-			}
+		// What the focus has left: from the selectable that had it up to the first one it is still in
+		for (const left of Selectable.pathOf(previous)) {
+			if (get(left.hasFocusWithin)) break;
+			if (!left.didUnmount) left.onBlur?.(left);
 		}
 
-		if (this.htmlElement) {
-			const _options: FocusEventOptions = { setFocusedElement: true, propagate: true, ...options };
-			propagateFocusUpdates(_options, this);
-
-			if (_options.setFocusedElement) {
-				if (_options.setFocusedElement === true) {
-					this.htmlElement.focus({ preventScroll: true });
-				} else {
-					_options.setFocusedElement.focus({ preventScroll: true });
-				}
-				Selectable.focusedObject.set(this);
-			}
-		}
-	}
-
-	focusChild(index: number, options?: Partial<FocusEventOptions>): boolean {
-		// TODO: CLEAN UP
-		const child = this.children[index];
-		if (child && child.isFocusable()) {
-			child.focus(options);
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 
 	/**
-	 * Focuses child if parent has focus, otherwise sets focusIndex to child index
+	 * Enters the selectable at the child of the index. Only the selectable itself: what is above it
+	 * stays entered as it was. A selectable that has the focus is entered already, so there the child
+	 * takes the focus, and the index never points away from the focused child. An index without a
+	 * child does nothing, as a disabled child in a selectable that has the focus.
 	 */
+	setFocusIndex(index: number) {
+		const child = this.children[index];
+		if (!child) return;
+
+		if (get(this.hasFocusWithin)) child.focus();
+		else this._focusIndex.set(index);
+	}
+
+	/** {@link setFocusIndex} of the parent, for what holds the selectable and not its position */
 	activate() {
 		const parent = this.parent;
 		if (!parent) {
@@ -260,32 +250,10 @@ export class Selectable {
 			return;
 		}
 
-		const parentHasFocus = get(parent.hasFocusWithin);
-
-		if (parentHasFocus) {
-			this.focus();
-		} else {
-			const index = parent.children.indexOf(this);
-			if (index === -1) console.error('Child not found in parent when activating', this, parent);
-			this.parent?.focusIndex.update((prev) => (index >= 0 ? index : prev));
-		}
+		parent.setFocusIndex(parent.children.indexOf(this));
 	}
 
-	/**
-	 * @see {@link Selectable.activate}
-	 * @param index index of child to activate
-	 */
-	activateChild(index: number) {
-		const child = this.children[index];
-		if (child) {
-			child.activate();
-		}
-	}
-
-	/**
-	 * @returns {boolean} whether the selectable is focusable
-	 */
-	isFocusable(): boolean {
+	private isFocusable(): boolean {
 		return !this.disabled;
 	}
 
@@ -353,7 +321,6 @@ export class Selectable {
 					options.propagate = false;
 				}
 			});
-			if (willLeaveContainer) selectable.onBlur?.(selectable);
 
 			if (options.propagate && selectable.parent) {
 				propagateNavigationEvent(selectable.parent, willLeaveContainer ? cycledParent : undefined);
@@ -363,10 +330,7 @@ export class Selectable {
 		const { target, cycledParent } = getSelectable(this);
 		propagateNavigationEvent(this, cycledParent);
 
-		if (target && !options.preventNavigation) {
-			target.focus();
-			return true;
-		}
+		if (target && !options.preventNavigation) return target.focus();
 
 		if (options.preventNavigation) return true;
 
@@ -455,29 +419,33 @@ export class Selectable {
 	}
 
 	/**
-	 * Called from the container's onMount, when the containers inside it are in the tree.
+	 * Called from the container's onMount, when the containers inside it are in the tree, with the
+	 * props of the container that are about its mount.
+	 *
+	 * `focusOnMount` takes the focus, from wherever it is, unless the selectable has it already.
+	 * `defaultFocus` never moves the focus: the selectable becomes what its parent is entered at, the
+	 * parent what its own parent is entered at, and so on up to the first selectable that has the
+	 * focus, which stays where it is.
 	 */
-	_mountSelectable(focusOnMount: boolean = false) {
-		if (!get(this.hasFocusWithin) && this.isFocusable() && focusOnMount) {
-			this.focus(); // TODO: CLEAN UP
-		}
+	_mountSelectable({
+		focusOnMount,
+		defaultFocus
+	}: {
+		focusOnMount: boolean;
+		defaultFocus: boolean;
+	}) {
+		if (focusOnMount && !get(this.hasFocusWithin)) this.focus();
 
 		if (!this.htmlElement) {
 			console.error('No html element found for', this);
 			return;
 		}
 
-		if (this.makeFocusedChild) {
-			// eslint-disable-next-line @typescript-eslint/no-this-alias
-			let el: Selectable = this;
-			let parent = el.parent;
-
-			while (parent && !get(parent.hasFocusWithin)) {
-				console.debug('setting parent focusIndex', parent, parent.children.indexOf(el));
-				parent.focusIndex.update((prev) => parent?.children?.indexOf(el) || prev);
-
-				el = parent;
-				parent = el.parent;
+		if (defaultFocus) {
+			for (const selectable of Selectable.pathOf(this)) {
+				const parent = selectable.parent;
+				if (!parent || get(parent.hasFocusWithin)) break;
+				parent._focusIndex.set(parent.children.indexOf(selectable));
 			}
 		}
 	}
@@ -508,7 +476,7 @@ export class Selectable {
 				parents.add(parent);
 				parent.removeChild(child);
 				const last = parent.children.length - 1;
-				if (last >= 0 && get(parent.focusIndex) > last) parent.focusIndex.set(last);
+				if (last >= 0 && get(parent.focusIndex) > last) parent._focusIndex.set(last);
 
 				// The topmost removed container that had the focus: its parent gives the focus to whatever
 				// stands at the index now, as a replacement mounted in the same flush does
@@ -578,7 +546,7 @@ export class Selectable {
 			// Mounted before the focused child, with nothing unmounting there: the index follows the child.
 			// A container that has not had the focus yet is still entered at its first child
 			if (focusIndex > 0 || (focusedChild && get(focusedChild.hasFocusWithin)))
-				this.focusIndex.update((prev) => prev + 1);
+				this._focusIndex.update((prev) => prev + 1);
 		} else if (index === focusIndex) {
 			// Increment
 			// Do not refocus
@@ -586,7 +554,7 @@ export class Selectable {
 				childToFocus = child;
 			} else if (this.children.length > 0) {
 				this._addChildCount++;
-				if (focusIndex > 0) this.focusIndex.update((prev) => prev + 1); // TODO: Maybe needs fixing pt1
+				if (focusIndex > 0) this._focusIndex.update((prev) => prev + 1); // TODO: Maybe needs fixing pt1
 			} else if (this.children.length === 0 && get(this.hasFocus)) {
 				childToFocus = child;
 			}
@@ -598,7 +566,7 @@ export class Selectable {
 			// Increment
 			// Do not refocus
 			this._addChildCount++;
-			this.focusIndex.update((prev) => prev + 1);
+			this._focusIndex.update((prev) => prev + 1);
 		} else if (index > focusIndex) {
 			// Do nothing
 		}
@@ -618,20 +586,20 @@ export class Selectable {
 		if (index === focusIndex) {
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
-				this.focusIndex.update((prev) => prev - 1);
+				this._focusIndex.update((prev) => prev - 1);
 			}
 
 			if (!this._removedChildrenCount) this._removedChildrenCount = this._removedChildCountTemp + 1;
 		} else if (index < focusIndex) {
 			if (this._addChildCount > 1) this._addChildCount--;
-			this.focusIndex.update((prev) => prev - 1);
+			this._focusIndex.update((prev) => prev - 1);
 
 			this._removedChildCountTemp++;
 		} else if (index > focusIndex) {
 			if (this._addChildCount > 0) {
 				this._addChildCount--;
 				// TODO: This might need fixing pt2
-				if (focusIndex > 0) this.focusIndex.update((prev) => prev - 1);
+				if (focusIndex > 0) this._focusIndex.update((prev) => prev - 1);
 			}
 		}
 
@@ -753,11 +721,7 @@ export function handleKeyboardNavigation(event: KeyboardEvent) {
 	if (!currentlyFocusedObject) {
 		console.error('No focused object!!!');
 		// Find object that can be focused
-		Selectable.objects.forEach((container) => {
-			if (container.isFocusable()) {
-				container.focus();
-			}
-		});
+		Selectable.objects.forEach((container) => container.focus());
 		return;
 	}
 
@@ -815,7 +779,7 @@ export const takeFocusFromNext = (selectable: Selectable) => {
 export const scrollToTop = (e: KeyEvent) => {
 	const selectable = e.selectable;
 	if (get(selectable.focusIndex) !== 0) {
-		selectable.focusChild(0);
+		selectable.getChildren()[0]?.focus();
 		e.stopPropagation();
 	}
 };
