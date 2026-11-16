@@ -3,21 +3,11 @@ import { onDestroy, type Component, type ComponentProps } from 'svelte';
 import { derived, get, writable } from 'svelte/store';
 import YoutubeVideo from '../VideoPlayer/YoutubeVideo.svelte';
 import VideoPlayer from '../VideoPlayer/VideoPlayer.svelte';
-import type { SubtitleTrack, VideoTrack } from '../VideoPlayer/video-player.store';
+import type { VideoPlayerMedia } from '../VideoPlayer/video-player.store';
 import { getContext, hasContext, setContext } from '../StackRouter/stack-router.store';
 import { createStoreContext } from '$lib/utils';
 
 export const BACKGROUND_CONTEXT_KEY = 'background-context';
-
-export type PlayMediaOptions = {
-	title: string;
-	subtitle?: string;
-	videoTracks: VideoTrack[];
-	subtitleTracks?: SubtitleTrack[];
-	/** From 0 to 1 */
-	progress?: number;
-	onProgress?: (progress: number) => void;
-};
 
 export type Background = {
 	backdropUri: string;
@@ -213,8 +203,8 @@ function _createBackgroundPage(
 		if (!onBackground) focus();
 	}
 
-	function playMedia(props: PlayMediaOptions) {
-		setVideo({ id: Symbol(), component: VideoPlayer, props });
+	function playMedia(media: VideoPlayerMedia) {
+		setVideo({ id: Symbol(), component: VideoPlayer, props: media });
 		focus();
 	}
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import classNames from 'classnames';
-	import { EnterFullScreen, Pause, SpeakerLoud, TextAlignLeft, Video } from 'radix-icons-svelte';
+	import { ChatBubble, EnterFullScreen, Pause, TextAlignLeft, Video } from 'radix-icons-svelte';
 	import { onDestroy } from 'svelte';
 	import { Selectable } from '../../selectable';
 	import Container from '../Container.svelte';
@@ -15,23 +15,17 @@
 	import SelectVideoModal from './SelectVideoModal.svelte';
 	import VideoElement from './VideoElement.svelte';
 	import VolumeControl from './VolumeControl.svelte';
-	import { videoPlayerContext, type SubtitleTrack, type VideoTrack } from './video-player.store';
+	import { videoPlayerContext, type VideoPlayerMedia } from './video-player.store';
 	import { isTv } from '$lib/utils/browser-detection';
 	import { PLATFORM_WEB } from '$lib/constants';
 
-	interface Props {
-		title: string;
-		subtitle?: string;
-		videoTracks: VideoTrack[];
-		subtitleTracks?: SubtitleTrack[];
-		/** From 0 to 1 */
-		progress?: number;
-		onProgress?: (progress: number) => void;
+	type Props = VideoPlayerMedia & {
 		modalHidden?: boolean;
-	}
+	};
 
 	let {
 		title,
+		titlePrefix,
 		subtitle = '',
 		videoTracks,
 		subtitleTracks = [],
@@ -218,7 +212,10 @@
 						<div class="text-secondary-300 font-medium text-wider text-xl mb-1 tracking-wide">
 							{subtitle}
 						</div>
-						<h1 class="h1">{title}</h1>
+						<h1 class="h1">
+							{#if titlePrefix}<span class="text-secondary-400">{titlePrefix}</span>{/if}
+							{title}
+						</h1>
 					</div>
 					<div class="flex space-x-2">
 						{#if PLATFORM_WEB && !isTv()}
@@ -238,7 +235,7 @@
 									});
 								}}
 							>
-								<SpeakerLoud size={24} />
+								<ChatBubble size={24} />
 							</IconButton>
 						{/if}
 						{#if $subtitleTrackState.tracks.length}

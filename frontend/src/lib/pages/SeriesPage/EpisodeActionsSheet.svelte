@@ -26,10 +26,9 @@
 		season: number;
 		episode: number;
 		name: string;
-		seriesName: string;
 	}
 
-	let { tmdbId, season, episode, name, seriesName }: Props = $props();
+	let { tmdbId, season, episode, name }: Props = $props();
 
 	const componentStack = useComponentStack();
 	const { playMedia } = backgroundContext.getContext();
@@ -56,15 +55,7 @@
 	async function play() {
 		componentStack.close();
 
-		await playEpisode({
-			tmdbId,
-			season,
-			episode,
-			title: name,
-			subtitle: `${seriesName} · Season ${season} Episode ${episode}`,
-			progress: userData?.progress,
-			playMedia: (props) => playMedia?.(props)
-		});
+		await playEpisode(tmdbId, season, episode, (media) => playMedia?.(media));
 	}
 
 	async function setWatched(watched: boolean) {

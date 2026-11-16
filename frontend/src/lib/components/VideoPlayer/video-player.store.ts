@@ -47,6 +47,20 @@ export function getAudioTrackList(video: HTMLVideoElement): AudioTrackList | und
 		: undefined;
 }
 
+/** What the video player plays and what it shows of it */
+export type VideoPlayerMedia = {
+	title: string;
+	/** Shown dimmed before the title, as the `S1E2` of an episode */
+	titlePrefix?: string;
+	subtitle?: string;
+	videoTracks: VideoTrack[];
+	subtitleTracks?: SubtitleTrack[];
+	/** From 0 to 1, where playback starts */
+	progress?: number;
+	/** Called with the progress from 0 to 1 every now and then and when the player closes */
+	onProgress?: (progress: number) => void;
+};
+
 export interface VideoPlayerOptions {
 	videoTracks: VideoTrack[];
 	subtitleTracks: SubtitleTrack[];

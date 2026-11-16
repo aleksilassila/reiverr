@@ -56,16 +56,7 @@
 		return properties;
 	}
 
-	const play = () =>
-		playEpisode({
-			tmdbId: id,
-			season: seasonNumber,
-			episode: episodeNumber,
-			title: tmdbEpisode?.name ?? '',
-			subtitle: `Season ${season} Episode ${episode}`,
-			progress,
-			playMedia: background.playMedia
-		});
+	const play = () => playEpisode(id, seasonNumber, episodeNumber, background.playMedia);
 	let tmdbEpisode = $derived(
 		tmdbSeries.data?.seasons
 			?.map((s) => s.episodes ?? [])
@@ -76,7 +67,6 @@
 		userData.data?.playStates.find((p) => p.season === seasonNumber && p.episode === episodeNumber)
 	);
 	let isWatched = $derived(playState?.watched ?? false);
-	let progress = $derived(playState?.progress ?? 0);
 	$effect(() => {
 		if (tmdbEpisode) background.setBackgrounds([{ backdropUri: `${tmdbEpisode.still_path}` }]);
 	});

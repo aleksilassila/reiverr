@@ -117,17 +117,7 @@
 		return properties;
 	}
 
-	async function play() {
-		if (!movie) return;
-
-		await playMovie({
-			tmdbId: id,
-			title: movie.title ?? '',
-			subtitle: movie.release_date ? String(new Date(movie.release_date).getFullYear()) : '',
-			progress: userData.data?.playState?.progress ?? 0,
-			playMedia: background.playMedia
-		});
-	}
+	const play = () => playMovie(id, background.playMedia);
 	let movie = $derived(tmdbMovie.data);
 	let status = $derived(statusQuery.data);
 	let requestStatus = $derived(

@@ -1,85 +1,114 @@
 import type { LibraryFileDto, UpdatePlayStateDto } from '$lib/apis/reiverr/reiverr.openapi';
-import type { PlayMediaOptions } from '$lib/components/GlobalBackground/background-stack.store';
 import { createErrorNotification } from '$lib/components/Notifications/notification.store';
+import type { VideoPlayerMedia } from '$lib/components/VideoPlayer/video-player.store';
 import { libraryQueries } from '$lib/queries/library.queries';
+import { metadataQueries } from '$lib/queries/metadata.queries';
 import { queryClient } from '$lib/queries/query-client';
-import { saveEpisodePlayState, saveMoviePlayState } from '$lib/queries/user-data.queries';
+import {
+	saveEpisodePlayState,
+	saveMoviePlayState,
+	userDataQueries
+} from '$lib/queries/user-data.queries';
 import { sessions } from '$lib/stores/session.store';
 import { get } from 'svelte/store';
 
 const WATCHED_PROGRESS = 0.9;
 
-type PlayOptions = {
-	title: string;
-	subtitle: string;
-	progress?: number;
-	playMedia: (props: PlayMediaOptions) => void;
-};
+type PlayMedia = (media: VideoPlayerMedia) => void;
 
 /**
- * Plays an episode from the library, with one video track per file found.
- * Nothing happens when the episode is not on disk, and a failure to look it
- * up is reported.
- *
- * @returns whether playback started
+ * Plays an episode from the library with `playMedia` of the background of the page, with one video
+ * track per file found. What the player shows of the episode and where the user left off are
+ * looked up here. Nothing happens when the episode is not on disk, and a failure to look it up is
+ * reported.
  */
 export async function playEpisode(
-	options: PlayOptions & {
-		tmdbId: string;
-		season: number;
-		episode: number;
-	}
-): Promise<boolean> {
-	const { tmdbId, season, episode } = options;
+	tmdbId: string,
+	season: number,
+	episode: number,
+	playMedia: PlayMedia
+) {
+	const lookup = await Promise.all([
+		// The document the page shows the series from does, however old
+		queryClient.fetchQuery({ ...metadataQueries.series(tmdbId), staleTime: Infinity }),
+		queryClient.fetchQuery(userDataQueries.series(tmdbId)),
+		// Looked up again, since an import may have just added a file
+		queryClient.fetchQuery({
+			...libraryQueries.episodeFiles(tmdbId, season, episode),
+			staleTime: 0
+		})
+	]).catch(reportLookupFailure);
+	if (!lookup) return;
 
-	// Looked up again, since an import may have just added a file
-	const files = await queryClient
-		.fetchQuery({ ...libraryQueries.episodeFiles(tmdbId, season, episode), staleTime: 0 })
-		.catch(reportLookupFailure);
+	const [series, userData, files] = lookup;
+	if (!files.length) return;
 
-	return playFiles(files, options, (playState) =>
-		saveEpisodePlayState(tmdbId, season, episode, playState)
-	);
+	const tmdbEpisode = series?.seasons
+		?.flatMap((s) => s.episodes ?? [])
+		.find((e) => e.season_number === season && e.episode_number === episode);
+	const playState = userData.playStates.find((p) => p.season === season && p.episode === episode);
+
+	playMedia({
+		title: tmdbEpisode?.name ?? '',
+		titlePrefix: `S${season}E${episode}`,
+		subtitle: series?.name ?? '',
+		progress: resumeProgress(playState?.progress),
+		...tracksOf(files),
+		onProgress: (progress) => saveEpisodePlayState(tmdbId, season, episode, playStateAt(progress))
+	});
 }
 
 /**
- * Plays a movie from the library, with one video track per version found.
- * Nothing happens when the movie is not on disk, and a failure to look it
- * up is reported.
- *
- * @returns whether playback started
+ * Plays a movie from the library with `playMedia` of the background of the page, with one video
+ * track per version found. What the player shows of the movie and where the user left off are
+ * looked up here. Nothing happens when the movie is not on disk, and a failure to look it up is
+ * reported.
  */
-export async function playMovie(options: PlayOptions & { tmdbId: string }): Promise<boolean> {
-	const { tmdbId } = options;
+export async function playMovie(tmdbId: string, playMedia: PlayMedia) {
+	const lookup = await Promise.all([
+		// The document the page shows the movie from does, however old
+		queryClient.fetchQuery({ ...metadataQueries.movie(tmdbId), staleTime: Infinity }),
+		queryClient.fetchQuery(userDataQueries.movie(tmdbId)),
+		// Looked up again, since an import may have just added a file
+		queryClient.fetchQuery({ ...libraryQueries.movieFiles(tmdbId), staleTime: 0 })
+	]).catch(reportLookupFailure);
+	if (!lookup) return;
 
-	const files = await queryClient
-		.fetchQuery({ ...libraryQueries.movieFiles(tmdbId), staleTime: 0 })
-		.catch(reportLookupFailure);
+	const [movie, userData, files] = lookup;
+	if (!files.length) return;
 
-	return playFiles(files, options, (playState) => saveMoviePlayState(tmdbId, playState));
+	playMedia({
+		title: movie?.title ?? '',
+		subtitle: movie?.release_date ? String(new Date(movie.release_date).getFullYear()) : '',
+		progress: resumeProgress(userData.playState?.progress),
+		...tracksOf(files),
+		onProgress: (progress) => saveMoviePlayState(tmdbId, playStateAt(progress))
+	});
 }
 
-function reportLookupFailure(e: any): LibraryFileDto[] {
+function reportLookupFailure(e: any) {
 	createErrorNotification('Could not play', e?.response?.data?.message ?? e?.message ?? String(e));
-	return [];
 }
 
-function playFiles(
-	files: LibraryFileDto[],
-	options: PlayOptions,
-	savePlayState: (playState: UpdatePlayStateDto) => Promise<unknown>
-): boolean {
-	if (!files.length) return false;
+/** Where playback starts, from 0 to 1: a watched title starts over instead of resuming at its end */
+function resumeProgress(progress = 0): number {
+	return progress >= WATCHED_PROGRESS ? 0 : progress;
+}
 
+/** What a progress report of the player saves: near its end the title becomes watched */
+function playStateAt(progress: number): UpdatePlayStateDto {
+	return { progress, ...(progress > WATCHED_PROGRESS && { watched: true }) };
+}
+
+/** One video track per file, with the subtitle files next to each */
+function tracksOf(
+	files: LibraryFileDto[]
+): Pick<VideoPlayerMedia, 'videoTracks' | 'subtitleTracks'> {
 	// Media elements cannot send headers, so the token travels in the URL
 	const { baseUrl, token } = get(sessions).activeSession ?? { baseUrl: '', token: '' };
 	const url = (path: string) => `${baseUrl}/api/library/${path}?reiverr_token=${token}`;
 
-	options.playMedia({
-		title: options.title,
-		subtitle: options.subtitle,
-		// A watched title starts over instead of resuming at its end
-		progress: (options.progress ?? 0) >= WATCHED_PROGRESS ? 0 : options.progress,
+	return {
 		videoTracks: files.map((file) => ({
 			id: file.id,
 			label: file.fileName,
@@ -92,14 +121,6 @@ function playFiles(
 
 				return { id: path, label: subtitle.label, lang: subtitle.lang, src: url(path) };
 			})
-		),
-		onProgress: (progress) => {
-			savePlayState({
-				progress,
-				...(progress > WATCHED_PROGRESS && { watched: true })
-			});
-		}
-	});
-
-	return true;
+		)
+	};
 }

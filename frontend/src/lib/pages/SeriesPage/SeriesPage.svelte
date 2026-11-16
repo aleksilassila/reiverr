@@ -392,20 +392,16 @@
 												tmdbId: id,
 												season: episode.season_number ?? 0,
 												episode: episode.episode_number ?? 0,
-												name: episode.name ?? '',
-												seriesName: tmdbSeries.name ?? ''
+												name: episode.name ?? ''
 											}
 										})}
 									onClickOrSelect={() =>
-										playEpisode({
-											tmdbId: id,
-											season: episode.season_number ?? 0,
-											episode: episode.episode_number ?? 0,
-											title: episode.name ?? '',
-											subtitle: `${tmdbSeries.name ?? ''} · Season ${episode.season_number} Episode ${episode.episode_number}`,
-											progress: userData?.progress,
-											playMedia: background.playMedia
-										})}
+										playEpisode(
+											id,
+											episode.season_number ?? 0,
+											episode.episode_number ?? 0,
+											background.playMedia
+										)}
 								/>
 							{/key}
 						{/each}
