@@ -50,7 +50,7 @@ cd frontend && npx vitest run src/path/to/file.spec.ts # single component spec (
 cd frontend && npm run test:e2e                       # playwright, tests/test.ts
 ```
 
-Test coverage is thin: the backend has unit specs for pure helpers and for a few services on an in-memory database, `test/downloads.e2e-spec.ts` boots the whole app with a fake torrent engine and a fake Torznab server, the frontend has component specs for the focus system and the modal stack only (`Container.spec.ts`, `Tab/Tab.spec.ts`, `Modal/ModalStackProvider.spec.ts`), and the playwright test targets a page that does not exist. Do not rely on the test commands to validate a change; use the type checks and run the app.
+Test coverage is thin: the backend has unit specs for pure helpers and for a few services on an in-memory database, `test/downloads.e2e-spec.ts` boots the whole app with a fake torrent engine and a fake Torznab server, the frontend has component specs for the focus system and the modal stack (`Container.spec.ts`, `Tab/Tab.spec.ts`, `Modal/ModalStackProvider.spec.ts`) and a spec of the scroll helpers on fake frames (`lib/scroll-into-view.spec.ts`: an element does the scroll asked for last, so an instant scroll ends a smooth one that runs or waits for its first frame), and the playwright test targets a page that does not exist. Do not rely on the test commands to validate a change; use the type checks and run the app.
 
 Migrations (run inside `backend/`; the MikroORM CLI loads the TypeScript sources directly through `@oxc-node/core`, no build needed):
 

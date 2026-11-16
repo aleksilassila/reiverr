@@ -121,6 +121,7 @@ export const scrollElementIntoView = (
 
 		if (top !== -1) {
 			if (offsets.instant) {
+				cancelSmoothScroll(verticalParent);
 				verticalParent.scrollTop = top;
 			} else {
 				smoothScrollTo({ element: verticalParent, top });
@@ -172,6 +173,7 @@ export const scrollElementIntoView = (
 
 		if (left !== -1) {
 			if (offsets.instant) {
+				cancelSmoothScroll(horizontalParent);
 				horizontalParent.scrollLeft = left;
 			} else {
 				smoothScrollTo({ element: horizontalParent, left });
@@ -185,7 +187,23 @@ export const scrollElementIntoView = (
 };
 
 const easeOutCubic = (t: number, d: number) => --t * t * t + 1;
+/** The frame the smooth scroll of an element runs in next: the one that starts it, then each of its steps */
 const animationHandles: Map<HTMLElement, number> = new Map();
+
+/** Stops the smooth scroll of the element, also one that was asked for and has not started */
+export function cancelSmoothScroll(element: HTMLElement) {
+	const handle = animationHandles.get(element);
+	if (handle !== undefined) cancelAnimationFrame(handle);
+	animationHandles.delete(element);
+}
+
+/**
+ * Scrolls the element to the position over the frames that follow, starting with the next one. The
+ * scroll that was asked for last is the one an element does: this one ends what was running or
+ * waiting, as an instant scroll of {@link scrollElementIntoView} ends this one.
+ *
+ * @returns a function that stops the scroll
+ */
 export function smoothScrollTo(options: {
 	element: HTMLElement;
 	top?: number;
@@ -193,16 +211,12 @@ export function smoothScrollTo(options: {
 	duration?: number;
 	cb?: () => void;
 }) {
-	requestAnimationFrame(() => {
-		if (options.top === undefined && options.left === undefined) return;
+	const { element, top = 0, left = 0 } = options;
+	if (options.top === undefined && options.left === undefined) return () => {};
 
-		const { element, top = 0, left = 0 } = options;
+	cancelSmoothScroll(element);
 
-		if (animationHandles.has(element)) {
-			cancelAnimationFrame(animationHandles.get(element)!);
-			animationHandles.delete(element);
-		}
-
+	const start = requestAnimationFrame(() => {
 		const startY = element.scrollTop;
 		const startX = element.scrollLeft;
 		const yDifference =
@@ -214,10 +228,7 @@ export function smoothScrollTo(options: {
 		const d = Math.max(Math.abs(yDifference), Math.abs(xDifference));
 		const duration = options.duration || Math.min(500, Math.max(250, d / 2));
 
-		const animate = () => {
-			const progress = (performance.now() - startTime) / duration;
-			const amount = easeOutCubic(progress, d);
-
+		const scrollBy = (amount: number) => {
 			// element.scrollTo({
 			// 	top: startY + amount * yDifference,
 			// 	left: startX + amount * xDifference
@@ -226,16 +237,35 @@ export function smoothScrollTo(options: {
 			element.scrollTop = startY + amount * yDifference;
 			element.scrollLeft = startX + amount * xDifference;
 			// element.style.transform = `translateX(${startX + amount * xDifference}px);`;
+		};
 
-			if (progress < 0.99) {
+		const finish = () => {
+			animationHandles.delete(element);
+			options.cb?.();
+		};
+
+		const animate = () => {
+			// A frame that comes late, as on a slow TV, ends at the position and not past it
+			const progress = Math.min(1, (performance.now() - startTime) / duration);
+			scrollBy(easeOutCubic(progress, d));
+
+			if (progress < 1) {
 				animationHandles.set(element, requestAnimationFrame(animate));
 			} else {
-				options.cb?.();
+				finish();
 			}
 		};
 
+		// Less than a pixel is nothing to animate: no frames that would hold the position meanwhile
+		if (d < 1) {
+			scrollBy(1);
+			finish();
+			return;
+		}
+
 		animationHandles.set(element, requestAnimationFrame(animate));
 	});
+	animationHandles.set(element, start);
 
-	return () => cancelAnimationFrame(animationHandles.get(options.element)!);
+	return () => cancelSmoothScroll(element);
 }
